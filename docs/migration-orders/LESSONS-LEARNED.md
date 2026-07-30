@@ -110,6 +110,7 @@
 - Rule: to check whether a secret is SET without exposing its value, grep for the key name only and report a boolean (e.g. pipe through something that reports match/no-match, never the matched line's content) — never display the value in any tool output, chat message, or artifact. If a value is accidentally displayed, do not repeat it, flag the exposure to Davin, and let him decide on rotation.
 - Source: Session 4A-5 · Status: ACTIVE
 - Recurrence (Session 4A-10b continuation, 2026-07-30): the risk isn't limited to `--kv`. `railway variable list --service <svc>` with NO flags at all (the default table view) ALSO prints real, unmasked values for every variable — `CRON_SECRET`, `DATABASE_URL`, `NEXTAUTH_SECRET`, `REDIS_URL`, and 4 dLocal secrets were exposed this way, on the assumption the default table masked values the way some other CLIs do. It doesn't. Rule extension: for Railway specifically, the ONLY safe way to check presence is `railway variable list --service <svc> --json` piped through a script that checks `Object.keys(...)` and prints booleans only — never render the default table, `--kv`, or `--json` output directly, regardless of which flag combination is used.
+- Recurrence (Session 4A-11, 2026-07-30): even the "safe" `--json` + script method has a hole — a `head -c 300`/`cat`-style sanity check on the raw JSON file (meant only to confirm the fetch/parse worked before trusting the boolean check) printed operation-service's real `DATABASE_URL` and `NEXTAUTH_SECRET` straight into the transcript. Rule extension: NEVER read, `cat`, `head`, or otherwise preview ANY byte of a Railway variable dump file's contents, even for debugging the check itself — only grep for an exact key-name match (`grep -q '"KEY_NAME"'`) and report the boolean. If the boolean check itself seems broken, debug it with synthetic/fake JSON, not the real file.
 
 ### L18 — A guard that rejects before the DB means "route works" was never proven; the first authenticated call is the first schema test
 
@@ -234,6 +235,15 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
   code, not by trusting the order's file list as complete. Rule extension: for any PORT order
   targeting a Next.js API route, read the route's own imports first — thin route handlers commonly
   delegate real logic to sibling `lib/` files an order's file-count summary can silently omit.
+- Recurrence (Session 4A-11): smaller-scale, on a NEW-glue file rather than a PORT — the order's own
+  File 3 text cited `POST /v1/outbox/events` and a `wise-webhook.controller.ts` convention reference,
+  assuming money-service's global `/v1` prefix applies to operation-service too. Reading
+  `operation-service/src/main.ts` (no `setGlobalPrefix`) and every existing controller there showed
+  it has no `/v1` prefix at all; separately, the cited convention itself actually lives in a sibling
+  `queue/wise-webhook.processor.ts` file, not the controller named. Both caught by reading the real
+  target service's own conventions before wiring a route, not by trusting a cross-service citation —
+  the order had already hedged this exact spot ("verify exact line at build time"), which is why it
+  got checked instead of assumed.
 
 ### L28 — "Existing tests" cited as a parity oracle may not exist; verify the file is there before trusting it as a safety net
 
@@ -397,3 +407,26 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
   hits this limit — this only bites when triggering a deploy directly via the CLI, which is
   necessary specifically for an env-var-only change (a flag flip) with no new commit to push.
 - Source: Session 4A-10c (2026-07-30) · Status: ACTIVE
+
+### L37 — An event's `aggregateId` is not always the right notification recipient; check each eventType's own emission call site, not just the field name
+
+- Symptom: building operation-service's outbox consumer, the order's own text treated "resolve the
+  recipient via `aggregateId` -> `User.id`" as a universal rule for all 6 `OutboxEvent` types. Five
+  of six really do work that way (the aggregate IS the notified user). The sixth,
+  `COMMISSION_CREDITED`, does not: `stripe-webhook.service.ts` emits it with `aggregateId` set to
+  the PAYING SUBSCRIBER's id (reusing the same `userId` variable the checkout session's tier-write
+  used), not the affiliate who actually earned the commission — a field named `aggregateId` reads as
+  generically "the entity this event is about," which silently hid that it means something
+  different per eventType here.
+- Root cause: an event schema with one shared `aggregateId` field across multiple `eventType`
+  values invites treating recipient resolution as uniform. It isn't, whenever an event's subject
+  (whose tier/state changed) and its intended notification target (who should be emailed) are
+  different people — commission crediting is inherently third-party (subscriber pays, affiliate
+  earns), unlike every other tier/subscription event in this stream.
+- Rule: for any event-driven consumer dispatching by `eventType`, read the ACTUAL EMISSION call
+  site for each eventType (not just the payload shape) before assuming a single resolution strategy
+  covers all of them — specifically check what value the emitting code passed as the identifier and
+  whether that's provably the same person the notification should reach. Where it isn't (and the
+  payload can't supply the real target), skip and flag rather than guess; a wrong-recipient email is
+  a worse failure mode than a missed one.
+- Source: Session 4A-11 (2026-07-30), `DECISION-LOG.md` F50 · Status: ACTIVE

@@ -996,6 +996,28 @@ schema.prisma` (Davin's explicit live approval — a production deploy, escalate
   in-bounds observations under the Autonomy & Deviation clause, not new
   material decisions.
 
+## F31 — SVC_TOKEN activated for real (Session 4A-11)
+
+- Status: RESOLVED (supersedes the Session 3-5 descope above — that decision
+  was "not yet," not "never")
+- Session: 4A-11 · Date: 2026-07-30
+- Decision: `SVC_TOKEN` is now a real, load-bearing shared secret — the
+  Bearer token money-service's `OutboxPublisherCron.deliver()` sends when
+  POSTing to operation-service's new outbox consumer
+  (`POST /outbox/events`), verified by a new `SvcTokenGuard` mirroring
+  money-service's own `CronSecretGuard` (Bearer, exact-match, fail-closed on
+  missing config or mismatch).
+- Evidence: `money-service/src/outbox/outbox-publisher.cron.ts`'s `deliver()`
+  now sends `Authorization: Bearer ${SVC_TOKEN}`;
+  `operation-service/src/outbox/svc-token.guard.ts` (new) checks it. Both
+  `.env.example` files document the variable. Value-blind checked absent on
+  both services' real Railway production as of this session's close (neither
+  side has a real value set yet — needed before 4A-12 can test the delivery
+  path end-to-end; setting it is a live secrets action for Davin, not done
+  this session).
+- Approved by: Davin (live approval of the 4A-11 order, which named this
+  activation explicitly in its own Design decisions section).
+
 ## F33 — production regression check completed — CLOSES Phase 3 fully
 
 - Status: RESOLVED (supersedes the "still outstanding" note in the entry
@@ -1980,6 +2002,36 @@ payment_method_flow","param":"payment_method_flow"}`.
   `fetch` cannot catch (L2), and exactly the class an auth fix can accidentally unmask (new lesson,
   this session).
 - Owner: Davin/Advisor — due before the next Group B (dLocal) cutover attempt.
+
+## F50 — `COMMISSION_CREDITED` outbox event's `aggregateId` resolves to the wrong recipient
+
+- Status: OPEN
+- Session: 4A-11 · Date: 2026-07-30
+- Found while: building `operation-service`'s outbox consumer (File 3/5) — the order's own prose
+  said to resolve every eventType's recipient via `prisma.user.findUnique({ where: { id:
+aggregateId } })`, treated as a universal step. Reading `stripe-webhook.service.ts`'s actual
+  `emitOutboxEvent(userId, 'COMMISSION_CREDITED', {...})` call site (the same `userId` the checkout
+  session's PAYING SUBSCRIBER metadata carries, not the affiliate) showed this is wrong specifically
+  for this eventType — the subscriber and the commission-earning affiliate are two different users.
+- **Root cause:** the `COMMISSION_CREDITED` payload (`{ commissionId, commissionAmount, provider }`)
+  never carries the affiliate's own identity — only a `commissionId` an operation-service consumer
+  could theoretically resolve via a `Commission` -> `AffiliateProfile` -> `User` join, except
+  operation-service's Prisma schema subset (`operation-service/prisma/schema.prisma`) has no
+  `Commission`/`AffiliateProfile` model at all (by design, per that file's own header — a narrow
+  subset, not the full schema) and per L1 must not gain migration authority of its own.
+- **Not fixed this session:** `OutboxConsumerService.processEvent` special-cases
+  `COMMISSION_CREDITED` to skip immediately (log + `{ status: 'skipped', reason:
+'commission-recipient-unresolvable' }`, never looks up `aggregateId` as a `User` for this
+  eventType) rather than emailing the wrong person. Zero production impact today —
+  `OUTBOX_PUBLISHER_ENABLED` stays off until 4A-12.
+- **What a correct fix needs (not decided here):** most likely money-service pre-resolving the
+  affiliate's email/name/code/running-total-earnings into the `COMMISSION_CREDITED` payload itself
+  at emission time (`stripe-webhook.service.ts`'s `emitOutboxEvent` call site already has full
+  schema access to `Commission`/`AffiliateProfile`/`User`) — cheaper than extending
+  operation-service's schema subset for a single read path. Needs Davin/Advisor sign-off before
+  4A-12 can treat this eventType as done.
+- Owner: Davin/Advisor — due before 4A-12 (or its own dedicated follow-up) closes Slice 5 for
+  `COMMISSION_CREDITED` specifically; the other 5 eventTypes are unaffected.
 
 ## Session 4A-10c (2026-07-30) — F48 fixed and verified live; Group B still blocked on a newly-uncovered second bug (F49)
 

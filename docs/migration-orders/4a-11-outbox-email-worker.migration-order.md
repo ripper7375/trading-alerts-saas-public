@@ -269,25 +269,31 @@ eventType, payload }` — no DTO class needed if this repo's convention is plain
 
 ## Slice-level verification (done when)
 
-- [ ] `operation-service` new suites green (subscription-email util, guard, consumer
-      controller/service) — target coverage: one case per eventType + unknown-eventType + user-not-found.
-- [ ] `operation-service` full suite still green (baseline 7/7 suites, 56/56 tests + new suites).
-- [ ] `money-service`'s `outbox-publisher.cron.spec.ts` still green with the new auth-header
-      assertion added (baseline 59/59 suites, 506/506 tests + the extended assertion, net zero new
-      suites on the money-service side since File 4 only modifies an existing file).
-- [ ] `tsc --noEmit` clean both services; `nest build` clean both services.
-- [ ] `OUTBOX_PUBLISHER_ENABLED` and `OUTBOX_PUBLISHER_TARGET_URL` confirmed STILL unset/false in
-      Railway production after this session (value-blind) — zero traffic cut over, by design.
-- [ ] `SVC_TOKEN` (or whatever Open Question 1 resolves to) set on BOTH services' Railway production
-      as a real, matching value (needed for 4A-12 to have anything to test against) — but the guard
-      itself stays unexercised by real traffic until 4A-12 flips the enable flag.
+- [x] `operation-service` new suites green (subscription-email util, guard, consumer
+      controller/service) — 12 + 4 + 12 + 2 = 30 new tests across 4 new suites, one case per
+      eventType + unknown-eventType + user-not-found + email-send-failure-throws, plus the
+      COMMISSION_CREDITED-skips-without-lookup case (see Deviations).
+- [x] `operation-service` full suite still green — 11/11 suites, 86/86 tests (was 7/7, 56/56).
+- [x] `money-service`'s `outbox-publisher.cron.spec.ts` still green with the new auth-header
+      assertion added — 9/9 tests in that file (was 8), full suite 59/59 suites, 507/507 tests (was
+      506/506) — net +1 test, zero new suites, matching the order's own prediction exactly.
+- [x] `tsc --noEmit` clean both services; `nest build` clean both services.
+- [x] `OUTBOX_PUBLISHER_ENABLED` and `OUTBOX_PUBLISHER_TARGET_URL` confirmed STILL unset/false in
+      Railway production after this session (value-blind, re-checked at close) — zero traffic cut
+      over, by design.
+- [ ] `SVC_TOKEN` set on BOTH services' Railway production as a real, matching value — **NOT done
+      this session** (value-blind confirmed absent on both at close). Setting a real secret value is
+      a live action reserved for Davin (`EXECUTOR-PROTOCOL.md` §7); needed before 4A-12 has anything
+      to test against.
 
 ---
 
 ## Cutover & rollback (next session's order — reference only)
 
-- **Mechanism:** set `OUTBOX_PUBLISHER_TARGET_URL` to operation-service's real `/v1/outbox/events`
-  URL, flip `OUTBOX_PUBLISHER_ENABLED=true` on money-service, redeploy, watch the next 5s poll tick
+- **Mechanism:** set `OUTBOX_PUBLISHER_TARGET_URL` to operation-service's real `/outbox/events` URL
+  (corrected from this order's own original `/v1/outbox/events` — operation-service has no global
+  `/v1` prefix, see Deviations), flip `OUTBOX_PUBLISHER_ENABLED=true` on money-service, redeploy,
+  watch the next 5s poll tick
   process at least one real `PENDING` row (likely a `TIER_DOWNGRADED` from the hourly expiry cron, or
   trigger a real `TIER_UPGRADED` via an actual test purchase) — confirm `OutboxEvent.status` reaches
   `PROCESSED` and the customer's inbox (or Resend's dashboard, per this repo's own `simulated: true`
@@ -313,7 +319,60 @@ eventType, payload }` — no DTO class needed if this repo's convention is plain
 
 ## Deviations
 
-_(filled during execution — what/why/impact)_
+1. **Route path corrected: `POST /outbox/events`, not `/v1/outbox/events`.** File 3's own text
+   assumed money-service's global `/v1` prefix convention applies to operation-service too. Reading
+   `operation-service/src/main.ts` (no `setGlobalPrefix` call) and every existing controller
+   (`@Controller('auth')`, `@Controller()` for health — routes at `/auth/*`, `/health`, no `/v1`
+   anywhere) confirmed operation-service has no such prefix. Built the controller at
+   `@Controller('outbox')` + `@Post('events')`, the real correct route for this service. Zero code
+   impact beyond the controller decorator itself — `OUTBOX_PUBLISHER_TARGET_URL` is a Railway env
+   var either way, corrected in the Cutover & rollback section above for 4A-12's benefit.
+2. **`COMMISSION_CREDITED` is deliberately skipped, not dispatched — new finding, `DECISION-LOG.md`
+   F50 (OPEN).** File 3's own text treated "resolve the recipient via `aggregateId` -> `User.id`" as
+   a universal step for all 6 eventTypes. Reading `stripe-webhook.service.ts`'s actual
+   `emitOutboxEvent(userId, 'COMMISSION_CREDITED', {...})` call site showed `userId` there is the
+   PAYING SUBSCRIBER (from the checkout session's own metadata), not the affiliate who earned the
+   commission — sending to `aggregateId` would email the wrong person. The payload
+   (`{ commissionId, commissionAmount, provider }`) has no affiliate identity to resolve from
+   either, and operation-service's Prisma schema subset has no `Commission`/`AffiliateProfile`
+   model (by design, L1) to join through even if it did. `OutboxConsumerService.processEvent`
+   special-cases this eventType to log + skip (`{ status: 'skipped', reason:
+'commission-recipient-unresolvable' }`) before ever touching `prisma.user.findUnique`, rather
+   than guessing or silently sending to the subscriber. Zero production impact today (gated off).
+   Needs its own follow-up before 4A-12 can call this eventType done — see F50.
+3. **`TIER_UPGRADED`'s `billingPeriod` defaults to `'monthly'` when absent from the payload.**
+   Stripe's `TIER_UPGRADED` payload includes `billingPeriod` (`stripe-webhook.service.ts:132`), but
+   dLocal's (`dlocal-webhook.controller.ts:287`) does not — dLocal has no recurring monthly/yearly
+   concept the way Stripe does. `sendSubscriptionConfirmationEmail` requires a `'monthly' | 'yearly'`
+   argument regardless, so the dispatcher defaults to `'monthly'` rather than reject or throw.
+   Cosmetic only (affects displayed pricing text in the confirmation email), and this consumer
+   carries zero production traffic until 4A-12. Not registered as its own flag — low enough impact
+   to fold into this order's Deviations rather than DECISION-LOG.md, but worth revisiting if dLocal's
+   short-cycle plans (e.g. `THREE_DAY`) ever need their own copy.
+4. **`plan` is hardcoded `'PRO'` for `SUBSCRIPTION_CANCELLED`'s 4-arg (Stripe-webhook) branch and
+   omitted entirely from the 2-arg (user-initiated) branch** — verified against the monolith's own
+   original caller (`lib/stripe/webhook-handlers.ts:269`, `sendSubscriptionCanceledEmail(email, name,
+'PRO', cancelAt)` — a literal, not derived from any payload field), not guessed. This event only
+   ever fires on a PRO subscription being canceled, so the hardcode is behavior-preserving, not a new
+   assumption.
+5. **`svc-token.guard.spec.ts`'s guard-metadata test relies on `Reflect.getMetadata` (`reflect-
+metadata`)** — not previously exercised this way anywhere in operation-service's existing spec
+   suite (per an `Explore`-style check before writing it). Confirmed working (the suite passes) since
+   `@nestjs/core`'s own bootstrap chain already side-effect-imports `reflect-metadata`; flagged here
+   only because it was a genuine "does this even work in this environment" question at write time,
+   not because it caused a failure.
+6. **Two incidents during this session's CONFIRM step, both disclosed immediately, neither
+   repeated:** (a) a formatting mistake — prettier's pre-commit pass turned a plain sentence in this
+   order's own header into an unintended nested markdown list after the CONFIRM edit; caught and
+   fixed in a follow-up commit before any file content was touched. (b) a real secret exposure — a
+   `head -c 300` sanity-check on raw Railway variable JSON output (meant only to verify `SVC_TOKEN`'s
+   absence) printed operation-service's real `DATABASE_URL` (full connection string, including
+   password) and `NEXTAUTH_SECRET` into the session transcript. Disclosed to Davin the moment it was
+   noticed, not reproduced again, no further raw-content reads attempted for the rest of the session
+   (switched to grep-boolean-only checks throughout, per `LESSONS-LEARNED.md` L17). Both values need
+   rotation, added to the same outstanding list as CLAUDE.md's existing Waiting-on #66. New
+   `LESSONS-LEARNED.md` entry recorded (see below) since this is L17's SECOND recurrence within the
+   same class of "value-blind check accidentally isn't."
 
 ---
 

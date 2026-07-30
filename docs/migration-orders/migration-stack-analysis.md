@@ -2273,7 +2273,46 @@ unchanged this session (transport-only BUILD, no money-service source touched).
 
 </details>
 
+<details>
+<summary><code>operation-service</code> + <code>money-service</code> — Slice 5 outbox email worker, receiving side BUILT, 10 new files + 2 modified (Session 4A-11)</summary>
+
+Zero production traffic — `OUTBOX_PUBLISHER_ENABLED`/`OUTBOX_PUBLISHER_TARGET_URL` stay unset/false
+in every environment; cutover is 4A-12.
+
+New (`operation-service`):
+
+- `operation-service/src/email/subscription-email.util.ts` + `.spec.ts` — ported 5 of
+  `lib/email/subscription-emails.ts`'s 8 functions verbatim (cancellation, payment-failed,
+  payment-receipt, subscription-canceled, affiliate-commission); dropped 2 (dead-in-monolith
+  upgrade template, out-of-event-scope renewal reminder)
+- `operation-service/src/outbox/svc-token.guard.ts` + `.spec.ts` — mirrors money-service's
+  `CronSecretGuard` shape, activates F31
+- `operation-service/src/outbox/dto/outbox-event.dto.ts` — `class-validator` DTO matching
+  money-service's `deliver()` body shape; `eventType` deliberately untyped-enum so an unrecognized
+  future value reaches the service's own no-op branch instead of a 400
+- `operation-service/src/outbox/outbox-consumer.service.ts` + `.spec.ts` — dispatches by
+  `eventType`; `COMMISSION_CREDITED` deliberately skipped (see `DECISION-LOG.md` F50)
+- `operation-service/src/outbox/outbox-consumer.controller.ts` + `.spec.ts` —
+  `POST /outbox/events` (corrected from the order's own `/v1/outbox/events` — this service has no
+  global `/v1` prefix), `SvcTokenGuard`-protected
+- `operation-service/src/outbox/outbox.module.ts`
+
+Modified:
+
+- `operation-service/src/app.module.ts` — `OutboxModule` imported
+- `money-service/src/outbox/outbox-publisher.cron.ts` — `deliver()` now sends
+  `Authorization: Bearer <SVC_TOKEN>` alongside the existing `Content-Type` header
+- `money-service/src/outbox/outbox-publisher.cron.spec.ts` — 1 new assertion added, 8 existing
+  cases unchanged
+- `money-service/.env.example` / `operation-service/.env.example` — documented `SVC_TOKEN`,
+  `OUTBOX_PUBLISHER_ENABLED`, `OUTBOX_PUBLISHER_TARGET_URL` (doc-only)
+
+`operation-service`: 11/11 suites, 86/86 tests (was 7/7, 56/56). `money-service`: 59/59 suites,
+507/507 tests (was 506/506). `tsc --noEmit`/`nest build` clean both services.
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-07-27 (Session 4A-10a, Slice 4 write-API monolith transport)
+**Compiled:** 2026-07-08 · **Updated:** 2026-07-30 (Session 4A-11, Slice 5 outbox email worker BUILD)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

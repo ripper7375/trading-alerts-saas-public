@@ -26,7 +26,69 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-10c (ad-hoc, Slice 4 / Group B dLocal fix-and-retry attempt), executed
+- **Current:** Session 4A-11 (Slice 5 Outbox Email Worker BUILD, PORT variant), CONFIRMED and
+  executed 2026-07-30 — zero traffic cut over, same BUILD/CUTOVER split as every prior write-path
+  slice (4A-9/10, 4A-W6/W7). Davin approved the Advisor's DRAFT live in chat; CONFIRM re-verified
+  the file inventory (all 7 cited SOURCE line counts exact matches), both services' full test-suite
+  baselines (money-service 59/59/506/506, operation-service 7/7/56/56), and value-blind confirmed
+  `OUTBOX_PUBLISHER_ENABLED`/`OUTBOX_PUBLISHER_TARGET_URL` still absent on money-service production
+  — all 5 entry criteria passed.
+  **Built (5 files, one commit each):** `operation-service/src/email/subscription-email.util.ts`
+  (File 1 — ports 5 of `lib/email/subscription-emails.ts`'s 8 functions verbatim: cancellation,
+  payment-failed, payment-receipt, subscription-canceled, affiliate-commission; drops the
+  confirmed-dead-in-monolith upgrade template and the out-of-event-scope renewal reminder; no
+  SOURCE spec existed, so this session also built the parity safety net per `LESSONS-LEARNED.md`
+  L28), `operation-service/src/outbox/svc-token.guard.ts` (File 2 — mirrors money-service's
+  `CronSecretGuard` shape, activates **F31** for real), `operation-service/src/outbox/*`
+  consumer module (File 3 — `POST /outbox/events`, dispatches by `eventType`, unrecognized/
+  user-not-found return a `'skipped'` 200 rather than retrying forever, a transient send failure
+  5xxs so the cron retries), `money-service/src/outbox/outbox-publisher.cron.ts`'s `deliver()`
+  (File 4 — now sends `Authorization: Bearer <SVC_TOKEN>`, all 8 existing test cases unchanged, one
+  new assertion added), and both services' `.env.example` files (File 5 — documented
+  `SVC_TOKEN`/`OUTBOX_PUBLISHER_ENABLED`/`OUTBOX_PUBLISHER_TARGET_URL`, doc-only).
+  **Real gap found and NOT silently papered over, `DECISION-LOG.md` new **F50** (OPEN):** the
+  order's own File 3 text treated "resolve the recipient via `aggregateId` -> `User.id`" as
+  universal across all 6 `eventType`s. Reading `stripe-webhook.service.ts`'s actual
+  `emitOutboxEvent(userId, 'COMMISSION_CREDITED', {...})` call site showed `userId` there is the
+  PAYING SUBSCRIBER, not the affiliate who earned the commission — and operation-service's Prisma
+  schema subset has no `Commission`/`AffiliateProfile` model to resolve the real recipient even if
+  the payload carried enough to try. `OutboxConsumerService` special-cases this eventType to
+  log-and-skip rather than email the wrong person. New `LESSONS-LEARNED.md` **L37** generalizes
+  this: an event's `aggregateId` field name doesn't guarantee it's the right notification target
+  for every `eventType` sharing that field — check each emission call site, not just the schema.
+  **Two smaller findings, recorded as Deviations, not flags:** operation-service has no global
+  `/v1` route prefix (unlike money-service) — the order's own `/v1/outbox/events` citation was
+  corrected to the real `/outbox/events` (`LESSONS-LEARNED.md` L27 recurrence); dLocal's
+  `TIER_UPGRADED` payload has no `billingPeriod` field (Stripe's does) — defaults to `'monthly'`,
+  cosmetic only, zero production traffic reaches this code yet.
+  **Two incidents this session, both disclosed immediately, neither repeated:** a prettier
+  pre-commit pass turned a plain sentence in this order's own CONFIRM header edit into an
+  unintended nested markdown list — caught and fixed in a follow-up commit before any code was
+  touched. More seriously: a `head -c 300` sanity-check on raw Railway variable JSON (meant only to
+  confirm `SVC_TOKEN`'s absence on operation-service) printed its real `DATABASE_URL` and
+  `NEXTAUTH_SECRET` into the session transcript — disclosed to Davin the moment it happened, not
+  reproduced again, every check for the rest of the session used grep-boolean-only output. Both
+  values need rotation — added to the same outstanding list as Waiting-on #66's prior exposure.
+  `LESSONS-LEARNED.md` L17 given a second recurrence note (the "safe" `--json`-plus-script method
+  still has a hole if you ever peek at the raw file's own content while debugging the check).
+  **Full verification:** `operation-service` 11/11 suites, 86/86 tests (was 7/7, 56/56 — +4 suites/
+  +30 tests). `money-service` 59/59 suites, 507/507 tests (was 506/506 — net +1 test, zero new
+  suites, matching the order's own prediction). `tsc --noEmit`/`nest build` clean both services.
+  Value-blind re-confirmed at close: `OUTBOX_PUBLISHER_ENABLED`/`OUTBOX_PUBLISHER_TARGET_URL` still
+  absent on money-service production — zero traffic cut over, by design. `SVC_TOKEN` confirmed
+  absent on BOTH services' Railway production (not set this session — a live secrets action
+  reserved for Davin per `EXECUTOR-PROTOCOL.md` §7, needed before 4A-12 has anything to test
+  against).
+  **Artifacts updated:** `4a-11-outbox-email-worker.migration-order.md` (Status → CONFIRMED,
+  Deviations filled in full — 6 entries, Done-when checked except the outstanding `SVC_TOKEN`
+  item), `DECISION-LOG.md` (F31 activation entry, new F50 OPEN),
+  `migration-cutover-table.md` (Slice 5 row: MONOLITH → BUILT), `migration-stack-analysis.md` (new
+  `operation-service`/`money-service` entry, 10 new files + 2 modified), `LESSONS-LEARNED.md` (L17
+  recurrence, L27 recurrence, new L37), this file. New
+  `4a-12-outbox-email-worker-cutover.migration-order.md` PRE-DRAFTed (VERIFY-RETIRE, fast-path
+  eligible — PRE-DRAFT → APPROVED directly, per protocol's own VERIFY-RETIRE exception), carrying
+  the `SVC_TOKEN`-not-yet-set and F50 items forward as explicit entry criteria / monitoring notes.
+- _(superseded-by-above, retained for context)_ Session 4A-10c (ad-hoc, Slice 4 / Group B dLocal fix-and-retry attempt), executed
   2026-07-30 — same session/phase numbering family as 4A-10b, labeled per
   `EXECUTOR-PROTOCOL.md` §6's ad-hoc-session rule since no formal order file exists for it; Davin
   directed it live in chat, reporting the F48 header/signing fix already applied (uncommitted) and
@@ -1188,7 +1250,13 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `CUT-OVER (dLocal only)`, RiseWorks portion noted separately), `CLAUDE.md` (this
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
-- **Current order:** No formal order file governs Session 4A-10c — ad-hoc per
+- **Current order:** `docs/migration-orders/4a-11-outbox-email-worker.migration-order.md` (Slice 5
+  Outbox Email Worker BUILD, PORT variant) — CONFIRMED and executed 2026-07-30, closed clean (see
+  Current above and Order status below). Independent of the Slice 4/dLocal track (F49) — run in
+  parallel per Davin's own established allowance from 4A-10c's close. New
+  `4a-12-outbox-email-worker-cutover.migration-order.md` PRE-DRAFTed (VERIFY-RETIRE, fast-path
+  eligible) is the literal next session on this track.
+  No formal order file governs Session 4A-10c — ad-hoc per
   `EXECUTOR-PROTOCOL.md` §6 (Davin directed it live in chat; labeled clearly here, same
   phase/session numbering family as 4A-10b). Its predecessor,
   `docs/migration-orders/4a-10-money-service-write-apis-cutover.migration-order.md` (4A-10b,
@@ -1232,6 +1300,19 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   (`CRON_SECRET`/`DATABASE_URL`/`NEXTAUTH_SECRET`/`REDIS_URL`/4 dLocal vars, via
   `railway variable list`'s unmasked default view) still need rotation. See Current above and the
   order's own Deviations (17 entries) for full detail.
+- **Order status (4A-11):** CONFIRMED, executed, fully closed — all Done-when items checked except
+  one explicitly-outstanding item (`SVC_TOKEN` set to a real matching value on both services'
+  Railway production — a live secrets action reserved for Davin, not the Executor). All 5 files
+  shipped: subscription email templates ported to operation-service, `SvcTokenGuard` built
+  (activates F31), the outbox-event consumer module built (`POST /outbox/events`), money-service's
+  `OutboxPublisherCron` now sends the `SVC_TOKEN` Bearer header, both `.env.example` files
+  documented. `operation-service` 11/11 suites/86/86 tests; `money-service` 59/59 suites/507/507
+  tests; `tsc --noEmit`/`nest build` clean both services. Zero traffic cut over —
+  `OUTBOX_PUBLISHER_ENABLED`/`OUTBOX_PUBLISHER_TARGET_URL` confirmed still absent on money-service
+  production at close. New `DECISION-LOG.md` **F50** (OPEN) — `COMMISSION_CREDITED`'s recipient is
+  unresolvable with the current payload/schema, deliberately skipped rather than sent to the wrong
+  person; needs its own follow-up before 4A-12 can call that specific eventType done (the other 5
+  eventTypes are unaffected and fully wired). See Current above for full detail.
 - **Order status (4A-10c, ad-hoc):** F48 (`DECISION-LOG.md`, the dLocal outbound signing bug this
   order status block previously pointed to) is now RESOLVED — fixed for real and verified live
   (see Current above). Group B (dLocal) is still NOT cut over: fixing F48 uncovered a second,
@@ -1733,7 +1814,24 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   before considering Group B cutover-ready again. **(70, NEW)** A 4th orphaned`Payment` row
   (`cms7hlmb900000fmpz9i9fv1q`, `status: PENDING`) was created during 4A-10c's live test, before
   F49 was diagnosed — needs Davin's cleanup, same as the prior three (the Executor will not delete
-  production data directly even with authorization).
+  production data directly even with authorization). **(71, NEW)** `SVC_TOKEN`needs a real,
+  matching value set on BOTH money-service's and operation-service's Railway production before
+ `4a-12-outbox-email-worker-cutover.migration-order.md`can test the delivery path — value-blind
+  confirmed absent on both as of 4A-11's close. Setting it is Davin's own live secrets action, not
+  something the Executor does. **(72, NEW)**`DECISION-LOG.md`**F50** (OPEN): the
+ `COMMISSION_CREDITED` `OutboxEvent`'s `aggregateId`is the paying subscriber, not the affiliate
+  who earned the commission — operation-service's`OutboxConsumerService`deliberately skips this
+  eventType (logs, returns`'skipped'`) rather than emailing the wrong person, since neither the
+  payload nor operation-service's Prisma schema subset can resolve the real recipient today. Needs
+  its own dedicated fix (most likely: money-service pre-resolving the affiliate's email/name/code/
+  totalEarnings into the payload at emission time, in `stripe-webhook.service.ts`) before this
+  specific eventType can be considered done — the other 5 are unaffected. **(73, NEW)** Two more
+  Railway secrets need rotation, on top of Waiting-on #66's still-outstanding set: 4A-11's own
+  CONFIRM step accidentally printed operation-service's real `DATABASE_URL`and`NEXTAUTH_SECRET`  into the session transcript (a`head -c 300`sanity-check on raw variable JSON, not a`--kv`/
+  default-table view this time — see `LESSONS-LEARNED.md`L17's new recurrence note). Disclosed
+  immediately, not reproduced again. **(74, NEW)**`4a-12-outbox-email-worker-cutover.migration-order.md`   PRE-DRAFTed at 4A-11's close (VERIFY-RETIRE, fast-path eligible per
+  `EXECUTOR-PROTOCOL.md` §4) — carries #71/#72 forward as explicit entry criteria / monitoring
+  notes so neither gets rediscovered live during the cutover itself.
 - **Next session:** Two independent tracks are both open; Davin to decide relative ordering.
   **Slice 4 track (this file's own numbering):** `4a-9-money-service-write-apis-port.migration-order.md`
   is CONFIRMED, executed, and fully closed (see Order status above) — Slice 4's write APIs are
@@ -1761,15 +1859,19 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   dLocal vars) still need rotation.
   `migration-cutover-table.md`'s Slice 4 row is now `CUT-OVER (partial: 3/4 groups)` — full
   `CUT-OVER` still waits on Group B/F49 specifically. **4A-11 (Slice 5 / Outbox Email Worker BUILD)
-  is now PRE-DRAFTed** (`4a-11-outbox-email-worker.migration-order.md`, 2026-07-30, ad-hoc per this
-  session's own established parallel-work allowance — confirmed independent of dLocal). Davin/the
-  Advisor can run F49's fix and 4A-11's DRAFT-approval-CONFIRM cycle in either order.
+  is now CONFIRMED, executed, and fully closed** (`4a-11-outbox-email-worker.migration-order.md`,
+  2026-07-30 — see Current/Order status above) — the receiving side is built in operation-service,
+  zero traffic cut over. **4A-12 (Slice 5 CUTOVER) is PRE-DRAFTed**
+  (`4a-12-outbox-email-worker-cutover.migration-order.md`, VERIFY-RETIRE, fast-path eligible),
+  gated on Waiting-on #71 (`SVC_TOKEN` real value, both services) and Davin's live presence — still
+  independent of the F49/dLocal track, either can run first.
   **That eventual full close-out must still explicitly carry forward the email-silence
   consequence 4A-9 flagged**: now that the Stripe flag is genuinely live, Stripe-originated
-  tier-upgrade/cancellation/payment emails are silent as of 2026-07-30 (deferred to `OutboxEvent`s,
-  same as dLocal's since 4A-5, pending Slice 5's real consumer) — not a regression to discover
-  later, already known and accepted, but worth confirming Davin still wants this given it's no
-  longer hypothetical.
+  tier-upgrade/cancellation/payment emails are STILL silent as of 2026-07-30 — 4A-11 built the
+  receiving end but `OUTBOX_PUBLISHER_ENABLED` stays off until 4A-12 actually flips it, so nothing
+  changes about this until then. Not a regression to discover later, already known and accepted,
+  but worth confirming Davin still wants this given it's no longer hypothetical and now has a
+  concrete next step (4A-12) rather than being blocked on Slice 5 not existing at all.
   4A-8's own Step 1 closed the 3-endpoint idempotency gap Waiting-on #52 flagged (Stripe checkout,
   dLocal create, admin code distribution all now have a guard) — **#52 is RESOLVED.**
   `RiseWorksWebhookEvent`'s own missing unique constraint (also flagged under #52) was NOT
@@ -1826,8 +1928,11 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   precedent, using real Resend API keys · **F29 fully RESOLVED (Session 3-4)** —
   port `lib/email/email.ts` in full into operation-service · **F30 fully RESOLVED
   (Session 3-4)** — CORS confirmed unnecessary, server-side proxying continues ·
-  **F31 fully RESOLVED (Session 3-5)** — SVC_TOKEN leg descoped, pure VERIFY-RETIRE
-  for SSR + browser legs · **F32 fully RESOLVED (Session 3-5)** — Davin set both
+  **F31 fully RESOLVED (Session 3-5, descoped; ACTIVATED FOR REAL Session 4A-11)** —
+  SVC_TOKEN now a real shared secret guarding money-service's outbox delivery call
+  into operation-service (`SvcTokenGuard`, `POST /outbox/events`); real value not yet
+  set on either service's Railway production (needed before 4A-12) ·
+  **F32 fully RESOLVED (Session 3-5)** — Davin set both
   missing Railway env vars, confirmed live at CONFIRM · **F33 fully RESOLVED
   (Session 3-5)** — production check completed same-session against the live
   Vercel URL, NextAuth confirmed unregressed, no outstanding items · **F15 fully
@@ -1868,6 +1973,11 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   **F49 OPEN (registered Session 4A-10c, 2026-07-30)** — fixing F48 uncovered that the outbound
   dLocal request body has never included the required `payment_method_flow` field, on either side
   of the migration; full detail in `DECISION-LOG.md` ·
+  **F50 OPEN (registered Session 4A-11, 2026-07-30)** — `COMMISSION_CREDITED`'s `OutboxEvent`
+  `aggregateId` resolves to the paying subscriber, not the affiliate who earned the commission;
+  operation-service's schema subset has no `Commission`/`AffiliateProfile` model to resolve the
+  real recipient either way — deliberately skipped rather than emailed to the wrong person; full
+  detail in `DECISION-LOG.md` ·
   **F14 fully RESOLVED (Session 4A-8, Davin)** — Transactional Outbox pattern; `OutboxEvent` live
   in production with verified `money_svc` grants, `OutboxPublisherCron` built but gated OFF
   pending Slice 5's (4A-11/12) real operation-service consumer (Waiting-on #60) ·
