@@ -109,6 +109,7 @@
 - Root cause: `--kv` (and the default table view) print real values, not just key presence; there is no built-in "exists only" flag.
 - Rule: to check whether a secret is SET without exposing its value, grep for the key name only and report a boolean (e.g. pipe through something that reports match/no-match, never the matched line's content) — never display the value in any tool output, chat message, or artifact. If a value is accidentally displayed, do not repeat it, flag the exposure to Davin, and let him decide on rotation.
 - Source: Session 4A-5 · Status: ACTIVE
+- Recurrence (Session 4A-10b continuation, 2026-07-30): the risk isn't limited to `--kv`. `railway variable list --service <svc>` with NO flags at all (the default table view) ALSO prints real, unmasked values for every variable — `CRON_SECRET`, `DATABASE_URL`, `NEXTAUTH_SECRET`, `REDIS_URL`, and 4 dLocal secrets were exposed this way, on the assumption the default table masked values the way some other CLIs do. It doesn't. Rule extension: for Railway specifically, the ONLY safe way to check presence is `railway variable list --service <svc> --json` piped through a script that checks `Object.keys(...)` and prints booleans only — never render the default table, `--kv`, or `--json` output directly, regardless of which flag combination is used.
 
 ### L18 — A guard that rejects before the DB means "route works" was never proven; the first authenticated call is the first schema test
 
@@ -322,3 +323,40 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
 - Root cause: 4A-9 (the PORT session) copied the CODE that reads `STRIPE_SECRET_KEY`/`STRIPE_PRO_PRICE_ID`/`DLOCAL_API_KEY`/etc. into `money-service`, and someone separately added SOME of the corresponding Railway variables afterward — but nothing in either session's scope was "verify every config value the newly-ported code needs is present AND correct in the new service's real target environment," so partial/wrong configuration shipped silently behind an off-by-default flag until a live cutover attempt exercised it.
 - Rule: before any cutover session flips a flag for newly-PORTed code, enumerate every config value the ported code reads (grep the new service's source, not just its `.env.example`) and value-blind-verify (L17 method) each one is present on the real target environment — and where feasible, verify CORRECTNESS too (e.g., a real sandbox API call), not just presence, since a present-but-wrong credential (dLocal here) is invisible to a presence check alone.
 - Source: Session 4A-10b (2026-07-28) · Status: ACTIVE
+
+### L33 — A provider's "Invalid credentials" error can mean the request signing is wrong, not the secret values — check the code path before re-verifying config a second time
+
+- Symptom: `money-service` returned the identical `403 Invalid credentials` (dLocal code 3001) on a
+  dLocal payment-creation retry even after the credentials were refreshed and independently
+  confirmed present. The real cause (found by re-reading the actual `fetch()` call, not by
+  re-checking config again) was `dlocal-payment.service.ts:143-151` sending `X-Login`/
+  `X-Trans-Key`/`Authorization` to the wrong fields — a byte-for-byte-preserved bug that predates
+  this migration entirely (identical in the monolith's own original source).
+- Root cause: L32 correctly established "verify the config is present in the new service's real
+  environment" — but a provider's generic "invalid credentials" response is consistent with BOTH a
+  wrong secret value AND a correctly-valued secret sent in the wrong header/field/signing scheme.
+  Nothing distinguishes these from the error message alone.
+- Rule: after a config-presence check passes (L32) and a provider still rejects credentials as
+  invalid, read the actual outbound request construction (headers, signing/HMAC scheme, which
+  field gets which secret) before asking for the credentials to be re-verified a second time —
+  especially for code marked "ported byte-for-byte" from an older codebase, which may never have
+  been exercised against the real provider API even before the migration. Compare against any
+  sibling code path for the same provider that IS known-working (here, the inbound webhook
+  verifier, fixed in Session 4A-5) — a working sibling often reveals the provider's real scheme
+  directly.
+- Source: Session 4A-10b continuation (2026-07-30), `DECISION-LOG.md` F48 · Status: ACTIVE
+
+### L34 — This app's monolith routes authenticate via NextAuth session cookie, not a Bearer header; Bearer is only what money-service's OWN guards expect on the forwarded request
+
+- Symptom: suggested `Authorization: Bearer <token>` for testing a monolith Next.js route
+  (`/api/payments/dlocal/create`) and got a 401 that never reached money-service — the monolith's
+  own `getServerSession(authOptions)` call reads NextAuth's `httpOnly` session cookie
+  (`__Secure-next-auth.session-token` in production), never an `Authorization` header. Bearer auth
+  only enters the picture INSIDE `forwardWriteRequestToMoneyService`, which reads the monolith's
+  own resolved session and re-attaches it as a Bearer token when calling money-service — the
+  external caller never supplies a Bearer token directly for these routes.
+- Rule: when constructing a live test request against a MONOLITH Next.js API route, use a real
+  session cookie (`WebRequestSession` + `System.Net.Cookie`, per L(Cookie via -Headers is dropped,
+  Session 4A-10b prior entry) — never a Bearer header. Bearer headers are only correct when calling
+  money-service's OWN endpoints directly (`JwtAuthGuard`-protected `/v1/...` routes).
+- Source: Session 4A-10b continuation (2026-07-30) · Status: ACTIVE

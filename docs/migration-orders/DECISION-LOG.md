@@ -1875,3 +1875,104 @@ status=PENDING`) guards against double-processing across replicas. **Gated OFF b
   soak" selected over keeping the literal wording or building a real shadow-traffic mechanism
   first). Finding 2 is a factual/structural gap, not a decision — recorded as a hard-blocking
   entry criterion for Davin and the Advisor to plan the missing BUILD session against.
+
+## F48 — dLocal outbound payment-creation request signing is wrong (pre-existing, both monolith and money-service)
+
+- Status: OPEN
+- Session: 4A-10b (continuation) · Date: 2026-07-30
+- Found while: retrying Group B (dLocal) after Davin's Phase 1/2 config remediation (new
+  `STRIPE_PRO_PRICE_ID`, refreshed dLocal sandbox credentials). The retry reproduced the IDENTICAL
+  `403 Invalid credentials` (dLocal code 3001) as the prior 4A-10b attempt (2026-07-28), even
+  though this time the credentials were independently confirmed present and Davin stated the
+  Railway values were correct. Davin/Antigravity (Advisor) identified the real root cause as a
+  code bug, not a config bug — confirmed live by the Executor by reading the actual header
+  construction in `money-service/src/dlocal/dlocal-payment.service.ts:143-151`.
+- **The bug (three separate mistakes in the same fetch call):**
+  1. `'X-Login': DLOCAL_API_KEY` — dLocal's `X-Login` header must carry the merchant's **login ID**
+     (`DLOCAL_LOGIN`), not the API/transaction key.
+  2. `'X-Trans-Key': signature` — dLocal's `X-Trans-Key` header must carry the **API key itself**
+     (`DLOCAL_API_KEY`), not a computed HMAC signature.
+  3. `Authorization: \`Bearer ${DLOCAL_API_KEY}\``— dLocal does not use Bearer auth for this
+endpoint; its real scheme is`Authorization: V2-HMAC-SHA256, Signature: <hex>`, where the hex
+digest is an HMAC-SHA256 over `X-Login + X-Date + body` using the secret key — the exact
+scheme Session 4A-5 already fixed on the INBOUND webhook-verification path
+(`8e681297`), never applied to this OUTBOUND payment-creation path. `DLOCAL_LOGIN` is not even
+     imported into this file.
+- **Scope: pre-existing in the monolith, not introduced by the migration.** Verified directly:
+  `lib/dlocal/dlocal-payment.service.ts` (monolith original) has the byte-identical bug at the
+  same three points (lines 110-113 and again at 204-206 for a second call site). Session 4A-9's
+  PORT correctly preserved this behavior verbatim per its own low-creativity mandate — this is not
+  a porting error. It means dLocal outbound payment creation has likely never worked correctly in
+  production, on either side of this migration, independent of the cutover. If any customers
+  currently pay via dLocal, this is a live, real-money-adjacent correctness gap today, not a
+  migration artifact — worth Davin's attention regardless of migration sequencing.
+- **Not fixed this session:** `4a-10-...migration-order.md` (4A-10b) is a VERIFY-RETIRE order with
+  an explicit "no code edits, no refactoring, no fixes" rule. `MIGRATE_WRITE_APIS_MONEY_DLOCAL`
+  stays reverted `false`; Group B stays on the monolith (which has the same bug, so reverting
+  doesn't restore working dLocal payments — it only avoids the migration being blamed for a
+  pre-existing gap).
+- **What a correct fix needs:** correct all three header/auth fields in
+  `money-service/src/dlocal/dlocal-payment.service.ts` (both call sites) — a dedicated PORT-shaped
+  fix session, since the monolith source has the identical bug and should likely be fixed too (or
+  retired once dLocal is cut over, per Davin/Advisor's call on sequencing). Verify against dLocal's
+  real sandbox API with a live call before considering it fixed, not just a code read — this class
+  of bug (looks structurally plausible, silently wrong) is exactly what unit tests with mocked
+  `fetch` would miss (see `LESSONS-LEARNED.md` L2).
+- Owner: Davin/Advisor — due before the next Group B (dLocal) cutover attempt.
+
+## Session 4A-10b (continuation, 2026-07-30) — 3 of 4 write-API groups cut over live
+
+- **Context:** continuation of the 4A-10b order paused 2026-07-28 (see the order's own Deviations
+  9-11). Davin reported Phase 1/2 remediation complete before this session started:
+  `STRIPE_PRO_PRICE_ID` added to money-service Railway production; dLocal credentials refreshed;
+  the two orphaned test `Payment` rows from the prior session deleted (independently re-verified
+  by the Executor via a direct production query — 0 rows, both by ID and by a full `PENDING`-status
+  scan).
+- **Incident, disclosed immediately:** early in CONFIRM re-verification, the Executor ran `railway
+variable list --service money-service` (default table view, not `--kv`) believing it masked
+  values — it does not. Real values for `CRON_SECRET`, `DATABASE_URL`, `NEXTAUTH_SECRET`,
+  `REDIS_URL`, and all 4 dLocal secrets were printed into the session transcript. This is the same
+  failure class as `LESSONS-LEARNED.md` L17 (previously scoped to `--kv` only) — the DEFAULT `list`/
+  `ls` table view has the identical problem. Disclosed to Davin immediately, before proceeding;
+  Davin's call was to continue the session and rotate all exposed secrets after cutover completes.
+  **This rotation is still outstanding as of this entry** — see Waiting-on.
+- **Group A (Stripe): PASSED, cut over.** Flag flipped, redeployed, live authenticated request
+  (Davin) returned a valid `cs_test_...` Stripe Checkout session. Independently cross-checked via
+  money-service's own HTTP access logs (not just the response body): `POST /v1/stripe/checkout →
+201 Created, 546ms`. Zero error-level logs, zero 4xx/5xx on money-service in the surrounding hour.
+  `STRIPE_PRO_PRICE_ID` remediation confirmed effective.
+- **Group B (dLocal): FAILED, reverted, NOT cut over.** See F48 above for the full root cause (a
+  real code bug, not the config issue previously assumed). Two client-tooling detours cost real
+  time before reaching the actual dLocal call: (1) `curl.exe` from PowerShell mangled the JSON
+  body (`Expected property name or '}' in JSON at position 1` — the exact class of bug documented
+  in the prior session's Deviation 12); (2) the Executor's own suggested `Authorization: Bearer`
+  header pattern was wrong for the monolith's Next.js routes (which authenticate via NextAuth's
+  `getServerSession()` cookie, not a bearer header — bearer auth is what money-service's OWN
+  `JwtAuthGuard` expects on the FORWARDED request, not what the caller supplies to the monolith).
+  Both resolved by switching to `Invoke-RestMethod` with an explicit `-WebSession`/`System.Net
+.Cookie` object carrying Davin's real `__Secure-next-auth.session-token` (extracted from Chrome
+  DevTools), matching the prior session's own established pattern. A third orphaned `Payment` row
+  (`cms79jwuw00000frzsiurqtk4`, `status: PENDING`) was created before the dLocal 403 — the Executor
+  declined to delete it (permanently deleting production data is outside what this Executor will
+  do even with authorization); flagged for Davin to remove the same way as the prior two.
+- **Group C (Admin): PASSED, cut over.** First attempt 403'd (`{"error":"You must be an
+  administrator to access this resource"}`) — the cookie used belonged to a non-admin account,
+  confirmed by reading `requireAdmin()`'s own `session.user?.role !== 'ADMIN'` check. Retried with
+  an admin account's cookie: `{"success":true,"message":"Successfully distributed 1 codes to
+affiliate","codesDistributed":1}`, independently cross-checked via money-service HTTP logs:
+  `POST /v1/admin/affiliates/.../distribute-codes → 201 Created, 99ms`. Zero errors surrounding the
+  request. This created one real `AffiliateBonusCode` batch row in production (intentional, per
+  the test itself).
+- **Group D (Disbursement): cut over, code/guard/log verification only — no live batch executed.**
+  Per the prior session's own established Deviation 8 scope (executing a real batch would move
+  real money through the live `WISE` provider). Verified instead: monolith route's flag-check
+  wiring (unchanged since 4A-10a), money-service's `DisbursementBatchesController` guard parity
+  (`JwtAuthGuard`+`AdminGuard` mirrors `requireAdmin()`), response-shape parity, and the
+  `WisePaymentProvider` DI wiring into the provider-factory call. Flag flipped, redeployed clean,
+  zero errors, `/health` → `200`. Live proof is deferred to the next real scheduled disbursement
+  batch, same plan as 4A-W7 established.
+- **Net result:** `migration-cutover-table.md`'s Slice 4 row is CUT-OVER for 3 of 4 groups
+  (Stripe, Admin, Disbursement); dLocal stays on the monolith pending F48's fix. This is being
+  recorded as a stable partial-scope completion (matching the Slice 2 dLocal-only precedent from
+  Session 4A-5), not a broken mid-state — the monolith continues serving 100% of dLocal payment
+  creation traffic unchanged, and reverting was confirmed clean via redeploy.
