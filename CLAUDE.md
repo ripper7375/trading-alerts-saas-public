@@ -26,7 +26,49 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-11 (Slice 5 Outbox Email Worker BUILD, PORT variant), CONFIRMED and
+- **Current:** Session 4A-12 (Slice 5 Outbox Email Worker CUTOVER, VERIFY-RETIRE variant),
+  fast-pathed PRE-DRAFT → APPROVED → CONFIRMED → executed, all same day 2026-07-30. CONFIRM found
+  `SVC_TOKEN` had flipped from absent (at 4A-11's close) to present-and-matching on both services
+  (value-blind verified: both non-empty, equal length, byte-equal) — all other entry criteria PASS,
+  zero shadow-run applicable (F51 RESOLVED — a single on/off gate has nothing to mirror). Davin said
+  "Go."
+  **Found and fixed a real gap before touching any flag:** probing the target endpoint ahead of
+  wiring it in returned `404`, not the expected `401` — 4A-11's entire build (both services) had
+  been committed and CONFIRMED but **never pushed/deployed**: local `main` was 12 commits ahead of
+  `origin/main`. Compounding: `operation-service` has `"source": null` in `railway service list
+--json` — no GitHub source connected at all, so a push alone could never have reached it regardless
+  (it was deployed by direct upload some prior session). Stopped, reported to Davin in full before
+  touching anything live; his explicit call was "push now, verify, then continue 4A-12."
+  **Fixed:** `git push origin main` (pre-push hook ran the full monolith suite, 122/122 suites,
+  2138/2138 tests, before allowing it — money-service auto-redeployed clean);
+  `railway up ./operation-service --path-as-root --service operation-service` (the only viable
+  deploy path for a service with no connected source). Re-verified end-to-end, value-blind:
+  unauthenticated `POST /outbox/events` now `401` (not `404`); the SAME call with the real
+  `SVC_TOKEN` read into memory and never printed returned `400` (DTO validation on an empty test
+  body) — proof the deployed `SvcTokenGuard` genuinely accepts the real production token, not just
+  that a guard exists. Both services confirmed healthy (`/health` → `200`).
+  **Executed the cutover:** `OUTBOX_PUBLISHER_TARGET_URL` set to operation-service's real
+  `/outbox/events` URL; `OUTBOX_PUBLISHER_ENABLED=true` flipped. The triggered redeploy sat in
+  Railway's `QUEUED` state for ~23 minutes (unexplained delay — money-service stayed healthy on its
+  prior deployment throughout, zero customer-facing impact) before building and succeeding.
+  Confirmed clean: `Nest application successfully started`, zero DI errors, zero error/outbox log
+  lines since boot.
+  **Not completed this session, left as a monitoring item per Davin's explicit call:** watching a
+  real event reach `PROCESSED`. Production's `OutboxEvent` table is confirmed EMPTY — 0 rows total,
+  ever (direct production query, money-service's own `PrismaPg`-adapter pattern against
+  `DATABASE_PUBLIC_URL`, since `DATABASE_URL`'s internal hostname isn't reachable outside Railway's
+  network). Per this order's own rules ("No new code, no fixes... observation and execution only"),
+  did not fabricate a test row or trigger a real purchase.
+  **Net result:** `migration-cutover-table.md`'s Slice 5 row → CUT-OVER (flag live, mechanism proven
+  end-to-end; first real customer email still pending natural traffic — dLocal payment completion
+  or the hourly expiry cron's next `TIER_DOWNGRADED`). New `LESSONS-LEARNED.md` **L38** (a
+  CONFIRMED-and-closed BUILD session's close-out can still mean the code was never deployed; CONFIRM
+  must diff local `HEAD` against `origin/main`, not just the local tree).
+  **Artifacts updated:** `4a-12-outbox-email-worker-cutover.migration-order.md` (Status →
+  CONFIRMED, Deviations filled in full — 3 entries), `DECISION-LOG.md` (new Session 4A-12 findings
+  entry), `migration-cutover-table.md` (Slice 5 row → CUT-OVER), `LESSONS-LEARNED.md` (new L38),
+  this file.
+- _(superseded-by-above, retained for context)_ Session 4A-11 (Slice 5 Outbox Email Worker BUILD, PORT variant), CONFIRMED and
   executed 2026-07-30 — zero traffic cut over, same BUILD/CUTOVER split as every prior write-path
   slice (4A-9/10, 4A-W6/W7). Davin approved the Advisor's DRAFT live in chat; CONFIRM re-verified
   the file inventory (all 7 cited SOURCE line counts exact matches), both services' full test-suite
@@ -1300,6 +1342,15 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   (`CRON_SECRET`/`DATABASE_URL`/`NEXTAUTH_SECRET`/`REDIS_URL`/4 dLocal vars, via
   `railway variable list`'s unmasked default view) still need rotation. See Current above and the
   order's own Deviations (17 entries) for full detail.
+- **Order status (4A-12):** CONFIRMED, executed. `OUTBOX_PUBLISHER_ENABLED`/
+  `OUTBOX_PUBLISHER_TARGET_URL` both live on money-service production; both services confirmed
+  running the real 4A-11 code after a mid-session discovery that it had never been deployed (see
+  Current above — fixed via `git push` + `railway up --path-as-root`, both re-verified value-blind
+  end-to-end). Checklist steps 1-3 and most of 5 (clean boot, zero errors) done; step 4 (watch a
+  real event process) is an open monitoring item — production's `OutboxEvent` table is confirmed
+  empty (0 rows, ever), so nothing has processed yet. `migration-cutover-table.md` Slice 5 row
+  already reflects CUT-OVER per Davin's explicit call to not block the cutover on natural traffic
+  timing. F50 (`COMMISSION_CREDITED` recipient unresolvable) stays OPEN, non-blocking as designed.
 - **Order status (4A-11):** CONFIRMED, executed, fully closed — all Done-when items checked except
   one explicitly-outstanding item (`SVC_TOKEN` set to a real matching value on both services'
   Railway production — a live secrets action reserved for Davin, not the Executor). All 5 files
@@ -1844,10 +1895,34 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   F44, rather than institute a 48h freeze like Slice 4's. **What to watch instead:** 4A-12's own
   real entry criteria —`SVC_TOKEN`set to a real matching value on both services (#71, still
   outstanding) and Davin's live presence for the flip itself; this session's 30 new tests (one per
- `eventType` + edge cases) stand in for a shadow-run's diff-review. **What would end an early
+ `eventType`+ edge cases) stand in for a shadow-run's diff-review. **What would end an early
   wait:** N/A, since nothing is waiting on a clock — the equivalent trigger would be Davin deciding
   he wants a freeze/soak window after all (superseding F51), not a monitoring threshold.
-- **Next session:** Two independent tracks are both open; Davin to decide relative ordering.
+  **(76, RESOLVED Session 4A-12)** F51's own question is now moot — the cutover happened, flag is
+  live, no wait-clock was ever needed. **(77, NEW)**`operation-service` has no GitHub source
+  connected at all (`railway service list --json`→`"source": null`) — unlike money-service, a
+  `git push origin main`can NEVER auto-deploy it; the only path is`railway up --path-as-root
+  --service operation-service`(used this session, confirmed working). This is a standing gap, not a
+  one-time issue — worth Davin deciding whether to wire up a real GitHub source for
+ `operation-service`(matching money-service) so future sessions don't have to remember this, or
+  leave it as-is and just document the`railway up`path clearly (now in`LESSONS-LEARNED.md`L38).
+  **(78, NEW — the real Slice 5 monitoring item)**`OUTBOX_PUBLISHER_ENABLED`/
+  `OUTBOX_PUBLISHER_TARGET_URL`are live on money-service production as of Session 4A-12
+  (2026-07-30), and the delivery mechanism is proven correct end-to-end (deployed`SvcTokenGuard`  verified live, value-blind, to accept the real`SVC_TOKEN`) — but production's `OutboxEvent`   table is confirmed EMPTY, 0 rows total, ever. No real event has been observed reaching
+  `PROCESSED`, and no customer email has been confirmed delivered through this path yet. Spot-check
+  the table (`prisma.outboxEvent.count()`/`groupBy`) and both services' Railway logs the next time a
+  real dLocal payment completes or a subscription expires (hourly cron) — confirm `status`reaches
+ `PROCESSED`(not stuck`PENDING`/`PROCESSING`, not dead-lettered `FAILED`) and that the customer's
+  inbox (or Resend's dashboard) actually shows the email, before treating Slice 5 as fully proven
+  in production. Same open-monitoring-caveat class as #36 (resolved)/#38 (still open)/#40 (still
+  open).
+- **Next session:** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
+  live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
+  anything else. Three independent tracks are now open; Davin to decide relative ordering.
+  **Slice 5's own next real work** is `DECISION-LOG.md` F50's dedicated fix session
+  (`COMMISSION_CREDITED` recipient resolution — most likely money-service pre-resolving the
+  affiliate's email/name/code/totalEarnings into the payload at emission time), independent of #78.
+  **Two other, previously-open independent tracks are unchanged by this session:**
   **Slice 4 track (this file's own numbering):** `4a-9-money-service-write-apis-port.migration-order.md`
   is CONFIRMED, executed, and fully closed (see Order status above) — Slice 4's write APIs are
   BUILT in `money-service`. `4a-10a-money-service-write-transport.migration-order.md` (the

@@ -2142,3 +2142,46 @@ affiliate","codesDistributed":1}`, independently cross-checked via money-service
   recorded as a stable partial-scope completion (matching the Slice 2 dLocal-only precedent from
   Session 4A-5), not a broken mid-state — the monolith continues serving 100% of dLocal payment
   creation traffic unchanged, and reverting was confirmed clean via redeploy.
+
+## Session 4A-12 (2026-07-30) — Slice 5 cutover executed; found and fixed a real undeployed-build gap before flipping anything
+
+- **Context:** 4A-12 (VERIFY-RETIRE, CUTOVER block) fast-pathed PRE-DRAFT → APPROVED as written,
+  then CONFIRMED (all entry criteria PASS, including `SVC_TOKEN` newly present-and-matching on both
+  services — it was absent at 4A-11's close). Davin said "Go." No shadow-run/replay diff exists or
+  ran for this cutover — re-confirmed against F51 (RESOLVED): `OUTBOX_PUBLISHER_ENABLED` is a single
+  on/off gate with nothing to mirror.
+- **Found before touching any flag:** probing the target endpoint (`POST
+.../outbox/events`) ahead of wiring it in returned `404`, not the expected `401`. Root cause: local
+  `main` was 12 commits ahead of `origin/main` — 4A-11's entire build (both services) was committed
+  and CONFIRMED but never pushed/deployed. Compounding factor: `operation-service` has `"source":
+null` in `railway service list --json` — no GitHub source connected at all, so push-triggered
+  auto-deploy could never have reached it regardless, even after the push. Stopped, reported to
+  Davin in full, got explicit go-ahead ("push now, verify, then continue 4A-12") before touching
+  anything live. New `LESSONS-LEARNED.md` **L38**.
+- **Fixed:** `git push origin main` (pre-push hook ran the full monolith suite, 122/122 suites,
+  2138/2138 tests, before allowing it; money-service auto-redeployed clean).
+  `railway up ./operation-service --path-as-root --service operation-service` (the only path for a
+  service with no connected source). Re-verified end-to-end, value-blind: unauthenticated
+  `POST /outbox/events` now `401` (not `404`); the SAME call with the real `SVC_TOKEN` read into
+  memory and never printed returned `400` (DTO validation on an empty test body) — proof the
+  deployed `SvcTokenGuard` genuinely accepts the real production token, not just that a guard
+  exists. Both services confirmed healthy (`/health` → `200`).
+- **Executed the cutover:** `OUTBOX_PUBLISHER_TARGET_URL` set on money-service to operation-service's
+  real `/outbox/events` URL; `OUTBOX_PUBLISHER_ENABLED=true` flipped. The triggered redeploy sat in
+  Railway's `QUEUED` state for ~23 minutes (unexplained delay; money-service stayed healthy on its
+  prior deployment the entire time — zero customer-facing impact) before building and succeeding.
+  Confirmed clean: `Nest application successfully started`, zero DI errors, zero error/outbox log
+  lines since boot.
+- **Not completed this session:** Checklist step 4 (watch a real event reach `PROCESSED`).
+  Production's `OutboxEvent` table is confirmed EMPTY — 0 rows total, ever
+  (`prisma.outboxEvent.count()` via a direct production query, using money-service's own
+  `PrismaPg`-adapter pattern against `DATABASE_PUBLIC_URL` since `DATABASE_URL`'s internal hostname
+  isn't reachable outside Railway's network). Per this order's own rules ("No new code, no fixes...
+  observation and execution only"), did not fabricate a test row or trigger a real purchase.
+  Davin's explicit call: leave "first real delivery" as a monitoring item, matching the established
+  precedent from Slices 1/2/3 (Waiting-on #36/#38/#40) and 4A-W7's funding-in-progress note, rather
+  than block the cutover on it.
+- **Net result:** `migration-cutover-table.md`'s Slice 5 row → CUT-OVER (flag live, mechanism proven
+  end-to-end via the guard round-trip; first real customer email still pending natural traffic).
+  F50 (`COMMISSION_CREDITED` recipient unresolvable) stays OPEN and non-blocking, exactly as
+  designed — the consumer skips-and-logs that one eventType rather than emailing the wrong person.

@@ -430,3 +430,24 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
   payload can't supply the real target), skip and flag rather than guess; a wrong-recipient email is
   a worse failure mode than a missed one.
 - Source: Session 4A-11 (2026-07-30), `DECISION-LOG.md` F50 · Status: ACTIVE
+
+### L38 — A BUILD session's "CONFIRMED, executed, fully closed" close-out can still mean the code was never pushed; CONFIRM must diff local `HEAD` against `origin/main`, not just the local working tree
+
+- Symptom: 4A-11 closed CONFIRMED with green tests and a clean build, but `git push` never ran —
+  local `main` sat 12 commits ahead of `origin/main`. 4A-12's own CONFIRM (same day) verified the
+  local tree exhaustively (files present, tests green, build clean) and still missed this, because
+  it never compared `HEAD` to `origin/main`. Surfaced only when probing the live target endpoint
+  returned `404` instead of the expected `401`, mid-Checklist, after Davin had already approved the
+  flag flip. A second, compounding gap: `operation-service` has no GitHub source connected at all
+  (`railway service list --json` → `"source": null`) — some prior session deployed it by direct
+  upload, so even a push would never have reached it regardless.
+- Root cause: "committed, tested, build-clean" is a different claim than "deployed," and a
+  close-out can state all three without ever confirming which deploy mechanism actually ran for
+  which service.
+- Rule: at CONFIRM, for any order whose Checklist touches a live production route, run `git log
+origin/main -1` against local `HEAD` — do not infer deployment state from the local tree alone.
+  Before assuming `git push` will deploy ANY service in this project, check that service's own
+  `source` field via `railway service list --json` — `null` means push-triggered auto-deploy is
+  structurally impossible, and `railway up --path-as-root --service <name>` (L7/L23) is the only
+  path.
+- Source: Session 4A-12 (2026-07-30) · Status: ACTIVE
