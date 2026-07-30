@@ -49,7 +49,7 @@ before execution began — **Checklist NOT executed, awaiting explicit go-ahead.
       resolved before this cutover; that eventType is coded to skip-and-log rather than error, so
       flipping the flag is safe regardless. Flag explicitly for Davin so the first `PENDING`
       `COMMISSION_CREDITED` row's "skipped" outcome isn't mistaken for a bug during monitoring.
-      \*\*Re-verified 2026-07-30: F50 still OPEN in `DECISION-LOG.md`, code still skip-and-logs
+      **Re-verified 2026-07-30**: F50 still OPEN in `DECISION-LOG.md`, code still skip-and-logs
       (`outbox-consumer.service.ts` — read directly, `COMMISSION_CREDITED` branch unchanged since
       4A-11). PASS (non-blocking, as designed).
 - [x] **No shadow-run/soak-window entry criterion applies here** — `DECISION-LOG.md` **F51**
