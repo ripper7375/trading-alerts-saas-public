@@ -14,25 +14,24 @@ file inventory (paths + line counts) re-verified against live code, both service
 re-run green (money-service 59/59 suites/506/506 tests, operation-service 7/7 suites/56/56 tests,
 both matching baseline), `OUTBOX_PUBLISHER_ENABLED`/`OUTBOX_PUBLISHER_TARGET_URL` confirmed absent
 (value-blind) on money-service production, all 5 entry criteria PASS. Two minor SOURCE-path citation
-drifts found in File 3's own prose (real files: `money-service/src/wise/controllers/wise-webhook.controller.ts`
-
-- the actual "unknown eventType" convention lives in the sibling
-  `money-service/src/wise/queue/wise-webhook.processor.ts:87-94`, not the controller) — both already
-  anticipated by the order's own "verify exact line at build time" hedge, non-blocking. Full CONFIRM
-  report delivered to Davin in chat before execution began. ·
-  **Estimated time:** likely >4h of real scope — see "Split candidate?" note below; the Advisor should
-  decide whether to split before APPROVED.
-  **Target service:** operation-service (new consumer) + money-service (small, surgical change to an
-  already-built cron)
-  **Contract:** No frozen OpenAPI — this is a single internal service-to-service call, not a
-  public/multi-consumer surface. Message shape is `OutboxEvent`'s own fields, exactly as
-  `OutboxPublisherCron.deliver()` already sends them today (verified, `money-service/src/outbox/outbox-publisher.cron.ts:63-107`):
-  `POST <target>` with body `{ id, aggregateType, aggregateId, eventType, payload }`, no auth header
-  currently attached (see File 4 below — that's this session's own job to fix).
-  **Flags touched:** `OUTBOX_PUBLISHER_ENABLED`, `OUTBOX_PUBLISHER_TARGET_URL` (money-service, both
-  already exist as env vars but unset/false, built 4A-8 — this session does NOT flip either; that's
-  4A-12's job). New: `SVC_TOKEN` (both services — see File 2/File 4; this resolves **F31**,
-  "descoped for now" since Session 3-5, for real).
+drifts found in File 3's own prose (real file is `money-service/src/wise/controllers/wise-webhook.controller.ts`,
+and the actual "unknown eventType" convention lives in the sibling
+`money-service/src/wise/queue/wise-webhook.processor.ts:87-94`, not the controller) — both already
+anticipated by the order's own "verify exact line at build time" hedge, non-blocking. Full CONFIRM
+report delivered to Davin in chat before execution began.
+**Estimated time:** likely >4h of real scope — see "Split candidate?" note below; the Advisor should
+decide whether to split before APPROVED.
+**Target service:** operation-service (new consumer) + money-service (small, surgical change to an
+already-built cron)
+**Contract:** No frozen OpenAPI — this is a single internal service-to-service call, not a
+public/multi-consumer surface. Message shape is `OutboxEvent`'s own fields, exactly as
+`OutboxPublisherCron.deliver()` already sends them today (verified, `money-service/src/outbox/outbox-publisher.cron.ts:63-107`):
+`POST <target>` with body `{ id, aggregateType, aggregateId, eventType, payload }`, no auth header
+currently attached (see File 4 below — that's this session's own job to fix).
+**Flags touched:** `OUTBOX_PUBLISHER_ENABLED`, `OUTBOX_PUBLISHER_TARGET_URL` (money-service, both
+already exist as env vars but unset/false, built 4A-8 — this session does NOT flip either; that's
+4A-12's job). New: `SVC_TOKEN` (both services — see File 2/File 4; this resolves **F31**,
+"descoped for now" since Session 3-5, for real).
 
 ---
 
@@ -75,22 +74,19 @@ reading the actual code, not trusting the summary (per this migration's own repe
 
 ## Entry criteria
 
-- [ ] File inventory below re-verified against live codebase (paths + line counts) — all counts
-      below were verified 2026-07-30; re-check at CONFIRM since this PRE-DRAFT may sit a while.
-- [ ] `money-service`'s Outbox infra (4A-8) still present and still gated OFF in production:
-      `OUTBOX_PUBLISHER_ENABLED` and `OUTBOX_PUBLISHER_TARGET_URL` both absent/false (value-blind
-      check, `LESSONS-LEARNED.md` L17 method) — this session must not accidentally go live.
-- [ ] `money-service` full suite green (baseline 59/59 suites, 506/506 tests, confirmed 2026-07-30)
-      and `operation-service` full suite green (baseline 7/7 suites, 56/56 tests, confirmed
-      2026-07-30) before any new code is added.
-- [ ] **Does NOT depend on Group B (dLocal)/`DECISION-LOG.md` F49 being resolved** — Slice 5 is
-      independent of dLocal specifically (dLocal has no monolith email precedent at all — see File 1
-      — so F49's eventual fix doesn't add any new email requirement here). Confirmed with Davin this
-      is authorized to proceed in parallel.
-- [ ] **Davin/Advisor decision needed before CONFIRM** (see "Open design questions" below) — at
-      least the `SVC_TOKEN` vs. bespoke-secret naming question should be settled before File 2/4 are
-      built, since it's a security-mechanism choice this order's own Autonomy clause reserves for
-      explicit approval, not an Executor judgment call.
+- [x] File inventory below re-verified against live codebase (paths + line counts) — re-checked at
+      CONFIRM 2026-07-30: all 7 cited SOURCE line counts exact matches. Two path citations in File
+      3's prose were loose (see header note) — non-blocking, already hedged by the order itself.
+- [x] `money-service`'s Outbox infra (4A-8) still present and still gated OFF in production:
+      `OUTBOX_PUBLISHER_ENABLED` and `OUTBOX_PUBLISHER_TARGET_URL` both confirmed absent (value-blind
+      check, `LESSONS-LEARNED.md` L17 method, re-run at CONFIRM 2026-07-30).
+- [x] `money-service` full suite green (59/59 suites, 506/506 tests, re-run 2026-07-30 — exact
+      baseline match) and `operation-service` full suite green (7/7 suites, 56/56 tests, re-run
+      2026-07-30 — exact baseline match), both before any new code was added.
+- [x] **Does NOT depend on Group B (dLocal)/`DECISION-LOG.md` F49 being resolved** — re-confirmed at
+      CONFIRM; F49 stays OPEN, unrelated to this session's code paths.
+- [x] **Davin/Advisor decision needed before CONFIRM** — resolved in "Design decisions
+      (Advisor-Resolved)" below, ratified by Davin's live approval 2026-07-30.
 
 ---
 
