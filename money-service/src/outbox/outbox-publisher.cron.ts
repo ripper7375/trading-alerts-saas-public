@@ -55,6 +55,10 @@ export class OutboxPublisherCron {
     return process.env['OUTBOX_PUBLISHER_TARGET_URL'];
   }
 
+  private getSvcToken(): string | undefined {
+    return process.env['SVC_TOKEN'];
+  }
+
   /**
    * Delivers a single event via HTTP, retrying with backoff before giving
    * up on this attempt. Throws if every retry within this attempt fails --
@@ -81,7 +85,10 @@ export class OutboxPublisherCron {
       try {
         const response = await fetch(targetUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.getSvcToken()}`,
+          },
           body: JSON.stringify({
             id: event.id,
             aggregateType: event.aggregateType,

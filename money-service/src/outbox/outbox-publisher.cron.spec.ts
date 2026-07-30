@@ -136,6 +136,26 @@ describe('OutboxPublisherCron', () => {
       });
     });
 
+    it('sends the SVC_TOKEN as a Bearer Authorization header', async () => {
+      process.env['SVC_TOKEN'] = 'test-svc-token';
+      const event = makeEvent();
+      prismaMock.outboxEvent.findMany.mockResolvedValue([event] as never);
+      prismaMock.outboxEvent.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.outboxEvent.update.mockResolvedValue({} as never);
+      mockFetch.mockResolvedValue({ ok: true });
+
+      await cron.publishPendingEvents();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://operation-service.test/v1/internal/tier-events',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-svc-token',
+          }),
+        })
+      );
+    });
+
     it('retries within a single delivery attempt before succeeding', async () => {
       const event = makeEvent();
       prismaMock.outboxEvent.findMany.mockResolvedValue([event] as never);
