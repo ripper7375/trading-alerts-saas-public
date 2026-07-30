@@ -74,12 +74,26 @@
   the first bug in a request's path can unmask a second, previously-invisible bug in the same path
   — a live-fixed error changing SHAPE (403→400, code 3001→5001) is itself strong positive evidence,
   not a reason to treat the attempt as a failure.
+  **Wrap-up (same day, per `EXECUTOR-PROTOCOL.md` §3):** filled
+  `4a-10-money-service-write-apis-cutover.migration-order.md`'s own Deviations (18-21) and
+  Next-session handoff with this session's findings — it had been updated everywhere else but not
+  in the order file itself. Added `LESSONS-LEARNED.md` **L36** (`vercel --prod` needs
+  `--archive=tgz` on this monorepo — found triggering the flag-flip redeploys this session).
+  PRE-DRAFTed **Session 4A-11** (`4a-11-outbox-email-worker.migration-order.md`, PORT variant,
+  Slice 5 Outbox Email Worker BUILD) — confirmed independent of Group B/dLocal, per this session's
+  own established parallel-work allowance; flags 3 real drifts from this file's own prior summary
+  (a 6th `TIER_DOWNGRADED` eventType the 4A-9 close-out omitted, admin-code-distribution never
+  actually emitting an outbox event despite a smoke-test doc claiming it does, and
+  `SUBSCRIPTION_CANCELLED` having two incompatible payload shapes) plus an explicit flag for the
+  Advisor on whether to split it (real scope is likely >4h).
   **Artifacts updated:** `DECISION-LOG.md` (F48 → RESOLVED with full verification evidence, new
-  **F49** OPEN with full root-cause detail), `LESSONS-LEARNED.md` (new L35),
+  **F49** OPEN with full root-cause detail), `LESSONS-LEARNED.md` (new L35, L36),
   `migration-cutover-table.md` (Slice 4 row annotated, Session column extended to include 4A-10c),
-  this file. No new migration-order file was drafted for this session (ad-hoc, per
-  `EXECUTOR-PROTOCOL.md` §6) — the next dLocal attempt needs its own scoped fix session against
-  F49, mirroring how F48 itself was handled.
+  `4a-10-money-service-write-apis-cutover.migration-order.md` (Deviations 18-21, Next-session
+  handoff corrected to point at F49), this file. New
+  `4a-11-outbox-email-worker.migration-order.md` PRE-DRAFTed (see above) — the next dLocal attempt
+  still needs its own scoped fix session against F49, mirroring how F48 itself was handled; that
+  and 4A-11 are independent tracks Davin can order either way.
 - _(superseded-by-above, retained for context)_ Session 4A-10b (Slice 4 Write-APIs CUTOVER) continuation, executed 2026-07-30 —
   **3 of 4 endpoint groups now genuinely cut over** (Stripe, Admin, Disbursement); dLocal stays
   blocked, but on a corrected root cause. Before this session, Davin completed Phase 1/2
@@ -1746,8 +1760,10 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   during 4A-10b's continuation (`CRON_SECRET`/`DATABASE_URL`/`NEXTAUTH_SECRET`/`REDIS_URL`/4
   dLocal vars) still need rotation.
   `migration-cutover-table.md`'s Slice 4 row is now `CUT-OVER (partial: 3/4 groups)` — full
-  `CUT-OVER` and 4A-11 (Slice 5 / Outbox Email Worker Build) PRE-DRAFT wait on Group B specifically,
-  though 4A-11 PRE-DRAFT work could reasonably start in parallel since it doesn't depend on dLocal.
+  `CUT-OVER` still waits on Group B/F49 specifically. **4A-11 (Slice 5 / Outbox Email Worker BUILD)
+  is now PRE-DRAFTed** (`4a-11-outbox-email-worker.migration-order.md`, 2026-07-30, ad-hoc per this
+  session's own established parallel-work allowance — confirmed independent of dLocal). Davin/the
+  Advisor can run F49's fix and 4A-11's DRAFT-approval-CONFIRM cycle in either order.
   **That eventual full close-out must still explicitly carry forward the email-silence
   consequence 4A-9 flagged**: now that the Stripe flag is genuinely live, Stripe-originated
   tier-upgrade/cancellation/payment emails are silent as of 2026-07-30 (deferred to `OutboxEvent`s,

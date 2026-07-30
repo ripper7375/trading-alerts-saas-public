@@ -382,3 +382,18 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
   correctly-scoped finding), not a reason to keep patching deeper into the money-moving path
   live in production.
 - Source: Session 4A-10c (2026-07-30), `DECISION-LOG.md` F48/F49 · Status: ACTIVE
+
+### L36 — `vercel --prod` (or plain `vercel deploy`) fails outright on this monorepo without `--archive=tgz`
+
+- Symptom: `npx vercel --prod --yes` failed immediately with
+  `"files" should NOT have more than 15000 items, received 32981` / `missing_archive`, before any
+  build even started.
+- Root cause: Vercel's default deploy upload mode sends one file per HTTP multipart entry, capped
+  at 15,000 files; this repo (monolith + money-service + operation-service + docs, all in one
+  checkout) has over 32,000 files even after `.vercelignore`/`.gitignore` exclusions.
+- Rule: always pass `--archive=tgz` on any `vercel deploy`/`vercel --prod` invocation in this repo
+  (bundles the upload into a single tarball, sidesteps the file-count cap entirely). Every prior
+  session's Vercel redeploys happened via `git push` (Vercel's own GitHub auto-deploy), which never
+  hits this limit — this only bites when triggering a deploy directly via the CLI, which is
+  necessary specifically for an env-var-only change (a flag flip) with no new commit to push.
+- Source: Session 4A-10c (2026-07-30) · Status: ACTIVE
