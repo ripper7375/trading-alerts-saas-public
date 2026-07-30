@@ -64,7 +64,7 @@ _(should normally be empty; a deviation here is itself a warning sign)_
 
 ## Next-session handoff
 
-\_(after 4A-12 closes: F50's own dedicated fix session — most likely money-service pre-resolving the
+_(After 4A-12 closes: F50's own dedicated fix session — most likely money-service pre-resolving the
 affiliate's email/name/code/totalEarnings into the `COMMISSION_CREDITED` payload at emission time —
 plus the still-outstanding secret rotations from CLAUDE.md Waiting-on #66 and this session's own new
-exposure, both flagged in 4A-11's Deviations.)\*
+exposure, both flagged in 4A-11's Deviations.)_
