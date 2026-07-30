@@ -26,7 +26,61 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-10b (Slice 4 Write-APIs CUTOVER) continuation, executed 2026-07-30 —
+- **Current:** Session 4A-10c (ad-hoc, Slice 4 / Group B dLocal fix-and-retry attempt), executed
+  2026-07-30 — same session/phase numbering family as 4A-10b, labeled per
+  `EXECUTOR-PROTOCOL.md` §6's ad-hoc-session rule since no formal order file exists for it; Davin
+  directed it live in chat, reporting the F48 header/signing fix already applied (uncommitted) and
+  the 3rd orphaned `Payment` row already deleted, and asked to proceed straight to flipping
+  `MIGRATE_WRITE_APIS_MONEY_DLOCAL=true` for the final Slice 4 group.
+  **CONFIRM found the reported F48 fix was itself still wrong before it was ever deployed:** the
+  Authorization header format (`V2-HMAC-SHA256 SecretKey:${secret}, Signature:${sig}`) didn't
+  match dLocal's own documented scheme — worse than the original bug, since it embedded the raw
+  secret key value in a header transmitted externally to dLocal. Caught by comparing directly
+  against `verifyWebhookSignature`'s own working, documented format (`V2-HMAC-SHA256, Signature:
+<hex>`) before deploying either file, per `LESSONS-LEARNED.md` L33's own guidance to check a
+  known-working sibling rather than re-trust config. Corrected in both
+  `money-service/src/dlocal/dlocal-payment.service.ts` and the monolith's identical
+  `lib/dlocal/dlocal-payment.service.ts`, and removed the now-dead `generateSignature` helper both
+  fixes had left orphaned. Re-ran the full verification chain independently rather than trusting
+  "27/27 green" at face value (those tests short-circuit in test mode before ever reaching the
+  changed code — the exact L2 gap): money-service 7/7 suites (100/100 tests), monolith 5/5 suites
+  (107/107 tests), `tsc --noEmit` clean both sides, `eslint --max-warnings 0` clean, `nest build`
+  clean. Independently re-verified the 3rd orphaned row's deletion via a direct production DB query
+  (`railway run --service Postgres` + `PrismaPg` adapter) rather than trusting the claim — confirmed
+  gone, 0 `PENDING` rows at that point.
+  **Executed:** committed the corrected fix (`ad7e57d1`), pushed (pre-push hook ran the full
+  monolith suite — 122/122 suites, 2138/2138 tests — before allowing the push). money-service
+  redeployed clean via GitHub auto-deploy (`Nest application successfully started`, zero DI
+  errors, all dLocal routes registered). Flipped `MIGRATE_WRITE_APIS_MONEY_DLOCAL=true` in Vercel
+  production, redeployed clean (`dpl_NUkyUTHXPoFDGoJoGVFYkxtpGci1`). Davin ran a real authenticated
+  request against production; the response was `{"error":"Failed to create payment"}`, but
+  money-service's own logs told a very different story than 4A-10b's identical-looking prior
+  failure: `dLocal API error {"status":400,"error":"Missing parameter: payment_method_flow"}` — a
+  `400` from dLocal's payload-validation layer, not the previous `403 Invalid credentials`. A `400`
+  only happens AFTER authentication succeeds — this is direct, positive proof **F48 is genuinely
+  fixed** (dLocal's own API accepted the corrected credentials/signing for the first time in this
+  codebase's history). The `400` itself is a new, previously-masked bug, registered as
+  **F49** (`DECISION-LOG.md`): `payment_method_flow` is a dLocal-required field never implemented
+  on either side of this migration — grepped both `lib/dlocal/` and `money-service/src/dlocal/`,
+  confirmed no code anywhere computes or references it. Per the standing "any red result = abort,
+  revert" rule, reverted `MIGRATE_WRITE_APIS_MONEY_DLOCAL` to `false` and redeployed clean
+  (`dpl_5qWfmQ7syPpFdb5LVAiMgPV91t6K`) immediately once this was confirmed live in the logs — the
+  request also created a 4th orphaned `Payment` row (`cms7hlmb900000fmpz9i9fv1q`, independently
+  confirmed via direct DB query, 0 other `PENDING` rows), left for Davin to remove (the Executor
+  will not permanently delete production data even with authorization).
+  **Net result:** Slice 4 stays `CUT-OVER (partial: 3/4 groups)` — unchanged in shape from 4A-10b's
+  close, but F48 is now genuinely closed and the real remaining blocker (F49) is correctly
+  identified rather than re-attempting the same dead end. New `LESSONS-LEARNED.md` **L35**: fixing
+  the first bug in a request's path can unmask a second, previously-invisible bug in the same path
+  — a live-fixed error changing SHAPE (403→400, code 3001→5001) is itself strong positive evidence,
+  not a reason to treat the attempt as a failure.
+  **Artifacts updated:** `DECISION-LOG.md` (F48 → RESOLVED with full verification evidence, new
+  **F49** OPEN with full root-cause detail), `LESSONS-LEARNED.md` (new L35),
+  `migration-cutover-table.md` (Slice 4 row annotated, Session column extended to include 4A-10c),
+  this file. No new migration-order file was drafted for this session (ad-hoc, per
+  `EXECUTOR-PROTOCOL.md` §6) — the next dLocal attempt needs its own scoped fix session against
+  F49, mirroring how F48 itself was handled.
+- _(superseded-by-above, retained for context)_ Session 4A-10b (Slice 4 Write-APIs CUTOVER) continuation, executed 2026-07-30 —
   **3 of 4 endpoint groups now genuinely cut over** (Stripe, Admin, Disbursement); dLocal stays
   blocked, but on a corrected root cause. Before this session, Davin completed Phase 1/2
   remediation: `STRIPE_PRO_PRICE_ID` added to money-service Railway production, dLocal sandbox
@@ -1120,13 +1174,16 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `CUT-OVER (dLocal only)`, RiseWorks portion noted separately), `CLAUDE.md` (this
   block, chain-length-one narrowing, Waiting-on). `DECISION-LOG.md` — no flag applies
   to this specific cutover mechanism, left unchanged.
-- **Current order:**
+- **Current order:** No formal order file governs Session 4A-10c — ad-hoc per
+  `EXECUTOR-PROTOCOL.md` §6 (Davin directed it live in chat; labeled clearly here, same
+  phase/session numbering family as 4A-10b). Its predecessor,
   `docs/migration-orders/4a-10-money-service-write-apis-cutover.migration-order.md` (4A-10b,
-  CUTOVER) — CONFIRMED and executed by Executor, continuation session 2026-07-30 — **3 of 4
-  endpoint groups genuinely cut over** (Stripe, Admin, Disbursement); Group B (dLocal) blocked on
-  a real code bug (`DECISION-LOG.md` F48), not a config gap. See Current above and Order status
-  below. This order is effectively closed for Groups A/C/D; Group B needs its own dedicated fix
-  session (tracked via F48), not a further continuation of this VERIFY-RETIRE order.
+  CUTOVER), stays CONFIRMED/executed, effectively closed for Groups A/C/D (Stripe, Admin,
+  Disbursement all genuinely cut over). Group B (dLocal): 4A-10c fixed and live-verified the F48
+  signing bug for real, but uncovered a second, previously-masked bug (`DECISION-LOG.md` F49,
+  `payment_method_flow` missing from the outbound request) blocking it now instead — see Current
+  above and Order status below. Group B needs its own dedicated fix session against F49, not a
+  further continuation of the 4A-10b VERIFY-RETIRE order.
   Predecessor `4a-10a-money-service-write-transport.migration-order.md` stays CONFIRMED/executed,
   fully closed clean 2026-07-27 (see Order status below). Predecessor
   `4a-9-money-service-write-apis-port.migration-order.md` stays CONFIRMED/executed (see historical
@@ -1154,16 +1211,22 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   (2026-07-26, Session 4A-W1) — RiseWorks replaced by Wise per F42, file retained.
 - **Order status (4A-10b):** CONFIRMED, executed — 3 of 4 groups genuinely CUT-OVER as of
   2026-07-30 (Stripe, Admin, Disbursement all flag `true` in production, confirmed via live
-  requests + independent money-service log cross-checks). Group B (dLocal) flag stays `false` —
-  reverted after a second live failure whose real cause is now known: a code bug in
-  `money-service/src/dlocal/dlocal-payment.service.ts`'s outbound request headers
-  (`DECISION-LOG.md` F48, OPEN), identically present in the monolith's own original source
-  (pre-existing, not a migration artifact). Two orphaned `Payment` rows from 2026-07-28 were
-  deleted by Davin and independently re-verified gone; a third (`cms79jwuw00000frzsiurqtk4`) was
-  created during this session's dLocal retry and still needs Davin's cleanup. Secrets exposed
-  mid-session (`CRON_SECRET`/`DATABASE_URL`/`NEXTAUTH_SECRET`/`REDIS_URL`/4 dLocal vars, via
+  requests + independent money-service log cross-checks). Group B (dLocal) flag stays `false`.
+  Two orphaned `Payment` rows from 2026-07-28 were deleted by Davin and independently re-verified
+  gone; a third (`cms79jwuw00000frzsiurqtk4`) was created during this session's dLocal retry and
+  was deleted by Davin before 4A-10c (independently re-verified gone). Secrets exposed mid-session
+  (`CRON_SECRET`/`DATABASE_URL`/`NEXTAUTH_SECRET`/`REDIS_URL`/4 dLocal vars, via
   `railway variable list`'s unmasked default view) still need rotation. See Current above and the
   order's own Deviations (17 entries) for full detail.
+- **Order status (4A-10c, ad-hoc):** F48 (`DECISION-LOG.md`, the dLocal outbound signing bug this
+  order status block previously pointed to) is now RESOLVED — fixed for real and verified live
+  (see Current above). Group B (dLocal) is still NOT cut over: fixing F48 uncovered a second,
+  previously-masked bug, **F49** (`payment_method_flow` missing from the outbound request body,
+  pre-existing on both monolith and money-service). `MIGRATE_WRITE_APIS_MONEY_DLOCAL` stays
+  `false`, reverted and redeployed clean. A 4th orphaned `Payment` row
+  (`cms7hlmb900000fmpz9i9fv1q`) needs Davin's cleanup, same as the prior three. No migration-order
+  file was drafted for this session (ad-hoc); the next dLocal attempt needs its own scoped fix
+  session against F49.
 - **Order status (4A-10a):** CONFIRMED, executed, fully closed — all 4 "Done when" items checked.
   All 5 monolith write routes wired with `MIGRATE_WRITE_APIS_MONEY_*` flag checks + forwarding to
   their already-full-PORT money-service controllers (4A-9); new
@@ -1635,39 +1698,53 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   continuation session's transcript on 2026-07-30. Disclosed to Davin immediately; his call was to
   continue the cutover and rotate afterward. **Rotation has not happened yet** — Davin should
   rotate all 8 values on Railway (money-service) once convenient; no artifact reproduces any value,
-  only key names. **(67, NEW — supersedes the dLocal portion of #64)** `DECISION-LOG.md`**F48**
-  (OPEN): dLocal Group B's repeated`403 Invalid credentials`is a real CODE bug, not a config
-  problem —`money-service/src/dlocal/dlocal-payment.service.ts:143-151`sends`X-Login`/
-  `X-Trans-Key`/`Authorization`to the wrong fields, and the identical bug exists in the monolith's
-  own original`lib/dlocal/dlocal-payment.service.ts`(pre-existing, faithfully preserved by 4A-9's
-  PORT, not introduced by the migration). dLocal outbound payment creation has likely never worked
-  correctly on either side of this migration — worth Davin's attention as a live, real-money-
-  adjacent gap independent of migration sequencing, not just a blocker to clear before Group B's
-  cutover. **(68, NEW)** A third orphaned`Payment` row (`cms79jwuw00000frzsiurqtk4`, `status:
-  PENDING`) was created during this session's dLocal retry, before F48 was diagnosed — needs Davin's
-  cleanup, same as the two from 2026-07-28 (the Executor will not delete production data directly
-  even with authorization).
+  only key names. **(67, RESOLVED Session 4A-10c)** `DECISION-LOG.md`**F48** — was OPEN (dLocal
+  Group B's repeated`403 Invalid credentials`, a real CODE bug, not config —
+  `money-service/src/dlocal/dlocal-payment.service.ts`'s outbound headers, identically wrong in
+  the monolith's own original source). Fixed for real 2026-07-30 and verified live: a corrected
+  Authorization header (matching dLocal's actual documented `V2-HMAC-SHA256, Signature: <hex>`  scheme) got a real`400`from dLocal instead of`403`— proof the credentials/signing are now
+  accepted. Both`money-service/src/dlocal/dlocal-payment.service.ts`and
+ `lib/dlocal/dlocal-payment.service.ts`fixed identically (commit`ad7e57d1`). **(68, RESOLVED)**
+  The third orphaned `Payment` row (`cms79jwuw00000frzsiurqtk4`) was deleted by Davin before
+  4A-10c and independently re-verified gone via direct production query. **(69, NEW — supersedes
+  #67)** `DECISION-LOG.md`**F49** (OPEN): fixing F48 let a dLocal request reach payload validation
+  for the first time ever, which immediately failed with`400 {"code":5001,"message":"Missing
+  parameter: payment_method_flow"}`— the outbound request body has never included this
+  dLocal-required field, on either side of the migration. dLocal outbound payment creation has
+  still never actually worked in production, independent of migration sequencing — F48 was simply
+  the first of (at least) two bugs blocking it. Needs its own dedicated fix session: map each
+  payment-method type (buckets already exist in
+ `lib/dlocal/payment-methods.service.ts`'s `getPaymentMethodType`) to dLocal's real
+  `payment_method_flow`value, then verify against dLocal's real sandbox API with a live call
+  before considering Group B cutover-ready again. **(70, NEW)** A 4th orphaned`Payment` row
+  (`cms7hlmb900000fmpz9i9fv1q`, `status: PENDING`) was created during 4A-10c's live test, before
+  F49 was diagnosed — needs Davin's cleanup, same as the prior three (the Executor will not delete
+  production data directly even with authorization).
 - **Next session:** Two independent tracks are both open; Davin to decide relative ordering.
   **Slice 4 track (this file's own numbering):** `4a-9-money-service-write-apis-port.migration-order.md`
   is CONFIRMED, executed, and fully closed (see Order status above) — Slice 4's write APIs are
   BUILT in `money-service`. `4a-10a-money-service-write-transport.migration-order.md` (the
   monolith-side transport BUILD, mirroring 4A-7a's Slice-3 scope) is now ALSO CONFIRMED, executed,
   and fully closed (see Current/Order status above) — all 5 monolith write routes have
-  `MIGRATE_WRITE_APIS_MONEY_*` flag-check + forwarding wiring, resolving Waiting-on #61. **The
-  real next session is a fix session for `DECISION-LOG.md` **F48**, not a further continuation of
-  `4a-10-money-service-write-apis-cutover.migration-order.md` (4A-10b), which is now effectively
+  `MIGRATE_WRITE_APIS_MONEY_*` flag-check + forwarding wiring, resolving Waiting-on #61. Session
+  4A-10c (ad-hoc, 2026-07-30) fixed `DECISION-LOG.md` **F48** for real and verified it live — see
+  Current/Order status above. **The real next session is now a fix session for `DECISION-LOG.md`
+  F49** (`payment_method_flow` missing from the outbound dLocal request body — found live only
+  because F48 no longer masks it), not a further continuation of
+  `4a-10-money-service-write-apis-cutover.migration-order.md` (4A-10b), which stays effectively
   closed for 3 of 4 groups** — Stripe, Admin, and Disbursement all genuinely CUT-OVER as of the
   2026-07-30 continuation session (see Current/Order status above). Group B (dLocal) is blocked on
-  a real code bug, not the config gap previously assumed: correct the `X-Login`/`X-Trans-Key`/
-  `Authorization` header construction in `money-service/src/dlocal/dlocal-payment.service.ts`
-  (both call sites), decide with Davin/Advisor whether the monolith's own identical-bug copy
-  (`lib/dlocal/dlocal-payment.service.ts`) also needs the fix before dLocal's write path is fully
-  retired, then verify against dLocal's real sandbox API with a live call (not just a code read/
-  `tsc` — this bug shape is invisible to unit tests with mocked `fetch`, per `LESSONS-LEARNED.md`
-  L2) before retrying Group B using the same live-test method established across both 4A-10b
-  sessions. Also still open, both Davin's own actions: a third orphaned `Payment` row
-  (`cms79jwuw00000frzsiurqtk4`) needs cleanup, and the secrets exposed mid-session
-  (`CRON_SECRET`/`DATABASE_URL`/`NEXTAUTH_SECRET`/`REDIS_URL`/4 dLocal vars) still need rotation.
+  F49: map each supported payment method (buckets already exist in
+  `lib/dlocal/payment-methods.service.ts`'s `getPaymentMethodType`) to dLocal's real
+  `payment_method_flow` value, add it to the request body in both
+  `money-service/src/dlocal/dlocal-payment.service.ts` and the monolith's
+  `lib/dlocal/dlocal-payment.service.ts`, then verify against dLocal's real sandbox API with a
+  live call (not just a code read/`tsc` — this bug class is invisible to unit tests with mocked
+  `fetch`, per `LESSONS-LEARNED.md` L2, same as F48 was) before retrying Group B using the same
+  live-test method established across 4A-10b/4A-10c. Also still open, both Davin's own actions: a
+  4th orphaned `Payment` row (`cms7hlmb900000fmpz9i9fv1q`) needs cleanup, and the secrets exposed
+  during 4A-10b's continuation (`CRON_SECRET`/`DATABASE_URL`/`NEXTAUTH_SECRET`/`REDIS_URL`/4
+  dLocal vars) still need rotation.
   `migration-cutover-table.md`'s Slice 4 row is now `CUT-OVER (partial: 3/4 groups)` — full
   `CUT-OVER` and 4A-11 (Slice 5 / Outbox Email Worker Build) PRE-DRAFT wait on Group B specifically,
   though 4A-11 PRE-DRAFT work could reasonably start in parallel since it doesn't depend on dLocal.
@@ -1682,7 +1759,7 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `RiseWorksWebhookEvent`'s own missing unique constraint (also flagged under #52) was NOT
   touched this session (out of 4A-8's re-scoped Step 1, which was specifically the 3 write-path
   idempotency keys, not webhook-dedupe schema work) — likely moot once 4A-W8 archives RiseWorks,
-  otherwise still open. **Wise track (unaffected by 4A-8/4A-9):**
+  otherwise still open. **Wise track (unaffected by 4A-8/4A-9):\*_
   `4a-w7-wise-cutover.migration-order.md` is CONFIRMED and executed
   — not yet fully closed (funding in progress, `Commission=PAID` not yet observed, see Current
   above). Once that lands, close 4A-W7 for real (Deviations, monitoring-window check) before
@@ -1696,13 +1773,12 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   unreliable for money-service, use `git push origin main` (#50, L23); the admin list's missing
   affiliate-name field is a minor UX gap, not blocking (#51). Separately, unchanged from prior
   sessions: a future RETIRE
-  session can delete the monolith's now-orphaned `app/api/affiliate/dashboard/*`,
-  `app/api/admin/{affiliates,analytics}/*` routes and their `lib/` logic once Davin agrees
-  Slice 3 (4A-7b) has been stable long enough — not yet scheduled. `4A-5-RW` (RiseWorks) stays
-  REVOKED (Waiting-on #37), not pending. `Session 6-1` (Phase 6 Gap Matrix,
-  `docs/migration-orders/6-1-gap-matrix-f11.migration-order.md`) was PRE-DRAFTed at 5-4's
-  close, a separate track — Davin to decide ordering against Slice 4 (4A-8), the
-  Slice-3-RETIRE session, and the now-active `4A-W*` series.
+  session can delete the monolith's now-orphaned `app/api/affiliate/dashboard/_`,
+`app/api/admin/{affiliates,analytics}/_`routes and their`lib/`logic once Davin agrees
+Slice 3 (4A-7b) has been stable long enough — not yet scheduled.`4A-5-RW`(RiseWorks) stays
+REVOKED (Waiting-on #37), not pending.`Session 6-1`(Phase 6 Gap Matrix,`docs/migration-orders/6-1-gap-matrix-f11.migration-order.md`) was PRE-DRAFTed at 5-4's
+close, a separate track — Davin to decide ordering against Slice 4 (4A-8), the
+Slice-3-RETIRE session, and the now-active `4A-W_` series.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
@@ -1768,10 +1844,14 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   Railway production as of 4A-W7 — the alert path actually delivers now ·
   **F47 OPEN (registered Session 4A-W7)** — `wise-quote.service.ts`'s `targetAmount` currency-unit
   bug, found live during the first-ever non-USD Wise payout; full detail in `DECISION-LOG.md` ·
-  **F48 OPEN (registered Session 4A-10b continuation, 2026-07-30)** — dLocal outbound payment
-  creation sends `X-Login`/`X-Trans-Key`/`Authorization` to the wrong fields in
-  `money-service/src/dlocal/dlocal-payment.service.ts`, identically in the monolith's own original
-  source (pre-existing, not a migration artifact); full detail in `DECISION-LOG.md` ·
+  **F48 fully RESOLVED (Session 4A-10c, 2026-07-30)** — dLocal outbound payment creation was
+  sending `X-Login`/`X-Trans-Key`/`Authorization` to the wrong fields in both
+  `money-service/src/dlocal/dlocal-payment.service.ts` and the monolith's identical original
+  source; corrected to dLocal's real `V2-HMAC-SHA256` scheme and verified live (dLocal returned a
+  real `400` — payload validation — instead of the previous `403` credential rejection) ·
+  **F49 OPEN (registered Session 4A-10c, 2026-07-30)** — fixing F48 uncovered that the outbound
+  dLocal request body has never included the required `payment_method_flow` field, on either side
+  of the migration; full detail in `DECISION-LOG.md` ·
   **F14 fully RESOLVED (Session 4A-8, Davin)** — Transactional Outbox pattern; `OutboxEvent` live
   in production with verified `money_svc` grants, `OutboxPublisherCron` built but gated OFF
   pending Slice 5's (4A-11/12) real operation-service consumer (Waiting-on #60) ·

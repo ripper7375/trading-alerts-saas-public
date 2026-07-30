@@ -360,3 +360,25 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
   Session 4A-10b prior entry) — never a Bearer header. Bearer headers are only correct when calling
   money-service's OWN endpoints directly (`JwtAuthGuard`-protected `/v1/...` routes).
 - Source: Session 4A-10b continuation (2026-07-30) · Status: ACTIVE
+
+### L35 — Fixing the first bug a request hits can unmask a second, previously-invisible bug in the same code path; a live-fixed error message changing shape (not just disappearing) is real progress, not a new failure to panic over
+
+- Symptom: fixing F48 (dLocal outbound signing) turned a `403 Invalid credentials` into a
+  `400 Missing parameter: payment_method_flow` (F49) — a completely different, previously-unseen
+  dLocal error. The request had never gotten far enough to reach dLocal's payload-validation layer
+  before, since auth always failed first; F49 had been silently present, untriggered, this whole
+  time.
+- Root cause: a request that fails at step 1 (auth) never exercises step 2 (payload validation) —
+  fixing step 1 doesn't just fix the request, it also turns on the lights for whatever was already
+  broken at step 2. Neither this migration's code reads nor its mocked-`fetch` unit tests could
+  have caught F49 while F48 was still masking it.
+- Rule: when a live-verification fix changes an error's status code/shape rather than making the
+  call succeed outright, that's a signal to keep investigating one layer deeper, not to assume the
+  fix failed or is complete. Read the NEW error on its own merits (here: a genuinely different
+  dLocal error code, 5001 vs. 3001) before concluding anything about the original bug — a changed
+  error is usually progress, and conflating "still failing" with "still the same bug" wastes
+  diagnostic time. Don't fix the newly-revealed bug in the same session unless it's trivially in
+  scope; a live cutover attempt that reveals a second real bug is itself the deliverable (a new,
+  correctly-scoped finding), not a reason to keep patching deeper into the money-moving path
+  live in production.
+- Source: Session 4A-10c (2026-07-30), `DECISION-LOG.md` F48/F49 · Status: ACTIVE
