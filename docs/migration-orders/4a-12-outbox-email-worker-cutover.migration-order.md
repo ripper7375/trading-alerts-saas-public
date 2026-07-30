@@ -93,7 +93,46 @@ before execution began — **Checklist NOT executed, awaiting explicit go-ahead.
 
 ## Deviations
 
-_(should normally be empty; a deviation here is itself a warning sign)_
+1. **4A-11's entire build had never been deployed — discovered live at Checklist step 2, before
+   any flag was touched.** Probing the target endpoint before wiring it in (`POST
+https://operation-service-production.up.railway.app/outbox/events`) returned `404`, not the
+   expected `401`. Root cause: local `main` was 12 commits ahead of `origin/main` — all of
+   4A-11's code (both services) was committed but never pushed. Worse, `railway service list
+--json` showed `operation-service` has `"source": null` — unlike money-service, it has no
+   GitHub source connected at all, so it was never wired for push-triggered auto-deploy in the
+   first place (it must have been deployed by direct upload originally, some prior session).
+   **Not fixed silently** — stopped, reported to Davin in full, got explicit go-ahead
+   ("push now, verify, then continue 4A-12") before touching anything. **Fix:** `git push origin
+main` (money-service auto-redeployed clean, pre-push hook ran the full monolith suite,
+   122/122 suites, 2138/2138 tests); `railway up ./operation-service --path-as-root --service
+operation-service` (no connected source, so push alone couldn't reach it). Re-verified
+   end-to-end, value-blind: unauthenticated `POST /outbox/events` now `401` (not `404`); the
+   SAME call with the real `SVC_TOKEN` read into memory and never printed returned `400` (DTO
+   validation on an empty test body) — proof the deployed `SvcTokenGuard` genuinely accepts the
+   real production token, not just that a guard exists. Both services confirmed healthy
+   (`/health` → `200`) after redeploy. New `LESSONS-LEARNED.md` lesson warranted at session
+   close: a CONFIRMED-and-closed BUILD session's own close-out should explicitly state whether
+   the code was pushed/deployed, not just committed+tested — and CONFIRM at the next session
+   should check `git log origin/main` vs. local `HEAD`, not just the local working tree, as part
+   of "runtime state" verification.
+2. **money-service's flag-flip redeploy (`7c63ae0d`) sat in Railway's `QUEUED` state for ~23
+   minutes** (23:18 -> 23:41) before building — far longer than the two deploys immediately
+   before it (8-13 min each). money-service stayed healthy and served traffic on its prior
+   deployment throughout (verified via repeated `/health` checks) — zero customer-facing impact,
+   just an unexplained Railway build-queue delay. Resolved on its own; no action taken beyond
+   waiting. Worth Davin's awareness if it recurs.
+3. **`OUTBOX_PUBLISHER_TARGET_URL` set + `OUTBOX_PUBLISHER_ENABLED=true` flipped, redeploy
+   confirmed clean** (`Nest application successfully started`, zero DI errors, zero
+   error/outbox-related log lines since boot). **Checklist step 4 (watch a real event process)
+   could not be completed this session:** production's `OutboxEvent` table is confirmed EMPTY —
+   0 rows total, ever (`prisma.outboxEvent.count()` via a direct production query) — so there is
+   currently nothing `PENDING` to observe. This is consistent with the table's own write paths
+   (dLocal webhook completion, hourly subscription-expiry cron) simply not having fired since the
+   wiring went in at 4A-8. Per this order's own rules ("No new code, no fixes... observation and
+   execution only"), did not fabricate a test event or trigger a real purchase — that decision is
+   Davin's. The flag is live and correctly wired; first real delivery is a monitoring item, same
+   shape as prior slices' own cutover caveats (Waiting-on #36/#38/#40, 4A-W7's funding-in-progress
+   note).
 
 ## Next-session handoff
 
