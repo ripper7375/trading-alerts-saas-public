@@ -1829,9 +1829,24 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   Railway secrets need rotation, on top of Waiting-on #66's still-outstanding set: 4A-11's own
   CONFIRM step accidentally printed operation-service's real `DATABASE_URL`and`NEXTAUTH_SECRET`  into the session transcript (a`head -c 300`sanity-check on raw variable JSON, not a`--kv`/
   default-table view this time — see `LESSONS-LEARNED.md`L17's new recurrence note). Disclosed
-  immediately, not reproduced again. **(74, NEW)**`4a-12-outbox-email-worker-cutover.migration-order.md`   PRE-DRAFTed at 4A-11's close (VERIFY-RETIRE, fast-path eligible per
+  immediately, not reproduced again. **(74, NEW)** `4a-12-outbox-email-worker-cutover.migration-order.md`   PRE-DRAFTed at 4A-11's close (VERIFY-RETIRE, fast-path eligible per
   `EXECUTOR-PROTOCOL.md` §4) — carries #71/#72 forward as explicit entry criteria / monitoring
   notes so neither gets rediscovered live during the cutover itself.
+  **(75, NEW — the Slice 5 clock, resolved)** Asked directly at 4A-11's own close whether a
+  shadow/mirror-run had started and the SOURCE files were CC-F frozen for a 48h window, the way
+  Slice 4's did. **Neither is true and neither was fabricated to answer that question** — checked
+  against 4A-11's own order text first (`SOURCE files become change-frozen... not applicable yet`),
+  reported the mismatch, and asked Davin live rather than inventing a start/end timestamp. **What
+  started:** nothing — no shadow-traffic mechanism exists for `OUTBOX_PUBLISHER_ENABLED` (a single
+  on/off gate, no mirrored delivery path to diff against before flipping it), same root cause as
+  Slice 3's F44. **Exact end date/time:** N/A, no clock running — Davin's live decision
+  (`DECISION-LOG.md`**F51**, RESOLVED) was to skip a formal wait-clock entirely, same resolution as
+  F44, rather than institute a 48h freeze like Slice 4's. **What to watch instead:** 4A-12's own
+  real entry criteria —`SVC_TOKEN`set to a real matching value on both services (#71, still
+  outstanding) and Davin's live presence for the flip itself; this session's 30 new tests (one per
+ `eventType` + edge cases) stand in for a shadow-run's diff-review. **What would end an early
+  wait:** N/A, since nothing is waiting on a clock — the equivalent trigger would be Davin deciding
+  he wants a freeze/soak window after all (superseding F51), not a monitoring threshold.
 - **Next session:** Two independent tracks are both open; Davin to decide relative ordering.
   **Slice 4 track (this file's own numbering):** `4a-9-money-service-write-apis-port.migration-order.md`
   is CONFIRMED, executed, and fully closed (see Order status above) — Slice 4's write APIs are

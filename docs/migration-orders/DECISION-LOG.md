@@ -2033,6 +2033,23 @@ aggregateId } })`, treated as a universal step. Reading `stripe-webhook.service.
 - Owner: Davin/Advisor — due before 4A-12 (or its own dedicated follow-up) closes Slice 5 for
   `COMMISSION_CREDITED` specifically; the other 5 eventTypes are unaffected.
 
+## F51 — Slice 5 cutover wait-clock: no shadow-run mechanism exists, F44 precedent applied
+
+- Status: RESOLVED
+- Session: 4A-11 (post-close, same day) · Date: 2026-07-30
+- Decision: **No formal wait-clock for the 4A-11 -> 4A-12 transition.** Same resolution as F44
+  (Slice 3): `OUTBOX_PUBLISHER_ENABLED` is a single on/off gate with no mirrored delivery path to
+  diff against before flipping it — there is nothing to shadow-run. This session's own fresh test
+  coverage (30 new tests across 4 new suites, one case per `eventType` plus the
+  unknown-eventType/user-not-found/send-failure/`COMMISSION_CREDITED`-skip edge cases) stands in
+  for a shadow-run's own diff-review step, the same substitution F44 made for Slice 3's manual
+  parity verification. 4A-12 proceeds as soon as ITS OWN real entry criteria are met (`SVC_TOKEN`
+  set to a real, matching value on both services; Davin live for the flip) — no additional
+  soak/freeze window required. Offered against the explicit alternative (a 48h code-freeze soak
+  window, Slice 4's own precedent) and declined in favor of this one.
+- Evidence: Live decision from Davin via interactive prompt.
+- Approved by: Davin
+
 ## Session 4A-10c (2026-07-30) — F48 fixed and verified live; Group B still blocked on a newly-uncovered second bug (F49)
 
 - **Context:** Davin reported the F48 header/signing fix already applied (uncommitted) and the 3rd

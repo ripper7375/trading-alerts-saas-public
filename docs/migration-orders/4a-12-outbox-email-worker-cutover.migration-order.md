@@ -25,6 +25,12 @@
       resolved before this cutover; that eventType is coded to skip-and-log rather than error, so
       flipping the flag is safe regardless. Flag explicitly for Davin so the first `PENDING`
       `COMMISSION_CREDITED` row's "skipped" outcome isn't mistaken for a bug during monitoring.
+- [x] **No shadow-run/soak-window entry criterion applies here** — `DECISION-LOG.md` **F51**
+      (RESOLVED, Davin live, 2026-07-30): no shadow-traffic mechanism exists for
+      `OUTBOX_PUBLISHER_ENABLED` (a single on/off gate, nothing to mirror against), so none is
+      required before this cutover — same resolution as F44 (Slice 3). This session's own 30 new
+      tests stand in for a shadow-run's diff-review. Do not reintroduce a wait-clock here without a
+      new live decision superseding F51.
 
 ## Checklist
 
