@@ -7,22 +7,32 @@
 > code is ground truth, the OpenAPI contract is the law, old `docs/build-orders/part-XX` is
 > background for _why_ only. Worked example: `4B-2-alert-engine.migration-order.md`.
 
-**Session:** 4A-11 · **Variant:** PORT (BUILD — zero traffic cut over this session) · **Status:** PRE-DRAFT
-**Generated:** 2026-07-30 (Executor, ahead of Group B/F49 closing — explicitly authorized to run in
-parallel per 4A-10b's own Next-session handoff item 5 and Davin's live direction this session) ·
-**Estimated time:** likely >4h of real scope — see "Split candidate?" note below; the Advisor should
-decide whether to split before APPROVED.
-**Target service:** operation-service (new consumer) + money-service (small, surgical change to an
-already-built cron)
-**Contract:** No frozen OpenAPI — this is a single internal service-to-service call, not a
-public/multi-consumer surface. Message shape is `OutboxEvent`'s own fields, exactly as
-`OutboxPublisherCron.deliver()` already sends them today (verified, `money-service/src/outbox/outbox-publisher.cron.ts:63-107`):
-`POST <target>` with body `{ id, aggregateType, aggregateId, eventType, payload }`, no auth header
-currently attached (see File 4 below — that's this session's own job to fix).
-**Flags touched:** `OUTBOX_PUBLISHER_ENABLED`, `OUTBOX_PUBLISHER_TARGET_URL` (money-service, both
-already exist as env vars but unset/false, built 4A-8 — this session does NOT flip either; that's
-4A-12's job). New: `SVC_TOKEN` (both services — see File 2/File 4; this resolves **F31**,
-"descoped for now" since Session 3-5, for real).
+**Session:** 4A-11 · **Variant:** PORT (BUILD — zero traffic cut over this session) · **Status:** CONFIRMED
+**Generated:** 2026-07-30 (Advisor-approved DRAFT, converting PRE-DRAFT into executable DRAFT order) ·
+**Approved:** 2026-07-30, Davin, live in chat (DRAFT → APPROVED). **Confirmed:** 2026-07-30, Executor —
+file inventory (paths + line counts) re-verified against live code, both services' full test suites
+re-run green (money-service 59/59 suites/506/506 tests, operation-service 7/7 suites/56/56 tests,
+both matching baseline), `OUTBOX_PUBLISHER_ENABLED`/`OUTBOX_PUBLISHER_TARGET_URL` confirmed absent
+(value-blind) on money-service production, all 5 entry criteria PASS. Two minor SOURCE-path citation
+drifts found in File 3's own prose (real files: `money-service/src/wise/controllers/wise-webhook.controller.ts`
+
+- the actual "unknown eventType" convention lives in the sibling
+  `money-service/src/wise/queue/wise-webhook.processor.ts:87-94`, not the controller) — both already
+  anticipated by the order's own "verify exact line at build time" hedge, non-blocking. Full CONFIRM
+  report delivered to Davin in chat before execution began. ·
+  **Estimated time:** likely >4h of real scope — see "Split candidate?" note below; the Advisor should
+  decide whether to split before APPROVED.
+  **Target service:** operation-service (new consumer) + money-service (small, surgical change to an
+  already-built cron)
+  **Contract:** No frozen OpenAPI — this is a single internal service-to-service call, not a
+  public/multi-consumer surface. Message shape is `OutboxEvent`'s own fields, exactly as
+  `OutboxPublisherCron.deliver()` already sends them today (verified, `money-service/src/outbox/outbox-publisher.cron.ts:63-107`):
+  `POST <target>` with body `{ id, aggregateType, aggregateId, eventType, payload }`, no auth header
+  currently attached (see File 4 below — that's this session's own job to fix).
+  **Flags touched:** `OUTBOX_PUBLISHER_ENABLED`, `OUTBOX_PUBLISHER_TARGET_URL` (money-service, both
+  already exist as env vars but unset/false, built 4A-8 — this session does NOT flip either; that's
+  4A-12's job). New: `SVC_TOKEN` (both services — see File 2/File 4; this resolves **F31**,
+  "descoped for now" since Session 3-5, for real).
 
 ---
 
@@ -84,38 +94,12 @@ reading the actual code, not trusting the summary (per this migration's own repe
 
 ---
 
-## Open design questions (Advisor/Davin — not resolved by this PRE-DRAFT)
+## Design decisions (Advisor-Resolved)
 
-1. **Auth mechanism naming:** build the new operation-service guard as `SVC_TOKEN` (activating the
-   already-reserved-but-descoped **F31** name — `money-service/.env.example:55` has had
-   `# SVC_TOKEN=` commented out since Session 4A-1) or a bespoke `OUTBOX_CONSUMER_SECRET`? Mechanism
-   either way mirrors `money-service/src/crons/cron-secret.guard.ts` (36 lines, full file read) —
-   `Authorization: Bearer <secret>`, exact-string compare, 401 on mismatch/unset. Recommend
-   `SVC_TOKEN` (closes F31 for real instead of leaving it permanently descoped), but this is a named
-   security decision, not an Executor call.
-2. **`SUBSCRIPTION_CANCELLED` — one template or two?** The monolith has two source functions:
-   `sendCancellationEmail(email, name)` (2-arg, from the user-initiated
-   `POST /api/subscription/cancel` path — money-service's own port is
-   `stripe-subscription.controller.ts:109-114`, payload `{ tier, subscriptionId }`, no `provider`/
-   `cancelAt`) vs. `sendSubscriptionCanceledEmail(email, name, plan, cancelAt)` (4-arg, from Stripe's
-   own `customer.subscription.deleted` webhook — `stripe-webhook.service.ts:278-288`, payload
-   `{ tier, subscriptionId, provider, cancelAt }`). Recommend: treat presence of `payload.cancelAt`
-   as the discriminator (its presence implies the Stripe-webhook path, absence implies user-initiated)
-   — but this is a product-copy decision (do these two cases deserve different customer-facing
-   wording?), not just a code question.
-3. **`TIER_DOWNGRADED` — new template or reuse cancellation copy?** No monolith precedent exists for
-   this exact event (the monolith's downgrade cron never sent email at all — confirmed, `grep -rn
-"sendEmail\|Email(" lib/cron*.ts app/api/cron*` inside the relevant cron file found nothing).
-   This is genuinely new copy, not a port — needs product sign-off on wording, not just an Executor
-   guess.
-4. **Split this session?** Per `00-SKELETON-AND-RULES.md` §3's own rule ("split the session if
-   > ~4h") — File 1 alone (porting/adapting 5 of 8 functions in `lib/email/subscription-emails.ts`,
-   > 865 lines) plus the new NestJS module (File 2/3) plus the money-service cron change (File 4) is
-   > realistically more than one session's worth given this migration's own historical pace. Candidate
-   > split: **4A-11a** (File 1 + 3, email porting + templates only, testable in isolation) →
-   > **4A-11b** (File 2 + 4 + 5, the consumer module + auth + cron wiring + integration tests). Left
-   > for the Advisor to decide at DRAFT time — this PRE-DRAFT is written as one coherent session either
-   > way, so splitting it is a matter of drawing one line, not re-planning.
+1. **Auth mechanism naming:** Resolved to use `SVC_TOKEN` (activates and closes **F31**). Mirrors `money-service/src/crons/cron-secret.guard.ts` using `Authorization: Bearer <secret>` and failing closed (401 on mismatch or missing secret).
+2. **`SUBSCRIPTION_CANCELLED` template handling:** Resolved to discriminate by `payload.cancelAt`. If `payload.cancelAt` is present (Stripe webhook path), dispatch to `sendSubscriptionCanceledEmail(email, name, plan, cancelAt)`. If absent (user-initiated cancel path), dispatch to `sendCancellationEmail(email, name)`.
+3. **`TIER_DOWNGRADED` copy handling:** Resolved to reuse `sendCancellationEmail` with tier downgrade context.
+4. **Session scope:** Resolved to keep as a single unified Session **4A-11**.
 
 ---
 
