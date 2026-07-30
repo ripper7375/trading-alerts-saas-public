@@ -16,19 +16,11 @@ import { acquireIdempotencyLock } from '@/lib/idempotency/idempotency-guard';
 
 const DLOCAL_API_URL =
   process.env['DLOCAL_API_URL'] || 'https://sandbox.dlocal.com';
+const DLOCAL_LOGIN =
+  process.env['DLOCAL_LOGIN'] || process.env['DLOCAL_API_KEY'] || '';
 const DLOCAL_API_KEY = process.env['DLOCAL_API_KEY'] || '';
 const DLOCAL_SECRET_KEY = process.env['DLOCAL_SECRET_KEY'] || '';
 const DLOCAL_WEBHOOK_SECRET = process.env['DLOCAL_WEBHOOK_SECRET'] || '';
-
-/**
- * Generates HMAC signature for dLocal API requests
- */
-function generateSignature(body: string): string {
-  return crypto
-    .createHmac('sha256', DLOCAL_SECRET_KEY)
-    .update(body)
-    .digest('hex');
-}
 
 /**
  * Generates a unique order ID
@@ -82,7 +74,6 @@ export async function createPayment(
     };
 
     const body = JSON.stringify(requestBody);
-    const signature = generateSignature(body);
 
     logger.info('Creating dLocal payment', {
       orderId,
@@ -103,14 +94,21 @@ export async function createPayment(
       };
     }
 
+    const dateStr = new Date().toISOString();
+    const signatureInput = `${DLOCAL_LOGIN}${dateStr}${body}`;
+    const requestSignature = crypto
+      .createHmac('sha256', DLOCAL_SECRET_KEY)
+      .update(signatureInput)
+      .digest('hex');
+
     const response = await fetch(`${DLOCAL_API_URL}/payments`, {
       method: 'POST',
       headers: {
-        'X-Date': new Date().toISOString(),
-        'X-Login': DLOCAL_API_KEY,
-        'X-Trans-Key': signature,
+        'X-Date': dateStr,
+        'X-Login': DLOCAL_LOGIN,
+        'X-Trans-Key': DLOCAL_API_KEY,
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${DLOCAL_API_KEY}`,
+        Authorization: `V2-HMAC-SHA256, Signature: ${requestSignature}`,
       },
       body,
     });
