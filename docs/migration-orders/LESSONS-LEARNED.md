@@ -6,13 +6,16 @@
 **Who reads:** the Executor, at every session OPEN.
 **Hard cap ~40 active lessons.** (Consolidated by Advisor on 2026-07-22. Full history moved to `LESSONS-ARCHIVE.md`).
 
-**At cap as of Session 4B-2's close (L1-L40).** One candidate lesson flagged, not added as a new
-numbered entry per this file's own "pause before adding another" rule: never fabricate a
-shadow/mirror-run's start or end timestamp when asked to "confirm the clock" — check whether the
-underlying work (a live deploy, a real running process) actually happened first. This is now a
-2nd occurrence of the same underlying pattern (`DECISION-LOG.md` F51 / `CLAUDE.md` Waiting-on #75
-for Slice 5's outbox flag; `CLAUDE.md` Waiting-on #84 for Slice 6's alert-engine mirror-run) —
-worth the Advisor's attention at the next consolidation pass.
+**Past cap as of Session 4B-3's close (L1-L41) — a consolidation pass is now genuinely overdue,
+not just flagged.** Session 4B-3 hit FOUR existing lessons as live recurrences in a single
+session (L11, L17, L38, L40 — see their own recurrence notes below) at unusually high volume (8
+independent CONFIRM cycles), plus one genuinely new pattern (L41, added below at Davin's explicit
+direction to harvest despite the cap). The still-unpromoted candidate from 4B-2's close (never
+fabricate a shadow/mirror-run's start or end timestamp — check whether the underlying work
+actually happened first; `DECISION-LOG.md` F51 / `CLAUDE.md` Waiting-on #75 and #84, 2nd
+occurrence) remains a candidate, not promoted — 4B-3 itself did NOT hit this pattern again (Option
+A was chosen live, no clock was fabricated), so it isn't re-flagged as a fresh recurrence, but it
+and this cap overrun are both worth the Advisor's attention at the next consolidation pass.
 
 ---
 
@@ -77,6 +80,16 @@ worth the Advisor's attention at the next consolidation pass.
 - Recurrence (Session 4A-W3a): same pattern, first pass — order arrived with a self-reported "APPROVED" status but 4/6 entry criteria FAILED against live state (F39/F41 still open, `WISE_API_TOKEN` absent, three cited line counts stale by up to +212 lines from an intervening session's own migration commit). Reported in full, execution declined; second pass after Davin resolved the open flags confirmed the split/`APPROVED` status was his own intentional edit (again no commit trail). (7th occurrence.)
 - Recurrence (Session 4A-W3b): same status-flip/no-commit-trail shape, **plus a new variant**: the rewritten order body had silently resolved two open design questions the PRE-DRAFT text had explicitly deferred to CONFIRM ("flag or flag-less?", "should the admin page allow an action or stay view-only?") with no visible decision recorded anywhere — not just the status field or line-count evidence drifting, but substantive scope questions being answered invisibly. Resolved by asking Davin directly for all three (status-flip provenance + both design questions) before marking CONFIRMED. (8th occurrence — worth the Advisor's attention on whether a PRE-DRAFT's own explicitly-flagged open questions should be answered as separate, individually-commit-tracked edits rather than folded silently into the APPROVED rewrite.)
 - Recurrence (Session 4B-2): same shape again — only the PRE-DRAFT (`Status: PRE-DRAFT`) was ever committed; the working copy was fully rewritten to `Status: APPROVED` with no DRAFT→APPROVED commit trail, and the rewrite silently DROPPED a whole entry criterion the PRE-DRAFT had explicitly carried forward (the Waiting-on #79 Railway-packaging-risk item) rather than just drifting a status field or a line count. Resolved by reporting the full CONFIRM findings (including the dropped criterion) before execution and asking directly; confirmed as Davin's/the Advisor's own authentic edit, the dropped criterion was re-added, and explicit clearance to execute was given in chat. (9th occurrence — the "silently drops real content, not just metadata" variant first seen at 4A-W3b keeps recurring; still worth the Advisor's attention.)
+- Recurrence (Session 4B-3): same shape, most severe yet — the committed version was an unusually
+  HONEST PRE-DRAFT (explicitly listing every entry criterion as "NOT MET" and stating "there is no
+  clock to report an end time for"), and the uncommitted working copy didn't just flip the status
+  field — it deleted every one of those honest caveats wholesale while rewriting the entire
+  document. Resolved the same way as every prior occurrence: reported the discrepancy directly
+  rather than trusting or silently correcting it, then verified the underlying facts (deploy
+  status, flag existence, live logs) independently regardless of which version of the text was
+  "correct" — which is what actually caught the 7 further real gaps this session's own Deviations
+  document. (10th occurrence — worth the Advisor's attention on whether order files should ever be
+  edited as an in-place working-copy rewrite at all, versus only via a reviewable diff.)
 
 ### L12 — A catch block checking `error.message` for a marker the source only ever sets on `error.code` is dead code
 
@@ -120,6 +133,17 @@ worth the Advisor's attention at the next consolidation pass.
 - Source: Session 4A-5 · Status: ACTIVE
 - Recurrence (Session 4A-10b continuation, 2026-07-30): the risk isn't limited to `--kv`. `railway variable list --service <svc>` with NO flags at all (the default table view) ALSO prints real, unmasked values for every variable — `CRON_SECRET`, `DATABASE_URL`, `NEXTAUTH_SECRET`, `REDIS_URL`, and 4 dLocal secrets were exposed this way, on the assumption the default table masked values the way some other CLIs do. It doesn't. Rule extension: for Railway specifically, the ONLY safe way to check presence is `railway variable list --service <svc> --json` piped through a script that checks `Object.keys(...)` and prints booleans only — never render the default table, `--kv`, or `--json` output directly, regardless of which flag combination is used.
 - Recurrence (Session 4A-11, 2026-07-30): even the "safe" `--json` + script method has a hole — a `head -c 300`/`cat`-style sanity check on the raw JSON file (meant only to confirm the fetch/parse worked before trusting the boolean check) printed operation-service's real `DATABASE_URL` and `NEXTAUTH_SECRET` straight into the transcript. Rule extension: NEVER read, `cat`, `head`, or otherwise preview ANY byte of a Railway variable dump file's contents, even for debugging the check itself — only grep for an exact key-name match (`grep -q '"KEY_NAME"'`) and report the boolean. If the boolean check itself seems broken, debug it with synthetic/fake JSON, not the real file.
+- Recurrence (Session 4B-3, 2026-08-01): a THIRD distinct failure mode — `railway variables
+  --service <svc>` with no flags prints a box-drawn table (`║ KEY │ value ║`), and piping that
+  through `head -30` "just to see if a variable is there" printed `operation-service-worker`'s
+  real `DATABASE_URL` and `NEXTAUTH_SECRET` in full. Separately, this box-table format is ALSO why
+  several earlier value-blind checks in this same session using an anchored `grep -c
+'^MIGRATE_ALERT_ENGINE'` pattern silently returned false negatives — the real line starts with
+  `║ `, never matching `^KEYNAME`. Rule extension: the only reliable safe method across this whole
+  incident class is `railway variables --service <svc> --kv | cut -d'=' -f1` (or equivalent),
+  which both avoids ever rendering a value AND is immune to the box-table anchoring trap — never
+  use `head`/`cat`/`tail` on any raw `railway variables` output, in any flag combination, for any
+  reason, including "just checking the format."
 
 ### L18 — A guard that rejects before the DB means "route works" was never proven; the first authenticated call is the first schema test
 
@@ -460,6 +484,15 @@ origin/main -1` against local `HEAD` — do not infer deployment state from the 
   structurally impossible, and `railway up --path-as-root --service <name>` (L7/L23) is the only
   path.
 - Source: Session 4A-12 (2026-07-30) · Status: ACTIVE
+- Recurrence (Session 4B-3, 2026-08-01): the gap isn't limited to a session's own close-out claim
+  — a MID-session fix, reported as "committed and pushed" while work was still iterating, had the
+  identical gap: commit `3248fb8e` (the fix that made the deployed worker actually behave
+  correctly) existed in the local checkout but `git merge-base --is-ancestor 3248fb8e origin/main`
+  came back false. It was only caught because the very next CONFIRM step re-ran `git fetch origin
+main --quiet` and compared `git rev-parse origin/main` against `git rev-parse HEAD` explicitly,
+  rather than trusting the "pushed" claim. Rule extension: this diff-against-origin check applies
+  to every claim of "committed and pushed," not just a formal session close — re-verify it fresh
+  each time, even the third or fourth time in the same session.
 
 ### L39 — A shared package's `exports` map is invisible to a consumer whose tsconfig uses classic/Node module resolution; `typesVersions` is the fix, not touching the consumer's tsconfig
 
@@ -502,3 +535,37 @@ origin/main -1` against local `HEAD` — do not infer deployment state from the 
   checks `isCronEnabled()` before doing real work) — same pattern, generalized to any module shared
   across a multi-process topology, not just a global on/off flag.
 - Source: Session 4B-2 (2026-07-31) · Status: ACTIVE
+- Recurrence (Session 4B-3, 2026-08-01): the exact mistake this lesson describes was made for
+  real, one session after it was written — commit `0d74f645` made `operation-service`'s HTTP
+  process (`main.ts`, replicated) call `AlertWorkerService.start()`/`AlertCronScheduler.enable()`
+  directly, gated only on an env-var check inside the shared entrypoint, not on which entrypoint
+  file was running. Caught by re-reading `AlertWorkerService`'s own class comment (which cites this
+  exact lesson's rationale near-verbatim) before the flag was ever set live, and reverted. Rule
+  extension: an env-var check inside a SHARED entrypoint file is not the same as "only one
+  entrypoint's own bootstrap flips it on" — if the HTTP process and the worker process both run the
+  same `main`-style file, gate by something that varies per-PROCESS-TYPE (e.g. Railway's own
+  `RAILWAY_SERVICE_NAME`, checked against the specific worker service's name), not by an env var
+  that could legitimately be set the same way across replicas of the wrong process.
+
+### L41 — A `railway.toml` `[[services]]` block declares intent; it does not provision the service, and does not guarantee the deployed service actually runs the command it names
+
+- Symptom: adding a second `[[services]]` array entry (`name = "operation-service-worker"`,
+  `command = "npm run start:worker"`) to `operation-service/railway.toml` and pushing it to
+  `origin/main` did nothing observable — `railway service list` still showed the same 6
+  pre-existing services with no new one. Once a real service WAS separately created (through
+  Railway's own service-creation flow, outside this config file), its first deployment ran `node
+dist/main` (the plain `npm start` script) instead of the `start:worker` script named in
+  `railway.toml` — the config file's command wasn't actually wired to that service's real deploy
+  settings until fixed.
+- Root cause: `railway.toml`'s `[[services]]` array is a declarative description Railway CAN apply
+  to a service once one exists and is linked to that block — it is not, by itself, a
+  provisioning trigger. Creating the actual service (a name, a deployment, a start command binding)
+  is a separate action from writing the config file, and nothing in this repo's tooling makes that
+  gap visible short of directly querying Railway's own service list.
+- Rule: after any `railway.toml` edit that adds or changes a service definition, verify against
+  `railway service list` (or `railway status`) — not just `git log`/the file's own content — that
+  the named service actually exists, AND pull its live boot logs to confirm the command it's
+  actually running matches what the config file says, before treating the config change as having
+  taken effect. A clean `git push` and a healthy-looking `/health` 200 from a DIFFERENT,
+  already-existing service in the same project proves nothing about a newly-declared one.
+- Source: Session 4B-3 (2026-08-01) · Status: ACTIVE

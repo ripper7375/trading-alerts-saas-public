@@ -2260,8 +2260,19 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   session as **4B-17 (F8 realtime decision)**, not yet scheduled. Until then,
   `lib/alert-engine/notify-bridge.ts` and `lib/alert-engine/types.ts` (its only dependency) stay in
   the monolith by design — do not delete them in a future cleanup pass without re-reading this
-  note. No other Phase 4B work is currently open; the next session on this track, whenever
-  scheduled, is 4B-17 itself.
+  note. No further work on the Slice-6/alert-engine track specifically is open; whenever it's
+  scheduled, F8's own session is 4B-17, not before.
+  **The actual next session overall is 4B-4** (`4b-4-shared-infra-observability.migration-order.md`,
+  PRE-DRAFTed at this session's close, INFRA+CONTRACT variant) — per the session playbook's own
+  Phase 4B ordering (`monolith-to-microservices-migration-session-playbook.md`): "Shared infra:
+  redis/cache/logger/errors/monitoring as Nest providers + interceptors; OTel + correlation-ID
+  middleware (F13 resolved here if not earlier)." This is unrelated to the realtime/F8 track above
+  — confirmed directly against `DECISION-LOG.md`'s own flag register (F8 "OPEN — due Session
+  4B-17", separate from F13 "OPEN — due by first Phase 4 cutover", a deadline already passed
+  several cutovers ago and carried forward) before PRE-DRAFTing, rather than assuming 4B-4 meant
+  the realtime work. The PRE-DRAFT's own Entry Criterion 0 is F13 itself — a real architecture
+  decision (managed SaaS vs. self-hosted tracing backend vs. defer again) that needs Davin's call,
+  not the Executor's, before code is written.
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.

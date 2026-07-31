@@ -742,12 +742,11 @@ role). Everything else in each list is exclusively that track's own code._
 </details>
 
 <details>
-<summary><code>__tests__/alert-engine/</code> — 4 files</summary>
+<summary><code>__tests__/alert-engine/</code> — 1 file (was 4; Session 4B-3 retired 3, 2026-08-01)</summary>
 
-- `__tests__/alert-engine/detect.test.ts`
-- `__tests__/alert-engine/evaluator.test.ts`
-- `__tests__/alert-engine/notify-bridge.test.ts`
-- `__tests__/alert-engine/watches.test.ts`
+- `__tests__/alert-engine/notify-bridge.test.ts` — **KEPT** (tests `notify-bridge.ts`, which stays).
+- ~~`detect.test.ts`~~, ~~`evaluator.test.ts`~~, ~~`watches.test.ts`~~ — **RETIRED, Session 4B-3**,
+  alongside their now-deleted subjects.
 
 </details>
 
@@ -788,17 +787,17 @@ role). Everything else in each list is exclusively that track's own code._
 </details>
 
 <details>
-<summary><code>lib/alert-engine/</code> — 9 files</summary>
+<summary><code>lib/alert-engine/</code> — 2 files (was 9; Session 4B-3 retired 7, 2026-08-01)</summary>
 
-- `lib/alert-engine/detect.ts`
-- `lib/alert-engine/dispatcher.ts`
-- `lib/alert-engine/evaluator.ts`
-- `lib/alert-engine/notify-bridge.ts`
-- `lib/alert-engine/queue.ts`
-- `lib/alert-engine/state.ts`
-- `lib/alert-engine/types.ts`
-- `lib/alert-engine/watches.ts`
-- `lib/alert-engine/worker.ts`
+- `lib/alert-engine/notify-bridge.ts` — **KEPT**, deliberately: `lib/websocket/server.ts` still
+  imports `startAlertDeliveryBridge` from it for real-time browser delivery of fired alerts.
+  Operation-service's `NotifyBridgeService` publishes to the same `alerts:fired` Redis channel;
+  this file is the subscriber half, staying in the monolith until Session 4B-17 (F8 realtime
+  decision).
+- `lib/alert-engine/types.ts` — **KEPT**, sole dependency of `notify-bridge.ts` above.
+- ~~`lib/alert-engine/detect.ts`~~, ~~`dispatcher.ts`~~, ~~`evaluator.ts`~~, ~~`queue.ts`~~,
+  ~~`state.ts`~~, ~~`watches.ts`~~, ~~`worker.ts`~~ — **RETIRED, Session 4B-3**: alert evaluation
+  now runs exclusively on `operation-service` (`operation-service-worker` Railway service).
 
 </details>
 
@@ -904,10 +903,11 @@ migrations are complete, not before.
 </details>
 
 <details>
-<summary><code>lib/jobs/</code> — 2 files</summary>
+<summary><code>lib/jobs/</code> — 0 files (was 2; Session 4B-3 retired both, 2026-08-01)</summary>
 
-- `lib/jobs/alert-checker.ts`
-- `lib/jobs/queue.ts`
+- ~~`lib/jobs/alert-checker.ts`~~, ~~`lib/jobs/queue.ts`~~ — **RETIRED, Session 4B-3**: alert
+  evaluation now runs exclusively on `operation-service`. Directory is now empty in the monolith
+  (the unrelated `frontend/lib/jobs/queue.ts` SEPARATE_STACK mirror copy is untouched).
 
 </details>
 
@@ -1633,9 +1633,8 @@ content not file count)</summary>
 </details>
 
 <details>
-<summary><code>scripts/</code> — 19 files</summary>
+<summary><code>scripts/</code> — 18 files (was 19; `alert-worker.ts` retired Session 4B-3, 2026-08-01)</summary>
 
-- `scripts/alert-worker.ts`
 - `scripts/archive-docs.sh`
 - `scripts/check-coverage.js`
 - `scripts/check-sync-needed.js`
