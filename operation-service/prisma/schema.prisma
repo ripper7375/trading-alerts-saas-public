@@ -109,3 +109,138 @@ model SecurityAlert {
   @@index([userId])
   @@map("security_alerts")
 }
+
+// Session 4B-2 (Alert Engine BUILD, F9 downstream): mirrors
+// prisma/non-market-data/schema.prisma's Alert/Notification/DrawingAlert/
+// Drawing models. `userId` on Alert/Drawing is kept as a bare scalar, not a
+// `User @relation` — same convention 4A-W2 established for FKs no ported
+// code actually traverses (nothing in lib/alert-engine/* or lib/jobs/*
+// reads .user off Alert or Drawing, only the userId scalar). DrawingAlert's
+// relations to Drawing/Alert ARE real Prisma relations (not bare scalars):
+// `lib/alert-engine/worker.ts`'s `prisma.drawingAlert.findMany({ where: {
+// alert: { isActive: true } }, include: { drawing: true, alert: true } })`
+// genuinely traverses both via Prisma's relational query features, so both
+// sides need their opposite relation field for `prisma generate` to
+// validate. Deviation from Step 0's own file list, which named only
+// Alert/Notification/MarketDataV6 — found while porting File 12 (worker.ts)
+// and its DrawingAlertRow dependency; not in the order's own SOURCE list.
+
+enum NotificationType {
+  ALERT
+  SUBSCRIPTION
+  PAYMENT
+  SYSTEM
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Notification {
+  id       String               @id @default(cuid())
+  userId   String
+  type     NotificationType
+  title    String
+  body     String
+  priority NotificationPriority @default(MEDIUM)
+
+  read   Boolean   @default(false)
+  readAt DateTime?
+
+  link String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, read])
+  @@index([createdAt])
+}
+
+model Alert {
+  id     String @id @default(cuid())
+  userId String
+
+  name      String?
+  symbol    String
+  timeframe String
+  condition String
+  alertType String @default("PRICE_TOUCH_LINE")
+
+  isActive      Boolean   @default(true)
+  lastTriggered DateTime?
+  triggerCount  Int       @default(0)
+
+  drawingAlert DrawingAlert?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([symbol, timeframe])
+  @@index([isActive])
+}
+
+model Drawing {
+  id     String @id @default(cuid())
+  userId String
+
+  symbol    String
+  timeframe String
+  type      String
+  anchors   Json
+  style     Json
+
+  alerts DrawingAlert[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([symbol, timeframe])
+  @@index([userId, symbol, timeframe])
+}
+
+model DrawingAlert {
+  id        String   @id @default(cuid())
+  drawingId String
+  drawing   Drawing  @relation(fields: [drawingId], references: [id], onDelete: Cascade)
+  alertId   String   @unique
+  alert     Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  targetLevel String
+  direction   String  @default("either")
+  tolerance   Float   @default(0)
+  cooldownSec Int     @default(60)
+  oneShot     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([drawingId])
+}
+
+// Session 4B-2: NARROW subset mirror of prisma/market-data/schema.prisma's
+// MarketDataV6 (79 fields total) — same convention as User/SecurityAlert
+// above. Only the fields `lib/jobs/alert-checker.ts`'s
+// fetchXauusdPriceFromGatewayPipeline actually reads
+// (`findFirst({ where: { symbol, timeframe }, orderBy: { timestamp: 'desc'
+// } })`, then `.close`) are declared. Same physical Postgres instance as
+// every other model in this file — confirmed via lib/db/prisma.ts and
+// lib/db/market-prisma.ts both reading DATABASE_URL; the monolith's
+// market/non-market split is two schema FILES (two generated clients) over
+// one database, not two databases, so this can live in the same
+// operation-service client rather than needing a second one.
+model MarketDataV6 {
+  id        String @id @default(cuid())
+  symbol    String
+  timeframe String
+  timestamp Int
+  close     Float
+
+  @@unique([symbol, timeframe, timestamp])
+  @@index([symbol, timeframe, timestamp])
+  @@map("market_data_v6")
+}
