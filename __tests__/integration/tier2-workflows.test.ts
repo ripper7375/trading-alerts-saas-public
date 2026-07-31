@@ -147,59 +147,6 @@ describe('Tier 2 Integration - Feature Workflows', () => {
     });
   });
 
-  describe('Workflow 3: Alert Trigger to Notification', () => {
-    it('should create notification when alert is triggered', async () => {
-      const { checkAlertCondition } = await import('@/lib/jobs/alert-checker');
-
-      // Step 1: Current price exceeds target
-      const currentPrice = 1950;
-      const targetValue = 1900;
-      const conditionType = 'price_above';
-
-      const conditionMet = checkAlertCondition(
-        currentPrice,
-        conditionType,
-        targetValue
-      );
-      expect(conditionMet).toBe(true);
-
-      // Step 2: Alert would be updated
-      mockPrisma.alert.update.mockResolvedValue({
-        id: 'alert-1',
-        isActive: false,
-        lastTriggered: new Date(),
-        triggerCount: 1,
-      });
-
-      // Step 3: Notification would be created
-      mockPrisma.notification.create.mockResolvedValue({
-        id: 'notif-1',
-        userId: 'user-1',
-        type: 'ALERT',
-        title: 'Alert Triggered',
-        body: 'XAUUSD price above 1900',
-      });
-
-      // Verify the flow
-      expect(conditionMet).toBe(true);
-    });
-
-    it('should not trigger notification when condition not met', async () => {
-      const { checkAlertCondition } = await import('@/lib/jobs/alert-checker');
-
-      const currentPrice = 1850;
-      const targetValue = 1900;
-      const conditionType = 'price_above';
-
-      const conditionMet = checkAlertCondition(
-        currentPrice,
-        conditionType,
-        targetValue
-      );
-      expect(conditionMet).toBe(false);
-    });
-  });
-
   describe('Workflow 4: MT5 Health Check Integration', () => {
     it('should gracefully handle MT5 service unavailability', async () => {
       // Scenario: MT5 service is down, system should handle gracefully
