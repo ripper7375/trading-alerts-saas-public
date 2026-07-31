@@ -26,7 +26,77 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-2 (Alert Engine BUILD, PORT variant), APPROVED → CONFIRMED → executed,
+- **Current:** Session 4B-3 (Alert Engine CUTOVER & RETIRE, VERIFY-RETIRE variant), APPROVED →
+  CONFIRMED → executed, 2026-08-01. **Slice 6 (Alert Engine) is now CUT-OVER & LIVE** —
+  `operation-service` (via a genuinely separate Railway service, `operation-service-worker`) is
+  the sole live evaluator of real-time alerts; the monolith's own alert-engine code is retired.
+  **CONFIRM took 8 independent cycles, each surfacing and fixing a real gap before proceeding —
+  the by-now-standard discipline for this migration, applied at unusually high volume in one
+  session** (full blow-by-blow in the order's own Deviations, 16 entries): (1) the order file
+  itself was found modified-but-uncommitted, `Status: APPROVED` with every "NOT MET" caveat from
+  the honest committed PRE-DRAFT (`9c6dccbb`) silently removed — the by-now-familiar
+  `LESSONS-LEARNED.md` L11 pattern, confirmed live as Davin's own authentic edit; (2)
+  `operation-service`'s Railway deploy was failing on a `package.json`/`package-lock.json`
+  mismatch (the embedded `packages/types` copy, commit `87242f09`, never got a regenerated
+  lockfile) — fixed (`caba1ad7`); (3) the lockfile fix then surfaced `nest build` failing on 8
+  `TS2307`s — the embedded `packages/types/dist/` is gitignored repo-wide and nothing compiled it
+  — fixed via a `prebuild` script (`272ab7b2`); (4) `MIGRATE_ALERT_ENGINE` had no reader anywhere
+  in code — built (`lib/operation-service/flags.ts` + bypass guards in `scripts/alert-worker.ts`/
+  `lib/jobs/queue.ts`, `ce39574c`); (5) **a real, explicitly-documented safety regression** — an
+  attempt (`0d74f645`) to auto-start the worker loop inside `operation-service`'s HTTP process
+  (`main.ts`) directly contradicted `AlertWorkerService`'s own class comment ("Not auto-started...
+  same double-consumer safety rationale as `AlertCronScheduler`... since this provider lives in
+  the shared `app.module.ts` module graph") and would have caused every HTTP replica (this service
+  is explicitly documented as running replicas, in two places) to independently fire alerts;
+  caught before any flag was ever set, reverted with `app.enableShutdownHooks()` added
+  (`7a606d6a`); (6)-(7) a genuinely separate `operation-service-worker` Railway service was
+  created (`1fb9a49a`'s `railway.toml` edit alone hadn't provisioned it — confirmed via
+  `railway service list`, not the config file); (8) once created, it was found running the wrong
+  process (`node dist/main`, not the worker) until commit `3248fb8e` (`main.ts` auto-activates via
+  `RAILWAY_SERVICE_NAME=operation-service-worker` OR `WORKER_MODE=true` — a per-service-scoped,
+  replica-safe re-approach, not a repeat of (5)'s mistake) — **found committed locally but never
+  pushed to `origin/main`**, carried into this session's own final push (same "verify origin, not
+  local" discipline as L38). Final CONFIRM independently re-pulled live logs (not just trusted the
+  claim) and verified genuine activity: `[AlertWorkerService] subscribed to prices:* and
+  alerts:changed (queue: on)`, `[AlertCronScheduler] alert checker enabled (every 60 seconds)`, a
+  completed tick (`Found 0 active alerts`).
+  **Incident, disclosed immediately, not reproduced:** an unmasked `railway variables` call
+  printed real `DATABASE_URL`/`NEXTAUTH_SECRET` values (for `operation-service-worker`) into the
+  session transcript — the same `LESSONS-LEARNED.md` L17 incident class recurring again (every
+  subsequent check used `--kv | cut -d'=' -f1`, names only). **Both values should be rotated.**
+  **Retirement executed with a real, CONFIRM-time correction to this order's own Step 3 file
+  list:** of `lib/alert-engine/*`'s 9 files, only 7 were deleted (`detect.ts`, `dispatcher.ts`,
+  `evaluator.ts`, `queue.ts`, `state.ts`, `watches.ts`, `worker.ts`) — `notify-bridge.ts` and its
+  dependency `types.ts` were KEPT, since `lib/websocket/server.ts` still imports
+  `startAlertDeliveryBridge` from it for real-time browser delivery of fired alerts (Socket.IO),
+  a concern entirely separate from evaluation. `operation-service/src/alert-engine/
+notify-bridge.service.ts`'s own header confirms this is deliberate: "publisher half only... The
+  subscriber half... STAYS in the monolith web process until Session 4B-17 (F8 realtime
+  decision)." Deleting it would have broken `tsc` and silently killed live alert notifications.
+  Also retired: `lib/jobs/alert-checker.ts`, `lib/jobs/queue.ts`, `scripts/alert-worker.ts`, 3 of 4
+  `__tests__/alert-engine/*` tests (not `notify-bridge.test.ts`), plus
+  `__tests__/lib/jobs/alert-checker.test.ts` (a gap not in the order's own list — the unrelated
+  `frontend/` SEPARATE_STACK mirror copy untouched), and two test cases inside
+  `__tests__/integration/tier2-workflows.test.ts`'s "Workflow 3" block (found only by actually
+  running the suite — a dynamic `import()` invisible to a static-import grep; the file's other 5
+  workflows are unrelated and untouched).
+  **Full verification:** `tsc --noEmit` clean (exit 0). `test:ci` 118/118 suites, 2096/2096 tests
+  (was 122/122 suites, 2138/2138 before retirement — the drop matches exactly: 14 deleted
+  test-bearing files + 2 removed test cases, no unexplained loss).
+  **Not resolved this session, not blocking:** whether the monolith's own separate,
+  dedicated-process alert-worker mechanism (`scripts/alert-worker.ts` / `npm run worker:alerts` /
+  `railway-worker.json`) is live anywhere outside this session's Railway visibility — the only two
+  candidates found across all 5 Railway projects on this account (`prisma-migration` and
+  `postgre for staging` projects, both a service named `trading-alerts-saas-public`) are both
+  `● Failed`. Since the files that mechanism depends on are exactly the ones retired this session,
+  this is now moot going forward regardless of the answer.
+  **Artifacts updated:** `4b-3-alert-engine-cutover.migration-order.md` (Status → CONFIRMED, Entry
+  criteria all checked, Checklist Step 3 corrected to the real 7/9 + 3/4 file counts, Deviations
+  filled in full — 16 entries), `migration-cutover-table.md` (Slice 6 row → CUT-OVER & LIVE), this
+  file. No `DECISION-LOG.md` flag applies (no F-numbered decision was open this session; the
+  `MIGRATE_ALERT_ENGINE`-vs-`WORKER_MODE` mechanism substitution is recorded in the order's own
+  Deviations instead, as an implementation-detail settlement).
+- _(superseded-by-above, retained for context)_ Session 4B-2 (Alert Engine BUILD, PORT variant), APPROVED → CONFIRMED → executed,
   2026-07-31, same day as 4B-1. All Step 0 + 13 files ported into `operation-service` as an
   `@Injectable()` NestJS domain module (`AlertEngineModule`) + standalone worker entrypoint
   (`main-worker.ts`) — zero production traffic cut over (cutover is Session 4B-3).
@@ -1504,6 +1574,13 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   (`CRON_SECRET`/`DATABASE_URL`/`NEXTAUTH_SECRET`/`REDIS_URL`/4 dLocal vars, via
   `railway variable list`'s unmasked default view) still need rotation. See Current above and the
   order's own Deviations (17 entries) for full detail.
+- **Order status (4B-3):** CONFIRMED, executed, fully closed — all entry criteria checked, all 4
+  Checklist steps done (deploy/health/logs verified, worker-activation mechanism confirmed live,
+  monolith files retired per the corrected 7/9+3/4 scope, `tsc`/`test:ci` 100% green,
+  cutover-table/CLAUDE.md updated). `operation-service-worker` is the sole live evaluator;
+  `WORKER_MODE=true` is the real production mechanism (not `MIGRATE_ALERT_ENGINE`, which has no
+  reader on the operation-service side — see this order's own Deviations for the full
+  substitution rationale). See Current above for the complete 8-cycle CONFIRM history.
 - **Order status (4B-2):** CONFIRMED, executed — 3 of 6 Done-When items checked (test suites green,
   build clean, `tsc --noEmit` clean); the other 3 (staging full-path observation, mirror-run
   started, CC-F freeze) explicitly NOT done, blocked on a real Railway deploy of `main-worker.ts`
@@ -2150,27 +2227,41 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   Once live with dispatch disabled/pointed at a shadow queue, a genuine 48h clock starts THEN —
   not before. **What to watch once it's real:** the worker's log-only fire decisions diffed against
   the monolith's own real fires for the same window (4B-3's own Entry criteria/Checklist step 1);
- `MT5_API_URL` also needs setting on operation-service's real production first (#81) or non-XAUUSD
+ `MT5_API_URL`also needs setting on operation-service's real production first (#81) or non-XAUUSD
   evaluation will silently fail once the worker is live. **What would end an early wait:** N/A —
   nothing is waiting on a clock yet; the equivalent trigger would be Davin deciding to skip the 48h
   reference entirely (a live decision superseding this order's own Entry criteria, same shape as
   F51's resolution for Slice 5), not a monitoring threshold being crossed.
-- **Next session (Phase 4B track):** 4B-2 (Alert Engine BUILD) is CONFIRMED and executed as of
-  2026-07-31 (same day as 4B-1) — all 13 files + Step 0 built and green, see Current/Order-status
-  above. **This is NOT yet ready for Session 4B-3 (CUTOVER).** The literal next action is a live
-  deploy step, not a new BUILD/PORT order: `main-worker.ts` needs to actually run as
-  `operation-service`'s first-ever second process/service on Railway — this is the real test of
-  the Waiting-on #79 packaging risk (still proven locally only, never against a live deploy) and
-  is a "first service deploy" under `EXECUTOR-PROTOCOL.md` §7, so it needs Davin's direct live
-  involvement, not something the Executor does unilaterally. Once that deploy is live and
-  `MT5_API_URL` is set on operation-service's real Railway production (confirmed absent this
-  session), the two still-open Done-when items (staging full-path observation, mirror-run started)
-  can actually be attempted — both are what turns 4B-2 into a genuine prerequisite for 4B-3.
-  **`4b-3-alert-engine-cutover.migration-order.md` PRE-DRAFTed 2026-07-31** (VERIFY-RETIRE, CUTOVER
-  block, fast-path eligible) — written honestly against current state: its own Entry criteria
-  explicitly record that the deploy hasn't happened and the 48h clock hasn't started (see Waiting-on
-  #84), not a fabricated "waiting" status. Do not treat it as APPROVED-eligible until the live
-  deploy lands and a real mirror diff exists to review.
+  **(85, NEW — closes #79/#80/#81/#82/#84, Session 4B-3, 2026-08-01)** All resolved for real,
+  independently re-verified at CONFIRM (not just trusted):`operation-service-worker` is deployed,
+  live, and running the actual worker (`AlertWorkerService`/`AlertCronScheduler`, confirmed via
+  fresh log pull, not the earlier misconfigured attempt that ran the plain HTTP process) — closes
+  #82 and the Railway-packaging risk #79/#80 tracked since Session 4B-1. `MT5_API_URL`confirmed
+  PRESENT (value-blind) on both`operation-service`and`operation-service-worker`— closes #81.
+  #84's own "no clock, don't fabricate one" stance was correct and is now moot: Davin chose Option
+  A (fast-path live proof, matching the 4A-10/4A-12 precedent) over a 48h mirror-run, so no clock
+  was ever needed — see the 4B-3 order's own Entry criteria. #83 (queue naming,`op.alerts.fire`   vs. the plan doc's own stale example) is unaffected by this session, still just a doc-consistency
+  note for the Advisor. **New, from 4B-3 itself:** the actual production activation mechanism is
+  `WORKER_MODE=true`(Railway-service-scoped, safe against replica double-fire), not
+ `MIGRATE_ALERT_ENGINE` — that flag has no reader on the operation-service side at all; full
+  rationale in the order's own Deviations. Also new: a secrets-exposure incident during this
+  session's CONFIRM (`DATABASE_URL`/`NEXTAUTH_SECRET`for`operation-service-worker`, unmasked
+  `railway variables`call) — same`LESSONS-LEARNED.md`L17 class recurring again; **both values
+  should be rotated.** And: whether the monolith's own separate`scripts/alert-worker.ts`/
+ `railway-worker.json`mechanism is live anywhere outside this session's Railway visibility stays
+  unresolved (the two candidates found, in the`prisma-migration`and`postgre for staging`  projects, are both`Failed`) — moot going forward since the files it depends on are retired.
+- **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
+  2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
+  **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:
+  `lib/websocket/server.ts` still owns real-time delivery of fired-alert notifications to browser
+  clients (subscribing to Redis `alerts:fired`, published now by `operation-service`'s
+  `NotifyBridgeService`) — this was intentionally NOT moved this session;
+  `operation-service/src/alert-engine/notify-bridge.service.ts`'s own header names the deciding
+  session as **4B-17 (F8 realtime decision)**, not yet scheduled. Until then,
+  `lib/alert-engine/notify-bridge.ts` and `lib/alert-engine/types.ts` (its only dependency) stay in
+  the monolith by design — do not delete them in a future cleanup pass without re-reading this
+  note. No other Phase 4B work is currently open; the next session on this track, whenever
+  scheduled, is 4B-17 itself.
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.
