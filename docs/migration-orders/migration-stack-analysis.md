@@ -1658,6 +1658,35 @@ content not file count)</summary>
 </details>
 
 <details>
+<summary><code>packages/types/</code> — 14 files (new, Session 4B-1, F9 resolution)</summary>
+
+- `packages/types/package.json` (exports geometry/alert-engine/validations subpaths + root barrel;
+  `typesVersions` for classic-resolution consumers, e.g. `operation-service` — `LESSONS-LEARNED.md` L39)
+- `packages/types/tsconfig.json`
+- `packages/types/src/index.ts` (root barrel)
+- `packages/types/src/geometry/index.ts` (barrel, hoisted from `components/charts/drawing/geometry/index.ts`)
+- `packages/types/src/geometry/types.ts` (`Anchor`, `AlertLevel`, `DrawingStyle`, `DrawingType`, `LineStyle`, `MarkSnapshot`)
+- `packages/types/src/geometry/channel.ts` (`channelLevels`)
+- `packages/types/src/geometry/fib.ts` (`fibRetracementLevels`, `fibExtensionLevels`)
+- `packages/types/src/geometry/horizontal.ts` (`horizontalValue`)
+- `packages/types/src/geometry/trendline.ts` (`trendlineValueAt`)
+- `packages/types/src/geometry/levels.ts` (`levelsForMark` — the F9 cross-stack wrinkle this
+  package exists to resolve; single source of truth for the monolith's chart UI AND, from Session
+  4B-2, `operation-service`'s ported alert engine)
+- `packages/types/src/alert-engine/types.ts` (`Direction`, `PriceEvent`, `AlertWatch`, `FireEvent`,
+  hoisted from `lib/alert-engine/types.ts`)
+- `packages/types/src/validations/alert.ts` (`SYMBOLS`/`TIMEFRAMES`/`CONDITION_TYPES` + Zod schemas,
+  hoisted from `lib/validations/alert.ts`)
+
+`components/charts/drawing/geometry/*.ts` (7 files) and `lib/alert-engine/types.ts` /
+`lib/validations/alert.ts` (2 files) all became thin re-export shims pointing here — not deleted,
+since several files import individual geometry submodules directly by relative path (see this
+session's own Deviations). `operation-service` consumes this package via a `file:../packages/types`
+dependency (its Railway deploy-time resolution is an open follow-up, not yet a workspace member).
+
+</details>
+
+<details>
 <summary><code>types/</code> — 11 files</summary>
 
 - `types/alert.ts`

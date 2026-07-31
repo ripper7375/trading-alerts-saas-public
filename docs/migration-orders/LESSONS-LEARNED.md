@@ -451,3 +451,24 @@ origin/main -1` against local `HEAD` — do not infer deployment state from the 
   structurally impossible, and `railway up --path-as-root --service <name>` (L7/L23) is the only
   path.
 - Source: Session 4A-12 (2026-07-30) · Status: ACTIVE
+
+### L39 — A shared package's `exports` map is invisible to a consumer whose tsconfig uses classic/Node module resolution; `typesVersions` is the fix, not touching the consumer's tsconfig
+
+- Symptom: `@trading-alerts/types`'s subpath exports (`./geometry`, `./alert-engine`, `./validations`)
+  resolved fine for the monolith (`moduleResolution: bundler`) and for Node's own runtime `require()`
+  (which understands `package.json` `exports` natively), but `operation-service`'s `tsc --noEmit`
+  failed every subpath import with `TS2307` — its tsconfig has no `moduleResolution` set to
+  `node16`/`nodenext`/`bundler`, so it defaults to TypeScript's older classic/Node algorithm, which
+  does not consult the `exports` field at all.
+- Root cause: TypeScript has (at least) two independent module-resolution behaviors gated by
+  `moduleResolution` — only `node16`/`nodenext`/`bundler` read `package.json` `exports`; classic/Node
+  resolution does a raw path lookup relative to the package root instead, so a subpath's real
+  location under `dist/` is invisible to it regardless of how correct the `exports` map is.
+- Rule: when a new shared package uses subpath `exports` and will be consumed by a service whose
+  tsconfig you don't want to (or can't safely) change, add a `typesVersions` field to the package's
+  own `package.json` mapping each subpath to its real `.d.ts` location — this is TypeScript's
+  purpose-built compatibility shim for exactly this gap, understood under every `moduleResolution`
+  setting. Verify with a real `tsc --noEmit` in the CONSUMING service (not just the monolith), not
+  just a runtime `require()` check — Node's runtime resolver and TypeScript's compile-time resolver
+  are different code paths that can disagree.
+- Source: Session 4B-1 (2026-07-31), `DECISION-LOG.md` F9 · Status: ACTIVE

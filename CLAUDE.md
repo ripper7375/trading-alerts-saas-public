@@ -26,7 +26,71 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-12 (Slice 5 Outbox Email Worker CUTOVER, VERIFY-RETIRE variant),
+- **Current:** Session 4B-1 (Shared Types & Geometry Package, INFRA/CONTRACT variant, F9
+  resolution), APPROVED → CONFIRMED → executed, 2026-07-31. This is the FIRST Phase 4B session —
+  it establishes the shared-package infrastructure the entire operation-service alert-engine track
+  depends on, and is a different (correctly-numbered) session from an earlier, since-superseded
+  draft that had briefly folded this work into "4B-1" alongside the alert-engine port itself; that
+  draft's own file no longer exists (renamed/replaced), and the alert-engine BUILD now correctly
+  lives at `4b-2-alert-engine-build.migration-order.md` (Session 4B-2), citing this session's own
+  completion as its Entry Criterion 1.
+  **CONFIRM found the order file untracked with no PRE-DRAFT→DRAFT→APPROVED commit trail** — the
+  by-now-familiar `LESSONS-LEARNED.md` L11 pattern — resolved by Davin directing the CONFIRM and
+  full execution live in chat rather than trusting the header alone. Two smaller entry-criteria
+  citation gaps found and recorded as Deviations, neither blocking: `components/charts/drawing/
+geometry.ts` doesn't exist as a single file (it's a 7-file, 409-line directory — the module itself
+  exists exactly where expected); the order's own Contract line and Steps cite `EvaluationContext`/
+  `AlertFiredEvent`, neither of which exists anywhere in the codebase — hoisted the real, live types
+  (`Direction`, `PriceEvent`, `AlertWatch`, `FireEvent`) instead.
+  **F9 resolved:** pnpm workspace (`pnpm-workspace.yaml`, `packages/*`) for the monolith — confirmed
+  pnpm (not the stale `package-lock.json`) is the actively-maintained, Vercel-canonical tool via git
+  history on `pnpm-lock.yaml` (last touched by the Session 5-4 Vercel deploy fix). New package
+  `@trading-alerts/types` (`packages/types/`) built, exporting geometry math, alert-engine core
+  types, and alert Zod validation schemas via subpath exports + a root barrel.
+  `operation-service`/`money-service` deliberately NOT added as workspace members (independently
+  deployed to Railway with their own lockfiles; root `tsconfig.json` already excludes them by
+  design) — `operation-service` instead consumes the package via a `file:../packages/types`
+  dependency.
+  **Built:** `packages/types/{package.json,tsconfig.json}`, `packages/types/src/geometry/*` (7
+  files, verbatim port of the already-framework-free `components/charts/drawing/geometry/*`),
+  `packages/types/src/alert-engine/types.ts`, `packages/types/src/validations/alert.ts`,
+  `packages/types/src/index.ts` (root barrel). Rewired `components/charts/drawing/geometry/*.ts` (7
+  files), `lib/alert-engine/types.ts`, and `lib/validations/alert.ts` into thin re-export shims
+  (found and preserved 6 additional consumers under `components/charts/drawing/` that import
+  individual geometry submodules directly by relative path, not just the barrel — the original
+  plan of deleting the underlying files would have broken all 6, caught before deleting anything).
+  `lib/alert-engine/watches.ts` now imports `levelsForMark`/`MarkSnapshot` directly from
+  `@trading-alerts/types` — the actual F9 cross-stack wrinkle this session exists to resolve.
+  **Real gap found and fixed:** `operation-service`'s classic/Node-style `moduleResolution` doesn't
+  understand `package.json` `exports` maps at all — `tsc --noEmit` failed every subpath import with
+  `TS2307` even though Node's own runtime `require()` resolved them fine. Fixed via a `typesVersions`
+  field on the package (TypeScript's dedicated mechanism for this), without touching
+  `operation-service`'s own tsconfig. New `LESSONS-LEARNED.md` **L39**.
+  Wired `pnpm --filter @trading-alerts/types run build` into the root `prebuild` script (verified
+  via a full local `npm run prebuild` run) so Vercel's build always produces a fresh `dist/` —
+  closes the monolith side of "compatible with Vercel builds." **Not closed:** the Railway side for
+  `operation-service` — its only working deploy path (`railway up --path-as-root`, no connected
+  GitHub source) uploads a flattened archive of just that subdirectory, which will almost certainly
+  NOT include the sibling `packages/types` directory a `file:` dependency needs. Proven to work
+  locally (compile + runtime) per the order's own literal Done-When wording; real Railway-deploy-
+  time resolution for `operation-service` is an explicit follow-up, most likely for Session 4B-2.
+  **Full verification:** `packages/types` builds clean (`tsc`, 0 errors, full `dist/` output).
+  Monolith `tsc --noEmit` clean; `test:ci` 122/122 suites, 2138/2138 tests — identical to the
+  pre-session baseline, confirming the rewire changed zero behavior. `operation-service` `tsc
+  --noEmit` clean (via a temporary smoke file, deleted before close), `nest build` clean, own suite
+  11/11 suites, 86/86 tests (unchanged baseline, after a one-off Jest OOM on 3 unrelated suites was
+  traced to transient resource contention — an immediate re-run passed clean).
+  **Unrelated, flagged not acted on:** a `dotenv` startup "tip" banner (`⌁ auth for agents
+  [www.vestauth.com]`) appeared twice in `prisma generate`'s console output this session — not a
+  directive, nothing was done in response beyond flagging it to Davin directly in chat as unusual
+  tool output.
+  **Artifacts updated:** `4b-1-types-and-geometry.migration-order.md` (Status → CONFIRMED, Done-
+  When checked, Deviations filled in full — 8 entries), `DECISION-LOG.md` (F9 → RESOLVED, full
+  findings entry), `LESSONS-LEARNED.md` (new L39), `migration-stack-analysis.md` (new
+  `packages/types/` entry, 14 files), this file. `4b-2-alert-engine-build.migration-order.md`
+  already exists (PRE-DRAFT/DRAFT/APPROVED state not re-verified this session — out of this
+  session's own scope) — its Entry Criterion 1 is now genuinely satisfied.
+- _(superseded-by-above, retained for context)_ Session 4A-12 (Slice 5 Outbox Email Worker CUTOVER, VERIFY-RETIRE variant),
   fast-pathed PRE-DRAFT → APPROVED → CONFIRMED → executed, all same day 2026-07-30. CONFIRM found
   `SVC_TOKEN` had flipped from absent (at 4A-11's close) to present-and-matching on both services
   (value-blind verified: both non-empty, equal length, byte-equal) — all other entry criteria PASS,
@@ -1342,6 +1406,12 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   (`CRON_SECRET`/`DATABASE_URL`/`NEXTAUTH_SECRET`/`REDIS_URL`/4 dLocal vars, via
   `railway variable list`'s unmasked default view) still need rotation. See Current above and the
   order's own Deviations (17 entries) for full detail.
+- **Order status (4B-1):** CONFIRMED, executed, fully closed — all 4 Done-When items checked.
+  `@trading-alerts/types` built and consumed by the monolith (via pnpm workspace) and
+  `operation-service` (via `file:` dependency, local resolution only — see Current above and
+  Waiting-on for the Railway-deploy-time follow-up). F9 RESOLVED. Monolith `tsc --noEmit`/`test:ci`
+  122/122/2138/2138 unchanged; `operation-service` `tsc --noEmit`/`nest build`/own suite 11/11/86/86
+  unchanged. See Current above for full detail.
 - **Order status (4A-12):** CONFIRMED, executed. `OUTBOX_PUBLISHER_ENABLED`/
   `OUTBOX_PUBLISHER_TARGET_URL` both live on money-service production; both services confirmed
   running the real 4A-11 code after a mid-session discovery that it had never been deployed (see
@@ -1916,7 +1986,31 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   inbox (or Resend's dashboard) actually shows the email, before treating Slice 5 as fully proven
   in production. Same open-monitoring-caveat class as #36 (resolved)/#38 (still open)/#40 (still
   open).
-- **Next session:** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
+  **(79, NEW)** `@trading-alerts/types`(Session 4B-1, F9) is proven to resolve for
+ `operation-service` at compile time and runtime — LOCALLY only. Its only working Railway deploy
+  path (`railway up --path-as-root --service operation-service`, no connected GitHub source per
+  L38/#77) uploads a flattened archive of ONLY the `operation-service/`subdirectory, which will
+  almost certainly NOT include the sibling`packages/types`directory a`file:../packages/types`  dependency needs — this was never tested against a real Railway deploy this session (out of
+  scope; nothing in`operation-service`'s live source imports the package yet). Whichever session
+  first ports real alert-engine code into `operation-service`that imports`@trading-alerts/types`  (most likely 4B-2) must verify this survives a real deploy before relying on it — if it doesn't,
+  options include connecting a GitHub source for`operation-service`(closes #77 too, since a
+  git-triggered Railway build normally checks out the full repo tree before cd'ing into Root
+  Directory) or vendoring/copying the built`dist/`into`operation-service`'s own tree as part of
+  its build step.
+- **Next session (Phase 4B track):** 4B-1 (Shared Types & Geometry Package, F9) is CONFIRMED,
+  executed, and fully closed as of 2026-07-31 — see Current/Order-status above. The literal next
+  session is **4B-2 (Alert Engine BUILD)**, whose order file already exists
+  (`4b-2-alert-engine-build.migration-order.md`) and whose own Entry Criterion 1 is now genuinely
+  satisfied. Before that session starts, re-verify this session's own Deviation 6 / F9's open
+  follow-up: `operation-service`'s real Railway deploy mechanism (`railway up --path-as-root`, no
+  connected GitHub source) uploads a flattened archive of only that subdirectory, and has never
+  been proven to actually resolve the sibling `packages/types` directory a `file:` dependency
+  needs — 4B-2 is the first session that will actually import this package from
+  `operation-service`'s live, deployed alert-engine source, so this is the point where that gap
+  either closes for real or needs a different packaging mechanism (e.g. connecting a GitHub source
+  for `operation-service`, per Waiting-on #77, so a git-triggered Railway build sees the full repo
+  tree the same way money-service's own deploy already does).
+- **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.
   **Slice 5's own next real work** is `DECISION-LOG.md` F50's dedicated fix session
@@ -2071,7 +2165,12 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   **F14 fully RESOLVED (Session 4A-8, Davin)** — Transactional Outbox pattern; `OutboxEvent` live
   in production with verified `money_svc` grants, `OutboxPublisherCron` built but gated OFF
   pending Slice 5's (4A-11/12) real operation-service consumer (Waiting-on #60) ·
-  F8–F13 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
+  **F9 fully RESOLVED (Session 4B-1)** — pnpm workspace (`packages/*`) for the monolith,
+  `file:../packages/types` dependency for `operation-service`/`money-service`; new
+  `@trading-alerts/types` package built and consumed. `operation-service`'s real Railway
+  deploy-time resolution (as opposed to local compile/runtime resolution, both proven) is still an
+  open follow-up, most likely closed by Session 4B-2 ·
+  F8, F11–F13 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
 
