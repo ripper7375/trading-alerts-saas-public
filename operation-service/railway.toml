@@ -29,6 +29,13 @@ NODE_ENV = "production"
 PORT = "3001"
 
 [[services]]
+name = "operation-service-worker"
+command = "npm run start:worker"
+
+[services.environment]
+NODE_ENV = "production"
+
+[[services]]
 name = "Redis"
 type = "redis"
 plan = "hobby"
