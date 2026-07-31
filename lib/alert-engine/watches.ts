@@ -6,8 +6,8 @@
  * @module lib/alert-engine/watches
  */
 
-import { levelsForMark } from '@/components/charts/drawing/geometry';
-import type { MarkSnapshot } from '@/components/charts/drawing/geometry';
+import { levelsForMark } from '@trading-alerts/types/geometry';
+import type { MarkSnapshot } from '@trading-alerts/types/geometry';
 
 import type { AlertWatch, Direction } from './types';
 
