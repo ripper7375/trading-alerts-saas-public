@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "rimraf .next tsconfig.tsbuildinfo node_modules/.prisma && npm run prisma:generate:market-data && npm run prisma:generate:non-market-data",
+    "prebuild": "rimraf .next tsconfig.tsbuildinfo node_modules/.prisma && npm run prisma:generate:market-data && npm run prisma:generate:non-market-data && pnpm --filter @trading-alerts/types run build",
     "build": "next build",
     "build:analyze": "ANALYZE=true next build",
     "start": "next start",
@@ -89,6 +89,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.3",
+    "@trading-alerts/types": "workspace:*",
     "@next-auth/prisma-adapter": "^1.0.7",
     "@prisma/adapter-pg": "7.8.0",
     "@prisma/client": "7.8.0",

@@ -1,0 +1,58 @@
+{
+  "name": "@trading-alerts/types",
+  "version": "0.1.0",
+  "description": "Shared types, Zod validation schemas, and drawing-geometry math consumed by the monolith and NestJS microservices (F9). Never fork this code — see docs/migration-orders/4b-1-types-and-geometry.migration-order.md.",
+  "private": true,
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./geometry": {
+      "types": "./dist/geometry/index.d.ts",
+      "default": "./dist/geometry/index.js"
+    },
+    "./alert-engine": {
+      "types": "./dist/alert-engine/types.d.ts",
+      "default": "./dist/alert-engine/types.js"
+    },
+    "./validations": {
+      "types": "./dist/validations/alert.d.ts",
+      "default": "./dist/validations/alert.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "geometry": [
+        "dist/geometry/index.d.ts"
+      ],
+      "alert-engine": [
+        "dist/alert-engine/types.d.ts"
+      ],
+      "validations": [
+        "dist/validations/alert.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "rimraf": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
