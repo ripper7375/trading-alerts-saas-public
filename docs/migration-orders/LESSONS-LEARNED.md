@@ -68,6 +68,7 @@
 - Recurrence (Session 4A-W2): same pattern — order file modified-but-uncommitted, `Status: PRE-DRAFT → APPROVED` with no Advisor-DRAFT/Davin-approval commit trail, and all four of the order's own line-count entry-criteria numbers had shifted `+1` away from both the committed version and the live codebase. Resolved by asking Davin directly; confirmed his own edit, numbers corrected to the `wc -l` baseline. (6th occurrence.)
 - Recurrence (Session 4A-W3a): same pattern, first pass — order arrived with a self-reported "APPROVED" status but 4/6 entry criteria FAILED against live state (F39/F41 still open, `WISE_API_TOKEN` absent, three cited line counts stale by up to +212 lines from an intervening session's own migration commit). Reported in full, execution declined; second pass after Davin resolved the open flags confirmed the split/`APPROVED` status was his own intentional edit (again no commit trail). (7th occurrence.)
 - Recurrence (Session 4A-W3b): same status-flip/no-commit-trail shape, **plus a new variant**: the rewritten order body had silently resolved two open design questions the PRE-DRAFT text had explicitly deferred to CONFIRM ("flag or flag-less?", "should the admin page allow an action or stay view-only?") with no visible decision recorded anywhere — not just the status field or line-count evidence drifting, but substantive scope questions being answered invisibly. Resolved by asking Davin directly for all three (status-flip provenance + both design questions) before marking CONFIRMED. (8th occurrence — worth the Advisor's attention on whether a PRE-DRAFT's own explicitly-flagged open questions should be answered as separate, individually-commit-tracked edits rather than folded silently into the APPROVED rewrite.)
+- Recurrence (Session 4B-2): same shape again — only the PRE-DRAFT (`Status: PRE-DRAFT`) was ever committed; the working copy was fully rewritten to `Status: APPROVED` with no DRAFT→APPROVED commit trail, and the rewrite silently DROPPED a whole entry criterion the PRE-DRAFT had explicitly carried forward (the Waiting-on #79 Railway-packaging-risk item) rather than just drifting a status field or a line count. Resolved by reporting the full CONFIRM findings (including the dropped criterion) before execution and asking directly; confirmed as Davin's/the Advisor's own authentic edit, the dropped criterion was re-added, and explicit clearance to execute was given in chat. (9th occurrence — the "silently drops real content, not just metadata" variant first seen at 4A-W3b keeps recurring; still worth the Advisor's attention.)
 
 ### L12 — A catch block checking `error.message` for a marker the source only ever sets on `error.code` is dead code
 
@@ -472,3 +473,24 @@ origin/main -1` against local `HEAD` — do not infer deployment state from the 
   just a runtime `require()` check — Node's runtime resolver and TypeScript's compile-time resolver
   are different code paths that can disagree.
 - Source: Session 4B-1 (2026-07-31), `DECISION-LOG.md` F9 · Status: ACTIVE
+
+### L40 — A module shared into both an HTTP-process AppModule and a worker-process entrypoint auto-starts its side effects in EVERY process that constructs it
+
+- Symptom: (caught by design before it shipped, not a live incident) 4B-2's own File 12 instruction
+  ("Register AlertEngineModule in app.module.ts") means the module is imported by BOTH `main.ts`
+  (HTTP process) and the new `main-worker.ts` (worker process) sharing one `app.module.ts`. A naive
+  reading — `@Interval()` on the cron scheduler, an `OnModuleInit` subscribe loop on the worker
+  service — would run BOTH the cron and the Redis pub/sub subscriber in EVERY process that
+  constructs the module, not just the intended worker process: a genuine double-fire/
+  double-consumption bug, not a hypothetical.
+- Root cause: NestJS decorators (`@Cron()`, `@Interval()`) and lifecycle hooks (`OnModuleInit`) fire
+  unconditionally in every application context that constructs the provider — module registration
+  alone carries no notion of "which process is this," and neither does the decorator.
+- Rule: when a module with active side effects (cron, queue consumer, pub/sub subscriber) is shared
+  between two process entrypoints via one `app.module.ts`, gate the actual work behind an internal
+  flag/method that only ONE entrypoint's own bootstrap flips on (e.g. `enable()`/`start()`) — never
+  rely on module-registration or decorator presence alone to imply "this process should run it."
+  money-service's own `CronsScheduler` already does exactly this shape (every `@Cron()` handler
+  checks `isCronEnabled()` before doing real work) — same pattern, generalized to any module shared
+  across a multi-process topology, not just a global on/off flag.
+- Source: Session 4B-2 (2026-07-31) · Status: ACTIVE

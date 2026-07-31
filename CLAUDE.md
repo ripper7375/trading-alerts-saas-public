@@ -26,7 +26,105 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-1 (Shared Types & Geometry Package, INFRA/CONTRACT variant, F9
+- **Current:** Session 4B-2 (Alert Engine BUILD, PORT variant), APPROVED → CONFIRMED → executed,
+  2026-07-31, same day as 4B-1. All Step 0 + 13 files ported into `operation-service` as an
+  `@Injectable()` NestJS domain module (`AlertEngineModule`) + standalone worker entrypoint
+  (`main-worker.ts`) — zero production traffic cut over (cutover is Session 4B-3).
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern**: order file
+  modified-but-uncommitted, only the committed version was the PRE-DRAFT (`Status: PRE-DRAFT`),
+  the working copy fully rewritten to `Status: APPROVED` with per-file Invariants/Parity-proof
+  fields added and no DRAFT→APPROVED commit trail. Asked Davin directly rather than trusting it;
+  confirmed live as his/the Advisor's own authentic edit. CONFIRM also found and reported (before
+  execution): Step 0's SOURCE list named a `AlertNotification` Prisma model that doesn't exist
+  anywhere in the codebase (likely confusion with `notify-bridge.ts`'s own `AlertNotification` TS
+  interface, or `lib/jobs/alert-checker.ts`'s commented-out `prisma.alertNotification.create` TODO
+  — real fired-alert Notifications go to the plain `Notification` model); CC-B (pino/
+  correlation-ID) and CC-E (queue naming) entry criteria were internally inconsistent
+  (simultaneously "required" and "this session builds it"); the PRE-DRAFT's own explicit Waiting-on
+  #79 Railway-packaging-risk entry criterion had been silently dropped from the rewrite; File 1/2's
+  SOURCE line counts (163/52) were stale against the real files, which 4B-1's own rewire had
+  already shrunk to 39/19-line re-export shims; `scripts/alert-worker.ts` was mis-cited at 30 lines
+  (actual 29, a regression from the PRE-DRAFT's own correct number); and the plan doc's own CC-E
+  section names the canonical queue as `op.alerts.dispatch`, not this order's `op.alerts.fire`.
+  Reported all of this in full before execution; Davin/the Advisor fixed the order file live
+  (BullMQ deps added to Step 0, `AlertNotification` dropped with an explanatory note, `op.alerts.fire`
+  kept as the deliberate choice, "staging" wording corrected to "production", Waiting-on #79
+  re-added as an explicit entry criterion) and gave explicit clearance to execute.
+  **A real, additional schema gap found mid-execution** (Step 0, before writing any code): Step 0's
+  own (corrected) file list still only named `Alert`/`Notification`/`MarketDataV6` — reading File
+  12's SOURCE (`lib/alert-engine/worker.ts`) showed `prisma.drawingAlert.findMany({ where: { alert:
+{ isActive: true } }, include: { drawing: true, alert: true } })` genuinely traverses
+  `DrawingAlert -> Drawing` and `DrawingAlert -> Alert` as real Prisma relations neither model was
+  in any version of Step 0's list. Mirrored both additively (`Alert.userId`/`Drawing.userId` kept
+  as bare scalars, no `User` relation — matches the 4A-W2 precedent for FKs no ported code
+  traverses; `DrawingAlert`'s relations to `Drawing`/`Alert` built as real relations, since
+  `worker.ts` genuinely uses Prisma's `include`/nested-`where` on both). All models mirrored into
+  ONE unified `PrismaService` (not the monolith's market/non-market split) — confirmed both
+  `lib/db/prisma.ts` and `lib/db/market-prisma.ts` read the identical `DATABASE_URL`, so this is a
+  legitimate simplification (operation-service already had one `PrismaService` since Session 3-1),
+  not a boundary violation. `MarketDataV6` mirrored as a narrow 5-of-79-field subset, matching the
+  service's existing narrow-subset convention (`User`/`SecurityAlert`).
+  **Infrastructure operation-service didn't have before this session, all built fresh:** a shared
+  Redis provider (`src/redis/{redis.service,redis.module}.ts`, mirrors `lib/redis/client.ts`'s
+  `getRedisClient()` options as a `@Global()` singleton — the service previously only had an inline
+  throttler client); `bullmq`/`@nestjs/bullmq` (installed matching money-service's pinned ranges,
+  L30 — resolved a patch version newer than money-service's own lockfile, ordinary registry drift,
+  not an L30-class mismatch); `@nestjs/schedule` (matching money-service's pinned version); `pino`
+  — this session is pino's first usage anywhere in this entire monorepo.
+  **A real double-fire risk found and resolved by design, not by the order's literal text alone:**
+  the order's own File 12 instruction ("Register AlertEngineModule in app.module.ts") means the
+  module is shared between `main.ts`'s HTTP process and `main-worker.ts`'s worker process — a naive
+  reading (decorator/lifecycle-hook auto-start on construction) would make BOTH processes
+  independently run the cron and the Redis subscriber loop. Resolved using the exact same pattern
+  money-service's own `CronsScheduler` already established for this: `@Interval()`
+  (`AlertCronScheduler`) and the subscriber loop (`AlertWorkerService.start()`) exist/fire in every
+  process that constructs the provider, but are internally gated by an `active`/`enable()` flag
+  that starts `false` and is flipped `true` ONLY by `main-worker.ts`'s own bootstrap — the HTTP
+  process never calls it, so its ticks are genuine no-ops. `AlertQueueService.startWorker()`
+  follows the identical explicit-call-only pattern. Graceful shutdown uses
+  `app.enableShutdownHooks()` + `OnModuleDestroy` hooks (L25) rather than source's manual
+  SIGINT/SIGTERM handlers — a manual handler alongside `enableShutdownHooks()` would double-fire
+  (Nest re-emits the signal after its own cleanup, L25's documented gotcha).
+  **CC-B (pino + correlation-ID) built, deliberately scoped narrow:** new
+  `alert-engine.logger.ts`, wired into `DispatcherService.dispatch()` only — the "per fire" log
+  point the order's own entry-criteria wording names, not a repo-wide `Logger` replacement (out of
+  this PORT session's scope). Distributed tracing (the rest of the plan's own CC-B section) stays
+  gated on F13 (still OPEN), unaffected.
+  **Test infrastructure notes:** no live Redis in this environment — `alert-queue.service.spec.ts`
+  and `alert-worker.service.spec.ts` mock `bullmq`/`ioredis` rather than proving real Redis-level
+  dedupe/pub-sub end-to-end (the dedupe test proves this session's OWN deterministic jobId
+  derivation is stable, not BullMQ's own well-documented dedupe mechanism). `AlertCheckerService`/
+  `DispatcherService`'s ported tests were restructured from the monolith's
+  `jest.mock('@/lib/db/prisma')` module-singleton mocking to DI-based construction
+  (`new Service(mockPrisma)`), since the ported code is `@Injectable()` with constructor injection,
+  not a module-level singleton — all assertions unchanged, only the setup mechanism differs. File
+  13's own TARGET (`operation-service/test/alert-engine/*`) doesn't match any existing convention
+  in this service (`jest.config.js`'s `testRegex` is `src/.*\.spec\.ts$`, no `test/` directory
+  exists anywhere) — every test co-located under `src/` as `*.spec.ts` instead, matching every
+  prior spec in this service, and committed alongside its own source file rather than batched into
+  one File-13 commit.
+  **Full verification:** `operation-service` 21/21 suites, 177/177 tests (was 11/11, 86/86 at
+  4B-1's close — +10 suites, +91 tests). `nest build`/`tsc --noEmit` clean. Monolith untouched
+  (confirmed via `git status`), `tsc --noEmit` clean, `test:ci` 122/122 suites, 2138/2138 tests —
+  byte-identical to the pre-session baseline.
+  **Not done this session, deliberately:** the two live-infrastructure Done-when items ("Staging:
+  synthetic price event... full path observed", "Mirror-run started") both need a real Railway
+  deploy of `main-worker.ts` as `operation-service`'s first-ever second process/service — per
+  `EXECUTOR-PROTOCOL.md` §7 ("first service deploys" always escalate to Davin), and since this is
+  exactly the moment Waiting-on #79's `file:../packages/types` Railway-packaging risk gets tested
+  for real (proven locally only, never against a live deploy), this was left for Davin's direct
+  involvement rather than attempted unilaterally. `MT5_API_URL` confirmed absent from
+  operation-service's real Railway production (value-blind, documented in `.env.example` this
+  session) — needed before any non-XAUUSD alert can resolve a real price. CC-F freeze not yet in
+  effect (starts when the mirror-run starts, which hasn't happened).
+  **Artifacts updated:** `4b-2-alert-engine-build.migration-order.md` (Status → CONFIRMED, Done-When
+  partially checked — build/tsc/tests done, live-deploy items explicitly not — Deviations filled in
+  full, 15 entries), `migration-stack-analysis.md` (new `operation-service/src/alert-engine/` +
+  `src/redis/` + `src/main-worker.ts` entry, 27 new files + 4 modified), this file. No
+  `DECISION-LOG.md` flag applies (no F-numbered decision was open this session; the `op.alerts.fire`
+  vs. plan-doc's `op.alerts.dispatch` naming note is recorded in the order's own Next-session
+  handoff instead, as an implementation-detail settlement, not a registry-worthy flag).
+- _(superseded-by-above, retained for context)_ Session 4B-1 (Shared Types & Geometry Package, INFRA/CONTRACT variant, F9
   resolution), APPROVED → CONFIRMED → executed, 2026-07-31. This is the FIRST Phase 4B session —
   it establishes the shared-package infrastructure the entire operation-service alert-engine track
   depends on, and is a different (correctly-numbered) session from an earlier, since-superseded
@@ -1406,6 +1504,18 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   (`CRON_SECRET`/`DATABASE_URL`/`NEXTAUTH_SECRET`/`REDIS_URL`/4 dLocal vars, via
   `railway variable list`'s unmasked default view) still need rotation. See Current above and the
   order's own Deviations (17 entries) for full detail.
+- **Order status (4B-2):** CONFIRMED, executed — 3 of 6 Done-When items checked (test suites green,
+  build clean, `tsc --noEmit` clean); the other 3 (staging full-path observation, mirror-run
+  started, CC-F freeze) explicitly NOT done, blocked on a real Railway deploy of `main-worker.ts`
+  that needs Davin's live involvement (first service deploy, `EXECUTOR-PROTOCOL.md` §7). All 13
+  files + Step 0 built: schema mirror (+`DrawingAlert`/`Drawing`, found mid-session, not in the
+  order's own list), validations/types re-exports, detect/state/watches/evaluator pure ports,
+  notify-bridge publisher, dispatcher (+pino/correlation-ID), BullMQ fire queue (`op.alerts.fire`),
+  alert checker, cron scheduler, worker service, `main-worker.ts` entrypoint. New shared Redis
+  provider, `bullmq`/`@nestjs/bullmq`/`@nestjs/schedule`/`pino` all newly installed (none were
+  dependencies before this session). `operation-service` 21/21 suites, 177/177 tests (was 11/11,
+  86/86); monolith untouched, `test:ci` 122/122 suites, 2138/2138 tests unchanged. Zero traffic cut
+  over — `MIGRATE_ALERT_ENGINE` untouched. See Current above for full detail.
 - **Order status (4B-1):** CONFIRMED, executed, fully closed — all 4 Done-When items checked.
   `@trading-alerts/types` built and consumed by the monolith (via pnpm workspace) and
   `operation-service` (via `file:` dependency, local resolution only — see Current above and
@@ -1997,19 +2107,49 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   git-triggered Railway build normally checks out the full repo tree before cd'ing into Root
   Directory) or vendoring/copying the built`dist/`into`operation-service`'s own tree as part of
   its build step.
-- **Next session (Phase 4B track):** 4B-1 (Shared Types & Geometry Package, F9) is CONFIRMED,
-  executed, and fully closed as of 2026-07-31 — see Current/Order-status above. The literal next
-  session is **4B-2 (Alert Engine BUILD)**, whose order file already exists
-  (`4b-2-alert-engine-build.migration-order.md`) and whose own Entry Criterion 1 is now genuinely
-  satisfied. Before that session starts, re-verify this session's own Deviation 6 / F9's open
-  follow-up: `operation-service`'s real Railway deploy mechanism (`railway up --path-as-root`, no
-  connected GitHub source) uploads a flattened archive of only that subdirectory, and has never
-  been proven to actually resolve the sibling `packages/types` directory a `file:` dependency
-  needs — 4B-2 is the first session that will actually import this package from
-  `operation-service`'s live, deployed alert-engine source, so this is the point where that gap
-  either closes for real or needs a different packaging mechanism (e.g. connecting a GitHub source
-  for `operation-service`, per Waiting-on #77, so a git-triggered Railway build sees the full repo
-  tree the same way money-service's own deploy already does).
+  **(80, UPDATED Session 4B-2)** #79's own prediction landed: Session 4B-2 is the first session
+  that actually imports `@trading-alerts/types` from real ported alert-engine code
+  (`watches.ts`/`types.ts`/`validations/alert.ts`) — local `tsc --noEmit`/`nest build`/full test
+  suite (21/21, 177/177) all confirm it resolves correctly LOCALLY. **Still not tested against a
+  real Railway deploy** — this session built and verified everything locally only, deliberately not
+  attempting a live deploy of `main-worker.ts`(a first-service-deploy action reserved for Davin,
+ `EXECUTOR-PROTOCOL.md`§7). #79's own options (connect a GitHub source for`operation-service`,
+  or vendor `packages/types/dist`into`operation-service`'s own tree) are both still open and now
+  directly blocking — the live deploy needed to close this item is also the live deploy 4B-2's own
+  Done-when needs (see #82 and the order's own Next-session handoff).
+  **(81, NEW)** `MT5_API_URL`confirmed ABSENT from`operation-service`'s real Railway production
+  (value-blind check, Session 4B-2) — the ported `AlertCheckerService`falls back to
+ `http://localhost:5000`(matching the monolith's own SOURCE default), which will silently fail
+  every non-XAUUSD price lookup once real traffic reaches it. Documented in`.env.example`this
+  session; needs Davin to set the real value before any live deploy exercises non-XAUUSD alerts
+  (XAUUSD itself is unaffected — it prefers the`market_data_v6`gateway-pipeline path first).
+  **(82, NEW)**`operation-service`'s first-ever second process/service — `main-worker.ts`(Session
+  4B-2, File 12/13) — has never been deployed anywhere. Needs Davin to decide the Railway topology
+  (new service vs. a second process type on the existing one) and actually run the deploy; this is
+  the single blocking action for both #80 (closing the packaging-risk question for real) and 4B-2's
+  own two remaining Done-when items (staging full-path observation, mirror-run started) — see the
+  order's own Next-session handoff for the full checklist.
+  **(83, NEW)**`docs/migration-orders/monolith-to-microservices-migration-implementation-plan.md`'s
+  own CC-E section (line ~738) names the canonical alert-fire queue as `op.alerts.dispatch`; Session
+  4B-2's order (and the actual shipped code, `AlertQueueService`) uses `op.alerts.fire`instead —
+  flagged at CONFIRM, Davin's live call was to keep`op.alerts.fire` rather than rename. Nothing in
+  code uses the plan doc's own example name, so nothing is broken, but worth the Advisor updating
+  the plan doc's own CC-E example to match the real settled name so this doesn't get re-flagged in
+  a future session that reads the plan doc as ground truth.
+- **Next session (Phase 4B track):** 4B-2 (Alert Engine BUILD) is CONFIRMED and executed as of
+  2026-07-31 (same day as 4B-1) — all 13 files + Step 0 built and green, see Current/Order-status
+  above. **This is NOT yet ready for Session 4B-3 (CUTOVER).** The literal next action is a live
+  deploy step, not a new BUILD/PORT order: `main-worker.ts` needs to actually run as
+  `operation-service`'s first-ever second process/service on Railway — this is the real test of
+  the Waiting-on #79 packaging risk (still proven locally only, never against a live deploy) and
+  is a "first service deploy" under `EXECUTOR-PROTOCOL.md` §7, so it needs Davin's direct live
+  involvement, not something the Executor does unilaterally. Once that deploy is live and
+  `MT5_API_URL` is set on operation-service's real Railway production (confirmed absent this
+  session), the two still-open Done-when items (staging full-path observation, mirror-run started)
+  can actually be attempted — both are what turns 4B-2 into a genuine prerequisite for 4B-3. Only
+  once the 48h mirror-run reference completes clean does **4B-3 (Alert Engine CUTOVER)**,
+  `TEMPLATE-VERIFY-RETIRE.md`, become the real next session — no order file exists for it yet
+  (correctly — writing one before the mirror-run has even started would be premature).
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.

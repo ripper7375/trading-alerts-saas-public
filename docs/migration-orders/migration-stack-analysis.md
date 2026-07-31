@@ -1687,6 +1687,64 @@ dependency (its Railway deploy-time resolution is an open follow-up, not yet a w
 </details>
 
 <details>
+<summary><code>operation-service/src/alert-engine/</code> + <code>src/redis/</code> + <code>src/main-worker.ts</code> — 27 new files (Session 4B-2, alert engine BUILD)</summary>
+
+Ports the monolith's `lib/alert-engine/*` (9 files) + `lib/jobs/{alert-checker,queue}.ts` +
+`lib/validations/alert.ts` + `scripts/alert-worker.ts` into `operation-service` as an
+`@Injectable()` NestJS domain module + a standalone worker entrypoint. Zero production traffic cut
+over this session (cutover is Session 4B-3) — SOURCE files untouched, byte-identical, become
+CC-F change-frozen once 4B-3's mirror-run starts.
+
+- `src/redis/redis.service.ts` + `redis.module.ts` (new — operation-service had no shared Redis
+  provider before this session; mirrors `lib/redis/client.ts`'s `getRedisClient()` connection
+  options as a `@Global()` NestJS singleton)
+- `src/alert-engine/validations/alert.ts` (+ `.spec.ts`, 28 tests) — re-exports
+  `@trading-alerts/types/validations` (File 1/13)
+- `src/alert-engine/types.ts` — re-exports `@trading-alerts/types/alert-engine` (File 2/13)
+- `src/alert-engine/detect.ts` (+ `.spec.ts`, 9 tests) — pure cross/touch detection, unchanged
+  (File 3/13)
+- `src/alert-engine/state.ts` — `AlertStateStore` (Redis + in-memory impls), unchanged (File 4/13)
+- `src/alert-engine/watches.ts` (+ `.spec.ts`, 4 tests) — imports `levelsForMark`/`MarkSnapshot`
+  directly from `@trading-alerts/types/geometry`, zero math duplication (File 5/13)
+- `src/alert-engine/evaluator.ts` (+ `.spec.ts`, 7 tests) — pure orchestration, DI'd state/dispatch
+  (File 6/13)
+- `src/alert-engine/notify-bridge.service.ts` (+ `.spec.ts`, 3 tests) — publisher half only
+  (subscriber stays in the monolith web process until 4B-17/F8); built ahead of File 7 since
+  dispatcher depends on it (File 11/13)
+- `src/alert-engine/dispatcher.service.ts` (+ `.spec.ts`, 4 tests) — `@Injectable()`, `PrismaService`
+  - `NotifyBridgeService` injected; also the CC-B pino/correlation-ID integration point (File 7/13)
+- `src/alert-engine/alert-queue.service.ts` (+ `.spec.ts`, 3 tests) — BullMQ wrapper, queue renamed
+  `op.alerts.fire` (CC-E); worker start is explicit (`startWorker()`), never auto-invoked (File 8/13)
+- `src/alert-engine/alert-checker.service.ts` (+ `.spec.ts`, 20 tests) — `@Injectable()` periodic
+  checker; 0.5%/XAUUSD-gateway-fallback/isActive invariants preserved exactly (File 9/13)
+- `src/alert-engine/alert-cron.scheduler.ts` (+ `.spec.ts`, 5 tests) — `@Interval(60_000)` replaces
+  the `setInterval` loop; `isRunning` guard preserved; new `active`/`enable()` gate prevents
+  double-scheduling across the HTTP and worker processes sharing one module graph (File 10/13)
+- `src/alert-engine/alert-worker.service.ts` (+ `.spec.ts`, 8 tests) — two dedicated Redis
+  connections (subscriber + ops), matching source's topology exactly; `start()`/`stop()` explicit,
+  `OnModuleDestroy` drains automatically via `enableShutdownHooks()` (File 12/13)
+- `src/alert-engine/alert-engine.module.ts` — registers all the above; imported into the shared
+  `app.module.ts` (File 12/13)
+- `src/alert-engine/alert-engine.logger.ts` — pino + per-fire correlation IDs, scoped to the
+  dispatch path only (CC-B); first pino usage anywhere in this monorepo (File 12/13)
+- `src/main-worker.ts` — standalone worker entrypoint (`NestFactory.createApplicationContext`),
+  `app.enableShutdownHooks()`; the only code path that calls `AlertWorkerService.start()`/
+  `AlertCronScheduler.enable()` (File 12/13)
+
+**Modified:** `operation-service/prisma/schema.prisma` (additive: `Alert`, `Notification`,
+`DrawingAlert`, `Drawing` — the latter two not in the order's own Step 0 list, found while porting
+File 12 — and a narrow-subset `MarketDataV6`), `operation-service/src/app.module.ts` (registers
+`RedisModule` + `AlertEngineModule`), `operation-service/package.json` (adds `bullmq`,
+`@nestjs/bullmq`, `@nestjs/schedule`, `pino`), `operation-service/.env.example` (`MT5_API_URL`,
+`ALERT_USE_QUEUE`, `EVAL_ON_FINAL_BAR_ONLY`, `ALERT_FIRE_CONCURRENCY`).
+
+Full test suite: 21/21 suites, 177/177 tests (was 11/11, 86/86 at 4B-1's close). `nest build` /
+`tsc --noEmit` clean. Monolith unchanged, `tsc --noEmit` clean, `test:ci` 122/122 suites, 2138/2138
+tests (identical to the pre-session baseline).
+
+</details>
+
+<details>
 <summary><code>types/</code> — 11 files</summary>
 
 - `types/alert.ts`
