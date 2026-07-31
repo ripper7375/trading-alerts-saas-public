@@ -30,7 +30,7 @@
     "@panva/hkdf": "1.2.1",
     "@prisma/adapter-pg": "7.8.0",
     "@prisma/client": "7.8.0",
-    "@trading-alerts/types": "file:../packages/types",
+    "@trading-alerts/types": "file:./packages/types",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.81.3",
     "class-transformer": "^0.5.1",
