@@ -5,10 +5,12 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import Redis from 'ioredis';
 
+import { AlertEngineModule } from './alert-engine/alert-engine.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { OutboxModule } from './outbox/outbox.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { RedisModule } from './redis/redis.module';
 
 // Module order follows railway-gateway's own app.module.ts (reference-notes
 // §2): global config -> global Prisma -> global throttler guard -> feature
@@ -19,6 +21,7 @@ import { PrismaModule } from './prisma/prisma.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    RedisModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [{ ttl: 60000, limit: 100 }],
@@ -30,6 +33,7 @@ import { PrismaModule } from './prisma/prisma.module';
     HealthModule,
     AuthModule,
     OutboxModule,
+    AlertEngineModule,
   ],
   providers: [
     {

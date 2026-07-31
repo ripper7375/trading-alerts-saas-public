@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
+import { alertEngineLogger, newFireCorrelationId } from './alert-engine.logger';
 import { NotifyBridgeService } from './notify-bridge.service';
 import type { Dispatch } from './evaluator';
 import type { FireEvent } from './types';
@@ -20,6 +21,15 @@ export class DispatcherService {
   ) {}
 
   dispatch: Dispatch = async (fire: FireEvent): Promise<void> => {
+    const correlationId = newFireCorrelationId();
+    const log = alertEngineLogger.child({
+      correlationId,
+      alertId: fire.alertId,
+      symbol: fire.symbol,
+      timeframe: fire.timeframe,
+    });
+    log.info('dispatching fire');
+
     const title = `${fire.symbol} ${fire.timeframe} alert`;
     const body = `Price ${fire.touchPrice} touched ${fire.levelId} @ ${fire.levelPrice}`;
     const link = `/charts/${fire.symbol}/${fire.timeframe}`;
@@ -46,5 +56,6 @@ export class DispatcherService {
     });
 
     await this.notifyBridge.publish(fire, new Date().toISOString());
+    log.info('fire dispatched');
   };
 }
