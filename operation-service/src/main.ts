@@ -4,6 +4,8 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import compression from 'compression';
 import helmet from 'helmet';
 
+import { AlertCronScheduler } from './alert-engine/alert-cron.scheduler';
+import { AlertWorkerService } from './alert-engine/alert-worker.service';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -32,6 +34,18 @@ async function bootstrap() {
 
   const port = process.env['PORT'] ?? 3001;
   await app.listen(port);
+
+  // If this container is running as operation-service-worker, start worker loop & scheduler
+  if (
+    process.env['RAILWAY_SERVICE_NAME'] === 'operation-service-worker' ||
+    process.env['WORKER_MODE'] === 'true'
+  ) {
+    const worker = app.get(AlertWorkerService);
+    const scheduler = app.get(AlertCronScheduler);
+    await worker.start();
+    scheduler.enable();
+    console.warn('[alert-worker] running in operation-service-worker service');
+  }
 }
 
 bootstrap();
