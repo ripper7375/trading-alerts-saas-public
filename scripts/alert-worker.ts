@@ -11,8 +11,16 @@
  */
 
 import { startAlertWorker } from '@/lib/alert-engine/worker';
+import { shouldUseOperationServiceForAlerts } from '@/lib/operation-service/flags';
 
 async function main(): Promise<void> {
+  if (shouldUseOperationServiceForAlerts()) {
+    console.warn(
+      '[alert-worker] bypassed: MIGRATE_ALERT_ENGINE=true (alerts evaluating on operation-service)'
+    );
+    process.exit(0);
+  }
+
   const handle = await startAlertWorker();
   console.warn('[alert-worker] running');
 

@@ -8,6 +8,7 @@
  */
 
 import { checkAlerts } from './alert-checker';
+import { shouldUseOperationServiceForAlerts } from '@/lib/operation-service/flags';
 
 /**
  * Alert checker interval in milliseconds (60 seconds)
@@ -30,6 +31,12 @@ let isRunning = false;
  * Runs the alert checker immediately and then every 60 seconds.
  */
 export function startAlertChecker(): void {
+  if (shouldUseOperationServiceForAlerts()) {
+    console.log(
+      '[JobQueue] Alert checker bypassed: MIGRATE_ALERT_ENGINE=true (alerts evaluated by operation-service)'
+    );
+    return;
+  }
   if (alertCheckInterval) {
     console.log('[JobQueue] Alert checker already running');
     return;
