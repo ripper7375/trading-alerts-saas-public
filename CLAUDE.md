@@ -2132,10 +2132,29 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   **(83, NEW)**`docs/migration-orders/monolith-to-microservices-migration-implementation-plan.md`'s
   own CC-E section (line ~738) names the canonical alert-fire queue as `op.alerts.dispatch`; Session
   4B-2's order (and the actual shipped code, `AlertQueueService`) uses `op.alerts.fire`instead —
-  flagged at CONFIRM, Davin's live call was to keep`op.alerts.fire` rather than rename. Nothing in
+  flagged at CONFIRM, Davin's live call was to keep`op.alerts.fire`rather than rename. Nothing in
   code uses the plan doc's own example name, so nothing is broken, but worth the Advisor updating
   the plan doc's own CC-E example to match the real settled name so this doesn't get re-flagged in
   a future session that reads the plan doc as ground truth.
+  **(84, NEW — the Slice 6 clock, same question class as #75, same honest answer)** Asked directly
+  at 4B-2's own wrap-up whether the shadow/mirror-run had started and the 4 SOURCE files were CC-F
+  frozen, with an exact 48h end time. **Neither is true, and neither was fabricated to answer that
+  question** — checked against 4B-2's own order text and the live deploy state first, reported the
+  mismatch, and PRE-DRAFTed`4b-3-alert-engine-cutover.migration-order.md`honestly rather than
+  inventing a timestamp. **What started:** nothing —`main-worker.ts`(the code that would run the
+  worker and start the mirror-run) has never been deployed anywhere;`operation-service`still runs
+  only its original HTTP process. **Exact end date/time:** N/A, no clock running. **What would
+  start it:** Davin deciding the Railway topology (new service vs. a second process type on the
+  existing`operation-service`) and actually deploying `main-worker.ts`— a "first service deploy"
+  under`EXECUTOR-PROTOCOL.md`§7, always escalated, not something the Executor does unilaterally.
+  Once live with dispatch disabled/pointed at a shadow queue, a genuine 48h clock starts THEN —
+  not before. **What to watch once it's real:** the worker's log-only fire decisions diffed against
+  the monolith's own real fires for the same window (4B-3's own Entry criteria/Checklist step 1);
+ `MT5_API_URL` also needs setting on operation-service's real production first (#81) or non-XAUUSD
+  evaluation will silently fail once the worker is live. **What would end an early wait:** N/A —
+  nothing is waiting on a clock yet; the equivalent trigger would be Davin deciding to skip the 48h
+  reference entirely (a live decision superseding this order's own Entry criteria, same shape as
+  F51's resolution for Slice 5), not a monitoring threshold being crossed.
 - **Next session (Phase 4B track):** 4B-2 (Alert Engine BUILD) is CONFIRMED and executed as of
   2026-07-31 (same day as 4B-1) — all 13 files + Step 0 built and green, see Current/Order-status
   above. **This is NOT yet ready for Session 4B-3 (CUTOVER).** The literal next action is a live
@@ -2146,10 +2165,12 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   involvement, not something the Executor does unilaterally. Once that deploy is live and
   `MT5_API_URL` is set on operation-service's real Railway production (confirmed absent this
   session), the two still-open Done-when items (staging full-path observation, mirror-run started)
-  can actually be attempted — both are what turns 4B-2 into a genuine prerequisite for 4B-3. Only
-  once the 48h mirror-run reference completes clean does **4B-3 (Alert Engine CUTOVER)**,
-  `TEMPLATE-VERIFY-RETIRE.md`, become the real next session — no order file exists for it yet
-  (correctly — writing one before the mirror-run has even started would be premature).
+  can actually be attempted — both are what turns 4B-2 into a genuine prerequisite for 4B-3.
+  **`4b-3-alert-engine-cutover.migration-order.md` PRE-DRAFTed 2026-07-31** (VERIFY-RETIRE, CUTOVER
+  block, fast-path eligible) — written honestly against current state: its own Entry criteria
+  explicitly record that the deploy hasn't happened and the 48h clock hasn't started (see Waiting-on
+  #84), not a fabricated "waiting" status. Do not treat it as APPROVED-eligible until the live
+  deploy lands and a real mirror diff exists to review.
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.

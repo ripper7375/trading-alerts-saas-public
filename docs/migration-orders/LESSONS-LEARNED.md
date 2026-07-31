@@ -6,6 +6,14 @@
 **Who reads:** the Executor, at every session OPEN.
 **Hard cap ~40 active lessons.** (Consolidated by Advisor on 2026-07-22. Full history moved to `LESSONS-ARCHIVE.md`).
 
+**At cap as of Session 4B-2's close (L1-L40).** One candidate lesson flagged, not added as a new
+numbered entry per this file's own "pause before adding another" rule: never fabricate a
+shadow/mirror-run's start or end timestamp when asked to "confirm the clock" — check whether the
+underlying work (a live deploy, a real running process) actually happened first. This is now a
+2nd occurrence of the same underlying pattern (`DECISION-LOG.md` F51 / `CLAUDE.md` Waiting-on #75
+for Slice 5's outbox flag; `CLAUDE.md` Waiting-on #84 for Slice 6's alert-engine mirror-run) —
+worth the Advisor's attention at the next consolidation pass.
+
 ---
 
 ## Active lessons
