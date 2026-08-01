@@ -7,6 +7,7 @@ import Redis from 'ioredis';
 
 import { AlertEngineModule } from './alert-engine/alert-engine.module';
 import { AuthModule } from './auth/auth.module';
+import { CacheModule } from './cache/cache.module';
 import { LoggingModule } from './common/logging/logging.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { HealthModule } from './health/health.module';
@@ -25,6 +26,7 @@ import { RedisModule } from './redis/redis.module';
     LoggingModule,
     PrismaModule,
     RedisModule,
+    CacheModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [{ ttl: 60000, limit: 100 }],

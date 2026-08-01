@@ -9,6 +9,7 @@ import Redis from 'ioredis';
 
 import { AdminModule } from './admin/admin.module';
 import { AffiliateModule } from './affiliate/affiliate.module';
+import { CacheModule } from './cache/cache.module';
 import { LoggingModule } from './common/logging/logging.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { CronsModule } from './crons/crons.module';
@@ -36,6 +37,7 @@ import { WiseModule } from './wise/wise.module';
     LoggingModule,
     PrismaModule,
     RedisModule,
+    CacheModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [{ ttl: 60000, limit: 100 }],
