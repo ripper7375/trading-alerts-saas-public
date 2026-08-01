@@ -1799,6 +1799,52 @@ status` confirms zero source files touched), `tsc --noEmit` clean.
 </details>
 
 <details>
+<summary><code>operation-service/src/alerts/</code> — 12 new files (Session 4B-5, Alerts CRUD PORT)</summary>
+
+PORT session — ports `app/api/alerts/route.ts`, `app/api/alerts/[id]/route.ts`,
+`app/api/alerts/line/route.ts`, `app/api/alerts/line/[id]/route.ts` (971 lines total) into
+`operation-service`. Zero traffic cut over (`MIGRATE_ALERTS_CRUD` not introduced yet — Session 4B-6's
+own scope, per `LESSONS-LEARNED.md` L31), zero monolith files touched.
+
+- `alerts.module.ts` — registers `AlertsController`/`LineAlertsController` +
+  `AlertsService`/`LineAlertsService`; `PrismaModule`/`RedisModule` are `@Global()`, no explicit
+  import needed
+- `alerts.controller.ts` + `alerts.service.ts` (+ `.spec.ts` each) — plain (price) alerts:
+  `GET/POST /alerts`, `GET/PATCH/DELETE /alerts/:id`. Real ground truth: FREE tier hard-blocked at 0
+  alerts, PRO limit 100 (order originally cited wrong numbers, corrected at CONFIRM); `DELETE` is a
+  real hard delete (`prisma.alert.delete()`, not the SOURCE's own stale "soft delete" comment); no
+  `alerts:changed` Redis publish (SOURCE never does, no live consumer for plain `Alert` rows either)
+- `line-alerts.controller.ts` + `line-alerts.service.ts` (+ `.spec.ts` each) — line-touch alerts:
+  `GET/POST /alerts/line`, `PATCH/DELETE /alerts/line/:id`. Atomic `Alert`+`DrawingAlert` creation,
+  PRO-tier gate on attach/PATCH (DELETE open to all tiers), `alerts:changed` published on
+  create/update/delete (real consumer: `AlertWorkerService.reload()`). "Reject TEXT drawings" ported
+  as the real, more general `levelsForMark()`-returns-zero-levels check, not a hardcoded type
+  comparison
+- `alerts.schemas.ts` — route-local plain-alert Zod schemas (3 condition types), deliberately
+  distinct from `@trading-alerts/types`'s broader `createAlertSchema`/`updateAlertSchema` (5 condition
+  types, used by the alert-engine's own internal validation, Session 4B-2) — two independent
+  "create alert" schemas already existed in this codebase; conflating them would have silently
+  changed accepted input
+- `dto/alert.dto.ts` — type-only re-exports for controller/service signatures
+
+**New shared infra:** `operation-service/src/common/pipes/zod-validation.pipe.ts` — validates a
+request body against a canonical Zod schema per-route (`@UsePipes()`), preserving
+`AlertAttachZ`/`AlertUpdateZ`'s real default-value/refinement behavior exactly rather than
+hand-translating into class-validator decorators; a new, reusable pattern for future sessions.
+
+**`packages/types` (root + `operation-service`'s embedded copy, commit `87242f09`) additive
+exports:** `AlertAttachZ`, `AlertUpdateZ`, `ALERT_TIER_LIMITS`, `getAlertLimit()` — hoisted from
+`lib/drawing/schema.ts`/`lib/tier-validation.ts` (byte-identical). Found and fixed mid-session:
+`operation-service`'s embedded copy has no automated sync from the root package — the root hoist
+alone left it stale, manually synced this session (see order Deviations).
+
+Test suites: `operation-service` 24/24→28/28 (+4 new spec files, 42 new tests). `nest build`/
+`tsc --noEmit` clean. Monolith unchanged (`git status` confirms zero files touched under `app/`,
+`lib/`, `__tests__/`, `components/`), `tsc --noEmit` clean.
+
+</details>
+
+<details>
 <summary><code>types/</code> — 11 files</summary>
 
 - `types/alert.ts`

@@ -30,6 +30,20 @@ and kill the specific PID, or better, avoid spawning a real background process f
 when an in-memory test harness can prove the same thing." Full detail in
 `4b-4-shared-infra-observability.migration-order.md`'s own Deviations (#11).
 
+**One more candidate from Session 4B-5's close (2026-08-01), not promoted, described here for the
+next consolidation pass:** `operation-service` does not consume the root `packages/types` package
+at all — it has its own separately embedded, git-tracked copy at `operation-service/packages/types/`
+(commit `87242f09`, created to solve the Railway single-directory-upload packaging risk, since
+`operation-service` has no connected GitHub source, L38/CLAUDE.md Waiting-on #77/#79/#80). This
+session hoisted new exports into the root package and only discovered the embedded copy was stale
+when `tsc --noEmit` failed with "has no exported member" despite the root package building clean —
+nothing about the root package's own build success signals whether `operation-service`'s embedded
+copy is in sync. No automated sync mechanism exists between the two copies. Worth a rule along the
+lines of "any change to `packages/types` must also sync (or verify already-synced)
+`operation-service/packages/types`, and `operation-service`'s own `tsc --noEmit` is the check that
+actually catches drift — the root package's own `npm run build` succeeding proves nothing about the
+embedded copy." Full detail in `4b-5-alerts-crud-port.migration-order.md`'s own Deviations (#4).
+
 ---
 
 ## Active lessons
