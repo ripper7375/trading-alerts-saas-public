@@ -26,7 +26,90 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-4 (Shared Infrastructure & Observability, INFRA + CONTRACT variant),
+- **Current:** Session 4B-5 (Alerts CRUD API Port to `operation-service`, PORT variant), APPROVED →
+  CONFIRMED → executed, 2026-08-01, same day as 4B-4. **Slice 7 (Alerts CRUD) is now BUILT in
+  `operation-service`** — all 4 monolith route files (`app/api/alerts/route.ts`,
+  `app/api/alerts/[id]/route.ts`, `app/api/alerts/line/route.ts`, `app/api/alerts/line/[id]/route.ts`,
+  971 lines total) ported into `AlertsController`/`LineAlertsController` +
+  `AlertsService`/`LineAlertsService`. Zero traffic cut over — `MIGRATE_ALERTS_CRUD` is a reserved
+  name only, not wired anywhere yet (that's Session 4B-6's own scope).
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file
+  modified-but-uncommitted, `PRE-DRAFT → APPROVED` with a full content rewrite, no
+  Advisor-DRAFT/Davin-approval commit trail — 12th occurrence) — reported to Davin in full before
+  execution rather than trusting it: the order's own cited line counts were each off by exactly +1
+  from the real `wc -l` values (matching the established "+1 across every citation" recurrence
+  shape from 4A-W1/4A-W2), its own header total (974) didn't even match the sum of its own per-file
+  citations (975), and its stated tier-quota numbers ("FREE: max 3 / PRO: max 50") didn't match live
+  SOURCE at all — `lib/tier-config.ts` and `lib/tier-validation.ts` independently agree V8's real
+  numbers are FREE=0 (hard-blocked, Alerts are a PRO-exclusive feature) / PRO=100. Davin corrected
+  the order file in place (also uncommitted) to match these findings, then authorized execution
+  directly in chat — the same resolution method as every prior L11 occurrence. One further
+  discrepancy found and fixed at CONFIRM even in the corrected version: File 2's DELETE was
+  described as a soft delete (`isActive = false`, matching the SOURCE file's own stale comment) —
+  the real executed statement is `prisma.alert.delete()`, a hard delete (L12-class: comment isn't
+  the contract).
+  **A real, load-bearing gap found and resolved before writing any code:** `AlertAttachZ`/
+  `AlertUpdateZ` (needed for Files 3-4) and `getAlertLimit` existed only in the monolith-only
+  `lib/drawing/schema.ts`/`lib/tier-validation.ts` — Step 0's own claim that DTOs would wrap
+  "existing `@trading-alerts/types` validation schemas... for attach-line alerts" overstated
+  readiness. Hoisted both schemas + a minimal `ALERT_TIER_LIMITS`/`getAlertLimit()` (alert-quota
+  numbers only, not the full `tier-config.ts` surface) into `@trading-alerts/types`, matching the
+  established single-source-of-truth precedent (Session 4B-1).
+  **A second, genuinely new gap found while hoisting, not anticipated by the order:**
+  `operation-service` does not actually consume the root `packages/types` at all — it has its own
+  separately embedded, git-tracked copy at `operation-service/packages/types/` (commit `87242f09`,
+  the fix for the Railway single-directory-upload packaging risk, since `operation-service` has no
+  connected GitHub source). The root package's own `npm run build` succeeded clean while
+  `operation-service`'s embedded copy stayed silently stale — only caught because
+  `operation-service`'s own `tsc --noEmit` then failed with "has no exported member." Synced the
+  one changed file into the embedded copy and rebuilt it; no automated sync mechanism exists between
+  the two, flagged as a new `LESSONS-LEARNED.md` unpromoted candidate (past the active-lessons cap,
+  not promoted without explicit direction — same standing as the two candidates already noted at
+  4B-3/4B-4's close).
+  **A real, deliberate scope decision, not silently guessed either way:** Files 1-2 (plain price
+  alerts) do NOT publish to the `alerts:changed` Redis channel — verified directly that neither
+  SOURCE file references Redis at all, and that the live `AlertWorkerService.reload()` (sole live
+  real-time evaluator since 4B-3) only reloads on `DrawingAlert` rows, never plain `Alert` rows, so
+  there is no consumer for this signal today regardless. The order's own Port steps had asked for
+  this publish call to be added; ported byte-for-byte (no publish) instead, per this PORT session's
+  LOW dial — flagged explicitly rather than silently added or silently dropped. Files 3-4 (line
+  alerts) DO publish it, matching real SOURCE behavior and a real live consumer.
+  **A parity-proof gap found while writing tests, not before:** the order's own cited "Parity proof"
+  for Files 3-4, `__tests__/drawing/alertsApi.test.ts`, turned out to test a CLIENT-side `fetch`
+  wrapper component, not the server route handlers at all — zero usable assertions to port
+  (`LESSONS-LEARNED.md` L28 class). Authored 21 new tests directly against the real SOURCE route
+  handlers instead.
+  **New shared infrastructure, established this session:** `ZodValidationPipe`
+  (`operation-service/src/common/pipes/zod-validation.pipe.ts`) — validates a request body against
+  a canonical Zod schema per-route, chosen over class-validator decorators because
+  `AlertAttachZ`/`AlertUpdateZ` carry real default-value and cross-field `.refine()` behavior that's
+  the actual thing to preserve, not something safe to hand-translate. `main.ts`'s existing global
+  class-validator `ValidationPipe` is untouched and stays the default for every other module
+  (confirmed no conflict — it no-ops on the plain/non-class parameter types used here).
+  **Error envelope shape is a deliberate, documented difference from the monolith, not an
+  oversight:** `operation-service`'s global `AllExceptionsFilter` (Session 4B-4) collapses every
+  exception into `{statusCode, message, error, timestamp, path, correlationId}`, dropping custom
+  fields like the monolith's `code`/`upgradeUrl` — status codes and full human-readable message text
+  are preserved exactly, the envelope shape follows this service's own already-established
+  convention instead, consistent with how every other ported module in this migration behaves.
+  **Full verification:** `operation-service` grew 24/24→28/28 suites, 192/192→234/234 tests (+4
+  suites/+42 tests, exactly matching this session's own new module). `tsc --noEmit`/`nest build`
+  clean throughout. Monolith untouched (`git status` confirms zero files touched under `app/`,
+  `lib/`, `__tests__/`, `components/`), `tsc --noEmit` clean — full `test:ci` not independently
+  re-run this session (nothing in its dependency tree changed; last recorded state, 4B-3/4B-4's
+  close, was 118/118 green).
+  **Artifacts updated:** `4b-5-alerts-crud-port.migration-order.md` (Status → CONFIRMED, Done-When
+  all checked, Deviations filled in full — 10 entries), `migration-stack-analysis.md` (new entry,
+  12 new files under `operation-service/src/alerts/` + `common/pipes/` + `packages/types` additive
+  exports, both root and `operation-service`'s embedded copy), `LESSONS-LEARNED.md` (new unpromoted
+  candidate note, embedded-`packages/types`-staleness), this file. No `DECISION-LOG.md` flag applies
+  (no F-numbered decision was open this session). `4b-6-alerts-crud-write-transport.migration-order.md`
+  PRE-DRAFTed (Standard Loop/UI-BUILD variant, mirroring 4A-7a's/4A-10a's own monolith-side
+  transport-layer shape) — carries the error-envelope-reshaping question and the
+  `MIGRATE_ALERTS_CRUD`-still-unwired finding forward as explicit entry criteria / open design
+  questions, per `LESSONS-LEARNED.md` L31 (a BUILD session shipping only the new side must hand off
+  the old side's flag-check wiring as its own session).
+- _(superseded-by-above, retained for context)_ Session 4B-4 (Shared Infrastructure & Observability, INFRA + CONTRACT variant),
   APPROVED → CONFIRMED → executed, 2026-08-01, same day as 4B-3. **F13 (Observability/tracing
   backend) is now RESOLVED** — Davin chose Option C live in chat (OTel SDK + OTLP HTTP exporter +
   Pino structured logging + Correlation-ID middleware + shared `CacheService` + `AllExceptionsFilter`),
@@ -1694,6 +1777,13 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   (`CRON_SECRET`/`DATABASE_URL`/`NEXTAUTH_SECRET`/`REDIS_URL`/4 dLocal vars, via
   `railway variable list`'s unmasked default view) still need rotation. See Current above and the
   order's own Deviations (17 entries) for full detail.
+- **Order status (4B-5):** CONFIRMED, executed, fully closed — all 5 Done-When items checked. All
+  4 route files ported (`AlertsController`/`AlertsService`, `LineAlertsController`/
+  `LineAlertsService`), 42 new tests green, `nest build`/`tsc --noEmit` clean, monolith untouched.
+  Zero traffic cut over — `MIGRATE_ALERTS_CRUD` is a reserved name only, no reader anywhere yet
+  (Session 4B-6's own scope). See Current above for full detail, including the tier-quota/line-count
+  corrections found at CONFIRM, the DELETE-behavior correction, the embedded-`packages/types`
+  staleness gap, and the L28-class missing parity-proof finding for Files 3-4.
 - **Order status (4B-4):** CONFIRMED, executed, fully closed — all 8 Done-When items checked (F13
   recorded, both services compile clean, test suites green with final counts, monolith untouched,
   Pino/CorrelationIdMiddleware/CacheService/AllExceptionsFilter all verified live via real e2e
@@ -2381,11 +2471,23 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `@opentelemetry/auto-instrumentations-node@0.56.1`'s own instrumentation map has no Prisma entry
   at all (checked directly before writing `otel.ts`); native Prisma tracing needs
   `previewFeatures = ["tracing"]`added to`schema.prisma`(both services' Prisma schemas) plus a
-  separate`@prisma/instrumentation` package — a schema-level change, out of this INFRA session's
+  separate`@prisma/instrumentation`package — a schema-level change, out of this INFRA session's
   own stated Rollback scope ("no database schema migrations"). HTTP/Express/ioredis are
   instrumented; DB-query-level spans are not. Worth a small, dedicated follow-up if/when Option
   A/B (a real tracing backend) is chosen and DB-level visibility actually matters — low priority
   while the exporter itself stays unconfigured in production.
+  **(87, NEW — Session 4B-5, 2026-08-01)**`operation-service/packages/types/`(the embedded copy
+  created by commit`87242f09`to solve the Railway single-directory-upload packaging risk) has NO
+  automated sync from the root`packages/types` — this session's own hoist (`AlertAttachZ`/
+  `AlertUpdateZ`/`getAlertLimit`) built clean at the root while `operation-service`'s embedded copy
+  silently stayed stale; only `operation-service`'s own `tsc --noEmit`(not the root package's build)
+  caught it. Fixed this time by manually copying the one changed file and rebuilding the embedded
+  copy — but this is a standing, repeatable gap: any future session that changes`packages/types`   and only checks the root package's own build will ship a stale embedded copy into
+  `operation-service`silently. Worth a real fix (a`sync`script wired into the root's own
+ `prepublishOnly`/`build`, or a CI check diffing the two `src/`trees) before this bites a session
+  that doesn't happen to run`operation-service`'s own `tsc --noEmit`right after the hoist. Recorded
+  as an unpromoted`LESSONS-LEARNED.md` candidate (past the active-lessons cap) — see that file's own
+  header note.
 - **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
   2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
   **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:
@@ -2403,11 +2505,17 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   C, Davin live). All 8 Ordered Steps shipped: OTel SDK bootstrap, unified `RedisModule` in
   `money-service`, shared `PinoLoggerService`, global `CorrelationIdMiddleware`, shared
   `CacheService`, global `AllExceptionsFilter`, `docs/secret-matrix.md` updated. Zero production
-  traffic behavior change. **The actual next session overall is now 4B-5**
-  (`4b-5-alerts-crud-port.migration-order.md`, PRE-DRAFTed at 4B-4's close, PORT variant) — per the
-  session playbook's own Phase 4B domain-slice ordering, "alerts CRUD" is named first among
-  Sessions 4B-5…16 (drawings + drawing-alerts → notifications → tier (guard) → user/profile/2FA/
-  sessions → market-data channel proxy, in that order after alerts).
+  traffic behavior change.
+  **Session 4B-5 (Alerts CRUD API Port) is now CONFIRMED, executed, and fully closed** (2026-08-01,
+  same day as 4B-4 — see Current/Order-status above). All 4 alerts routes BUILT in
+  `operation-service`, zero traffic cut over. **The actual next session overall is now 4B-6**
+  (`4b-6-alerts-crud-write-transport.migration-order.md`, PRE-DRAFTed at 4B-5's close, Standard
+  Loop/UI-BUILD variant, mirroring 4A-7a's/4A-10a's own monolith-side transport-layer shape) — the
+  monolith-side flag-check + forwarding layer for the 4 alerts routes, before any cutover can happen
+  (per `LESSONS-LEARNED.md` L31 — a PORT session shipping only the new side leaves the eventual
+  cutover flag a no-op until this transport layer exists). After that, drawings + drawing-alerts →
+  notifications → tier (guard) → user/profile/2FA/sessions → market-data channel proxy is still the
+  session playbook's own remaining Phase 4B domain-slice order.
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.
