@@ -148,9 +148,15 @@ export async function PATCH(
       return NextResponse.json(body, { status: opStatus });
     }
 
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { tier: true },
+    });
+    const userTier = dbUser?.tier || (session.user.tier as string) || 'FREE';
+
     // V8: Alerts are PRO-exclusive. FREE users (e.g. after a downgrade)
     // cannot modify or re-enable leftover alerts — only DELETE them.
-    if (((session.user.tier as string) || 'FREE') !== 'PRO') {
+    if (userTier !== 'PRO') {
       return NextResponse.json(
         {
           error: 'Alerts are a PRO feature',
