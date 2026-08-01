@@ -31,7 +31,16 @@ export class ZodValidationPipe implements PipeTransform {
       return value;
     }
 
-    const result = this.schema.safeParse(value);
+    let parsedValue = value;
+    if (typeof parsedValue === 'string') {
+      try {
+        parsedValue = JSON.parse(parsedValue);
+      } catch {
+        // Keep original string if parsing fails
+      }
+    }
+
+    const result = this.schema.safeParse(parsedValue);
     if (!result.success) {
       throw new BadRequestException({
         error: 'Invalid input',
