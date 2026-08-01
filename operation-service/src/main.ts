@@ -11,9 +11,16 @@ import helmet from 'helmet';
 import { AlertCronScheduler } from './alert-engine/alert-cron.scheduler';
 import { AlertWorkerService } from './alert-engine/alert-worker.service';
 import { AppModule } from './app.module';
+import { PinoLoggerService } from './common/logging/logging.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // bufferLogs holds Nest's own bootstrap-phase logs until useLogger()
+  // below swaps in PinoLoggerService, so nothing is lost/double-formatted
+  // in the gap between app creation and the logger override.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+  });
+  app.useLogger(app.get(PinoLoggerService));
 
   // Railway sits in front of this service as a reverse proxy — without this,
   // Express's req.ip reports the proxy's address, not the real client's.

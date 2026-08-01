@@ -9,6 +9,7 @@ import Redis from 'ioredis';
 
 import { AdminModule } from './admin/admin.module';
 import { AffiliateModule } from './affiliate/affiliate.module';
+import { LoggingModule } from './common/logging/logging.module';
 import { CronsModule } from './crons/crons.module';
 import { DisbursementModule } from './disbursement/disbursement.module';
 import { DlocalModule } from './dlocal/dlocal.module';
@@ -31,6 +32,7 @@ import { WiseModule } from './wise/wise.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    LoggingModule,
     PrismaModule,
     RedisModule,
     ThrottlerModule.forRootAsync({

@@ -9,6 +9,7 @@ import compression from 'compression';
 import helmet from 'helmet';
 
 import { AppModule } from './app.module';
+import { PinoLoggerService } from './common/logging/logging.service';
 
 async function bootstrap() {
   // rawBody: true (Session 4A-4, Slice 2 webhooks) — dLocal/RiseWorks HMAC
@@ -17,9 +18,14 @@ async function bootstrap() {
   // which can silently differ from what the provider actually signed
   // (whitespace, key order). Additive: request.body still parses as JSON
   // as before for every other route.
+  // bufferLogs holds Nest's own bootstrap-phase logs until useLogger()
+  // below swaps in PinoLoggerService, so nothing is lost/double-formatted
+  // in the gap between app creation and the logger override.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true,
+    bufferLogs: true,
   });
+  app.useLogger(app.get(PinoLoggerService));
 
   app.set('trust proxy', 1);
 

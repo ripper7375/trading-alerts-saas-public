@@ -7,6 +7,7 @@ import { NestFactory } from '@nestjs/core';
 import { AlertCronScheduler } from './alert-engine/alert-cron.scheduler';
 import { AlertWorkerService } from './alert-engine/alert-worker.service';
 import { AppModule } from './app.module';
+import { PinoLoggerService } from './common/logging/logging.service';
 
 /**
  * Alert worker entrypoint — long-running process, separate from main.ts's
@@ -23,7 +24,10 @@ import { AppModule } from './app.module';
  * @module main-worker
  */
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.createApplicationContext(AppModule);
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    bufferLogs: true,
+  });
+  app.useLogger(app.get(PinoLoggerService));
   app.enableShutdownHooks();
 
   const worker = app.get(AlertWorkerService);

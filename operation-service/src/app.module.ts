@@ -7,6 +7,7 @@ import Redis from 'ioredis';
 
 import { AlertEngineModule } from './alert-engine/alert-engine.module';
 import { AuthModule } from './auth/auth.module';
+import { LoggingModule } from './common/logging/logging.module';
 import { HealthModule } from './health/health.module';
 import { OutboxModule } from './outbox/outbox.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -20,6 +21,7 @@ import { RedisModule } from './redis/redis.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    LoggingModule,
     PrismaModule,
     RedisModule,
     ThrottlerModule.forRootAsync({
