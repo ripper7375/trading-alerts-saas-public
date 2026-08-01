@@ -92,6 +92,23 @@ are still catalogued only, never printed alongside a token in the same command �
   outside this chat; only the response body (profile IDs, types) was shared back — no token value
   entered this transcript.
 
+## Observability — OpenTelemetry (F13, added Session 4B-4, 2026-08-01)
+
+All optional, all non-secret (an endpoint URL and an optional headers string,
+not credentials in their own right — though `OTEL_EXPORTER_OTLP_HEADERS` may
+carry an API key for a managed SaaS backend once one is chosen, F13 Option
+A/B, so treat a set value the same as any other bearer token per L17). None
+of these are set on either service's real Railway production as of this
+session — `otel.ts`'s `initOtel()` runs regardless (spans generate for log
+correlation, Step 3) but exports nothing anywhere until
+`OTEL_EXPORTER_OTLP_ENDPOINT` is actually set.
+
+| Name                          | Consumed by                                                                                                                                                                                         | Found in                                                                               |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP trace collector URL (e.g. `http://localhost:4318/v1/traces` or a SaaS endpoint) — `operation-service/src/otel.ts`, `money-service/src/otel.ts`                                            | `operation-service/.env.example`, `money-service/.env.example` (commented, both unset) |
+| `OTEL_SERVICE_NAME`           | Overrides the `service.name` resource attribute otherwise hardcoded per service (`otel.ts`'s own `initOtel(serviceName)` argument)                                                                  | `operation-service/.env.example`, `money-service/.env.example` (commented, both unset) |
+| `OTEL_EXPORTER_OTLP_HEADERS`  | Read natively by `OTLPTraceExporter`'s own env-config resolution (not read directly in `otel.ts`) — optional auth headers for a SaaS collector, comma-separated `key=value` pairs per the OTel spec | `operation-service/.env.example`, `money-service/.env.example` (commented, both unset) |
+
 ## Cron
 
 | Name          | Consumed by                                                            | Found in                                                         |
