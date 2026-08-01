@@ -12,6 +12,10 @@
 // long as that convention holds; this module doesn't add the `server-only`
 // package to enforce it since it isn't already a project dependency.
 
+import { cookies } from 'next/headers';
+
+import { SESSION_COOKIE_NAME } from './cookies';
+
 const BASE_URL =
   process.env['OPERATION_SERVICE_URL'] ?? 'http://localhost:3001';
 
@@ -88,6 +92,57 @@ export async function callOperationServiceWithToken<T>(
       Authorization: `Bearer ${accessToken}`,
     },
   });
+}
+
+export interface OperationServiceResponse<T> {
+  status: number;
+  body: T;
+}
+
+/**
+ * Same as callOperationServiceWithToken, but also surfaces the real response
+ * status (Session 4B-6) — needed by write-routes.ts's generic forwarder,
+ * since two of the four forwarded Alerts CRUD routes (alert create,
+ * line-alert attach) have an existing, documented 201 Created contract that
+ * a bare body-only passthrough would silently downgrade to 200.
+ */
+export async function callOperationServiceWithTokenStatus<T>(
+  path: string,
+  accessToken: string,
+  init: RequestInit = {}
+): Promise<OperationServiceResponse<T>> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...init.headers,
+      Authorization: `Bearer ${accessToken}`,
+    },
+    cache: 'no-store',
+  });
+
+  const body = await parseJsonBody(response);
+
+  if (!response.ok) {
+    throw new OperationServiceError(
+      response.status,
+      body as OperationServiceErrorBody
+    );
+  }
+
+  return { status: response.status, body: body as T };
+}
+
+/**
+ * Raw NextAuth session JWE from the httpOnly cookie, or null if absent
+ * (Session 4B-6). Mirrors lib/money-service/routes.ts's
+ * getMoneyServiceToken() — same F45-class server-side-proxy bridge: the
+ * caller's own already-validated session cookie is forwarded as this
+ * module's Bearer token, never re-derived or re-validated here.
+ */
+export async function getOperationServiceToken(): Promise<string | null> {
+  const cookieStore = await cookies();
+  return cookieStore.get(SESSION_COOKIE_NAME)?.value ?? null;
 }
 
 /** Best-effort forwarding of the real client's IP/user-agent for operation-service's audit fields (RefreshToken.userAgent/ipAddress) — not security-critical, see jwt-auth.guard.ts / main.ts's own comments on this. */
