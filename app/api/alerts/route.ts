@@ -12,6 +12,11 @@ import { z } from 'zod';
 
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
+import { shouldUseOperationServiceForAlertsCrud } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 import {
   PRO_TIER_CONFIG,
   SYMBOLS,
@@ -53,6 +58,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         { error: 'Unauthorized', code: 'UNAUTHORIZED' },
         { status: 401 }
       );
+    }
+
+    // Session 4B-6: when the flag is on, operation-service's AlertsController
+    // (Session 4B-5 PORT) already re-implements this list/filter logic
+    // against the same schema — forward instead of running it twice.
+    if (shouldUseOperationServiceForAlertsCrud()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        `/alerts${new URL(request.url).search}`
+      );
+      return NextResponse.json(body, { status: opStatus });
     }
 
     const { searchParams } = new URL(request.url);
@@ -104,6 +120,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ alerts });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('GET /api/alerts error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch alerts', code: 'FETCH_ERROR' },
@@ -128,6 +147,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { error: 'Unauthorized', code: 'UNAUTHORIZED' },
         { status: 401 }
       );
+    }
+
+    // Session 4B-6: when the flag is on, operation-service's AlertsController
+    // (Session 4B-5 PORT) already re-implements every check below (tier gate,
+    // input validation, alert-limit check) against the same schema — forward
+    // the raw request there instead of running this logic twice.
+    if (shouldUseOperationServiceForAlertsCrud()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        '/alerts'
+      );
+      return NextResponse.json(body, { status: opStatus });
     }
 
     const tier = (session.user.tier as Tier) || 'FREE';
@@ -235,6 +266,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('POST /api/alerts error:', error);
     return NextResponse.json(
       { error: 'Failed to create alert', code: 'CREATE_ERROR' },

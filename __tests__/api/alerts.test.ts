@@ -87,9 +87,37 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
+// Mock the Session 4B-6 operation-service transport (flag + forwarder)
+const mockShouldUseOpService = jest.fn().mockReturnValue(false);
+jest.mock('@/lib/operation-service/flags', () => ({
+  __esModule: true,
+  shouldUseOperationServiceForAlertsCrud: () => mockShouldUseOpService(),
+}));
+
+class MockOperationServiceError extends Error {
+  status: number;
+  body: Record<string, unknown>;
+  constructor(status: number, body: Record<string, unknown>) {
+    super(String(body.message ?? 'error'));
+    this.status = status;
+    this.body = body;
+  }
+}
+const mockForwardRequestToOperationService = jest.fn();
+jest.mock('@/lib/operation-service/write-routes', () => ({
+  __esModule: true,
+  OperationServiceError: MockOperationServiceError,
+  forwardRequestToOperationService: (...args: unknown[]) =>
+    mockForwardRequestToOperationService(...args),
+}));
+
 describe('Alerts API Routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // clearAllMocks() does not reset mockReturnValue() -- re-pin the flag to
+    // its default OFF state before every test so a flag-on test earlier in
+    // the file can never leak into a later, flag-off-assuming test.
+    mockShouldUseOpService.mockReturnValue(false);
   });
 
   describe('GET /api/alerts', () => {
@@ -673,6 +701,93 @@ describe('Alerts API Routes', () => {
       expect(mockAlertDelete).toHaveBeenCalledWith({
         where: { id: 'alert-1' },
       });
+    });
+  });
+
+  // Session 4B-6: MIGRATE_ALERTS_CRUD flag-on forwarding to operation-service.
+  // Auth still runs first (unchanged); Prisma mocks are never called on this
+  // path -- proves the flag branch short-circuits before any monolith logic.
+  describe('MIGRATE_ALERTS_CRUD forwarding', () => {
+    it('GET /api/alerts forwards to operation-service, preserving status and query params', async () => {
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockResolvedValue({
+        status: 200,
+        body: { alerts: [{ id: 'op-alert-1' }] },
+      });
+
+      const { GET } = await import('@/app/api/alerts/route');
+      const request = new MockRequest(
+        'http://localhost/api/alerts?status=active'
+      );
+      const response = await GET(request as unknown as Request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.alerts).toEqual([{ id: 'op-alert-1' }]);
+      expect(mockForwardRequestToOperationService).toHaveBeenCalledWith(
+        request,
+        '/alerts?status=active'
+      );
+      expect(mockAlertFindMany).not.toHaveBeenCalled();
+    });
+
+    it('POST /api/alerts forwards to operation-service and preserves a 201 Created', async () => {
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockResolvedValue({
+        status: 201,
+        body: { alert: { id: 'op-alert-2' } },
+      });
+
+      const { POST } = await import('@/app/api/alerts/route');
+      const request = new MockRequest('http://localhost/api/alerts', {
+        method: 'POST',
+        body: JSON.stringify({
+          symbol: 'XAUUSD',
+          timeframe: 'M5',
+          conditionType: 'price_above',
+          targetValue: 1900,
+        }),
+      });
+      const response = await POST(request as unknown as Request);
+      const data = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(data.alert).toEqual({ id: 'op-alert-2' });
+      expect(mockForwardRequestToOperationService).toHaveBeenCalledWith(
+        request,
+        '/alerts'
+      );
+      expect(mockAlertCreate).not.toHaveBeenCalled();
+    });
+
+    it('GET /api/alerts maps an OperationServiceError to its own status/body', async () => {
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockRejectedValue(
+        new MockOperationServiceError(503, { error: 'operation-service down' })
+      );
+
+      const { GET } = await import('@/app/api/alerts/route');
+      const request = new MockRequest('http://localhost/api/alerts');
+      const response = await GET(request as unknown as Request);
+      const data = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(data.error).toBe('operation-service down');
+    });
+
+    it('does not forward when unauthenticated -- auth check still runs first', async () => {
+      mockSession.mockResolvedValue(null);
+      mockShouldUseOpService.mockReturnValue(true);
+
+      const { GET } = await import('@/app/api/alerts/route');
+      const request = new MockRequest('http://localhost/api/alerts');
+      const response = await GET(request as unknown as Request);
+
+      expect(response.status).toBe(401);
+      expect(mockForwardRequestToOperationService).not.toHaveBeenCalled();
     });
   });
 });
