@@ -5,7 +5,7 @@
 
 **Session:** 4B-7 (CUTOVER & VERIFY) · **Variant:** VERIFY-RETIRE
 **Target service:** Monolith (`app/api/alerts/**`) & Vercel Production Environment (`MIGRATE_ALERTS_CRUD`)
-**Status:** APPROVED
+**Status:** CONFIRMED
 **Generated:** 2026-08-01 (Advisor upgrade from PRE-DRAFT, Davin APPROVED 2026-08-01)
 **Flags touched:** `MIGRATE_ALERTS_CRUD` (`false` → `true`)
 **Contract:** Verified live cutover of all 4 Alerts CRUD API route groups (`GET/POST /api/alerts`, `GET/PATCH/DELETE /api/alerts/[id]`, `GET/POST /api/alerts/line`, `PATCH/DELETE /api/alerts/line/[id]`) to `operation-service`. Monolith Prisma fallback branches remain in place behind `MIGRATE_ALERTS_CRUD=false` for instant rollback capability (matching Slice 3 & 4 precedent).
@@ -77,7 +77,27 @@
 
 ## Deviations
 
-_(filled during execution)_
+1. **Entry Criterion 4 was FALSE at CONFIRM, not just unverified.** The order's own Entry
+   Criteria pre-checked `OPERATION_SERVICE_URL` as "confirmed present (value-blind) on Vercel
+   production" — a full unfiltered `vercel env ls production` (21 vars, all environments) showed
+   it did not exist anywhere. `lib/operation-service/client.ts:20` falls back to
+   `http://localhost:3001` when absent — flipping `MIGRATE_ALERTS_CRUD=true` against that state
+   would have made every one of the 4 forwarded route branches try to reach an unreachable
+   localhost address from Vercel's serverless environment, breaking 100% of Alerts CRUD traffic
+   (GET/POST/PATCH/DELETE, plain + line alerts) the instant the flag went live. Same failure
+   class as `LESSONS-LEARNED.md` L21/L32, and the identical incident already happened once before
+   at Session 4A-7b (`MONEY_SERVICE_URL` missing) — caught there before flipping, recurred here.
+   **Fixed before proceeding, per Davin's live "Go" + explicit fix instructions:** added
+   `OPERATION_SERVICE_URL=https://operation-service-production.up.railway.app` (the value already
+   documented in `.env.example`, matching the real live `operation-service` Railway HTTP process
+   — confirmed via `railway status`, distinct from the separate `operation-service-worker`
+   process) to Vercel production via `vercel env add` (value-blind). Redeployed
+   (`vercel --prod --archive=tgz`, `dpl_F5VZYwL8FPUiUwJGSHUhjy9VD9R9`) to establish a genuine OFF
+   baseline with the var present but `MIGRATE_ALERTS_CRUD` still `false` — verified via
+   unauthenticated smoke test (`GET /api/alerts` → `401`, `GET /api/alerts/line` → `401`, site
+   root → `200`) before touching the flag, confirming no regression from the env-var addition
+   alone. Entry Criterion 4 re-verified true only after this fix, not assumed.
+2. _(remaining deviations filled as execution continues)_
 
 ---
 
