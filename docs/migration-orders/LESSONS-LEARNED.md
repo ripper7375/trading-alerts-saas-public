@@ -6,34 +6,29 @@
 **Who reads:** the Executor, at every session OPEN.
 **Hard cap ~40 active lessons.** (Consolidated by Advisor on 2026-07-22. Full history moved to `LESSONS-ARCHIVE.md`).
 
-**Past cap as of Session 4B-3's close (L1-L41) — a consolidation pass is now genuinely overdue,
+**Past cap as of Session 4B-4's close (L1-L42) — a consolidation pass is now genuinely overdue,
 not just flagged.** Session 4B-3 hit FOUR existing lessons as live recurrences in a single
 session (L11, L17, L38, L40 — see their own recurrence notes below) at unusually high volume (8
 independent CONFIRM cycles), plus one genuinely new pattern (L41, added below at Davin's explicit
-direction to harvest despite the cap). The still-unpromoted candidate from 4B-2's close (never
-fabricate a shadow/mirror-run's start or end timestamp — check whether the underlying work
-actually happened first; `DECISION-LOG.md` F51 / `CLAUDE.md` Waiting-on #75 and #84, 2nd
-occurrence) remains a candidate, not promoted — 4B-3 itself did NOT hit this pattern again (Option
-A was chosen live, no clock was fabricated), so it isn't re-flagged as a fresh recurrence, but it
-and this cap overrun are both worth the Advisor's attention at the next consolidation pass.
+direction to harvest despite the cap). Session 4B-4 added one more genuinely new pattern (L42,
+below, at Davin's explicit direction to harvest despite the cap). The still-unpromoted candidate
+from 4B-2's close (never fabricate a shadow/mirror-run's start or end timestamp — check whether
+the underlying work actually happened first; `DECISION-LOG.md` F51 / `CLAUDE.md` Waiting-on #75
+and #84, 2nd occurrence) remains a candidate, not promoted — 4B-3/4B-4 did NOT hit this pattern
+again, so it isn't re-flagged as a fresh recurrence, but it and this cap overrun are both worth
+the Advisor's attention at the next consolidation pass.
 
-**Two more candidates from Session 4B-4's close (2026-08-01), also not promoted (no explicit
-direction to exceed the cap this time), described here for the next consolidation pass:** (1)
-Express 5 / path-to-regexp v8 (this repo's real installed versions in both `operation-service` and
-`money-service`) removed the bare `'*'` wildcard for `MiddlewareConsumer.forRoutes()` — any future
-middleware/route registration in either service needs `'/{*splat}'` instead, verified empirically
-this session (`pathToRegexp('*')` throws `"Missing parameter name at index 1: *"` against the real
-installed package; `'/{*splat}'` matches every path including bare `/`) rather than assumed from
-memory or older Express docs. (2) A live-boot verification step used `taskkill //F //IM node.exe
-//T` to clean up a single spawned test process — a blanket kill of every Node process on the
-machine, not scoped to the one PID actually spawned. Caught and disclosed immediately, not
-repeated (switched to foreground-only `node -e` scripts and `Test.createTestingModule` +
-`supertest`'s in-memory server for the rest of the session, neither of which needs any manual
-process spawn/cleanup at all) — worth a rule along the lines of "never `taskkill`/`pkill` by image
-name to clean up a test process you spawned; capture and kill the specific PID, or better, avoid
-spawning a real background process for verification when an in-memory test harness can prove the
-same thing." Full detail in `4b-4-shared-infra-observability.migration-order.md`'s own Deviations
-(#3, #5, #11).
+**One more candidate from Session 4B-4's close (2026-08-01), not promoted (no explicit direction
+to exceed the cap for this one), described here for the next consolidation pass:** a live-boot
+verification step used `taskkill //F //IM node.exe //T` to clean up a single spawned test
+process — a blanket kill of every Node process on the machine, not scoped to the one PID actually
+spawned. Caught and disclosed immediately, not repeated (switched to foreground-only `node -e`
+scripts and `Test.createTestingModule` + `supertest`'s in-memory server for the rest of the
+session, neither of which needs any manual process spawn/cleanup at all) — worth a rule along the
+lines of "never `taskkill`/`pkill` by image name to clean up a test process you spawned; capture
+and kill the specific PID, or better, avoid spawning a real background process for verification
+when an in-memory test harness can prove the same thing." Full detail in
+`4b-4-shared-infra-observability.migration-order.md`'s own Deviations (#11).
 
 ---
 
@@ -587,3 +582,22 @@ dist/main` (the plain `npm start` script) instead of the `start:worker` script n
   taken effect. A clean `git push` and a healthy-looking `/health` 200 from a DIFFERENT,
   already-existing service in the same project proves nothing about a newly-declared one.
 - Source: Session 4B-3 (2026-08-01) · Status: ACTIVE
+
+### L42 — Express 5 / path-to-regexp v8 removed the bare `'*'` wildcard for catch-all routes and middleware
+
+- Symptom: the obvious pattern for "match every route" — `consumer.apply(Middleware).forRoutes('*')`
+  (or a raw Express `app.use('*', ...)`/`app.all('*', ...)`) — throws at construction time in this
+  repo's real installed versions: calling the actual installed `pathToRegexp('*')` directly threw
+  `"Missing parameter name at index 1: *"`, confirmed empirically before it could break anything.
+- Root cause: `express@5.2.1` (both `operation-service` and `money-service`'s real installed
+  version) depends on `path-to-regexp@8.4.2`, which removed the old bare-wildcard/`(.*)` syntax
+  entirely (a breaking change carried since path-to-regexp v6). Neither service had any prior
+  middleware/catch-all route registration to reveal this — first `forRoutes()`-style call in
+  either service's history, so nothing in the existing codebase warned about it.
+- Rule: for any Nest `MiddlewareConsumer.forRoutes()` (or raw Express route) that needs to match
+  every path in this repo, use `'/{*splat}'` — verified empirically (via a standalone
+  `pathToRegexp()` call against the real installed package) to match every path including bare
+  `/`. Never assume the old bare `'*'`/`'(.*)'` syntax still works from memory or older
+  Express/Nest documentation/tutorials — test the actual pattern against the real installed
+  `path-to-regexp` (or just use `'/{*splat}'` directly) before relying on it.
+- Source: Session 4B-4 (2026-08-01) · Status: ACTIVE

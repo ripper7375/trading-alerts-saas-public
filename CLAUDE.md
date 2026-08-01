@@ -68,8 +68,8 @@
   throwaway script (`"Missing parameter name at index 1: *"`); the documented replacement,
   `'/{*splat}'`, was verified the same way to match every path including bare `/`. Neither service
   had any prior middleware registration to copy this from — a genuinely new pattern for this
-  codebase. Recorded as a lesson candidate (LESSONS-LEARNED.md is past its stated cap, not
-  formally numbered without Davin's explicit direction to exceed it — see that file's own header).
+  codebase. Harvested as `LESSONS-LEARNED.md` **L42** (Davin's explicit direction to exceed the
+  stated cap for this one, given same day this note was written).
   **Step 2 (`RedisModule`, `money-service`):** new `redis.service.ts`/`redis.module.ts`,
   byte-for-byte matching `operation-service`'s own implementation, registered `@Global()`.
   `IdempotencyStore` refactored to inject the shared `RedisService` instead of its own dedicated
@@ -137,9 +137,13 @@
     Done-When all checked with final test counts, Deviations filled in full — 12 entries),
     `DECISION-LOG.md` (F13 → RESOLVED, recorded at CONFIRM per Davin's live direction),
     `migration-stack-analysis.md` (new entry, 26 new files + both services' `app.module.ts`/`main.ts`/
-    package.json/`.env.example` modified), `LESSONS-LEARNED.md` (two new candidates described in the
-    header, not formally numbered — cap still not consolidated), this file. No
-    `migration-cutover-table.md` change — this is a pure INFRA session, no slice/flag/traffic change.
+    package.json/`.env.example` modified), `LESSONS-LEARNED.md` (new **L42** — path-to-regexp v8's
+    wildcard removal, harvested at Davin's explicit direction; the taskkill incident stays an
+    unpromoted candidate in the header note), this file. No `migration-cutover-table.md` change —
+    confirmed this table is scoped to traffic-carrying slices/flags only (verified against every
+    existing row, all 7 are real cutover slices, none of the prior pure-BUILD/INFRA sessions
+    4B-1/4B-2 got a row either) — a pure INFRA session with zero slice/flag/traffic change has
+    nothing to add there without inventing a null-content row.
     `4b-5-alerts-crud-port.migration-order.md` PRE-DRAFTed (PORT variant, per the session playbook's
     own Phase 4B domain-slice ordering — "alerts CRUD" named first among Sessions 4B-5…16).
 - _(superseded-by-above, retained for context)_ Session 4B-3 (Alert Engine CUTOVER & RETIRE, VERIFY-RETIRE variant), APPROVED →
