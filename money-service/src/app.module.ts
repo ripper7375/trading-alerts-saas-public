@@ -1,6 +1,6 @@
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { BullModule } from '@nestjs/bullmq';
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -10,6 +10,7 @@ import Redis from 'ioredis';
 import { AdminModule } from './admin/admin.module';
 import { AffiliateModule } from './affiliate/affiliate.module';
 import { LoggingModule } from './common/logging/logging.module';
+import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { CronsModule } from './crons/crons.module';
 import { DisbursementModule } from './disbursement/disbursement.module';
 import { DlocalModule } from './dlocal/dlocal.module';
@@ -93,4 +94,14 @@ import { WiseModule } from './wise/wise.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    // Express 5 / path-to-regexp v8 (this repo's installed versions)
+    // removed bare '*' wildcard support — '/{*splat}' is the documented
+    // replacement, verified against the real installed path-to-regexp to
+    // match every path including bare '/'. Matches against the raw
+    // incoming path (middleware runs before setGlobalPrefix's routing),
+    // so this covers /health, /health-auth, and every /v1/* route alike.
+    consumer.apply(CorrelationIdMiddleware).forRoutes('/{*splat}');
+  }
+}
