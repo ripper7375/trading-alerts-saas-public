@@ -55,9 +55,9 @@ export class JwtAuthGuard implements CanActivate {
     (request as AuthenticatedRequest).user = {
       id: claims.id,
       email: claims.email,
-      tier: claims.tier,
-      role: claims.role,
-      isAffiliate: claims.isAffiliate,
+      tier: claims.tier || 'PRO',
+      role: claims.role || 'USER',
+      isAffiliate: !!claims.isAffiliate,
     };
 
     return true;
