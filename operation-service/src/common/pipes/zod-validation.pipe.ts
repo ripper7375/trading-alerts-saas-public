@@ -28,11 +28,13 @@ export class ZodValidationPipe implements PipeTransform {
 
   transform(value: unknown, _metadata: ArgumentMetadata): unknown {
     let parsedValue = value;
-    if (typeof parsedValue === 'string') {
+    while (typeof parsedValue === 'string') {
       try {
-        parsedValue = JSON.parse(parsedValue);
+        const next = JSON.parse(parsedValue);
+        if (next === parsedValue) break;
+        parsedValue = next;
       } catch {
-        // Keep original string if parsing fails
+        break;
       }
     }
 
