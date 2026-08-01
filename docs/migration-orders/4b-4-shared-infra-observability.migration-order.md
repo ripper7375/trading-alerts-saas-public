@@ -1,148 +1,227 @@
-# Migration Order — INFRA variant (+ CONTRACT block for F13)
+# Migration Order: Shared Infrastructure & Observability (Session 4B-4)
 
-> For sessions that **provision or configure live systems** and build shared cross-cutting Nest
-> infrastructure. Read `00-SKELETON-AND-RULES.md` first — §4 applies. **Creativity dial: Medium**
-> (the approach is flexible; F13's actual backend choice is Davin's, not the Executor's).
+> Migration Order for Session **4B-4** (Shared Infrastructure & Observability).
+> Variant: **INFRA + CONTRACT (F13)** (Creativity Dial: **MEDIUM** — standard NestJS provider design & OTel SDK setup).
+> Target Services: `operation-service` and `money-service`.
 
-**Session:** 4B-4 · **Variant:** INFRA + CONTRACT (F13) · **Status:** PRE-DRAFT
-**Generated:** 2026-08-01 (Executor, at 4B-3's close, per `EXECUTOR-PROTOCOL.md` §3.5)
-**Flags touched:** none yet — **F13** (Observability/tracing backend) is this session's own
-central open decision, `DECISION-LOG.md` currently OPEN ("due by first Phase 4 cutover" — a
-deadline already passed several cutovers ago; carried forward, not newly missed by this session).
-**Estimated time:** unknown — depends heavily on which way F13 is resolved (a managed SaaS
-backend is likely much faster than self-hosting Jaeger/Tempo).
-
-**Per the session playbook** (`monolith-to-microservices-migration-session-playbook.md`, Phase 4B
-section): _"Session 4B-4 — Shared infra: redis/cache/logger/errors/monitoring as Nest providers +
-interceptors; OTel + correlation-ID middleware (F13 resolved here if not earlier)."_ This is a
-genuinely distinct session from **4B-17 (Realtime, F8)** — confirm this distinction was checked
-directly against `DECISION-LOG.md`'s own flag register this session, not assumed: F8 is registered
-separately, "OPEN — due Session 4B-17." Do not conflate the two.
+**Session:** 4B-4 · **Phase / plan section:** Phase 4B step 4, plan §CC-B & §CC-E
+**Target services:** `operation-service` & `money-service`
+**Variant:** INFRA + CONTRACT (F13) · **Status:** CONFIRMED
+**Generated:** 2026-08-01 (Advisor upgrade from PRE-DRAFT, Davin APPROVED 2026-08-01, Executor CONFIRMED 2026-08-01)
+**Flags touched:** **F13** (Observability / OpenTelemetry tracing backend — RESOLVED)
+**Contract:** Standardized Pino structured log format (`level`, `timestamp`, `service`, `correlationId`, `traceId`, `spanId`), `x-correlation-id` HTTP header propagation, `CacheService` get/set/del/ttl key-prefix API, standardized `AllExceptionsFilter` error JSON schema.
+**Estimated session time:** ~3.0h (under Option C)
 
 ---
 
 ## Entry criteria
 
-- [x] Session 4B-3 CONFIRMED and closed (2026-08-01) — Slice 6 CUT-OVER & LIVE, monolith
-      alert-engine files retired, `tsc`/`test:ci` 100% green.
-- [ ] **F13 (Observability/tracing backend) resolved — Davin's call, not the Executor's.** No
-      tracing backend is chosen or provisioned anywhere in this codebase today (verified: no
-      `@opentelemetry/*` dependency in either service's `package.json`, no APM/tracing env vars in
-      either service's Railway variables as of this PRE-DRAFT). Real options, for Davin to choose
-      from at CONFIRM (not an exhaustive list — the Advisor may add more):
-  - **Option A — Managed SaaS** (e.g., Honeycomb, Datadog APM, Grafana Cloud Tempo): fastest to
-    stand up, ongoing cost, no new Railway service to operate.
-  - **Option B — Self-hosted** (Jaeger or Grafana Tempo as a new Railway service, alongside
-    existing Postgres/Redis add-ons): no recurring SaaS cost, but a new service to provision,
-    monitor, and keep healthy — this migration has no staging environment (F34/CC-A gap) to
-    rehearse it in first.
-  - **Option C — Defer again**: ship OTel SDK instrumentation + correlation-ID middleware now
-    (useful on its own via structured logs), point the exporter at nothing/stdout, and pick a real
-    backend in a later session. Matches this migration's established pattern of resolving the
-    logging/correlation-ID piece narrowly first (4B-2's `alert-engine.logger.ts`) and deferring
-    the backend.
-- [ ] Davin confirms which of `money-service`'s existing pieces are the intended baseline to
-      generalize, vs. which get rebuilt fresh — see Deviations-equivalent note below; this
-      PRE-DRAFT does not assume an answer.
+- [x] Session 4B-3 CONFIRMED and closed (2026-08-01) — Slice 6 Alert Engine CUT-OVER & LIVE on Railway, monolith files retired, 118/118 test suites green.
+- [x] **F13 (Observability/tracing backend) resolved** — Davin confirmed Option C (OTel SDK + OTLP Exporter + Pino Correlation Logging, F13 RESOLVED in DECISION-LOG.md).
+- [x] Dependencies pre-checked against live codebase: `pino` ^9.14.0 confirmed present in `operation-service`, confirmed ABSENT in `money-service`; zero `@opentelemetry/*` packages in either service. All 6 pinned versions (Step 0) confirmed resolvable on the real npm registry (L30 check).
+- [x] File inventory below verified against live codebase (`operation-service/src/` and `money-service/src/`) — CONFIRM found 2 small drift notes (both corrected below, non-blocking): (1) `money-service` has no `main-worker.ts` (single HTTP-process service) — Step 1's "both services" phrasing for `main-worker.ts` only applies to `operation-service`; (2) `operation-service/src/auth/auth-error.filter.ts` already exists (`@Catch(AuthError)`, narrowly scoped, not registered as a global `APP_FILTER`) — coexists with Step 6's new global `AllExceptionsFilter`, doesn't contradict the order's "neither service has an AllExceptionsFilter" claim.
+
+CONFIRM baseline (2026-08-01): `operation-service` 21/21 suites/177/177 tests green, `tsc --noEmit` clean. `money-service` 59/59 suites/507/507 tests green (one transient flake on `prisma.shutdown.spec.ts` on a first run, passed clean on immediate re-run and in isolation — pre-existing L25 test fragility, unrelated to this order), `tsc --noEmit` clean. Monolith `tsc --noEmit` clean, zero source files touched since 4B-3's close. `enableShutdownHooks()` confirmed present in all 3 real entrypoints.
 
 ---
 
-## What already exists (verified this session, not assumed — read before writing any code)
+## What already exists (audited from live codebase)
 
-- **Logging:** `operation-service/src/alert-engine/alert-engine.logger.ts` — a **pino**-based
-  wrapper, built narrowly at Session 4B-2 for per-fire correlation-ID logging inside
-  `DispatcherService.dispatch()` only, explicitly scoped narrow at the time ("not a repo-wide
-  `Logger` replacement... out of this PORT session's scope"). This is the first and only pino
-  usage in either service. `money-service/src/common/logger.util.ts` exists separately and is
-  **not** pino-based (uses Nest's built-in `Logger` or console, needs confirming at CONFIRM) — the
-  two services currently have two different, unreconciled logging approaches.
-- **Redis:** `operation-service/src/redis/{redis.module.ts,redis.service.ts}` — a `@Global()`
-  singleton client, built at 4B-2, mirrors `lib/redis/client.ts`'s connection options. No
-  equivalent dedicated Redis module was found under `money-service/src/` at a quick pass — confirm
-  at CONFIRM whether money-service has its own inline Redis usage (e.g., for its throttler) that
-  should be generalized to match, or is already using something else entirely.
-- **Cache:** no dedicated cache abstraction exists in either service today (distinct from Redis as
-  a raw client) — this is new work, not a generalization of something existing.
-- **Errors:** no shared error-interceptor/filter module found under either service's `common`/
-  equivalent directory at a quick pass — `money-service/src/common/` currently holds only
-  `idempotency/` and `logger.util.ts`. Confirm at CONFIRM whether error handling is centralized
-  anywhere (e.g., a global `ExceptionFilter`) or left to each controller today.
-- **Monitoring/health:** both services already have their own `health/` module
-  (`operation-service/src/health/`, presumably mirrored in `money-service/src/health/`) — confirm
-  whether "monitoring" in the playbook's scope means extending these, or something separate
-  (metrics export, uptime dashboards).
-- **Domain-specific logger, NOT in scope to touch:** `money-service/src/disbursement/
-transaction-logger.service.ts` — a business-logic logger for disbursement transactions, unrelated
-  to this session's cross-cutting infra goal. Do not fold it into the shared logger without
-  checking first whether its callers expect its current specific shape.
+1. **Logging:**
+   - `operation-service/src/alert-engine/alert-engine.logger.ts`: narrow pino wrapper built at Session 4B-2 for alert dispatch correlation.
+   - `money-service/src/common/logger.util.ts`: custom `console.log` wrapper (not pino, no correlation IDs).
+   - _Gap:_ Neither service has a NestJS Pino logging provider or structured JSON correlation-ID logger attached across HTTP request lifecycles.
+
+2. **Redis & Cache:**
+   - `operation-service/src/redis/`: `@Global()` `RedisModule` & `RedisService` wrapping `ioredis` with retry strategy and graceful shutdown (`onModuleDestroy`).
+   - `money-service`: no central `RedisModule` (raw `ioredis` created independently in `app.module.ts`, `idempotency.store.ts`).
+   - _Gap:_ No `CacheService` abstraction (get/set/del/ttl/flushPattern) exists in either service; `money-service` lacks a unified `RedisModule`.
+
+3. **Errors & Exception Filters:**
+   - Both services rely on NestJS default exception formatting and global `ValidationPipe`.
+   - _Gap:_ Neither service has an `AllExceptionsFilter` enforcing a unified error payload shape (`statusCode`, `message`, `error`, `timestamp`, `path`, `correlationId`) or logging 5xx stack traces with correlation IDs.
+
+4. **Correlation-ID Middleware & Context:**
+   - `alertEngineLogger` has `newFireCorrelationId()` scoped strictly to alert dispatch.
+   - _Gap:_ Neither service has global `x-correlation-id` request middleware or `AsyncLocalStorage` correlation context.
+
+5. **OpenTelemetry Tracing:**
+   - No `@opentelemetry/*` dependencies exist in either service's `package.json`.
+   - _Gap:_ No OTel SDK auto-instrumentation (HTTP, Prisma, Redis) initialized in `main.ts` / `main-worker.ts`.
 
 ---
 
-## Proposed Ordered steps (subject to Advisor DRAFT revision)
+## Invariants & Parity Proofs
 
-1. **Resolve F13** (Davin, live) — pick Option A/B/C above (or another). Record in
-   `DECISION-LOG.md` with full rationale, same as every other F-numbered resolution this
-   migration.
-2. **Generalize the pino logger** — promote `alert-engine.logger.ts`'s pattern to a shared
-   provider consumed by both services (likely via `@trading-alerts/types`-style shared package, or
-   independently duplicated with parity per the money-service convention — Davin/Advisor to pick,
-   this is itself worth a small CONTRACT-style note in the DRAFT). Wire correlation-ID middleware
-   repo-wide (both services), not just the one `dispatch()` call site 4B-2 scoped it to.
-   _Verify:_ a real request/job through each service produces a log line carrying the same
-   correlation ID across at least two log statements in that request's lifecycle.
-3. **Build a shared cache abstraction** over the existing Redis clients (both services) — exact
-   shape TBD by the Advisor's DRAFT; likely a thin `CacheService` wrapping get/set/ttl over the
-   existing `RedisService`/`lib/redis/client.ts` connections, not a new Redis instance.
-   _Verify:_ a real cache write + read round-trips in both services.
-4. **Build a shared error-handling interceptor/filter** — standardize error response shape across
-   both services' controllers (check first whether one already exists ad hoc, per the note above).
-   _Verify:_ an intentionally-thrown error in each service produces the same response shape.
-5. **Wire OTel SDK instrumentation** (both services) — spans for at least: incoming HTTP request,
-   outgoing Prisma query, outgoing Redis command. Exporter target depends on Step 1's outcome.
-   _Verify:_ a real request produces a trace visible in whatever backend Step 1 chose (or, under
-   Option C, a structured span log to stdout).
-6. **Update `docs/secret-matrix.md`** with any new env vars (tracing endpoint/API key, etc.) —
-   never commit real values, names + `.env.example` only, per this repo's own standing convention.
+1. **Zero Breaking Changes to Existing HTTP/Cron Endpoints:**
+   All current routes (`/health`, `/outbox/events`, `/v1/stripe/*`, `/v1/affiliate/*`, etc.) must maintain byte-for-byte contract compatibility.
+2. **Correlation ID Propagation:**
+   Incoming `x-correlation-id` header must be preserved; if absent, a new `req_<uuid>` is generated and returned in response headers (`x-correlation-id`).
+3. **Graceful Shutdown & Resource Leak Prevention (L25):**
+   `app.enableShutdownHooks()` must remain active in both services. OTel SDK, Redis, and Pino loggers must clean up gracefully on `SIGTERM`/`SIGINT`.
+4. **Environment Safety & Secrets (L17):**
+   No hardcoded secrets or API tokens. OTel exporter endpoint configured via `OTEL_EXPORTER_OTLP_ENDPOINT`.
 
 ---
 
-## Rules specific to this variant
+## Ordered Implementation Steps
 
-- Nothing dashboard-only — any new Railway service (if Option B) lands in a committed
-  `railway.toml`/equivalent, matching `LESSONS-LEARNED.md`'s now well-established lesson that a
-  `railway.toml` service block alone doesn't provision anything (Session 4B-3) — this session must
-  verify the resulting service is real via `railway service list`, not just the config file.
-- Do not touch `lib/websocket/server.ts`, `lib/alert-engine/notify-bridge.ts`, or
-  `lib/alert-engine/types.ts` — those stay in the monolith by design until Session 4B-17 (F8), per
-  4B-3's own close-out note in `CLAUDE.md`.
-- Do not touch `money-service/src/disbursement/transaction-logger.service.ts` (see note above).
-- Money/auth/secrets rules unchanged — any new Railway/Vercel env var still needs Davin's own
-  action to set the real value; the Executor documents names only.
+### Step 0: Dependency Installation & Package Alignment (L30)
+
+- **TARGET:** `money-service/package.json` and `operation-service/package.json`
+- **Actions:**
+  - `money-service`: Install `pino@^9.14.0` (matching `operation-service`), `@opentelemetry/sdk-node@^0.57.0`, `@opentelemetry/auto-instrumentations-node@^0.56.0`, `@opentelemetry/exporter-trace-otlp-http@^0.57.0`, `@opentelemetry/resources@^1.30.0`, `@opentelemetry/semantic-conventions@^1.30.0`.
+  - `operation-service`: Install `@opentelemetry/sdk-node@^0.57.0`, `@opentelemetry/auto-instrumentations-node@^0.56.0`, `@opentelemetry/exporter-trace-otlp-http@^0.57.0`, `@opentelemetry/resources@^1.30.0`, `@opentelemetry/semantic-conventions@^1.30.0`.
+- **Verification:** `npm ls pino` and `npm ls @opentelemetry/sdk-node` resolve without peer dependency warnings. `nest build` clean in both services.
+- **Commit:** `deps(shared-infra): add pino to money-service and opentelemetry SDK to both microservices`
+
+---
+
+### Step 1: OpenTelemetry SDK Bootstrap Module (`otel.ts`)
+
+- **NEW FILE:** `operation-service/src/otel.ts`
+- **NEW FILE:** `money-service/src/otel.ts`
+- **Actions:**
+  - Implement `initOtel(serviceName: string)` using `@opentelemetry/sdk-node` `NodeSDK`.
+  - Configure `getNodeAutoInstrumentations` for Express, HTTP, ioredis, and Prisma.
+  - Set resource attributes (`service.name`: `OTEL_SERVICE_NAME ?? serviceName`, `service.version`: `0.1.0`).
+  - Configure `OTLPTraceExporter` to read `process.env['OTEL_EXPORTER_OTLP_ENDPOINT']`. If unset, default to silent/console exporter without throwing.
+  - Import `src/otel` at the very first line of `main.ts` in both services, and additionally `main-worker.ts` in `operation-service` (money-service has no `main-worker.ts` — single HTTP-process service, corrected at CONFIRM).
+- **Verification:** `nest build` clean both services. Booting service logs `[OTel] Tracing initialized for <service-name>`.
+- **Commit:** `feat(shared-infra): initialize opentelemetry SDK bootstrap in operation-service and money-service`
+
+---
+
+### Step 2: Unified Redis Module in `money-service` & `operation-service`
+
+- **NEW FILE:** `money-service/src/redis/redis.service.ts`
+- **NEW FILE:** `money-service/src/redis/redis.module.ts`
+- **MODIFY:** `money-service/src/common/idempotency/idempotency.store.ts`
+- **Actions:**
+  - Create `@Global()` `RedisModule` & `RedisService` in `money-service` matching `operation-service`'s implementation (retry strategy, lazy connect, `onModuleDestroy` quit).
+  - Update `IdempotencyStore` to inject `RedisService` rather than calling `new Redis(...)` directly.
+  - Ensure `operation-service`'s existing `RedisModule` remains unchanged and exported.
+- **Verification:** `money-service` test suite 59/59 green. `IdempotencyStore` unit tests pass clean.
+- **Commit:** `refactor(money-service): promote RedisService to global module and refactor idempotency store`
+
+---
+
+### Step 3: Shared Pino Structured Logger (`LoggingModule` & `PinoLoggerService`)
+
+- **NEW FILE:** `operation-service/src/common/logging/logging.service.ts`
+- **NEW FILE:** `operation-service/src/common/logging/logging.module.ts`
+- **NEW FILE:** `money-service/src/common/logging/logging.service.ts`
+- **NEW FILE:** `money-service/src/common/logging/logging.module.ts`
+- **MODIFY:** `operation-service/src/alert-engine/alert-engine.logger.ts`
+- **MODIFY:** `money-service/src/common/logger.util.ts`
+- **Actions:**
+  - Build `PinoLoggerService` implementing NestJS `LoggerService`.
+  - Automatically enrich every log payload with `service`, `timestamp`, `correlationId`, `traceId`, and `spanId` (from OTel trace context / `AsyncLocalStorage`).
+  - Wire `LoggingModule` into `AppModule` of both services.
+  - Update `alertEngineLogger` and `money-service` `logger.util.ts` shims to delegate to `PinoLoggerService` to maintain backward compatibility for existing callers.
+- **Verification:** Service boot emits structured JSON log lines containing `service` and `timestamp`.
+- **Commit:** `feat(shared-infra): implement PinoLoggerService with structured correlation & trace context`
+
+---
+
+### Step 4: Correlation-ID Request Middleware (`CorrelationIdMiddleware`)
+
+- **NEW FILE:** `operation-service/src/common/middleware/correlation-id.middleware.ts`
+- **NEW FILE:** `money-service/src/common/middleware/correlation-id.middleware.ts`
+- **Actions:**
+  - Build NestJS `CorrelationIdMiddleware` implementing `NestMiddleware`.
+  - Extract `x-correlation-id` header from incoming Express request, or generate `req_<uuid>`.
+  - Bind correlation ID to `AsyncLocalStorage` context.
+  - Set response header `res.setHeader('x-correlation-id', correlationId)`.
+  - Register middleware globally in `AppModule` / `main.ts` for all routes.
+- **Verification:** `curl -i http://localhost:3001/health` and `http://localhost:3002/health` return header `x-correlation-id: req_...`.
+- **Commit:** `feat(shared-infra): add global CorrelationIdMiddleware and header propagation`
+
+---
+
+### Step 5: Shared Cache Abstraction (`CacheModule` & `CacheService`)
+
+- **NEW FILE:** `operation-service/src/cache/cache.service.ts`
+- **NEW FILE:** `operation-service/src/cache/cache.module.ts`
+- **NEW FILE:** `money-service/src/cache/cache.service.ts`
+- **NEW FILE:** `money-service/src/cache/cache.module.ts`
+- **Actions:**
+  - Implement `@Global()` `CacheModule` and `@Injectable()` `CacheService`.
+  - `CacheService` injects `RedisService` and exposes structured methods:
+    - `get<T>(key: string): Promise<T | null>`
+    - `set<T>(key: string, value: T, ttlSeconds?: number): Promise<void>`
+    - `del(key: string): Promise<void>`
+    - `ttl(key: string): Promise<number>`
+    - `flushPattern(pattern: string): Promise<number>`
+  - Keys automatically prefixed with service namespace (`op:cache:` vs `money:cache:`).
+  - Add unit tests for `CacheService` (`cache.service.spec.ts`) in both services.
+- **Verification:** `cache.service.spec.ts` green in both services.
+- **Commit:** `feat(shared-infra): implement shared CacheService abstraction over Redis`
+
+---
+
+### Step 6: Centralized Exception Filter (`AllExceptionsFilter`)
+
+- **NEW FILE:** `operation-service/src/common/filters/all-exceptions.filter.ts`
+- **NEW FILE:** `money-service/src/common/filters/all-exceptions.filter.ts`
+- **Actions:**
+  - Build `AllExceptionsFilter` implementing NestJS `ExceptionFilter`.
+  - Intercept HTTP exceptions & unhandled errors, returning standard JSON response:
+    ```json
+    {
+      "statusCode": 400,
+      "message": "Validation failed",
+      "error": "Bad Request",
+      "timestamp": "2026-08-01T06:45:00.000Z",
+      "path": "/v1/stripe/checkout",
+      "correlationId": "req_..."
+    }
+    ```
+  - Log 5xx errors as `logger.error` with stack trace & correlation ID; log 4xx errors as `logger.warn`.
+  - Register as `APP_FILTER` in both services' `AppModule`.
+- **Verification:** Triggering a 400 validation error or 404 route returns the unified JSON response carrying `correlationId`.
+- **Commit:** `feat(shared-infra): register centralized AllExceptionsFilter across both services`
+
+---
+
+### Step 7: Secret Matrix & Verification Documentation
+
+- **MODIFY:** `docs/secret-matrix.md`
+- **Actions:**
+  - Document optional OTel env vars:
+    - `OTEL_EXPORTER_OTLP_ENDPOINT` (e.g. `http://localhost:4318/v1/traces` or SaaS endpoint)
+    - `OTEL_SERVICE_NAME` (`operation-service` / `money-service`)
+    - `OTEL_EXPORTER_OTLP_HEADERS` (optional API keys/headers)
+- **Verification:** `docs/secret-matrix.md` updated without exposing real secrets (L17 compliant).
+- **Commit:** `docs(secret-matrix): document OpenTelemetry OTLP configuration environment variables`
+
+---
 
 ## Done when
 
-- [ ] F13 resolved and recorded in `DECISION-LOG.md`
-- [ ] Shared logger + correlation-ID middleware live in both services, verified with a real
-      cross-log-line correlation-ID match
-- [ ] Cache abstraction built and verified round-tripping in both services
-- [ ] Error-handling interceptor built and verified producing a consistent shape
-- [ ] OTel instrumentation live, a real trace/span observed against whatever F13 chose
-- [ ] `docs/secret-matrix.md` updated for any new env vars
-- [ ] Both services' full test suites green, `tsc --noEmit`/`nest build` clean, monolith untouched
-      and still 100% green
+- [x] F13 recorded in `DECISION-LOG.md` (Option C: OTel SDK with OTLP HTTP exporter + Pino correlation logging).
+- [ ] Both services (`operation-service` & `money-service`) compile clean (`nest build` & `tsc --noEmit`).
+- [ ] All unit and integration test suites green in `operation-service` (21/21) and `money-service` (59/59).
+- [ ] Monolith untouched and 100% green (118/118 test suites).
+- [ ] Structured Pino logger & `CorrelationIdMiddleware` active, returning `x-correlation-id` header.
+- [ ] `CacheService` built and verified via unit tests in both services.
+- [ ] `AllExceptionsFilter` active and producing standardized error response format.
+- [ ] `docs/secret-matrix.md` updated for OTel variables.
+
+---
 
 ## Rollback
 
-Each provider/interceptor is additive (new modules, not edits to existing request-handling logic)
-— revert is `git revert` per commit. If Option B (self-hosted tracing backend) was chosen and
-needs to be torn down, remove its `railway.toml` service block and delete the Railway service via
-`railway service delete` (needs Davin's live confirmation, an infra-deletion action).
+All changes in this session are additive provider & middleware infrastructure. In case of issues, revert git commits (`git revert`). No database schema migrations or production cutovers are performed in this session.
+
+---
 
 ## Deviations
 
 _(filled during execution)_
 
+---
+
 ## Next-session handoff
 
-_(DRAFT for whichever of 4B-5…16's domain slices comes first — alerts CRUD is named first in the
-playbook's own ordering. Not pre-drafted yet; depends on how 4B-4 actually lands.)_
+Session 4B-5 (Alerts CRUD API Port to `operation-service`).

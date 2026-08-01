@@ -34,7 +34,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F10  | Next.js 15→16 breaking-change audit                                                                                                                                                                                   | RESOLVED — Session 5-1                                                                                                                                                                                 |
 | F11  | Frontend gap matrix                                                                                                                                                                                                   | OPEN — due Session 6-1 (Davin triage)                                                                                                                                                                  |
 | F12  | Whole-plan duration estimate                                                                                                                                                                                          | OPEN — revisit after F1–F5                                                                                                                                                                             |
-| F13  | Observability/tracing backend                                                                                                                                                                                         | OPEN — due by first Phase 4 cutover                                                                                                                                                                    |
+| F13  | Observability/tracing backend                                                                                                                                                                                         | RESOLVED — Session 4B-4 (Davin): Option C (OTel SDK + OTLP Exporter + Pino Correlation Logging)                                                                                                        |
 | F14  | Tier-update: outbox vs direct call                                                                                                                                                                                    | RESOLVED — Session 4A-8 (Transactional Outbox, `OutboxEvent`; publisher built but gated OFF, real delivery target is Slice 5 / 4A-11-12)                                                               |
 | F15  | Redis topology/namespacing                                                                                                                                                                                            | RESOLVED — Session 4A-1 (Davin)                                                                                                                                                                        |
 | F16  | Public URL scheme + /v1 versioning                                                                                                                                                                                    | RESOLVED — Session 4A-1 (Davin)                                                                                                                                                                        |
@@ -2237,3 +2237,15 @@ null` in `railway service list --json` — no GitHub source connected at all, so
 - Approved by: Davin (live in chat — CONFIRM and full execution directed directly, order file itself
   arrived untracked with no PRE-DRAFT→DRAFT→APPROVED commit trail, the by-now-familiar
   `LESSONS-LEARNED.md` L11 pattern).
+
+---
+
+### F13 — Observability & Tracing Backend Selection
+
+- **Flag:** `F13`
+- **Session:** 4B-4 (2026-08-01)
+- **Status:** **RESOLVED**
+- **Decision:** **Option C — Configurable OTLP Exporter + Pino Correlation Logging**.
+- **Context:** Evaluated three choices: Option A (Managed SaaS), Option B (Self-hosted Jaeger/Tempo service on Railway), and Option C (OpenTelemetry SDK with OTLP HTTP exporter + Pino structured correlation-ID logging).
+- **Rationale:** Option C avoids recurring SaaS costs and avoids introducing a new Railway container service to operate before Phase 4 core domain migration completes. OpenTelemetry NodeSDK standard instrumentation (HTTP, Express, Prisma, ioredis) + Pino logger with `x-correlation-id` context provides standard tracing and correlation right now. If a specific SaaS or self-hosted backend is chosen later, setting `OTEL_EXPORTER_OTLP_ENDPOINT` and headers in Railway variables instantly routes traces there with 0 code changes.
+- **Approved by:** Davin (2026-08-01, live in chat).
