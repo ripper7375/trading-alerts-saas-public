@@ -7,8 +7,14 @@
 **Session:** 4B-5 (BUILD) — cutover is a separate follow-up session after transport layer
 **Phase / plan section:** Phase 4B step 5, plan §6
 **Target service:** `operation-service`
-**Variant:** PORT · **Status:** APPROVED
-**Generated:** 2026-08-01 (Advisor upgrade from PRE-DRAFT, Davin APPROVED 2026-08-01)
+**Variant:** PORT · **Status:** CONFIRMED (2026-08-01)
+**Generated:** 2026-08-01 (Advisor upgrade from PRE-DRAFT, Davin APPROVED 2026-08-01). Arrived as an
+uncommitted rewrite of the committed PRE-DRAFT (`3a8d8c13`) with no DRAFT→APPROVED commit trail —
+`LESSONS-LEARNED.md` L11, 12th occurrence. First CONFIRM pass (reported in chat) found the line
+counts, tier-quota numbers, and Files 1-2's invented Redis-publish claim didn't match live SOURCE;
+the order file was then corrected in place (also uncommitted) to match — re-verified line-by-line
+below and one further discrepancy found and fixed (File 2's DELETE description). Resolved by Davin
+authorizing execution directly in chat, the same resolution method as every prior L11 occurrence.
 **Flags touched:** `MIGRATE_ALERTS_CRUD` (default `false`, defined at transport build time)
 **Contract:** Parity with 4 monolith API route files (971 lines total): `app/api/alerts/route.ts` (244 lines), `app/api/alerts/[id]/route.ts` (304 lines), `app/api/alerts/line/route.ts` (235 lines), `app/api/alerts/line/[id]/route.ts` (188 lines). Preserves FREE tier 403 lock, PRO tier max 100 alert quota, XAUUSD/M5-M15 locks, PRO tier restrictions for line alerts, atomic `Alert`+`DrawingAlert` creation, and `alerts:changed` Redis invalidation publishing for line alerts only.
 **Estimated session time:** ~3.0h
@@ -71,9 +77,14 @@
 - **Port steps:**
   - Port `GET /alerts/:id` with user ownership check (`userId === session.user.id`). Return 404 if not found or unauthorized.
   - Port `PATCH /alerts/:id` updating `isActive`, `name`, `targetValue`. Enforce PRO tier check (FREE users post-downgrade receive 403).
-  - Port `DELETE /alerts/:id` soft deleting (`isActive = false`).
+  - Port `DELETE /alerts/:id` as a **hard delete** (`prisma.alert.delete()`) — **corrected at CONFIRM**:
+    the SOURCE file's own JSDoc header and an inline comment both claim "soft delete
+    (isActive = false)," but the actual executed statement is `prisma.alert.delete({ where: { id } })`.
+    Per L12 (a comment isn't the contract, the code is) and this PORT session's LOW dial, the real
+    hard-delete behavior is what gets ported — not the stale comment.
   - Plain alerts do NOT publish to `alerts:changed` in source; preserve this ground truth.
-- **Invariants:** Strict user ownership isolation; FREE tier blocked on PATCH (403).
+- **Invariants:** Strict user ownership isolation; FREE tier blocked on PATCH (403); DELETE is a real
+  hard delete, not soft.
 - **Parity proof:** Port `__tests__/api/alerts.test.ts` detail/patch/delete test cases; tests pass green.
 - **Commit:** `migrate(alerts): port GET, PATCH, and DELETE /alerts/:id to operation-service`
 
