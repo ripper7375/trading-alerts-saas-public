@@ -1,13 +1,14 @@
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import Redis from 'ioredis';
 
 import { AlertEngineModule } from './alert-engine/alert-engine.module';
 import { AuthModule } from './auth/auth.module';
 import { CacheModule } from './cache/cache.module';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingModule } from './common/logging/logging.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { HealthModule } from './health/health.module';
@@ -44,6 +45,10 @@ import { RedisModule } from './redis/redis.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
     },
   ],
 })
