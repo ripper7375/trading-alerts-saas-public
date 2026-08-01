@@ -26,3 +26,12 @@ export function shouldUseOperationServiceForAlerts(): boolean {
 export function shouldUseOperationServiceForAlertsCrud(): boolean {
   return process.env['MIGRATE_ALERTS_CRUD'] === 'true';
 }
+
+/**
+ * Check if the Drawings CRUD routes (Session 4B-8's DrawingsController
+ * PORT) should forward to operation-service instead of the monolith's own
+ * Prisma logic. Default: false (monolith serves Drawings CRUD directly).
+ */
+export function shouldUseOperationServiceForDrawings(): boolean {
+  return process.env['MIGRATE_DRAWINGS'] === 'true';
+}

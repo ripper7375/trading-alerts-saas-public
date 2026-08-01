@@ -18,6 +18,11 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import type { Prisma } from '.prisma/non-market-client';
 import { DRAWING_LIMITS, DrawingCreateZ } from '@/lib/drawing/schema';
+import { shouldUseOperationServiceForDrawings } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 import { type Tier } from '@/lib/tier-config';
 import {
   canAccessSymbol,
@@ -44,6 +49,18 @@ export async function GET(
       );
     }
 
+    // Session 4B-8: when the flag is on, operation-service's
+    // DrawingsController (Session 4B-8 PORT) already re-implements the
+    // list/filter logic below against the same schema — forward instead.
+    if (shouldUseOperationServiceForDrawings()) {
+      const { status: opStatus, body } =
+        await forwardRequestToOperationService<ApiResponse>(
+          request,
+          `/drawings${new URL(request.url).search}`
+        );
+      return NextResponse.json(body, { status: opStatus });
+    }
+
     const { searchParams } = new URL(request.url);
     const symbol = searchParams.get('symbol') ?? undefined;
     const timeframe = searchParams.get('timeframe') ?? undefined;
@@ -60,6 +77,11 @@ export async function GET(
 
     return NextResponse.json({ success: true, drawings }, { status: 200 });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body as ApiResponse, {
+        status: error.status,
+      });
+    }
     console.error('GET /api/drawings error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch drawings' },
@@ -78,6 +100,20 @@ export async function POST(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
+    }
+
+    // Session 4B-8: when the flag is on, operation-service's
+    // DrawingsController (Session 4B-8 PORT) already re-implements every
+    // check below (symbol/timeframe access, quota, validation) against the
+    // same schema — forward the raw request there instead of running it
+    // twice.
+    if (shouldUseOperationServiceForDrawings()) {
+      const { status: opStatus, body: opBody } =
+        await forwardRequestToOperationService<ApiResponse>(
+          request,
+          '/drawings'
+        );
+      return NextResponse.json(opBody, { status: opStatus });
     }
 
     const body = await request.json();
@@ -150,6 +186,11 @@ export async function POST(
 
     return NextResponse.json({ success: true, drawing }, { status: 201 });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body as ApiResponse, {
+        status: error.status,
+      });
+    }
     console.error('POST /api/drawings error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create drawing' },
