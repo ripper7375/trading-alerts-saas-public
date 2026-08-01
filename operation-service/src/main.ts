@@ -1,3 +1,7 @@
+import { initOtel } from './otel';
+
+initOtel('operation-service');
+
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';

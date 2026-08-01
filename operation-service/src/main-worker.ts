@@ -1,3 +1,7 @@
+import { initOtel } from './otel';
+
+initOtel('operation-service');
+
 import { NestFactory } from '@nestjs/core';
 
 import { AlertCronScheduler } from './alert-engine/alert-cron.scheduler';
