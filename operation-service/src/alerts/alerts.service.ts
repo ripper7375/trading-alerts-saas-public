@@ -148,9 +148,15 @@ export class AlertsService {
     id: string,
     input: UpdatePlainAlertInput
   ) {
+    const dbUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { tier: true },
+    });
+    const effectiveTier = dbUser?.tier || tier || 'FREE';
+
     // V8: Alerts are PRO-exclusive. FREE users (e.g. after a downgrade)
     // cannot modify or re-enable leftover alerts — only DELETE them.
-    if (tier !== 'PRO') {
+    if (effectiveTier !== 'PRO') {
       throw new ForbiddenException({
         error: 'Alerts are a PRO feature',
         message:
