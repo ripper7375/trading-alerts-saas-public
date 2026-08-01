@@ -53,10 +53,11 @@ export async function GET(
     // LineAlertsController (Session 4B-5 PORT) already re-implements this
     // list/filter logic against the same schema — forward instead.
     if (shouldUseOperationServiceForAlertsCrud()) {
-      const { status: opStatus, body } = await forwardRequestToOperationService(
-        request,
-        `/alerts/line${new URL(request.url).search}`
-      );
+      const { status: opStatus, body } =
+        await forwardRequestToOperationService<ApiResponse>(
+          request,
+          `/alerts/line${new URL(request.url).search}`
+        );
       return NextResponse.json(body, { status: opStatus });
     }
 
@@ -79,7 +80,13 @@ export async function GET(
     return NextResponse.json({ success: true, alerts }, { status: 200 });
   } catch (error) {
     if (error instanceof OperationServiceError) {
-      return NextResponse.json(error.body, { status: error.status });
+      // Cast only — forwarded verbatim, not reshaped. operation-service's
+      // own error envelope (AllExceptionsFilter, Session 4B-4) doesn't
+      // carry this route's local `success` field; ApiResponse is this
+      // handler's own return-type contract, not a runtime validation.
+      return NextResponse.json(error.body as ApiResponse, {
+        status: error.status,
+      });
     }
     console.error('GET /api/alerts/line error:', error);
     return NextResponse.json(
@@ -106,10 +113,11 @@ export async function POST(
     // check below (tier gate, geometry validation, quota check) against
     // the same schema — forward the raw request there instead.
     if (shouldUseOperationServiceForAlertsCrud()) {
-      const { status: opStatus, body } = await forwardRequestToOperationService(
-        request,
-        '/alerts/line'
-      );
+      const { status: opStatus, body } =
+        await forwardRequestToOperationService<ApiResponse>(
+          request,
+          '/alerts/line'
+        );
       return NextResponse.json(body, { status: opStatus });
     }
 
@@ -258,7 +266,9 @@ export async function POST(
     );
   } catch (error) {
     if (error instanceof OperationServiceError) {
-      return NextResponse.json(error.body, { status: error.status });
+      return NextResponse.json(error.body as ApiResponse, {
+        status: error.status,
+      });
     }
     console.error('POST /api/alerts/line error:', error);
     return NextResponse.json(

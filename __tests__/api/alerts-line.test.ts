@@ -343,4 +343,185 @@ describe('Line Alerts API Routes', () => {
       expect(mockForwardRequestToOperationService).not.toHaveBeenCalled();
     });
   });
+
+  describe('PATCH /api/alerts/line/[id]', () => {
+    it('should return 401 when not authenticated', async () => {
+      mockGetServerSession.mockResolvedValue(null);
+
+      const { PATCH } = await import('@/app/api/alerts/line/[id]/route');
+      const request = new MockRequest('http://localhost/api/alerts/line/da1', {
+        method: 'PATCH',
+        body: JSON.stringify({ isActive: false }),
+      });
+      const response = await PATCH(request as unknown as Request, {
+        params: Promise.resolve({ id: 'da1' }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Unauthorized');
+    });
+
+    it('should update a line alert successfully for a PRO user', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'PRO' },
+      });
+      mockDrawingAlertFindUnique.mockResolvedValue({
+        alertId: 'a1',
+        drawingId: 'd1',
+        drawing: { userId: 'user-1', symbol: 'XAUUSD', timeframe: 'M5' },
+      });
+      const updated = { id: 'da1', alert: { id: 'a1' }, drawing: { id: 'd1' } };
+      mockTransaction.mockResolvedValue(updated);
+
+      const { PATCH } = await import('@/app/api/alerts/line/[id]/route');
+      const request = new MockRequest('http://localhost/api/alerts/line/da1', {
+        method: 'PATCH',
+        body: JSON.stringify({ isActive: false }),
+      });
+      const response = await PATCH(request as unknown as Request, {
+        params: Promise.resolve({ id: 'da1' }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.alert).toEqual(updated);
+      expect(mockPublishAlertsChanged).toHaveBeenCalledWith(
+        expect.objectContaining({ reason: 'alert_updated' })
+      );
+    });
+
+    it('MIGRATE_ALERTS_CRUD: forwards to operation-service', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'PRO' },
+      });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockResolvedValue({
+        status: 200,
+        body: { success: true, alert: { id: 'da1', isActive: false } },
+      });
+
+      const { PATCH } = await import('@/app/api/alerts/line/[id]/route');
+      const request = new MockRequest('http://localhost/api/alerts/line/da1', {
+        method: 'PATCH',
+        body: JSON.stringify({ isActive: false }),
+      });
+      const response = await PATCH(request as unknown as Request, {
+        params: Promise.resolve({ id: 'da1' }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.alert).toEqual({ id: 'da1', isActive: false });
+      expect(mockForwardRequestToOperationService).toHaveBeenCalledWith(
+        request,
+        '/alerts/line/da1'
+      );
+      expect(mockDrawingAlertFindUnique).not.toHaveBeenCalled();
+    });
+
+    it('MIGRATE_ALERTS_CRUD: maps an OperationServiceError to its own status/body', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'PRO' },
+      });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockRejectedValue(
+        new MockOperationServiceError(404, {
+          success: false,
+          error: 'Not found',
+        })
+      );
+
+      const { PATCH } = await import('@/app/api/alerts/line/[id]/route');
+      const request = new MockRequest(
+        'http://localhost/api/alerts/line/nonexistent',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ isActive: false }),
+        }
+      );
+      const response = await PATCH(request as unknown as Request, {
+        params: Promise.resolve({ id: 'nonexistent' }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('Not found');
+    });
+  });
+
+  describe('DELETE /api/alerts/line/[id]', () => {
+    it('should return 401 when not authenticated', async () => {
+      mockGetServerSession.mockResolvedValue(null);
+
+      const { DELETE } = await import('@/app/api/alerts/line/[id]/route');
+      const request = new MockRequest('http://localhost/api/alerts/line/da1', {
+        method: 'DELETE',
+      });
+      const response = await DELETE(request as unknown as Request, {
+        params: Promise.resolve({ id: 'da1' }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.error).toBe('Unauthorized');
+    });
+
+    it('should delete a line alert successfully', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'PRO' },
+      });
+      mockDrawingAlertFindUnique.mockResolvedValue({
+        alertId: 'a1',
+        drawingId: 'd1',
+        drawing: { userId: 'user-1', symbol: 'XAUUSD', timeframe: 'M5' },
+      });
+      mockAlertDelete.mockResolvedValue({});
+
+      const { DELETE } = await import('@/app/api/alerts/line/[id]/route');
+      const request = new MockRequest('http://localhost/api/alerts/line/da1', {
+        method: 'DELETE',
+      });
+      const response = await DELETE(request as unknown as Request, {
+        params: Promise.resolve({ id: 'da1' }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(mockAlertDelete).toHaveBeenCalledWith({ where: { id: 'a1' } });
+      expect(mockPublishAlertsChanged).toHaveBeenCalledWith(
+        expect.objectContaining({ reason: 'alert_deleted' })
+      );
+    });
+
+    it('MIGRATE_ALERTS_CRUD: forwards to operation-service', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-1', tier: 'PRO' },
+      });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockResolvedValue({
+        status: 200,
+        body: { success: true },
+      });
+
+      const { DELETE } = await import('@/app/api/alerts/line/[id]/route');
+      const request = new MockRequest('http://localhost/api/alerts/line/da1', {
+        method: 'DELETE',
+      });
+      const response = await DELETE(request as unknown as Request, {
+        params: Promise.resolve({ id: 'da1' }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(mockForwardRequestToOperationService).toHaveBeenCalledWith(
+        request,
+        '/alerts/line/da1'
+      );
+      expect(mockDrawingAlertFindUnique).not.toHaveBeenCalled();
+      expect(mockAlertDelete).not.toHaveBeenCalled();
+    });
+  });
 });

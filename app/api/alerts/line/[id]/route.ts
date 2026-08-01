@@ -17,6 +17,11 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { AlertUpdateZ } from '@/lib/drawing/schema';
 import { publishAlertsChanged } from '@/lib/drawing/invalidate';
+import { shouldUseOperationServiceForAlertsCrud } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -40,6 +45,20 @@ export async function PATCH(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
+    }
+
+    // Session 4B-6: when the flag is on, operation-service's
+    // LineAlertsController (Session 4B-5 PORT) already re-implements every
+    // check below (tier gate, ownership, validation) against the same
+    // schema — forward the raw request there instead of running it twice.
+    if (shouldUseOperationServiceForAlertsCrud()) {
+      const { id: opId } = await params;
+      const { status: opStatus, body } =
+        await forwardRequestToOperationService<ApiResponse>(
+          request,
+          `/alerts/line/${opId}`
+        );
+      return NextResponse.json(body, { status: opStatus });
     }
 
     // V8: line alerts are PRO-exclusive — FREE users (e.g. after downgrade)
@@ -126,6 +145,11 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, alert }, { status: 200 });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body as ApiResponse, {
+        status: error.status,
+      });
+    }
     console.error('PATCH /api/alerts/line/[id] error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to update line alert' },
@@ -135,7 +159,7 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: RouteParams
 ): Promise<NextResponse<ApiResponse>> {
   try {
@@ -148,6 +172,19 @@ export async function DELETE(
     }
 
     const { id } = await params;
+
+    // Session 4B-6: when the flag is on, operation-service's
+    // LineAlertsController (Session 4B-5 PORT) already re-implements the
+    // ownership check below against the same schema — forward instead.
+    if (shouldUseOperationServiceForAlertsCrud()) {
+      const { status: opStatus, body } =
+        await forwardRequestToOperationService<ApiResponse>(
+          request,
+          `/alerts/line/${id}`
+        );
+      return NextResponse.json(body, { status: opStatus });
+    }
+
     const existing = await prisma.drawingAlert.findUnique({
       where: { id },
       include: { drawing: true },
@@ -179,6 +216,11 @@ export async function DELETE(
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body as ApiResponse, {
+        status: error.status,
+      });
+    }
     console.error('DELETE /api/alerts/line/[id] error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to delete line alert' },
