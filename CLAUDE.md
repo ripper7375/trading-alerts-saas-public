@@ -26,7 +26,78 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-6 (Alerts CRUD Monolith Transport & Flag Wiring, PORT/UI-BUILD variant),
+- **Current:** Session 4B-7 (Alerts CRUD CUTOVER, VERIFY-RETIRE variant), CONFIRMED and executed,
+  2026-08-01, same day as 4B-5/4B-6. **Slice 7 (Alerts CRUD) is now CUT-OVER & LIVE** —
+  `MIGRATE_ALERTS_CRUD=true` in Vercel production, all 4 monolith route groups forwarding to
+  `operation-service`. **This cutover did not go cleanly and the failure history is the important
+  part** (full blow-by-blow in the order's own Deviations, now 7 entries).
+  **The cutover ran BROKEN in production for ~5 hours before anyone noticed.** An initial flip was
+  reverted after ~4 minutes (`05:36`–`05:40Z`, Deviation 2) when `operation-service`'s HTTP process
+  turned out to still be running pre-4B-5 code. The flag was then re-enabled at ~`06:20Z` **with no
+  order step, Deviation, or commit recording it** — reconstructed this session from the live Vercel
+  env listing plus `operation-service`'s own request logs. From that point every real
+  `PATCH /api/alerts/[id]` returned `400 "Expected object, received string"`. Surfaced by Davin as a
+  UI bug: the Alerts page's Pause button flipped a card to "Paused" and snapped it back ~200ms later
+  — `alerts-client.tsx`'s `handleTogglePause` applies an optimistic update, sees `!response.ok`, and
+  calls `setAlerts(previousAlerts)`.
+  **Root cause was a NestJS pipe-binding scope bug, not the request body.** The DEPLOYED
+  `AlertsController` (4B-5's original `d34a2fdc`) bound validation at the METHOD level —
+  `@Patch(':id') @UsePipes(new ZodValidationPipe(updatePlainAlertSchema))` — and a method-level
+  `@UsePipes` binds to **every** handler parameter, including `@Param('id') id: string`. Zod ran
+  `z.object()` against the route id string and threw. Confirmed two ways rather than asserted: live
+  Railway logs show that exact message only on `/alerts/<id>` paths and never on `POST /alerts`
+  (no `:id` parameter); and a throwaway local reproduction (method-level vs `@Body`-level, real
+  `Test.createTestingModule` + `supertest`) returned `400 {"error":"Invalid input","message":
+"Expected object, received string",...}` vs `200` — a byte-for-byte match to production. The repro
+  spec was deleted after use. This is also why three prior in-pipe band-aids (`7356ccda`,
+  `b212af71`, `59692fbe`) all failed: they patched the pipe's value handling, but
+  `JSON.parse("cmsa66etf…")` throws, the unwrap loop breaks, and the raw string still fails
+  `z.object()`. **New `LESSONS-LEARNED.md` candidate** (recorded in the order's Deviations, not
+  promoted — past the active cap): a method-level `@UsePipes` applies to every handler parameter,
+  never attach a body-shaped schema at method level on a route that also takes `@Param`/`@Query`.
+  **The correct fix (`ad0f50c2`) was committed at `10:36Z` but had never been deployed — 8
+  consecutive Railway deploys FAILED** (`10:09Z`–`11:33Z`), so production kept serving the
+  `05:38:03Z` build. Two independent causes introduced hours apart: (a) `operation-service` had no
+  `railway.json` of its own, so deploys inherited the repo-root one — `healthcheckPath: "/"`
+  (verified live: `GET /` → `404`, `GET /health` → `200`) and `startCommand: "pnpm run start"`
+  (container is built with `npm ci`); (b) commit `fa72fe44`, nominally a tier-lookup fix, also
+  expanded the repo-root `.railwayignore` from 7 to 58 lines at `10:29:03Z`, adding bare `src` —
+  and since `.railwayignore` uses gitignore semantics (bare names match at ANY depth) while
+  `railway up --path-as-root` indexes from the _project directory_, this silently stripped
+  `operation-service/src`, `operation-service/packages/types/src`, and `src/common/middleware` from
+  every archive, leaving `nest build` nothing to compile.
+  **A diagnostic trap worth carrying forward:** `railway logs --build` repeatedly returned a STALE
+  CACHED build log (image digest `7427c9bf…`, `created 05:38:22Z`), making the failing builds look
+  successful. The tell is the digest and its embedded creation timestamp — the eventual good build
+  produced `7bcd8acb…` at `11:42:56Z`. `railway logs --deployment <failed-id>` returns nothing at
+  all for FAILED deployments and the deployment record exposes no error/reason field, so neither is
+  a usable discriminator.
+  **Fixed in commit `e68a244e`:** created `operation-service/railway.json`
+  (`healthcheckPath: "/health"`, `startCommand: "npm run start"`), and anchored the two colliding
+  root-`.railwayignore` entries to repo-root-only (`src` → `/src`, `middleware` → `/middleware`) —
+  both are real repo-root directories, so this preserves the original exclusion intent exactly while
+  no longer matching nested paths in sub-service uploads (also protects `money-service`, which has
+  its own `src/`). Verified these were the only two genuinely colliding entries before editing.
+  **Verification:** deployment `a6d9274c` SUCCESS and ACTIVE; `GET /health` → `200`; clean boot,
+  zero errors; all 8 alerts routes mapped; unauthenticated `PATCH` → `401`; `tsc --noEmit` clean and
+  a clean-state `npm run build` green locally. Live end-to-end confirmed by Davin: Pause moves the
+  alert to Paused and it REMAINS across a Ctrl+F5 hard reload — load-bearing, since
+  `app/(dashboard)/alerts/page.tsx` is `force-dynamic` and re-reads Postgres, so persistence proves
+  a real DB write. Zero `400`s since `11:43Z`. Production was never degraded during any of the four
+  deploy attempts — the old deployment kept serving throughout.
+  **Verification is deliberately recorded as PARTIAL: 1 of the order's own 8 endpoint actions is
+  proven live** (`PATCH /api/alerts/[id]`). The other 7 — including all 4 line-alert actions — are
+  mapped and guarded but have zero live traffic evidence; the alerts list page renders server-side
+  via Prisma, so `GET /api/alerts`'s forwarded path is also still unproven. Not claimed as done.
+  **Artifacts updated:** `4b-7-alerts-crud-cutover.migration-order.md` (Deviations 3-7 added,
+  Checklist items 4/5/6 annotated with honest PARTIAL/DONE status), `migration-cutover-table.md`
+  (Slice 7 → `CUT-OVER & LIVE (verification partial: 1/8 actions)`), this file. **Still open:**
+  `operation-service` has no GitHub source (`"source": null`), so `git push` can never deploy it —
+  the same systemic gap that let 4B-5/4B-6's code sit undeployed, now compounded by `railway up`'s
+  non-obvious coupling to the repo-root `.railwayignore`. Connecting a GitHub source would close
+  this, Waiting-on #77, and L23 in one move; not attempted here (deploy-topology change,
+  `EXECUTOR-PROTOCOL.md` §7).
+- _(superseded-by-above, retained for context)_ Session 4B-6 (Alerts CRUD Monolith Transport & Flag Wiring, PORT/UI-BUILD variant),
   CONFIRMED and executed, 2026-08-01, same day as 4B-5. **All 4 monolith Alerts CRUD route files are
   now flag-wired** — `app/api/alerts/route.ts`, `app/api/alerts/[id]/route.ts`,
   `app/api/alerts/line/route.ts`, `app/api/alerts/line/[id]/route.ts` each check
