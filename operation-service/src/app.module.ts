@@ -6,6 +6,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import Redis from 'ioredis';
 
 import { AlertEngineModule } from './alert-engine/alert-engine.module';
+import { AlertsModule } from './alerts/alerts.module';
 import { AuthModule } from './auth/auth.module';
 import { CacheModule } from './cache/cache.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
@@ -40,6 +41,7 @@ import { RedisModule } from './redis/redis.module';
     AuthModule,
     OutboxModule,
     AlertEngineModule,
+    AlertsModule,
   ],
   providers: [
     {
