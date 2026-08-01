@@ -44,6 +44,21 @@ lines of "any change to `packages/types` must also sync (or verify already-synce
 actually catches drift — the root package's own `npm run build` succeeding proves nothing about the
 embedded copy." Full detail in `4b-5-alerts-crud-port.migration-order.md`'s own Deviations (#4).
 
+**One more candidate from Session 4B-6's close (2026-08-01), not promoted, described here for the
+next consolidation pass:** a background `tsc --noEmit` verification run gave a false "clean" (exit 0) result for a commit (`02917e9e`) that genuinely had 4 real `TS2322` errors, because an edit to a
+file inside the check's scan scope landed while that check (or an earlier one) was still running —
+`tsc --noEmit` scans the whole program on every invocation, not just a commit's staged files, so an
+in-flight edit anywhere in the tree can invalidate a background check's result even if the edit
+looks unrelated to the step actually being verified. Caught one step later by a fresh,
+uncontaminated run with zero edits in flight; independently reproduced by stashing the fix and
+re-running `tsc --noEmit` directly against the suspect commit alone. Fixed in the very next commit,
+same session — no broken code reached `origin/main`. Worth a rule along the lines of "never trust a
+background `tsc`/build/test verification result if any file edit happened anywhere in the repo
+after that check was launched — re-run fresh, with nothing in flight, immediately before committing
+on the strength of it." Full detail in
+`4b-6-alerts-crud-write-transport.migration-order.md`'s own Deviations (#8) and `CLAUDE.md`
+Waiting-on #88.
+
 ---
 
 ## Active lessons

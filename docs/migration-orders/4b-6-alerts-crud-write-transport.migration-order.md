@@ -112,11 +112,15 @@
 
 ## Slice-level verification (done when)
 
-- [ ] All 4 monolith alert route files (`app/api/alerts/**`) wired with `shouldUseOperationServiceForAlertsCrud()` check.
-- [ ] `MIGRATE_ALERTS_CRUD` defaults `false` everywhere (zero production traffic cut over).
-- [ ] Monolith `tsc --noEmit` and `eslint --max-warnings 0` clean.
-- [ ] Monolith test suite (118/118 suites) 100% green.
-- [ ] `operation-service` untouched this session (verified via `git status`).
+- [x] All 4 monolith alert route files (`app/api/alerts/**`) wired with `shouldUseOperationServiceForAlertsCrud()` check.
+- [x] `MIGRATE_ALERTS_CRUD` defaults `false` everywhere (zero production traffic cut over) — grep confirms it is set nowhere (code or environment).
+- [x] Monolith `tsc --noEmit` and `eslint --max-warnings 0` clean.
+- [x] Monolith test suite 100% green — grew 118/118 suites, 2096/2096 tests (4B-3's baseline, last time
+      the monolith suite was independently re-run — 4B-4/4B-5 were operation-service-only sessions) to
+      **120/120 suites, 2129/2129 tests** this session (+2 new suites: `write-routes.test.ts`,
+      `alerts-line.test.ts`; +33 tests across those 2 new files + additions to the existing
+      `alerts.test.ts`). `npm run test:ci` exit 0.
+- [x] `operation-service` untouched this session (verified via `git status`, checked repeatedly throughout).
 
 ---
 
@@ -128,7 +132,78 @@ Revert transport commits in monolith. `MIGRATE_ALERTS_CRUD` remains `false` / un
 
 ## Deviations
 
-_(filled during execution)_
+1. **Order arrived `Status: DRAFT`, not `APPROVED`, at CONFIRM** — genuinely, consistently (header
+   matched its own commit trail, `9e36ed18`; no L11-style self-contradiction). Reported to Davin
+   directly rather than silently promoting it; Davin gave live explicit approval in chat
+   ("Go, approved!") before execution began. See the Entry criteria CONFIRM note above.
+2. **Steps 4-5's own cited "Verification" file doesn't test what it claims.**
+   `__tests__/drawing/alertsApi.test.ts` only imports `components/charts/drawing/alertsApi.ts`'s
+   CLIENT-side fetch wrapper — it never touches `app/api/alerts/line/route.ts` or
+   `app/api/alerts/line/[id]/route.ts` at all (verified: repo-wide search found ZERO existing test
+   files importing from `app/api/alerts/line/*` before this session). Same L27/L28-class gap
+   Session 4B-5 already hit on this identical file (operation-service side). Authored real coverage
+   instead: new `__tests__/api/alerts-line.test.ts` (16 tests — auth/tier baseline behavior, one
+   real Prisma-path happy case per handler, and both flag-on forwarding + `OperationServiceError`
+   mapping for all 4 line-alert handlers), plus 12 new tests added to the existing
+   `__tests__/api/alerts.test.ts` for the 2 plain-alert route files.
+3. **Step 0's alternate target (`lib/operation-service/routes.ts`) doesn't exist.** Added
+   `getOperationServiceToken()` to `client.ts` instead (the file the order's own Step 0 line named
+   first). No `routes.ts` was created — `write-routes.ts` (Step 1) is a self-contained, generic
+   forwarder rather than a set of per-endpoint typed wrappers, so nothing needed it.
+4. **`forwardRequestToOperationService()` returns `{status, body}`, not the order's literal
+   `Promise<T>` (body-only).** Two of the four forwarded routes (`POST /alerts` create, `POST
+/alerts/line` attach) have an existing, documented `201 Created` contract
+   (`app/api/alerts/route.ts`'s original `POST` handler, `app/api/alerts/line/route.ts`'s original
+   `POST` handler) — a body-only passthrough (`NextResponse.json(body)`, defaulting to `200`) would
+   have silently downgraded every forwarded create response from `201` to `200`. Added a new
+   `callOperationServiceWithTokenStatus()` to `client.ts` (mirrors `callOperationServiceWithToken()`
+   but also returns the real `response.status`) so the forwarder can preserve it. Every route
+   handler now does `NextResponse.json(body, { status: opStatus })` on the flag-on path — verified
+   with a dedicated test (`POST /api/alerts forwards to operation-service and preserves a 201
+Created`, and the line-alert equivalent).
+5. **Flag-check placement: consistently right after the existing auth check, before any other
+   monolith business logic** (tier gates, input validation, alert-limit/quota checks) — mirrors
+   `app/api/checkout/route.ts`'s already-established Session 4A-10a precedent, since
+   operation-service's `AlertsController`/`LineAlertsController` (Session 4B-5) already re-implement
+   every one of those checks against the identical schema; running them twice would be pure waste,
+   not extra safety.
+6. **Two safe signature widenings**, same precedent as Session 4A-10a: `app/api/alerts/[id]/route.ts`'s
+   `GET` and `DELETE`, and `app/api/alerts/line/[id]/route.ts`'s `DELETE`, had a previously-unused
+   `_request: NextRequest` parameter — renamed to `request` since the forwarder needs it. Next.js
+   always passes the request object regardless of whether the handler declares a parameter for it,
+   so this is zero-risk.
+7. **A real `tsc --noEmit` gap the order's own text didn't anticipate.** Unlike the two plain-alert
+   route files (`Promise<NextResponse>`, unconstrained), both line-alert route files declare the
+   stricter `Promise<NextResponse<ApiResponse>>`. A bare, type-unconstrained
+   `forwardRequestToOperationService()` call returns `body: unknown`, and a raw `error.body`
+   passthrough (`OperationServiceErrorBody`, which has no `success` field) both failed to typecheck
+   against that contract. Fixed with an explicit `<ApiResponse>` type argument on the forward call
+   and an `as ApiResponse` cast on the error-passthrough branch — compile-time only, the JSON body
+   is still forwarded byte-for-byte, never reshaped or given a synthetic `success` field at runtime.
+8. **Incident, disclosed in full, not silently absorbed into a later diff.** A background
+   `tsc --noEmit` check launched to verify Step 3 was still running while Step 4's first two edits
+   (imports + `GET` flag-check on `line/route.ts`) were made to a different, unrelated-to-Step-3
+   file — harmless for Step 3's own commit (which never touched that file), but it meant a LATER
+   background check, launched only after every Step 4 edit had been saved and a Step 4 test file
+   had already passed, still returned a false "clean" exit 0. Step 4 was committed (`02917e9e`) on
+   that basis, with the real type break (Deviation 7, above) already present in it. Caught during
+   Step 5's own verification pass (a fresh, uncontaminated `tsc --noEmit` run). Independently
+   confirmed the break was genuine and present at `02917e9e` specifically — not just in the
+   Step-5-in-progress working tree — by stashing Step 5's uncommitted changes and re-running
+   `tsc --noEmit` directly against that commit alone (4 real `TS2322` errors reproduced). Fixed as
+   part of Step 5's own commit (`29ab43c5`), which necessarily also carries the corrected
+   `line/route.ts`. Root cause and rule for next time: never trust a background verification
+   result if ANY edit to a file inside its scan scope happened after the check was launched, even
+   if that edit seems unrelated to the step being verified — `tsc --noEmit` scans the whole
+   program, not just the files a commit is about to stage. Re-run fresh, immediately before
+   trusting a result, with no edits in flight. Recorded as an unpromoted `LESSONS-LEARNED.md`
+   candidate (see this file's own header note) rather than a new numbered entry, per the file's
+   documented "pause before adding another" instruction while past the active-lessons cap.
+9. **Full final verification, this session's own numbers:** `tsc --noEmit` clean, `eslint app
+components lib hooks --max-warnings 0` clean (0 errors, 0 warnings), full `npm run test:ci` clean —
+   120/120 suites, 2129/2129 tests (was 118/118, 2096/2096 at 4B-3's close, the last time the
+   monolith suite was independently re-run). `operation-service` confirmed untouched via `git
+status` throughout (zero files changed under `operation-service/`).
 
 ---
 

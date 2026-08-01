@@ -26,7 +26,85 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-5 (Alerts CRUD API Port to `operation-service`, PORT variant), APPROVED →
+- **Current:** Session 4B-6 (Alerts CRUD Monolith Transport & Flag Wiring, PORT/UI-BUILD variant),
+  CONFIRMED and executed, 2026-08-01, same day as 4B-5. **All 4 monolith Alerts CRUD route files are
+  now flag-wired** — `app/api/alerts/route.ts`, `app/api/alerts/[id]/route.ts`,
+  `app/api/alerts/line/route.ts`, `app/api/alerts/line/[id]/route.ts` each check
+  `shouldUseOperationServiceForAlertsCrud()` immediately after their existing auth check and forward
+  to `operation-service`'s `AlertsController`/`LineAlertsController` (Session 4B-5 PORT) when the
+  flag is on, falling through to unchanged monolith Prisma logic when off (the default everywhere —
+  `MIGRATE_ALERTS_CRUD` is set nowhere, zero traffic cut over).
+  **CONFIRM found the order genuinely, honestly at `Status: DRAFT`, not APPROVED** — no L11-style
+  self-contradiction (header matched its own commit trail exactly), just a real, unfinished sign-off
+  step. Reported to Davin directly rather than promoting it silently; Davin gave live explicit
+  approval in chat ("Go, approved!") before execution. All 4 of the order's own entry criteria were
+  independently re-verified true (including re-walking `origin/main` per L38 — `4d0c7532` and all 4
+  real 4B-5 code commits confirmed pushed), zero codebase drift since drafting, baseline `tsc
+  --noEmit` clean. One real gap found in the order's own text before writing any code: Steps 4-5's
+  cited "Verification" file, `__tests__/drawing/alertsApi.test.ts`, only tests a CLIENT-side fetch
+  wrapper (`components/charts/drawing/alertsApi.ts`) — a repo-wide search confirmed ZERO existing
+  test files imported from `app/api/alerts/line/*` at all before this session, the exact same
+  L27/L28-class gap Session 4B-5 already hit on this identical file (operation-service side).
+  **Built:** `lib/operation-service/flags.ts` (+`shouldUseOperationServiceForAlertsCrud()`),
+  `lib/operation-service/client.ts` (+`getOperationServiceToken()`, +new
+  `callOperationServiceWithTokenStatus()`), new `lib/operation-service/write-routes.ts`
+  (`forwardRequestToOperationService()`), all 4 route files wired, one commit per Ordered Step (5
+  commits) plus the CONFIRM commit — 6 total.
+  **A real, deliberate deviation from the order's own literal signature, not a guess either way:**
+  `forwardRequestToOperationService()` returns `{status, body}`, not the order's stated body-only
+  `Promise<T>` — two of the four forwarded routes (`POST /alerts`, `POST /alerts/line`) have an
+  existing, documented `201 Created` contract that a body-only passthrough (defaulting to `200`)
+  would have silently downgraded. `callOperationServiceWithTokenStatus()` was added to `client.ts`
+  specifically to preserve it; every forwarding branch does `NextResponse.json(body, { status:
+opStatus })`, verified with dedicated tests proving the `201` survives the hop.
+  **New, first-ever test coverage for the two line-alert server route handlers:** new
+  `__tests__/api/alerts-line.test.ts` (16 tests) — CONFIRM's own finding (above) meant no real
+  safety net existed for these files at all; authored directly against the real SOURCE handlers
+  rather than relying on the stale citation, mirroring `__tests__/api/alerts.test.ts`'s own
+  structure. Also added 12 new tests to `__tests__/api/alerts.test.ts` (the 2 plain-alert routes)
+  and 9 new tests (`__tests__/lib/operation-service/write-routes.test.ts`) for the new transport
+  helper itself.
+  **Two safe signature widenings, recorded as Deviations, same precedent as Session 4A-10a:**
+  `app/api/alerts/[id]/route.ts`'s `GET`/`DELETE` and `app/api/alerts/line/[id]/route.ts`'s
+  `DELETE` had a previously-unused `_request` parameter, renamed to `request` (needed by the
+  forwarder) — zero risk, Next.js always passes the request object regardless.
+  **A real `tsc --noEmit` gap the order's own text didn't anticipate:** unlike the two plain-alert
+  route files (`Promise<NextResponse>`, unconstrained), both line-alert route files declare the
+  stricter `Promise<NextResponse<ApiResponse>>` — a type-unconstrained forward call and a raw
+  `error.body` passthrough (`OperationServiceErrorBody` has no `success` field) both failed to
+  typecheck against it. Fixed via an explicit `<ApiResponse>` type argument on the forward call and
+  an `as ApiResponse` cast on the error path — compile-time only, the JSON body is still forwarded
+  byte-for-byte at runtime.
+  **Incident, disclosed in full, not silently absorbed into a later diff:** a background `tsc
+--noEmit` check verifying Step 3 was still running while Step 4's first two edits (to a DIFFERENT,
+  Step-3-irrelevant file) were made — harmless for Step 3's own commit. But a LATER background
+  check, launched only after every Step 4 edit was saved and Step 4's own new test file had already
+  passed, still returned a false "clean" exit 0, and Step 4 was committed (`02917e9e`) with the real
+  type break (above) already present in it. Caught during Step 5's own fresh verification pass;
+  independently confirmed the break was genuine and present AT `02917e9e` specifically (not just in
+  the in-progress Step 5 working tree) by stashing Step 5's changes and re-running `tsc --noEmit`
+  directly against that commit alone. Fixed as part of Step 5's own commit (`29ab43c5`). Recorded as
+  an unpromoted `LESSONS-LEARNED.md` candidate (past the active-lessons cap, not promoted without
+  explicit direction) — the rule: never trust a background verification result if ANY edit to a
+  file inside its scan scope happened after the check launched, even if that edit looks unrelated
+  to the step being verified; `tsc --noEmit` scans the whole program, not just a commit's staged
+  files.
+  **Full verification:** `tsc --noEmit` clean, `eslint app components lib hooks --max-warnings 0`
+  clean (0 errors, 0 warnings), `npm run test:ci` 120/120 suites, 2129/2129 tests (was 118/118,
+  2096/2096 at 4B-3's close — the last time the monolith suite was independently re-run; 4B-4/4B-5
+  were operation-service-only sessions). `operation-service` confirmed untouched via `git status`
+  throughout.
+  **Artifacts updated:** `4b-6-alerts-crud-write-transport.migration-order.md` (Status → CONFIRMED,
+  entry criteria + Done-When all checked, Deviations filled in full — 9 entries),
+  `migration-cutover-table.md` (new Slice 7 row, Status BUILT), `migration-stack-analysis.md` (new
+  entry, 3 new files + 4 modified route files), this file. No `DECISION-LOG.md` flag applies (no
+  F-numbered decision was open this session). New
+  `4b-7-alerts-crud-cutover.migration-order.md` PRE-DRAFTed (VERIFY-RETIRE variant, per the
+  Next-session handoff already recorded at 4B-5's close) — carries the flag-flip + retire-4-files
+  scope forward, per `LESSONS-LEARNED.md` L31 (a BUILD session shipping only the transport layer
+  must hand off the actual cutover as its own session, which this order now correctly makes
+  possible — the flag genuinely routes real requests for the first time once flipped).
+- _(superseded-by-above, retained for context)_ Session 4B-5 (Alerts CRUD API Port to `operation-service`, PORT variant), APPROVED →
   CONFIRMED → executed, 2026-08-01, same day as 4B-4. **Slice 7 (Alerts CRUD) is now BUILT in
   `operation-service`** — all 4 monolith route files (`app/api/alerts/route.ts`,
   `app/api/alerts/[id]/route.ts`, `app/api/alerts/line/route.ts`, `app/api/alerts/line/[id]/route.ts`,
@@ -1777,6 +1855,14 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   (`CRON_SECRET`/`DATABASE_URL`/`NEXTAUTH_SECRET`/`REDIS_URL`/4 dLocal vars, via
   `railway variable list`'s unmasked default view) still need rotation. See Current above and the
   order's own Deviations (17 entries) for full detail.
+- **Order status (4B-6):** CONFIRMED, executed, fully closed — all 5 Done-When items checked (all 4
+  route files wired, flag defaults `false` everywhere, `tsc`/`eslint` clean, 120/120 suites green,
+  `operation-service` untouched). All 5 Ordered Steps shipped, one commit each, plus the CONFIRM
+  commit — 6 total. `MIGRATE_ALERTS_CRUD` now has a real reader for the first time (Session 4B-5's
+  own close-out noted it as "reserved name only, no reader anywhere yet") — flipping it in 4B-7 will
+  genuinely route real requests. See Current above for full detail, including the DRAFT-not-APPROVED
+  gate, the L27/L28-class test-citation gap on the line-alert files, the `201`-preservation
+  deviation, and the disclosed tsc-false-negative incident.
 - **Order status (4B-5):** CONFIRMED, executed, fully closed — all 5 Done-When items checked. All
   4 route files ported (`AlertsController`/`AlertsService`, `LineAlertsController`/
   `LineAlertsService`), 42 new tests green, `nest build`/`tsc --noEmit` clean, monolith untouched.
@@ -2486,8 +2572,21 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `operation-service`silently. Worth a real fix (a`sync`script wired into the root's own
  `prepublishOnly`/`build`, or a CI check diffing the two `src/`trees) before this bites a session
   that doesn't happen to run`operation-service`'s own `tsc --noEmit`right after the hoist. Recorded
-  as an unpromoted`LESSONS-LEARNED.md` candidate (past the active-lessons cap) — see that file's own
+  as an unpromoted`LESSONS-LEARNED.md`candidate (past the active-lessons cap) — see that file's own
   header note.
+  **(88, NEW — Session 4B-6, 2026-08-01)** A background`tsc --noEmit` verification run gave a
+  false "clean" (exit 0) result for a commit (`02917e9e`) that genuinely had 4 real `TS2322`
+  errors — only caught one step later, during the NEXT step's own fresh verification pass. Root
+  cause: an edit to a file inside the check's scan scope (`tsc`scans the whole program, not just
+  a commit's staged files) landed while an earlier background check was still running; a LATER
+  check, launched only after all edits for that step were saved, still returned stale/false-clean
+  — timing/caching behavior not fully diagnosed, just empirically confirmed unsafe. Independently
+  reproduced by stashing the fix and re-running`tsc --noEmit`directly against`02917e9e` alone.
+  Fixed in the very next commit (`29ab43c5`), same session — no broken code ever reached
+  `origin/main`(verified before push, see Current above). Recorded as an unpromoted
+ `LESSONS-LEARNED.md`candidate (past the active-lessons cap, same as #86/#87) rather than a new
+  numbered entry — the rule: re-run`tsc --noEmit` fresh, with zero edits in flight, immediately
+  before trusting any "clean" result as grounds to commit.
 - **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
   2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
   **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:
@@ -2508,14 +2607,16 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   traffic behavior change.
   **Session 4B-5 (Alerts CRUD API Port) is now CONFIRMED, executed, and fully closed** (2026-08-01,
   same day as 4B-4 — see Current/Order-status above). All 4 alerts routes BUILT in
-  `operation-service`, zero traffic cut over. **The actual next session overall is now 4B-6**
-  (`4b-6-alerts-crud-write-transport.migration-order.md`, PRE-DRAFTed at 4B-5's close, Standard
-  Loop/UI-BUILD variant, mirroring 4A-7a's/4A-10a's own monolith-side transport-layer shape) — the
-  monolith-side flag-check + forwarding layer for the 4 alerts routes, before any cutover can happen
-  (per `LESSONS-LEARNED.md` L31 — a PORT session shipping only the new side leaves the eventual
-  cutover flag a no-op until this transport layer exists). After that, drawings + drawing-alerts →
-  notifications → tier (guard) → user/profile/2FA/sessions → market-data channel proxy is still the
-  session playbook's own remaining Phase 4B domain-slice order.
+  `operation-service`, zero traffic cut over.
+  **Session 4B-6 (Alerts CRUD Monolith Transport & Flag Wiring) is now CONFIRMED, executed, and
+  fully closed** (2026-08-01, same day as 4B-5 — see Current/Order-status above). All 4 monolith
+  route files flag-wired; `MIGRATE_ALERTS_CRUD` has a real reader for the first time, L31's own
+  no-op risk is now closed. **The actual next session overall is now 4B-7**
+  (`4b-7-alerts-crud-cutover.migration-order.md`, PRE-DRAFTed at 4B-6's close, VERIFY-RETIRE
+  variant) — flip `MIGRATE_ALERTS_CRUD=true` in production, verify end-to-end, retire the 4
+  monolith route files' own Prisma logic. After that, drawings + drawing-alerts → notifications →
+  tier (guard) → user/profile/2FA/sessions → market-data channel proxy is still the session
+  playbook's own remaining Phase 4B domain-slice order.
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.

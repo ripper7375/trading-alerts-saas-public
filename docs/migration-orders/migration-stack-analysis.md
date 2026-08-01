@@ -1845,6 +1845,45 @@ Test suites: `operation-service` 24/24→28/28 (+4 new spec files, 42 new tests)
 </details>
 
 <details>
+<summary><code>lib/operation-service/</code> — 3 new files + 4 modified route files (Session 4B-6,
+Alerts CRUD monolith transport)</summary>
+
+PORT/UI-BUILD session — monolith-side flag-check + forwarding layer for the 4 Alerts CRUD routes
+ported to `operation-service` in Session 4B-5. Zero traffic cut over (`MIGRATE_ALERTS_CRUD` is set
+nowhere; cutover is Session 4B-7).
+
+- `lib/operation-service/flags.ts` (modified) — `+shouldUseOperationServiceForAlertsCrud()`,
+  defaults `false`, distinct from the pre-existing `shouldUseOperationServiceForAlerts()` (Slice 6
+  evaluation gate, unrelated)
+- `lib/operation-service/client.ts` (modified) — `+getOperationServiceToken()` (reads the same
+  NextAuth session JWE cookie the F45-class server-side-proxy bridge already forwards elsewhere),
+  `+callOperationServiceWithTokenStatus()` (new — surfaces the real response status alongside the
+  body, needed so a forwarded `POST /alerts`/`POST /alerts/line` create's `201 Created` survives
+  the proxy hop instead of silently becoming `200`)
+- `lib/operation-service/write-routes.ts` (new) — `forwardRequestToOperationService()`, a single
+  generic proxy for all 4 routes (method/body/`x-correlation-id` forwarded, session token attached
+  as Bearer auth), mirrors `lib/money-service/write-routes.ts`'s shape (Session 4A-10a)
+- `app/api/alerts/route.ts`, `app/api/alerts/[id]/route.ts`, `app/api/alerts/line/route.ts`,
+  `app/api/alerts/line/[id]/route.ts` (all modified) — each handler checks the flag immediately
+  after its existing auth check (before any tier/validation/quota logic operation-service's own
+  controllers already re-implement), forwards when on, falls through to unchanged Prisma logic
+  when off. 3 previously-unused `_request` params renamed to `request` (GET/DELETE on `[id]`,
+  DELETE on `line/[id]`) — same safe-widening precedent as Session 4A-10a.
+
+**New test coverage:** `__tests__/lib/operation-service/write-routes.test.ts` (9 tests, the
+transport helper itself), 12 new tests added to `__tests__/api/alerts.test.ts` (the 2 plain-alert
+routes), and new `__tests__/api/alerts-line.test.ts` (16 tests) — the FIRST test coverage ever
+authored against the 2 line-alert server route handlers; CONFIRM found the order's own cited
+"Verification" file (`__tests__/drawing/alertsApi.test.ts`) only tests a client-side fetch wrapper
+and never imports either handler.
+
+Test suites: monolith 118/118→120/120 (+2 new spec files), 2096/2096→2129/2129 tests. `tsc
+--noEmit`/`eslint app components lib hooks --max-warnings 0` clean. `operation-service` unchanged
+(`git status` confirms zero files touched).
+
+</details>
+
+<details>
 <summary><code>types/</code> — 11 files</summary>
 
 - `types/alert.ts`
