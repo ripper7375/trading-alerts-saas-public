@@ -17,6 +17,24 @@ occurrence) remains a candidate, not promoted — 4B-3 itself did NOT hit this p
 A was chosen live, no clock was fabricated), so it isn't re-flagged as a fresh recurrence, but it
 and this cap overrun are both worth the Advisor's attention at the next consolidation pass.
 
+**Two more candidates from Session 4B-4's close (2026-08-01), also not promoted (no explicit
+direction to exceed the cap this time), described here for the next consolidation pass:** (1)
+Express 5 / path-to-regexp v8 (this repo's real installed versions in both `operation-service` and
+`money-service`) removed the bare `'*'` wildcard for `MiddlewareConsumer.forRoutes()` — any future
+middleware/route registration in either service needs `'/{*splat}'` instead, verified empirically
+this session (`pathToRegexp('*')` throws `"Missing parameter name at index 1: *"` against the real
+installed package; `'/{*splat}'` matches every path including bare `/`) rather than assumed from
+memory or older Express docs. (2) A live-boot verification step used `taskkill //F //IM node.exe
+//T` to clean up a single spawned test process — a blanket kill of every Node process on the
+machine, not scoped to the one PID actually spawned. Caught and disclosed immediately, not
+repeated (switched to foreground-only `node -e` scripts and `Test.createTestingModule` +
+`supertest`'s in-memory server for the rest of the session, neither of which needs any manual
+process spawn/cleanup at all) — worth a rule along the lines of "never `taskkill`/`pkill` by image
+name to clean up a test process you spawned; capture and kill the specific PID, or better, avoid
+spawning a real background process for verification when an in-memory test harness can prove the
+same thing." Full detail in `4b-4-shared-infra-observability.migration-order.md`'s own Deviations
+(#3, #5, #11).
+
 ---
 
 ## Active lessons

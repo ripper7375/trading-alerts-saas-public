@@ -26,7 +26,123 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-3 (Alert Engine CUTOVER & RETIRE, VERIFY-RETIRE variant), APPROVED →
+- **Current:** Session 4B-4 (Shared Infrastructure & Observability, INFRA + CONTRACT variant),
+  APPROVED → CONFIRMED → executed, 2026-08-01, same day as 4B-3. **F13 (Observability/tracing
+  backend) is now RESOLVED** — Davin chose Option C live in chat (OTel SDK + OTLP HTTP exporter +
+  Pino structured logging + Correlation-ID middleware + shared `CacheService` + `AllExceptionsFilter`),
+  recorded in `DECISION-LOG.md`. All 8 Ordered Steps shipped, one commit each, zero production
+  traffic behavior change — purely additive providers/middleware in both `operation-service` and
+  `money-service`.
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file
+  modified-but-uncommitted, `PRE-DRAFT → APPROVED` with a full content rewrite — the committed
+  PRE-DRAFT had F13 explicitly OPEN and no concrete implementation steps, the working copy had F13
+  resolved and a complete 8-step plan) — resolved the same way as every prior occurrence: reported
+  the discrepancy, and Davin's own chat message this session ("Notes for Session 4B-4 execution:
+  ... Option C resolved for F13...") matched the uncommitted DECISION-LOG.md/order edits exactly,
+  confirming it as his live, authentic direction rather than trusting it silently. Two small drift
+  notes found and corrected at CONFIRM, both non-blocking: Step 1's "both services" phrasing for
+  `main-worker.ts` doesn't apply to `money-service` (it has no worker entrypoint, single
+  HTTP-process service); `operation-service` already has a narrowly-scoped `AuthErrorFilter`
+  (`@Catch(AuthError)`, route-level via `@UseFilters`), which the order's own gap analysis didn't
+  mention but doesn't contradict either (not a global catch-all).
+  **Step 0:** installed `pino@^9.14.0` into `money-service` (`operation-service` already had it,
+  Session 4B-2) + 5 `@opentelemetry/*` packages into both, all pinned versions confirmed resolvable
+  on the real npm registry (L30 check) before installing.
+  **Step 1 (`otel.ts`, both services):** `initOtel(serviceName)` wraps `NodeSDK` +
+  `getNodeAutoInstrumentations`. **Real gap found before writing code:** no
+  `@opentelemetry/instrumentation-prisma` entry exists in the installed
+  `auto-instrumentations-node@0.56.1`'s own instrumentation map — native Prisma tracing needs
+  `previewFeatures = ["tracing"]` in `schema.prisma` (a schema change, out of this session's
+  Rollback-stated scope) — HTTP/Express/ioredis instrumented instead, Prisma flagged for later.
+  **A deliberate design choice, not a guess:** when `OTEL_EXPORTER_OTLP_ENDPOINT` is unset (both
+  services' real production today), `traceExporter` is omitted entirely rather than defaulting to
+  `OTLPTraceExporter`'s own `localhost:4318` fallback — spans still generate (useful for Step 3's
+  log correlation) but nothing is exported or retried over the network, avoiding connection-refused
+  noise. Verified both branches (endpoint set/unset) against the compiled output directly, not just
+  test-suite evidence. `@opentelemetry/api` added as an explicit direct dependency (L5) — it was
+  only transitive before, needed for Step 3's trace-context reader.
+  **A real, empirically-verified Express 5 / path-to-regexp v8 breaking change found before it
+  could silently break Step 4:** the obvious bare `'*'` wildcard for
+  `MiddlewareConsumer.forRoutes()` is REMOVED in path-to-regexp v8 (this repo's real installed
+  `express@5.2.1`) — confirmed by calling the real installed `pathToRegexp()` directly in a
+  throwaway script (`"Missing parameter name at index 1: *"`); the documented replacement,
+  `'/{*splat}'`, was verified the same way to match every path including bare `/`. Neither service
+  had any prior middleware registration to copy this from — a genuinely new pattern for this
+  codebase. Recorded as a lesson candidate (LESSONS-LEARNED.md is past its stated cap, not
+  formally numbered without Davin's explicit direction to exceed it — see that file's own header).
+  **Step 2 (`RedisModule`, `money-service`):** new `redis.service.ts`/`redis.module.ts`,
+  byte-for-byte matching `operation-service`'s own implementation, registered `@Global()`.
+  `IdempotencyStore` refactored to inject the shared `RedisService` instead of its own dedicated
+  connection — a real, unplanned side effect: `IdempotencyStore` was previously `provide`d
+  independently in 4 separate modules (admin/disbursement/dlocal/stripe), each opening its OWN
+  Redis connection; all 4 now share the one global connection instead. Key prefixing moved from
+  ioredis's client-level `keyPrefix` option (invisible to the old test's mock) to explicit
+  per-key prefixing in the store's own code — real key format unchanged
+  (`money:idempotency:<key>`). `app.module.ts`'s own `ThrottlerStorageRedisService` connection
+  deliberately left untouched (library-specific need, not named in the order's own Step 2 Actions
+  list). `idempotency.store.spec.ts` rewritten for DI-based construction (L3: assertions changed
+  for a documented, real mechanism change, not silently).
+  **Step 3 (Pino structured logger, both services):** new `common/context/log-context.ts`
+  (shared `AsyncLocalStorage` correlation store + OTel active-span trace/span-ID reader),
+  `common/logging/{pino-instance,logging.service,logging.module}.ts` (one shared root pino
+  instance per service, custom ISO `timestamp` field, `mixin()` injecting
+  `correlationId`/`traceId`/`spanId`; `PinoLoggerService implements LoggerService`, wired app-wide
+  via `app.useLogger()` + `bufferLogs: true`). `alert-engine.logger.ts`'s `alertEngineLogger` is
+  now `rootPinoLogger.child({name: 'alert-engine'})` instead of its own separate `pino()` root —
+  same `.child({...}).info(...)` call shape, `dispatcher.service.ts` unchanged.
+  `money-service/logger.util.ts` now delegates to `rootPinoLogger` instead of `console.log` — same
+  call shape for all ~20 existing consumers, `debug()`'s old manual `NODE_ENV` gate dropped since
+  pino's own level filter already replicates it. **Verified live during test runs, not just code
+  review** — structured JSON log lines (matching the order's exact Contract field set) visible in
+  both services' real test output.
+  **Step 4 (`CorrelationIdMiddleware`, both services):** extracts/generates `x-correlation-id`,
+  binds to the AsyncLocalStorage context, registered globally via `NestModule.configure()` +
+  `'/{*splat}'` (see the path-to-regexp finding above). New real e2e specs (`Test.createTestingModule`
+  - `createNestApplication` + `supertest`, mirroring the established pattern from
+    `dlocal-webhook.throttle.spec.ts`, Session 4A-W4) prove it against real Express routing: generates
+    `req_<uuid>` when absent, preserves a caller-supplied header instead of overwriting it, assigns
+    distinct IDs per request.
+    **Step 5 (`CacheService`, both services):** `get`/`set`/`del`/`ttl`/`flushPattern` over the shared
+    `RedisService`, `op:cache:`/`money:cache:` key prefixes. `flushPattern` uses SCAN (cursor-based,
+    non-blocking), not KEYS — KEYS is O(N) and blocks the shared production Redis instance's (F15)
+    event loop, a real production-safety choice, not just a style preference. 9 unit tests each
+    service, covering all 3 real `flushPattern` branches (zero matches, single scan batch, multi-batch
+    cursor iteration).
+    **Step 6 (`AllExceptionsFilter`, both services):** global `APP_FILTER`, unified error JSON shape
+    (`statusCode`/`message`/`error`/`timestamp`/`path`/`correlationId`), 5xx logged as `error` (with
+    stack), 4xx as `warn`. **Coexistence with `operation-service`'s pre-existing route-scoped
+    `AuthErrorFilter` verified by running the full existing suite unchanged, not just reasoning about
+    Nest's filter-resolution order.** New real e2e specs prove three cases against a real app: a 400
+    `ValidationPipe` failure, a 404 unmatched route, and a genuinely unhandled `Error` (formatted as a
+    generic 500 without leaking the raw message) — all three carrying the correlation ID end-to-end
+    through the full middleware → AsyncLocalStorage → filter chain.
+    **Step 7:** documented all 3 OTel env vars in `docs/secret-matrix.md` (names only, L17-compliant)
+    and mirrored them into both services' `.env.example` (minor scope extension beyond the order's
+    literal single-file target, recorded as a Deviation).
+    **Incident, disclosed immediately, not repeated:** verifying Step 1's boot log against a real
+    running process, a `taskkill //F //IM node.exe //T` was run to clean up a single spawned test
+    boot — a blanket kill of every Node process on the machine, not scoped to the one PID actually
+    spawned. Could have hit unrelated Node processes (editor language servers, other dev tools).
+    Flagged to Davin the moment it happened; the rest of the session's live-boot verification
+    switched to safer methods (foreground-only `node -e` one-shot scripts, and real Nest app
+    instances via `Test.createTestingModule` + `supertest`'s in-memory server) that need no manual
+    process spawn/cleanup at all. Recorded as a second lesson candidate (LESSONS-LEARNED.md header).
+    **Full verification:** `operation-service` grew 21/21→24/24 suites, 177/177→192/192 tests across
+    the session's own new specs; `money-service` grew 59/59→62/62 suites, 507/507→522/522 tests.
+    `tsc --noEmit`/`nest build` clean both services throughout, reverified after every step. Monolith
+    untouched (`git status` confirms zero source files touched all session), `tsc --noEmit` clean —
+    full `test:ci` not independently re-run this session (nothing in its dependency tree changed;
+    last recorded state, 4B-3's close, was 118/118 green).
+    **Artifacts updated:** `4b-4-shared-infra-observability.migration-order.md` (Status → CONFIRMED,
+    Done-When all checked with final test counts, Deviations filled in full — 12 entries),
+    `DECISION-LOG.md` (F13 → RESOLVED, recorded at CONFIRM per Davin's live direction),
+    `migration-stack-analysis.md` (new entry, 26 new files + both services' `app.module.ts`/`main.ts`/
+    package.json/`.env.example` modified), `LESSONS-LEARNED.md` (two new candidates described in the
+    header, not formally numbered — cap still not consolidated), this file. No
+    `migration-cutover-table.md` change — this is a pure INFRA session, no slice/flag/traffic change.
+    `4b-5-alerts-crud-port.migration-order.md` PRE-DRAFTed (PORT variant, per the session playbook's
+    own Phase 4B domain-slice ordering — "alerts CRUD" named first among Sessions 4B-5…16).
+- _(superseded-by-above, retained for context)_ Session 4B-3 (Alert Engine CUTOVER & RETIRE, VERIFY-RETIRE variant), APPROVED →
   CONFIRMED → executed, 2026-08-01. **Slice 6 (Alert Engine) is now CUT-OVER & LIVE** —
   `operation-service` (via a genuinely separate Railway service, `operation-service-worker`) is
   the sole live evaluator of real-time alerts; the monolith's own alert-engine code is retired.
@@ -1574,6 +1690,13 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   (`CRON_SECRET`/`DATABASE_URL`/`NEXTAUTH_SECRET`/`REDIS_URL`/4 dLocal vars, via
   `railway variable list`'s unmasked default view) still need rotation. See Current above and the
   order's own Deviations (17 entries) for full detail.
+- **Order status (4B-4):** CONFIRMED, executed, fully closed — all 8 Done-When items checked (F13
+  recorded, both services compile clean, test suites green with final counts, monolith untouched,
+  Pino/CorrelationIdMiddleware/CacheService/AllExceptionsFilter all verified live via real e2e
+  specs, secret-matrix.md updated). All 8 Ordered Steps shipped, one commit each. Zero production
+  traffic behavior change — purely additive. See Current above for full detail including the
+  Prisma-instrumentation gap (deferred, needs a schema change) and the taskkill incident
+  (disclosed, not repeated).
 - **Order status (4B-3):** CONFIRMED, executed, fully closed — all entry criteria checked, all 4
   Checklist steps done (deploy/health/logs verified, worker-activation mechanism confirmed live,
   monolith files retired per the corrected 7/9+3/4 scope, `tsc`/`test:ci` 100% green,
@@ -2250,6 +2373,15 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   should be rotated.** And: whether the monolith's own separate`scripts/alert-worker.ts`/
  `railway-worker.json`mechanism is live anywhere outside this session's Railway visibility stays
   unresolved (the two candidates found, in the`prisma-migration`and`postgre for staging`  projects, are both`Failed`) — moot going forward since the files it depends on are retired.
+  **(86, NEW — Session 4B-4, 2026-08-01)** OTel Prisma auto-instrumentation was NOT built —
+  `@opentelemetry/auto-instrumentations-node@0.56.1`'s own instrumentation map has no Prisma entry
+  at all (checked directly before writing `otel.ts`); native Prisma tracing needs
+  `previewFeatures = ["tracing"]`added to`schema.prisma`(both services' Prisma schemas) plus a
+  separate`@prisma/instrumentation` package — a schema-level change, out of this INFRA session's
+  own stated Rollback scope ("no database schema migrations"). HTTP/Express/ioredis are
+  instrumented; DB-query-level spans are not. Worth a small, dedicated follow-up if/when Option
+  A/B (a real tracing backend) is chosen and DB-level visibility actually matters — low priority
+  while the exporter itself stays unconfigured in production.
 - **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
   2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
   **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:
@@ -2262,17 +2394,16 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   the monolith by design — do not delete them in a future cleanup pass without re-reading this
   note. No further work on the Slice-6/alert-engine track specifically is open; whenever it's
   scheduled, F8's own session is 4B-17, not before.
-  **The actual next session overall is 4B-4** (`4b-4-shared-infra-observability.migration-order.md`,
-  PRE-DRAFTed at this session's close, INFRA+CONTRACT variant) — per the session playbook's own
-  Phase 4B ordering (`monolith-to-microservices-migration-session-playbook.md`): "Shared infra:
-  redis/cache/logger/errors/monitoring as Nest providers + interceptors; OTel + correlation-ID
-  middleware (F13 resolved here if not earlier)." This is unrelated to the realtime/F8 track above
-  — confirmed directly against `DECISION-LOG.md`'s own flag register (F8 "OPEN — due Session
-  4B-17", separate from F13 "OPEN — due by first Phase 4 cutover", a deadline already passed
-  several cutovers ago and carried forward) before PRE-DRAFTing, rather than assuming 4B-4 meant
-  the realtime work. The PRE-DRAFT's own Entry Criterion 0 is F13 itself — a real architecture
-  decision (managed SaaS vs. self-hosted tracing backend vs. defer again) that needs Davin's call,
-  not the Executor's, before code is written.
+  **Session 4B-4 (Shared Infrastructure & Observability) is now CONFIRMED, executed, and fully
+  closed** (2026-08-01, same day as 4B-3 — see Current/Order-status above). F13 RESOLVED (Option
+  C, Davin live). All 8 Ordered Steps shipped: OTel SDK bootstrap, unified `RedisModule` in
+  `money-service`, shared `PinoLoggerService`, global `CorrelationIdMiddleware`, shared
+  `CacheService`, global `AllExceptionsFilter`, `docs/secret-matrix.md` updated. Zero production
+  traffic behavior change. **The actual next session overall is now 4B-5**
+  (`4b-5-alerts-crud-port.migration-order.md`, PRE-DRAFTed at 4B-4's close, PORT variant) — per the
+  session playbook's own Phase 4B domain-slice ordering, "alerts CRUD" is named first among
+  Sessions 4B-5…16 (drawings + drawing-alerts → notifications → tier (guard) → user/profile/2FA/
+  sessions → market-data channel proxy, in that order after alerts).
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.
@@ -2433,7 +2564,12 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   `@trading-alerts/types` package built and consumed. `operation-service`'s real Railway
   deploy-time resolution (as opposed to local compile/runtime resolution, both proven) is still an
   open follow-up, most likely closed by Session 4B-2 ·
-  F8, F11–F13 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
+  **F13 fully RESOLVED (Session 4B-4, Davin)** — Option C: OTel SDK + OTLP HTTP exporter + Pino
+  structured logging + Correlation-ID middleware + shared `CacheService` + `AllExceptionsFilter`;
+  no real tracing backend chosen yet (Option A/B still open for later), but the SDK/instrumentation
+  layer is live in both services, silent (no exporter wired) until `OTEL_EXPORTER_OTLP_ENDPOINT` is
+  set on Railway ·
+  F8, F11–F12 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
 

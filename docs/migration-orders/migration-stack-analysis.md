@@ -1744,6 +1744,61 @@ tests (identical to the pre-session baseline).
 </details>
 
 <details>
+<summary><code>operation-service/src/{otel.ts,common/,cache/}</code> + <code>money-service/src/{otel.ts,redis/,common/,cache/}</code> — 26 new files (Session 4B-4, shared infra & observability, F13)</summary>
+
+INFRA session (F13 Option C: OTel SDK + OTLP HTTP exporter + Pino correlation logging + shared
+`CacheService` + `AllExceptionsFilter`) — zero production traffic behavior change, all additive
+providers/middleware. F13 RESOLVED.
+
+**operation-service (12 new files):**
+
+- `src/otel.ts` — `initOtel(serviceName)`, `NodeSDK` + `getNodeAutoInstrumentations`
+  (HTTP/Express/ioredis; no Prisma instrumentation available in the installed auto-instrumentations
+  version, see the order's own Deviations #2); silent (no exporter wired) when
+  `OTEL_EXPORTER_OTLP_ENDPOINT` is unset, matching both services' real production today
+- `src/common/context/log-context.ts` — shared `AsyncLocalStorage` correlation-ID store +
+  active-OTel-span trace/span-ID reader
+- `src/common/logging/{pino-instance,logging.service,logging.module}.ts` — single shared root pino
+  instance (custom ISO `timestamp` field, `service`/`correlationId`/`traceId`/`spanId` via
+  `mixin()`) + `PinoLoggerService implements LoggerService`, wired app-wide via
+  `app.useLogger()`
+- `src/common/middleware/correlation-id.middleware.ts` (+ `.e2e.spec.ts`, 3 tests) — extracts/
+  generates `x-correlation-id`, binds to the AsyncLocalStorage context, registered globally via
+  `'/{*splat}'` (Express 5/path-to-regexp v8's wildcard, not the removed bare `'*'`)
+- `src/cache/{cache.service,cache.module}.ts` (+ `.spec.ts`, 9 tests) — `get`/`set`/`del`/`ttl`/
+  `flushPattern` (SCAN-based, not KEYS) over the existing `RedisService`, `op:cache:` key prefix
+- `src/common/filters/all-exceptions.filter.ts` (+ `.e2e.spec.ts`, 3 tests) — global `APP_FILTER`,
+  unified error JSON shape; coexists with the pre-existing route-scoped `AuthErrorFilter`
+
+**Modified:** `src/app.module.ts` (registers `LoggingModule`/`CacheModule`, `NestModule.configure()`
+for the middleware, `APP_FILTER`), `src/main.ts` + `src/main-worker.ts` (otel import first line,
+`bufferLogs`+`useLogger`), `src/alert-engine/alert-engine.logger.ts` (now
+`rootPinoLogger.child({name: 'alert-engine'})` instead of its own separate `pino()` root),
+`package.json` (+`@opentelemetry/{sdk-node,auto-instrumentations-node,exporter-trace-otlp-http,
+resources,semantic-conventions,api}`), `.env.example` (3 OTel vars, commented).
+
+**money-service (14 new files — the same 12 above, plus):**
+
+- `src/redis/{redis.service,redis.module}.ts` — money-service had no shared Redis provider before
+  this session; byte-for-byte matches operation-service's own implementation
+
+**Modified:** `src/app.module.ts` (same additions as operation-service, plus registers the new
+`RedisModule`), `src/main.ts` (otel import, `bufferLogs`+`useLogger` — no `main-worker.ts` exists
+for this service), `src/common/logger.util.ts` (now delegates to `rootPinoLogger` instead of
+`console.log`, same call shape for ~20 existing consumers), `src/common/idempotency/
+idempotency.store.ts` (+ `.spec.ts`, rewritten) — now injects `RedisService` instead of its own
+dedicated connection, collapsing 4 separate per-module Redis connections (admin/disbursement/
+dlocal/stripe all separately `provide`d `IdempotencyStore`) into the one shared client,
+`package.json` (same OTel deps as operation-service, no `pino` addition needed — already present),
+`.env.example` (3 OTel vars, commented).
+
+Test suites: `operation-service` 21/21→24/24 (+3 new spec files), `money-service` 59/59→62/62 (+3
+new spec files). `nest build`/`tsc --noEmit` clean both, throughout. Monolith unchanged (`git
+status` confirms zero source files touched), `tsc --noEmit` clean.
+
+</details>
+
+<details>
 <summary><code>types/</code> — 11 files</summary>
 
 - `types/alert.ts`
