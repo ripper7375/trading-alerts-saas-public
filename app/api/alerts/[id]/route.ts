@@ -13,6 +13,11 @@ import { z } from 'zod';
 
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
+import { shouldUseOperationServiceForAlertsCrud } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 
 /**
  * Zod schema for updating an alert
@@ -36,7 +41,7 @@ interface RouteParams {
  * Get a single alert by ID with ownership validation
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: RouteParams
 ): Promise<NextResponse> {
   try {
@@ -50,6 +55,17 @@ export async function GET(
     }
 
     const { id } = await params;
+
+    // Session 4B-6: when the flag is on, operation-service's
+    // AlertsController (Session 4B-5 PORT) already re-implements the
+    // ownership check below against the same schema — forward instead.
+    if (shouldUseOperationServiceForAlertsCrud()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        `/alerts/${id}`
+      );
+      return NextResponse.json(body, { status: opStatus });
+    }
 
     const alert = await prisma.alert.findUnique({
       where: { id },
@@ -89,6 +105,9 @@ export async function GET(
 
     return NextResponse.json({ alert: alertWithoutUserId });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('GET /api/alerts/[id] error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch alert', code: 'FETCH_ERROR' },
@@ -114,6 +133,19 @@ export async function PATCH(
         { error: 'Unauthorized', code: 'UNAUTHORIZED' },
         { status: 401 }
       );
+    }
+
+    // Session 4B-6: when the flag is on, operation-service's
+    // AlertsController (Session 4B-5 PORT) already re-implements every
+    // check below (tier gate, ownership, validation) against the same
+    // schema — forward the raw request there instead of running it twice.
+    if (shouldUseOperationServiceForAlertsCrud()) {
+      const { id: opId } = await params;
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        `/alerts/${opId}`
+      );
+      return NextResponse.json(body, { status: opStatus });
     }
 
     // V8: Alerts are PRO-exclusive. FREE users (e.g. after a downgrade)
@@ -236,6 +268,9 @@ export async function PATCH(
       message: 'Alert updated successfully',
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('PATCH /api/alerts/[id] error:', error);
     return NextResponse.json(
       { error: 'Failed to update alert', code: 'UPDATE_ERROR' },
@@ -250,7 +285,7 @@ export async function PATCH(
  * Delete an alert (set isActive to false)
  */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: RouteParams
 ): Promise<NextResponse> {
   try {
@@ -264,6 +299,17 @@ export async function DELETE(
     }
 
     const { id } = await params;
+
+    // Session 4B-6: when the flag is on, operation-service's
+    // AlertsController (Session 4B-5 PORT) already re-implements the
+    // ownership check below against the same schema — forward instead.
+    if (shouldUseOperationServiceForAlertsCrud()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        `/alerts/${id}`
+      );
+      return NextResponse.json(body, { status: opStatus });
+    }
 
     // Check if alert exists and belongs to user
     const existingAlert = await prisma.alert.findUnique({
@@ -295,6 +341,9 @@ export async function DELETE(
       message: 'Alert deleted successfully',
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('DELETE /api/alerts/[id] error:', error);
     return NextResponse.json(
       { error: 'Failed to delete alert', code: 'DELETE_ERROR' },

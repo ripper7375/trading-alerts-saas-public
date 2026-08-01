@@ -778,6 +778,104 @@ describe('Alerts API Routes', () => {
       expect(data.error).toBe('operation-service down');
     });
 
+    it('GET /api/alerts/[id] forwards to operation-service', async () => {
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockResolvedValue({
+        status: 200,
+        body: { alert: { id: 'alert-1' } },
+      });
+
+      const { GET } = await import('@/app/api/alerts/[id]/route');
+      const request = new MockRequest('http://localhost/api/alerts/alert-1');
+      const response = await GET(request as unknown as Request, {
+        params: Promise.resolve({ id: 'alert-1' }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.alert).toEqual({ id: 'alert-1' });
+      expect(mockForwardRequestToOperationService).toHaveBeenCalledWith(
+        request,
+        '/alerts/alert-1'
+      );
+      expect(mockAlertFindUnique).not.toHaveBeenCalled();
+    });
+
+    it('PATCH /api/alerts/[id] forwards to operation-service', async () => {
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockResolvedValue({
+        status: 200,
+        body: { alert: { id: 'alert-1', isActive: false } },
+      });
+
+      const { PATCH } = await import('@/app/api/alerts/[id]/route');
+      const request = new MockRequest('http://localhost/api/alerts/alert-1', {
+        method: 'PATCH',
+        body: JSON.stringify({ isActive: false }),
+      });
+      const response = await PATCH(request as unknown as Request, {
+        params: Promise.resolve({ id: 'alert-1' }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.alert.isActive).toBe(false);
+      expect(mockForwardRequestToOperationService).toHaveBeenCalledWith(
+        request,
+        '/alerts/alert-1'
+      );
+      expect(mockAlertUpdate).not.toHaveBeenCalled();
+    });
+
+    it('DELETE /api/alerts/[id] forwards to operation-service', async () => {
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockResolvedValue({
+        status: 200,
+        body: { message: 'Alert deleted successfully' },
+      });
+
+      const { DELETE } = await import('@/app/api/alerts/[id]/route');
+      const request = new MockRequest('http://localhost/api/alerts/alert-1', {
+        method: 'DELETE',
+      });
+      const response = await DELETE(request as unknown as Request, {
+        params: Promise.resolve({ id: 'alert-1' }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.message).toBe('Alert deleted successfully');
+      expect(mockForwardRequestToOperationService).toHaveBeenCalledWith(
+        request,
+        '/alerts/alert-1'
+      );
+      expect(mockAlertDelete).not.toHaveBeenCalled();
+    });
+
+    it('PATCH /api/alerts/[id] maps an OperationServiceError to its own status/body', async () => {
+      mockSession.mockResolvedValue({ user: { id: 'user-1', tier: 'PRO' } });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockRejectedValue(
+        new MockOperationServiceError(404, { error: 'Alert not found' })
+      );
+
+      const { PATCH } = await import('@/app/api/alerts/[id]/route');
+      const request = new MockRequest('http://localhost/api/alerts/alert-1', {
+        method: 'PATCH',
+        body: JSON.stringify({ isActive: false }),
+      });
+      const response = await PATCH(request as unknown as Request, {
+        params: Promise.resolve({ id: 'alert-1' }),
+      });
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('Alert not found');
+    });
+
     it('does not forward when unauthenticated -- auth check still runs first', async () => {
       mockSession.mockResolvedValue(null);
       mockShouldUseOpService.mockReturnValue(true);
