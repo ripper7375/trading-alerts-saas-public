@@ -21,6 +21,11 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { AlertAttachZ } from '@/lib/drawing/schema';
 import { publishAlertsChanged } from '@/lib/drawing/invalidate';
+import { shouldUseOperationServiceForAlertsCrud } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 import { type Tier } from '@/lib/tier-config';
 import { getAlertLimit } from '@/lib/tier-validation';
 
@@ -44,6 +49,17 @@ export async function GET(
       );
     }
 
+    // Session 4B-6: when the flag is on, operation-service's
+    // LineAlertsController (Session 4B-5 PORT) already re-implements this
+    // list/filter logic against the same schema — forward instead.
+    if (shouldUseOperationServiceForAlertsCrud()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        `/alerts/line${new URL(request.url).search}`
+      );
+      return NextResponse.json(body, { status: opStatus });
+    }
+
     const { searchParams } = new URL(request.url);
     const symbol = searchParams.get('symbol') ?? undefined;
     const timeframe = searchParams.get('timeframe') ?? undefined;
@@ -62,6 +78,9 @@ export async function GET(
 
     return NextResponse.json({ success: true, alerts }, { status: 200 });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('GET /api/alerts/line error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch line alerts' },
@@ -80,6 +99,18 @@ export async function POST(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
+    }
+
+    // Session 4B-6: when the flag is on, operation-service's
+    // LineAlertsController (Session 4B-5 PORT) already re-implements every
+    // check below (tier gate, geometry validation, quota check) against
+    // the same schema — forward the raw request there instead.
+    if (shouldUseOperationServiceForAlertsCrud()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        '/alerts/line'
+      );
+      return NextResponse.json(body, { status: opStatus });
     }
 
     // V8: drawing-engine line alerts are PRO-exclusive.
@@ -226,6 +257,9 @@ export async function POST(
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('POST /api/alerts/line error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create line alert' },
