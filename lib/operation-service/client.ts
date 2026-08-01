@@ -143,6 +143,7 @@ export async function callOperationServiceWithTokenStatus<T>(
 export async function getOperationServiceToken(): Promise<string | null> {
   const cookieStore = await cookies();
   return (
+    cookieStore.get(SESSION_COOKIE_NAME)?.value ??
     cookieStore.get('__Secure-next-auth.session-token')?.value ??
     cookieStore.get('next-auth.session-token')?.value ??
     null
