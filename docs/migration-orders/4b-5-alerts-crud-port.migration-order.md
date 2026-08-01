@@ -135,11 +135,19 @@ authorizing execution directly in chat, the same resolution method as every prio
 
 ## Slice-level verification (done when)
 
-- [ ] All 4 route files ported into `operation-service/src/alerts/`.
-- [ ] Ported unit/integration tests green in `operation-service`.
-- [ ] `operation-service` `nest build` and `tsc --noEmit` clean.
-- [ ] Monolith untouched and 118/118 test suites green.
-- [ ] 4 core invariants verified (XAUUSD/M5-M15 lock, TEXT drawing rejection, FREE=0 / PRO=100 tier quotas, Redis `alerts:changed` invalidation for line alerts).
+- [x] All 4 route files ported into `operation-service/src/alerts/`.
+- [x] Ported/authored unit tests green in `operation-service` (42 new tests — see Deviations on
+      Files 3-4's parity-proof citation not actually covering server route logic).
+- [x] `operation-service` `nest build` and `tsc --noEmit` clean.
+- [x] Monolith untouched (`git status` confirms zero files touched under `app/`, `lib/`,
+      `__tests__/`, `components/`) and `tsc --noEmit` clean. Full `test:ci` NOT independently
+      re-run this session (nothing in its dependency tree changed — same reasoning as 4B-4's own
+      close); last recorded state remains 118/118 suites green.
+- [x] 4 core invariants verified: XAUUSD/M5-M15 lock (tested), TEXT-drawing rejection (tested as the
+      general `levelsForMark()` zero-levels case, not a hardcoded type check), FREE=0/PRO=100 tier
+      quotas (tested, corrected from the order's originally-cited wrong numbers), Redis
+      `alerts:changed` invalidation for line alerts only (tested; plain alerts deliberately do NOT
+      publish — see Deviations).
 
 ---
 
@@ -151,7 +159,94 @@ Revert commits in `operation-service`. Zero monolith files or database schemas t
 
 ## Deviations
 
-_(filled during execution)_
+1. **Order provenance (L11, 12th occurrence).** Arrived as an uncommitted rewrite of the committed
+   PRE-DRAFT with no DRAFT→APPROVED commit trail. First CONFIRM pass (reported in chat) found the
+   line counts, tier-quota numbers, and Files 1-2's Redis-publish claim didn't match live SOURCE;
+   Davin then corrected the order file in place to match (also uncommitted) and authorized execution
+   directly in chat — resolved the same way as every prior L11 occurrence.
+2. **File 2's DELETE description corrected.** The order (both versions) said `DELETE /api/alerts/[id]`
+   does a "soft delete (`isActive = false`)" — the SOURCE file's own JSDoc header and an inline
+   comment both make this claim, but the actually-executed statement is `prisma.alert.delete()`, a
+   real hard delete. Per L12 (a comment isn't the contract) and this PORT session's LOW dial, ported
+   the real hard-delete behavior.
+3. **Two independent "create alert" Zod schemas already existed in this codebase; neither this
+   session's DTOs nor Step 0's own text fully accounted for this.** `app/api/alerts/route.ts` and
+   `app/api/alerts/[id]/route.ts` validate against their OWN route-local, inline `z.object()` schemas
+   (3 condition types: `price_above`/`price_below`/`price_equals`; no `notes`/`enabled`/
+   `notifyEmail`/`notifyPush` fields) — these are DIFFERENT from `@trading-alerts/types`'s
+   `createAlertSchema`/`updateAlertSchema` (5 condition types incl. `price_crosses_above`/
+   `price_crosses_below`, extra fields), which is a separate schema used by the already-ported
+   alert-engine's internal validation (Session 4B-2). Step 0's "wrapping existing
+   `@trading-alerts/types` validation schemas" assumed one schema pair covers both consumers; it
+   doesn't. Built a new, local `operation-service/src/alerts/alerts.schemas.ts` matching the ROUTE's
+   real (narrower) validation instead of reusing the broader hoisted one — using the wrong one would
+   have silently accepted `conditionType` values the real SOURCE route rejects with 400.
+4. **`AlertAttachZ`/`AlertUpdateZ`/`getAlertLimit` hoisted into `@trading-alerts/types`, matching the
+   established single-source-of-truth precedent.** They existed only in the monolith-only
+   `lib/drawing/schema.ts`/`lib/tier-validation.ts` before this session (`ALERT_TIER_LIMITS` there is
+   a minimal, alert-quota-only slice of `lib/tier-config.ts` — pricing/trial/rate-limit config stays
+   monolith-only, out of scope). **A second, real gap found while hoisting:** `operation-service`
+   does not actually consume the root `packages/types` at all — it has its own separately embedded,
+   git-tracked copy at `operation-service/packages/types/` (commit `87242f09`, "embed packages/types
+   locally for Railway single-directory upload" — the fix for the long-standing Railway-packaging
+   risk, CLAUDE.md Waiting-on #79/#80). The root hoist alone left `operation-service`'s copy stale;
+   synced the one changed file (`validations/alert.ts`) into the embedded copy and rebuilt it. This
+   embedded-copy mechanism has no automated sync — any future change to the root `packages/types`
+   that `operation-service` needs will require the same manual re-sync step. Worth a future session
+   building a real sync script or CI check rather than relying on each session's author to remember.
+5. **Tier-quota numbers corrected against live SOURCE** (already reflected in the order file's own
+   corrected text, re-verified here): FREE is hard-blocked at 0 alerts (`Alerts are a PRO feature`,
+   unconditional 403), PRO's real limit is 100 — not the order's originally-drafted "FREE: 3 / PRO:
+   50", which didn't match either `lib/tier-config.ts` or `lib/tier-validation.ts` (both independently
+   confirmed FREE=0/PRO=100 before any code was written).
+6. **Files 1-2 (plain alerts) do NOT publish to the `alerts:changed` Redis channel — ported as such,
+   not added.** Verified directly: neither `app/api/alerts/route.ts` nor `app/api/alerts/[id]/route.ts`
+   references Redis anywhere. Digging further: the live `AlertWorkerService.reload()` (the sole live
+   real-time evaluator, cut over Session 4B-3) queries `prisma.drawingAlert.findMany(...)` only — it
+   never reloads on plain `Alert` rows even if they did publish this signal. `app/api/drawings/[id]
+/route.ts` (outside this order's scope) also publishes to this same channel "so the Phase 4 worker
+   rebuilds affected watches," confirming the channel is scoped to the drawing/line-alert subsystem,
+   not a general plain-`Alert` change notification. Adding an unconsumed publish call to Files 1-2
+   would have been new behavior, not a port. **Flagged for a future session/Davin decision:** whether
+   plain price alerts should become live-evaluable at all (they currently are not, by either
+   mechanism) — out of this LOW-dial PORT session's own scope to decide unilaterally.
+7. **No usable server-side test suite existed for Files 3-4 to "port" from — new tests authored
+   instead (`LESSONS-LEARNED.md` L28 class).** The order's own cited "Parity proof,"
+   `__tests__/drawing/alertsApi.test.ts`, tests a CLIENT-side `fetch` wrapper
+   (`components/charts/drawing/alertsApi.ts`) that CALLS the line-alert routes from the browser — it
+   contains zero assertions about the server route handlers' own logic (no PRO-gate test, no
+   geometry/targetLevel validation test, no atomic-transaction test, no TEXT-rejection test, no
+   Redis-publish test). Found while writing `line-alerts.service.spec.ts`. Authored 21 new tests
+   directly against the real SOURCE route handlers (read in full) instead of porting nonexistent
+   assertions.
+8. **Error-response JSON envelope shape differs from the monolith by design — not reproduced
+   byte-for-byte.** `operation-service`'s global `AllExceptionsFilter` (Session 4B-4) unifies every
+   exception into `{statusCode, message, error, timestamp, path, correlationId?}`, extracting only
+   `message`/`error` from a thrown exception's response payload — custom fields like the monolith's
+   `code`/`upgradeUrl` do not survive it. Status codes (400/401/403/404/500) and the full
+   human-readable message text are preserved exactly (put into the `message` field); the envelope
+   shape itself follows this service's own already-established, session-4B-4-approved convention
+   rather than the monolith's bespoke per-route shape — consistent with how every other ported
+   module in this migration behaves. 401s are also now handled structurally by `JwtAuthGuard`
+   (guaranteeing an authenticated caller before any handler runs) rather than a manual per-route
+   session-null check, and uncaught errors fall through to the same global filter as a 500 instead of
+   each handler's own try/catch — mechanism differs, observable behavior (unexpected error → 500) is
+   the same.
+9. **Auth-mechanism audit (entry criterion, re-verified directly against SOURCE, not just trusted):**
+   `getSession()` (`lib/auth/session.ts:29`, used by Files 1-2) is a try/catch wrapper around
+   `getServerSession(authOptions)` that swallows errors and returns `null`; Files 3-4 call
+   `getServerSession(authOptions)` directly and let errors propagate. Functionally equivalent for
+   this port's purposes (`JwtAuthGuard` covers both), but not literally "1-line" as an earlier draft
+   of the order claimed — noted for the record.
+10. **New module `ZodValidationPipe`** (`operation-service/src/common/pipes/zod-validation.pipe.ts`)
+    established this session, applied per-route via `@UsePipes()` rather than class-validator
+    decorators for all 4 body-validated endpoints. Chosen because `AlertAttachZ`/`AlertUpdateZ` carry
+    real default-value and cross-field `.refine()` behavior (e.g. "Nothing to update") that's the
+    actual behavior to preserve, not something to safely hand-translate into decorators without risk
+    of subtle drift. `main.ts`'s existing global class-validator `ValidationPipe` is untouched and
+    stays the default for every other module (it no-ops on the plain/non-class parameter types used
+    here, confirmed no conflict). This is a new, reusable pattern for future sessions needing to wire
+    a `@trading-alerts/types` Zod schema into a NestJS route.
 
 ---
 
