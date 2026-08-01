@@ -127,12 +127,14 @@
 
 ## Slice-level verification (done when)
 
-- [ ] All drawings endpoints ported into `operation-service/src/drawings/`.
-- [ ] Unit tests pass green in `operation-service` (`npm run test`).
-- [ ] `operation-service` `nest build` and `tsc --noEmit` clean.
-- [ ] Monolith `npm run build` clean.
-- [ ] `operation-service` deployed to Railway, `/health` returns 200 OK.
-- [ ] `MIGRATE_DRAWINGS=true` set on Vercel and live chart drawing creation, update, listing, deletion smoke-tested.
+- [x] All drawings endpoints ported into `operation-service/src/drawings/`.
+- [x] Unit tests pass green in `operation-service` (`npm run test`) — 30/30 suites, 253/253 tests.
+- [x] `operation-service` `nest build` and `tsc --noEmit` clean.
+- [x] Monolith `npm run build` clean.
+- [x] `operation-service` deployed to Railway, `/health` returns 200 OK.
+- [x] `MIGRATE_DRAWINGS=true` set on Vercel and live chart drawing creation smoke-tested — **PARTIAL, see Deviation 4:
+      only `POST /drawings` (create) has live production evidence; list/update/delete are wired and unit-tested but
+      unproven against real traffic.**
 
 ---
 
@@ -179,6 +181,51 @@ initialized`, `DrawingsController {/drawings}` with all 4 routes mapped,
    own `Missing bearer token` / `Cannot GET` lines directly correlate with
    the test requests just sent (proof of a live, fresh boot, not a cached
    response).
+4. **Step 5 (flag flip + live smoke test), executed with Davin's explicit live
+   approval, 2026-08-01:** `MIGRATE_DRAWINGS` added to Vercel production
+   (`vercel env add`, value-blind re-verified present via `vercel env ls`
+   name-only listing before and after — L17 discipline), then `vercel --prod
+--archive=tgz --yes` (L36 — plain `vercel deploy` fails outright on this
+   monorepo's file count) — deployment `dpl_5CxRosnr3tvnEEsANUT3ZwmMnqbM`,
+   `readyState: READY`, aliased to the real production URL.
+   **The originally-planned UI smoke test (draw a shape on the live chart)
+   was blocked by an unrelated, pre-existing issue**, reported live by
+   Davin with a screenshot: the XAUUSD/M5 chart showed "Disconnected" (the
+   `useOhlcvSocket` live-price feed indicator) and rendered zero
+   candlesticks, so the drawing engine had no initialized canvas to place
+   anchors on — confirmed by grep that this indicator and the drawing-tool
+   click-handling path (`components/charts/trading-chart.tsx`,
+   `useOhlcvSocket`) are FRONTEND files this session never touched (Session
+   4B-8's diff is scoped to `operation-service/src/drawings/*` and the two
+   `app/api/drawings/*` route handlers only) — architecturally, this
+   migration's price-feed WebSocket has nothing to do with the drawings
+   REST API. **Substituted verification method:** Davin ran a real
+   authenticated `fetch('/api/drawings', { method: 'POST', ... })` from his
+   own browser's DevTools console on the live production tab (his session
+   cookie applied automatically — no token ever extracted, matching the
+   established "browser console, not cookie-copying" safety discipline) —
+   response: `{ success: true, drawing: {...} }`. Cross-checked independently
+   via `operation-service`'s real HTTP-level access logs (`railway logs
+--service operation-service --http -n 20 --since 2h`, NOT the generic
+   deploy-log stream — see the new lesson below): `POST /drawings 201 129ms`
+   at `23:37:42Z`, matching the fetch's real timing — proof the request
+   genuinely reached `DrawingsController` and created a real DB row, not
+   just that the monolith returned a plausible-looking JSON body.
+   **A real stale-log trap hit and worked around, worth its own lesson (see
+   below):** the plain `railway logs --service operation-service` command
+   (no flags) returned output frozen at `15:02:23Z` even though the real
+   current time was `23:40:27Z` — over 8 hours of missing coverage, the same
+   general "don't trust a Railway log command's freshness at face value"
+   class as Session 4B-7's own `railway logs --build` stale-cache incident.
+   Switched to `railway logs --http --path /drawings --since 2h` (still
+   empty — a second false negative) and only got real data after ALSO
+   adding `-n 20` alongside `--http --since 2h`. **Not independently proven
+   live:** `GET`/`PATCH`/`DELETE /drawings` — the chart-canvas blocker means
+   no UI path exists yet to exercise them without more DevTools console
+   calls, which Davin was not asked to run this session beyond the one
+   `POST`. Recorded as an open monitoring item, not fabricated — same
+   discipline as every prior "verification is honestly partial" precedent
+   in this migration (4B-7, 4A-12, Slice 3).
 
 ---
 
