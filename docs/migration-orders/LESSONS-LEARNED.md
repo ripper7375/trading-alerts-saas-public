@@ -59,6 +59,22 @@ on the strength of it." Full detail in
 `4b-6-alerts-crud-write-transport.migration-order.md`'s own Deviations (#8) and `CLAUDE.md`
 Waiting-on #88.
 
+**One more candidate from Session 4B-8's close (2026-08-01), not promoted, described here for the
+next consolidation pass:** the plain, unflagged `railway logs --service <svc>` command silently
+returned output frozen more than 8 hours in the past (verified by comparing its last timestamp
+against the real current time) — the same general "don't trust a Railway log command's freshness
+at face value" class as Session 4B-7's own `railway logs --build` stale-cache incident (L38's own
+recurrence note), but a NEW manifestation: this time the plain deploy-log stream itself was stale,
+not just `--build`. Switching to `railway logs --http --path /drawings --since 2h` didn't fix it
+either — that returned nothing at all, a false negative. The combination that actually worked was
+`railway logs --http -n 20 --since 2h` (or any invocation pairing `--http`/`--since` with
+`-n`/`--lines`) — omitting `-n` silently returns empty even when matching entries exist. Worth a
+rule along the lines of "never trust a `railway logs` invocation's absence of output, or its most
+recent timestamp, as proof of anything — always pair `--http` with an explicit `-n`/`--lines`
+count, and sanity-check the returned timestamp range against the real current time before treating
+a log query as authoritative." Full detail in
+`4b-8-drawings-port-and-cutover.migration-order.md`'s own Deviations (#4).
+
 ---
 
 ## Active lessons

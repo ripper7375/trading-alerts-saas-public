@@ -1845,6 +1845,44 @@ Test suites: `operation-service` 24/24→28/28 (+4 new spec files, 42 new tests)
 </details>
 
 <details>
+<summary><code>operation-service/src/drawings/</code> — 6 new files + `app.module.ts` modified (Session
+4B-8, Drawings PORT+CUTOVER combined)</summary>
+
+PORT+CUTOVER session (a deliberate deviation from the 3-way split every prior slice used — smaller
+blast radius, 2 files, no payment/webhook surface). Ports `app/api/drawings/route.ts` (159 lines) +
+`app/api/drawings/[id]/route.ts` (147 lines, 306 total) into `operation-service`, AND wires + cuts
+over the monolith side in the same session. `MIGRATE_DRAWINGS=true` in Vercel production —
+**CUT-OVER & LIVE, verification partial (create only, see `CLAUDE.md`/cutover table).**
+
+- `drawings.module.ts` — registers `DrawingsController`/`DrawingsService`; `PrismaModule`/
+  `RedisModule` are `@Global()`, no explicit import needed, registered in `AppModule`
+- `drawings.controller.ts` + `drawings.service.ts` (+ `.spec.ts` each) — `GET/POST /drawings`,
+  `PATCH/DELETE /drawings/:id`. Symbol/timeframe access re-implemented locally against
+  `@trading-alerts/types/validations`'s `SYMBOLS`/`TIMEFRAMES` (`operation-service` cannot import
+  monolith `lib/*` directly) — replicates `lib/tier-validation.ts`'s `canAccessSymbol()`/
+  `validateTimeframeAccess()` exact tier-independent V8 logic and exact reason strings, per Davin's
+  explicit mid-session instruction. Quota `FREE`: 10, `PRO`: 200 (`DRAWING_LIMITS`, matches
+  `lib/drawing/schema.ts` exactly). Parameter-level `ZodValidationPipe` only (L45 rule) — never
+  method-level `@UsePipes()`, the exact bug class that broke Alerts CRUD for ~5h in Session 4B-7.
+  Publishes `alerts:changed` on update/delete (real consumer: `AlertWorkerService.reload()`)
+- `drawings.schemas.ts` — mirrors `lib/drawing/schema.ts`'s `DrawingCreateZ`/`DrawingUpdateZ`
+  verbatim (type enum, anchor-count-per-type refinement, `#RRGGBB` style validation)
+- `dto/drawing.dto.ts` — type-only re-exports for controller/service signatures
+
+**Monolith side (same session, not split out):** `lib/operation-service/flags.ts` gained
+`shouldUseOperationServiceForDrawings()`; both `app/api/drawings/*` route files wired to check it
+immediately after existing session auth and forward via `forwardRequestToOperationService()`,
+preserving status codes. `app/api/drawings/[id]/route.ts`'s `DELETE` handler's previously-unused
+`_request` renamed to `request` (needed by the forwarder) — same safe, zero-risk widening as
+Sessions 4A-10a/4B-6.
+
+Test suites: `operation-service` 28/28→30/30 (+2 new spec files, 19 new tests). `nest build`/
+`tsc --noEmit` clean. Monolith `test:ci` 120/120 suites, 2129/2129 tests unchanged; `tsc --noEmit`/
+`npm run build` clean.
+
+</details>
+
+<details>
 <summary><code>lib/operation-service/</code> — 3 new files + 4 modified route files (Session 4B-6,
 Alerts CRUD monolith transport)</summary>
 

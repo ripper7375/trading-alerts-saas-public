@@ -26,8 +26,81 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-7 (Alerts CRUD CUTOVER, VERIFY-RETIRE variant), CONFIRMED and executed,
-  2026-08-01, same day as 4B-5/4B-6. **Slice 7 (Alerts CRUD) is now CUT-OVER & LIVE** —
+- **Current:** Session 4B-8 (Drawings Domain Extraction & Cutover, PORT+CUTOVER combined variant), CONFIRMED and
+  executed 2026-08-01. **Slice 8 (Drawings CRUD) is CUT-OVER & LIVE** — `MIGRATE_DRAWINGS=true` in Vercel
+  production, both monolith `app/api/drawings/*` route files forwarding to `operation-service`'s new
+  `DrawingsController`.
+  **CONFIRM found the order file entirely untracked (zero git history) with `Status: APPROVED`, and — a new,
+  more severe variant of `LESSONS-LEARNED.md` L11 — this file's own "Current" line and
+  `migration-cutover-table.md`'s Slice 8 row were BOTH also uncommitted working-tree edits at session start,
+  asserting the order was ready for CONFIRM with no corresponding PRE-DRAFT/DRAFT/APPROVED entry anywhere in
+  either artifact's own history.** Reported this in full before proceeding rather than trusting it; Davin
+  confirmed live that all three edits were his own, made via the Advisor (Antigravity) — CONFIRM then
+  proceeded to independently re-verify the order's actual content (not just the provenance claim) against
+  live code and found: 5 of 6 entry criteria held exactly as stated; the 6th (file line counts) was off by
+  exactly `+1` on both cited files (160/148/308 claimed vs. real 159/147/306) — the same recurring
+  "+1 across every citation" drift class from 4A-W1/4A-W2 — corrected before CONFIRM.
+  **Built (Steps 0-4, one commit each):** `operation-service/src/drawings/{drawings.schemas,drawings.service,
+drawings.controller,drawings.module}.ts` + `dto/drawing.dto.ts`, registered in `AppModule`. Symbol/timeframe
+  access re-implemented locally against `@trading-alerts/types/validations`'s `SYMBOLS`/`TIMEFRAMES` —
+  `operation-service` cannot import monolith `lib/*` directly, so Davin's own explicit mid-session
+  instruction ("call `canAccessSymbol`/`validateTimeframeAccess` from `lib/tier-validation.ts` to preserve
+  exact error reason strings") was satisfied by reading that module's real implementation and replicating
+  its exact tier-independent V8 logic and reason text, not a literal cross-package import. Parameter-level
+  `ZodValidationPipe` only (L45 rule), never method-level `@UsePipes` — the exact class of bug that broke
+  Alerts CRUD for ~5h in Session 4B-7. Monolith forwarding wired into both `app/api/drawings/*` route files
+  behind `shouldUseOperationServiceForDrawings()`; found and fixed the same `_request`→`request` safe
+  signature widening this migration hit at 4A-10a/4B-6 (DELETE handler needed the real request object for
+  forwarding). `operation-service` 30/30 suites, 253/253 tests (+19, was 28/28, 234/234) — new coverage for
+  quota enforcement at both tier ceilings, symbol/timeframe denial with the exact reason strings, ownership
+  checks, 404/403 cases, and a best-effort Redis-publish-failure-doesn't-throw case. Monolith `test:ci`
+  120/120 suites, 2129/2129 tests unchanged (flag defaults off everywhere until the cutover step).
+  **Deployed via `railway up --path-as-root --service operation-service`** (`"source": null`, same as every
+  prior operation-service session — `git push` alone can't reach it). Caught a real stale-status trap
+  mid-verification: the top-level `status` field in `railway service list --json` reflects the still-serving
+  OLD deployment while a new one builds — polled `latestDeployment.status` specifically instead of trusting
+  an early false "SUCCESS" read. Once genuinely `SUCCESS`: `/health` → 200; all 4 drawings routes
+  (unauthenticated) → 401, not 404; a real nonexistent route → 404 as a control; a freshly-pulled boot log
+  for that exact deployment ID showed `DrawingsModule dependencies initialized`, all 4 routes mapped, zero DI
+  errors, with log lines that directly correlated with the test requests just sent — not 4B-7's stale-cache
+  trap repeating.
+  **Cutover executed with Davin's own separate, explicit live approval** (distinct from the session's general
+  go-ahead, per the order's own Step 5 checkpoint and `EXECUTOR-PROTOCOL.md` §7): `MIGRATE_DRAWINGS` added to
+  Vercel production (`vercel env add`, value-blind presence re-verified via `vercel env ls`'s name-only
+  listing — L17), then `vercel --prod --archive=tgz --yes` (L36) redeployed clean, aliased to the real
+  production URL.
+  **The planned UI smoke test (draw a shape on the live chart) was blocked by a real, unrelated, pre-existing
+  issue** — Davin reported it live with a screenshot: the XAUUSD/M5 chart showed "Disconnected" (the
+  `useOhlcvSocket` live-price feed indicator) and rendered zero candlesticks, so the drawing engine had no
+  initialized canvas to place anchors on. Confirmed unrelated to this session before treating it as anything
+  but a blocker to work around: grepped that the indicator and the entire chart-rendering/drawing-tool
+  click-handling path (`components/charts/trading-chart.tsx`, `useOhlcvSocket`) are FRONTEND files this
+  session's diff never touched (scoped entirely to `operation-service/src/drawings/*` and the two
+  `app/api/drawings/*` route handlers) — architecturally, the price-feed WebSocket has nothing to do with the
+  drawings REST API. **Substituted verification, not skipped:** asked Davin to run a real authenticated
+  `fetch('/api/drawings', { method: 'POST', ... })` from his own browser's DevTools console on the live
+  production tab — his session cookie applied automatically, no token ever extracted or handled directly
+  (deliberately avoided the cookie-copying method 4A-10b used, since a console `fetch` needs nobody to touch
+  a credential at all). Response: `{ success: true, drawing: {...} }`. **Independently cross-checked, not just
+  trusted at face value** — pulled `operation-service`'s real HTTP-level access logs and found
+  `POST /drawings 201 129ms`, timing-matched to the console call. **A second real stale-log trap hit and
+  worked around, same general class as 4B-7's own `railway logs --build` incident:** the plain, unflagged
+  `railway logs --service operation-service` command returned output frozen over 8 hours in the past despite
+  a fresh request having just been sent; `--http --path /drawings --since 2h` alone also returned nothing
+  (a second false negative); only adding `-n 20` alongside `--http --since 2h` surfaced the real, current
+  entry. New unpromoted `LESSONS-LEARNED.md` candidate note (below) — this migration's Railway-log tooling
+  keeps finding new ways to look empty/stale without actually being either.
+  **Verification is deliberately recorded as PARTIAL, matching 4B-7/4A-12/Slice 3's own precedent: only 1 of
+  4 drawings actions (`POST`, create) has live production evidence.** `GET`/`PATCH`/`DELETE` are wired,
+  unit-tested, and deployed, but the chart-canvas blocker means no UI path exists yet to exercise them
+  without further DevTools console calls, which weren't run this session — not fabricated, recorded as an
+  open monitoring item.
+  **Artifacts updated:** `4b-8-drawings-port-and-cutover.migration-order.md` (Status → CONFIRMED, Done-when
+  items checked with the create-only caveat, Deviations filled in full — 4 entries),
+  `migration-cutover-table.md` (new Slice 8 row → CUT-OVER, verification partial), this file. New
+  `4b-9-notifications-port-and-cutover.migration-order.md` PRE-DRAFTed (PORT variant, per the order's own
+  Next-session handoff and the session playbook's remaining Phase 4B domain-slice order).
+- _(superseded-by-above, retained for context)_ Session 4B-7 (Alerts CRUD CUTOVER, VERIFY-RETIRE variant) was CONFIRMED and executed 2026-08-01. **Slice 7 (Alerts CRUD) is CUT-OVER & LIVE** —
   `MIGRATE_ALERTS_CRUD=true` in Vercel production, all 4 monolith route groups forwarding to
   `operation-service`. **This cutover did not go cleanly and the failure history is the important
   part** (full blow-by-blow in the order's own Deviations, now 7 entries).
