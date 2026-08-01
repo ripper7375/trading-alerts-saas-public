@@ -973,3 +973,68 @@ treating "no numbered entry yet" as "nothing to consolidate."
 ## Archive
 
 _(Consolidated-away or superseded lessons move to `LESSONS-ARCHIVE.md` when created.)_
+
+---
+
+## Session 4B-7 additions (2026-08-01) — Alerts CRUD cutover incident
+
+**Numbering note, read before citing these.** These were requested as L41/L42/L43 but are
+recorded as **L43/L44/L45**: `LESSONS-LEARNED.md` (the live file) already has an L41 (a
+`railway.toml` `[[services]]` block declares intent, does not provision the service) and an L42
+(Express 5 / path-to-regexp v8 removed the bare `'*'` wildcard), both cited by number from
+`CLAUDE.md`. Reusing those numbers here would have made every existing cross-reference
+ambiguous. L43 was the next free number in the live registry. The three lessons' substance and
+titles are exactly as requested — only the numbers moved.
+
+**Visibility caveat.** This is the ARCHIVE file; only `LESSONS-LEARNED.md` is Tier-1 (read in
+full at every session OPEN). Lessons parked here will NOT be read by a fresh Executor, so as
+written these three will not prevent recurrence. They are here because the active file is at
+its ~40-lesson cap (CLAUDE.md Waiting-on #30, unresolved since Session 4A-2). Promote them into
+`LESSONS-LEARNED.md` during the next consolidation pass — all three describe live production
+deploy failures, which is exactly the reflex category the active file exists for.
+
+### L43 — Anchor repo-root `.railwayignore` directory names with a leading slash, or they strip sub-service source
+
+- Symptom: 8 consecutive `operation-service` Railway deploys FAILED; `nest build` had nothing
+  to compile; production silently kept serving a 6-hour-old build with a known bug in it.
+- Root cause: `.railwayignore` uses gitignore semantics, so a bare `src` matches at ANY depth —
+  and `railway up --path-as-root` indexes from the _project directory_ (repo root), not the path
+  argument. A root entry meant for the monolith's own `src/` also stripped `operation-service/src`,
+  `operation-service/packages/types/src`, and `src/common/middleware` from every archive.
+- Rule: in a monorepo root `.railwayignore`, anchor directory names to the root (`/src`,
+  `/middleware`, `/docs`, `/public`, `/frontend`). Use a bare name only when you genuinely mean
+  "at every depth."
+- Detect early: after any `.railwayignore` edit, run `git check-ignore -v <service>/src` — it
+  applies the same semantics. Also treat an unrelated commit touching `.railwayignore` as a
+  deploy-affecting change (this one arrived inside a commit titled as a tier-lookup fix).
+- Source: Session 4B-7 (Alerts CRUD cutover incident), 2026-08-01 · Status: ACTIVE
+
+### L44 — Every independently-deployed Railway sub-service needs its own `railway.json`, or it silently inherits the repo-root one
+
+- Symptom: deploys failed on healthcheck timeout while the service itself was fine —
+  `GET /` returned 404, `GET /health` returned 200.
+- Root cause: `operation-service` had no `railway.json`, so Railway resolved the repo-root file:
+  `healthcheckPath: "/"` (right for the Next.js monolith, 404 for a Nest service that only maps
+  `/health`) and `startCommand: "pnpm run start"` (the container is built with `npm ci`).
+- Rule: every sub-service keeps its own `railway.json` declaring at minimum `healthcheckPath` and
+  `startCommand`. Never rely on config inheritance from the repo root.
+- Detect early: `curl -s -o /dev/null -w "%{http_code}" <service-url><healthcheckPath>` must be
+  2xx before trusting a deploy; `railway deployment list --json` → `meta.fileServiceManifest`
+  shows which config actually resolved, and `meta.configFile` shows which file it came from.
+- Source: Session 4B-7, 2026-08-01 · Status: ACTIVE
+
+### L45 — Bind a custom validation pipe to `@Body(...)`, never method-level `@UsePipes`, on a route that also takes `@Param`/`@Query`
+
+- Symptom: every `PATCH /alerts/:id` returned `400 "Expected object, received string"` regardless
+  of request body; the Alerts UI's optimistic Pause flipped and rolled back ~200ms later.
+- Root cause: NestJS binds a method-level `@UsePipes` to EVERY handler parameter, so
+  `@UsePipes(new ZodValidationPipe(updatePlainAlertSchema))` ran `z.object()` against
+  `@Param('id') id: string`. Three successive "fixes" inside the pipe (validate body only, parse
+  JSON strings, recursively unwrap) could not possibly help — the value was a route id, never JSON.
+- Rule: attach body schemas at the parameter — `@Body(new ZodValidationPipe(schema))`. Reserve
+  method-level `@UsePipes` for pipes that are genuinely safe on every parameter of that handler.
+- Detect early: the error names the wrong type for the wrong argument ("expected object, received
+  string") and ONLY routes carrying a path parameter fail while the collection route (`POST
+/alerts`) passes. Reproduce in ~2 min with two controllers (method-level vs `@Body`-level) under
+  `Test.createTestingModule` + `supertest` before touching the pipe's internals.
+- Source: Session 4B-7, 2026-08-01 · Status: ACTIVE

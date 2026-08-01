@@ -1926,6 +1926,27 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   (`CRON_SECRET`/`DATABASE_URL`/`NEXTAUTH_SECRET`/`REDIS_URL`/4 dLocal vars, via
   `railway variable list`'s unmasked default view) still need rotation. See Current above and the
   order's own Deviations (17 entries) for full detail.
+- **Order status (4B-7):** CONFIRMED, executed, **CLOSED 2026-08-01** — Slice 7 (Alerts CRUD) is
+  CUT-OVER & LIVE, `MIGRATE_ALERTS_CRUD=true` in Vercel production. Checklist steps 1-3 done
+  (env vars, authorization, flag flip), step 6 done (artifacts). **Step 4 is explicitly PARTIAL and
+  is the one real carry-forward: only 1 of the order's own 8 endpoint actions has live evidence**
+  (`PATCH /api/alerts/[id]`, proven via the Pause toggle persisting across a hard reload). The other
+  7 — including all 4 line-alert actions and `GET /api/alerts` — are mapped and guarded but carry
+  zero traffic evidence; the alerts list page renders server-side via Prisma, so that route's
+  forwarded path is unproven too. Step 5 (monitoring) done for the observed window only
+  (`11:43Z` onward, zero 400s/5xx). Deviations 3-7 filled in full. Commits: `e68a244e` (deploy fix),
+  `42494c16` (documentation), plus this session's lessons/close-out commit (LESSONS-ARCHIVE.md
+  L43-L45, order close-out section).
+  **Lessons recorded:** L43 (anchor repo-root `.railwayignore` dir names), L44 (every sub-service
+  needs its own `railway.json`), L45 (bind validation pipes to `@Body`, not method-level
+  `@UsePipes`) — written to `LESSONS-ARCHIVE.md`, **not** the Tier-1 `LESSONS-LEARNED.md`, because
+  the active file is at its ~40 cap (Waiting-on #30). They were requested as L41/L42/L43 but
+  renumbered to L43/L44/L45 — the live file already has a different L41 (`railway.toml` declares
+  intent, doesn't provision) and L42 (path-to-regexp v8 wildcard), both cited by number from this
+  file. **Consequence to act on:** archive entries are not read at session OPEN, so as filed these
+  three will not actually prevent recurrence — promote them into `LESSONS-LEARNED.md` at the next
+  consolidation pass. **Also still open:** `operation-service` has no GitHub source, so `git push`
+  can never deploy it (Waiting-on #77) — the systemic gap behind this whole incident.
 - **Order status (4B-6):** CONFIRMED, executed, fully closed — all 5 Done-When items checked (all 4
   route files wired, flag defaults `false` everywhere, `tsc`/`eslint` clean, 120/120 suites green,
   `operation-service` untouched). All 5 Ordered Steps shipped, one commit each, plus the CONFIRM

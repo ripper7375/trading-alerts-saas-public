@@ -5,7 +5,7 @@
 
 **Session:** 4B-7 (CUTOVER & VERIFY) · **Variant:** VERIFY-RETIRE
 **Target service:** Monolith (`app/api/alerts/**`) & Vercel Production Environment (`MIGRATE_ALERTS_CRUD`)
-**Status:** CONFIRMED
+**Status:** CONFIRMED · **CLOSED 2026-08-01** (verification PARTIAL — see Checklist step 4)
 **Generated:** 2026-08-01 (Advisor upgrade from PRE-DRAFT, Davin APPROVED 2026-08-01)
 **Flags touched:** `MIGRATE_ALERTS_CRUD` (`false` → `true`)
 **Contract:** Verified live cutover of all 4 Alerts CRUD API route groups (`GET/POST /api/alerts`, `GET/PATCH/DELETE /api/alerts/[id]`, `GET/POST /api/alerts/line`, `PATCH/DELETE /api/alerts/line/[id]`) to `operation-service`. Monolith Prisma fallback branches remain in place behind `MIGRATE_ALERTS_CRUD=false` for instant rollback capability (matching Slice 3 & 4 precedent).
@@ -251,6 +251,41 @@ string",...}` vs `200` respectively — a byte-for-byte match to production. The
 
 ---
 
+## Close-out (2026-08-01)
+
+Slice 7 is CUT-OVER & LIVE. Commits: `e68a244e` (deploy fix — `operation-service/railway.json`
+
+- `.railwayignore` anchoring), `42494c16` (Deviations 3-7, Checklist annotations, cutover table,
+  `CLAUDE.md`), and this session's lessons/close-out commit. Active deployment `a6d9274c`
+  (image `7bcd8acb…`, `11:42:56Z`), `/health` → `200`, zero `400`s since `11:43Z`.
+
+**Lessons harvested → `LESSONS-ARCHIVE.md`** (not the Tier-1 `LESSONS-LEARNED.md`, which is at
+its ~40 cap per Waiting-on #30): **L43** anchor repo-root `.railwayignore` directory names;
+**L44** every sub-service needs its own `railway.json`; **L45** bind validation pipes to
+`@Body(...)`, never method-level `@UsePipes`, on routes that also take `@Param`/`@Query`.
+Requested as L41/L42/L43, renumbered because the live file already uses L41/L42 for unrelated
+lessons cited by number from `CLAUDE.md`. **These are archive-only and therefore invisible at
+session OPEN — promote them at the next consolidation pass or they will not prevent recurrence.**
+
+**Carried forward, NOT closed by this session:**
+
+1. **Verification is 1/8.** Only `PATCH /api/alerts/[id]` has live evidence. The 4 line-alert
+   actions share the exact `AlertsController` shape that just failed (`line-alerts.controller.ts`
+   was fixed in the same commit, `ad0f50c2`) and have never been exercised in production — highest
+   priority to test.
+2. **`operation-service` has no GitHub source** (`"source": null`) — `git push` cannot deploy it;
+   every session touching its code must remember a manual
+   `railway up ./operation-service --path-as-root --service operation-service` from the repo root.
+   This is the systemic cause of both this incident and Deviation 2's 4-minute bad window. Closing
+   it also closes Waiting-on #77 and L23.
+3. **`railway logs --build` can serve a stale cached log** — verify the container image digest and
+   its `created` timestamp before believing a build succeeded.
+
+---
+
 ## Next-session handoff
 
 Session 4B-8 (Drawings & Drawing-Alerts Domain Extraction — `operation-service` PORT).
+Before starting, either exercise the 7 unverified Alerts CRUD actions above or accept Slice 7 as
+partially verified in writing — 4B-8 extends the same controller/pipe patterns, so a latent
+`@UsePipes` or transport defect in the line-alert routes would otherwise be inherited.
