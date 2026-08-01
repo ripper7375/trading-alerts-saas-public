@@ -148,10 +148,12 @@ export class AlertsService {
     id: string,
     input: UpdatePlainAlertInput
   ) {
-    const dbUser = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { tier: true },
-    });
+    const dbUser = this.prisma.user
+      ? await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { tier: true },
+        })
+      : null;
     const effectiveTier = dbUser?.tier || tier || 'FREE';
 
     // V8: Alerts are PRO-exclusive. FREE users (e.g. after a downgrade)

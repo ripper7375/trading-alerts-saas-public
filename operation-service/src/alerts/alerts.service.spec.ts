@@ -8,6 +8,9 @@ import { AlertsService } from './alerts.service';
 // injection. Ported assertions mirror __tests__/api/alerts.test.ts.
 describe('AlertsService', () => {
   const mockPrisma = {
+    user: {
+      findUnique: jest.fn(),
+    },
     alert: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
