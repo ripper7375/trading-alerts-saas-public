@@ -97,7 +97,49 @@
    unauthenticated smoke test (`GET /api/alerts` → `401`, `GET /api/alerts/line` → `401`, site
    root → `200`) before touching the flag, confirming no regression from the env-var addition
    alone. Entry Criterion 4 re-verified true only after this fix, not assumed.
-2. _(remaining deviations filled as execution continues)_
+2. **A second, more severe gap found DURING the flag-flip redeploy itself — `operation-service`'s
+   HTTP process had never actually been redeployed with the 4B-5/4B-6 code.** While the first
+   `MIGRATE_ALERTS_CRUD=true` redeploy (`dpl_DyGRTzdFA7EVNe6nB1KX2D5zZWrx`) was still building, a
+   direct probe of `https://operation-service-production.up.railway.app/alerts` returned
+   `404 {"message":"Cannot GET /alerts",...}` — a generic Nest "no matching route" 404, not an
+   auth-guard 401. Cross-checked via `railway service list --json`: `operation-service` has
+   `"source": null` (no GitHub auto-deploy, confirmed via `railway up`'s only viable manual path,
+   `LESSONS-LEARNED.md` L7/L23) and its `latestDeployment.createdAt` was `2026-07-31T17:28:49Z` —
+   predating both Session 4B-5 (2026-08-01, added `AlertsModule`/`AlertsController` to
+   `app.module.ts`) and 4B-6. Boot-log grep for "alerts" across the last 300 log lines of that
+   deployment found nothing. **The code was committed and pushed to `origin/main` (confirmed at
+   CONFIRM) but never actually deployed to the running Railway process** — a variant of
+   `LESSONS-LEARNED.md` L38 (undeployed-code class), except on the deploy side rather than the
+   push side.
+   Raced a fix (`railway up . --path-as-root --service operation-service`) against the
+   already-in-flight Vercel deploy rather than trying to abort it (Vercel builds cannot be
+   cancelled mid-flight once triggered). **The Vercel deploy won the race** — it aliased to
+   production (`created` `2026-08-01T05:36:26Z`/`12:36:26 +0700`) before `operation-service`'s own
+   redeploy (`created` `2026-08-01T05:38:03Z`) had finished becoming healthy (re-probe at
+   `05:40:13Z` was the first to return the correct `401 Missing bearer token` instead of `404`).
+   **This means `MIGRATE_ALERTS_CRUD=true` was live in production for approximately 4 minutes
+   (`05:36:26`–`05:40:13` UTC) while `operation-service` would have 404'd every forwarded Alerts
+   CRUD request.** Per the variant's own rule ("any red result or unexpected 5xx error = immediate
+   rollback... L35"), reverted the instant this was understood — removed `MIGRATE_ALERTS_CRUD`
+   from Vercel production and redeployed (`dpl_4h4rfB5R3JRMjH4fxKykmntS7muu`,
+   `created` `05:46:00Z`) rather than waiting to see if the (by-then-fixed) `operation-service`
+   would have made the remaining live window safe — the session's own re-verification discipline
+   takes priority over minimizing redeploy count.
+   **Evidence checked for real customer impact during the ~4-minute bad window:** grepped the
+   PRE-redeploy `operation-service` deployment's own application logs (`railway logs --deployment
+6104429e-48da-4497-a27c-c6ed54c0f188 --lines 1000`) for any `alerts`/`404`/`Cannot GET` entry —
+   zero matches. Vercel's own `vercel logs <deployment>` CLI command in this environment behaves
+   as a live tail rather than a historical query and returned nothing to inspect after the fact —
+   inconclusive on the monolith side specifically, so real customer impact during the ~4-minute
+   window cannot be ruled out with full certainty, only judged unlikely given no matching
+   operation-service log evidence. Recorded here in full rather than glossed over.
+   **Root cause, not yet fixed as a systemic gap:** `operation-service` has no CI/CD trigger tied
+   to `origin/main` merges — every session that changes its code must remember to also run a
+   manual `railway up` deploy, and nothing catches a session that forgets (as 4B-5/4B-6 did here).
+   Recorded as a new `LESSONS-LEARNED.md` candidate below; consider proposing a GitHub-source
+   connection for `operation-service` (closing this gap and the separately-tracked
+   Waiting-on #77 `railway up`-reliability gap in the same move) as a future INFRA session's scope.
+3. _(remaining deviations filled as execution continues)_
 
 ---
 
