@@ -69,7 +69,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "prepare": "husky",
-    "postinstall": "npm run prisma:generate",
+    "postinstall": "node -e \"if (require('fs').existsSync('prisma/market-data/schema.prisma')) { require('child_process').execSync('npm run prisma:generate', {stdio:'inherit'}); }\"",
     "security:audit": "pnpm audit",
     "security:audit:prod": "pnpm audit --prod",
     "security:audit:json": "pnpm audit --json > reports/security/pnpm-audit-latest.json",
