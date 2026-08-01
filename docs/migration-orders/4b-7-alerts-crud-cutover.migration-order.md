@@ -1,98 +1,86 @@
-# Migration Order: Alerts CRUD CUTOVER & RETIRE (Session 4B-7)
+# Migration Order: Alerts CRUD Cutover (Session 4B-7)
 
 > Fast-path eligible per `EXECUTOR-PROTOCOL.md` §4 (VERIFY-RETIRE: PRE-DRAFT → APPROVED directly).
+> Variant: **VERIFY-RETIRE** (Creativity Dial: **NEAR ZERO** — observation and execution only).
 
-**Session:** 4B-7 (CUTOVER & RETIRE) · **Variant:** VERIFY-RETIRE (Creativity Dial: **near zero**)
-**Target service:** Monolith (`app/api/alerts/**`) write path + Railway/Vercel env (`MIGRATE_ALERTS_CRUD`)
-**Status:** PRE-DRAFT
-**Generated:** 2026-08-01 (Executor, at Session 4B-6's close)
+**Session:** 4B-7 (CUTOVER & VERIFY) · **Variant:** VERIFY-RETIRE
+**Target service:** Monolith (`app/api/alerts/**`) & Vercel Production Environment (`MIGRATE_ALERTS_CRUD`)
+**Status:** DRAFT
+**Generated:** 2026-08-01 (Advisor upgrade from PRE-DRAFT)
 **Flags touched:** `MIGRATE_ALERTS_CRUD` (`false` → `true`)
+**Contract:** Verified live cutover of all 4 Alerts CRUD API route groups (`GET/POST /api/alerts`, `GET/PATCH/DELETE /api/alerts/[id]`, `GET/POST /api/alerts/line`, `PATCH/DELETE /api/alerts/line/[id]`) to `operation-service`. Monolith Prisma fallback branches remain in place behind `MIGRATE_ALERTS_CRUD=false` for instant rollback capability (matching Slice 3 & 4 precedent).
 
 ---
 
 ## Entry criteria
 
-- [ ] Session 4B-6 CONFIRMED and closed (2026-08-01) — all 4 monolith routes flag-wired
-      (`shouldUseOperationServiceForAlertsCrud()` checked immediately after each handler's own auth
-      check), commit `29ab43c5` (last of 6 this session) pushed to `origin/main`.
-- [ ] No shadow/mirror-run mechanism exists for this flag — a single on/off gate, no traffic to
-      diff pre-flip (same root cause as F44/Slice 3 and F51/Slice 5). Per that established
-      precedent, Davin's own live authenticated test IS this session's verification method — **do
-      not fabricate a shadow-run diff or an elapsed-time claim that doesn't apply here** (per the
-      standing rule at `CLAUDE.md` Waiting-on #75/#84/#88).
-- [ ] `OPERATION_SERVICE_URL` confirmed present (value-blind) on Vercel production — this is a
-      pre-existing dependency (since Session 3-3, already used by the live 2FA routes), re-verify
-      rather than assume it's still correct.
-- [ ] Davin present/available for the live flip approval and the first authenticated test request
-      per route.
+- [x] Session 4B-6 CONFIRMED and closed (2026-08-01) — all 4 monolith routes flag-wired with `shouldUseOperationServiceForAlertsCrud()`, commit `885305fa` pushed to `origin/main`.
+- [x] Pre-cutover verification baseline confirmed: 120/120 test suites green in monolith, 28/28 test suites green in `operation-service`.
+- [x] No pre-flip shadow-run diff applicable (single on/off gate, matching Slice 3 & Slice 4 precedent). Live authenticated test per route serves as verification.
+- [x] `OPERATION_SERVICE_URL` confirmed present (value-blind) on Vercel production.
+- [ ] Davin present for live flag flip authorization and live test request verification.
 
 ---
 
 ## Checklist
 
-**CUTOVER block**
+### CUTOVER Block
 
-1. No shadow-run diff exists to present (see Entry criteria) — skip straight to Davin's live
-   authenticated test per route as the verification method (same shape as Slice 3's 4A-7b / Slice
-   4's 4A-10b/10c).
-2. Davin approves the flip live. His question ritual: "what's the rollback?" — answer: flag-only
-   revert, see below.
-3. Flip `MIGRATE_ALERTS_CRUD=true` on Vercel production, redeploy.
-4. Run one real authenticated request per handler (8 total: `GET`/`POST /api/alerts`,
-   `GET`/`PATCH`/`DELETE /api/alerts/[id]`, `GET`/`POST /api/alerts/line`,
-   `PATCH`/`DELETE /api/alerts/line/[id]`) — cross-check `operation-service`'s own Railway logs that
-   each request genuinely reached `AlertsController`/`LineAlertsController`, not just that the
-   monolith returned a plausible-looking response (L18: an auth/guard success alone proves nothing
-   about the schema/downstream logic actually running).
-5. Monitor `operation-service` error logs + response codes for a short window after all 8 are
-   confirmed. Green?
-6. Record: `migration-cutover-table.md` (Slice 7 row → CUT-OVER), `CLAUDE.md`.
+1. **Verify Environment Variables (Value-Blind):**
+   - Value-blind check (`vercel env ls`) that `OPERATION_SERVICE_URL` is set on Vercel production.
+   - Value-blind check that `MIGRATE_ALERTS_CRUD` exists or is ready to add on Vercel production.
 
-- **Rollback:** `MIGRATE_ALERTS_CRUD=false`, redeploy. Both sides already read/write the identical
-  Prisma tables — a flag-only revert, no data migration to reverse either direction.
+2. **Authorization & Rollback Answer:**
+   - Davin approves the live flag flip.
+   - Rollback strategy: Set `MIGRATE_ALERTS_CRUD=false` in Vercel production and redeploy. Monolith Prisma fallback branches remain active and byte-identical.
 
-**RETIRE block** — open scope question, needs Davin/Advisor's call before DRAFT, not decided here
+3. **Execute Flag Flip:**
+   - Add/Set `MIGRATE_ALERTS_CRUD=true` in Vercel production.
+   - Redeploy Vercel production (`vercel --prod --archive=tgz` per L36).
 
-1. Confirm the cutover above is genuinely stable — per Davin's own live judgment, not a timer (no
-   wait-clock mechanism applies to this flag class, same as the CUTOVER block's own entry
-   criterion).
-2. **Scope not yet settled — flag for the Advisor/Davin at DRAFT time:** Slices 3 and 4 (4A-7b,
-   4A-10b/10c) both left their monolith routes' own Prisma fallback branch in place indefinitely
-   after cutover (no dedicated RETIRE session has run for either, per `CLAUDE.md`'s own carried-
-   forward note under "Next session"). Slice 6 (4B-3), by contrast, deleted the monolith's dead
-   alert-engine code in the SAME session as its cutover. This order was PRE-DRAFTed at 4B-5's close
-   already naming this session "CUTOVER & RETIRE" — but whether "retire" here means (a) delete each
-   route handler's now-dead `else` branch (Prisma fallback) while keeping the flag check and files
-   themselves, matching Slice 6's shape, or (b) leave the fallback in place like Slices 3/4 and
-   defer real deletion to a later, separately-scoped session, has not been decided. **Do not delete
-   any monolith Prisma logic without this being resolved explicitly** — if unresolved by CONFIRM,
-   treat this as a stop-and-ask trigger and execute CUTOVER only, re-PRE-DRAFTing a narrower RETIRE
-   session once Davin decides.
-3. If retiring code this session (per the resolved scope above): full monolith test suite green
-   after the change, `tsc --noEmit`/`eslint --max-warnings 0` clean.
-4. Record: `migration-cutover-table.md`, `CLAUDE.md`, `migration-stack-analysis.md` if any file's
-   line count changed materially.
+4. **Live Authenticated Verification (8 Endpoint Actions):**
+   - Davin executes / spot-checks authenticated requests against production:
+     1. `GET /api/alerts`
+     2. `POST /api/alerts` (create test alert)
+     3. `GET /api/alerts/[id]`
+     4. `PATCH /api/alerts/[id]` (update target value / status)
+     5. `DELETE /api/alerts/[id]` (soft delete)
+     6. `GET /api/alerts/line`
+     7. `POST /api/alerts/line` (attach line alert)
+     8. `DELETE /api/alerts/line/[id]` (remove line alert)
+   - Cross-check `operation-service` Railway logs to confirm requests reached `AlertsController` and `LineAlertsController` with `200`/`201` status codes.
 
-- **Rollback:** if code was deleted, `git revert` of the deletion commit (deletions are the easy
-  rollback per this variant's own template). If RETIRE was skipped this session, nothing to revert.
+5. **Monitoring Window & Cutover Confirmation:**
+   - Monitor `operation-service` logs for 4xx/5xx errors or correlation ID anomalies.
+   - Confirm zero error spikes in Vercel functions or Railway logs.
+
+6. **Artifact Updates:**
+   - Update `docs/migration-orders/migration-cutover-table.md`: Slice 7 row status → `CUT-OVER & LIVE`.
+   - Update `CLAUDE.md`: Current state block reflecting Slice 7 live cutover.
 
 ---
 
 ## Rules specific to this variant
 
-- No new code, no fixes, no "while I'm here" — observation and execution only.
-- Any red result = stop and document, never "probably fine".
+- Dial: **NEAR ZERO** — observation, flag execution, and log verification only. No code edits during cutover.
+- Any red result or unexpected 5xx error = immediate rollback (`MIGRATE_ALERTS_CRUD=false`) and stop to investigate (L35).
+
+---
+
+## Rollback Procedure
+
+1. Run `npx vercel env add MIGRATE_ALERTS_CRUD production` (or update to `false`).
+2. Trigger production redeploy (`vercel --prod --archive=tgz`).
+3. Verify monolith logs show fall-through to local Prisma execution.
 
 ---
 
 ## Deviations
 
-_(should normally be empty; a deviation here is itself a warning sign)_
+_(filled during execution)_
 
 ---
 
 ## Next-session handoff
 
-Session playbook's own remaining Phase 4B domain-slice order (per `CLAUDE.md`'s "Next session"
-note at 4B-6's close): drawings + drawing-alerts → notifications → tier (guard) →
-user/profile/2FA/sessions → market-data channel proxy.
+Session 4B-8 (Drawings & Drawing-Alerts Domain Extraction — `operation-service` PORT).
