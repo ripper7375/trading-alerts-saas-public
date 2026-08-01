@@ -5,8 +5,8 @@
 
 **Session:** 4B-7 (CUTOVER & VERIFY) · **Variant:** VERIFY-RETIRE
 **Target service:** Monolith (`app/api/alerts/**`) & Vercel Production Environment (`MIGRATE_ALERTS_CRUD`)
-**Status:** DRAFT
-**Generated:** 2026-08-01 (Advisor upgrade from PRE-DRAFT)
+**Status:** APPROVED
+**Generated:** 2026-08-01 (Advisor upgrade from PRE-DRAFT, Davin APPROVED 2026-08-01)
 **Flags touched:** `MIGRATE_ALERTS_CRUD` (`false` → `true`)
 **Contract:** Verified live cutover of all 4 Alerts CRUD API route groups (`GET/POST /api/alerts`, `GET/PATCH/DELETE /api/alerts/[id]`, `GET/POST /api/alerts/line`, `PATCH/DELETE /api/alerts/line/[id]`) to `operation-service`. Monolith Prisma fallback branches remain in place behind `MIGRATE_ALERTS_CRUD=false` for instant rollback capability (matching Slice 3 & 4 precedent).
 
@@ -18,7 +18,7 @@
 - [x] Pre-cutover verification baseline confirmed: 120/120 test suites green in monolith, 28/28 test suites green in `operation-service`.
 - [x] No pre-flip shadow-run diff applicable (single on/off gate, matching Slice 3 & Slice 4 precedent). Live authenticated test per route serves as verification.
 - [x] `OPERATION_SERVICE_URL` confirmed present (value-blind) on Vercel production.
-- [ ] Davin present for live flag flip authorization and live test request verification.
+- [x] Davin present and approved live flag flip.
 
 ---
 
