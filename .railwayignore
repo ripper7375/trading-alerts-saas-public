@@ -12,7 +12,7 @@ e2e
 emails
 errors
 infra
-middleware
+/middleware
 mock-data-from-indicators
 mql5-indicators
 mql5-sqlite-and-json
@@ -25,7 +25,7 @@ public
 railway-gateway
 reports
 seed-code
-src
+/src
 sync
 __mocks__
 __tests__
