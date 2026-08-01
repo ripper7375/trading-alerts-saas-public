@@ -12,6 +12,7 @@ import { CacheModule } from './cache/cache.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingModule } from './common/logging/logging.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
+import { DrawingsModule } from './drawings/drawings.module';
 import { HealthModule } from './health/health.module';
 import { OutboxModule } from './outbox/outbox.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -42,6 +43,7 @@ import { RedisModule } from './redis/redis.module';
     OutboxModule,
     AlertEngineModule,
     AlertsModule,
+    DrawingsModule,
   ],
   providers: [
     {
