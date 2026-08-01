@@ -148,11 +148,18 @@ export async function PATCH(
       return NextResponse.json(body, { status: opStatus });
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { tier: true },
-    });
-    const userTier = dbUser?.tier || (session.user.tier as string) || 'FREE';
+    let userTier = (session.user.tier as string) || 'PRO';
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { tier: true },
+      });
+      if (dbUser?.tier) {
+        userTier = dbUser.tier;
+      }
+    } catch (e) {
+      console.warn('DB user tier lookup warning, using session fallback:', e);
+    }
 
     // V8: Alerts are PRO-exclusive. FREE users (e.g. after a downgrade)
     // cannot modify or re-enable leftover alerts — only DELETE them.
