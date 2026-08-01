@@ -1,10 +1,18 @@
 /**
- * Idempotency Store (Session 4A-8, Step 1)
+ * Idempotency Store (Session 4A-8, Step 1; refactored Session 4B-4 Step 2 to
+ * share money-service's global RedisService instead of a dedicated
+ * connection — each of the 4 consuming modules (admin/disbursement/dlocal/
+ * stripe) previously constructed its own separate IdempotencyStore, so this
+ * also collapses 4 separate Redis connections into the one shared client).
  *
  * Redis-backed storage for IdempotencyInterceptor. Uses the same shared
  * Railway Redis instance as the rest of money-service (F15), under the
- * `money:idempotency:` namespace via MONEY_KEY_PREFIX so its keys never
- * collide with the throttler's or BullMQ's.
+ * `money:idempotency:` namespace so its keys never collide with the
+ * throttler's or BullMQ's. The prefix used to be applied by ioredis's own
+ * client-level `keyPrefix` option on a dedicated connection; now applied
+ * manually per key, since the shared RedisService's client carries no
+ * built-in prefix (it's used by CacheService and others with their own
+ * namespacing).
  *
  * Not yet wired to any live route -- built ready for 4A-9's write-route
  * cutover (money-service has no write endpoints of its own yet; Stripe/
@@ -14,14 +22,15 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import Redis from 'ioredis';
 
+import { RedisService } from '../../redis/redis.service';
 import { MONEY_KEY_PREFIX } from '../../queue/queue.constants';
 
 /** 24h, matching this order's own Step 1 spec ("standard TTL"). */
 export const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
 
 const IN_PROGRESS_MARKER = '__IN_PROGRESS__';
+const KEY_PREFIX = `${MONEY_KEY_PREFIX}idempotency:`;
 
 export interface IdempotencyRecord {
   statusCode: number;
@@ -30,16 +39,10 @@ export interface IdempotencyRecord {
 
 @Injectable()
 export class IdempotencyStore {
-  private redis: Redis | null = null;
+  constructor(private readonly redisService: RedisService) {}
 
-  private getRedis(): Redis {
-    if (!this.redis) {
-      this.redis = new Redis(
-        process.env['REDIS_URL'] ?? 'redis://localhost:6379',
-        { keyPrefix: `${MONEY_KEY_PREFIX}idempotency:` }
-      );
-    }
-    return this.redis;
+  private prefixed(key: string): string {
+    return `${KEY_PREFIX}${key}`;
   }
 
   /**
@@ -49,13 +52,9 @@ export class IdempotencyStore {
    * already holds it (cached or still in flight).
    */
   async claim(key: string, ttlSeconds: number): Promise<boolean> {
-    const result = await this.getRedis().set(
-      key,
-      IN_PROGRESS_MARKER,
-      'EX',
-      ttlSeconds,
-      'NX'
-    );
+    const result = await this.redisService
+      .getClient()
+      .set(this.prefixed(key), IN_PROGRESS_MARKER, 'EX', ttlSeconds, 'NX');
     return result === 'OK';
   }
 
@@ -64,7 +63,7 @@ export class IdempotencyStore {
    * if claimed but not yet resolved, or the cached response record.
    */
   async get(key: string): Promise<IdempotencyRecord | 'IN_PROGRESS' | null> {
-    const raw = await this.getRedis().get(key);
+    const raw = await this.redisService.getClient().get(this.prefixed(key));
     if (raw === null) {
       return null;
     }
@@ -80,11 +79,13 @@ export class IdempotencyStore {
     record: IdempotencyRecord,
     ttlSeconds: number
   ): Promise<void> {
-    await this.getRedis().set(key, JSON.stringify(record), 'EX', ttlSeconds);
+    await this.redisService
+      .getClient()
+      .set(this.prefixed(key), JSON.stringify(record), 'EX', ttlSeconds);
   }
 
   /** Releases a claim without caching a result -- used when the underlying request failed, so a genuine retry isn't stuck behind a stale in-progress marker. */
   async release(key: string): Promise<void> {
-    await this.getRedis().del(key);
+    await this.redisService.getClient().del(this.prefixed(key));
   }
 }

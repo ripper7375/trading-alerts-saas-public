@@ -15,6 +15,7 @@ import { DlocalModule } from './dlocal/dlocal.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { MONEY_KEY_PREFIX, MONEY_QUEUE_PREFIX } from './queue/queue.constants';
+import { RedisModule } from './redis/redis.module';
 import { RiseworksModule } from './riseworks/riseworks.module';
 import { StripeModule } from './stripe/stripe.module';
 import { WiseModule } from './wise/wise.module';
@@ -31,6 +32,7 @@ import { WiseModule } from './wise/wise.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    RedisModule,
     ThrottlerModule.forRootAsync({
       useFactory: () => ({
         throttlers: [{ ttl: 60000, limit: 100 }],
