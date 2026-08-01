@@ -6,8 +6,8 @@
 
 **Session:** 4B-6 (BUILD) · **Phase / plan section:** Phase 4B step 6, plan §6
 **Target service:** Monolith Next.js App Router (`lib/operation-service/` & `app/api/alerts/**`)
-**Variant:** PORT / UI-BUILD · **Status:** DRAFT
-**Generated:** 2026-08-01 (Advisor upgrade from PRE-DRAFT)
+**Variant:** PORT / UI-BUILD · **Status:** CONFIRMED
+**Generated:** 2026-08-01 (Advisor upgrade from PRE-DRAFT) · **CONFIRMED:** 2026-08-01 (Davin, live in chat — "Go, approved!")
 **Flags touched:** `MIGRATE_ALERTS_CRUD` (default `false` / routes fall back to monolith Prisma logic)
 **Contract:** Transport forwarding layer for all 4 Alerts CRUD API endpoints: `GET/POST /api/alerts`, `GET/PATCH/DELETE /api/alerts/[id]`, `GET/POST /api/alerts/line`, `PATCH/DELETE /api/alerts/line/[id]`. Forwards session Bearer tokens, request query params, and raw JSON bodies to `operation-service` when `MIGRATE_ALERTS_CRUD=true`.
 **Estimated session time:** ~2.0h
@@ -16,10 +16,12 @@
 
 ## Entry criteria
 
-- [x] Session 4B-5 CONFIRMED and closed (2026-08-01) — all 4 routes live and tested in `operation-service` (`AlertsController` and `LineAlertsController`), commit `4d0c7532` pushed to `origin/main`.
-- [ ] `MIGRATE_ALERTS_CRUD` verified still unused anywhere in code (`grep` confirmation).
-- [ ] `lib/operation-service/client.ts` and `lib/operation-service/cookies.ts` reviewed as the token & HTTP transport baseline.
-- [ ] All 4 monolith SOURCE routes (`app/api/alerts/route.ts`, `app/api/alerts/[id]/route.ts`, `app/api/alerts/line/route.ts`, `app/api/alerts/line/[id]/route.ts`) verified clean at 971 lines total.
+- [x] Session 4B-5 CONFIRMED and closed (2026-08-01) — all 4 routes live and tested in `operation-service` (`AlertsController` and `LineAlertsController`), commit `4d0c7532` pushed to `origin/main`. Independently re-verified at this CONFIRM: `4d0c7532` IS `origin/main`'s HEAD, and all 4 real 4B-5 code commits (`e6aee8ec`, `d34a2fdc`, `75038d2f`, `463eefbf`) are ancestors of `origin/main` (L38 discipline).
+- [x] `MIGRATE_ALERTS_CRUD` verified still unused anywhere in code (`grep` confirmation) — repo-wide grep hits only 3 doc files (this order, `CLAUDE.md`, `migration-stack-analysis.md`), zero code matches.
+- [x] `lib/operation-service/client.ts` and `lib/operation-service/cookies.ts` reviewed as the token & HTTP transport baseline — `callOperationServiceWithToken()`/`SESSION_COOKIE_NAME` already exist and match the exact pattern 5 existing 2FA routes use today (verified via `token-2fa-status/route.ts` as a live reference).
+- [x] All 4 monolith SOURCE routes (`app/api/alerts/route.ts`, `app/api/alerts/[id]/route.ts`, `app/api/alerts/line/route.ts`, `app/api/alerts/line/[id]/route.ts`) verified clean at 971 lines total — `wc -l`: 244+304+235+188=971, exact match.
+
+**CONFIRM note (2026-08-01):** order arrived at `Status: DRAFT` (not APPROVED) — genuinely, consistently (no L11-style self-contradiction; header matches its own commit trail, `9e36ed18`). Reported this gap to Davin directly rather than silently promoting it; Davin gave live explicit approval in chat ("Go, approved!") before this CONFIRM. Zero codebase drift found between drafting (`4d0c7532`/`9e36ed18`, both 2026-08-01) and this CONFIRM — no intervening commits touch `app/api/alerts/**`, `lib/operation-service/**`, or `operation-service/src/alerts/**`. Baseline `tsc --noEmit` clean. One real gap found in the order's own text, not a blocker but noted for execution: Steps 4-5's cited "Verification" file (`__tests__/drawing/alertsApi.test.ts`) only tests a CLIENT-side fetch wrapper (`components/charts/drawing/alertsApi.ts`), never the server route handlers — repo-wide search confirms zero existing tests import from `app/api/alerts/line/*` at all (same L27/L28-class gap 4B-5 already hit on this identical file). New tests will be authored directly against the real route handlers during Steps 4-5 execution instead of relying on that citation.
 
 ---
 
