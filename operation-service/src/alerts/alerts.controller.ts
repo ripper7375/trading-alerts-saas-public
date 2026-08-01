@@ -43,10 +43,9 @@ export class AlertsController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  @UsePipes(new ZodValidationPipe(createPlainAlertSchema))
   async create(
     @Req() request: AuthenticatedRequest,
-    @Body() dto: CreateAlertDto
+    @Body(new ZodValidationPipe(createPlainAlertSchema)) dto: CreateAlertDto
   ) {
     return this.alertsService.create(request.user.id, request.user.tier, dto);
   }
@@ -59,11 +58,10 @@ export class AlertsController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  @UsePipes(new ZodValidationPipe(updatePlainAlertSchema))
   async update(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() dto: UpdateAlertDto
+    @Body(new ZodValidationPipe(updatePlainAlertSchema)) dto: UpdateAlertDto
   ) {
     return this.alertsService.update(
       request.user.id,

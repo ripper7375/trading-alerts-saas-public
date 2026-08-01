@@ -44,10 +44,9 @@ export class LineAlertsController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  @UsePipes(new ZodValidationPipe(AlertAttachZ))
   async attach(
     @Req() request: AuthenticatedRequest,
-    @Body() dto: AttachLineAlertDto
+    @Body(new ZodValidationPipe(AlertAttachZ)) dto: AttachLineAlertDto
   ) {
     return this.lineAlertsService.attach(
       request.user.id,
@@ -58,11 +57,10 @@ export class LineAlertsController {
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  @UsePipes(new ZodValidationPipe(AlertUpdateZ))
   async update(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() dto: UpdateLineAlertDto
+    @Body(new ZodValidationPipe(AlertUpdateZ)) dto: UpdateLineAlertDto
   ) {
     return this.lineAlertsService.update(
       request.user.id,
