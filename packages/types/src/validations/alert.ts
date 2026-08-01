@@ -165,3 +165,50 @@ export type ListAlertsInput = z.infer<typeof listAlertsSchema>;
 export type Symbol = (typeof SYMBOLS)[number];
 export type Timeframe = (typeof TIMEFRAMES)[number];
 export type ConditionType = (typeof CONDITION_TYPES)[number];
+
+/**
+ * Line-touch (drawing-engine) alert schemas.
+ *
+ * Hoisted from `lib/drawing/schema.ts` (Session 4B-5) — that file remains the
+ * monolith's own copy for `app/api/drawings/**` (out of this migration
+ * slice's scope), but the alert-attach/update shapes are duplicated logic
+ * the instant two services both need them, so they move here per the same
+ * single-source-of-truth rule every other alert schema in this file follows.
+ * Byte-identical validation rules to the SOURCE — do not fork.
+ */
+export const AlertAttachZ = z.object({
+  drawingId: z.string().cuid(),
+  targetLevel: z.string().min(1),
+  direction: z.enum(['cross_up', 'cross_down', 'either']).default('either'),
+  tolerance: z.number().min(0).default(0),
+  cooldownSec: z.number().int().min(0).max(86400).default(60),
+  oneShot: z.boolean().default(false),
+  name: z.string().max(120).optional(),
+});
+
+export const AlertUpdateZ = z
+  .object({
+    direction: z.enum(['cross_up', 'cross_down', 'either']).optional(),
+    tolerance: z.number().min(0).optional(),
+    cooldownSec: z.number().int().min(0).max(86400).optional(),
+    oneShot: z.boolean().optional(),
+    name: z.string().max(120).optional(),
+    isActive: z.boolean().optional(),
+  })
+  .refine((d) => Object.keys(d).length > 0, { message: 'Nothing to update' });
+
+export type AlertAttachInput = z.infer<typeof AlertAttachZ>;
+export type AlertUpdateInput = z.infer<typeof AlertUpdateZ>;
+
+/**
+ * Alert-count tier limits (V8: FREE 0 / PRO 100 — Alerts are a PRO-exclusive
+ * feature). Hoisted from `lib/tier-validation.ts`'s `getAlertLimit`/
+ * `TIER_LIMITS.*.maxAlerts` — only the alert-quota slice, not the full
+ * tier-config surface (pricing/trial/rate-limit stay monolith-only, out of
+ * this session's scope).
+ */
+export const ALERT_TIER_LIMITS = { FREE: 0, PRO: 100 } as const;
+
+export function getAlertLimit(tier: 'FREE' | 'PRO'): number {
+  return ALERT_TIER_LIMITS[tier];
+}
