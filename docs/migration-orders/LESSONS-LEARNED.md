@@ -75,6 +75,26 @@ count, and sanity-check the returned timestamp range against the real current ti
 a log query as authoritative." Full detail in
 `4b-8-drawings-port-and-cutover.migration-order.md`'s own Deviations (#4).
 
+**One more candidate from Session 4B-11's close (2026-08-02), not promoted, described here for the
+next consolidation pass:** the shared monolith-to-operation-service forwarders
+(`forwardRequestToOperationService()`/the money-service equivalent, used by EVERY cutover slice
+since Session 4A-7a/4B-6) only ever propagate `Authorization` and `x-correlation-id` — `user-agent`
+and `x-forwarded-for` are silently dropped on every forwarded request, and have been since these
+forwarders were first built. Invisible for 6+ prior cutover slices (Tier/Notifications/Drawings/
+Alerts/etc.) because none of their ported code reads those headers; found live, by the cutover's
+own post-flip smoke test, the first time a slice's ported code actually needed them (session
+device-tracking, IP/location in security-alert emails) — Davin's own session-list showed his
+current session as "Unknown on Unknown" instead of his real browser. A `forwardedRequestContext()`
+helper already existed in `client.ts` for exactly this purpose but was never wired into either
+forwarder until this session found the gap. Not a security/auth-identity bug (session ownership was
+always correct) — only descriptive metadata was wrong, but it silently degrades any FUTURE ported
+route that reads `request.ip`/`user-agent` at operation-service, exactly the way this one did. Worth
+a rule along the lines of "before porting any route whose behavior reads `request.ip` or a
+`user-agent`/device-fingerprint header, verify the monolith's own forwarding helper actually
+propagates those headers — the existing forwarders don't, by default, and the gap won't show up in
+mocked unit tests, only in a live smoke test against real traffic." Full detail in
+`4b-11-user-profile-2fa-sessions.migration-order.md`'s own Deviations (#9).
+
 ---
 
 ## Active lessons
