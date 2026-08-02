@@ -117,12 +117,12 @@ blanket framing.
 
 ## Slice-level verification
 
-- [ ] Endpoints ported into `operation-service/src/notifications/`.
-- [ ] Unit tests (`notifications.controller.spec.ts`, `notifications.service.spec.ts`) pass.
-- [ ] `nest build` / `tsc --noEmit` clean in `operation-service`.
-- [ ] Monolith `npm run build` / `tsc --noEmit` clean.
-- [ ] Deployed to Railway, `/health` -> 200.
-- [ ] `MIGRATE_NOTIFICATIONS=true` set on Vercel production + live smoke test verified.
+- [x] Endpoints ported into `operation-service/src/notifications/`.
+- [x] Unit tests (`notifications.controller.spec.ts`, `notifications.service.spec.ts`) pass — 23/23.
+- [x] `nest build` / `tsc --noEmit` clean in `operation-service` — 32/32 suites, 276/276 tests.
+- [x] Monolith `npm run build` / `tsc --noEmit` clean — `test:ci` 122/122 suites, 2150/2150 tests.
+- [x] Deployed to Railway (`railway up ./operation-service --path-as-root --service operation-service`, deployment `dcf506ab`, genuinely `SUCCESS` per `latestDeployment.status`, not the stale top-level field per L38), `/health` -> 200. Fresh boot log for this exact deployment ID shows `NotificationsModule dependencies initialized`, all 5 routes mapped, zero DI errors — correlation IDs in the log directly match the live test requests just sent (not a stale-cache trap, per 4B-7/4B-8's own precedent). Unauthenticated `/notifications`, `/notifications/:id`, `/notifications/:id/read` all -> 401 (guard intact); a genuine nonexistent route -> 404 as control.
+- [ ] `MIGRATE_NOTIFICATIONS=true` set on Vercel production + live smoke test verified. **NOT YET — awaiting Davin's separate live approval per this order's own Step 5 checkpoint, distinct from the session's general go-ahead (same precedent as Session 4B-8).**
 
 ---
 
