@@ -21,6 +21,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useRealtimeSocket } from '@/hooks/use-realtime-socket';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -111,6 +112,18 @@ export function NotificationBell(): React.JSX.Element {
       fetchNotifications();
     }
   }, [open, fetchNotifications]);
+
+  // Live badge update (F8, Session 4B-17) — additive to the REST poll
+  // above, which stays the durable fallback (fact #6 in this session's
+  // order: notifications already work without this). Re-fetches on push
+  // rather than merging the pushed payload into state directly, so the
+  // list/unreadCount stay single-sourced from the server's own pagination
+  // and read-state logic.
+  useRealtimeSocket({
+    onNotification: () => {
+      fetchNotifications();
+    },
+  });
 
   // Mark single notification as read
   const handleMarkAsRead = async (id: string): Promise<void> => {
@@ -263,7 +276,7 @@ export function NotificationBell(): React.JSX.Element {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className={`relative bg-transparent hover:bg-gray-100 rounded-full p-2 transition-colors ${
+          className={`relative rounded-full bg-transparent p-2 transition-colors hover:bg-gray-100 ${
             open ? 'bg-blue-50 ring-2 ring-blue-500' : ''
           }`}
           aria-label="Notifications"
@@ -271,7 +284,7 @@ export function NotificationBell(): React.JSX.Element {
           <Bell className="h-6 w-6 text-gray-700" />
           {unreadCount > 0 && (
             <span
-              className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center"
+              className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white"
               aria-label={`${unreadCount} unread notifications`}
             >
               {unreadCount > 9 ? '9+' : unreadCount}
@@ -282,11 +295,11 @@ export function NotificationBell(): React.JSX.Element {
 
       <PopoverContent
         align="end"
-        className="w-96 p-0 rounded-xl shadow-2xl border-2 border-gray-200"
+        className="w-96 rounded-xl border-2 border-gray-200 p-0 shadow-2xl"
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white rounded-t-xl">
-          <div className="flex justify-between items-center">
+        <div className="rounded-t-xl bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white">
+          <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl font-bold">Notifications</h3>
               <p className="text-sm opacity-90">{unreadCount} unread</p>
@@ -294,9 +307,9 @@ export function NotificationBell(): React.JSX.Element {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
-                className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg cursor-pointer transition-colors"
+                className="cursor-pointer rounded-lg bg-white/20 px-3 py-1 text-xs transition-colors hover:bg-white/30"
               >
-                <Check className="inline w-3 h-3 mr-1" />
+                <Check className="mr-1 inline h-3 w-3" />
                 Mark all read
               </button>
             )}
@@ -304,7 +317,7 @@ export function NotificationBell(): React.JSX.Element {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white border-b-2 border-gray-200 px-4 flex gap-4 overflow-x-auto">
+        <div className="flex gap-4 overflow-x-auto border-b-2 border-gray-200 bg-white px-4">
           {[
             { id: 'all', label: 'All' },
             { id: 'alerts', label: 'Alerts' },
@@ -315,10 +328,10 @@ export function NotificationBell(): React.JSX.Element {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`py-3 border-b-2 transition-colors whitespace-nowrap ${
+              className={`whitespace-nowrap border-b-2 py-3 transition-colors ${
                 activeTab === tab.id
-                  ? 'text-blue-600 border-blue-600 font-semibold'
-                  : 'text-gray-600 border-transparent hover:text-blue-600'
+                  ? 'border-blue-600 font-semibold text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-blue-600'
               }`}
             >
               {tab.label}
@@ -330,15 +343,15 @@ export function NotificationBell(): React.JSX.Element {
         <ScrollArea className="max-h-96">
           {isLoading ? (
             <div className="p-8 text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
-              <p className="text-sm text-gray-500 mt-2">
+              <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-400" />
+              <p className="mt-2 text-sm text-gray-500">
                 Loading notifications...
               </p>
             </div>
           ) : error ? (
             <div className="p-8 text-center">
-              <AlertTriangle className="h-8 w-8 mx-auto text-red-400" />
-              <p className="text-sm text-red-500 mt-2">{error}</p>
+              <AlertTriangle className="mx-auto h-8 w-8 text-red-400" />
+              <p className="mt-2 text-sm text-red-500">{error}</p>
               <Button
                 variant="outline"
                 size="sm"
@@ -353,17 +366,17 @@ export function NotificationBell(): React.JSX.Element {
               /* V8: FREE users cannot create alerts — show upgrade prompt
                  in the Alerts tab instead of a generic empty state */
               <div className="p-8 text-center">
-                <div className="text-6xl opacity-30 mb-4">🔔</div>
-                <p className="text-lg text-gray-700 font-semibold mb-2">
+                <div className="mb-4 text-6xl opacity-30">🔔</div>
+                <p className="mb-2 text-lg font-semibold text-gray-700">
                   Alert notifications are a PRO feature
                 </p>
-                <p className="text-sm text-gray-500 mb-4">
-                  Upgrade to create up to 100 price alerts on XAUUSD M5/M15
-                  and get notified the moment they trigger.
+                <p className="mb-4 text-sm text-gray-500">
+                  Upgrade to create up to 100 price alerts on XAUUSD M5/M15 and
+                  get notified the moment they trigger.
                 </p>
                 <Button
                   size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-blue-600 text-white hover:bg-blue-700"
                   onClick={() => {
                     setOpen(false);
                     router.push('/pricing');
@@ -374,8 +387,8 @@ export function NotificationBell(): React.JSX.Element {
               </div>
             ) : (
               <div className="p-8 text-center">
-                <div className="text-6xl opacity-30 mb-4">🔔</div>
-                <p className="text-lg text-gray-500 mb-2">
+                <div className="mb-4 text-6xl opacity-30">🔔</div>
+                <p className="mb-2 text-lg text-gray-500">
                   No notifications yet
                 </p>
                 <p className="text-sm text-gray-400">
@@ -390,9 +403,9 @@ export function NotificationBell(): React.JSX.Element {
               <div
                 key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
-                className={`flex items-start gap-4 p-4 border-b border-gray-100 cursor-pointer hover:bg-blue-50 transition-colors ${
+                className={`flex cursor-pointer items-start gap-4 border-b border-gray-100 p-4 transition-colors hover:bg-blue-50 ${
                   !notification.read
-                    ? 'bg-blue-50/50 border-l-4 border-l-blue-500'
+                    ? 'border-l-4 border-l-blue-500 bg-blue-50/50'
                     : 'bg-white'
                 } ${
                   notification.priority === 'HIGH'
@@ -402,7 +415,7 @@ export function NotificationBell(): React.JSX.Element {
               >
                 {/* Icon */}
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getNotificationIconBg(
+                  className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${getNotificationIconBg(
                     notification
                   )}`}
                 >
@@ -410,26 +423,26 @@ export function NotificationBell(): React.JSX.Element {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-gray-900 text-sm mb-1">
+                <div className="min-w-0 flex-1">
+                  <h4 className="mb-1 text-sm font-semibold text-gray-900">
                     {!notification.read && (
-                      <span className="text-blue-500 mr-1">•</span>
+                      <span className="mr-1 text-blue-500">•</span>
                     )}
                     {notification.title}
                   </h4>
-                  <p className="text-gray-600 text-sm line-clamp-2">
+                  <p className="line-clamp-2 text-sm text-gray-600">
                     {notification.body}
                   </p>
 
                   {/* Metadata */}
-                  <div className="flex gap-2 text-xs text-gray-500 mt-2 flex-wrap">
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
                     <span>{formatTime(notification.createdAt)}</span>
-                    <span className="bg-gray-100 px-2 py-0.5 rounded">
+                    <span className="rounded bg-gray-100 px-2 py-0.5">
                       {notification.type.charAt(0) +
                         notification.type.slice(1).toLowerCase()}
                     </span>
                     {notification.priority === 'HIGH' && (
-                      <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded font-semibold">
+                      <span className="rounded bg-red-100 px-2 py-0.5 font-semibold text-red-600">
                         HIGH
                       </span>
                     )}
@@ -439,17 +452,17 @@ export function NotificationBell(): React.JSX.Element {
                 {/* Action Menu or Unread Indicator */}
                 <div className="flex-shrink-0">
                   {!notification.read ? (
-                    <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                    <div className="h-2 w-2 rounded-full bg-blue-500" />
                   ) : (
                     <button
                       onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                         e.stopPropagation();
                         handleDelete(notification.id);
                       }}
-                      className="text-gray-400 hover:text-gray-600 p-1"
+                      className="p-1 text-gray-400 hover:text-gray-600"
                       aria-label="Delete notification"
                     >
-                      <MoreVertical className="w-4 h-4" />
+                      <MoreVertical className="h-4 w-4" />
                     </button>
                   )}
                 </div>
@@ -459,7 +472,7 @@ export function NotificationBell(): React.JSX.Element {
         </ScrollArea>
 
         {/* Footer */}
-        <div className="border-t-2 border-gray-200 bg-gray-50 p-4 text-center rounded-b-xl">
+        <div className="rounded-b-xl border-t-2 border-gray-200 bg-gray-50 p-4 text-center">
           <a
             href="/notifications"
             onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -467,7 +480,7 @@ export function NotificationBell(): React.JSX.Element {
               setOpen(false);
               router.push('/notifications');
             }}
-            className="text-blue-600 hover:underline font-semibold block"
+            className="block font-semibold text-blue-600 hover:underline"
           >
             View All Notifications
           </a>
@@ -477,7 +490,7 @@ export function NotificationBell(): React.JSX.Element {
               setOpen(false);
               router.push('/settings/notifications');
             }}
-            className="text-gray-600 hover:text-blue-600 text-sm mt-2 block w-full"
+            className="mt-2 block w-full text-sm text-gray-600 hover:text-blue-600"
           >
             Notification Settings
           </button>

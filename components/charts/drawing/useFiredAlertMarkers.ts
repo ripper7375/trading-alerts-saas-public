@@ -18,7 +18,7 @@ import {
 } from 'lightweight-charts';
 import { useEffect, useRef } from 'react';
 
-import { useWebSocket } from '@/hooks/use-websocket';
+import { useRealtimeSocket } from '@/hooks/use-realtime-socket';
 
 import { FiredMarkerStore, type FiredMarkerView } from './firedMarkers';
 
@@ -56,7 +56,7 @@ export function useFiredAlertMarkers(
     };
   }, [series]);
 
-  useWebSocket({
+  useRealtimeSocket({
     onAlertFired: (marker) => {
       if (marker.symbol !== symbol || marker.timeframe !== timeframe) return;
       const views = storeRef.current.add(
