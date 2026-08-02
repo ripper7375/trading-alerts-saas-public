@@ -3,7 +3,7 @@
  * Tests /api/tier/* endpoints
  */
 
-import { describe, it, expect, beforeEach, beforeAll } from '@jest/globals';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 
 // Polyfill fetch-related globals for Next.js
 import { TextEncoder, TextDecoder } from 'util';
@@ -79,20 +79,55 @@ jest.mock('next/server', () => ({
   },
 }));
 
-// Import after mocks
-import { GET as getSymbols } from '@/app/api/tier/symbols/route';
-import { GET as getCombinations } from '@/app/api/tier/combinations/route';
+// Mock the Session 4B-10 operation-service transport (flag + forwarder).
+// Note: route modules are imported dynamically (`await import(...)`) inside
+// each test below, not statically at the top of this file -- a static
+// top-level import would be hoisted (by Babel's CommonJS interop) above
+// this class declaration, causing a "Cannot access before initialization"
+// TDZ error when the mock factory runs. Matches the established
+// __tests__/api/notifications.test.ts convention (Session 4B-9).
+class MockOperationServiceError extends Error {
+  status: number;
+  body: Record<string, unknown>;
+  constructor(status: number, body: Record<string, unknown>) {
+    super(String(body.message ?? 'error'));
+    this.status = status;
+    this.body = body;
+  }
+}
+const mockShouldUseOpService = jest.fn().mockReturnValue(false);
+jest.mock('@/lib/operation-service/flags', () => ({
+  __esModule: true,
+  shouldUseOperationServiceForTier: () => mockShouldUseOpService(),
+}));
+
+const mockForwardRequestToOperationService = jest.fn();
+jest.mock('@/lib/operation-service/write-routes', () => ({
+  __esModule: true,
+  OperationServiceError: MockOperationServiceError,
+  forwardRequestToOperationService: (...args: unknown[]) =>
+    mockForwardRequestToOperationService(...args),
+}));
+
+function makeRequest(url = 'http://localhost/api/tier/symbols') {
+  return new MockRequest(url) as unknown as Request;
+}
 
 describe('Tier API Routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // clearAllMocks() does not reset mockReturnValue() -- re-pin the flag to
+    // its default OFF state before every test so a flag-on test earlier in
+    // the file can never leak into a later, flag-off-assuming test.
+    mockShouldUseOpService.mockReturnValue(false);
   });
 
   describe('GET /api/tier/symbols', () => {
     it('should return 401 when not authenticated', async () => {
       mockGetServerSession.mockResolvedValue(null);
 
-      const response = await getSymbols();
+      const { GET } = await import('@/app/api/tier/symbols/route');
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(response.status).toBe(401);
@@ -106,7 +141,8 @@ describe('Tier API Routes', () => {
         expires: '2025-12-31',
       });
 
-      const response = await getSymbols();
+      const { GET } = await import('@/app/api/tier/symbols/route');
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -122,7 +158,8 @@ describe('Tier API Routes', () => {
         expires: '2025-12-31',
       });
 
-      const response = await getSymbols();
+      const { GET } = await import('@/app/api/tier/symbols/route');
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -138,7 +175,8 @@ describe('Tier API Routes', () => {
         expires: '2025-12-31',
       });
 
-      const response = await getSymbols();
+      const { GET } = await import('@/app/api/tier/symbols/route');
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -152,7 +190,8 @@ describe('Tier API Routes', () => {
         expires: '2025-12-31',
       });
 
-      const response = await getSymbols();
+      const { GET } = await import('@/app/api/tier/symbols/route');
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(data.symbolsInfo).toBeDefined();
@@ -174,10 +213,134 @@ describe('Tier API Routes', () => {
         expires: '2025-12-31',
       });
 
-      const response = await getSymbols();
+      const { GET } = await import('@/app/api/tier/symbols/route');
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(data.totalAvailable).toBe(1);
+    });
+
+    it('forwards to operation-service when MIGRATE_TIER is on', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-123', tier: 'FREE' },
+      });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockResolvedValue({
+        status: 200,
+        body: { success: true, tier: 'FREE', symbols: ['XAUUSD'] },
+      });
+
+      const { GET } = await import('@/app/api/tier/symbols/route');
+      const request = makeRequest();
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.symbols).toEqual(['XAUUSD']);
+      expect(mockForwardRequestToOperationService).toHaveBeenCalledWith(
+        request,
+        '/tier/symbols'
+      );
+    });
+  });
+
+  describe('GET /api/tier/check/[symbol]', () => {
+    function checkParams(symbol: string) {
+      return { params: Promise.resolve({ symbol }) };
+    }
+
+    it('should return 401 when not authenticated', async () => {
+      mockGetServerSession.mockResolvedValue(null);
+
+      const { GET } = await import('@/app/api/tier/check/[symbol]/route');
+      const response = await GET(
+        makeRequest('http://localhost/api/tier/check/XAUUSD'),
+        checkParams('XAUUSD')
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(401);
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('Unauthorized');
+    });
+
+    it('should allow XAUUSD regardless of tier (V8: tier-independent)', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-123', tier: 'FREE' },
+      });
+
+      const { GET } = await import('@/app/api/tier/check/[symbol]/route');
+      const response = await GET(
+        makeRequest('http://localhost/api/tier/check/XAUUSD'),
+        checkParams('XAUUSD')
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(data.symbol).toBe('XAUUSD');
+      expect(data.allowed).toBe(true);
+      expect(data.tier).toBe('FREE');
+      expect(data.reason).toBeUndefined();
+    });
+
+    it('should uppercase a lowercase symbol before checking/returning it', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-123', tier: 'PRO' },
+      });
+
+      const { GET } = await import('@/app/api/tier/check/[symbol]/route');
+      const response = await GET(
+        makeRequest('http://localhost/api/tier/check/xauusd'),
+        checkParams('xauusd')
+      );
+      const data = await response.json();
+
+      expect(data.symbol).toBe('XAUUSD');
+      expect(data.allowed).toBe(true);
+    });
+
+    it('should deny an unsupported symbol with a reason and accessibleSymbols', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-123', tier: 'PRO' },
+      });
+
+      const { GET } = await import('@/app/api/tier/check/[symbol]/route');
+      const response = await GET(
+        makeRequest('http://localhost/api/tier/check/EURUSD'),
+        checkParams('EURUSD')
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.allowed).toBe(false);
+      expect(data.reason).toBe(
+        'Symbol EURUSD is not supported. This platform provides XAUUSD data only.'
+      );
+      expect(data.accessibleSymbols).toEqual(['XAUUSD']);
+    });
+
+    it('forwards to operation-service when MIGRATE_TIER is on', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-123', tier: 'FREE' },
+      });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockResolvedValue({
+        status: 200,
+        body: { success: true, symbol: 'XAUUSD', allowed: true, tier: 'FREE' },
+      });
+
+      const { GET } = await import('@/app/api/tier/check/[symbol]/route');
+      const request = makeRequest('http://localhost/api/tier/check/XAUUSD');
+      const response = await GET(request, checkParams('XAUUSD'));
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.allowed).toBe(true);
+      expect(mockForwardRequestToOperationService).toHaveBeenCalledWith(
+        request,
+        '/tier/check/XAUUSD'
+      );
     });
   });
 
@@ -185,7 +348,8 @@ describe('Tier API Routes', () => {
     it('should return 401 when not authenticated', async () => {
       mockGetServerSession.mockResolvedValue(null);
 
-      const response = await getCombinations();
+      const { GET } = await import('@/app/api/tier/combinations/route');
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(response.status).toBe(401);
@@ -199,7 +363,8 @@ describe('Tier API Routes', () => {
         expires: '2025-12-31',
       });
 
-      const response = await getCombinations();
+      const { GET } = await import('@/app/api/tier/combinations/route');
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -218,7 +383,8 @@ describe('Tier API Routes', () => {
         expires: '2025-12-31',
       });
 
-      const response = await getCombinations();
+      const { GET } = await import('@/app/api/tier/combinations/route');
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -234,7 +400,8 @@ describe('Tier API Routes', () => {
         expires: '2025-12-31',
       });
 
-      const response = await getCombinations();
+      const { GET } = await import('@/app/api/tier/combinations/route');
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       // Check combination structure
@@ -249,7 +416,8 @@ describe('Tier API Routes', () => {
         expires: '2025-12-31',
       });
 
-      const response = await getCombinations();
+      const { GET } = await import('@/app/api/tier/combinations/route');
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(data.limits).toBeDefined();
@@ -264,7 +432,8 @@ describe('Tier API Routes', () => {
         expires: '2025-12-31',
       });
 
-      const response = await getCombinations();
+      const { GET } = await import('@/app/api/tier/combinations/route');
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(data.upgrade).toBeUndefined();
@@ -276,7 +445,8 @@ describe('Tier API Routes', () => {
         expires: '2025-12-31',
       });
 
-      const response = await getCombinations();
+      const { GET } = await import('@/app/api/tier/combinations/route');
+      const response = await GET(makeRequest());
       const data = await response.json();
 
       expect(data.timeframes).toBeDefined();
@@ -288,6 +458,29 @@ describe('Tier API Routes', () => {
       expect(m5).toBeDefined();
       expect(m5.label).toBe('5 Minutes');
       expect(m5.proOnly).toBe(false);
+    });
+
+    it('forwards to operation-service when MIGRATE_TIER is on', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-123', tier: 'FREE' },
+      });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockResolvedValue({
+        status: 200,
+        body: { success: true, tier: 'FREE', combinations: [] },
+      });
+
+      const { GET } = await import('@/app/api/tier/combinations/route');
+      const request = makeRequest('http://localhost/api/tier/combinations');
+      const response = await GET(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+      expect(mockForwardRequestToOperationService).toHaveBeenCalledWith(
+        request,
+        '/tier/combinations'
+      );
     });
   });
 });

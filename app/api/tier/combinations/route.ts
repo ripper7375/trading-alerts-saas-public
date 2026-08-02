@@ -9,10 +9,15 @@
  * @module app/api/tier/combinations/route
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
+import { shouldUseOperationServiceForTier } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 import { SYMBOLS, TIMEFRAMES } from '@/lib/tier-config';
 import type { Tier } from '@/types/tier';
 
@@ -92,7 +97,7 @@ const TIMEFRAMES_INFO: TimeframeInfo[] = TIMEFRAMES.map((tf) => ({
  *   "limits": { "symbolCount": 1, "timeframeCount": 2, "totalCombinations": 2 }
  * }
  */
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const session = await getServerSession(authOptions);
 
@@ -105,6 +110,17 @@ export async function GET(): Promise<NextResponse> {
         },
         { status: 401 }
       );
+    }
+
+    // Session 4B-10: when the flag is on, operation-service's
+    // TierController (Session 4B-10 PORT) already re-implements the logic
+    // below against the same lib/tier-config.ts constants — forward instead.
+    if (shouldUseOperationServiceForTier()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        '/tier/combinations'
+      );
+      return NextResponse.json(body, { status: opStatus });
     }
 
     const userTier = (session.user.tier as Tier) || 'FREE';
@@ -126,6 +142,9 @@ export async function GET(): Promise<NextResponse> {
 
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('GET /api/tier/combinations error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,

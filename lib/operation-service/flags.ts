@@ -44,3 +44,12 @@ export function shouldUseOperationServiceForDrawings(): boolean {
 export function shouldUseOperationServiceForNotifications(): boolean {
   return process.env['MIGRATE_NOTIFICATIONS'] === 'true';
 }
+
+/**
+ * Check if the Tier routes (Session 4B-10's TierController PORT) should
+ * forward to operation-service instead of the monolith's own local
+ * tier-config logic. Default: false (monolith serves Tier directly).
+ */
+export function shouldUseOperationServiceForTier(): boolean {
+  return process.env['MIGRATE_TIER'] === 'true';
+}

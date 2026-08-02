@@ -12,6 +12,11 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
+import { shouldUseOperationServiceForTier } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 import { SYMBOLS } from '@/lib/tier-config';
 import type { Tier } from '@/types/tier';
 
@@ -68,7 +73,7 @@ interface RouteParams {
  * }
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: RouteParams
 ): Promise<NextResponse> {
   try {
@@ -86,6 +91,18 @@ export async function GET(
     }
 
     const { symbol } = await params;
+
+    // Session 4B-10: when the flag is on, operation-service's
+    // TierController (Session 4B-10 PORT) already re-implements the logic
+    // below against the same lib/tier-config.ts constants — forward instead.
+    if (shouldUseOperationServiceForTier()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        `/tier/check/${symbol}`
+      );
+      return NextResponse.json(body, { status: opStatus });
+    }
+
     const upperSymbol = symbol.toUpperCase();
     const userTier = (session.user.tier as Tier) || 'FREE';
 
@@ -105,6 +122,9 @@ export async function GET(
 
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('GET /api/tier/check/[symbol] error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
