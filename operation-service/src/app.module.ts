@@ -18,6 +18,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { OutboxModule } from './outbox/outbox.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
+import { TierModule } from './tier/tier.module';
 
 // Module order follows railway-gateway's own app.module.ts (reference-notes
 // §2): global config -> global Prisma -> global throttler guard -> feature
@@ -46,6 +47,7 @@ import { RedisModule } from './redis/redis.module';
     AlertsModule,
     DrawingsModule,
     NotificationsModule,
+    TierModule,
   ],
   providers: [
     {
