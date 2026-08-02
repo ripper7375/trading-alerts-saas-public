@@ -2678,5 +2678,62 @@ Test suites: `operation-service` 33/33→36/36 (+3 new spec files, 14 new tests)
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-02 (Session 4B-10, Tier PORT+CUTOVER)
+<details>
+<summary><code>operation-service/src/users/</code> — 6 new files + `app.module.ts`/`auth.module.ts`/
+`prisma/schema.prisma` modified, all 14 `app/api/user/*` monolith route files modified (Session
+4B-11, User Profile/2FA/Sessions/Account Deletion PORT+CUTOVER combined)</summary>
+
+PORT+CUTOVER session (same combined shape as Sessions 4B-8/4B-9/4B-10). Ports all 14
+`app/api/user/*` route files (2,060 lines, 19 real endpoints) into a new `UsersModule`:
+
+- `users.controller.ts` (+ `.spec.ts`) — 19 handlers across profile/preferences/password/
+  sessions/login-history/2FA/account-deletion. Guards applied per-method, not at class level — 3
+  handlers (`POST /user/2fa/verify`, `POST /user/account/deletion-confirm`,
+  `POST /user/account/deletion-cancel`) carry no `JwtAuthGuard` at all, matching SOURCE's own
+  unauthenticated-by-design behavior (mid-login 2FA challenge, public email-link token flow, and a
+  dual-mode anonymous-token-or-session flow respectively). A dedicated guard-metadata test
+  (`Reflect.getMetadata(GUARDS_METADATA, ...)`) proves this directly, not just delegation coverage.
+- `users.service.ts` (+ `.spec.ts`) — profile/preferences/password/sessions/login-history/
+  account-deletion business logic ported directly; all 6 2FA methods are thin delegates to the
+  pre-existing `TwoFactorService` (built Session 3-4 for operation-service's own native login
+  flow) rather than reimplemented, reusing its already-verified crypto/bcrypt scheme.
+- `users.schemas.ts` + `dto/user.dto.ts` — Zod schemas for profile/preferences/password/
+  deletion-confirm/deletion-cancel; 2FA bodies reuse the existing `TwoFactorService`'s own
+  class-validator DTOs rather than duplicating them.
+- `users.module.ts` — imports `AuthModule` (now exports `TwoFactorService`) for DI.
+- `operation-service/prisma/schema.prisma` — 5 new narrow-subset models mirrored (additive,
+  generate-only, never migrated — L1): `UserPreferences`, `AccountDeletionRequest`,
+  `LoginHistory` (+ `LoginStatus` enum), `UserSession`, and NextAuth's own bare `Session` model
+  (needed only for `session-tracker.ts`'s revoke-time `deleteMany` calls). None existed in this
+  schema before this session — found missing at CONFIRM, corrected from the APPROVED order's own
+  wrong model list (which named 2 nonexistent models and omitted these 5).
+- `auth.module.ts` — now `exports: [TwoFactorService]`.
+
+**Monolith side (same session, not split out):** `lib/operation-service/flags.ts` gained 3 new
+readers (`shouldUseOperationServiceForUserProfile/User2FA/UserSessions`); all 14
+`app/api/user/*` route files wired to check the relevant flag immediately after existing auth and
+forward via `forwardRequestToOperationService()` (or a new
+`forwardRequestToOperationServiceOptionalAuth()` for the 3 unauthenticated-capable routes, since
+the standard forwarder requires a session cookie to forward at all). `lib/operation-service/
+client.ts` gained `callOperationServiceWithOptionalTokenStatus()`. 5 safe signature widenings
+(`_request`/no-param → `request`).
+
+**A real live bug found by the cutover's own post-flip smoke test, fixed same-session:** the
+shared forwarder(s) never propagated `user-agent`/`x-forwarded-for` (only `Authorization` +
+`x-correlation-id`) — invisible on every prior cutover slice since none of them read those
+headers; 4B-11 is the first that does (session device-tracking, IP/location in security-alert
+emails). Fixed by wiring the already-existing-but-unused `forwardedRequestContext()` helper
+(`client.ts`) into both forwarders. Not a security/auth-identity issue — only descriptive
+metadata was ever wrong.
+
+Test suites: `operation-service` 36/36→38/38 (+2 new spec files, 53 new tests). `nest build`/
+`tsc --noEmit` clean. Monolith `test:ci` 122/122 suites, 2158/2158 tests (was 122/122, 2157/2157 at
+4B-10's close — +1 test, the new header-forwarding regression test); `tsc --noEmit` clean,
+`eslint --max-warnings 0` clean.
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-02 (Session 4B-11, User Profile/2FA/Sessions/Account Deletion PORT+CUTOVER)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
