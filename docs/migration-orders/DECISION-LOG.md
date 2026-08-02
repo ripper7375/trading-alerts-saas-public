@@ -29,7 +29,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F5   | Prisma file-layout strategy                                                                                                                                                                                           | RESOLVED — Session 2-2                                                                                                                                                                                 |
 | F6   | Auth strategy: bridge vs OpenAuth vs hand-rolled                                                                                                                                                                      | OPEN — due Session 3-1 (Davin)                                                                                                                                                                         |
 | F7   | HS256 shared secret vs JWKS + rotation timing                                                                                                                                                                         | OPEN — due Session 3-1 (Davin)                                                                                                                                                                         |
-| F8   | Realtime/websocket architecture                                                                                                                                                                                       | OPEN — due Session 4B-17                                                                                                                                                                               |
+| F8   | Realtime/websocket architecture                                                                                                                                                                                       | RESOLVED — Session 4B-17 (Davin): operation-service's existing HTTP process, real socket.io-client/socket.io, alert-fired scope only, NextAuth-JWE handshake auth                                      |
 | F9   | @trading-alerts/types packaging mechanics                                                                                                                                                                             | RESOLVED — Session 4B-1 (pnpm workspace for the monolith, `file:` dependency for operation-service/money-service; Railway deploy-time resolution for operation-service still open, see F9's own entry) |
 | F10  | Next.js 15→16 breaking-change audit                                                                                                                                                                                   | RESOLVED — Session 5-1                                                                                                                                                                                 |
 | F11  | Frontend gap matrix                                                                                                                                                                                                   | OPEN — due Session 6-1 (Davin triage)                                                                                                                                                                  |
@@ -2368,3 +2368,86 @@ null` in `railway service list --json` — no GitHub source connected at all, so
 - **Context:** Evaluated three choices: Option A (Managed SaaS), Option B (Self-hosted Jaeger/Tempo service on Railway), and Option C (OpenTelemetry SDK with OTLP HTTP exporter + Pino structured correlation-ID logging).
 - **Rationale:** Option C avoids recurring SaaS costs and avoids introducing a new Railway container service to operate before Phase 4 core domain migration completes. OpenTelemetry NodeSDK standard instrumentation (HTTP, Express, Prisma, ioredis) + Pino logger with `x-correlation-id` context provides standard tracing and correlation right now. If a specific SaaS or self-hosted backend is chosen later, setting `OTEL_EXPORTER_OTLP_ENDPOINT` and headers in Railway variables instantly routes traces there with 0 code changes.
 - **Approved by:** Davin (2026-08-01, live in chat).
+
+---
+
+## F8 — Realtime/websocket architecture
+
+- Status: **RESOLVED** — Session 4B-17, 2026-08-02 (Davin, live, in the session's own prep
+  conversation, per the script's own "F8 FIRST — read both realtime spec docs and present
+  socket-architecture options for my decision before any porting" hard gate)
+- Decision, in full (5 sub-questions, each with a chosen option and rejected alternatives —
+  matches this repo's own convention of recording every rejected alternative, not just the
+  winner, per F36/F38 precedent):
+  1. **Server location → `operation-service`'s existing HTTP process** (`main.ts`, via
+     `@nestjs/websockets` + `@nestjs/platform-socket.io` + `socket.io`, using the already-built
+     `RedisService`/`RedisModule`, Session 4B-4, as the `@socket.io/redis-adapter` for
+     multi-replica fan-out). Rejected: a new dedicated gateway Railway service (higher setup
+     cost, no isolation benefit judged necessary yet); a managed realtime provider
+     (Pusher/Ably/Supabase Realtime — new vendor/cost, not needed).
+  2. **Client protocol → real `socket.io-client`**, replacing the incompatible raw-WebSocket
+     `hooks/use-websocket.ts`. Already a monolith dependency, already proven working elsewhere
+     in this exact codebase (`hooks/use-ohlcv-socket.ts`, the separate Flask/MT5 stream).
+     Rejected: a hand-rolled raw-WebSocket server compatible with the old client (throws away
+     the Redis-adapter multi-node story for no benefit).
+  3. **Scope → alert-fired notifications only.** Rejected: also reviving
+     `subscribe_market`/`broadcastMarketData` (V8 XAUUSD tick streaming, already dead — that's
+     `hooks/use-ohlcv-socket.ts` → Flask MT5's own separate, already-working job; bundling it in
+     multiplies scope/risk for no clear benefit).
+  4. **Handshake auth → verify the real NextAuth JWE**, reusing the same HS256-secret
+     `decodeNextAuthToken` path `JwtAuthGuard` already uses (Session 3-1) — closes the OLD
+     server's placeholder-auth gap (`lib/websocket/server.ts:120-122`, "For now, we use the
+     token as the userId", never actually reachable in production so never a live exposure, but
+     a design gap not to reproduce). Rejected: a separate short-lived server-issued ticket
+     scheme (avoids repeated JWE-decrypt cost per reconnect, but adds a new ticket-issuing
+     endpoint/store for no requested benefit — and its rejection is why `GET /api/realtime/token`
+     had to hand the browser the RAW session token rather than a scoped ticket, see this
+     session's own Deviations).
+  5. **Session boundary → 4B-17 combined decide+build**, cutover deferred to 4B-18 (already
+     named in the playbook/script). Rejected: splitting a decision-only CONTRACT session first
+     (mirroring 4A-W1) — the decision turned out small enough not to need its own session once
+     presented as a clear 5-question option set.
+- **Why now, and why it was more urgent than "decide where Socket.IO lives":** this session's
+  own order (`4b-17-realtime-websocket-decision-and-build.migration-order.md`) found, by reading
+  the live codebase rather than the two spec docs' own claims, that realtime delivery had NEVER
+  actually worked in production at all — `initWebSocketServer()` was never called by anything
+  (no custom server wraps `next start`; would not have worked on Vercel's serverless runtime
+  regardless), and even if it had been, the live client (`hooks/use-websocket.ts`, raw
+  `WebSocket`) speaks an incompatible wire protocol from the intended `socket.io` server. This
+  meant `NEXT_PUBLIC_WS_URL` (never set/documented anywhere) defaulted every real browser session
+  to attempting a connection to `ws://localhost:3001` — the visitor's own machine — silently,
+  forever. Full evidence in the order's own `## Raw facts` #1-#11.
+- **Built this session:** `operation-service/src/realtime/{realtime.gateway,realtime.module}.ts`
+  (new `RealtimeGateway`, registered in `AppModule`) + a real end-to-end spec
+  (`realtime.gateway.e2e.spec.ts` — real `socket.io-client` against a real in-process gateway,
+  real minted JWE, real Redis pub/sub semantics via a faithful in-memory double). Monolith:
+  `app/api/realtime/token/route.ts` (new — server-side bridge handing the browser the same
+  session token `getOperationServiceToken()` already forwards for REST calls, since a persistent
+  client-initiated socket connection can't be proxied through a route handler the way a REST call
+  can), `hooks/use-realtime-socket.ts` (new, replaces `hooks/use-websocket.ts` in both real
+  consumers — `useFiredAlertMarkers.ts`, `notification-bell.tsx`). Dead code retired:
+  `lib/websocket/server.ts`, `hooks/use-websocket.ts`, `components/providers/websocket-provider.tsx`
+  (fully orphaned duplicate), `lib/alert-engine/{notify-bridge.ts,types.ts}` (the monolith-side
+  subscriber half — `lib/websocket/server.ts` was their only remaining importer). Housekeeping:
+  `railway-worker.json` + the `worker:alerts` npm script deleted (both pointed at
+  `scripts/alert-worker.ts`, deleted at Session 4B-3).
+- **Deployed and live-verified this session** (not yet the only path the shipped client calls,
+  per the order's own Step 8 rule — see Deviations for the full deploy/verification detail):
+  `operation-service` redeployed clean (`railway up --path-as-root --service operation-service`,
+  deployment `47b093b1-3e07-4603-ada1-04ecfe1839dd`, genuinely `SUCCESS`); a real Engine.IO
+  handshake response confirmed live (`GET /socket.io/?EIO=4&transport=polling` →
+  `0{"sid":...,"upgrades":["websocket"],...}`) — direct proof `RealtimeGateway` is attached to
+  the real production HTTP server, independent of and stronger than a boot-log read (which
+  `railway logs` could not reliably surface this session — every flag combination tried returned
+  empty for this specific deployment, a new manifestation of the recurring "don't trust `railway
+logs`" class, see this session's own Deviations/lessons candidate). Monolith redeployed via
+  `vercel --prod --archive=tgz --yes` (L36).
+- **Not done this session, by design (Step 8's own rule):** no cutover flag exists for this slice
+  and none was needed — the new gateway ships dormant/parallel, proven live via direct HTTP/
+  Engine.IO checks and this session's own real e2e suite, but the actual browser-session live
+  smoke test (a real fired alert reaching a JWE-authenticated browser as both a bell notification
+  and a chart marker) needs Davin's own browser per this migration's established method for every
+  prior Phase 4B cutover — carried to this session's own close-out / Session 4B-18's entry
+  criteria, not fabricated or skipped.
+- Approved by: Davin (live, 2026-08-02, this session's own prep conversation and execution
+  go-ahead).

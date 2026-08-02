@@ -116,6 +116,28 @@ being correct for all the others, and the failure stays completely invisible unt
 finally exercises that specific table for real." Full detail in `DECISION-LOG.md` **F52** and
 `4b-12-market-data-channel-proxy.migration-order.md`'s own Deviations (#6).
 
+**One more candidate from Session 4B-17's close (2026-08-02), not promoted, described here for the
+next consolidation pass:** `railway logs`'s default target (no `--latest`) silently shows the
+**previous successful deployment's** logs when the most recent deployment failed — a real Railway
+build failure (`socket.io-client` missing from `operation-service/package.json`, only resolvable
+locally via this monorepo's root `node_modules`, absent in Railway's isolated single-directory
+build) was invisible via the plain `railway logs --service operation-service --build` command,
+which kept showing an OLDER, successful build's logs (confirmed via the embedded image-creation
+timestamp inside the log output, hours stale). `--latest --build` correctly surfaced the real
+`TS2307` error. But once the FIX was deployed and genuinely succeeded (`railway service list
+--json`'s `latestDeployment.status: SUCCESS`, matching timestamps, non-stale), NO flag combination
+tried (`--latest --deployment`, `-s <service-id>`, `--since 15m`, plain `-n 300`) surfaced any
+application/boot-log output at all for that deployment — not even the usual flood of "Mapped
+{route}" lines every prior session's boot log has shown. Independent live HTTP/protocol-level
+checks (a health endpoint, a route's expected 401, or — the strongest signal used this session — a
+raw Engine.IO handshake request, `GET /socket.io/?EIO=4&transport=polling` returning a real
+`0{"sid":...}` packet) proved the deployment was genuinely live and correct when `railway logs`
+could not. Worth a rule along the lines of "`--latest --build` is the one combination proven to
+surface a FAILED deployment's real build error; for confirming what's actually running in
+production right now, a direct protocol/HTTP-level check is more reliable than any `railway logs`
+invocation tried so far." Full detail in
+`4b-17-realtime-websocket-decision-and-build.migration-order.md`'s own Deviations (#5-#6).
+
 ---
 
 ## Active lessons

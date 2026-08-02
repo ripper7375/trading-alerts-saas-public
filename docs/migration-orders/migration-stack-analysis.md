@@ -2733,7 +2733,66 @@ Test suites: `operation-service` 36/36→38/38 (+2 new spec files, 53 new tests)
 
 </details>
 
+<details>
+<summary><code>operation-service/src/realtime/</code> — 3 new files, `app.module.ts`/`package.json`
+modified, 1 new monolith route + 1 new hook + 2 monolith consumers modified + 6 files deleted
+(Session 4B-17, Realtime/Websocket Decision & Build, F8)</summary>
+
+PORT/INFRA session. F8 resolved (see `DECISION-LOG.md`): `operation-service`'s existing HTTP
+process, real `socket.io`/`socket.io-client`, alert-fired scope only, NextAuth-JWE handshake
+auth. No cutover flag — ships dormant/parallel, 4B-18 is the named cutover session.
+
+- `operation-service/src/realtime/realtime.gateway.ts` (+`.spec.ts`, +`.e2e.spec.ts`) — new
+  `RealtimeGateway` (`@WebSocketGateway`). `afterInit` attaches `@socket.io/redis-adapter` (3
+  dedicated Redis connections via `RedisService.getClient().duplicate()` — never the shared
+  client, matching the pub/sub-mode-can't-run-normal-commands rule) and subscribes to
+  `alerts:fired` (published by `NotifyBridgeService` since Session 4B-2/3, unconsumed until this
+  session). `handleConnection` verifies `socket.handshake.auth.token` as a real NextAuth JWE via
+  the same `decodeNextAuthToken` path `JwtAuthGuard` uses, joins `user:<id>`, closing the old
+  server's placeholder-auth gap. `deliver()` emits `notification` + `alert_fired` events,
+  room-scoped to the firing user. Real e2e spec: genuine `socket.io-client` against a real
+  in-process gateway (`app.listen(0)`), real minted JWE, real Redis pub/sub semantics via a
+  faithful in-memory double (no live Redis in this environment, same precedent as 4B-2).
+- `operation-service/src/realtime/realtime.module.ts` — registered in `app.module.ts`.
+- `operation-service/package.json` — `@nestjs/websockets`, `@nestjs/platform-socket.io`,
+  `socket.io`, `@socket.io/redis-adapter` (deps, pinned to match the monolith's own versions
+  where applicable, L30); `socket.io-client` (devDependency, needed only by the e2e spec — its
+  initial omission broke the Railway build, see this session's own Deviations).
+- `app/api/realtime/token/route.ts` (new, monolith) — server-side bridge: a persistent
+  client-initiated Socket.IO connection can't be proxied through a route handler the way a REST
+  call can, so this hands the browser the same session token `getOperationServiceToken()`
+  already forwards for REST calls, plus `OPERATION_SERVICE_URL` to connect to. Deliberately not
+  a new `NEXT_PUBLIC_*` env var (order's own instruction).
+- `hooks/use-realtime-socket.ts` (new) — real `socket.io-client`, auth via handshake payload.
+  Replaces `hooks/use-websocket.ts` in both real consumers: `components/charts/drawing/
+useFiredAlertMarkers.ts` (chart marker) and `components/notifications/notification-bell.tsx`
+  (live badge update, additive to its existing REST-poll fallback).
+- **Retired (dead code, order facts #1-#4):** `lib/websocket/server.ts` (`initWebSocketServer`
+  never actually called in production — no custom server wraps `next start`, and it spoke
+  incompatible Socket.IO framing vs. the raw-WebSocket client anyway), `hooks/use-websocket.ts`,
+  `components/providers/websocket-provider.tsx` (fully orphaned duplicate, zero consumers),
+  `lib/alert-engine/{notify-bridge.ts,types.ts}` (monolith-side subscriber half — publisher half
+  already moved to operation-service at 4B-2/3; `lib/websocket/server.ts` was their only
+  remaining importer). `lib/monitoring/system-monitor.ts`'s `checkWebSocket()` rewritten to not
+  depend on the deleted file (preserves its always-healthy prior behavior); `checkUserConnection()`
+  removed (dead export). Housekeeping: `railway-worker.json` + the `worker:alerts` npm script
+  deleted (both pointed at `scripts/alert-worker.ts`, deleted at Session 4B-3).
+
+Test suites: `operation-service` 40/40→42/42 (+2 new spec files, +16 tests: 11 unit + 5 e2e).
+`nest build`/`tsc --noEmit` clean. Monolith `test:ci` 123/123→123/123 suites, 2171/2171→2157/2157
+tests (net -14, fully accounted for: -24 from 2 deleted test files, +10 from 2 new ones — see
+Deviations); `tsc --noEmit` clean, `eslint --max-warnings 0` clean, `npm run build` clean.
+
+Deployed: `operation-service` (`railway up --path-as-root --service operation-service`,
+deployment `47b093b1-3e07-4603-ada1-04ecfe1839dd`, genuinely `SUCCESS`) and the monolith
+(`vercel --prod --archive=tgz --yes`). Live-verified via a real Engine.IO handshake response
+(`GET /socket.io/?EIO=4&transport=polling`), independent of `railway logs` (unreliable for this
+deployment this session, every flag combination tried returned empty).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-02 (Session 4B-11, User Profile/2FA/Sessions/Account Deletion PORT+CUTOVER)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-02 (Session 4B-17, Realtime/Websocket Decision &
+Build, F8)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
