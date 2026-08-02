@@ -2052,7 +2052,8 @@ aggregateId } })`, treated as a universal step. Reading `stripe-webhook.service.
 
 ## F52 — `market_data_v6` was never actually created in production; its own migration was baselined with zero applied steps
 
-- Status: OPEN
+- Status: RESOLVED (ad-hoc repair session, 2026-08-02, same day — plan reviewed and approved by
+  Davin before execution; DDL shown verbatim and confirmed before running)
 - Session: 4B-12 · Date: 2026-08-02
 - Found while: running this session's own live smoke test (Davin, browser DevTools console,
   `GET /api/market-data/channel?timeframe=M5` against the freshly cut-over route). Got a real `500`
@@ -2119,6 +2120,54 @@ market_data_v6 (...)` statement) exists in the codebase and IS recorded in produ
   Market-Data-Channel feature is confirmed broken in production for ANY real caller, on both the
   monolith's original code and this session's port — not a regression, a newly-surfaced
   pre-existing gap.
+- **Resolution (ad-hoc schema-repair session, same day):** Davin asked for a plan before any
+  write — presented via `EnterPlanMode`/`ExitPlanMode`, including the exact DDL, before running
+  anything; approved. Chose applying the migration's own SQL directly over
+  `prisma migrate resolve --rolled-back` + `migrate deploy` (fewer moving parts against Prisma's
+  own migration-state machine for a first-of-its-kind repair; the adjacent
+  `20260705010000_drop_market_data` migration was re-read in full and confirmed to only
+  `DROP TABLE IF EXISTS "MarketData"`, a completely different, unrelated, already-absent table —
+  zero interaction risk).
+  1. Re-verified immediately before writing anything: table still absent, `_prisma_migrations`
+     row still `applied_steps_count: 0` — state unchanged since the finding above.
+  2. Applied the migration's own `CREATE TABLE market_data_v6 (...)` + 2 `CREATE INDEX`
+     statements verbatim, wrapped in a transaction with an in-transaction re-check (aborts with
+     zero writes if the table already exists), via a raw `pg` client against
+     `DATABASE_PUBLIC_URL` (same value-blind method as the finding above — connection string read
+     into the script's own `process.env`, never displayed; `railway run --service Postgres`).
+     Committed clean.
+  3. Verified shape: `to_regclass` non-null; 82 real columns (matches the DDL exactly — 80 data
+     columns + `createdAt`/`updatedAt`); all 3 indexes present (`market_data_v6_pkey`,
+     `market_data_v6_symbol_timeframe_timestamp_key`, `market_data_v6_symbol_timeframe_timestamp_idx`);
+     0 rows (expected — the `railway-gateway` ingestion-pipeline question from above is still
+     separately unresolved, not addressed by this repair).
+  4. Proved it end-to-end through Prisma itself, not just raw SQL: a real
+     `prisma.marketDataV6.findMany()` call through `operation-service`'s own generated client
+     (the exact code path `MarketDataService.getChannelData()` uses) succeeded, 0 rows, zero
+     errors.
+  5. Attempted to reconcile `_prisma_migrations.applied_steps_count` (3, matching the 3 real DDL
+     statements) for future diagnostic accuracy — **blocked by the environment's own permission
+     classifier** (an `UPDATE` against a different table than the one just shown/approved). Per
+     this plan's own text this step was explicitly optional and doesn't affect
+     `migrate deploy`/`status` behavior (both key off `finished_at` presence, not
+     `applied_steps_count`) — skipped rather than worked around; `_prisma_migrations` still shows
+     `applied_steps_count: 0` for this migration even though the table is now genuinely present
+     and correct. Flagged for whoever next touches this row directly.
+  6. Re-added `MIGRATE_MARKET_DATA_CHANNEL=true` to Vercel production, redeployed
+     (`dpl_GBR5cuxxb32Bu354q7uq3SfNVn3H`, READY), re-verified unauthenticated
+     `GET /api/market-data/channel` still `401`. Davin re-ran the identical live smoke test from
+     his own browser DevTools console: real `200`,
+     `{success: true, symbol: 'XAUUSD', timeframe: 'M5', variant: 'best_fit', points: []}` — no
+     more `500`. Independently cross-checked against `operation-service`'s own Railway HTTP access
+     log (not trusted from the response body alone, L18): `GET /market-data/channel 200 67ms`,
+     timestamp-correlated to the smoke test (first attempt returned stale/cached output — the
+     same `railway logs` trap this migration has hit before; `--http -n 30 --since 15m` was the
+     combination that surfaced the real, current entry).
+  7. `market_data_v6`'s own row count is 0 — this repair proves the table and the app's read path
+     are both genuinely correct, but does NOT prove or address whether `railway-gateway`'s
+     ingestion pipeline has ever been pointed at this database (still an open, separately-flagged
+     question, unchanged by this session). The Market-Data-Channel feature is now live and
+     correct, serving real (currently empty) chart data — not fabricated as "fully populated."
 
 ## Session 4A-10c (2026-07-30) — F48 fixed and verified live; Group B still blocked on a newly-uncovered second bug (F49)
 
