@@ -26,7 +26,14 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-10 (Tier Domain Extraction, TierGuard & Cutover, PORT variant), APPROVED (2026-08-02), ready for CONFIRM & execution.
+- **Current:** Session 4B-10 (Tier Domain Extraction, TierGuard & Cutover, PORT variant), CONFIRMED and executed 2026-08-02. **Slice 10 (Tier) is CUT-OVER & LIVE** — `MIGRATE_TIER=true` in Vercel production, all 3 monolith `app/api/tier/*` route files forwarding to `operation-service`'s new `TierController`. **Verification is COMPLETE, not partial** — unlike Slices 7/8/9, all 3 of this domain's endpoints (no id-scoped sub-resources) were exercised live in one shot.
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file modified-but-uncommitted, `PRE-DRAFT → APPROVED` with a full content rewrite that also silently resolved the PRE-DRAFT's own "route port vs. reusable guard vs. both" open question, no Advisor-DRAFT/Davin-approval commit trail) — reported in full before proceeding; Davin confirmed live the rewrite and the "both" scope resolution were his/the Advisor's own authentic edits. All 4 entry criteria independently re-verified against live codebase/runtime with zero drift (exact 387-line match across all 3 SOURCE files; `JwtAuthGuard`/`RequestUser.tier` confirmed; `forwardRequestToOperationService()`/`getOperationServiceToken()` confirmed at their cited lines).
+  **Built (Steps 0-3, one commit each):** `operation-service/src/tier/{tier.schemas,tier.service,tier.controller,tier.module}.ts` + `dto/tier.dto.ts`, new reusable `operation-service/src/auth/tier.guard.ts` (`@RequireTier()`/`TierGuard`, `SetMetadata`+`Reflector`, a genuinely new pattern for this codebase — mirrors the standard NestJS roles-guard shape), registered `TierModule` in `AppModule`. **Two real corrections made against SOURCE rather than the order's own paraphrase** (`LESSONS-LEARNED.md` L27): `TierService` uses `lib/tier-config.ts`'s `canAccessSymbol(symbol, tier)` semantics, not `lib/tier-validation.ts`'s differently-ordered, differently-scoped function of the same name already used by Drawings/Alerts. None of the 3 SOURCE routes enforce tier gating at all (V8: FREE/PRO get identical XAUUSD/M5/M15 data) — `TierGuard` is genuinely new infrastructure for FUTURE tier-gated endpoints, unused by this controller's own 3 handlers. **Step 4:** monolith forwarding wired into all 3 `app/api/tier/*` route files gated by `shouldUseOperationServiceForTier()`; 2 of 3 needed a fresh `request: NextRequest` parameter ADDED (not a `_request` widened — only `check/[symbol]/route.ts` had one to widen, same L27-class citation gap as 4B-9's own POST handler finding). **Closed a real L28-class gap found mid-session:** `app/api/tier/check/[symbol]/route.ts` had zero test coverage anywhere in the repo before this session (only `symbols`/`combinations` were tested) — built 5 new tests for it plus 3 forwarding tests (one per route), 8 new tests total on top of the 13 pre-existing ones. A Jest module-hoisting trap was hit and fixed while doing this: a class-based mock alongside the test file's pre-existing static top-level route imports threw a TDZ `ReferenceError` (Babel hoists ES imports above same-file class declarations regardless of textual order) — fixed by switching to per-test dynamic `await import(...)`, matching `__tests__/api/notifications.test.ts`'s own established convention. `operation-service` 36/36 suites, 295/295 tests (+14, was 33/33, 281/281 at 4B-9's close); monolith `test:ci` 122/122 suites, 2157/2157 tests (+7, was 2150/2150). `tsc --noEmit`/`nest build`/`npm run build` all clean throughout. Deployed via `railway up --path-as-root --service operation-service` (`"source": null`, same as every prior operation-service session); fresh boot log timestamp-correlated to this exact deployment confirmed `TierModule dependencies initialized`, `TierController {/tier}` with all 3 routes mapped, zero DI errors; unauthenticated smoke test showed all 3 routes → 401 (not 404), a genuine nonexistent route → 404 as a control.
+  **Cutover executed with Davin's own separate, explicit live approval** (distinct from the session's general go-ahead, per the order's own Step 5 checkpoint): `MIGRATE_TIER` added to Vercel production (`vercel env add`, value-blind re-verified via `vercel env ls production`'s name-only listing — L17), then `vercel --prod --archive=tgz --yes` (L36) redeployed clean, aliased to the real production URL. Unauthenticated `/api/tier/*` confirmed still 401 post-redeploy (auth check runs before the flag check — proves the new code is genuinely live).
+  **Davin ran the live smoke test himself from his own browser DevTools console** (his session cookie applied automatically, no token ever extracted or handled directly, same method as every prior 4B cutover): all 3 routes (`fetch('/api/tier/symbols')`, `.../check/XAUUSD`, `.../combinations`) returned real `tier: 'PRO'` data (`symbols: ['XAUUSD']`, `allowed: true`, `combinations` array of 2) in one `Promise.all`. **Independently cross-checked against `operation-service`'s own Railway HTTP logs, not trusted from the response body alone (L18):** `GET /tier/symbols 200`, `GET /tier/combinations 200`, `GET /tier/check/XAUUSD 200`, all timing-matched to the smoke test.
+  **A real, pre-existing, multi-session-compounding structural defect found while updating this session's own artifacts, not caused by this session:** `migration-cutover-table.md`'s Slice 7 row (already flagged corrupted at Waiting-on #90) turns out to have the Slice 8 AND Slice 9 rows' entire content merged into it with no separating newline — each of those sessions appears to have appended its new row directly onto Slice 7's own Notes cell instead of starting a genuinely new line, compounding across 3 sessions. NOT fixed here (reconstructing 3 merged rows is out of this session's own scope) — this session's own new Slice 10 row was authored as a single, clean, correctly-terminated line (11 pipes, matching the established correct column count). Flagged for a future dedicated cleanup pass.
+  **Unrelated, flagged not acted on:** Davin's smoke test surfaced a browser console 404 on a PWA manifest icon (`icons/icon-144x144.png`) — confirmed unrelated (no such file exists in `public/icons/`; last commit touching manifest/icon files predates this session by multiple sessions).
+  **Artifacts updated:** `4b-10-tier-guard-port-and-cutover.migration-order.md` (Status → CONFIRMED, executed, CLOSED; entry criteria + Slice-level verification all checked; Deviations filled in full — 7 entries), `migration-cutover-table.md` (new Slice 10 row → CUT-OVER & LIVE, verification complete; Slice 7's compounding corruption flagged not fixed), this file. No `DECISION-LOG.md` flag applies (no F-numbered decision was open this session). No new `LESSONS-LEARNED.md` entry — the Jest-hoisting fix and the L28 gap are both recurrences of already-documented patterns, not new failure classes. New `4b-11-...migration-order.md` PRE-DRAFTed (next domain slice per the session playbook's own remaining Phase 4B order: user/profile/2FA/sessions).
 - **Previous:** Session 4B-9 (Notifications Domain Extraction & Cutover, PORT+CUTOVER combined variant), CONFIRMED and executed 2026-08-02. **Slice 9 (Notifications) is CUT-OVER & LIVE** — `MIGRATE_NOTIFICATIONS=true` in Vercel production, all 3 monolith `app/api/notifications/*` route files forwarding to `operation-service`'s new `NotificationsController`. Live production `GET /notifications` and `POST /notifications` (200 OK) verified in Railway HTTP logs.
   **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file
   modified-but-uncommitted, `PRE-DRAFT → APPROVED` with a full content rewrite, no
@@ -2850,6 +2857,17 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   actually meant to record, which is out of this session's scope. This session's own new Slice 9
   row was authored clean (exactly 11 pipes) and does not have this problem. Worth a future
   session's (or the Advisor's) dedicated cleanup pass on the Slice 7 row specifically.
+  **(91, NEW — Session 4B-10, 2026-08-02, supersedes/compounds #90)** The Slice 7 row's defect isn't
+  just a stray-pipe count issue — it turns out Slices 8 and 9's entire rows are merged into it with
+  no separating newline, discovered while updating this session's own new Slice 10 row (`sed`/`awk`  line-count checks showed only 22 total lines in the file despite 10 slice rows existing, and one
+  single "line" containing Slice 7 + 8 + 9's content back to back). Root cause: each of those
+  sessions appears to have appended its new row directly onto the end of the prior row's own Notes
+  cell instead of ensuring a genuine newline started the new row — compounding across 3 sessions
+  now. NOT fixed here (reconstructing 3 merged rows correctly needs care beyond this session's own
+  scope) — this session's own Slice 10 row was spliced in as a single, clean, correctly-terminated
+  line (verified: 11 pipes) using a line-addressed`sed` replacement rather than a text-match edit,
+  specifically to avoid adding to the corruption. Worth a dedicated future session (or the Advisor)
+  reconstructing Slices 7/8/9 as 3 proper separate rows.
 - **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
   2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
   **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:
@@ -2890,13 +2908,23 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `POST .../read` on a single item not yet exercised — Davin's own account had zero notifications
   to test against). A real live bug (NestJS's `@Post()` 201-vs-SOURCE's-200 mismatch) was found via
   Railway HTTP logs during the cutover's own smoke test and fixed same-session — see
-  `LESSONS-LEARNED.md` L43. **The actual next session overall is now 4B-10**
-  (`4b-10-...migration-order.md`, PRE-DRAFTed at 4B-9's close) — tier (guard) is next in the
-  session playbook's own remaining Phase 4B domain-slice order (drawings and notifications are now
-  both done; user/profile/2FA/sessions → market-data channel proxy remain after tier).
+  `LESSONS-LEARNED.md` L43.
   **Also flagged, not fixed (out of this session's own scope):** `migration-cutover-table.md`'s
   Slice 7 (Alerts CRUD) row has a pre-existing pipe-count/formatting defect (21 pipes where 11 are
   correct) predating this session — worth a future session's cleanup pass.
+  **Session 4B-10 (Tier Domain Extraction, TierGuard & Cutover) is now CONFIRMED, executed, and
+  fully closed** (2026-08-02, same combined PORT+CUTOVER shape as 4B-8/4B-9 — see Current above for
+  full detail). **Slice 10 (Tier) is CUT-OVER & LIVE**, `MIGRATE_TIER=true` in production,
+  **verification COMPLETE (not partial)** — all 3 endpoints proven live via Davin's own browser
+  smoke test, independently cross-checked against `operation-service`'s Railway HTTP logs.
+  **Found, not fixed (out of scope):** the Slice 7 row's pipe-count corruption above has compounded
+  — Slices 8 and 9's rows turned out to be merged into it with no separating newline, discovered
+  while updating this session's own new row. This session's own Slice 10 row was authored clean (11
+  pipes, correctly terminated) — the compounding corruption in Slice 7/8/9's shared row still needs
+  a dedicated cleanup pass. **The actual next session overall is now 4B-11**
+  (`4b-11-...migration-order.md`, PRE-DRAFTed at 4B-10's close) — user/profile/2FA/sessions is next
+  in the session playbook's own remaining Phase 4B domain-slice order (drawings, notifications, and
+  tier are now all done; only the market-data channel proxy remains after this).
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.
