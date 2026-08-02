@@ -2627,7 +2627,56 @@ Test suites: `operation-service` 30/30→33/33 (+3 new spec files, 28 new tests)
 
 </details>
 
+<details>
+<summary><code>operation-service/src/tier/</code> + <code>src/auth/tier.guard.ts</code> — 7 new files +
+`app.module.ts` modified (Session 4B-10, Tier PORT+CUTOVER combined)</summary>
+
+PORT+CUTOVER session (same combined shape as Sessions 4B-8/4B-9 — small blast radius, 3 read-only
+files, no payment/webhook surface). Ports `app/api/tier/symbols/route.ts` (118 lines) +
+`app/api/tier/check/[symbol]/route.ts` (124 lines) + `app/api/tier/combinations/route.ts`
+(145 lines, 387 total) into `operation-service`, AND builds new reusable tier-gating
+infrastructure, AND wires + cuts over the monolith side in the same session.
+`MIGRATE_TIER=true` in Vercel production — **CUT-OVER & LIVE, verification COMPLETE (all 3
+endpoints, not partial — see `CLAUDE.md`/cutover table).**
+
+- `tier.module.ts` — registers `TierController`/`TierService`; no `PrismaModule` import needed
+  (this domain reads no database state at all — pure config/constants), registered in `AppModule`
+- `tier.controller.ts` + `tier.service.ts` (+ `.spec.ts` each) — `GET /tier/symbols`,
+  `GET /tier/check/:symbol`, `GET /tier/combinations`, all `JwtAuthGuard`-only (none of the 3
+  SOURCE routes enforce tier gating — V8: FREE/PRO get identical XAUUSD/M5/M15 data), explicit
+  `@HttpCode(200)` on every handler
+- `tier.schemas.ts` — locally re-defines `lib/tier-config.ts`'s constants
+  (`FREE_SYMBOLS`/`PRO_SYMBOLS`/`FREE_TIMEFRAMES`/`PRO_TIMEFRAMES`/`canAccessSymbol`), since
+  `operation-service` cannot import monolith `lib/*` directly. Deliberately matches
+  `tier-config.ts`'s `canAccessSymbol(symbol, tier)` semantics, NOT `lib/tier-validation.ts`'s
+  differently-ordered, differently-scoped function of the same name (already used by
+  Drawings/Alerts) — the 3 SOURCE tier routes only ever import from `tier-config.ts`
+- `dto/tier.dto.ts` — type-only re-export for controller/service signatures
+- `../auth/tier.guard.ts` (+ `.spec.ts`) — new `@RequireTier()`/`TierGuard`
+  (`SetMetadata`+`Reflector`, the standard NestJS roles-guard shape — a genuinely new pattern for
+  this codebase). Reusable infrastructure for FUTURE tier-gated endpoints in other domains; unused
+  by any of `TierController`'s own 3 handlers, since none of them gate by tier
+
+**Monolith side (same session, not split out):** `lib/operation-service/flags.ts` gained
+`shouldUseOperationServiceForTier()`; all 3 `app/api/tier/*` route files wired to check it
+immediately after existing auth and forward via `forwardRequestToOperationService()`. 2 of 3
+route files (`symbols`, `combinations`) gained a genuinely new `request: NextRequest` parameter
+they previously didn't have at all (not a `_request`→`request` rename — only
+`check/[symbol]/route.ts` had one to widen). Closed an L28-class gap: `check/[symbol]/route.ts`
+had zero test coverage anywhere in the repo before this session — added 5 new tests for it plus 3
+forwarding tests (one per route). Hit and fixed a Jest module-hoisting trap while updating
+`__tests__/api/tier.test.ts`: a class-based `OperationServiceError` mock alongside the file's
+pre-existing static top-level route imports threw a TDZ `ReferenceError` (Babel hoists ES imports
+above same-file class declarations regardless of textual order) — fixed by switching to per-test
+dynamic `await import(...)`, matching `__tests__/api/notifications.test.ts`'s own convention.
+
+Test suites: `operation-service` 33/33→36/36 (+3 new spec files, 14 new tests). `nest build`/
+`tsc --noEmit` clean. Monolith `test:ci` 122/122 suites, 2157/2157 tests (was 122/122, 2150/2150 at
+4B-9's close — +7 tests); `tsc --noEmit` clean, `npm run build` clean.
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-02 (Session 4B-9, Notifications PORT+CUTOVER)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-02 (Session 4B-10, Tier PORT+CUTOVER)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
