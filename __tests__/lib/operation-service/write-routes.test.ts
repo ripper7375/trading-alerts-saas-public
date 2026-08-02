@@ -24,12 +24,19 @@ jest.mock('@/lib/operation-service/client', () => ({
   getOperationServiceToken: () => mockGetOperationServiceToken(),
   callOperationServiceWithTokenStatus: (...args: unknown[]) =>
     mockCallOperationServiceWithTokenStatus(...args),
+  // Real implementation (pure, no dependencies) — Session 4B-11 wired this
+  // into the forwarder so operation-service sees the real caller's
+  // user-agent/IP instead of the monolith's own outbound request's.
+  forwardedRequestContext: jest.requireActual('@/lib/operation-service/client')
+    .forwardedRequestContext,
 }));
 
 function makeRequest(opts: {
   method?: string;
   body?: string;
   correlationId?: string;
+  userAgent?: string;
+  forwardedFor?: string;
 }): {
   method: string;
   headers: Headers;
@@ -37,6 +44,8 @@ function makeRequest(opts: {
 } {
   const headers = new Headers();
   if (opts.correlationId) headers.set('x-correlation-id', opts.correlationId);
+  if (opts.userAgent) headers.set('user-agent', opts.userAgent);
+  if (opts.forwardedFor) headers.set('x-forwarded-for', opts.forwardedFor);
   return {
     method: opts.method ?? 'GET',
     headers,
@@ -189,6 +198,35 @@ describe('forwardRequestToOperationService', () => {
       '/alerts',
       'test-token',
       expect.objectContaining({ headers: {} })
+    );
+  });
+
+  it('propagates the real caller user-agent and x-forwarded-for to operation-service (Session 4B-11)', async () => {
+    mockCallOperationServiceWithTokenStatus.mockResolvedValue({
+      status: 200,
+      body: {},
+    });
+    const { forwardRequestToOperationService } = await import(
+      '@/lib/operation-service/write-routes'
+    );
+
+    await forwardRequestToOperationService(
+      makeRequest({
+        userAgent: 'Mozilla/5.0 Chrome/120',
+        forwardedFor: '203.0.113.7',
+      }) as never,
+      '/user/sessions'
+    );
+
+    expect(mockCallOperationServiceWithTokenStatus).toHaveBeenCalledWith(
+      '/user/sessions',
+      'test-token',
+      expect.objectContaining({
+        headers: {
+          'user-agent': 'Mozilla/5.0 Chrome/120',
+          'x-forwarded-for': '203.0.113.7',
+        },
+      })
     );
   });
 

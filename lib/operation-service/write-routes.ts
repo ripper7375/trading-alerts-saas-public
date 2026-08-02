@@ -19,6 +19,7 @@ import type { NextRequest } from 'next/server';
 import {
   callOperationServiceWithOptionalTokenStatus,
   callOperationServiceWithTokenStatus,
+  forwardedRequestContext,
   getOperationServiceToken,
   OperationServiceError,
   type OperationServiceResponse,
@@ -70,7 +71,17 @@ export async function forwardRequestToOperationService<T>(
     // an empty string — matches forwardWriteRequestToMoneyService's own
     // convention for a genuinely bodyless request.
     ...(body ? { body } : {}),
-    headers: correlationId ? { 'x-correlation-id': correlationId } : {},
+    headers: {
+      ...(correlationId ? { 'x-correlation-id': correlationId } : {}),
+      // Session 4B-11 fix: without this, operation-service's own
+      // request.ip/user-agent reflect the MONOLITH's outbound call, not
+      // the real browser — silently wrong for anything reading them
+      // (session device tracking, security-alert email IP/location).
+      // forwardedRequestContext() already existed for exactly this; it
+      // just wasn't wired into this forwarder until a live smoke test
+      // caught the gap (Deviations).
+      ...forwardedRequestContext(request),
+    },
   });
 }
 
@@ -103,6 +114,9 @@ export async function forwardRequestToOperationServiceOptionalAuth<T>(
   return callOperationServiceWithOptionalTokenStatus<T>(path, token, {
     method,
     ...(body ? { body } : {}),
-    headers: correlationId ? { 'x-correlation-id': correlationId } : {},
+    headers: {
+      ...(correlationId ? { 'x-correlation-id': correlationId } : {}),
+      ...forwardedRequestContext(request),
+    },
   });
 }
