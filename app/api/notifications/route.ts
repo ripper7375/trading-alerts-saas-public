@@ -4,6 +4,11 @@ import { z } from 'zod';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import { shouldUseOperationServiceForNotifications } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // INPUT VALIDATION SCHEMAS
@@ -46,6 +51,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     const userId = session.user.id;
+
+    // Session 4B-9: when the flag is on, operation-service's
+    // NotificationsController (Session 4B-9 PORT) already re-implements the
+    // list/filter logic below against the same schema — forward instead.
+    if (shouldUseOperationServiceForNotifications()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        `/notifications${new URL(request.url).search}`
+      );
+      return NextResponse.json(body, { status: opStatus });
+    }
 
     // Parse and validate query parameters
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
@@ -120,6 +136,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       unreadCount,
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('GET /api/notifications error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
@@ -143,9 +162,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 /**
  * POST /api/notifications - Mark all notifications as read
  *
+ * @param request - Next.js request object (added Session 4B-9; needed for
+ * forwarding to operation-service — the SOURCE handler this was ported from
+ * took no parameter at all, since it never read the request)
  * @returns Success status with count of updated notifications
  */
-export async function POST(): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Authentication check
     const session = await getServerSession(authOptions);
@@ -160,6 +182,17 @@ export async function POST(): Promise<NextResponse> {
     }
 
     const userId = session.user.id;
+
+    // Session 4B-9: when the flag is on, operation-service's
+    // NotificationsController (Session 4B-9 PORT) already re-implements the
+    // mark-all-read logic below against the same schema — forward instead.
+    if (shouldUseOperationServiceForNotifications()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        '/notifications'
+      );
+      return NextResponse.json(body, { status: opStatus });
+    }
 
     // Mark all unread notifications as read
     const result = await prisma.notification.updateMany({
@@ -179,6 +212,9 @@ export async function POST(): Promise<NextResponse> {
       message: `${result.count} notification(s) marked as read`,
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('POST /api/notifications error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,

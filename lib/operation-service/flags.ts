@@ -35,3 +35,12 @@ export function shouldUseOperationServiceForAlertsCrud(): boolean {
 export function shouldUseOperationServiceForDrawings(): boolean {
   return process.env['MIGRATE_DRAWINGS'] === 'true';
 }
+
+/**
+ * Check if the Notifications routes (Session 4B-9's NotificationsController
+ * PORT) should forward to operation-service instead of the monolith's own
+ * Prisma logic. Default: false (monolith serves Notifications directly).
+ */
+export function shouldUseOperationServiceForNotifications(): boolean {
+  return process.env['MIGRATE_NOTIFICATIONS'] === 'true';
+}

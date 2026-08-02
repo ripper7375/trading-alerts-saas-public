@@ -51,11 +51,15 @@ class MockURLSearchParams {
 class MockURL {
   searchParams: MockURLSearchParams;
   pathname: string;
+  search: string;
 
   constructor(url: string) {
     const [path, query] = url.split('?');
     this.pathname = path || '';
     this.searchParams = new MockURLSearchParams(query || '');
+    // Matches real URL.search semantics (Session 4B-9's forwarding branch
+    // uses `new URL(request.url).search`, not just `nextUrl.searchParams`).
+    this.search = query ? `?${query}` : '';
   }
 }
 
@@ -123,9 +127,37 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
+// Mock the Session 4B-9 operation-service transport (flag + forwarder)
+const mockShouldUseOpService = jest.fn().mockReturnValue(false);
+jest.mock('@/lib/operation-service/flags', () => ({
+  __esModule: true,
+  shouldUseOperationServiceForNotifications: () => mockShouldUseOpService(),
+}));
+
+class MockOperationServiceError extends Error {
+  status: number;
+  body: Record<string, unknown>;
+  constructor(status: number, body: Record<string, unknown>) {
+    super(String(body.message ?? 'error'));
+    this.status = status;
+    this.body = body;
+  }
+}
+const mockForwardRequestToOperationService = jest.fn();
+jest.mock('@/lib/operation-service/write-routes', () => ({
+  __esModule: true,
+  OperationServiceError: MockOperationServiceError,
+  forwardRequestToOperationService: (...args: unknown[]) =>
+    mockForwardRequestToOperationService(...args),
+}));
+
 describe('Notifications API Routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // clearAllMocks() does not reset mockReturnValue() -- re-pin the flag to
+    // its default OFF state before every test so a flag-on test earlier in
+    // the file can never leak into a later, flag-off-assuming test.
+    mockShouldUseOpService.mockReturnValue(false);
   });
 
   describe('GET /api/notifications', () => {
@@ -287,6 +319,46 @@ describe('Notifications API Routes', () => {
 
       expect(data.totalPages).toBe(3); // Math.ceil(45/20)
     });
+
+    it('forwards to operation-service when MIGRATE_NOTIFICATIONS is on', async () => {
+      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1' } });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockResolvedValue({
+        status: 200,
+        body: { notifications: [{ id: 'op-notif-1' }], unreadCount: 2 },
+      });
+
+      const { GET } = await import('@/app/api/notifications/route');
+      const request = new MockRequest(
+        'http://localhost/api/notifications?status=unread'
+      );
+      const response = await GET(request as unknown as Request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.notifications).toEqual([{ id: 'op-notif-1' }]);
+      expect(mockForwardRequestToOperationService).toHaveBeenCalledWith(
+        request,
+        '/notifications?status=unread'
+      );
+      expect(mockNotificationFindMany).not.toHaveBeenCalled();
+    });
+
+    it('maps an OperationServiceError to its own status/body when forwarding', async () => {
+      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1' } });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockRejectedValue(
+        new MockOperationServiceError(503, { error: 'operation-service down' })
+      );
+
+      const { GET } = await import('@/app/api/notifications/route');
+      const request = new MockRequest('http://localhost/api/notifications');
+      const response = await GET(request as unknown as Request);
+      const data = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(data.error).toBe('operation-service down');
+    });
   });
 
   describe('POST /api/notifications - Mark All Read', () => {
@@ -357,6 +429,30 @@ describe('Notifications API Routes', () => {
 
       expect(response.status).toBe(500);
       expect(data.error).toBe('Failed to mark all as read');
+    });
+
+    it('forwards to operation-service when MIGRATE_NOTIFICATIONS is on', async () => {
+      mockGetServerSession.mockResolvedValue({ user: { id: 'user-1' } });
+      mockShouldUseOpService.mockReturnValue(true);
+      mockForwardRequestToOperationService.mockResolvedValue({
+        status: 200,
+        body: { success: true, updatedCount: 7, message: '7 marked' },
+      });
+
+      const { POST } = await import('@/app/api/notifications/route');
+      const request = new MockRequest('http://localhost/api/notifications', {
+        method: 'POST',
+      });
+      const response = await POST(request as unknown as Request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.updatedCount).toBe(7);
+      expect(mockForwardRequestToOperationService).toHaveBeenCalledWith(
+        request,
+        '/notifications'
+      );
+      expect(mockNotificationUpdateMany).not.toHaveBeenCalled();
     });
   });
 

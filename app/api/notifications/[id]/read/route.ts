@@ -3,6 +3,11 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import { shouldUseOperationServiceForNotifications } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ROUTE PARAMS TYPE
@@ -26,7 +31,7 @@ interface RouteContext {
  * @returns Updated notification object
  */
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   context: RouteContext
 ): Promise<NextResponse> {
   try {
@@ -44,6 +49,19 @@ export async function POST(
 
     const userId = session.user.id;
     const { id } = await context.params;
+
+    // Session 4B-9: when the flag is on, operation-service's
+    // NotificationsController (Session 4B-9 PORT) already re-implements the
+    // ownership check and mark-read logic below (including the
+    // already-read short-circuit) against the same schema — forward
+    // instead.
+    if (shouldUseOperationServiceForNotifications()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        `/notifications/${id}/read`
+      );
+      return NextResponse.json(body, { status: opStatus });
+    }
 
     // Fetch notification to verify ownership
     const notification = await prisma.notification.findUnique({
@@ -127,6 +145,9 @@ export async function POST(
       message: 'Notification marked as read',
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('POST /api/notifications/[id]/read error:', {
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
