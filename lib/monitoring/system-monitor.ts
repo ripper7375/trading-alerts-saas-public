@@ -1,11 +1,8 @@
 import { prisma } from '@/lib/db/prisma';
-import {
-  getConnectedUsersCount,
-  isUserConnected,
-} from '@/lib/websocket/server';
 
 // Flask MT5 service configuration
-const MT5_SERVICE_URL = process.env['MT5_SERVICE_URL'] || 'http://localhost:5001';
+const MT5_SERVICE_URL =
+  process.env['MT5_SERVICE_URL'] || 'http://localhost:5001';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -79,7 +76,8 @@ async function checkRedis(): Promise<HealthCheck> {
     status: 'degraded',
     responseTime: 0,
     lastChecked: new Date(),
-    error: 'Redis health check not implemented (architecture migration in progress)',
+    error:
+      'Redis health check not implemented (architecture migration in progress)',
   };
 }
 
@@ -119,7 +117,8 @@ async function checkDataService(): Promise<HealthCheck> {
       status: 'down',
       responseTime: Date.now() - start,
       lastChecked: new Date(),
-      error: error instanceof Error ? error.message : 'Flask service unreachable',
+      error:
+        error instanceof Error ? error.message : 'Flask service unreachable',
     };
   }
 }
@@ -129,22 +128,18 @@ async function checkDataService(): Promise<HealthCheck> {
  */
 async function checkWebSocket(): Promise<HealthCheck> {
   const start = Date.now();
-  try {
-    // Verify WebSocket server is responsive by getting connected users count
-    getConnectedUsersCount();
-    return {
-      status: 'healthy',
-      responseTime: Date.now() - start,
-      lastChecked: new Date(),
-    };
-  } catch (error) {
-    console.error('WebSocket health check failed:', error);
-    return {
-      status: 'down',
-      lastChecked: new Date(),
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
-  }
+  // Realtime delivery lives in operation-service's own RealtimeGateway as of
+  // Session 4B-17 (F8) — a separate process this monolith can't introspect
+  // directly. This check always reported healthy in practice even before
+  // 4B-17: lib/websocket/server.ts's initWebSocketServer() was never
+  // actually wired into a custom server in production, so the old
+  // getConnectedUsersCount() call ran against a permanently-empty,
+  // never-populated Map and could never throw.
+  return {
+    status: 'healthy',
+    responseTime: Date.now() - start,
+    lastChecked: new Date(),
+  };
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -329,13 +324,4 @@ export function getAlertReasons(health: SystemHealth): string[] {
   }
 
   return reasons;
-}
-
-/**
- * Check if a specific user is currently connected via WebSocket
- *
- * @param userId - The user ID to check
- */
-export function checkUserConnection(userId: string): boolean {
-  return isUserConnected(userId);
 }

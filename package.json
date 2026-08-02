@@ -43,7 +43,6 @@
     "test:mt5:deployment": "tsx scripts/test-mt5-deployment.ts",
     "test:mt5:monitor": "tsx scripts/monitor-mt5-pipeline.ts",
     "test:mt5:all": "npm run test:mt5:verify && npm run test:mt5:deployment && npm run test:mt5:monitor",
-    "worker:alerts": "tsx scripts/alert-worker.ts",
     "e2e:setup": "bash scripts/setup-e2e.sh",
     "health:check": "node scripts/health-check-ui.js",
     "health:check:http": "node scripts/health-check-ui.js --http",
