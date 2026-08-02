@@ -74,6 +74,137 @@ model RefreshToken {
   @@index([expiresAt])
 }
 
+// Session 4B-11 (User Profile/2FA/Sessions/Account Deletion): 4 more narrow-
+// subset mirrors of prisma/non-market-data/schema.prisma models, plus
+// NextAuth's own bare Session model — added at CONFIRM after an Executor
+// audit found the APPROVED order's Entry Criterion 2 named 2 models that
+// don't exist anywhere (Account, TwoFactorBackupCode — backup codes are
+// just a JSON string field on User, see above) while omitting these 4 real
+// ones. `userId` kept as a bare scalar on all 4 (no `User @relation`), same
+// convention as every other narrow-subset model in this file — none of the
+// 14 ported SOURCE routes or their lib/ dependencies traverse a relation
+// (`include: { user: true }`), only flat `where: { userId }` lookups.
+// Table names/`@@map` values copied exactly from the source-of-truth schema
+// so these hit the identical shared Postgres tables (L1: this file never
+// migrates, only hand-mirrors for `prisma generate`).
+
+model UserPreferences {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  preferences Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model AccountDeletionRequest {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  status    String   @default("PENDING")
+  expiresAt DateTime
+
+  confirmedAt DateTime?
+  cancelledAt DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([token])
+  @@index([status])
+}
+
+enum LoginStatus {
+  SUCCESS
+  FAILED
+  BLOCKED
+}
+
+/// Tracks all login attempts for security monitoring.
+model LoginHistory {
+  id     String      @id @default(cuid())
+  userId String
+  status LoginStatus
+  provider String
+
+  userAgent      String?
+  deviceType     String?
+  browser        String?
+  browserVersion String?
+  os             String?
+  osVersion      String?
+
+  ipAddress String?
+  country   String?
+  city      String?
+  region    String?
+
+  deviceFingerprint String?
+  isNewDevice       Boolean @default(false)
+
+  failureReason String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([ipAddress])
+  @@index([deviceFingerprint])
+  @@index([createdAt])
+  @@map("login_history")
+}
+
+/// Extended session tracking for device/location monitoring (distinct from
+/// NextAuth's own bare Session model below) — the real model behind
+/// "list/revoke sessions" in the ported SOURCE (lib/auth/session-tracker.ts).
+model UserSession {
+  id     String @id @default(cuid())
+  userId String
+
+  userAgent      String?
+  ipAddress      String?
+  deviceType     String?
+  browser        String?
+  browserVersion String?
+  os             String?
+  osVersion      String?
+
+  country String?
+  city    String?
+  region  String?
+
+  isActive     Boolean  @default(true)
+  lastActiveAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+
+  sessionToken String? @unique
+
+  @@index([userId])
+  @@index([sessionToken])
+  @@index([isActive])
+  @@index([lastActiveAt])
+  @@map("user_sessions")
+}
+
+/// NextAuth's own session table — mirrored ONLY because
+/// session-tracker.ts's revoke functions delete rows here by
+/// `sessionToken` when revoking a UserSession. No relation to User (never
+/// traversed by the ported code).
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  @@index([userId])
+}
+
 // Session 3-4: NARROW subset mirror of prisma/non-market-data/schema.prisma's
 // SecurityAlert, same convention as User above — only the fields the 2FA
 // enable/disable endpoints actually write (a create-only write path this
