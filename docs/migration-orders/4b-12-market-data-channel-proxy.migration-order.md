@@ -7,7 +7,7 @@
 **Session:** 4B-12  
 **Phase / plan section:** Phase 4B step 12, plan §6  
 **Target service:** `operation-service` & Next.js Monolith  
-**Variant:** PORT · **Status:** CONFIRMED (2026-08-02)  
+**Variant:** PORT · **Status:** CONFIRMED, executed — cutover attempted & reverted, blocked on `DECISION-LOG.md` F52 (2026-08-02)  
 **Generated:** 2026-08-02 (Advisor upgrade from PRE-DRAFT, Davin APPROVED 2026-08-02, Executor CONFIRMED 2026-08-02).  
 **Flags touched:** `MIGRATE_MARKET_DATA_CHANNEL` (default `false`, defined in `lib/operation-service/flags.ts`)  
 **Contract:** Parity with `app/api/market-data/channel/route.ts` (125 lines):
@@ -106,16 +106,19 @@
 - [x] `nest build` / `tsc --noEmit` clean in `operation-service` — full suite 40/40 suites, 359/359 tests (was 38/38, 348/348 at 4B-11's close).
 - [x] Monolith `npm run build` / `tsc --noEmit` clean — full `test:ci` 123/123 suites, 2171/2171 tests (was 122/122, 2158/2158); `eslint --max-warnings 0` clean.
 - [x] Deployed to Railway, `/health` -> 200. Deployment `7a097df5` confirmed `SUCCESS` (not the stale top-level status — checked `latestDeployment.status` specifically per L-precedent). Unauthenticated `GET /market-data/channel` -> 401 (not 404 — proves the route is genuinely mapped); a real nonexistent route -> 404 as control. Fresh boot log for this exact deployment shows `MarketDataController {/market-data}` registered, `Mapped {/market-data/channel, GET}`, `Nest application successfully started`, zero DI errors — log lines timestamp-correlated to the verification requests just sent.
-- [ ] **STOP — awaiting Davin's live approval checkpoint before this step.** `MIGRATE_MARKET_DATA_CHANNEL=true` NOT yet set on Vercel production; no live smoke test performed. Everything above this line is built, tested, and deployed with zero traffic cut over — `operation-service`'s new route receives none of the monolith's real traffic until this flag flips.
+- [x] `MIGRATE_MARKET_DATA_CHANNEL=true` set on Vercel production (Davin's explicit live approval) + monolith redeployed clean (`dpl_EfyoNAeysgtMwNpYbn85zL8wKqoj`) + live smoke test performed by Davin. **Smoke test result: a real 500** (`table public.market_data_v6 does not exist` — `DECISION-LOG.md` F52, a pre-existing production gap, not caused by this session's code). **Flag reverted the same session** — see Rollback below and Deviations #6.
 
 ---
 
 ## Rollback
 
-If issues occur post-cutover:
+**Executed live, 2026-08-02** (not just reasoned about — the first slice in this migration where
+rollback was genuinely exercised in production, per the standing "any red result = abort
+immediately, revert flag" rule):
 
-1. Set `MIGRATE_MARKET_DATA_CHANNEL=false` in Vercel production environment variables.
-2. Redeploy Next.js monolith. Traffic immediately reverts to local monolith Prisma route. Zero downtime.
+1. `MIGRATE_MARKET_DATA_CHANNEL` removed from Vercel production (`vercel env rm`).
+2. Monolith redeployed (`vercel --prod --archive=tgz --yes`, `dpl_EgN82iVqFvDTB75oEfKxDsac5P7X`, READY).
+3. Re-verified live: unauthenticated `GET /api/market-data/channel` → 401 (unchanged), flag confirmed absent from `vercel env ls production`. Zero downtime, zero ongoing exposure — traffic reverted to the monolith's own local `marketPrisma` route immediately, exactly as this section originally predicted.
 
 ---
 
@@ -158,6 +161,31 @@ correlationId}` — not a literal `{success, error, message}` passthrough. Follo
    `DrawingsService`'s own established split — SOURCE's exact per-field 400 error strings
    (`'Unsupported symbol (XAUUSD only)'`, etc.) are hand-written checks, not schema-shaped, and a
    generic Zod enum error would not reproduce them.
+6. **Step 4's cutover was executed with Davin's explicit live approval, then reverted within
+   minutes of the smoke test — a real, previously-latent production bug, not a defect in this
+   session's own code.** Full evidence chain in `DECISION-LOG.md` **F52** (new, OPEN): Davin's own
+   live browser smoke test returned a genuine `500` (not a transport/auth failure — the response
+   body carried `operation-service`'s own `AllExceptionsFilter` shape, proving the request reached
+   the new controller). The real Railway stack trace showed `PrismaClientKnownRequestError: table
+public.market_data_v6 does not exist` — a missing TABLE, not a missing column, so this session's
+   own additive 18-column schema widening is provably not the cause (the original 5-field model
+   would fail identically). Value-blind host comparison confirmed `operation-service`'s Railway
+   `DATABASE_URL` and the monolith's Vercel `DATABASE_URL` are the same physical Postgres instance
+   (34 real tables present, zero matching `market_data`) — not a wrong-environment mixup. Root
+   cause, confirmed via production's own `_prisma_migrations` table: the monolith's real
+   `20260705000000_add_market_data_v6` migration (a genuine `CREATE TABLE` statement, still in the
+   repo) was recorded `finished_at` during Session 2-3's migration-history baseline with
+   `applied_steps_count: 0` — marked resolved without ever actually running. **Reverted
+   immediately** per the standing "any red result = abort, revert" rule:
+   `MIGRATE_MARKET_DATA_CHANNEL` removed from Vercel production, monolith redeployed
+   (`dpl_EgN82iVqFvDTB75oEfKxDsac5P7X`, READY), re-verified live (unauthenticated route still 401,
+   flag confirmed absent). Zero ongoing production exposure — the monolith serves this route
+   exactly as before this session. This is the first slice in the whole migration where rollback
+   was genuinely EXERCISED live rather than only reasoned about. Fix needs its own dedicated
+   schema-repair session (re-resolve + re-apply the one migration, and separately confirm whether
+   the `railway-gateway` ingestion pipeline that's supposed to populate this table was ever pointed
+   at real production) — out of scope for this PORT session and out of the Executor's own authority
+   to attempt unilaterally (a production schema DDL action, `EXECUTOR-PROTOCOL.md` §7).
 
 ---
 
@@ -170,4 +198,13 @@ correlationId}` — not a literal `{success, error, message}` passthrough. Follo
 
 ## Next-session handoff
 
-- **Session 4B-17 / Phase 4B Completion Review:** Final review of Phase 4B microservices extraction and readiness for Phase 5.
+- **New, higher-priority item found this session: a dedicated schema-repair session for
+  `DECISION-LOG.md` F52** (`market_data_v6` table missing in production — its own `CREATE TABLE`
+  migration was baselined with zero applied steps during Session 2-3, never actually run). Needs
+  Davin's live presence (production schema DDL action) — likely `prisma migrate resolve
+--rolled-back 20260705000000_add_market_data_v6` then `prisma migrate deploy`, plus a separate
+  check on whether the `railway-gateway` ingestion pipeline was ever pointed at this production
+  database at all. This session's own cutover (`MIGRATE_MARKET_DATA_CHANNEL`) cannot be safely
+  retried until F52 is resolved — the code side is fully built, tested, and deployed; only the
+  underlying table is missing.
+- **Session 4B-17 / Phase 4B Completion Review:** Final review of Phase 4B microservices extraction and readiness for Phase 5 — unaffected by F52, can proceed independently once Davin decides ordering.

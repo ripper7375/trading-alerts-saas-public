@@ -2050,6 +2050,76 @@ aggregateId } })`, treated as a universal step. Reading `stripe-webhook.service.
 - Evidence: Live decision from Davin via interactive prompt.
 - Approved by: Davin
 
+## F52 — `market_data_v6` was never actually created in production; its own migration was baselined with zero applied steps
+
+- Status: OPEN
+- Session: 4B-12 · Date: 2026-08-02
+- Found while: running this session's own live smoke test (Davin, browser DevTools console,
+  `GET /api/market-data/channel?timeframe=M5` against the freshly cut-over route). Got a real `500`
+  whose body was `operation-service`'s own `AllExceptionsFilter` shape
+  (`{statusCode, message, error, timestamp, path, correlationId}`) — proof the request genuinely
+  reached the new `MarketDataController`, not evidence of a transport/auth bug. Pulled the real
+  stack trace from `operation-service`'s Railway logs (never trusted the client-side message alone,
+  L18-class discipline): `PrismaClientKnownRequestError: The table \`public.market_data_v6\` does
+  not exist in the current database.`
+- **Not caused by this session's code — independently proven.** The thrown error is a missing
+  TABLE, not a missing column. This session's own schema change (18 new `Float?` columns) is
+  additive on top of the pre-existing 5-field model — even the ORIGINAL, narrower `MarketDataV6`
+  model (mirrored since Session 4B-2) would fail identically against a database with no
+  `market_data_v6` table at all. The monolith's own un-cut-over SOURCE route
+  (`app/api/market-data/channel/route.ts`, unchanged, `marketPrisma.marketDataV6.findMany(...)`)
+  reads from the exact same production database (see next bullet) and would 500 identically for
+  any real PRO-tier caller — this bug almost certainly predates this migration entirely and has
+  simply never been exercised by real traffic that got far enough to hit it.
+- **Confirmed this is genuinely the SAME shared production database on both sides, not a
+  wrong-target-environment mixup (L19-class check, value-blind hostname comparison only — no
+  credentials ever displayed):** `operation-service`'s Railway `DATABASE_URL` host
+  (`postgres.railway.internal`) matches the `Postgres` service's own internal `DATABASE_URL`;
+  its public-proxy equivalent (`DATABASE_PUBLIC_URL`, host `maglev.proxy.rlwy.net`) was queried
+  directly and shows 34 real tables (`Alert`, `AffiliateProfile`, `Commission`,
+  `DisbursementTransaction`, ... — the same tables every prior cutover slice has proven live) but
+  **zero** tables matching `%market_data%`. The monolith's own Vercel production `DATABASE_URL`
+  (pulled via `vercel env pull`, read only by a script, never displayed) resolves to host
+  `maglev.proxy.rlwy.net` — the exact same instance.
+- **Root cause identified precisely, not just "table missing":** the monolith's own migration
+  `prisma/migrations/20260705000000_add_market_data_v6/migration.sql` (a real `CREATE TABLE
+market_data_v6 (...)` statement) exists in the codebase and IS recorded in production's
+  `_prisma_migrations` table as `finished_at: 2026-07-20T11:08:10.001Z` — but with
+  `applied_steps_count: 0`. Every migration from `20251227000000_init` through
+  `20260705010000_drop_market_data` shows the same `steps: 0` pattern, all `finished_at` within the
+  same ~3-minute window (`2026-07-20T11:05-11:08Z`) — this is Session 2-3's own documented
+  migration-history baseline (`CLAUDE.md`'s F20 resolution, "migration history baselined"), which
+  told Prisma "these changes already exist, just record them as applied" for the WHOLE
+  pre-2-3 history at once. That assumption held for every other table in the baseline (all still
+  live and working today) but was wrong specifically for `market_data_v6` — its `CREATE TABLE` DDL
+  was marked resolved without ever actually running. Compare `20260721000000_add_refresh_token_table`
+  (`steps: 1`, a real post-baseline migration that genuinely executed) for the contrast.
+- **Not fixed this session — reverted instead, per the standing "any red result = abort
+  immediately, revert flag" rule:** `MIGRATE_MARKET_DATA_CHANNEL` removed from Vercel production
+  (`vercel env rm`, then `vercel --prod --archive=tgz --yes` redeploy, `dpl_EgN82iVqFvDTB75oEfKxDsac5P7X`,
+  READY) within minutes of the smoke test. Re-verified live: unauthenticated
+  `GET /api/market-data/channel` -> `401` (route present, flag genuinely off), flag confirmed absent
+  from `vercel env ls production`. Zero ongoing production exposure — the monolith is back to
+  serving this route with its own (equally broken, but unchanged-in-behavior) SOURCE code, exactly
+  as before this session started.
+- **What a correct fix needs (not decided here — a real production schema action, needs Davin's
+  live presence per every prior precedent in this migration):** re-apply just this one migration's
+  DDL against production. Likely mechanism: `prisma migrate resolve --rolled-back
+20260705000000_add_market_data_v6` (tells Prisma this migration's steps did NOT actually run) then
+  `prisma migrate deploy` (genuinely executes the `CREATE TABLE`) — needs to be attempted carefully
+  given `20260705010000_drop_market_data` immediately follows it in history and drops a DIFFERENT,
+  older `MarketData` table (unrelated, already confirmed absent — not a re-run risk, but worth
+  re-reading both migrations' SQL before touching anything). Separately unresolved: whether the
+  "railway-gateway" ingestion pipeline that's supposed to WRITE to this table
+  (`prisma/market-data/schema.prisma`'s own header: "Written by railway-gateway's queue consumer")
+  has ever actually been pointed at this production database at all — creating the table alone
+  doesn't mean real XAUUSD centroid-channel data will start flowing into it.
+- Owner: Davin/Advisor — needs its own dedicated session (schema-repair, not a Phase 4B PORT
+  session's scope) before `4b-12`'s cutover can be safely retried. Until then, the
+  Market-Data-Channel feature is confirmed broken in production for ANY real caller, on both the
+  monolith's original code and this session's port — not a regression, a newly-surfaced
+  pre-existing gap.
+
 ## Session 4A-10c (2026-07-30) — F48 fixed and verified live; Group B still blocked on a newly-uncovered second bug (F49)
 
 - **Context:** Davin reported the F48 header/signing fix already applied (uncommitted) and the 3rd
