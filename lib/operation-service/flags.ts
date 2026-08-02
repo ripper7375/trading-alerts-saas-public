@@ -79,3 +79,13 @@ export function shouldUseOperationServiceForUser2FA(): boolean {
 export function shouldUseOperationServiceForUserSessions(): boolean {
   return process.env['MIGRATE_USER_SESSIONS'] === 'true';
 }
+
+/**
+ * Check if the Market-Data Channel Proxy route (Session 4B-12's
+ * MarketDataController PORT) should forward to operation-service instead of
+ * the monolith's own local marketPrisma query. Default: false (monolith
+ * serves the channel endpoint directly).
+ */
+export function shouldUseOperationServiceForMarketDataChannel(): boolean {
+  return process.env['MIGRATE_MARKET_DATA_CHANNEL'] === 'true';
+}

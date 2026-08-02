@@ -18,6 +18,11 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { marketPrisma } from '@/lib/db/market-prisma';
+import { shouldUseOperationServiceForMarketDataChannel } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 import { SYMBOLS, TIMEFRAMES, type Tier } from '@/lib/tier-config';
 import { CENTROID_VARIANTS, type CentroidVariant } from '@/types/indicator';
 
@@ -51,6 +56,20 @@ export async function GET(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
+    }
+
+    // Session 4B-12: when the flag is on, operation-service's
+    // MarketDataController (Session 4B-12 PORT) already re-implements the
+    // WHOLE handler below (PRO-tier gate, symbol/timeframe/variant
+    // membership, channel query) — forward the raw request there instead of
+    // running the tier check twice and then diverging.
+    if (shouldUseOperationServiceForMarketDataChannel()) {
+      const { status: opStatus, body } =
+        await forwardRequestToOperationService<ChannelResponse>(
+          request,
+          `/market-data/channel${new URL(request.url).search}`
+        );
+      return NextResponse.json(body, { status: opStatus });
     }
 
     // V8: multi-timeframe visualization is PRO-exclusive.
@@ -116,6 +135,11 @@ export async function GET(
       { status: 200 }
     );
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body as ChannelResponse, {
+        status: error.status,
+      });
+    }
     console.error('GET /api/market-data/channel error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch channel data' },
