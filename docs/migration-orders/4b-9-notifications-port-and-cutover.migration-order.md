@@ -137,7 +137,7 @@ If issues occur post-cutover:
 
 ## Deviations
 
-_(none yet — execution pending)_
+1. **Step 1 response-shape corrections (SOURCE ground truth wins over this order's own paraphrase, per `LESSONS-LEARNED.md` L27):** `markAllRead` returns `{ success: true, updatedCount, message }` (matching `app/api/notifications/route.ts`'s real `POST` handler exactly), not this order's stated `{ success: true, count }`. `markRead`'s already-read short-circuit returns `{ notification, alreadyRead: true, message }` with **no `success` key** (matching `app/api/notifications/[id]/read/route.ts`'s real early-return exactly), not this order's stated `{ success: true, alreadyRead: true }`. `getById`/`remove`/`markRead` throw a 404 `NotFoundException` for a missing notification and a **403** `ForbiddenException` for a wrong-owner notification — two different status codes, matching real SOURCE and the established Drawings/Alerts convention — not the blanket "404 for missing/unauthorized" this order's own Rules section states. `getById` returns the raw notification object directly (no wrapper), matching SOURCE's `NextResponse.json(notification)`.
 
 ---
 
