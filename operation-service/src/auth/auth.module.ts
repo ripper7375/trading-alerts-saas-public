@@ -9,5 +9,8 @@ import { TwoFactorService } from './two-factor.service';
 @Module({
   controllers: [AuthController, TwoFactorController],
   providers: [AuthService, RefreshTokenService, TwoFactorService],
+  // TwoFactorService exported for UsersModule (Session 4B-11) to reuse
+  // directly rather than re-implementing 2FA logic.
+  exports: [TwoFactorService],
 })
 export class AuthModule {}
