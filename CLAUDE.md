@@ -26,7 +26,67 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-17 (Realtime Socket.IO Architecture Decision & Build, PORT/INFRA variant,
+- **Current:** Session 4B-18 (Realtime Cutover & Live Verification, VERIFY-RETIRE variant),
+  CONFIRMED and executed 2026-08-02 — **RED result, session does NOT close as successful.**
+  CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern once more (order file and
+  this file both modified-but-uncommitted, `PRE-DRAFT → APPROVED` with no visible Advisor/Davin
+  commit trail) — this time benign: the body diffed byte-identical to the committed PRE-DRAFT,
+  only the status/title/Generated-line metadata changed. Reported before proceeding; Davin
+  confirmed live it was Advisor Antigravity's own authentic edit. All 3 entry criteria then
+  independently re-verified and PASSED: zero code drift since 4B-17's close (`git log` on every
+  file this order touches shows nothing past 4B-17's own 3 commits); `operation-service` full
+  suite re-run clean, 42/42 suites/375/375 tests, exact match to the 4B-17 baseline; live runtime
+  re-checked directly (`operation-service /health` → 200, a real Engine.IO handshake, monolith
+  `/api/realtime/token` → 401 unauthenticated). Davin gave live "GO."
+  **The live smoke test itself (Checklist step 1) FAILED — socket never connected or
+  authenticated.** Davin opened an authenticated tab, navigated to a real chart page
+  (`/charts/XAUUSD/M5`, where `useFiredAlertMarkers.ts` actually mounts the socket).
+  `GET /api/realtime/token` → `200` (token issuance fine), but the subsequent Socket.IO
+  connection to `operation-service-production.up.railway.app` failed 9 consecutive times over
+  30+s with a generic `connect_error: websocket error` — no `authenticated` event, no successful
+  `connect`, ever. Steps 2-3 (arm/observe a real alert fire) were correctly NOT attempted, per
+  the order's own explicit stop-on-red rule.
+  **Root cause identified with certainty, by reading the installed library code directly, NOT
+  fixed (VERIFY-RETIRE's own "no new code, no fixes" rule):** `RealtimeGateway`'s
+  `cors: { origin: (process.env['ALLOWED_ORIGINS'] ?? '*').split(','), credentials: true }`
+  (`operation-service/src/realtime/realtime.gateway.ts:36-41`) — live production has
+  `ALLOWED_ORIGINS=*`, and `'*'.split(',')` always produces the ARRAY `['*']`, never the bare
+  string `'*'`. `engine.io`'s own CORS handling delegates straight to the standalone `cors` npm
+  package (`node_modules/engine.io/build/server.js:61-62`), whose `configureOrigin()`
+  (`node_modules/cors/lib/index.js:41-58`) only treats the origin as "allow any" when it's
+  EXACTLY the bare string `'*'` — an array falls through to an exact-match check
+  (`origin === allowedOrigin` per element) against the browser's real `Origin` header, which
+  never literally equals `'*'`. Result: `Access-Control-Allow-Origin` is never set, and the
+  browser's own same-origin policy blocks the connection before the handshake completes — a
+  genuine, unconditional failure for every real browser, since the monolith (`*.vercel.app`) and
+  `operation-service` (`*.up.railway.app`) are genuinely cross-origin. This is also exactly why
+  every prior "live verification" in 4B-17/4B-18 (a `curl`-based Engine.IO handshake check)
+  never caught it: `curl` sends no `Origin` header and doesn't enforce CORS at all, so it always
+  got a clean `200` regardless of whether `Access-Control-Allow-Origin` was ever correctly set.
+  **Independently cross-checked against Railway logs, not trusted from the client report alone:**
+  zero `GET /socket.io/...` entries and zero application-log lines of any kind for
+  `operation-service` during Davin's actual test window (`~12:41-13:11Z`, Thailand local
+  `7:41-7:41:35 PM`) — consistent with the request being CORS-rejected before an access-log line
+  is ever written. A same-window `GET /drawings 200` (the monolith's own server-side forward, a
+  different code path, not browser-direct) confirms this was a targeted CORS rejection, not a
+  broader outage — general connectivity/DNS/TLS to `operation-service` was fine throughout.
+  **New `DECISION-LOG.md` F53** (OPEN) — full evidence chain, needs its own scoped fix session.
+  New unpromoted `LESSONS-LEARNED.md` candidate (file past its ~40 cap, not promoted without
+  explicit direction) — the array-vs-bare-string CORS wildcard gotcha, and the `curl`-can't-
+  prove-CORS-works gap in this migration's own established live-verification method.
+  **F8 stays architecturally RESOLVED** (the decision and the build are sound — real JWE
+  handshake auth, real Redis-adapter fan-out, real e2e-tested subscriber wiring all confirmed
+  correct by this same session's re-verification) **but its live-production proof — the entire
+  point of this session — is a confirmed FAIL, not a pass.** No `migration-cutover-table.md` row
+  added (this slice has never had a flag, and a session that just failed its own live-proof
+  checklist has even less claim to a "cut-over" row than a green one would).
+  **Artifacts updated:** `4b-18-realtime-cutover.migration-order.md` (Status → CONFIRMED,
+  Deviations filled in full — 6 entries, explicitly NOT marked closed-successful),
+  `DECISION-LOG.md` (new F53, register row added), `LESSONS-LEARNED.md` (new unpromoted
+  candidate), this file. New `4b-18b-realtime-cors-origin-fix.migration-order.md` PRE-DRAFTed
+  (PORT variant, tiny scope — fix the `origin` config, re-run this exact smoke test) — carries
+  F53 forward as its own entry criterion.
+- **Previous:** Session 4B-17 (Realtime Socket.IO Architecture Decision & Build, PORT/INFRA variant,
   F8), CONFIRMED and executed 2026-08-02 — CONFIRM found zero drift on all 11 raw facts / cited
   file paths / line numbers the order's own PRE-DRAFT walk of the live codebase had established
   (a first for this series — no L11-class self-contradiction, no ground-truth drift; the order was
@@ -3174,6 +3234,20 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   Recorded as a new unpromoted `LESSONS-LEARNED.md` candidate (file past its ~40 active cap) rather
   than a numbered lesson — worth the Advisor's attention at the next consolidation pass, both for
   this finding and the file being overdue for one regardless.
+- **(98, NEW — CRITICAL, blocks 4B-18's own live proof — Session 4B-18, 2026-08-02)** Item #96
+  above is now resolved by actually running the test, and the result is RED: `DECISION-LOG.md`
+  **F53** — `RealtimeGateway`'s CORS `origin` config (`(process.env['ALLOWED_ORIGINS'] ??
+'*').split(',')`) always produces an array, which the underlying `cors` package treats as an
+  exact-match allowlist, not a wildcard — every real cross-origin browser connection
+  (`*.vercel.app` → `*.up.railway.app`) is silently rejected. Confirmed by reading
+  `node_modules/cors/lib/index.js` and `node_modules/engine.io/build/server.js` directly, and by
+  a live browser smoke test (Davin) that failed 9/9 connection attempts. `curl`-based Engine.IO
+  handshake checks (used throughout 4B-17/4B-18's own prior verification) cannot catch this —
+  `curl` sends no `Origin` header and doesn't enforce CORS, so it always looked fine. New
+  `4b-18b-realtime-cors-origin-fix.migration-order.md` PRE-DRAFTed to fix (pass the bare string
+  `'*'` when the env var is unset/`'*'`, only array-ify a real explicit allow-list) and re-run this
+  exact smoke test — do not consider F8/Slice-6-realtime-delivery live in production until that
+  session's own live proof actually passes.
 - **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
   2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
   **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:
@@ -3236,12 +3310,18 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   backfilled here, out of this session's own scope.)** **Session 4B-17 (Realtime Socket.IO
   Decision & Build, F8) is now CONFIRMED, executed, and fully closed** (2026-08-02 — see Current/
   Order-status above for full detail). F8 RESOLVED; `RealtimeGateway` built, real-e2e-tested, and
-  deployed live to both services (dormant/parallel, no cutover flag). **The actual next session
-  overall is now 4B-18** (`4b-18-realtime-cutover.migration-order.md`, PRE-DRAFTed at 4B-17's
-  close, VERIFY-RETIRE/CUTOVER, fast-path eligible) — its own hard entry criterion is the browser-
-  session live smoke test 4B-17 deliberately left for Davin (see 4B-17's own Deviation 7). After
-  that: 4B-19 (email rendering port) → 4B-20/21 (auth cutover, LAST) → 4B-22 (Phase 4 exit review)
-  is the session playbook's own remaining Phase 4B order.
+  deployed live to both services (dormant/parallel, no cutover flag).
+  **Session 4B-18 (Realtime Cutover & Live Verification) is now CONFIRMED and executed, but
+  CLOSED RED, not successful** (2026-08-02 — see Current above for full detail). Davin's own
+  browser-session live smoke test (4B-17's own deferred item, Deviation 7) FAILED: the socket
+  never connected/authenticated, root-caused to a CORS `origin` array-vs-wildcard-string bug in
+  `RealtimeGateway` (`DECISION-LOG.md` F53, new). **The actual next session overall is now
+  4B-18b** (`4b-18b-realtime-cors-origin-fix.migration-order.md`, PRE-DRAFTed at 4B-18's close,
+  PORT variant, tiny scope) — fix the one-line `origin` config and re-run this exact smoke test.
+  Do not treat F8/realtime delivery as live in production, and do not proceed to 4B-19, until
+  4B-18b's own live proof actually passes. After that: 4B-19 (email rendering port) → 4B-20/21
+  (auth cutover, LAST) → 4B-22 (Phase 4 exit review) is the session playbook's own remaining
+  Phase 4B order.
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.

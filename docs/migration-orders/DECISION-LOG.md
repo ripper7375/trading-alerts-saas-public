@@ -57,6 +57,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F42  | RiseWorks archival depth (archive vs delete)                                                                                                                                                                          | RESOLVED — 2026-07-25 (Davin): archive, never delete; restorable                                                                                                                                       |
 | F43  | Funding-SLA alert channel: how to notify Davin when a batch group nears Wise's 14-day expiration unfunded (Slack webhook / Discord webhook / monolith email proxy) — money-service has no email capability of its own | RESOLVED — Session 4A-W6 (Davin): Option (a), Resend REST direct, no new dependency                                                                                                                    |
 | F47  | Wise quote `targetAmount`/currency-unit correctness for non-USD payouts (interacts with F38's already-RESOLVED fee-bearer decision)                                                                                   | OPEN — found Session 4A-W7, due before any further non-USD Wise payout                                                                                                                                 |
+| F53  | `RealtimeGateway`'s CORS `origin` array-vs-wildcard-string bug blocks every real cross-origin browser connection                                                                                                      | OPEN — found Session 4B-18 (live smoke test RED result), due before 4B-18's own live proof can pass                                                                                                    |
 
 > **Note on numbering (updated 4A-W4, 2026-07-26).** F36–F42 (Part 19.5 / Wise) were registered at
 > Session **4A-W1**, closing the register's F35→F44 gap. **F43** is now registered (Session
@@ -2451,3 +2452,53 @@ logs`" class, see this session's own Deviations/lessons candidate). Monolith red
   criteria, not fabricated or skipped.
 - Approved by: Davin (live, 2026-08-02, this session's own prep conversation and execution
   go-ahead).
+
+---
+
+## F53 — `RealtimeGateway`'s CORS `origin` config breaks every real cross-origin browser connection
+
+- Status: **OPEN** — needs a scoped fix session (new `4b-18b-realtime-cors-origin-fix.migration-order.md`, PRE-DRAFTed)
+- Session: found 4B-18, 2026-08-02 · Date: 2026-08-02
+- Found while: Session 4B-18's own live browser smoke test (Davin, real authenticated tab,
+  `/charts/XAUUSD/M5`) — RED result, socket never connected/authenticated, `socket.io-client`
+  logged `connect_error: websocket error` 9 times over 30+s, no `authenticated` event ever fired.
+- **Root cause, confirmed by reading the installed library code directly (`cors@2.8.5`,
+  `engine.io@6.x` via `node_modules`), not just inferred from behavior:**
+  `operation-service/src/realtime/realtime.gateway.ts:36-41` configures
+  `cors: { origin: (process.env['ALLOWED_ORIGINS'] ?? '*').split(','), credentials: true }`.
+  Live production has `ALLOWED_ORIGINS=*` (value confirmed, value-blind-appropriate to state —
+  this is public CORS config, not a secret). `'*'.split(',')` always produces the **array**
+  `['*']`, never the bare string `'*'`. `engine.io`'s `Server` constructor
+  (`node_modules/engine.io/build/server.js:61-62`) passes this straight to the standalone `cors`
+  package: `this.use(require("cors")(this.opts.cors))`. That package's `configureOrigin()`
+  (`node_modules/cors/lib/index.js:41-58`) only enables "allow any origin" when
+  `options.origin === '*'` (the bare string) or falsy; an ARRAY falls through to
+  `isOriginAllowed(requestOrigin, options.origin)`, which for a string element does
+  `return origin === allowedOrigin` — checking whether the browser's real `Origin` header
+  literally equals the string `'*'`. It never does (real origins look like
+  `https://trading-alerts-saas-frontend.vercel.app`), so `Access-Control-Allow-Origin` is never
+  set and the browser blocks the connection before the Socket.IO/Engine.IO handshake ever
+  completes. This is a genuine cross-origin scenario (monolith on `*.vercel.app`,
+  `operation-service` on `*.up.railway.app`) — it fails on every real browser, unconditionally,
+  not an edge case.
+- **Why this was invisible through every prior verification in 4B-17/4B-18:** every "live
+  Engine.IO handshake" check performed so far (`curl "https://.../socket.io/?EIO=4&transport=
+polling"`) used `curl`, which sends no `Origin` header at all and does not enforce CORS —
+  it always got a clean `200` regardless of whether `Access-Control-Allow-Origin` was ever
+  correctly configured. A `curl`-based handshake check proves the gateway is attached and
+  answering; it does NOT prove a real cross-origin browser can connect. 4B-17's own e2e test
+  suite (`Test.createTestingModule` + a real `socket.io-client`) also never exercised this path,
+  since an in-process Nest test has no real cross-origin `Origin` header semantics to trip over.
+- **Independent Railway HTTP/app-log cross-check (Executor, not just the client-side report):**
+  zero `GET /socket.io/...` entries and zero application-log lines of any kind for
+  `operation-service` during Davin's actual test window (`~12:41-13:11 UTC`, Thailand local
+  `7:41-7:41:35 PM`) — consistent with the request being rejected by the `cors` middleware
+  before Express/Engine.IO's own access-log line is ever written, or never completing far enough
+  to log. A same-window `GET /drawings 200` (the monolith's own server-side forward, not a
+  browser-direct call) proves general connectivity/DNS/TLS to `operation-service` was fine — this
+  is specifically a browser-origin CORS rejection, not a broader outage.
+- **Not fixed in this session** — VERIFY-RETIRE's own "no new code, no fixes" rule. The fix is
+  well-understood and narrow: pass the bare string `'*'` when `ALLOWED_ORIGINS` is unset/`'*'`,
+  only `.split(',')` into an array for a real explicit allow-list. Scoped to its own follow-up.
+- Approved by: n/a (technical finding, not yet a decision — the fix session itself needs Davin's
+  normal APPROVED sign-off before executing).

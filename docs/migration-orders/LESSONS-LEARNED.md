@@ -138,6 +138,22 @@ production right now, a direct protocol/HTTP-level check is more reliable than a
 invocation tried so far." Full detail in
 `4b-17-realtime-websocket-decision-and-build.migration-order.md`'s own Deviations (#5-#6).
 
+**One more candidate from Session 4B-18's close (2026-08-02), not promoted, described here for the
+next consolidation pass:** a `cors`-option `origin` value of the ARRAY `['*']` is not the same as
+the bare STRING `'*'` — only the bare string means "allow any origin" to the standalone `cors`
+npm package (and, by extension, `engine.io`'s own CORS handling, which delegates to it directly).
+`RealtimeGateway`'s `cors: { origin: (process.env['ALLOWED_ORIGINS'] ?? '*').split(','), ... }`
+always produces an array, even when the env var is literally `'*'` — so every real cross-origin
+browser connection was silently CORS-rejected in production (confirmed via a live browser smoke
+test, `DECISION-LOG.md` **F53**), while every `curl`-based Engine.IO handshake check performed
+across 4B-17/4B-18 kept passing, because `curl` sends no `Origin` header and does not enforce CORS
+at all — a `curl`-based "the gateway answers" check cannot prove a real browser can connect through
+it. Worth a rule along the lines of "when deriving a CORS `origin` option from an env var via
+`.split(',')`, special-case the literal `'*'` value to pass the bare string, never an array — and
+never treat a `curl`/non-browser HTTP client's success as proof a CORS-gated path works, since
+non-browser clients don't enforce `Access-Control-Allow-Origin` the way a real browser does." Full
+detail in `4b-18-realtime-cutover.migration-order.md`'s own Deviations and `DECISION-LOG.md` F53.
+
 ---
 
 ## Active lessons
