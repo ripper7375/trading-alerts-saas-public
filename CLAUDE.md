@@ -26,10 +26,92 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-8 (Drawings Domain Extraction & Cutover, PORT+CUTOVER combined variant), CONFIRMED and
-  executed 2026-08-01. **Slice 8 (Drawings CRUD) is CUT-OVER & LIVE** — `MIGRATE_DRAWINGS=true` in Vercel
-  production, both monolith `app/api/drawings/*` route files forwarding to `operation-service`'s new
-  `DrawingsController`.
+- **Current:** Session 4B-9 (Notifications Domain Extraction & Cutover, PORT+CUTOVER combined
+  variant), CONFIRMED and executed 2026-08-02. **Slice 9 (Notifications) is CUT-OVER & LIVE** —
+  `MIGRATE_NOTIFICATIONS=true` in Vercel production, all 3 monolith `app/api/notifications/*`
+  route files forwarding to `operation-service`'s new `NotificationsController`.
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file
+  modified-but-uncommitted, `PRE-DRAFT → APPROVED` with a full content rewrite, no
+  Advisor-DRAFT/Davin-approval commit trail — this file's own header self-corrected from
+  "APPROVED, ready for CONFIRM" in the line above) — reported in full before proceeding; Davin
+  confirmed live the rewrite was his/the Advisor's own authentic edit. All 5 entry criteria
+  independently re-verified against live codebase/runtime and PASSED with zero drift (Contract
+  line counts, Prisma model line range 141-160, `NotificationType`/`NotificationPriority` enum
+  members all EXACT matches — unusually clean for this migration). Two additional findings from an
+  independent audit, closing gaps the PRE-DRAFT itself had explicitly flagged and the APPROVED
+  rewrite silently dropped: (1) other real `Notification` writers exist
+  (`operation-service/src/alert-engine/dispatcher.service.ts`, `money-service/src/crons/
+subscription.service.ts`, `money-service/src/dlocal/dlocal-webhook.controller.ts`) — all write
+  directly to the same shared table, no changes needed; confirmed via repo-wide grep that no OTHER
+  reader exists outside the 3 targeted files. (2) `app/api/notifications/route.ts`'s `POST`
+  (mark-all-read) takes ZERO parameters, not `_request` — needed a parameter ADDED, not renamed.
+  **Built (Steps 0-3, one commit each):** `operation-service/src/notifications/{notifications.schemas,
+notifications.service,notifications.controller,notifications.module}.ts` + `dto/notification.dto.ts`,
+  registered in `AppModule`. **Three response-shape corrections made against real SOURCE rather
+  than the order's own paraphrase** (`LESSONS-LEARNED.md` L27 recurrence): `markAllRead` returns
+  `{success,updatedCount,message}` not `{success,count}`; `markRead`'s already-read branch has no
+  `success` key; ownership mismatches throw 403 (matching SOURCE and the established
+  Drawings/Alerts convention), not the order's own stated blanket 404. Parameter-level
+  `ZodValidationPipe` on the query DTO only (L45 rule). **Step 4:** monolith forwarding wired into
+  all 3 `app/api/notifications/*` route files gated by `shouldUseOperationServiceForNotifications()`;
+  `route.ts`'s `POST` gained a genuinely new `request: NextRequest` parameter (needed for
+  forwarding — a safe, zero-risk widening, same class as 4A-10a/4B-6/4B-8). **Closed an L28-class
+  gap found mid-session:** no test file existed for `[id]/route.ts` or `[id]/read/route.ts` before
+  this session — built 18 new tests across two new files, plus 3 new forwarding tests in the
+  existing `route.ts` test file (which also needed its `MockURL` mock given a `.search` getter to
+  support the new `new URL(request.url).search`-based forwarding call). `operation-service` 33/33
+  suites, 281/281 tests (+30 net across the session, including the e2e fix spec below); monolith
+  `test:ci` 122/122 suites, 2150/2150 tests (was 120/120, 2129/2129 at 4B-8's close). Deployed via
+  `railway up --path-as-root` (`"source": null`, same as every prior operation-service session);
+  fresh boot log correlation-ID-matched to live test requests confirmed `NotificationsModule`
+  initialized cleanly, zero DI errors.
+  **Cutover executed with Davin's own separate, explicit live approval** (distinct from the
+  session's general go-ahead): `MIGRATE_NOTIFICATIONS` added to Vercel production (`vercel env
+add`, value-blind re-verified via `vercel env ls production`'s name-only listing — L17), then
+  `vercel --prod --archive=tgz --yes` (L36) redeployed clean, aliased to the real production URL.
+  Unauthenticated `/api/notifications` confirmed still 401 post-redeploy (auth check runs before
+  the flag check — proves the new code is genuinely live).
+  **Davin ran the live smoke test from his own browser DevTools console** (his session cookie
+  applied automatically, no token ever extracted or handled directly, same method as 4A-7a/4B-8):
+  `GET /api/notifications` → his real (empty) notification list; `POST /api/notifications`
+  (mark-all-read) → `{success:true,updatedCount:0,...}`.
+  **A real bug was caught cross-checking the response against operation-service's own Railway HTTP
+  access logs, not by trusting the response body alone (L18):** the log showed
+  `POST /notifications 201`, not the expected `200` — NestJS's `@Post()` defaults to `201
+Created`, but the ported SOURCE (`app/api/notifications/route.ts`'s `POST`, and
+  `[id]/read/route.ts`'s `POST`) both return `200` via bare `NextResponse.json()`. Since the
+  forwarder passes operation-service's real status straight through, this was a genuine live
+  status-code regression on both POST endpoints for roughly the ~8 minutes between the cutover
+  redeploy and the fix. **Fixed same-session** with explicit `@HttpCode(200)` on both handlers,
+  redeployed clean, and re-verified: Davin re-ran the same call, client-side `r.status` read
+  `200`, independently cross-checked against a fresh Railway log line
+  (`POST /notifications 200 99ms`) rather than trusting the client alone. Added a new e2e spec
+  (`notifications.http-status.e2e.spec.ts`, `Test.createTestingModule` + `supertest` against a
+  real Nest HTTP pipeline) proving all 5 routes' real status codes — the existing
+  controller-construction unit tests could never have caught this, since `@HttpCode()` resolution
+  only happens through Nest's actual HTTP layer. New `LESSONS-LEARNED.md` **L43**.
+  **Verification is deliberately recorded as PARTIAL:** only `GET /notifications` and
+  `POST /notifications` (mark-all-read) have live production evidence — `GET /notifications/:id`,
+  `DELETE /notifications/:id`, and `POST /notifications/:id/read` are wired, unit/e2e-tested, and
+  deployed, but Davin's account had zero notifications to exercise them against; not fabricated,
+  recorded as an open monitoring item.
+  **A pre-existing, unrelated data-integrity issue found while updating this session's own
+  artifacts, not caused by this session:** `migration-cutover-table.md`'s Slice 7 (Alerts CRUD)
+  row has 21 pipe characters where a well-formed 10-column row needs exactly 11 — extra unescaped
+  `|` characters in its Notes cell are misrendering that row's columns. Predates this session
+  (the file was already uncommitted-modified at session start, same class as 4B-8's own
+  uncommitted-stub-edits finding); NOT fixed here (out of this session's own scope — a different
+  session's row) — flagged for Davin/Advisor's attention. This session's own new Slice 9 row was
+  authored clean (exactly 11 pipes).
+  **Artifacts updated:** `4b-9-notifications-port-and-cutover.migration-order.md` (Status →
+  CONFIRMED, executed, CLOSED; entry criteria + Slice-level verification all checked; Deviations
+  filled in full — 3 entries), `migration-cutover-table.md` (new Slice 9 row → CUT-OVER, Slice 7's
+  pre-existing corruption flagged not fixed), `migration-stack-analysis.md` (new
+  `operation-service/src/notifications/` entry, 6 new files + `app.module.ts` modified),
+  `LESSONS-LEARNED.md` (new **L43**), this file. No `DECISION-LOG.md` flag applies (no F-numbered
+  decision was open this session). New `4b-10-...migration-order.md` PRE-DRAFTed (next domain
+  slice per the session playbook's own remaining Phase 4B order).
+- _(superseded-by-above, retained for context)_ Session 4B-8 (Drawings Domain Extraction & Cutover, PORT+CUTOVER combined variant), CONFIRMED and executed 2026-08-01. **Slice 8 (Drawings CRUD) is CUT-OVER & LIVE** — `MIGRATE_DRAWINGS=true` in Vercel production, both monolith `app/api/drawings/*` route files forwarding to `operation-service`'s new `DrawingsController`. Live production `POST /drawings` request verified (201 Created in Railway HTTP logs).
   **CONFIRM found the order file entirely untracked (zero git history) with `Status: APPROVED`, and — a new,
   more severe variant of `LESSONS-LEARNED.md` L11 — this file's own "Current" line and
   `migration-cutover-table.md`'s Slice 8 row were BOTH also uncommitted working-tree edits at session start,
@@ -2750,8 +2832,26 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   Fixed in the very next commit (`29ab43c5`), same session — no broken code ever reached
   `origin/main`(verified before push, see Current above). Recorded as an unpromoted
  `LESSONS-LEARNED.md`candidate (past the active-lessons cap, same as #86/#87) rather than a new
-  numbered entry — the rule: re-run`tsc --noEmit` fresh, with zero edits in flight, immediately
+  numbered entry — the rule: re-run`tsc --noEmit`fresh, with zero edits in flight, immediately
   before trusting any "clean" result as grounds to commit.
+  **(89, NEW — Session 4B-9, 2026-08-02)** Slice 9 (Notifications)'s own verification is partial,
+  same open-monitoring-caveat class as #36 (resolved)/#38 (open)/#40 (open)/#78 (open): only
+ `GET /notifications`and`POST /notifications`(mark-all-read) have live production evidence
+  (Davin's own account, real DevTools console calls, cross-checked against Railway HTTP logs).
+ `GET /notifications/:id`, `DELETE /notifications/:id`, and `POST /notifications/:id/read`are
+  wired, unit/e2e-tested, and deployed, but Davin's account had zero notifications to exercise them
+  against. Spot-check these three the next time a real notification exists (e.g., after an alert
+  fires or a subscription event lands) — confirm they forward correctly and the ownership/404/403
+  logic holds against a real row, not just mocked Prisma calls.
+  **(90, NEW — Session 4B-9, 2026-08-02)**`migration-cutover-table.md`'s Slice 7 (Alerts CRUD) row
+  has a pre-existing formatting defect — 21 pipe (`|`) characters where a well-formed 10-column row
+  needs exactly 11, meaning extra unescaped pipes inside its Notes cell are misrendering that row's
+  columns when the table renders. Predates Session 4B-9 (the file was already uncommitted-modified
+  at this session's own start, same class as 4B-8's own uncommitted-stub-edits finding) — NOT fixed
+  here, since reconstructing Slice 7's own row correctly needs understanding what that session
+  actually meant to record, which is out of this session's scope. This session's own new Slice 9
+  row was authored clean (exactly 11 pipes) and does not have this problem. Worth a future
+  session's (or the Advisor's) dedicated cleanup pass on the Slice 7 row specifically.
 - **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
   2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
   **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:
@@ -2782,6 +2882,23 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   monolith route files' own Prisma logic. After that, drawings + drawing-alerts → notifications →
   tier (guard) → user/profile/2FA/sessions → market-data channel proxy is still the session
   playbook's own remaining Phase 4B domain-slice order.
+  **Session 4B-8 (Drawings Domain Extraction & Cutover) is now CONFIRMED, executed, and fully
+  closed** (2026-08-01 — see the historical block above). Slice 8 (Drawings CRUD) is CUT-OVER &
+  LIVE, verification partial (create only).
+  **Session 4B-9 (Notifications Domain Extraction & Cutover) is now CONFIRMED, executed, and fully
+  closed** (2026-08-02, same combined PORT+CUTOVER shape as 4B-8 — see Current above for full
+  detail). **Slice 9 (Notifications) is CUT-OVER & LIVE**, `MIGRATE_NOTIFICATIONS=true` in
+  production, verification partial (`GET`/`POST` mark-all-read proven live; `GET`/`DELETE`/
+  `POST .../read` on a single item not yet exercised — Davin's own account had zero notifications
+  to test against). A real live bug (NestJS's `@Post()` 201-vs-SOURCE's-200 mismatch) was found via
+  Railway HTTP logs during the cutover's own smoke test and fixed same-session — see
+  `LESSONS-LEARNED.md` L43. **The actual next session overall is now 4B-10**
+  (`4b-10-...migration-order.md`, PRE-DRAFTed at 4B-9's close) — tier (guard) is next in the
+  session playbook's own remaining Phase 4B domain-slice order (drawings and notifications are now
+  both done; user/profile/2FA/sessions → market-data channel proxy remain after tier).
+  **Also flagged, not fixed (out of this session's own scope):** `migration-cutover-table.md`'s
+  Slice 7 (Alerts CRUD) row has a pre-existing pipe-count/formatting defect (21 pipes where 11 are
+  correct) predating this session — worth a future session's cleanup pass.
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.

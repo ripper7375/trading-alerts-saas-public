@@ -2576,7 +2576,58 @@ Modified:
 
 </details>
 
+<details>
+<summary><code>operation-service/src/notifications/</code> — 6 new files + `app.module.ts` modified
+(Session 4B-9, Notifications PORT+CUTOVER combined)</summary>
+
+PORT+CUTOVER session (same combined shape as Session 4B-8 — small blast radius, 3 files, no
+payment/webhook surface). Ports `app/api/notifications/route.ts` (196 lines) +
+`app/api/notifications/[id]/route.ts` (179 lines) + `app/api/notifications/[id]/read/route.ts`
+(144 lines, 519 total) into `operation-service`, AND wires + cuts over the monolith side in the
+same session. `MIGRATE_NOTIFICATIONS=true` in Vercel production — **CUT-OVER & LIVE, verification
+partial (GET/POST mark-all-read only, see `CLAUDE.md`/cutover table).**
+
+- `notifications.module.ts` — registers `NotificationsController`/`NotificationsService`;
+  `PrismaModule` is `@Global()`, no explicit import needed, registered in `AppModule`
+- `notifications.controller.ts` + `notifications.service.ts` (+ `.spec.ts` each) —
+  `GET/POST /notifications`, `GET/DELETE /notifications/:id`, `POST /notifications/:id/read`.
+  Three response-shape corrections against real SOURCE rather than the order's own paraphrase
+  (`LESSONS-LEARNED.md` L27): `markAllRead` returns `{success,updatedCount,message}` not
+  `{success,count}`; `markRead`'s already-read branch has no `success` key; ownership mismatches
+  throw 403 (matching SOURCE and the established Drawings/Alerts convention), not a blanket 404.
+  Parameter-level `ZodValidationPipe` on the query DTO only (L45 rule)
+- `notifications.schemas.ts` — mirrors `app/api/notifications/route.ts`'s `querySchema` verbatim
+  (status/type filters, page/pageSize bounds); no body-validation schema needed (none of the 3
+  SOURCE routes take a request body)
+- `dto/notification.dto.ts` — type-only re-export for controller/service signatures
+- `notifications.http-status.e2e.spec.ts` — real `Test.createTestingModule`+`supertest` e2e spec
+  added mid-session after a live bug was found (see below)
+
+**Monolith side (same session, not split out):** `lib/operation-service/flags.ts` gained
+`shouldUseOperationServiceForNotifications()`; all 3 `app/api/notifications/*` route files wired
+to check it immediately after existing auth and forward via `forwardRequestToOperationService()`,
+preserving status codes. `app/api/notifications/route.ts`'s `POST` (mark-all-read) gained a
+`request: NextRequest` parameter it previously didn't have at all (not a `_request`→`request`
+rename — a genuinely new parameter, needed for forwarding). Closed an L28-class gap: no test file
+existed for `[id]/route.ts` or `[id]/read/route.ts` before this session — added
+`__tests__/api/notifications-id.test.ts` + `__tests__/api/notifications-id-read.test.ts` (18 new
+tests). `__tests__/api/notifications.test.ts`'s own `MockURL` class gained a `.search` getter
+(needed by the new `new URL(request.url).search`-based forwarding call).
+
+**Live cutover incident, found and fixed same-session (new `LESSONS-LEARNED.md` L43):** NestJS's
+`@Post()` defaults to `201`; both ported POST handlers (mark-all-read, mark-one-read) shipped
+returning `201` instead of SOURCE's `200`, found only via operation-service's real Railway HTTP
+logs during the live smoke test (invisible to the client-side response body and to every
+controller-construction unit test). Fixed with explicit `@HttpCode(200)` on both handlers,
+redeployed, re-verified live and independently via a fresh Railway log line.
+
+Test suites: `operation-service` 30/30→33/33 (+3 new spec files, 28 new tests). `nest build`/
+`tsc --noEmit` clean. Monolith `test:ci` 122/122 suites, 2150/2150 tests (was 120/120, 2129/2129 at
+4B-8's close — +2 suites/+21 tests); `tsc --noEmit`/`eslint --max-warnings 0` clean.
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-07-30 (Session 4A-11, Slice 5 outbox email worker BUILD)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-02 (Session 4B-9, Notifications PORT+CUTOVER)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
