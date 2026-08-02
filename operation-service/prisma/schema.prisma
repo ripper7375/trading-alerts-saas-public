@@ -371,6 +371,30 @@ model MarketDataV6 {
   timestamp Int
   close     Float
 
+  // Session 4B-12: 18 centroid-regression channel columns, additive-only —
+  // already exist in the live market_data_v6 table (mirrors
+  // prisma/market-data/schema.prisma exactly, field-for-field), needed by
+  // the market-data channel proxy's dynamic `${variant}_{uoedt,base_fl,
+  // loedt}` reads. No migration required (prisma generate only, per L1).
+  best_fit_base_fl    Float?
+  best_fit_uoedt      Float?
+  best_fit_loedt      Float?
+  cherry_a_base_fl    Float?
+  cherry_a_uoedt      Float?
+  cherry_a_loedt      Float?
+  cherry_b_base_fl    Float?
+  cherry_b_uoedt      Float?
+  cherry_b_loedt      Float?
+  most_recent_base_fl Float?
+  most_recent_uoedt   Float?
+  most_recent_loedt   Float?
+  non_a_base_fl       Float?
+  non_a_uoedt         Float?
+  non_a_loedt         Float?
+  non_b_base_fl       Float?
+  non_b_uoedt         Float?
+  non_b_loedt         Float?
+
   @@unique([symbol, timeframe, timestamp])
   @@index([symbol, timeframe, timestamp])
   @@map("market_data_v6")
