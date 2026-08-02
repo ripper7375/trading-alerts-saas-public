@@ -134,6 +134,42 @@ export async function callOperationServiceWithTokenStatus<T>(
 }
 
 /**
+ * Same as callOperationServiceWithTokenStatus, but the Bearer header is
+ * OPTIONAL (Session 4B-11) — for the 3 monolith `app/api/user/*` routes
+ * whose operation-service targets are deliberately unauthenticated in
+ * SOURCE (2FA mid-login verify, account-deletion confirm/cancel). Attaches
+ * `Authorization` only when a token is actually available; never throws for
+ * a missing one (unlike getOperationServiceToken()'s other callers, which
+ * treat absence as a 401).
+ */
+export async function callOperationServiceWithOptionalTokenStatus<T>(
+  path: string,
+  accessToken: string | null,
+  init: RequestInit = {}
+): Promise<OperationServiceResponse<T>> {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...init.headers,
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    cache: 'no-store',
+  });
+
+  const body = await parseJsonBody(response);
+
+  if (!response.ok) {
+    throw new OperationServiceError(
+      response.status,
+      body as OperationServiceErrorBody
+    );
+  }
+
+  return { status: response.status, body: body as T };
+}
+
+/**
  * Raw NextAuth session JWE from the httpOnly cookie, or null if absent
  * (Session 4B-6). Mirrors lib/money-service/routes.ts's
  * getMoneyServiceToken() — same F45-class server-side-proxy bridge: the

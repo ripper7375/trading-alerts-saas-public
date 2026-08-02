@@ -17,6 +17,7 @@
 import type { NextRequest } from 'next/server';
 
 import {
+  callOperationServiceWithOptionalTokenStatus,
   callOperationServiceWithTokenStatus,
   getOperationServiceToken,
   OperationServiceError,
@@ -68,6 +69,39 @@ export async function forwardRequestToOperationService<T>(
     // Omit the body entirely when there isn't one, rather than forwarding
     // an empty string — matches forwardWriteRequestToMoneyService's own
     // convention for a genuinely bodyless request.
+    ...(body ? { body } : {}),
+    headers: correlationId ? { 'x-correlation-id': correlationId } : {},
+  });
+}
+
+/**
+ * Same as forwardRequestToOperationService, but for the 3 Session 4B-11
+ * routes whose operation-service targets are deliberately unauthenticated
+ * in SOURCE (`POST /user/2fa/verify`, `POST /user/account/deletion-confirm`,
+ * `POST /user/account/deletion-cancel`) — a caller with no NextAuth session
+ * cookie must still reach these, so a missing token forwards WITHOUT an
+ * Authorization header instead of throwing a 401 the way
+ * forwardRequestToOperationService() does. When a session cookie IS present
+ * (e.g. deletion-cancel called from a logged-in settings page), it's still
+ * forwarded — operation-service's UsersController resolves it itself.
+ */
+export async function forwardRequestToOperationServiceOptionalAuth<T>(
+  request: NextRequest,
+  path: string,
+  options: ForwardRequestOptions = {}
+): Promise<OperationServiceResponse<T>> {
+  const token = await getOperationServiceToken();
+
+  const method = options.method ?? request.method;
+  const correlationId = request.headers.get('x-correlation-id');
+
+  let body = options.body;
+  if (body === undefined && BODY_METHODS.has(method)) {
+    body = await request.text();
+  }
+
+  return callOperationServiceWithOptionalTokenStatus<T>(path, token, {
+    method,
     ...(body ? { body } : {}),
     headers: correlationId ? { 'x-correlation-id': correlationId } : {},
   });

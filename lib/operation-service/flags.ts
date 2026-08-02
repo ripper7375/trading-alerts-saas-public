@@ -53,3 +53,29 @@ export function shouldUseOperationServiceForNotifications(): boolean {
 export function shouldUseOperationServiceForTier(): boolean {
   return process.env['MIGRATE_TIER'] === 'true';
 }
+
+/**
+ * Check if the User Profile/Preferences/Password routes (Session 4B-11's
+ * UsersController PORT) should forward to operation-service. Default: false
+ * (monolith serves these directly).
+ */
+export function shouldUseOperationServiceForUserProfile(): boolean {
+  return process.env['MIGRATE_USER_PROFILE'] === 'true';
+}
+
+/**
+ * Check if the 2FA routes (Session 4B-11) should forward to
+ * operation-service's UsersController (which itself delegates to the
+ * already-live TwoFactorService). Default: false.
+ */
+export function shouldUseOperationServiceForUser2FA(): boolean {
+  return process.env['MIGRATE_USER_2FA'] === 'true';
+}
+
+/**
+ * Check if the Sessions/Login-History/Account-Deletion routes (Session
+ * 4B-11) should forward to operation-service. Default: false.
+ */
+export function shouldUseOperationServiceForUserSessions(): boolean {
+  return process.env['MIGRATE_USER_SESSIONS'] === 'true';
+}
