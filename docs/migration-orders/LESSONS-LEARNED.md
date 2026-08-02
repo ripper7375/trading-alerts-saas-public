@@ -95,6 +95,27 @@ propagates those headers — the existing forwarders don't, by default, and the 
 mocked unit tests, only in a live smoke test against real traffic." Full detail in
 `4b-11-user-profile-2fa-sessions.migration-order.md`'s own Deviations (#9).
 
+**One more candidate from Session 4B-12's close (2026-08-02), not promoted, described here for the
+next consolidation pass:** `_prisma_migrations.applied_steps_count` recording a nonzero
+`finished_at` timestamp does NOT mean a migration's DDL actually ran — Session 2-3's own
+migration-history baseline (2026-07-20, resolving the whole pre-existing history at once via what
+was almost certainly `prisma migrate resolve --applied`) marked `20260705000000_add_market_data_v6`
+as finished with `applied_steps_count: 0`, and the underlying `CREATE TABLE market_data_v6` never
+ran — undetected for 13 days and 11 subsequent sessions that touched `operation-service`'s own
+`MarketDataV6` model (Session 4B-2 mirrored it, this session widened it) because nothing before this
+session's live smoke test ever unconditionally executed a Prisma query against that specific table
+in production (the alert-engine's own XAUUSD lookup prefers an HTTP gateway-pipeline call first).
+Found only by directly querying `_prisma_migrations` and comparing `applied_steps_count` against a
+genuinely-executed sibling migration (`20260721000000_add_refresh_token_table`, `steps: 1`) — a
+`migrate status` read-only check alone would likely have reported this migration as "applied" too,
+without revealing the zero-steps discrepancy. Worth a rule along the lines of "after any migration-
+history baseline (`resolve --applied`), spot-check that each baselined migration's actual schema
+change is present in the real database (e.g. `to_regclass()` for a `CREATE TABLE`, not just
+`_prisma_migrations` row presence) — a baseline can be wrong for one migration in a batch while
+being correct for all the others, and the failure stays completely invisible until something
+finally exercises that specific table for real." Full detail in `DECISION-LOG.md` **F52** and
+`4b-12-market-data-channel-proxy.migration-order.md`'s own Deviations (#6).
+
 ---
 
 ## Active lessons
