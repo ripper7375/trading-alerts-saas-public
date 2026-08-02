@@ -1,106 +1,148 @@
 # Migration Order: User Profile / 2FA / Sessions Domain Extraction (Session 4B-11)
 
-> PRE-DRAFT — raw facts for the Advisor to upgrade into a DRAFT. Not yet reviewed by Davin.
+> Migration Order for Session **4B-11** (User Profile, Preferences, Password, 2FA, Sessions & Account Deletion Extraction & Cutover).  
+> Variant: **PORT** (Creativity Dial: **LOW** — behavior preservation is the deliverable).  
+> Target Service: `operation-service` (`src/users/` module & extending `src/auth/two-factor.*`) & Monolith (`app/api/user/...`).
 
-**Session:** 4B-11
-**Phase / plan section:** Phase 4B step 11, plan §6 (session playbook line ~326: "alerts CRUD →
-drawings + drawing-alerts → notifications → tier (guard) → **user/profile/2FA/sessions** →
-market-data channel proxy")
-**Target service:** `operation-service` & Next.js Monolith
-**Variant:** likely PORT, but see the scope/split flag below — **this domain is roughly 4-5x the
-size of Tier (4B-10, 387 lines) and comparable to Alerts CRUD (971 lines, which needed a 3-session
-PORT/transport/CUTOVER split, Sessions 4B-5/6/7)** — the Advisor should decide up front whether
-4B-11 stays one session or splits the same way.
-**Status:** PRE-DRAFT (2026-08-02)
-**Flags touched:** not introduced yet — reserved names pending the Advisor's naming decision (see
-open question #2 below; likely more than one flag, mirroring Tier/Notifications' single-flag shape
-won't fit a domain this size and this varied)
+**Session:** 4B-11  
+**Phase / plan section:** Phase 4B step 11, plan §6  
+**Target service:** `operation-service` & Next.js Monolith  
+**Variant:** PORT · **Status:** CONFIRMED (2026-08-02)  
+**Generated:** 2026-08-02 (Advisor upgrade from PRE-DRAFT, Davin APPROVED 2026-08-02; CONFIRMED same day by Executor after independent audit — see Deviations).  
+**Flags touched:** `MIGRATE_USER_PROFILE`, `MIGRATE_USER_2FA`, `MIGRATE_USER_SESSIONS` (defaults `false`, defined in `lib/operation-service/flags.ts`)  
+**Contract:** Parity with 14 monolith API route files (2,060 lines total):
 
----
+- Profile/Preferences/Password (494 lines): `app/api/user/profile/route.ts` (177 lines), `app/api/user/preferences/route.ts` (147 lines), `app/api/user/password/route.ts` (170 lines).
+- Sessions/History (308 lines): `app/api/user/sessions/route.ts` (99 lines), `app/api/user/sessions/[id]/route.ts` (66 lines), `app/api/user/login-history/route.ts` (143 lines).
+- 2FA Integration (883 lines): `app/api/user/2fa/setup/route.ts` (140 lines), `verify/route.ts` (180 lines — **unauthenticated mid-login JWT token challenge**), `verify-setup/route.ts` (185 lines), `backup-codes/route.ts` (188 lines), `disable/route.ts` (190 lines). Reuses and extends `operation-service/src/auth/two-factor.service.ts`.
+- Account Deletion (375 lines): `app/api/user/account/deletion-request/route.ts` (107 lines), `deletion-confirm/route.ts` (133 lines), `deletion-cancel/route.ts` (135 lines). Preserves exact 7-day token-based deletion grace window (`AccountDeletionRequest.expiresAt = now + 7d`).
 
-## Raw facts (Executor, for the Advisor to upgrade into a DRAFT)
-
-**Open question #1 for the Advisor, not resolved here — a real architectural wrinkle found while
-drafting this PRE-DRAFT, not anticipated by the playbook's own one-line phrasing:**
-`operation-service` **already has** a `TwoFactorController`/`TwoFactorService`
-(`operation-service/src/auth/two-factor.{controller,service}.ts`, 88+414 lines) mapped to
-`/auth/2fa/{status,setup,verify-setup,verify,backup-codes,disable}` — built in an earlier session
-(likely part of the original Session 3-x auth-bridge work, for operation-service's OWN native
-login flow) and confirmed live in production (its routes appear in every recent boot log, e.g.
-4B-10's own verification this session). This is a **separate question from whether the monolith's
-own `app/api/user/2fa/*` routes (below) implement the SAME feature** (2FA tied to the user's
-NextAuth session / dashboard settings) **or a parallel, independent one** (2FA on operation-service's
-own native `/auth/login` flow, built for a login path most of the app doesn't use yet — see F7/F24,
-Session 3-1/3-2). Before writing any Ordered Steps, this needs a real answer: does 4B-11 REUSE the
-existing `TwoFactorService`, or does the monolith's dashboard-facing 2FA need its own, separate port
-because the underlying secret/backup-code storage or session model differs? Reading both sides'
-Prisma models (`User.twoFactorSecret`/`backupCodes` fields, however they're actually named) before
-drafting Ordered Steps would resolve this — not done here, flagged for the Advisor/DRAFT stage.
-
-**Open question #2:** given the domain's real size (14 files, 2060 lines — see below), should this
-be one PORT+CUTOVER session (Tier/Notifications/Drawings' combined shape) or split into multiple
-sessions by sub-domain (e.g., profile+preferences, then 2FA, then sessions+login-history, then
-account-deletion) the way Alerts CRUD split into PORT/transport/CUTOVER? Account deletion and 2FA
-in particular are security-sensitive enough that a VERIFY-heavy, low-creativity-dial approach seems
-warranted regardless of the split decision.
-
-**SOURCE candidates (14 files, 2060 lines total, re-verify at DRAFT/CONFIRM — these are this
-session's own fresh `wc -l` counts):**
-
-- `app/api/user/profile/route.ts` (177 lines) — profile read/update.
-- `app/api/user/preferences/route.ts` (147 lines) — user preferences (theme, language, etc. —
-  overlaps with `settings/appearance`, `settings/language` pages; not yet checked whether those
-  pages call this route or a different one).
-- `app/api/user/password/route.ts` (170 lines) — password change.
-- `app/api/user/login-history/route.ts` (143 lines) — read-only.
-- `app/api/user/sessions/route.ts` (99 lines) + `app/api/user/sessions/[id]/route.ts` (66 lines) —
-  list/revoke active sessions; likely reads/writes the `RefreshToken` table hardened in Session
-  3-2 — re-check that hardening (hashed-at-rest, revocable) is preserved if ported.
-- `app/api/user/2fa/setup/route.ts` (140), `verify/route.ts` (180), `verify-setup/route.ts` (185),
-  `backup-codes/route.ts` (188), `disable/route.ts` (190) — 883 lines total, the largest single
-  chunk of this domain. See open question #1 above before treating this as a normal PORT.
-- `app/api/user/account/deletion-request/route.ts` (107), `deletion-confirm/route.ts` (133),
-  `deletion-cancel/route.ts` (135) — 375 lines total. Note: F21 (24h Account-Deletion GDPR gap,
-  hard-delete vs. anonymize) is still OPEN in `DECISION-LOG.md`, unresolved since Session 2-4 —
-  this needs Davin's product decision before (or as part of) this session, not silently assumed
-  either way.
-
-**Established transport pattern (reuse, don't reinvent):** `forwardRequestToOperationService()`
-(`lib/operation-service/write-routes.ts`) + `getOperationServiceToken()`
-(`lib/operation-service/client.ts`) + new `shouldUseOperationServiceFor...()` reader(s) in
-`lib/operation-service/flags.ts`, matching every prior slice's shape (Tier, Notifications,
-Drawings, Alerts).
-
-**Not checked this session, flag for DRAFT/CONFIRM:**
-
-- Whether `operation-service`'s existing `AuthController`/`AuthService` (506 lines) already
-  duplicates any of the profile/password logic below it — not read in full this session.
-- Whether any of these 14 routes are referenced by other monolith code (crons, admin pages) beyond
-  their own settings-page UI callers — not audited, same class of gap 4B-9's own PRE-DRAFT flagged
-  for Notifications (which turned out to matter there).
-- F21 (Account-Deletion GDPR gap) needs resolving before or during this session — it's been open
-  since Session 2-4 and this is the first session that actually touches account-deletion code.
-- Real production traffic exposure: unlike Tier/Notifications/Drawings, this domain includes
-  password changes, 2FA, and account deletion — genuinely security-sensitive, not just read-mostly
-  dashboard data. Escalation triggers in `EXECUTOR-PROTOCOL.md` §7 ("auth semantics", "security... beyond the order's explicit steps") likely apply more heavily here than to any 4B session so far.
+**Estimated session time:** ~3.5h
 
 ---
 
-## Candidate steps (Advisor to confirm/adjust once open questions #1-#2 are resolved)
+## Entry criteria
 
-0. Resolve open question #1 (does `TwoFactorService` get reused or does 2FA need its own port) and
-   open question #2 (one session or split by sub-domain), and F21 (account-deletion GDPR).
-1. Port whichever sub-domains Step 0 scopes in — likely `UserProfileService`/`Controller`
-   (profile+preferences+password), a `SessionsController` (sessions+login-history), and either a
-   reused or new 2FA path, plus account-deletion (gated on F21).
-2. Unit tests + module registration.
-3. Monolith forwarding layer + flag wiring (likely more than one flag given the sub-domain split).
-4. Deploy + Davin live-approval checkpoint + cutover + live smoke test — mind Session 4B-9's own
-   incident (verify REAL HTTP status codes via a real e2e spec for any POST/PATCH/DELETE handler,
-   not just a controller-construction unit test).
+- [x] Session 4B-10 CONFIRMED & Closed (2026-08-02) — Tier domain & reusable `TierGuard` live in production (`MIGRATE_TIER=true`). Verified against `CLAUDE.md`'s recorded close-out and committed 4B-10 commits; not independently re-checked live in Vercel this session (no `vercel` CLI in this environment).
+- [x] Additive schema subset sync needed in Step 0: Add missing models `AccountDeletionRequest`, `UserPreferences`, `LoginHistory`, `UserSession` to `operation-service/prisma/schema.prisma` and run `npx prisma generate` (zero DB migrations required, per L1). Confirmed at CONFIRM: none of these 4 models exist in `operation-service/prisma/schema.prisma` today (only `User`/`RefreshToken`/`SecurityAlert` + the 4B-2 alert-engine models do) — this step is a real, load-bearing prerequisite, not boilerplate.
+- [x] `forwardRequestToOperationService()` available in `lib/operation-service/write-routes.ts` and `getOperationServiceToken()` available in `lib/operation-service/client.ts`. Verified live: `write-routes.ts:45`, `client.ts:143`.
+- [x] `JwtAuthGuard` and `TwoFactorService` available in `operation-service/src/auth/`. Verified live: `jwt-auth.guard.ts:28`, `two-factor.service.ts:43`; confirmed it already shares the monolith's `encryptSecret`/`decryptSecret`/bcrypt backup-code scheme.
+- [x] File inventory re-verified against live codebase (14 files, 2,060 lines total). Verified via `wc -l` on all 14 files: 494+308+883+375 = 2,060, exact match on every per-file citation.
+
+---
+
+## Integration points
+
+- **Direct callers:** Monolith Next.js route handlers (`app/api/user/...`), user settings pages (`app/(dashboard)/settings/*`).
+- **Downstream dependencies:** PostgreSQL Database (`User`, `UserPreferences`, `UserSession`, `RefreshToken`, `LoginHistory`, `AccountDeletionRequest` tables via PrismaService).
+- **Domain ownership:** `operation-service` becomes canonical manager of user profiles, preferences, password updates, 2FA settings, session management, and account deletion when flags are enabled.
+
+---
+
+## File Port Order
+
+### Step 0: Prisma Schema Mirror & DTOs
+
+- Add missing models `AccountDeletionRequest`, `UserPreferences`, `LoginHistory`, `UserSession` to `operation-service/prisma/schema.prisma` (copied verbatim from monolith schema) and run `npx prisma generate`.
+- Create `operation-service/src/users/users.schemas.ts` and `dto/user.dto.ts`.
+- Define Zod/Class-validator DTOs for:
+  - Profile update (`name`, `image`)
+  - Preferences update (`theme`, `language`, `emailNotifications`, `pushNotifications`, `marketingEmails`)
+  - Password change (`currentPassword`, `newPassword`)
+  - 2FA setup/verify (`code`, `token`)
+  - Account deletion request/confirm/cancel
+
+### Step 1: UsersService & 2FA Integration
+
+- Create `operation-service/src/users/users.service.ts` (`@Injectable()`):
+  - Profile & Preferences: `getProfile`, `updateProfile`, `getPreferences`, `updatePreferences`, `changePassword`.
+  - Sessions & History: `getSessions`, `revokeSession`, `getLoginHistory`.
+  - 2FA Integration: Wire and expose methods reusing existing `TwoFactorService` (`setup2FA`, `verify2FASetup`, `verify2FA` [mid-login token verification], `disable2FA`, `getBackupCodes`, `generateBackupCodes`).
+  - Account Deletion (F21): `requestDeletion` (sets 7-day token grace window `expiresAt: now() + 7d`), `confirmDeletion`, `cancelDeletion`.
+
+### Step 2: UsersController & Auth-Guard Scoping
+
+- Create `operation-service/src/users/users.controller.ts`.
+- Decorate with `@Controller('user')`. Do **NOT** apply `@UseGuards(JwtAuthGuard)` at the class level to avoid requiring a session on unauthenticated routes!
+- Apply `@UseGuards(JwtAuthGuard)` at method level for authenticated handlers. Leave `POST /user/2fa/verify` **unauthenticated** (verified via short-lived JWT token in body/header).
+- Explicitly decorate all `@Get()`, `@Post()`, `@Patch()`, `@Delete()` handlers with `@HttpCode(200)` (or `@HttpCode(201)` for creation routes) matching monolith source behavior.
+- Handlers:
+  - Profile/Preferences/Password: `GET /user/profile`, `PATCH /user/profile`, `GET /user/preferences`, `PATCH /user/preferences`, `POST /user/password`.
+  - Sessions/History: `GET /user/sessions`, `DELETE /user/sessions/:id`, `GET /user/login-history`.
+  - 2FA: `POST /user/2fa/setup`, `POST /user/2fa/verify-setup`, `POST /user/2fa/verify` (UNAUTHENTICATED mid-login challenge), `POST /user/2fa/disable`, `GET /user/2fa/backup-codes`, `POST /user/2fa/backup-codes`.
+  - Account Deletion: `POST /user/account/deletion-request`, `POST /user/account/deletion-confirm`, `POST /user/account/deletion-cancel`.
+
+### Step 3: Module Registration & Unit Tests
+
+- Create `operation-service/src/users/users.module.ts`.
+- Register `UsersModule` in `operation-service/src/app.module.ts`.
+- Write unit test suites:
+  - `operation-service/src/users/users.controller.spec.ts`
+  - `operation-service/src/users/users.service.spec.ts`
+- Run and verify: `npm run test` inside `operation-service`.
+
+### Step 4: Monolith Transport Layer & Forwarding
+
+- Add flag readers in `lib/operation-service/flags.ts`:
+  - `shouldUseOperationServiceForUserProfile()`
+  - `shouldUseOperationServiceForUser2FA()`
+  - `shouldUseOperationServiceForUserSessions()`
+- Update all 14 monolith route handlers (`app/api/user/...`) to widen `_request` -> `request` and forward traffic to `operation-service` when flags are on.
+- Run and verify: `npm run build` and `tsc --noEmit` in monolith root.
+
+### Step 5: Deployment, Davin Approval & Cutover
+
+- Deploy `operation-service` to Railway (`railway up --path-as-root`).
+- Verify `/health` -> 200, unauthenticated `/user/profile` -> 401, and unauthenticated `POST /user/2fa/verify` accepts token payloads (not 401).
+- **STOP for Davin live approval checkpoint** before setting feature flags in Vercel production.
+- Set `MIGRATE_USER_PROFILE=true`, `MIGRATE_USER_2FA=true`, `MIGRATE_USER_SESSIONS=true` in Vercel production environment variables and trigger redeploy.
+- Perform live smoke test (fetch profile, update preferences, fetch sessions).
+
+---
+
+## Rules specific to this variant
+
+- **Creativity Dial:** **LOW**. Preserves exact response structures, field validations, and HTTP status codes (`@HttpCode(200)` / `@HttpCode(201)`).
+- **Rule L43:** Ensure exact HTTP status codes are decorated on all NestJS controller handlers to prevent status code drift.
+- **Rule L24 (Auth Semantics):** `POST /user/2fa/verify` MUST remain unauthenticated at the route level to handle mid-login 2FA challenges via token validation.
+
+---
+
+## Slice-level verification
+
+- [ ] Missing models mirrored into `operation-service/prisma/schema.prisma` and `prisma generate` run clean.
+- [ ] Endpoints ported into `operation-service/src/users/`.
+- [ ] Unit tests (`users.controller.spec.ts`, `users.service.spec.ts`) pass.
+- [ ] `nest build` / `tsc --noEmit` clean in `operation-service`.
+- [ ] Monolith `npm run build` / `tsc --noEmit` clean.
+- [ ] Deployed to Railway, `/health` -> 200.
+- [ ] Feature flags set on Vercel production + live smoke test verified.
+
+---
+
+## Rollback
+
+If issues occur post-cutover:
+
+1. Set `MIGRATE_USER_PROFILE=false`, `MIGRATE_USER_2FA=false`, `MIGRATE_USER_SESSIONS=false` in Vercel production environment variables.
+2. Redeploy Next.js monolith. Traffic immediately reverts to local monolith Prisma routes. Zero downtime.
 
 ---
 
 ## Deviations
 
-_(none yet — PRE-DRAFT, not executed)_
+1. **CONFIRM audit found and corrected 3 real gaps in the originally-APPROVED text before execution** (order file was found modified-but-uncommitted, `PRE-DRAFT → APPROVED` with a full rewrite and no visible Advisor-DRAFT/Davin-approval commit trail — the by-now-familiar `LESSONS-LEARNED.md` L11 pattern, 12th+ recurrence; the rewrite had also silently dropped both of the PRE-DRAFT's own explicitly-flagged open questions with no visible resolution). Reported to Davin in full before proceeding; Davin confirmed the rewrite was his/the Advisor's own authentic work and, live in chat, confirmed the following 3 corrections (independently verified against live code by the Executor, not taken on faith): (a) Entry Criterion #2's model list was both over- and under-inclusive — `Account` and `TwoFactorBackupCode` are never referenced anywhere in the 14 SOURCE files or their `lib/` dependencies (backup codes are a plain JSON string field on `User`, no such model exists), while `AccountDeletionRequest`, `UserPreferences`, `LoginHistory`, and `UserSession` (the real model behind "sessions" — distinct from the bare `RefreshToken` table and from NextAuth's own `Session` model, which `lib/auth/session-tracker.ts` also touches for cascade-delete on revoke) are genuinely missing from `operation-service/prisma/schema.prisma` and needed as a real Step 0 prerequisite, not assumed present; (b) the Contract's account-deletion description was factually wrong — real SOURCE (`app/api/user/account/deletion-request/route.ts`) uses a 7-day token-based `AccountDeletionRequest.expiresAt` grace window, not a 24h `scheduledDeletionAt` field (F21, `DECISION-LOG.md`, stays OPEN and out of this session's scope — this session ports the existing 7-day flow byte-for-byte only); (c) Step 2's originally-proposed class-level `@UseGuards(JwtAuthGuard)` would have broken `POST /user/2fa/verify`, which is unauthenticated by design (mid-login 2FA challenge, verified via a short-lived JWT minted at password-check time — no NextAuth session exists yet at that point in the login flow) — corrected to method-level guards with an explicit exception for that one handler.
+
+---
+
+## Known wrinkles / do-not-touch
+
+- **Rule L43:** Anchor root ignore patterns in `.railwayignore` with leading slashes (`/src`).
+- **Rule L44:** Maintain `railway.json` with `healthcheckPath: "/health"` and `startCommand: "npm run start"`.
+- **2FA Secret Storage:** Must reuse existing `TwoFactorService` encryption/hashing methods so existing 2FA secrets and backup codes remain valid.
+
+---
+
+## Next-session handoff
+
+- **Session 4B-12:** Phase 4B market-data channel proxy & final Phase 4B completion review.
