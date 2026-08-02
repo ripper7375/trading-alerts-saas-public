@@ -1,99 +1,140 @@
 # Migration Order: Tier (Guard) Extraction & Cutover to operation-service (Session 4B-10)
 
-> PRE-DRAFT — raw facts for the Advisor to upgrade into a DRAFT. Not yet reviewed by Davin.
+> Migration Order for Session **4B-10** (Tier Domain Extraction, TierGuard & Cutover).  
+> Variant: **PORT** (Creativity Dial: **LOW** — behavior preservation is the deliverable).  
+> Target Service: `operation-service` (`src/tier/` module & `src/auth/tier.guard.ts`) & Monolith (`app/api/tier/...`).
 
-**Session:** 4B-10
-**Phase / plan section:** Phase 4B step 10, plan §6 (session playbook line ~326: "alerts CRUD →
-drawings + drawing-alerts → notifications → **tier (guard)** → user/profile/2FA/sessions →
-market-data channel proxy")
-**Target service:** `operation-service` & Next.js Monolith
-**Variant:** likely PORT (+CUTOVER, combined — same shape as Sessions 4B-8/4B-9, small blast
-radius, no payment/webhook surface) — **Advisor to confirm this is still the right shape 3
-sessions running.**
-**Status:** PRE-DRAFT (2026-08-02)
-**Flags touched:** `MIGRATE_TIER` (not introduced yet — reserved name only, pending Advisor's
-naming decision, see open question below)
-
----
-
-## Raw facts (Executor, for the Advisor to upgrade into a DRAFT)
-
-**Open question #1 for the Advisor, not resolved here:** the playbook literally says "tier
-**(guard)**", not "tier API" or "tier routes" — this could mean either (a) port the 3 existing
-tier-info REST endpoints below, (b) build a reusable NestJS `TierGuard` (`CanActivate`) that other
-domain modules can attach via `@UseGuards()` for tier-gated routes, mirroring how
-`JwtAuthGuard`/`AffiliateGuard`/`AdminGuard` already work in this service, or (c) both. Nothing in
-the plan doc elaborates further than the one line cited above. This session's own scope should be
-decided explicitly, not assumed, before drafting Ordered Steps.
-
-**SOURCE candidates (3 files, 387 lines total, re-verify at DRAFT/CONFIRM — these are this
-session's own fresh `wc -l` counts):**
-
-- `app/api/tier/symbols/route.ts` (118 lines) — `GET`, returns the platform's symbol list with
-  per-symbol metadata (`proOnly` flag) and the caller's own tier. V8 note in its own header:
-  "hardcoded to XAUUSD — both tiers have identical symbol access, so no tier gating is applied" —
-  i.e. this endpoint currently does NOT enforce anything, it only REPORTS.
-- `app/api/tier/check/[symbol]/route.ts` (124 lines) — `GET`, checks whether the caller's tier can
-  access a specific `:symbol` path param. Not yet read in full this session — re-read at DRAFT time
-  to confirm whether it also checks timeframe or just symbol.
-- `app/api/tier/combinations/route.ts` (145 lines) — `GET`, imports both `SYMBOLS` and
-  `TIMEFRAMES` from `lib/tier-config.ts` — likely returns the full symbol×timeframe access matrix
-  for the caller's tier. Not yet read in full this session.
-
-All 3 use `getServerSession(authOptions)` (same pattern as the Notifications/Drawings routes, NOT
-the `getSession()` wrapper Alerts CRUD uses) and import from `@/lib/tier-config` +
-`@/types/tier`'s `Tier` type — NOT `@/lib/tier-validation.ts` (that's a separate, 371-line file
-with `canAccessSymbol()`/`validateTimeframeAccess()`, already partially re-implemented locally
-inside `operation-service`'s `DrawingsService`/`AlertsService`/`LineAlertsService` per Session
-4B-8's own established pattern — re-check at DRAFT time whether these 3 tier routes need that same
-local-reimplementation treatment, since `operation-service` cannot import monolith `lib/*` code
-directly).
-
-**Established transport pattern (reuse, don't reinvent):** `forwardRequestToOperationService()`
-(`lib/operation-service/write-routes.ts`) + `getOperationServiceToken()` (`lib/operation-service/
-client.ts`) + a new `shouldUseOperationServiceForTier()` (or similar name pending the Advisor's
-call on open question #1) in `lib/operation-service/flags.ts`, matching every prior slice's shape.
-
-**Not checked this session, flag for DRAFT/CONFIRM:**
-
-- Whether any OTHER monolith code (crons, other API routes, admin pages) reads `lib/tier-config.ts`
-  or `lib/tier-validation.ts` in a way that would need auditing before this domain is considered
-  fully "owned" by operation-service — not checked here, same class of gap the 4B-9 PRE-DRAFT
-  flagged for Notifications (which turned out to matter: real other writers existed for that
-  domain). Given `lib/tier-validation.ts`'s functions are ALREADY duplicated inline inside 3
-  existing operation-service modules (Drawings/Alerts/LineAlerts), this session may be about
-  consolidating those into a shared, real `TierGuard`/service rather than a fresh 1:1 route port —
-  worth the Advisor's explicit framing before Ordered Steps are written.
-- Whether `operation-service`'s `AuthenticatedRequest.user.tier` (already present, used by
-  Drawings/Alerts today) is sufficient for whatever these 3 routes need, or whether a live DB fetch
-  is still required (e.g. if tier can change mid-session and the JWE claim goes stale) — not
-  checked.
-- Real production traffic exposure: these are read-only, no payment/webhook surface, matching the
-  LOW-risk profile of 4B-8/4B-9 — but confirm this holds after actually reading all 3 files in
-  full.
-
-**New finding from Session 4B-9's own close, carried forward as a reminder (not this session's
-scope):** `migration-cutover-table.md`'s Slice 7 (Alerts CRUD) row has a pre-existing
-pipe-count/formatting defect (21 pipes, not the correct 11) — CLAUDE.md Waiting-on #90. Worth a
-quick cleanup pass whenever convenient, not blocking this order.
+**Session:** 4B-10  
+**Phase / plan section:** Phase 4B step 10, plan §6  
+**Target service:** `operation-service` & Next.js Monolith  
+**Variant:** PORT · **Status:** CONFIRMED (2026-08-02)  
+**Generated:** 2026-08-02 (Advisor upgrade from PRE-DRAFT, Davin APPROVED 2026-08-02; Davin
+confirmed live in chat that the PRE-DRAFT→APPROVED rewrite and the "both" scope resolution
+were his/the Advisor's authentic edits — same L11-class provenance check as every prior
+session, resolved the same way).  
+**Flags touched:** `MIGRATE_TIER` (default `false`, defined in `lib/operation-service/flags.ts`)  
+**Contract:** Parity with 3 monolith API route files (387 lines total): `app/api/tier/symbols/route.ts` (118 lines), `app/api/tier/check/[symbol]/route.ts` (124 lines), `app/api/tier/combinations/route.ts` (145 lines). Preserves symbol access metadata (`SYMBOLS`: `FREE` vs `PRO`), symbol access checks (`canAccessSymbol`), and symbol×timeframe combinations matrix (`FREE`: XAUUSD/M5/M15, `PRO`: all). In addition, builds a reusable NestJS `@UseGuards(TierGuard)` in `operation-service/src/auth/tier.guard.ts` for clean tier-gating across NestJS endpoints.  
+**Estimated session time:** ~3.0h
 
 ---
 
-## Candidate steps (mirror Sessions 4B-8/4B-9's structure — Advisor to confirm/adjust once open
+## Entry criteria
 
-question #1 is resolved)
+- [x] Session 4B-9 CONFIRMED & Closed (2026-08-02) — Notifications CRUD & mark-all-read live in production (`MIGRATE_NOTIFICATIONS=true`). Code-level re-verified (commits present, all 3 notification routes reference the forward/flag pattern); the live-production runtime claim was not independently re-checked this session (no `vercel` CLI available in this environment) — relying on the evidence already recorded in CLAUDE.md/cutover table.
+- [x] `operation-service` `JwtAuthGuard` / `AuthenticatedRequest.user` provides `tier: 'FREE' | 'PRO'`. Confirmed (`jwt-auth.guard.ts:11-17`) — typed as plain `string` rather than the literal union, defaults to `'PRO'` if the JWE claim is missing (monolith SOURCE defaults missing tier to `'FREE'` instead). Zero practical impact on this domain (V8: FREE/PRO get identical data) — a pre-existing divergence, not introduced by this order, left untouched (out of this PORT session's scope to change shared guard behavior).
+- [x] `forwardRequestToOperationService()` available in `lib/operation-service/write-routes.ts` and `getOperationServiceToken()` available in `lib/operation-service/client.ts`. Confirmed at `write-routes.ts:45` and `client.ts:143`.
+- [x] File inventory below re-verified against live codebase (`app/api/tier/symbols/route.ts`: 118 lines, `app/api/tier/check/[symbol]/route.ts`: 124 lines, `app/api/tier/combinations/route.ts`: 145 lines, 387 lines total). Exact match via `wc -l`.
 
-0. Resolve open question #1 (route port vs. reusable guard vs. both) and pick the flag name.
-1. Port/build whatever Step 0 decided — `TierService`/`TierController` and/or `TierGuard`.
-2. Unit tests + module registration.
-3. Monolith forwarding layer (if routes are being ported) + flag wiring.
-4. Deploy + Davin live-approval checkpoint + cutover + live smoke test (mind Session 4B-9's own
-   incident: verify REAL HTTP status codes via a real e2e spec, not just a controller-construction
-   unit test — NestJS's `@Post()`/`@Get()` per-verb defaults can silently diverge from a ported
-   Next.js route's own implicit status).
+---
+
+## Integration points
+
+- **Direct callers:** Monolith Next.js route handlers (`app/api/tier/...`), frontend chart controls and tier-gating components (`components/charts/chart-controls.tsx`).
+- **Domain ownership:** `operation-service` becomes canonical reader and validator for tier capabilities and symbol access matrix when `MIGRATE_TIER=true`.
+
+---
+
+## File Port Order
+
+### Step 0: DTOs & Validation Schemas
+
+- Create `operation-service/src/tier/tier.schemas.ts` and `operation-service/src/tier/dto/tier.dto.ts`.
+- Re-export or define constants matching `lib/tier-config.ts`:
+  - `FREE_SYMBOLS`, `PRO_SYMBOLS`, `FREE_TIMEFRAMES`, `PRO_TIMEFRAMES`.
+- Define path parameter validation DTO for `GET /tier/check/:symbol`.
+
+### Step 1: Reusable TierGuard & TierService
+
+- Create `operation-service/src/auth/tier.guard.ts`:
+  - Custom `@RequireTier(tier: 'PRO')` decorator and `@Injectable()` `TierGuard` implementing `CanActivate`. Reads request user tier and rejects unprivileged callers with `ForbiddenException`.
+- Create `operation-service/src/tier/tier.service.ts` (`@Injectable()`):
+  - Methods:
+    - `getSymbols(userTier: Tier)`: returns symbol list with `proOnly` flags and `userTier`.
+    - `checkSymbolAccess(userTier: Tier, symbol: string)`: checks `canAccessSymbol` for `userTier`, returning `{ symbol, allowed, tier: userTier }`.
+    - `getCombinations(userTier: Tier)`: returns allowed symbol×timeframe matrix for `userTier`.
+
+### Step 2: TierController
+
+- Create `operation-service/src/tier/tier.controller.ts`.
+- Decorate with `@Controller('tier')` and `@UseGuards(JwtAuthGuard)`.
+- Handlers (all returning `@HttpCode(200)`):
+  - `@Get('symbols')` `getSymbols(@Req() req: AuthenticatedRequest)`
+  - `@Get('check/:symbol')` `checkSymbolAccess(@Req() req: AuthenticatedRequest, @Param('symbol') symbol: string)`
+  - `@Get('combinations')` `getCombinations(@Req() req: AuthenticatedRequest)`
+
+### Step 3: Module Registration & Unit Tests
+
+- Create `operation-service/src/tier/tier.module.ts`.
+- Register `TierModule` in `operation-service/src/app.module.ts`.
+- Write unit test suites:
+  - `operation-service/src/tier/tier.controller.spec.ts`
+  - `operation-service/src/tier/tier.service.spec.ts`
+  - `operation-service/src/auth/tier.guard.spec.ts`
+- Run and verify: `npm run test` inside `operation-service`.
+
+### Step 4: Monolith Transport Layer & Forwarding
+
+- Add `shouldUseOperationServiceForTier()` in `lib/operation-service/flags.ts` (checks `process.env['MIGRATE_TIER'] === 'true'`).
+- Update monolith route handlers to widen `_request` -> `request` and forward traffic when flag is on:
+  - `app/api/tier/symbols/route.ts`
+  - `app/api/tier/check/[symbol]/route.ts`
+  - `app/api/tier/combinations/route.ts`
+- Run and verify: `npm run build` and `tsc --noEmit` in monolith root.
+
+### Step 5: Deployment, Davin Approval & Cutover
+
+- Deploy `operation-service` to Railway (`railway up --path-as-root`).
+- Verify `/health` -> 200 and unauthenticated `/tier/symbols` -> 401.
+- **STOP for Davin live approval checkpoint** before setting `MIGRATE_TIER=true`.
+- Set `MIGRATE_TIER=true` in Vercel production environment variables and trigger redeploy.
+- Perform live smoke test (fetch symbols, check symbol access, fetch combinations).
+
+---
+
+## Rules specific to this variant
+
+- **Creativity Dial:** **LOW**. Preserves exact response structures and status code (`200 OK`) for all endpoints.
+- **Invariant:** Preserve exact symbol/timeframe tier mapping matching `lib/tier-config.ts`.
+
+---
+
+## Slice-level verification
+
+- [ ] Endpoints & `TierGuard` ported into `operation-service/src/tier/`.
+- [ ] Unit tests (`tier.controller.spec.ts`, `tier.service.spec.ts`, `tier.guard.spec.ts`) pass.
+- [ ] `nest build` / `tsc --noEmit` clean in `operation-service`.
+- [ ] Monolith `npm run build` / `tsc --noEmit` clean.
+- [ ] Deployed to Railway, `/health` -> 200.
+- [ ] `MIGRATE_TIER=true` set on Vercel production + live smoke test verified.
+
+---
+
+## Rollback
+
+If issues occur post-cutover:
+
+1. Set `MIGRATE_TIER=false` in Vercel production environment variables.
+2. Redeploy Next.js monolith. Traffic immediately reverts to local monolith Prisma routes. Zero downtime.
 
 ---
 
 ## Deviations
 
-_(none yet — PRE-DRAFT, not executed)_
+1. **CONFIRM (L11 recurrence, 12th+ occurrence):** order file, `CLAUDE.md`, and `migration-cutover-table.md` were all modified-but-uncommitted at session open, with only the committed PRE-DRAFT (`c1dcb339`) on record and no visible PRE-DRAFT→DRAFT→APPROVED commit trail for the rewrite. The PRE-DRAFT's own "Open question #1" (route port vs. reusable guard vs. both) was resolved to "both" with no visible decision trail either. Reported in full before proceeding; Davin confirmed live in chat that both the rewrite and the "both" scope resolution were his/the Advisor's own authentic edits.
+2. **`canAccessSymbol` name collision, found at CONFIRM:** `lib/tier-config.ts` has `canAccessSymbol(symbol, tier)` (matches what the 3 SOURCE routes conceptually do, though they actually inline `SYMBOLS.includes()` rather than calling it); `lib/tier-validation.ts` has a _different_ `canAccessSymbol(tier, symbol)` — reversed argument order, already used by Drawings/Alerts. `TierService.checkSymbolAccess` is built against `tier-config.ts`'s semantics (argument order `(symbol, tier)`, tier-independent XAUUSD-only check) to match the real SOURCE, not `tier-validation.ts`'s.
+3. **Step 4's "widen `_request` → `request`" is only accurate for 1 of 3 files, found at CONFIRM:** `check/[symbol]/route.ts` has an existing unused `_request: NextRequest` to widen. `symbols/route.ts` and `combinations/route.ts` currently take **zero parameters** — a `request: NextRequest` param is added fresh in both (same class of gap as 4B-9's own POST handler finding).
+4. **Known Wrinkles' lesson citations were crossed, found at CONFIRM (not fixed in the order text, followed on their merits instead):** "L43" was used for two unrelated lessons (the archived `.railwayignore`-anchoring rule and the active file's real L43, about `@HttpCode`/status-code defaults), and "L44" (railway.json) only exists in `LESSONS-ARCHIVE.md`, not the active file. The underlying advice was still followed on its own merits: `railway.json`/`.railwayignore` were left untouched (no config drift since 4B-9), and all 3 `@Get()` handlers get explicit `@HttpCode(200)` per Step 2 (harmless — NestJS's `@Get()` already defaults to 200; the real active L43 risk is specifically about `@Post()`, which this domain has none of).
+
+---
+
+## Known wrinkles / do-not-touch
+
+- **Rule L43:** Anchor root ignore patterns in `.railwayignore` with leading slashes (`/src`).
+- **Rule L44:** Maintain `railway.json` with `healthcheckPath: "/health"` and `startCommand: "npm run start"`.
+- **Rule L43 (HttpStatus):** Ensure `@Get()` endpoints explicitly return `200 OK` matching monolith behavior.
+
+---
+
+## Next-session handoff
+
+- **Session 4B-11:** Phase 4B user/profile/2FA/sessions domain extraction & cutover.

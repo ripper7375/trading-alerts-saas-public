@@ -26,10 +26,8 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-9 (Notifications Domain Extraction & Cutover, PORT+CUTOVER combined
-  variant), CONFIRMED and executed 2026-08-02. **Slice 9 (Notifications) is CUT-OVER & LIVE** —
-  `MIGRATE_NOTIFICATIONS=true` in Vercel production, all 3 monolith `app/api/notifications/*`
-  route files forwarding to `operation-service`'s new `NotificationsController`.
+- **Current:** Session 4B-10 (Tier Domain Extraction, TierGuard & Cutover, PORT variant), APPROVED (2026-08-02), ready for CONFIRM & execution.
+- **Previous:** Session 4B-9 (Notifications Domain Extraction & Cutover, PORT+CUTOVER combined variant), CONFIRMED and executed 2026-08-02. **Slice 9 (Notifications) is CUT-OVER & LIVE** — `MIGRATE_NOTIFICATIONS=true` in Vercel production, all 3 monolith `app/api/notifications/*` route files forwarding to `operation-service`'s new `NotificationsController`. Live production `GET /notifications` and `POST /notifications` (200 OK) verified in Railway HTTP logs.
   **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file
   modified-but-uncommitted, `PRE-DRAFT → APPROVED` with a full content rewrite, no
   Advisor-DRAFT/Davin-approval commit trail — this file's own header self-corrected from
