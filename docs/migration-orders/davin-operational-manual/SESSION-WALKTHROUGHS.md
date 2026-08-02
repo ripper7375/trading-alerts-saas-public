@@ -8,15 +8,15 @@ sessions, because every session is one of these types.
 
 **The mapping — which walkthrough teaches which sessions:**
 
-| Walkthrough | Type                 | Teaches sessions                                                                                                             |
-| ----------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| A           | Bootstrap            | 0-1 only                                                                                                                     |
-| B           | Standard loop        | 0-2…0-5, 1-2, 1-3, 2-1…2-4, 3-2…3-5, 4A-8, 4B-1, 4B-4, 4B-19, 5-1…5-4, 6-2…6-8, 7-1…7-3, 8-2…8-4                             |
-| C           | Decision session     | 3-1 (F6/F7), 1-1 (F18), 4A-1 (F16), 6-1 (F11 triage)                                                                         |
-| D           | BUILD (port)         | 4A-2, 4A-4, 4A-6, 4A-9, 4A-11 · 4B-2, 4B-5, 4B-7, 4B-9, 4B-11, 4B-13, 4B-15, 4B-17, 4B-20                                    |
-| E           | CUTOVER (fast-path)  | 4A-3, 4A-5, 4A-7, 4A-10, 4A-12 · 4B-3, 4B-6, 4B-8, 4B-10, 4B-12, 4B-14, 4B-16, 4B-18, 4B-21 · also 1-4, 4B-22, 6-9, 8-1, 8-5 |
-| F           | High-stakes cutover  | 4A-9/10 (money), 4B-20/21 (auth), any production deploy                                                                      |
-| G           | When things go wrong | any session, any phase                                                                                                       |
+| Walkthrough | Type                 | Teaches sessions                                                                                                                    |
+| ----------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| A           | Bootstrap            | 0-1 only                                                                                                                            |
+| B           | Standard loop        | 0-2…0-5, 1-2, 1-3, 2-1…2-4, 3-2…3-5, 4A-8, 4B-1, 4B-4, 4B-19, 5-1…5-4, 6-2…6-8, 7-1…7-3, 8-2…8-4                                    |
+| C           | Decision session     | 3-1 (F6/F7), 1-1 (F18), 4A-1 (F16), 6-1 (F11 triage)                                                                                |
+| D           | BUILD (port)         | 4A-2, 4A-4, 4A-6, 4A-9, 4A-11 · 4B-2, 4B-5, 4B-7, 4B-17, 4B-20 (Note: 4B-8..4B-12 used combined PORT+CUTOVER; 4B-13..16 superseded) |
+| E           | CUTOVER (fast-path)  | 4A-3, 4A-5, 4A-7, 4A-10, 4A-12 · 4B-3, 4B-6, 4B-8, 4B-9, 4B-10, 4B-11, 4B-12, 4B-18, 4B-21 · also 1-4, 4B-22, 6-9, 8-1, 8-5         |
+| F           | High-stakes cutover  | 4A-9/10 (money), 4B-20/21 (auth), any production deploy                                                                             |
+| G           | When things go wrong | any session, any phase                                                                                                              |
 
 ---
 

@@ -322,9 +322,7 @@ Phase 4 is repetitive by design. Two session _templates_ repeat per slice:
   correlation IDs).
 - **Session 4B-4 — Shared infra:** redis/cache/logger/errors/monitoring as Nest providers +
   interceptors; OTel + correlation-ID middleware (**F13** resolved here if not earlier).
-- **Sessions 4B-5…16 — Domain slices**, BUILD/CUTOVER pairs in this order: alerts CRUD →
-  drawings + drawing-alerts → notifications → tier (guard) → user/profile/2FA/sessions →
-  market-data channel proxy.
+- **Sessions 4B-5…12 — Domain slices**, executed in combined PORT+CUTOVER shape: alerts CRUD (4B-5..7) → drawings (4B-8) → notifications (4B-9) → tier guard (4B-10) → user/profile/2FA/sessions (4B-11) → market-data channel proxy (4B-12). Note: 4B-13…16 were superseded because combined PORT+CUTOVER completed all 7 domain extractions at 4B-12.
 - **Session 4B-17 — Realtime (F8):** read the two realtime spec docs FIRST, decide socket
   architecture, then BUILD; CUTOVER in 4B-18.
 - **Session 4B-19 — Email rendering:** CORE `emails/*` + `lib/email/email.ts` port.
@@ -479,7 +477,7 @@ review by you → flip.
 | Every payout cycle (F37 = MANUAL) | **Fund the completed batch in the Wise app** — ongoing, not one-off       |
 | 4A-9/10                           | Explicit approval — real payments cut over                                |
 | 6-1                               | Product triage of the gap matrix                                          |
-| All ⏸ WAITs                       | Patience — do not skip the clock                                          |
+| All ⏸ WAITs                      | Patience — do not skip the clock                                          |
 
 ---
 
