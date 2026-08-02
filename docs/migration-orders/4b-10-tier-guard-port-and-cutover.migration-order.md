@@ -100,12 +100,12 @@ session, resolved the same way).
 
 ## Slice-level verification
 
-- [ ] Endpoints & `TierGuard` ported into `operation-service/src/tier/`.
-- [ ] Unit tests (`tier.controller.spec.ts`, `tier.service.spec.ts`, `tier.guard.spec.ts`) pass.
-- [ ] `nest build` / `tsc --noEmit` clean in `operation-service`.
-- [ ] Monolith `npm run build` / `tsc --noEmit` clean.
-- [ ] Deployed to Railway, `/health` -> 200.
-- [ ] `MIGRATE_TIER=true` set on Vercel production + live smoke test verified.
+- [x] Endpoints & `TierGuard` ported into `operation-service/src/tier/`.
+- [x] Unit tests (`tier.controller.spec.ts`, `tier.service.spec.ts`, `tier.guard.spec.ts`) pass. 14 new tests; `operation-service` 36/36 suites, 295/295 tests (was 33/33, 281/281 at 4B-9 close).
+- [x] `nest build` / `tsc --noEmit` clean in `operation-service`.
+- [x] Monolith `npm run build` / `tsc --noEmit` clean. `test:ci` 122/122 suites, 2157/2157 tests (was 2150/2150 at 4B-9 close — +7, matching the 5 new `check/[symbol]` tests + 2 additional forwarding tests beyond the 1 already counted).
+- [x] Deployed to Railway, `/health` -> 200. Deployment `1dbf7aab-8411-4b72-9f90-b853a2b1babe` SUCCESS; fresh boot log shows `TierModule dependencies initialized`, `TierController {/tier}` with all 3 routes mapped, zero DI errors, timestamps correlate with this deployment. Unauthenticated `/tier/symbols`, `/tier/check/XAUUSD`, `/tier/combinations` all -> 401 (not 404); a real nonexistent route -> 404 as a control.
+- [ ] `MIGRATE_TIER=true` set on Vercel production + live smoke test verified. **Pending Davin's separate, explicit live approval per this order's own Step 5 checkpoint** (distinct from the session's general go-ahead).
 
 ---
 
