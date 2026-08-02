@@ -14,6 +14,7 @@ import { LoggingModule } from './common/logging/logging.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { DrawingsModule } from './drawings/drawings.module';
 import { HealthModule } from './health/health.module';
+import { MarketDataModule } from './market-data/market-data.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OutboxModule } from './outbox/outbox.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -50,6 +51,7 @@ import { UsersModule } from './users/users.module';
     NotificationsModule,
     TierModule,
     UsersModule,
+    MarketDataModule,
   ],
   providers: [
     {
