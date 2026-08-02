@@ -18,6 +18,7 @@ import { MarketDataModule } from './market-data/market-data.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OutboxModule } from './outbox/outbox.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { RealtimeModule } from './realtime/realtime.module';
 import { RedisModule } from './redis/redis.module';
 import { TierModule } from './tier/tier.module';
 import { UsersModule } from './users/users.module';
@@ -52,6 +53,7 @@ import { UsersModule } from './users/users.module';
     TierModule,
     UsersModule,
     MarketDataModule,
+    RealtimeModule,
   ],
   providers: [
     {
