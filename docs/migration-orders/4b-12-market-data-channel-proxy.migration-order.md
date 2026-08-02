@@ -24,11 +24,11 @@
 
 ## Entry criteria
 
-- [ ] Session 4B-11 CONFIRMED & Closed (2026-08-02) — User Profile / 2FA / Sessions domain live in production (`MIGRATE_USER_PROFILE=true`, `MIGRATE_USER_2FA=true`, `MIGRATE_USER_SESSIONS=true`).
-- [ ] Additive schema mirror sync in Step 0: Add 18 centroid channel fields (`Float?`) to `MarketDataV6` in `operation-service/prisma/schema.prisma` and run `npx prisma generate` (zero DB migrations required).
-- [ ] `TierGuard` and `JwtAuthGuard` available in `operation-service/src/auth/`.
-- [ ] `forwardRequestToOperationService()` available in `lib/operation-service/write-routes.ts` and `getOperationServiceToken()` available in `lib/operation-service/client.ts`.
-- [ ] SOURCE file re-verified against live codebase (`app/api/market-data/channel/route.ts`: 125 lines).
+- [x] Session 4B-11 CONFIRMED & Closed (2026-08-02) — User Profile / 2FA / Sessions domain live in production (`MIGRATE_USER_PROFILE=true`, `MIGRATE_USER_2FA=true`, `MIGRATE_USER_SESSIONS=true`).
+- [x] Additive schema mirror sync in Step 0: Add 18 centroid channel fields (`Float?`) to `MarketDataV6` in `operation-service/prisma/schema.prisma` and run `npx prisma generate` (zero DB migrations required).
+- [x] `TierGuard` and `JwtAuthGuard` available in `operation-service/src/auth/`.
+- [x] `forwardRequestToOperationService()` available in `lib/operation-service/write-routes.ts` and `getOperationServiceToken()` available in `lib/operation-service/client.ts`.
+- [x] SOURCE file re-verified against live codebase (`app/api/market-data/channel/route.ts`: 125 lines, not 126 — see Deviations #3).
 
 ---
 
