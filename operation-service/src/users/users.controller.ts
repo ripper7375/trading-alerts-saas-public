@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -66,7 +67,7 @@ export class UsersController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Put('profile')
+  @Patch('profile')
   @HttpCode(200)
   async updateProfile(
     @Req() request: AuthenticatedRequest,
