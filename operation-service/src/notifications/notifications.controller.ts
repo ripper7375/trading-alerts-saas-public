@@ -2,6 +2,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Post,
   Query,
@@ -44,6 +45,7 @@ export class NotificationsController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
+  @HttpCode(200)
   async markAllRead(@Req() request: AuthenticatedRequest) {
     return this.notificationsService.markAllRead(request.user.id);
   }
@@ -62,6 +64,7 @@ export class NotificationsController {
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/read')
+  @HttpCode(200)
   async markRead(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string
