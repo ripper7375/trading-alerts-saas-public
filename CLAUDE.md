@@ -26,7 +26,100 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-11 (User Profile, 2FA, Sessions & Account Deletion Extraction & Cutover, PORT variant), CONFIRMED and executed 2026-08-02. **Slice 11 is CUT-OVER & LIVE** — `MIGRATE_USER_PROFILE=true`, `MIGRATE_USER_2FA=true`, `MIGRATE_USER_SESSIONS=true` in Vercel production, all 14 monolith `app/api/user/*` route files forwarding to `operation-service`'s new `UsersController` (19 real endpoints across those 14 files, not the ~16 the order's own text enumerated). Verification is COMPLETE — Davin's live browser smoke test returned real profile/preferences/sessions data, independently cross-checked against `operation-service`'s own Railway HTTP logs.
+- **Current:** Session 4B-12 (Market Data Channel Proxy Extraction & Cutover, PORT variant), CONFIRMED and executed 2026-08-02 — **BUILT, cutover attempted with Davin's live approval, then REVERTED same session, blocked on a newly-discovered pre-existing production gap (`DECISION-LOG.md` F52).**
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file
+  modified-but-uncommitted, `PRE-DRAFT → APPROVED` with a full content rewrite, no
+  Advisor-DRAFT/Davin-approval commit trail) — reported in full before proceeding, including a real
+  gap the rewrite hadn't resolved: Entry Criterion #2 ("`MarketDataV6` model present") was true only
+  in the narrowest literal sense — the model existed (a 5-field subset mirrored Session 4B-2 for the
+  alert-engine's own `close`-only lookup) but was missing all 18 dynamic `${variant}_uoedt`/
+  `${variant}_base_fl`/`${variant}_loedt` columns this route actually reads (6 `CENTROID_VARIANTS` ×
+  3 fields), confirmed by reading the monolith's real `prisma/market-data/schema.prisma` directly.
+  Davin confirmed live the rewrite was his/the Advisor's own authentic edit and that the order file
+  had ALREADY been independently updated (in parallel, via the Advisor) to add the exact Step 0
+  schema-sync fix this CONFIRM had just found — matching his own confirmation message verbatim
+  (Step 0 schema mirror sync, local `CENTROID_VARIANTS` definition, exact 403 payload parity).
+  **Built (Steps 0-3, one commit each):** widened `operation-service/prisma/schema.prisma`'s
+  `MarketDataV6` model with the 18 centroid-variant columns (additive-only, `Float?`, `prisma
+generate` only — the columns already exist in the live `market_data_v6` table, L1 still holds);
+  `market-data.schemas.ts` (local `CENTROID_VARIANTS`/`SYMBOLS`/`TIMEFRAMES`, not imported from the
+  monolith, matching the Drawings/Tier precedent) + `dto/channel.dto.ts`; `MarketDataService`/
+  `MarketDataController` (exact SOURCE parity — PRO-tier gate with both `error`/`message` fields,
+  symbol/timeframe/variant membership checks in SOURCE's own order and exact error text, row
+  mapping/reversal); `MarketDataModule` registered in `AppModule`; monolith
+  `shouldUseOperationServiceForMarketDataChannel()` + forwarding wired into
+  `app/api/market-data/channel/route.ts`, placed to forward immediately after the auth check (before
+  the local tier check) so operation-service's own controller owns the WHOLE handler once the flag
+  is on, matching the Drawings precedent rather than running the tier check twice.
+  **Closed an L28-class gap:** no test coverage existed anywhere for this route before this session —
+  built 11 new `operation-service` tests (tier gate, membership checks with exact SOURCE text and
+  order, row mapping, missing-column null defaulting) plus 13 new monolith forwarding tests
+  (`__tests__/api/market-data-channel.test.ts`, including a dedicated test proving a FREE-tier caller
+  is now forwarded too — not locally 403'd — since operation-service owns the tier gate once the
+  flag is on).
+  **Full verification:** `operation-service` 40/40 suites, 359/359 tests (was 38/38, 348/348 at
+  4B-11's close). Monolith `tsc --noEmit`/`eslint --max-warnings 0`/`next build` all clean; full
+  `test:ci` 123/123 suites, 2171/2171 tests (was 122/122, 2158/2158). Deployed via `railway up
+--path-as-root --service operation-service` (`"source": null`, same as every prior
+  operation-service session); deployment `7a097df5` confirmed genuinely `SUCCESS` (checked
+  `latestDeployment.status`, not the stale top-level field); `/health` → 200; unauthenticated
+  `GET /market-data/channel` → 401 (route genuinely mapped, not 404); fresh boot log showed
+  `MarketDataController {/market-data}` registered, `Mapped {/market-data/channel, GET}`, zero DI
+  errors, log lines timestamp-correlated to the verification requests just sent.
+  **Cutover executed with Davin's own separate, explicit live approval** (distinct from the
+  session's general go-ahead): `MIGRATE_MARKET_DATA_CHANNEL` added to Vercel production, `vercel
+--prod --archive=tgz --yes` (L36) redeployed clean (`dpl_EfyoNAeysgtMwNpYbn85zL8wKqoj`).
+  Unauthenticated route confirmed still 401 post-redeploy (auth runs before the flag check).
+  **Davin ran the live smoke test from his own browser DevTools console** (his session cookie
+  applied automatically, no token ever extracted or handled directly, same method as every prior
+  4B cutover) — got back a real, live `500`, not a transport/auth failure. **This was immediately
+  recognizable as genuine evidence the request reached operation-service, not a bug in this
+  session's code:** the response body carried operation-service's own `AllExceptionsFilter` shape
+  (`statusCode`/`message`/`error`/`timestamp`/`path`/`correlationId`), not the monolith's fallback
+  shape. Pulled the real Railway stack trace (L18 discipline — never trust the client message
+  alone): `PrismaClientKnownRequestError: table public.market_data_v6 does not exist`.
+  **Root-caused, not just observed, before touching anything further:** (1) proved this session's
+  own additive schema widening isn't the cause — a missing TABLE fails identically regardless of
+  how many columns the model declares, so even the original 5-field model would 500 the same way;
+  (2) ruled out a wrong-target-environment mixup via value-blind hostname comparison (L19 method,
+  no credentials ever displayed) — `operation-service`'s Railway `DATABASE_URL`
+  (`postgres.railway.internal`) and the monolith's Vercel `DATABASE_URL`
+  (`maglev.proxy.rlwy.net`) are the exact same physical Postgres instance, confirmed by querying it
+  directly and finding 34 real tables (`Alert`, `AffiliateProfile`, `Commission`, etc. — the same
+  tables every prior cutover has proven live) but zero matching `market_data`; (3) found the exact
+  mechanism via a direct `_prisma_migrations` query: `20260705000000_add_market_data_v6` (a real
+  `CREATE TABLE` migration, still in the repo) is recorded `finished_at` during Session 2-3's own
+  migration-history baseline (2026-07-20, ~3-minute window, matching every other pre-2-3 migration)
+  with `applied_steps_count: 0` — compare `20260721000000_add_refresh_token_table`'s `steps: 1`, a
+  genuinely-executed post-baseline migration. The baseline correctly assumed every OTHER
+  pre-existing table already existed (true — Users/Alerts/Drawings all work); it was simply wrong
+  for this one table.
+  **Reverted immediately, per the standing "any red result = abort immediately, revert flag"
+  rule** — the first slice in this whole migration where rollback was genuinely EXERCISED live in
+  production rather than only reasoned about: `MIGRATE_MARKET_DATA_CHANNEL` removed from Vercel
+  production, monolith redeployed (`dpl_EgN82iVqFvDTB75oEfKxDsac5P7X`, READY), re-verified live
+  (unauthenticated route still 401, flag confirmed absent from `vercel env ls production`). Zero
+  ongoing production exposure — the monolith serves this route exactly as it did before this
+  session, with the same latent, pre-existing, migration-unrelated bug.
+  **New `DECISION-LOG.md` F52** (OPEN, full evidence chain, owner Davin/Advisor) — needs its own
+  dedicated schema-repair session (likely `prisma migrate resolve --rolled-back
+20260705000000_add_market_data_v6` then `prisma migrate deploy`, plus a separate check on whether
+  the `railway-gateway` ingestion pipeline was ever pointed at this production database at all) —
+  out of this PORT session's own scope and out of the Executor's authority to attempt unilaterally
+  (a production schema DDL action). New unpromoted `LESSONS-LEARNED.md` candidate — a migration-
+  history baseline recording `finished_at` doesn't prove `applied_steps_count > 0`; spot-check
+  actual schema state after any baseline, not just `_prisma_migrations` row presence.
+  **Artifacts updated:** `4b-12-market-data-channel-proxy.migration-order.md` (Status → CONFIRMED
+  and executed with the revert recorded, entry criteria + Slice-level verification checked,
+  Deviations filled in full — 6 entries, Next-session handoff flags F52 as the new priority),
+  `DECISION-LOG.md` (new F52), `migration-cutover-table.md` (Slice 12 row corrected from stray
+  leftover placeholder content to the real BUILT-and-reverted outcome), `LESSONS-LEARNED.md` (new
+  unpromoted candidate), this file. No `migration-stack-analysis.md` update this session (out of
+  time budget for this response — flagged below, same class as prior sessions' own backfill gaps).
+  No new order PRE-DRAFTed for the F52 repair itself (doesn't fit the PORT/CUTOVER/VERIFY-RETIRE
+  template shapes — a database-baseline repair, not a domain-slice extraction); flagged in Waiting-on
+  and this order's own Next-session handoff instead, for the Advisor to scope properly.
+- **Previous:** Session 4B-11 (User Profile, 2FA, Sessions & Account Deletion Extraction & Cutover, PORT variant), CONFIRMED and executed 2026-08-02. **Slice 11 is CUT-OVER & LIVE** — `MIGRATE_USER_PROFILE=true`, `MIGRATE_USER_2FA=true`, `MIGRATE_USER_SESSIONS=true` in Vercel production, all 14 monolith `app/api/user/*` route files forwarding to `operation-service`'s new `UsersController` (19 real endpoints across those 14 files). Verification is COMPLETE — Davin's live browser smoke test returned real profile/preferences/sessions data.
   **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again** (order file modified-but-uncommitted, `PRE-DRAFT → APPROVED` with a full content rewrite, no Advisor-DRAFT/Davin-approval commit trail — 13th+ recurrence; the rewrite had also silently dropped both of the PRE-DRAFT's own explicitly-flagged open questions with no visible resolution) — reported in full before proceeding; Davin confirmed the rewrite was his/the Advisor's own authentic work and, live in chat, confirmed 3 corrections the Executor's own independent audit had found and proposed: (a) Entry Criterion #2's Prisma model list was both over- and under-inclusive (named `Account`/`TwoFactorBackupCode`, neither of which exists or is used anywhere; omitted `AccountDeletionRequest`/`UserPreferences`/`LoginHistory`/`UserSession`, all 4 genuinely missing from `operation-service/prisma/schema.prisma` and needed as a real Step 0 prerequisite); (b) the Contract's account-deletion description was factually wrong (real SOURCE uses a 7-day token-based `AccountDeletionRequest.expiresAt` grace window, not 24h/`scheduledDeletionAt` — F21 stays OPEN, out of scope); (c) Step 2's originally-proposed class-level `@UseGuards(JwtAuthGuard)` would have broken `POST /user/2fa/verify`'s unauthenticated mid-login design.
   **Building surfaced that fix (c) was incomplete on its own** — 2 MORE routes are also unauthenticated-or-optional in SOURCE (`account/deletion-confirm`: public token-only; `account/deletion-cancel`: SOURCE's own dual-mode anonymous-token-or-session branch). `UsersController` built with method-level guards omitted on all 3, proven by a dedicated guard-metadata test (`Reflect.getMetadata(GUARDS_METADATA, ...)`), not just delegation coverage. That in turn meant the established `forwardRequestToOperationService()` transport (throws 401 with no session cookie) would have broken all 3 once forwarded — built `forwardRequestToOperationServiceOptionalAuth()` + `callOperationServiceWithOptionalTokenStatus()` for these 3 routes specifically.
   **3 more real order-text-vs-SOURCE gaps found by reading SOURCE directly, same `LESSONS-LEARNED.md` L27 class as every prior recurrence:** `preferences/route.ts` is `PUT` not `PATCH` (caught after `UsersController` was briefly built with `profile` itself wrongly as `PUT` — SOURCE's `profile/route.ts` is actually `PATCH`, the OPPOSITE mixup, self-caught and fixed before Step 4); `2fa/setup/route.ts` exports both `GET` (status) and `POST` (initiate) — the order's handler list named only `POST`, added `GET /user/2fa/setup`; `sessions/route.ts` exports both `GET` (list) and `DELETE` (bulk revoke-all, no `:id`) — the order's list only named the `[id]/route.ts` single-session `DELETE`, added the bulk one. Real endpoint count: 19, not ~16.
@@ -2875,9 +2968,36 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   cell instead of ensuring a genuine newline started the new row — compounding across 3 sessions
   now. NOT fixed here (reconstructing 3 merged rows correctly needs care beyond this session's own
   scope) — this session's own Slice 10 row was spliced in as a single, clean, correctly-terminated
-  line (verified: 11 pipes) using a line-addressed`sed` replacement rather than a text-match edit,
+  line (verified: 11 pipes) using a line-addressed`sed`replacement rather than a text-match edit,
   specifically to avoid adding to the corruption. Worth a dedicated future session (or the Advisor)
   reconstructing Slices 7/8/9 as 3 proper separate rows.
+  **(92, NEW — CRITICAL, blocks 4B-12's own cutover retry — Session 4B-12, 2026-08-02)**
+ `market_data_v6` does not exist in production — confirmed via a direct query
+  (`to_regclass('public.market_data_v6')`returns null; 34 real tables present, none matching
+ `market_data`) against the exact same Postgres instance the monolith's own Vercel `DATABASE_URL`  points to (value-blind host comparison, L19 method: both resolve to`maglev.proxy.rlwy.net`/
+  `postgres.railway.internal`). Root cause identified precisely via `\_prisma_migrations`: the real
+  `20260705000000_add_market_data_v6` migration (`CREATE TABLE`, still in the repo) is recorded
+  `finished_at`during Session 2-3's migration-history baseline with`applied_steps_count: 0`— the
+  DDL was marked resolved but never actually ran, and nothing before this session's own live smoke
+  test ever unconditionally exercised a Prisma query against this specific table in production (the
+  alert-engine's XAUUSD lookup prefers an HTTP gateway-pipeline call first, so this has been
+  invisible since Session 2-3, 2026-07-20 — 13 days, 11+ sessions). Full evidence chain and fix
+  options in`DECISION-LOG.md`**F52** (OPEN). **This is almost certainly a pre-existing bug in the
+  monolith's own un-migrated SOURCE code too** (same database, same missing table) — not something
+  this migration introduced, just something this migration's own live-smoke-test discipline was the
+  first thing to actually surface. Needs a dedicated schema-repair session (production DDL action,
+  Davin's live presence required per every prior precedent in this migration) before
+ `4b-12-market-data-channel-proxy.migration-order.md`'s own cutover can be safely retried — likely
+  `prisma migrate resolve --rolled-back 20260705000000_add_market_data_v6`then`prisma migrate
+  deploy`, plus a separate, currently-unanswered question of whether the `railway-gateway` ingestion
+  pipeline that's meant to populate this table was ever actually pointed at this production
+  database at all (creating the table alone doesn't mean real data starts flowing into it). No
+  order file drafted for this repair (doesn't fit the PORT/CUTOVER/VERIFY-RETIRE template shapes) —
+  flagged here and in the order's own Next-session handoff for the Advisor to scope properly.
+- **(93, NEW — Session 4B-12, 2026-08-02)** `migration-stack-analysis.md` was not updated this
+  session (new `operation-service/src/market-data/` files never recorded there) — same standing gap
+  class as prior sessions' own backfill notes (Waiting-on #35); flagged, not backfilled, out of this
+  response's own time budget.
 - **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
   2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
   **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:
@@ -3100,6 +3220,9 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   no real tracing backend chosen yet (Option A/B still open for later), but the SDK/instrumentation
   layer is live in both services, silent (no exporter wired) until `OTEL_EXPORTER_OTLP_ENDPOINT` is
   set on Railway ·
+  **F52 OPEN (registered Session 4B-12, 2026-08-02)** — `market_data_v6` table missing in
+  production; its own `CREATE TABLE` migration was baselined (Session 2-3) with zero applied
+  steps, never actually run; full evidence chain in `DECISION-LOG.md` ·
   F8, F11–F12 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
