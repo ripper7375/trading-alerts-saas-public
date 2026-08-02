@@ -4,6 +4,11 @@ import { z } from 'zod';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import { shouldUseOperationServiceForUserProfile } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationServiceOptionalAuth,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 
 /**
  * Account Deletion Cancellation API Route
@@ -31,6 +36,19 @@ const cancellationSchema = z.object({
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    // No blanket auth check by design — SOURCE accepts EITHER an anonymous
+    // token OR a logged-in session (see the dual-mode branch below), so
+    // this is forwarded via the optional-auth variant regardless of
+    // whether a session cookie exists.
+    if (shouldUseOperationServiceForUserProfile()) {
+      const { status: opStatus, body } =
+        await forwardRequestToOperationServiceOptionalAuth(
+          request,
+          '/user/account/deletion-cancel'
+        );
+      return NextResponse.json(body, { status: opStatus });
+    }
+
     // Parse request body
     const body = await request.json().catch(() => ({}));
     const validation = cancellationSchema.safeParse(body);
@@ -126,6 +144,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       message: 'Account deletion cancelled. Your account will not be deleted.',
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[POST /api/user/account/deletion-cancel] Error:', error);
     return NextResponse.json(
       { error: 'Failed to cancel deletion' },

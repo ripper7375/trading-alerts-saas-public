@@ -11,6 +11,11 @@ import {
   formatBackupCodesForDisplay,
 } from '@/lib/auth/two-factor';
 import { sendTwoFactorEnabledEmail } from '@/lib/email/email';
+import { shouldUseOperationServiceForUser2FA } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 import {
   getLoginContext,
   formatLocation,
@@ -38,7 +43,10 @@ interface UserWith2FA {
  */
 
 const verifySetupSchema = z.object({
-  code: z.string().length(6, 'Code must be 6 digits').regex(/^\d+$/, 'Code must be numeric'),
+  code: z
+    .string()
+    .length(6, 'Code must be 6 digits')
+    .regex(/^\d+$/, 'Code must be numeric'),
 });
 
 /**
@@ -51,6 +59,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (shouldUseOperationServiceForUser2FA()) {
+      const { status: opStatus, body: opBody } =
+        await forwardRequestToOperationService(
+          request,
+          '/user/2fa/verify-setup'
+        );
+      return NextResponse.json(opBody, { status: opStatus });
     }
 
     // Parse and validate request body
@@ -147,7 +164,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           userId: session.user.id,
           type: 'TWO_FACTOR_ENABLED',
           title: 'Two-Factor Authentication Enabled',
-          message: 'Two-factor authentication has been enabled on your account.',
+          message:
+            'Two-factor authentication has been enabled on your account.',
           ipAddress: context.ipAddress,
           location,
           emailSent: true,
@@ -176,6 +194,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       backupCodesFormatted: formattedCodes,
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[POST /api/user/2fa/verify-setup] Error:', error);
     return NextResponse.json(
       { error: 'Failed to verify two-factor authentication' },

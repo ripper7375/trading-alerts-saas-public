@@ -4,6 +4,11 @@ import { z } from 'zod';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import { shouldUseOperationServiceForUserProfile } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 import {
   DEFAULT_PREFERENCES,
   mergePreferences,
@@ -47,12 +52,20 @@ const preferencesSchema = z.object({
  * GET /api/user/preferences
  * Get the authenticated user's preferences
  */
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (shouldUseOperationServiceForUserProfile()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        '/user/preferences'
+      );
+      return NextResponse.json(body, { status: opStatus });
     }
 
     // Fetch user preferences
@@ -67,6 +80,9 @@ export async function GET(): Promise<NextResponse> {
 
     return NextResponse.json({ preferences });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[GET /api/user/preferences] Error:', error);
 
     // Return defaults if there's an error (e.g., table doesn't exist yet)
@@ -84,6 +100,12 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (shouldUseOperationServiceForUserProfile()) {
+      const { status: opStatus, body: opBody } =
+        await forwardRequestToOperationService(request, '/user/preferences');
+      return NextResponse.json(opBody, { status: opStatus });
     }
 
     // Parse and validate request body
@@ -138,6 +160,9 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       message: 'Preferences updated successfully',
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[PUT /api/user/preferences] Error:', error);
     return NextResponse.json(
       { error: 'Failed to update preferences' },

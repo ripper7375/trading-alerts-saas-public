@@ -6,6 +6,11 @@ import { z } from 'zod';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { sendPasswordChangedEmail } from '@/lib/email/email';
+import { shouldUseOperationServiceForUserProfile } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 import {
   getLoginContext,
   getSecurityPreferences,
@@ -45,6 +50,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (shouldUseOperationServiceForUserProfile()) {
+      const { status: opStatus, body: opBody } =
+        await forwardRequestToOperationService(request, '/user/password');
+      return NextResponse.json(opBody, { status: opStatus });
     }
 
     // Parse and validate request body
@@ -161,6 +172,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       message: 'Password changed successfully',
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[POST /api/user/password] Error:', error);
     return NextResponse.json(
       { error: 'Failed to change password' },

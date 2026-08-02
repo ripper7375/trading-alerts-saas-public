@@ -16,6 +16,11 @@ import {
   revokeAllSessions,
   trackSession,
 } from '@/lib/auth/session-tracker';
+import { shouldUseOperationServiceForUserSessions } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 
 /**
  * GET /api/user/sessions
@@ -28,6 +33,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (shouldUseOperationServiceForUserSessions()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        req,
+        '/user/sessions'
+      );
+      return NextResponse.json(body, { status: opStatus });
     }
 
     // Get session token from cookies
@@ -56,6 +69,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ sessions });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[Sessions API] Error fetching sessions:', error);
     return NextResponse.json(
       { error: 'Failed to fetch sessions' },
@@ -77,6 +93,14 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (shouldUseOperationServiceForUserSessions()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        req,
+        '/user/sessions'
+      );
+      return NextResponse.json(body, { status: opStatus });
+    }
+
     // Get current session token to preserve
     const sessionToken =
       req.cookies.get('next-auth.session-token')?.value ||
@@ -90,6 +114,9 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       revokedCount: count,
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[Sessions API] Error revoking sessions:', error);
     return NextResponse.json(
       { error: 'Failed to revoke sessions' },

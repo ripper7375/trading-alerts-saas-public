@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { prisma } from '@/lib/db/prisma';
+import { shouldUseOperationServiceForUserProfile } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationServiceOptionalAuth,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 
 /**
  * Account Deletion Confirmation API Route
@@ -31,6 +36,17 @@ const confirmationSchema = z.object({
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    // Deliberately unauthenticated (public email-link token flow, zero auth
+    // check in SOURCE) — forwarded via the optional-auth variant.
+    if (shouldUseOperationServiceForUserProfile()) {
+      const { status: opStatus, body } =
+        await forwardRequestToOperationServiceOptionalAuth(
+          request,
+          '/user/account/deletion-confirm'
+        );
+      return NextResponse.json(body, { status: opStatus });
+    }
+
     // Parse and validate request body
     const body = await request.json();
     const validation = confirmationSchema.safeParse(body);
@@ -124,6 +140,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       scheduledDeletionTime,
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[POST /api/user/account/deletion-confirm] Error:', error);
     return NextResponse.json(
       { error: 'Failed to confirm deletion' },

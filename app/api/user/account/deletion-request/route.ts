@@ -1,9 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { randomBytes } from 'crypto';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import { shouldUseOperationServiceForUserProfile } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 
 /**
  * Account Deletion Request API Route
@@ -26,12 +31,20 @@ import { prisma } from '@/lib/db/prisma';
  * POST /api/user/account/deletion-request
  * Request account deletion
  */
-export async function POST(): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (shouldUseOperationServiceForUserProfile()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        '/user/account/deletion-request'
+      );
+      return NextResponse.json(body, { status: opStatus });
     }
 
     // Check for existing pending request
@@ -98,6 +111,9 @@ export async function POST(): Promise<NextResponse> {
       expiresAt,
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[POST /api/user/account/deletion-request] Error:', error);
     return NextResponse.json(
       { error: 'Failed to create deletion request' },

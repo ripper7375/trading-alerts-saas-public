@@ -9,6 +9,11 @@ import {
   generateQRCodeDataURL,
   encryptSecret,
 } from '@/lib/auth/two-factor';
+import { shouldUseOperationServiceForUser2FA } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 
 // Type for user with 2FA fields (until Prisma client is regenerated)
 interface UserWith2FA {
@@ -33,12 +38,20 @@ interface UserWith2FA {
  * POST /api/user/2fa/setup
  * Generate a new TOTP secret and QR code for authenticator app setup
  */
-export async function POST(_request: NextRequest): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (shouldUseOperationServiceForUser2FA()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        '/user/2fa/setup'
+      );
+      return NextResponse.json(body, { status: opStatus });
     }
 
     // Get user
@@ -90,9 +103,13 @@ export async function POST(_request: NextRequest): Promise<NextResponse> {
       success: true,
       qrCode: qrCodeDataURL,
       secret: secret, // Show secret for manual entry
-      message: 'Scan the QR code with your authenticator app, then verify with a code',
+      message:
+        'Scan the QR code with your authenticator app, then verify with a code',
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[POST /api/user/2fa/setup] Error:', error);
     return NextResponse.json(
       { error: 'Failed to set up two-factor authentication' },
@@ -105,12 +122,20 @@ export async function POST(_request: NextRequest): Promise<NextResponse> {
  * GET /api/user/2fa/setup
  * Get current 2FA status
  */
-export async function GET(_request: NextRequest): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (shouldUseOperationServiceForUser2FA()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        '/user/2fa/setup'
+      );
+      return NextResponse.json(body, { status: opStatus });
     }
 
     // Get user 2FA status
@@ -131,6 +156,9 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
       verifiedAt: user.twoFactorVerifiedAt,
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[GET /api/user/2fa/setup] Error:', error);
     return NextResponse.json(
       { error: 'Failed to get 2FA status' },

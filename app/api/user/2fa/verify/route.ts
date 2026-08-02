@@ -9,6 +9,11 @@ import {
   verifyBackupCode,
   isBackupCode,
 } from '@/lib/auth/two-factor';
+import { shouldUseOperationServiceForUser2FA } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationServiceOptionalAuth,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 
 // Type for user with 2FA fields (until Prisma client is regenerated)
 interface UserWith2FA {
@@ -42,6 +47,18 @@ const verifySchema = z.object({
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    // Deliberately unauthenticated (mid-login 2FA challenge — no session
+    // cookie exists yet at this point in the flow) — forwarded via the
+    // optional-auth variant, which never requires a session token.
+    if (shouldUseOperationServiceForUser2FA()) {
+      const { status: opStatus, body } =
+        await forwardRequestToOperationServiceOptionalAuth(
+          request,
+          '/user/2fa/verify'
+        );
+      return NextResponse.json(body, { status: opStatus });
+    }
+
     // Parse and validate request body
     const body = await request.json();
     const validation = verifySchema.safeParse(body);
@@ -69,7 +86,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       tokenPayload = jwt.verify(token, secret) as typeof tokenPayload;
     } catch {
       return NextResponse.json(
-        { error: 'Invalid or expired verification token. Please log in again.' },
+        {
+          error: 'Invalid or expired verification token. Please log in again.',
+        },
         { status: 401 }
       );
     }
@@ -130,16 +149,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Count remaining backup codes
       const remainingCodes = backupCodes.filter((c) => c !== '').length;
 
-      console.log(`[2FA] Backup code used for user: ${user.email}. Remaining: ${remainingCodes}`);
+      console.log(
+        `[2FA] Backup code used for user: ${user.email}. Remaining: ${remainingCodes}`
+      );
 
       return NextResponse.json({
         success: true,
         verified: true,
         method: 'backup_code',
         remainingBackupCodes: remainingCodes,
-        message: remainingCodes <= 2
-          ? `Verified with backup code. Only ${remainingCodes} backup codes remaining. Consider generating new ones.`
-          : 'Verified with backup code',
+        message:
+          remainingCodes <= 2
+            ? `Verified with backup code. Only ${remainingCodes} backup codes remaining. Consider generating new ones.`
+            : 'Verified with backup code',
       });
     } else {
       // Verify TOTP code
@@ -171,6 +193,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       });
     }
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[POST /api/user/2fa/verify] Error:', error);
     return NextResponse.json(
       { error: 'Failed to verify two-factor authentication' },

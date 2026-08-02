@@ -9,6 +9,11 @@ import {
   generateBackupCodes,
   formatBackupCodesForDisplay,
 } from '@/lib/auth/two-factor';
+import { shouldUseOperationServiceForUser2FA } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 
 // Type for user with 2FA fields (until Prisma client is regenerated)
 interface UserWith2FA {
@@ -45,6 +50,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (shouldUseOperationServiceForUser2FA()) {
+      const { status: opStatus, body: opBody } =
+        await forwardRequestToOperationService(
+          request,
+          '/user/2fa/backup-codes'
+        );
+      return NextResponse.json(opBody, { status: opStatus });
     }
 
     // Parse and validate request body
@@ -120,11 +134,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({
       success: true,
-      message: 'Backup codes regenerated successfully. Old codes are no longer valid.',
+      message:
+        'Backup codes regenerated successfully. Old codes are no longer valid.',
       backupCodes: plainCodes,
       backupCodesFormatted: formattedCodes,
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[POST /api/user/2fa/backup-codes] Error:', error);
     return NextResponse.json(
       { error: 'Failed to regenerate backup codes' },
@@ -137,12 +155,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  * GET /api/user/2fa/backup-codes
  * Get remaining backup codes count
  */
-export async function GET(_request: NextRequest): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (shouldUseOperationServiceForUser2FA()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        '/user/2fa/backup-codes'
+      );
+      return NextResponse.json(body, { status: opStatus });
     }
 
     // Get user with 2FA data
@@ -152,7 +178,10 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
         twoFactorEnabled: true,
         twoFactorBackupCodes: true,
       },
-    })) as Pick<UserWith2FA, 'twoFactorEnabled' | 'twoFactorBackupCodes'> | null;
+    })) as Pick<
+      UserWith2FA,
+      'twoFactorEnabled' | 'twoFactorBackupCodes'
+    > | null;
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -179,6 +208,9 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
       totalCodes: 10,
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[GET /api/user/2fa/backup-codes] Error:', error);
     return NextResponse.json(
       { error: 'Failed to get backup codes info' },

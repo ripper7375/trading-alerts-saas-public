@@ -4,6 +4,11 @@ import { z } from 'zod';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import { shouldUseOperationServiceForUserProfile } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 
 /**
  * Profile API Route
@@ -32,12 +37,20 @@ const profileUpdateSchema = z.object({
  * GET /api/user/profile
  * Get the authenticated user's profile
  */
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (shouldUseOperationServiceForUserProfile()) {
+      const { status: opStatus, body } = await forwardRequestToOperationService(
+        request,
+        '/user/profile'
+      );
+      return NextResponse.json(body, { status: opStatus });
     }
 
     // Fetch user profile
@@ -67,6 +80,9 @@ export async function GET(): Promise<NextResponse> {
       },
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[GET /api/user/profile] Error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch profile' },
@@ -85,6 +101,12 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (shouldUseOperationServiceForUserProfile()) {
+      const { status: opStatus, body: opBody } =
+        await forwardRequestToOperationService(request, '/user/profile');
+      return NextResponse.json(opBody, { status: opStatus });
     }
 
     // Parse and validate request body
@@ -168,6 +190,9 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       message: 'Profile updated successfully',
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[PATCH /api/user/profile] Error:', error);
     return NextResponse.json(
       { error: 'Failed to update profile' },

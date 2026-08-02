@@ -3,6 +3,11 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
+import { shouldUseOperationServiceForUserSessions } from '@/lib/operation-service/flags';
+import {
+  forwardRequestToOperationService,
+  OperationServiceError,
+} from '@/lib/operation-service/write-routes';
 
 /**
  * Login History API Route
@@ -54,6 +59,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (shouldUseOperationServiceForUserSessions()) {
+      const { status: opStatus, body: opBody } =
+        await forwardRequestToOperationService(
+          request,
+          `/user/login-history${new URL(request.url).search}`
+        );
+      return NextResponse.json(opBody, { status: opStatus });
+    }
+
     // Get query params for pagination
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
@@ -89,12 +103,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     });
 
     // Format the response
-    const formattedHistory: LoginHistoryItem[] = (loginHistory as LoginHistoryEntry[]).map((entry) => {
+    const formattedHistory: LoginHistoryItem[] = (
+      loginHistory as LoginHistoryEntry[]
+    ).map((entry) => {
       // Format location
       const locationParts = [entry.city, entry.region, entry.country].filter(
         (p) => p && p !== 'Unknown'
       );
-      const location = locationParts.length > 0 ? locationParts.join(', ') : 'Unknown';
+      const location =
+        locationParts.length > 0 ? locationParts.join(', ') : 'Unknown';
 
       // Format device description
       const deviceType = entry.deviceType || 'Unknown';
@@ -102,7 +119,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
       // Format browser with version
       const browser = entry.browser
-        ? entry.browser + (entry.browserVersion ? ` ${entry.browserVersion}` : '')
+        ? entry.browser +
+          (entry.browserVersion ? ` ${entry.browserVersion}` : '')
         : 'Unknown';
 
       // Format OS with version
@@ -134,6 +152,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
     });
   } catch (error) {
+    if (error instanceof OperationServiceError) {
+      return NextResponse.json(error.body, { status: error.status });
+    }
     console.error('[GET /api/user/login-history] Error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch login history' },
