@@ -60,6 +60,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F53  | `RealtimeGateway`'s CORS `origin` array-vs-wildcard-string bug blocks every real cross-origin browser connection                                                                                                                | RESOLVED — Session 4B-18b (2026-08-03): fixed and verified via a real cross-origin preflight probe; live browser proof still blocked by the separate F54 gap                                                                                                  |
 | F54  | Monolith CSP `connect-src` never included operation-service's origin — blocks the realtime WebSocket connection client-side before any network request is sent                                                                  | RESOLVED — Session 4B-18c (2026-08-03): fixed and independently verified via a live `101 Switching Protocols` WS handshake; live browser proof still blocked by the separate, NEW F55 gap                                                                     |
 | F55  | Realtime WS connection authenticates server-side then repeatedly disconnects/reconnects in a loop (many cycles, several ~25-30s apart) - `isConnected` never observed true client-side despite genuine server-side auth success | RESOLVED - Session 4B-18d (2026-08-03): reason captured as `"transport close"` (not ping-timeout); pattern did not reproduce across ~2h active monitoring; full live smoke test passed clean with real end-to-end delivery proof, closing the F53/F54/F55 arc |
+| F56  | OAuth handling for the Auth Cutover (4B-20/21) — operation-service has zero OAuth support; auth-options.ts configures 3 conditional providers on top of CredentialsProvider                                                     | RESOLVED — Session 4B-20 (Davin): Option B — keep a narrow OAuth-only `[...nextauth]` shim indefinitely; cut credentials/2FA/registration/sessions to operation-service                                                                                       |
 
 > **Note on numbering (updated 4A-W4, 2026-07-26).** F36–F42 (Part 19.5 / Wise) were registered at
 > Session **4A-W1**, closing the register's F35→F44 gap. **F43** is now registered (Session
@@ -136,3 +137,40 @@ _(Resolution entries append below this line — newest last)_
 
 _(F55 RESOLVED at Session 4B-18d, 2026-08-03 — full resolution entry moved to
 `docs/migration-orders/history/decisions-archive.md` per this file's own hygiene rule.)_
+
+## F56 — OAuth handling for the Auth Cutover (4B-20/21): Option A/B/C per this order's own Finding 5
+
+- Status: RESOLVED
+- Session: 4B-20 · Date: 2026-08-03
+- Found while: this order's own PRE-DRAFT audit (2026-08-03) — `operation-service`'s `AuthController`
+  has zero OAuth support of any kind (credentials-only: register/login/refresh/logout/me/
+  forgot-password/reset-password/verify-email/resend-verification), while `lib/auth/auth-options.ts`
+  (583 lines) genuinely configures THREE conditional OAuth providers (`GoogleProvider`,
+  `TwitterProvider`, `LinkedInProvider`, each gated on its own `isXConfigured` env-var check) on top
+  of `CredentialsProvider`, rendered live via `components/auth/social-auth-buttons.tsx`'s three real
+  `signIn('google'|'twitter'|'linkedin', ...)` buttons. The playbook's own one-line framing for this
+  session ("retire `[...nextauth]`... delete `auth-options.ts`") would have silently broken OAuth
+  login for any real user who signed up via Google/Twitter/LinkedIn, with no equivalent path to fall
+  back to.
+- Decision: **Option B** — keep a narrow `[...nextauth]` route alive indefinitely, scoped to OAuth
+  providers only. `CredentialsProvider` is removed from `auth-options.ts` once credentials fully cut
+  over (Session 4B-21, not this session — 4B-20 is BUILD-only, zero traffic cutover). Credentials,
+  2FA, registration, and sessions are cut over to operation-service's `token-*` bridge routes; OAuth
+  login (Google/Twitter/LinkedIn) stays on `next-auth/react`'s `signIn()` against the narrowed
+  `auth-options.ts` indefinitely — building real OAuth support into `operation-service` (Option A) or
+  deprecating OAuth login outright (Option C) were both explicitly rejected.
+- Rollout mechanism (same decision, same prompt): a client-readable flag,
+  `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED` (default unset/`false` — forms stay on `next-auth/react`'s
+  credentials path until Session 4B-21 flips it), read via `lib/auth/auth-bridge-flag.ts`'s
+  `isAuthBridgeEnabled()`. Matches this migration's own established per-slice flag pattern
+  (`lib/operation-service/flags.ts`) rather than an atomic swap with `git revert` as rollback — auth
+  is the single highest-blast-radius surface in the app, and a staged/instantly-revertible rollout is
+  worth the extra flag plumbing.
+- Evidence: Live decision from Davin via interactive prompt, in direct response to this order's own
+  Entry Criterion 0 and rollout-mechanism question (both raised at this session's CONFIRM, since the
+  order's own working copy had claimed "Option B selected"/"APPROVED" with zero corresponding
+  DECISION-LOG.md entry, no entry-criteria checkboxes checked, and no DRAFT-stage commit trail —
+  `LESSONS-LEARNED.md` L11's most consequential recurrence to date, given this session's own explicit
+  "not fast-path eligible under any circumstance" framing). Davin confirmed live this was his own
+  authentic decision before CONFIRM proceeded.
+- Approved by: Davin

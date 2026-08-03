@@ -2,22 +2,27 @@
 
 > For sessions that **move existing code between stacks** AND **build/rewire frontend
 > surfaces**. Read `00-SKELETON-AND-RULES.md` first — §4's dial is mixed here: **Low** for the
-> one missing backend endpoint (behavior preservation), **Medium** for the UI rewiring (the
-> contract — which cookie, which JWE format, which guard — is fixed; only the client-side
-> plumbing connecting to it is open). This is the **LAST** domain session in Phase 4B and the
-> highest-remaining-risk one (auth semantics) — **not fast-path eligible under any
-> circumstance.** Needs a full Advisor DRAFT and Davin APPROVED before CONFIRM, per
-> `EXECUTOR-PROTOCOL.md` §7 ("anything that would touch... auth semantics" escalates
-> immediately, always).
+> `token-register` endpoint (behavior preservation), **Medium** for the UI rewiring. This is the
+> **LAST** domain session in Phase 4B and the highest-remaining-risk one (auth semantics).
+>
+> **CONFIRM note (2026-08-03):** this order's working copy was found uncommitted at CONFIRM,
+> self-contradicting its own committed PRE-DRAFT (which explicitly read "not fast-path eligible
+> under any circumstance... needs a full Advisor DRAFT and Davin APPROVED") — a claimed
+> `APPROVED`/`Option B selected` header with all 4 Entry Criteria checkboxes still unchecked and
+> zero corresponding `DECISION-LOG.md` entry (`LESSONS-LEARNED.md` L11's most consequential
+> recurrence to date, given this order's own stakes). Reported in full to Davin before proceeding;
+> Davin confirmed live, in chat, that Option B and the flag-based rollout mechanism were his own
+> authentic decisions — recorded as **F56** with full evidence. See Entry criteria and Deviations
+> below for the complete CONFIRM record.
 
-**Session:** 4B-20 (this order) / 4B-21 (CUTOVER, drafted separately once 4B-20 closes) ·
-**Variant:** PORT / UI-BUILD hybrid · **Status:** PRE-DRAFT
-**Generated:** 2026-08-03 (Executor PRE-DRAFT at 4B-19 close) · **Flags touched:** none yet — see
-Entry criteria (a client-side rollout flag is proposed, not decided)
-**Estimated time:** genuinely unclear until Davin resolves the OAuth question below — likely
-multi-session regardless of variant boundaries
-**Target service:** monolith (Next.js routes + ~19 UI consumers) · **Contract:** operation-service's
-already-frozen `/auth/*` + `/2fa/*` surface (built Sessions 3-1 through 3-5, F6/F7/F24-F27)
+**Session:** 4B-20 (BUILD & UI Rewire) / 4B-21 (CUTOVER, drafted separately once 4B-20 closes) ·
+**Variant:** PORT / UI-BUILD hybrid · **Status:** CONFIRMED, executed, CLOSED SUCCESSFUL
+**Generated:** 2026-08-03 (Executor PRE-DRAFT at 4B-19 close) · **CONFIRMED:** 2026-08-03 (Davin,
+live in chat — Option B + flag rollout mechanism, F56) · **Flags touched:**
+`NEXT_PUBLIC_AUTH_BRIDGE_ENABLED` (new, default unset/`false` — dormant/parallel this session,
+zero traffic cutover)
+**Estimated time:** 2-3h (Session 4B-20 BUILD scope)
+**Target service:** monolith (Next.js routes + UI consumers) · **Contract:** operation-service's already-frozen `/auth/*` + `/2fa/*` surface (Sessions 3-1 through 3-5, F6/F7/F24-F27)
 
 ## Background — this session's own audit found far more already built than the playbook's
 
@@ -107,21 +112,31 @@ not something to guess at here.
 
 ## Entry criteria — this session cannot proceed past Step 0 without Davin's decisions
 
-- [ ] **Entry Criterion 0 (blocking, per Finding 5):** Davin picks Option A/B/C for OAuth handling
-      before any code is touched.
-- [ ] Re-verify Findings 1-4 and 6 above are still accurate at DRAFT/CONFIRM time — this
-      PRE-DRAFT's own audit is dated 2026-08-03; re-run the same greps, don't assume no drift
-      (per this repo's own standing L27 discipline — order text has drifted from its own cited
-      ground truth before, more than once).
-- [ ] `DECISION-LOG.md`'s F27 entry re-read in full to confirm "email-sending ported" is
-      genuinely the condition that was deferred on, before building `token-register`.
-- [ ] A rollout mechanism decided: gate the UI swap behind a flag (e.g. a client-readable
+- [x] **Entry Criterion 0 (blocking, per Finding 5):** Davin picks Option A/B/C for OAuth handling
+      before any code is touched. **RESOLVED 2026-08-03, live in chat: Option B** — narrow
+      OAuth-only `[...nextauth]` shim kept indefinitely; credentials/2FA/registration/sessions cut
+      to operation-service. Recorded as `DECISION-LOG.md` **F56**.
+- [x] Re-verify Findings 1-4 and 6 above are still accurate at DRAFT/CONFIRM time — re-verified at
+      CONFIRM (2026-08-03) directly against live code, not assumed: Finding 1 (operation-service
+      auth surface) exact match; Finding 2 (13 `token-*` routes) exact match, `token-register`
+      confirmed absent; Finding 3 (`middleware.ts`) holds, minor +1 line-count drift (67 vs. cited
+      66, non-blocking); Finding 4 (`token-register` gap + F27) confirmed; Finding 5 (3 OAuth
+      providers, zero operation-service support) confirmed, this is F56's own basis; Finding 6 (19
+      files) close but slightly undercounted — ~17-18 real production `.tsx` consumers plus at
+      least 1 test file (`__tests__/components/layout/header.test.tsx`) not in the original list,
+      non-blocking. Zero commits have touched the auth surface since Session 4B-11 — no drift risk
+      from other in-flight work.
+- [x] `DECISION-LOG.md`'s F27 entry re-read in full to confirm "email-sending ported" is
+      genuinely the condition that was deferred on, before building `token-register`. Confirmed
+      (archived text): _"Defer routing `/auth/register`... until the email logic (Resend
+      integration) is ported."_ Email-sending is fully ported and live (Session 3-4/F29, 4A-11,
+      re-confirmed again at 4B-19) — F27's own blocking condition is genuinely satisfied.
+- [x] A rollout mechanism decided: gate the UI swap behind a flag (e.g. a client-readable
       `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED`, allowing a staged rollout / instant rollback the same
       way every server-side `MIGRATE_*` flag in this migration has worked) vs. a single atomic
       swap with `git revert` as rollback (matching how some UI-only changes in this repo have
-      shipped). Recommend the flag approach for consistency with this migration's own established
-      pattern and because auth is the single highest-blast-radius surface in the whole app — but
-      this is the Advisor's/Davin's call, not decided here.
+      shipped). **RESOLVED 2026-08-03, live in chat: the flag**, `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED`
+      — recorded alongside F56.
 
 ## Rules specific to this session
 
@@ -141,19 +156,87 @@ not something to guess at here.
 
 ## Done when (4B-20 BUILD scope — 4B-21's own Done-when is drafted separately)
 
-- [ ] Entry Criterion 0 resolved and recorded in `DECISION-LOG.md` (new F-number if it's a genuine
-      open architecture question, which OAuth handling is)
-- [ ] `token-register` built, tested, zero traffic (dormant/parallel, matching every other
-      `token-*` route's current state)
-- [ ] The UI-swap approach (session mechanism, `SessionProvider` replacement) decided and at least
+- [x] Entry Criterion 0 resolved and recorded in `DECISION-LOG.md` (new F-number if it's a genuine
+      open architecture question, which OAuth handling is) — **F56**, Option B, Davin live.
+- [x] `token-register` built, tested, zero traffic (dormant/parallel, matching every other
+      `token-*` route's current state) — `app/api/auth/token-register/route.ts`, mirrors
+      `token-login`'s shape exactly; 8 new tests (`__tests__/api/auth/token-register.test.ts`).
+      Closed a real gap found reading `AuthService.register()` first: it never sent the
+      verification email (Deviation 2) — fixed as part of making this route genuinely
+      behavior-preserving, covered by 3 new/updated `operation-service` tests.
+- [x] The UI-swap approach (session mechanism, `SessionProvider` replacement) decided and at least
       prototyped against one real consumer (recommend `login-form.tsx`, the highest-value/
-      highest-risk single file) before committing to the full 19-file swap
-- [ ] `operation-service` test suite green, monolith `test:ci` green, `tsc --noEmit` clean both
-      sides, `eslint --max-warnings 0` clean
+      highest-risk single file) before committing to the full 19-file swap — mechanism is the
+      `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED` flag (F56); prototyped against BOTH `login-form.tsx` and
+      `register-form.tsx` (both explicitly requested), covered by 9 new component tests. No
+      `SessionProvider` replacement was needed for this prototype — `app/(dashboard)/layout.tsx`'s
+      auth check is server-side (`getServerSession`), so a client-side session-cache read after
+      the bridge login isn't in the path this prototype exercises; flagged as an open question for
+      the full 19-file swap (Deviation 4), not resolved here.
+- [x] `operation-service` test suite green, monolith `test:ci` green, `tsc --noEmit` clean both
+      sides, `eslint --max-warnings 0` clean — `operation-service` 42/42 suites, 381/381 tests
+      (was 380/380 — +1); monolith 126/126 suites, 2174/2174 tests (was 2157/2157 — +17, +3
+      suites); `tsc --noEmit` clean both sides; `eslint app components lib hooks
+    --max-warnings 0` clean (0 errors, 0 warnings).
 
 ## Deviations
 
-_(empty — filled during execution once this order reaches DRAFT → APPROVED → CONFIRMED)_
+1. **Order self-contradiction found and resolved at CONFIRM (2026-08-03).** The working copy
+   claimed `Status: APPROVED`/"Option B selected for OAuth" with zero corresponding
+   `DECISION-LOG.md` entry, all 4 Entry Criteria checkboxes still unchecked, and no DRAFT-stage
+   commit trail between the committed PRE-DRAFT (`12e8a940`) and this claim —
+   `LESSONS-LEARNED.md` L11's most consequential recurrence to date, given this order's own
+   explicit "not fast-path eligible under any circumstance" framing. Reported to Davin in full
+   before proceeding; he confirmed live that Option B (narrow OAuth-only shim) and the flag
+   rollout mechanism (`NEXT_PUBLIC_AUTH_BRIDGE_ENABLED`) were his own authentic decisions.
+   Recorded as `DECISION-LOG.md` **F56**. Entry criteria checked with evidence, order moved
+   directly from the corrected working copy to CONFIRMED (no intermediate commit for the
+   uncommitted APPROVED-claim state — it was never a genuine, verifiable state to begin with).
+2. **A genuine, previously-undiscovered live gap found reading `AuthService.register()` before
+   building `token-register`:** the method generates and stores a `verificationToken` but never
+   calls `sendVerificationEmail()` — unlike `resendVerification()` in the SAME file, which does.
+   The method's own header comment (Session 3-2) documents this as a known, deliberate gap at
+   the time ("no email goes out yet... Session 3-3 wires it up") — but Session 3-3 built the
+   login/refresh/logout/middleware bridge, not register (F27 correctly deferred `/auth/register`
+   routing until email-sending was ported), and nothing revisited this specific gap since. Since
+   this order's own deliverable is a `token-register` route that actually preserves registration
+   behavior (a PORT session's "Low creativity, behavior preservation" dial), and the monolith's
+   real `/api/auth/register/route.ts` DOES send this email today, wiring a real UI consumer to
+   the current `AuthService.register()` as-is would be a live functional regression the moment
+   the flag flips — not deferred, fixed in this session as a one-line addition exactly mirroring
+   `resendVerification()`'s own existing call pattern (log-and-continue on send failure, not
+   throw — matching the monolith SOURCE's own non-fatal handling). Covered by a new unit test.
+3. **UI-swap prototype scope: both requested consumers, not just the recommended one.** The
+   order's own Done-when only required prototyping against one file (`login-form.tsx`); Davin's
+   GO explicitly asked for both `login-form.tsx` and `register-form.tsx` to be rewired this
+   session, since both were already in scope of his literal instruction. Both done, both
+   flag-gated, both covered by new component tests (`__tests__/components/auth/{login-form,
+register-form}.test.tsx`, 9 tests total) using this repo's existing RTL/jsdom harness
+   (`__tests__/components/layout/header.test.tsx`'s established mocking conventions for
+   `next/navigation`/`next-auth/react`). No test file previously existed for either component —
+   a real L28-class gap closed as part of this work, not assumed to exist.
+4. **`SessionProvider`/client-side session-cache staleness after a bridge login is a real open
+   question, deliberately not resolved this session.** `login-form.tsx`'s success path still
+   calls `router.push('/dashboard')` after the bridge sets the cookie; this works correctly for
+   THIS prototype because `app/(dashboard)/layout.tsx`'s auth gate is server-side
+   (`getServerSession`), which reads the cookie fresh on every navigation regardless of
+   `next-auth/react`'s own client-side session cache. Any of the other 17 files in Finding 6's
+   list that call client-side `useSession()` directly (e.g. `components/layout/header.tsx`,
+   `components/notifications/notification-bell.tsx`) would very likely show a stale
+   "not logged in" view until that cache naturally revalidates (focus/interval/manual
+   `getSession()` call) — out of scope for this session's 2-file prototype, but Session 4B-21's
+   full 19-file swap must resolve this explicitly (a thin custom auth-context replacing
+   `SessionProvider` entirely, or a forced `getSession()`/`update()` call right after a bridge
+   login/logout) before it can safely cut over client components that read session state.
+5. **Confirmed via `git status`/`git diff --stat`, not assumed:** `lib/auth/auth-options.ts`,
+   `components/auth/social-auth-buttons.tsx`, and `middleware.ts` are byte-identical to before
+   this session — zero lines touched. OAuth (Google/Twitter/LinkedIn) and the cookie/middleware
+   bridge mechanism are both completely unaffected by this session's work, matching the Rules
+   section's explicit constraints. No test file exists anywhere in this repo for
+   `auth-options.ts` or `social-auth-buttons.tsx` (a pre-existing gap, not introduced or closed
+   this session, and not this session's scope to close) — "verify NextAuth OAuth shim" for this
+   session means confirming zero bytes changed plus the full test-suite/`tsc`/`eslint` green bar,
+   not a new end-to-end OAuth test.
 
 ## Known wrinkles / do-not-touch
 
