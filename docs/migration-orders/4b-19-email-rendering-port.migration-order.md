@@ -1,18 +1,14 @@
-# Migration Order — PORT variant
+# Migration Order — PORT / VERIFY-RETIRE variant (Option A Selected)
 
 > For sessions that **move existing code between stacks** (Next.js lib/routes → NestJS;
 > monolith rewiring). Read `00-SKELETON-AND-RULES.md` first — §4 applies with the dial at
-> **Low**: behavior preservation IS the deliverable. The current code is ground truth, not the
-> session playbook's own one-line description of this session (see Background — that
-> description is stale against the live codebase, per `LESSONS-LEARNED.md` L27's own recurring
-> class of finding).
+> **Low**: behavior preservation IS the deliverable. Ground truth audit confirms active email infrastructure is ALREADY in operation-service/money-service (Sessions 3-4/4A-11); Option A selected to audit, verify, and retire remaining dead templates.
 
-**Session:** 4B-19 · **Variant:** PORT · **Status:** PRE-DRAFT
-**Generated:** 2026-08-03 (Executor PRE-DRAFT at 4B-18d close) · **Flags touched:** none identified
-yet (see Entry criteria — may register a new one if Davin chooses Option B below)
-**Estimated time:** 1-4h (genuinely unclear until Davin's Option A/B/C decision — see below)
-**Target service:** operation-service (if anything is ported at all — see Background)
-**Contract:** none identified (internal email-rendering capability, not an API surface)
+**Session:** 4B-19 · **Variant:** PORT / VERIFY-RETIRE (Option A) · **Status:** CONFIRMED
+**Generated:** 2026-08-03 (Executor PRE-DRAFT at 4B-18d close; Approved by Antigravity Advisor 2026-08-03; CONFIRMED by Executor 2026-08-03 after independent re-verification of all 4 Background findings — zero drift found; Davin confirmed live the PRE-DRAFT→APPROVED header edit was Antigravity Advisor's own authentic work) · **Flags touched:** none
+**Estimated time:** <1h (Option A: verify active email functions, retire unused legacy templates)
+**Target service:** operation-service / money-service / monolith
+**Contract:** none (internal email-rendering capability)
 
 ## Background (read before touching anything — the playbook's own description is stale)
 
@@ -57,21 +53,31 @@ meaningfully "preserve the behavior of" — there is no live behavior to preserv
 
 ## Entry criteria — this session cannot proceed past Step 0 without Davin's decision
 
-- [ ] **Davin/Advisor to choose one before any file is touched:**
-  - **Option A (recommended):** treat this as CONFIRMED — close out the "email rendering port"
-    playbook item as already-substantially-done (Sessions 3-4/4A-11), formally retire the 2
-    confirmed-dead `subscription-emails.ts` functions and the 9 unused `.tsx` template files from
-    the monolith (a VERIFY-RETIRE-shaped action, not a PORT), and move directly to
-    Session 4B-20/21 (auth cutover).
-  - **Option B:** port the dead/unfinished code anyway, preemptively, in case a future feature
-    (dLocal payment-flow emails, affiliate welcome emails) revives it — a real PORT session, but
-    porting code with zero current behavior to preserve is a different risk profile than this
-    variant's own "Low creativity dial, behavior preservation is the deliverable" framing assumes.
-  - **Option C:** skip this session number entirely (mark SUPERSEDED, same precedent as the
-    unsplit `4a-w3` order), proceed straight to 4B-20/21.
-- [ ] If Option A or B: re-verify this PRE-DRAFT's own 4 findings above are still accurate at
-      CONFIRM (nothing should have changed since 2026-08-03, but confirm per this repo's own
-      standing CONFIRM discipline, not assume).
+- [x] **Davin/Advisor to choose one before any file is touched:** **Option A selected** (Davin,
+      live, 2026-08-03) — close out the "email rendering port" playbook item as
+      already-substantially-done (Sessions 3-4/4A-11), formally retire the 2 confirmed-dead
+      `subscription-emails.ts` functions and the 9 unused `.tsx` template files from the monolith
+      (a VERIFY-RETIRE-shaped action, not a PORT), and move directly to Session 4B-20/21
+      (auth cutover).
+  - Option B (port the dead/unfinished code preemptively) and Option C (skip the session number
+    entirely) were both declined.
+- [x] Re-verified this PRE-DRAFT's own 4 findings at CONFIRM (2026-08-03) — all 4 hold, zero
+      drift since drafting. Independently confirmed, not assumed:
+  - Finding 1 (`lib/email/email.ts` fully ported): confirmed both files export the identical 24
+    functions, same names, same order (`isEmailServiceConfigured` → `sendTwoFactorDisabledEmail`).
+  - Finding 2 (`subscription-emails.ts` — 5 types ported, 2 dead): confirmed via repo-wide grep of
+    `app/`, `lib/`, `components/` — `getUpgradeEmailTemplate`/`sendUpgradeEmail` and
+    `getRenewalReminderEmailTemplate`/`sendRenewalReminderEmail` have zero external callers
+    (self-referential only). Confirmed the file's other 5 functions are still live
+    (`app/api/subscription/cancel/route.ts`, `lib/stripe/webhook-handlers.ts` both import from
+    it) — retirement correctly scoped to the 2 dead functions only, not the whole file. Minor
+    citation correction: the file defines 7 email-type pairs (14 exports), not "8 functions" as
+    the PRE-DRAFT's prose stated (5 ported + 2 dead = 7) — immaterial to the conclusion.
+  - Finding 3 (`emails/*.tsx`, zero consumers): confirmed via repo-wide grep of `app/`, `lib/`,
+    `components/` for imports from `emails/` — zero matches, zero test coverage.
+  - Finding 4 (`lib/email/templates/affiliate/*.tsx`, one commented-out reference): confirmed the
+    only hit anywhere in real code is the commented-out line at `lib/affiliate/registration.ts:124`;
+    no `send*Email` wrapper exists anywhere for any of the 5 templates.
 
 ## File Port Order (only applies under Option B — do not build any of this under Option A/C)
 
@@ -111,14 +117,45 @@ meaningfully "preserve the behavior of" — there is no live behavior to preserv
 
 ## Slice-level verification (done when)
 
-- [ ] Davin's Option A/B/C decision recorded in this order and in `DECISION-LOG.md` if it
-      resolves a real open question
-- [ ] Whichever path chosen, `operation-service` test suite green, monolith `test:ci` green,
-      `tsc --noEmit` clean both sides
+- [x] Davin's Option A/B/C decision recorded in this order (Option A, above). No `DECISION-LOG.md`
+      entry needed — this doesn't resolve an F-numbered open question, it closes a stale playbook
+      item description against already-completed prior-session work.
+- [x] `operation-service` test suite green (42/42 suites, 380/380 tests — unchanged, this service
+      was not touched), monolith `test:ci` green (123/123 suites, 2157/2157 tests — unchanged from
+      4B-18d's baseline, zero regressions), `tsc --noEmit` clean both sides, `eslint app components
+    lib hooks --max-warnings 0` clean (0 errors/warnings), `operation-service` `nest build` clean.
 
 ## Deviations
 
-_(empty — filled during execution once this order is CONFIRMED and run)_
+1. **Minor citation correction, immaterial to the outcome:** the PRE-DRAFT's Background section
+   (Finding 2) said Session 4A-11 "ported 5 of its 8 functions" from `subscription-emails.ts`. The
+   file actually defines 7 email-type pairs (14 exports: 7 `get*Template` + 7 `send*Email`), not 8
+   — 5 ported + 2 dead (`upgrade`, `renewal-reminder`) = 7. Found while independently re-verifying
+   the finding at CONFIRM via `grep -n "^export function\|^export async function"`. Does not change
+   which functions are dead or the retirement scope.
+2. **Retirement scope was function-level, not file-level, for `subscription-emails.ts`:** only
+   `getUpgradeEmailTemplate`, `sendUpgradeEmail`, `getRenewalReminderEmailTemplate`, and
+   `sendRenewalReminderEmail` (plus their JSDoc blocks and the now-empty "RENEWAL REMINDER EMAIL"
+   section divider) were deleted — confirmed via grep before deleting that the file's other 5
+   functions are still imported by live monolith code (`app/api/subscription/cancel/route.ts`,
+   `lib/stripe/webhook-handlers.ts`). Deleting the whole file would have broken both. File went
+   from 865 to 612 lines.
+3. **Used a small Node.js script (not the Edit tool) to perform the line-range deletion** in
+   `lib/email/subscription-emails.ts`, given the functions being removed are large raw-HTML-string
+   template literals with heavy special-character content — a scripted, line-number-addressed
+   deletion (verified against a fresh `Read` of the file immediately beforehand) was more reliable
+   than hand-constructing exact-match `old_string` blocks for that much templated markup. Deleted
+   the throwaway script after use; zero repo residue.
+4. **All 10 dead template files removed via `git rm -r`, not deleted-then-staged**, for a clean,
+   traceable single diff: `emails/{index.ts,payment-confirmation.tsx,payment-failure.tsx,
+renewal-reminder.tsx,subscription-expired.tsx}` (5 files) and
+   `lib/email/templates/affiliate/{welcome,code-distributed,code-used,monthly-report,
+payment-processed}.tsx` (5 files) — the PRE-DRAFT's own "9 unused `.tsx` template files" count
+   excludes the `emails/index.ts` barrel (a `.ts`, not `.tsx`, file) which was also removed since it
+   only re-exported the 4 now-deleted components. `lib/email/templates/` had no other contents and
+   is now gone entirely (git doesn't track empty directories).
+5. **One commit for the whole retirement**, per this order's own explicit Rules section ("If
+   Option A: ... one commit").
 
 ## Known wrinkles / do-not-touch
 
