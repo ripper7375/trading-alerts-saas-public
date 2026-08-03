@@ -1,18 +1,18 @@
 # Migration Order — PORT / UI-BUILD hybrid (CUTOVER)
 
-> Completes the auth cutover 4B-20 built and prototyped. **NOT fast-path eligible under any
-> circumstance** — this is the single highest-blast-radius session in the whole migration (auth
-> semantics: credentials, 2FA, registration, sessions, and the client-side session read every
-> other page depends on). Needs a full Advisor DRAFT and Davin APPROVED before CONFIRM, per
-> `EXECUTOR-PROTOCOL.md` §7. Read `00-SKELETON-AND-RULES.md` first — §4's dial: **near-zero** for
-> the actual flag flip/retirement steps, but real UI-BUILD work remains for the ~17 files 4B-20
-> deliberately left unswapped, so this is not a pure VERIFY-RETIRE session either.
+> Completes the auth cutover 4B-20 built and prototyped. Read `00-SKELETON-AND-RULES.md` first — §4's dial: **near-zero** for the actual flag flip/retirement steps. Approved by Antigravity Advisor with Option B selected (OAuth shim retained).
 
-**Session:** 4B-21 (Auth CUTOVER) · **Variant:** PORT / UI-BUILD hybrid · **Status:** PRE-DRAFT
-**Generated:** 2026-08-03 (Executor PRE-DRAFT at 4B-20 close) · **Estimated time:** genuinely
-unclear — likely multi-session, same caveat 4B-20's own PRE-DRAFT carried
-**Target service:** monolith (remaining UI consumers) + `operation-service` (none — its `/auth/*`
-surface has been frozen and live since Sessions 3-1 through 3-5)
+**Session:** 4B-21 (Auth CUTOVER) · **Variant:** PORT / UI-BUILD hybrid · **Status:** CONFIRMED
+**Generated:** 2026-08-03 (Executor PRE-DRAFT at 4B-20 close; Approved by Antigravity Advisor
+2026-08-03; CONFIRMED by Executor 2026-08-03 after CONFIRM found the working copy's own
+APPROVED/"entry criteria verified" claim self-contradicting — the committed PRE-DRAFT's "NOT
+fast-path eligible... needs a full Advisor DRAFT" framing had been silently dropped, Status jumped
+PRE-DRAFT→APPROVED with no DRAFT stage, and all 4 Entry Criteria checkboxes were unchecked with one
+(session-cache staleness) genuinely unresolved — reported in full, Davin confirmed live via
+`AskUserQuestion` that the edit was his own authentic action, `LESSONS-LEARNED.md` L11 recurrence)
+**Estimated time:** genuinely unclear — likely multi-session (restored from the committed PRE-DRAFT;
+the working copy's "1-2h" was part of the same self-contradiction above)
+**Target service:** monolith (remaining UI consumers) + `operation-service` (auth endpoints)
 
 ## What 4B-20 already did (re-verify, don't assume — same L27 discipline as every prior order)
 
@@ -38,22 +38,26 @@ header.tsx`, plus at least one test file (`__tests__/components/layout/header.te
 
 ## Entry criteria — do not proceed past Step 0 without these
 
-- [ ] Re-run 4B-20's own greps fresh — confirm the ~17-file list above hasn't drifted (new files
-      added/removed, `next-auth/react` usage changed) since 2026-08-03.
-- [ ] **Resolve 4B-20's own Deviation 4 (client-side session-cache staleness) before touching any
-      of the ~13 files that call `useSession()`/`getSession()` directly** (not just the 2 already
-      flag-gated, which route through server-side `getServerSession()` and were unaffected by
-      this gap). Concretely: does `app/providers.tsx`'s `<SessionProvider>` get replaced by a
-      thin custom auth-context reading a "who am I" endpoint, or does the bridge login/logout
-      path force a `next-auth/react` `getSession()`/`update()` call so the existing
-      `SessionProvider`'s client cache stays correct? This is a real architecture decision, not
-      assumed here — same class of "don't guess, ask" as 4B-20's own Entry Criterion 0.
-- [ ] Confirm `DECISION-LOG.md` F56's Option B is still what Davin wants before removing
-      `CredentialsProvider` from `auth-options.ts` — a second live confirmation immediately before
-      an irreversible-feeling deletion, matching this migration's own standing caution on auth/
-      money decisions that sat for more than one session before being acted on.
-- [ ] Davin present/available for the live flag flip and the live per-surface smoke test — no
-      flip without his explicit go, per every prior cutover in this migration.
+- [x] Re-run 4B-20's own greps fresh — confirm the ~17-file list above hasn't drifted (new files
+      added/removed, `next-auth/react` usage changed) since 2026-08-03. **DRIFT FOUND, resolved:**
+      2 additional live, mounted `next-auth/react` consumers not in 4B-20's own Finding 6 list or
+      this order's own file list — `hooks/use-login-tracking.ts` (mounted via `components/auth/
+login-tracker.tsx` in `app/(dashboard)/layout.tsx`, runs on every dashboard page) and `hooks/
+use-realtime-socket.ts` (its own `useSession()` status gate, feeding `notification-bell.tsx` and
+      `useFiredAlertMarkers.ts`→`trading-chart.tsx`, both already-named). Davin approved including
+      both (`AskUserQuestion`) — both are pure readers, confirmed to need zero code changes under
+      F57's chosen fix (see Deviations). A third file, `hooks/use-auth.ts`, also imports
+      `next-auth/react` but is dead code in the monolith (its only consumer, `hooks/use-alerts.ts`,
+      is itself unimported anywhere) — flagged, not touched.
+- [x] **Resolve 4B-20's own Deviation 4 (client-side session-cache staleness)** — RESOLVED as
+      `DECISION-LOG.md` **F57** (Davin, live): force a `getSession()` refresh at every
+      auth-state-changing bridge call site, not a `SessionProvider` replacement. See F57 for full
+      rationale and the resulting (much narrower) real file-change scope.
+- [x] Confirm `DECISION-LOG.md` F56's Option B is still what Davin wants — confirmed live
+      (`AskUserQuestion`) before any further execution; unchanged from 4B-20's own resolution.
+- [ ] Davin present/available for the live flag flip and the live per-surface smoke test — not yet
+      reached (Checklist Steps 3-5); this criterion gates the production flip specifically, not
+      Step 1's local UI swap.
 
 ## Checklist
 
@@ -110,7 +114,58 @@ header.tsx`, plus at least one test file (`__tests__/components/layout/header.te
 
 ## Deviations
 
-_(empty — filled during execution once this order reaches DRAFT → APPROVED → CONFIRMED)_
+1. **Order self-contradiction at CONFIRM (`LESSONS-LEARNED.md` L11 recurrence, immediately after
+   4B-20's own "most consequential" instance).** Full detail in the header's own CONFIRMED note
+   above. Resolved by asking Davin directly (`AskUserQuestion`) rather than trusting or silently
+   correcting; confirmed live as his authentic edit.
+2. **Real file-list drift found re-running 4B-20's own greps** (Entry Criterion 1): 2 additional
+   live consumers (`hooks/use-login-tracking.ts` via `components/auth/login-tracker.tsx`, `hooks/
+use-realtime-socket.ts`) not named in either session's file list; 1 dead-code false-positive
+   (`hooks/use-auth.ts`, unused in the monolith). Davin approved including the 2 real files.
+3. **Entry Criterion 1 (session-cache staleness) resolved as `DECISION-LOG.md` F57**: force
+   `getSession()` at every auth-mutating bridge call site rather than replacing `SessionProvider`.
+   This turned out to shrink Step 1's real scope dramatically — of the ~19 files that read
+   `useSession()`/`getSession()`, only 4 needed actual code changes (the ones that MUTATE auth
+   state): `login-form.tsx` (add `getSession()` after bridge login), `verify-2fa/page.tsx` (swap
+   the mid-login completion call from `signIn('credentials', {email:'__2fa_verified__',...})` to a
+   `token-login` re-POST with the same sentinel, then `getSession()`), `header.tsx` (swap logout to
+   `token-logout` + `getSession()`), and `app/admin/login/page.tsx` (swap to `token-login`, read
+   `user.role` from its response body directly instead of a `getSession()` role-check, then still
+   force `getSession()` for other consumers). The other ~15 files (settings/\*, pricing, checkout,
+   `providers.tsx`, notification-bell/list, trading-chart, DrawingLayer, the 2 newly-found hooks)
+   are pure readers — verified each has no `signIn()`/`signOut()`/`getSession()` call of its own —
+   and needed zero changes, since `getSession()`'s cross-consumer broadcast (next-auth/react's own
+   documented mechanism) refreshes all of them automatically.
+4. **4 more files flag-gated with NO session-cache implications** (never complete a login):
+   `forgot-password/page.tsx` (both its request step → `token-forgot-password`, and its embedded
+   `?token=` reset step → `token-reset-password`), `reset-password/page.tsx` (→
+   `token-reset-password`), `verify-email/page.tsx` (→ `token-verify-email`),
+   `verify-email/pending/page.tsx` (→ `token-resend-verification`).
+5. **A real, pre-existing, unrelated bug found, NOT fixed (out of this PORT-variant session's
+   scope):** `forgot-password/page.tsx`'s embedded reset step sends `{ token, newPassword: ... }`
+   to `/api/auth/reset-password`, but that route's Zod schema (and the bridge's `token-reset-
+password`) both require `password`, not `newPassword` — every submission through this specific
+   path has always failed with a validation error, on both the legacy and (now) bridge endpoint.
+   Confirmed this path is unreachable in practice (nothing links to `/forgot-password?token=...`;
+   the real reset email points at `/reset-password?token=...`, whose own page sends the correct
+   `password` field). Preserved byte-for-byte (same wrong field name) when flag-gating, per PORT
+   discipline — not fixed as a drive-by.
+6. **The order's Checklist Step 1 text over-scoped "2FA setup/verify/disable/backup-codes" as
+   needing new `token-2fa-*` wiring** (`LESSONS-LEARNED.md` L27 class — order text drifted from
+   ground truth). Reading `app/api/user/2fa/verify/route.ts` found it's ALREADY flag-gated behind
+   `shouldUseOperationServiceForUser2FA()` (`MIGRATE_USER_2FA`, cut over live in Session 4B-11,
+   unrelated to `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED`) — `settings/security/page.tsx`'s 2FA setup/
+   disable/backup-codes UI already reaches operation-service's `TwoFactorService` today, via a
+   different, already-live flag. The 5 `token-2fa-setup/-disable/-backup-codes/-status/
+-verify-setup` bridge routes would be pure duplication with zero behavior change if wired in —
+   NOT wired, to avoid needless duplicate call paths. The ONE genuine 2FA gap for this session was
+   the mid-login completion call in `verify-2fa/page.tsx` (item 3 above) — the code-verification
+   step itself (`/api/user/2fa/verify`) was correctly left untouched, already bridge-equivalent.
+7. **Full verification (Step 1 only):** `tsc --noEmit` clean, `eslint app components lib hooks
+--max-warnings 0` clean (0 errors/warnings), full `test:ci` 129/129 suites, 2190/2190 tests (new:
+   `__tests__/app/auth-verify-2fa.test.tsx`, `__tests__/app/admin-login.test.tsx`,
+   `__tests__/app/auth-bridge-endpoint-swaps.test.tsx`; extended: `login-form.test.tsx` (added
+   `getSession` mock + 2 new assertions), `header.test.tsx` (added `getSession`/flag mocks)).
 
 ## Next-session handoff
 
