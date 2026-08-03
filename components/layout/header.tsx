@@ -10,7 +10,6 @@ import {
   CreditCard,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { getSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
 
@@ -53,7 +52,6 @@ interface HeaderProps {
  * - Mobile navigation trigger
  */
 export function Header({ user }: HeaderProps): React.ReactElement {
-  const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Get user initials for avatar fallback
@@ -79,11 +77,16 @@ export function Header({ user }: HeaderProps): React.ReactElement {
       await fetch('/api/auth/token-logout', { method: 'POST' });
       await signOut({ redirect: false });
       await getSession();
-      router.push('/login');
+      // Full browser navigation (not router.push) so no in-memory React/
+      // SessionProvider state or pending cookie header survives into the
+      // next sign-in — a stale client-side session reference here is what
+      // lets NextAuth silently attempt OAuth account linking against the
+      // previous session on the very next login.
+      window.location.href = '/login';
       return;
     }
     await signOut({ redirect: false });
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   return (
