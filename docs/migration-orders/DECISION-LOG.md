@@ -57,7 +57,8 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F42  | RiseWorks archival depth (archive vs delete)                                                                                                                                                                          | RESOLVED — 2026-07-25 (Davin): archive, never delete; restorable                                                                                                                                       |
 | F43  | Funding-SLA alert channel: how to notify Davin when a batch group nears Wise's 14-day expiration unfunded (Slack webhook / Discord webhook / monolith email proxy) — money-service has no email capability of its own | RESOLVED — Session 4A-W6 (Davin): Option (a), Resend REST direct, no new dependency                                                                                                                    |
 | F47  | Wise quote `targetAmount`/currency-unit correctness for non-USD payouts (interacts with F38's already-RESOLVED fee-bearer decision)                                                                                   | OPEN — found Session 4A-W7, due before any further non-USD Wise payout                                                                                                                                 |
-| F53  | `RealtimeGateway`'s CORS `origin` array-vs-wildcard-string bug blocks every real cross-origin browser connection                                                                                                      | OPEN — found Session 4B-18 (live smoke test RED result), due before 4B-18's own live proof can pass                                                                                                    |
+| F53  | `RealtimeGateway`'s CORS `origin` array-vs-wildcard-string bug blocks every real cross-origin browser connection                                                                                                      | RESOLVED — Session 4B-18b (2026-08-03): fixed and verified via a real cross-origin preflight probe; live browser proof still blocked by the separate F54 gap                                           |
+| F54  | Monolith CSP `connect-src` never included operation-service's origin — blocks the realtime WebSocket connection client-side before any network request is sent                                                        | OPEN — found Session 4B-18b (2026-08-03), due before 4B-18c's own live proof can pass                                                                                                                  |
 
 > **Note on numbering (updated 4A-W4, 2026-07-26).** F36–F42 (Part 19.5 / Wise) were registered at
 > Session **4A-W1**, closing the register's F35→F44 gap. **F43** is now registered (Session
@@ -2500,5 +2501,78 @@ polling"`) used `curl`, which sends no `Origin` header at all and does not enfor
 - **Not fixed in this session** — VERIFY-RETIRE's own "no new code, no fixes" rule. The fix is
   well-understood and narrow: pass the bare string `'*'` when `ALLOWED_ORIGINS` is unset/`'*'`,
   only `.split(',')` into an array for a real explicit allow-list. Scoped to its own follow-up.
+- Approved by: n/a (technical finding, not yet a decision — the fix session itself needs Davin's
+  normal APPROVED sign-off before executing).
+- **RESOLVED — Session 4B-18b (2026-08-03).** `resolveRealtimeCorsOrigin()` built exactly as
+  scoped: bare string `'*'` when `ALLOWED_ORIGINS` is unset/`'*'`, split array only for a real
+  explicit comma-separated allow-list. 4 new unit tests assert the branching directly.
+  Independently re-verified beyond the order's own minimum proof requirement: a real cross-origin
+  `OPTIONS` preflight (with an actual `Origin` header, unlike every prior `curl` check) against
+  the deployed endpoint now correctly returns `access-control-allow-origin: *`; confirmed this is
+  safe given the client's connection is never credentialed (`hooks/use-realtime-socket.ts` sets no
+  `withCredentials`), so the wildcard-origin + credentials-true combination browsers would
+  otherwise reject for a credentialed request is a non-issue here. **This specific bug is fixed.**
+  **However, Davin's real browser smoke test still FAILED after this fix, RED result, same
+  symptom as 4B-18's own original test** — see new **F54** below for the reason why, and
+  `4b-18b-realtime-cors-origin-fix.migration-order.md`'s own Deviations for the full evidence
+  chain (including a re-read of `engine.io`'s/`cors`'s own source showing the `cors` middleware
+  never actually ABORTS a request on origin mismatch — it only omits a response header, which has
+  no effect on a raw WebSocket handshake at all, since browsers don't enforce CORS on WS the way
+  they do on `fetch`/XHR; this means F53's own diagnosis, while a real and now-fixed bug, may not
+  have been the actual layer blocking the WS-first live symptom in either test — see F54).
+
+## F54 — Monolith CSP `connect-src` never included operation-service's origin, blocking the
+
+realtime WebSocket connection client-side before any network request is sent
+
+- Status: **OPEN** — needs a scoped fix session (new
+  `4b-18c-realtime-csp-connect-src-fix.migration-order.md`, PRE-DRAFTed)
+- Session: found 4B-18b, 2026-08-03 · Date: 2026-08-03
+- Found while: re-testing F53's own fix live — Davin's browser smoke test still failed
+  identically to 4B-18's original RED result (recurring `connect_error: websocket error`, no
+  `authenticated` event, zero `GET /socket.io/...` network entries). Since F53's fix was already
+  independently verified correct at the protocol level (see F53's resolution above), this meant a
+  SEPARATE cause was still blocking the live browser specifically.
+- **Root cause, found by reading the actual CSP header the monolith sends
+  (`next.config.js:119-134`):** its `Content-Security-Policy`'s `connect-src` directive is
+  `'self' https://api.stripe.com https://checkout.stripe.com wss://*.pusher.com
+https://*.vercel-analytics.com` — `operation-service-production.up.railway.app` (in any scheme)
+  is not present. `connect-src` governs every `fetch`/XHR/WebSocket connection a page initiates;
+  a destination absent from it is blocked by the BROWSER ITSELF before any network request is
+  ever sent, regardless of whether the destination server's own CORS config is correct.
+- **Ruled out alternative explanations before concluding this, not just asserted:**
+  (1) re-read `engine.io`'s `handleUpgrade()` — its `cors` middleware chain does run on the
+  WebSocket upgrade path too, but `cors`'s own `configureOrigin()` never aborts a request on
+  origin mismatch, it only omits/sets a response header and always calls `next()` — and that
+  header has no bearing on a raw WS handshake, which browsers do not gate via
+  `Access-Control-Allow-Origin` the way they gate `fetch`/XHR. (2) scripted a raw WebSocket
+  handshake directly against the deployed, already-F53-fixed endpoint using Node's `ws` package
+  with a real `Origin` header — it **succeeded** (`OPEN`, a real Engine.IO handshake payload
+  received), ruling out a server- or Railway-infra-level rejection entirely. (3) pulled
+  `operation-service`'s real Railway HTTP access log for Davin's exact test window — zero
+  `/socket.io/` entries of any kind (only unrelated `GET /drawings 200` monolith-forward traffic),
+  while the Executor's OWN manual `curl`/Node checks minutes earlier DID appear in that same log —
+  proving Railway logs real socket.io requests when they arrive, so their total absence during
+  Davin's real test is a genuine "never sent," not a logging gap.
+- **This is fully consistent with every piece of evidence in BOTH this session's re-test and
+  4B-18's own original test:** zero server-side log entries (browser-side block, no network
+  request ever leaves), a generic `connect_error: websocket error` (exactly what socket.io-client
+  emits on a CSP-blocked connection attempt — indistinguishable from other connection failures at
+  that log level), `GET /api/realtime/token` succeeding fine both times (`'self'`, same-origin,
+  unaffected by `connect-src`'s cross-origin restriction).
+- **Open question, not resolved, carried to the fix session:** whether this same CSP gap was
+  ALSO the (or the sole) actual blocker in 4B-18's own original RED result, given F53's CORS bug
+  — while real and now genuinely fixed — may never have actually been reachable by the WS-first
+  connection path the client uses. Both bugs are now understood and (F53) fixed; only F54 remains
+  open. The next session's live proof, once F54 ships, is the first real evidence either way.
+- `wss://*.pusher.com` in the same CSP directive is confirmed dead/stale (zero code references
+  anywhere in the repo) — predates the realtime feature entirely; `next.config.js`'s own recent
+  git history shows no CSP-touching commit since well before Session 4B-17 built this feature.
+  Whether to remove it is flagged as an explicit scope question for the fix session, not decided
+  here.
+- **Not fixed in this session** — per `4b-18b-...migration-order.md`'s own explicit instruction
+  ("if the smoke test still fails after this fix, that is a NEW finding... stop, do not attempt a
+  second speculative fix in the same session — escalate to Davin/Advisor with the new evidence").
+  `next.config.js` was read-only this session; zero bytes changed in it.
 - Approved by: n/a (technical finding, not yet a decision — the fix session itself needs Davin's
   normal APPROVED sign-off before executing).

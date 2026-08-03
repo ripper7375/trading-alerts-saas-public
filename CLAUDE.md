@@ -26,7 +26,79 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-18 (Realtime Cutover & Live Verification, VERIFY-RETIRE variant),
+- **Current:** Session 4B-18b (Realtime CORS Origin Fix & Live Verification, PORT variant),
+  CONFIRMED and executed 2026-08-03 — **F53 genuinely fixed and verified, but the live browser
+  smoke test still FAILED on a NEW, distinct root cause. Session does NOT close as successful.**
+  CONFIRM found the order modified-but-uncommitted (`PRE-DRAFT → APPROVED`, no visible
+  Advisor/Davin commit trail — the by-now-familiar `LESSONS-LEARNED.md` L11 pattern) — reported
+  before proceeding; this time the diff was minimal (status/Generated line only, nothing dropped
+  or silently resolved). Davin confirmed live ("GO") before execution. All 3 entry criteria
+  independently re-verified live and PASSED with zero drift: Session 4B-18 CONFIRMED/closed
+  (commit `8a46fb71`, `DECISION-LOG.md` F53 present and OPEN); `ALLOWED_ORIGINS` still `*` on
+  operation-service production (value-blind-appropriate — public CORS config, not a secret);
+  `realtime.gateway.ts`'s cors config unchanged since 4B-18's close (zero commits landed at all
+  since then). Baseline re-confirmed: `operation-service` 42/42 suites, 375/375 tests, `tsc
+  --noEmit` clean — exact match to 4B-18's own close.
+  **Built (File 1/1, one commit):** extracted `resolveRealtimeCorsOrigin()` in
+  `operation-service/src/realtime/realtime.gateway.ts` — bare string `'*'` when
+  `ALLOWED_ORIGINS` is unset/`'*'`, split array only for a real explicit comma-separated
+  allow-list. 4 new unit tests assert the branching directly. `operation-service` 42/42 suites,
+  379/379 tests (+4, zero regression). `tsc --noEmit`/`nest build` clean. Deployed via `railway up
+--path-as-root --service operation-service` (deployment `2116bd43`, genuinely `SUCCESS` per
+  `latestDeployment.status`, not the stale top-level field — L38).
+  **F53 independently re-verified as genuinely fixed, beyond the order's own minimum:** a real
+  cross-origin `OPTIONS` preflight (with an actual `Origin` header, unlike every prior `curl`
+  check in 4B-17/4B-18) against the deployed endpoint now correctly returns
+  `access-control-allow-origin: *` + `access-control-allow-credentials: true`; cross-checked this
+  combination is safe here (not a spec violation browsers would reject) since
+  `hooks/use-realtime-socket.ts`'s `io(url, { auth: { token } })` call sets no `withCredentials` —
+  the connection is never credentialed.
+  **Davin's real browser smoke test (Checklist step 2) still FAILED** — authenticated tab,
+  `/charts/XAUUSD/M5`, 5+ minutes across two loads including a fresh reload: recurring
+  `Realtime socket connect error: websocket error` every ~5-6s, connection indicator stayed
+  red/"Disconnected", no `authenticated` event ever, zero `GET /socket.io/...` network entries
+  (only `/api/realtime/token` succeeded). Step 4 correctly not attempted, per the order's own
+  stop-on-red rule.
+  **Independent Railway HTTP-log cross-check (Executor) confirmed the browser's own report, not
+  a logging gap:** during Davin's real test window (~00:33-00:40 UTC), zero `/socket.io/` entries
+  — only unrelated `GET /drawings 200` (monolith forward, proves connectivity was fine); the
+  Executor's own manual `curl`/`OPTIONS` checks minutes earlier DID appear in the same log,
+  proving Railway logs real socket.io requests when they arrive.
+  **A NEW root cause found via further read-only diagnosis (no code changed) before escalating,
+  per the order's own "escalate with new evidence, don't speculative-fix" rule:** re-read
+  `engine.io`'s `handleUpgrade()` — its `cors` middleware chain runs on the WS upgrade path too,
+  but `cors`'s own `configureOrigin()` never ABORTS on an origin mismatch, only omits a response
+  header that has no bearing on a raw WebSocket handshake at all (browsers don't enforce CORS on
+  WS the way they do `fetch`/XHR) — meaning F53's own bug, while real and now fixed, may never
+  have actually been the layer blocking the WS-first connection (`hooks/use-realtime-socket.ts`
+  requests `transports: ['websocket', 'polling']`, websocket attempted first). A scripted raw
+  WebSocket handshake (Node's `ws` package, real `Origin` header) against the deployed endpoint
+  **succeeded** (`OPEN`, a real Engine.IO handshake payload received) — ruling out a server/
+  Railway-infra-level rejection entirely. Found the actual blocker in `next.config.js:119-134`:
+  its CSP `connect-src` directive (`'self' https://api.stripe.com https://checkout.stripe.com
+  wss://*.pusher.com https://*.vercel-analytics.com`) never included operation-service's origin
+  — `connect-src` governs every `fetch`/XHR/WebSocket connection a page initiates, so the browser
+  blocks the connection itself before any network request is sent, matching every piece of
+  evidence in both this session and 4B-18's own original test. `wss://*.pusher.com` in the same
+  directive confirmed dead/stale (zero code references anywhere; predates the realtime feature).
+  **New `DECISION-LOG.md` F54** (OPEN) — full evidence chain, carries an explicit open question
+  forward (whether this same CSP gap was ALSO the actual blocker in 4B-18's own original test,
+  independent of F53 — not resolved, the next session's live proof is the first real evidence
+  either way). **Not fixed this session, deliberately** — `next.config.js` read-only, zero bytes
+  changed, per the order's own "no second speculative fix in the same session" rule.
+  **F53 stays RESOLVED** (the specific CORS array-vs-wildcard-string bug — genuinely fixed and
+  independently verified) **but F8/Slice-6 realtime delivery is still NOT live in production** —
+  blocked on F54, carried to `4b-18c-realtime-csp-connect-src-fix.migration-order.md` (PRE-DRAFTed
+  this session's close).
+  **Artifacts updated:** `4b-18b-realtime-cors-origin-fix.migration-order.md` (Status →
+  CONFIRMED, Deviations filled in full — 9 entries, explicitly NOT marked closed-successful),
+  `DECISION-LOG.md` (F53 → RESOLVED with full verification evidence, new F54 OPEN with full
+  root-cause chain), `LESSONS-LEARNED.md` (new unpromoted candidate — CORS `Access-Control-
+  Allow-Origin` has zero effect on raw WebSocket connections; CSP `connect-src` is a separate,
+  earlier, browser-enforced gate that a `curl`/Node-based check cannot detect either), this file.
+  New `4b-18c-realtime-csp-connect-src-fix.migration-order.md` PRE-DRAFTed (PORT, tiny scope) —
+  carries F54 forward as its own entry criterion.
+- **Previous:** Session 4B-18 (Realtime Cutover & Live Verification, VERIFY-RETIRE variant),
   CONFIRMED and executed 2026-08-02 — **RED result, session does NOT close as successful.**
   CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern once more (order file and
   this file both modified-but-uncommitted, `PRE-DRAFT → APPROVED` with no visible Advisor/Davin
@@ -86,7 +158,10 @@
   candidate), this file. New `4b-18b-realtime-cors-origin-fix.migration-order.md` PRE-DRAFTed
   (PORT variant, tiny scope — fix the `origin` config, re-run this exact smoke test) — carries
   F53 forward as its own entry criterion.
-- **Previous:** Session 4B-17 (Realtime Socket.IO Architecture Decision & Build, PORT/INFRA variant,
+- _(superseded-by-above, retained for context — not yet moved to sessions-archive.md; this
+  session's own scope was the CORS/CSP investigation, not the multi-session CLAUDE.md hygiene
+  backlog already flagged repeatedly below at 4B-12/4B-11's own unmarked "Previous" entries)_
+  Session 4B-17 (Realtime Socket.IO Architecture Decision & Build, PORT/INFRA variant,
   F8), CONFIRMED and executed 2026-08-02 — CONFIRM found zero drift on all 11 raw facts / cited
   file paths / line numbers the order's own PRE-DRAFT walk of the live codebase had established
   (a first for this series — no L11-class self-contradiction, no ground-truth drift; the order was
@@ -3248,6 +3323,20 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   `'*'` when the env var is unset/`'*'`, only array-ify a real explicit allow-list) and re-run this
   exact smoke test — do not consider F8/Slice-6-realtime-delivery live in production until that
   session's own live proof actually passes.
+- **(99, NEW — CRITICAL, blocks 4B-18b's own live proof — Session 4B-18b, 2026-08-03)** F53 (above)
+  is now genuinely fixed and independently verified (real cross-origin preflight probe shows
+  correct `Access-Control-Allow-Origin` now). Davin's re-run of the exact same live browser smoke
+  test still FAILED, identical symptom to 4B-18's own original RED result. New root cause found via
+  further read-only diagnosis: `DECISION-LOG.md` **F54** — the monolith's CSP `connect-src`
+  directive (`next.config.js:119-134`) never included operation-service's origin
+  (`https://operation-service-production.up.railway.app`), so the browser blocks the connection
+  itself before any network request is ever sent — independent of, and possibly the real primary
+  cause behind, 4B-18's own original test too (open question, not resolved, see F54's own entry).
+  Ruled out server/Railway-infra rejection directly: a raw Node `ws` handshake against the deployed,
+  already-fixed endpoint succeeded cleanly. New `4b-18c-realtime-csp-connect-src-fix.migration-order.md`
+  PRE-DRAFTed (PORT, tiny scope) — add operation-service's origin to `connect-src` and re-run this
+  exact smoke test again. Do not consider F8/Slice-6-realtime-delivery live in production until
+  THAT session's own live proof actually passes.
 - **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
   2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
   **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:
@@ -3315,13 +3404,18 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   CLOSED RED, not successful** (2026-08-02 — see Current above for full detail). Davin's own
   browser-session live smoke test (4B-17's own deferred item, Deviation 7) FAILED: the socket
   never connected/authenticated, root-caused to a CORS `origin` array-vs-wildcard-string bug in
-  `RealtimeGateway` (`DECISION-LOG.md` F53, new). **The actual next session overall is now
-  4B-18b** (`4b-18b-realtime-cors-origin-fix.migration-order.md`, PRE-DRAFTed at 4B-18's close,
-  PORT variant, tiny scope) — fix the one-line `origin` config and re-run this exact smoke test.
-  Do not treat F8/realtime delivery as live in production, and do not proceed to 4B-19, until
-  4B-18b's own live proof actually passes. After that: 4B-19 (email rendering port) → 4B-20/21
-  (auth cutover, LAST) → 4B-22 (Phase 4 exit review) is the session playbook's own remaining
-  Phase 4B order.
+  `RealtimeGateway` (`DECISION-LOG.md` F53, new).
+  **Session 4B-18b (Realtime CORS Origin Fix) is now CONFIRMED and executed, but ALSO CLOSED RED,
+  not successful** (2026-08-03 — see Current above for full detail). F53 itself is genuinely fixed
+  and independently verified; Davin's re-run of the identical live browser smoke test still FAILED
+  on a NEW, distinct root cause (`DECISION-LOG.md` **F54** — the monolith's CSP `connect-src` never
+  included operation-service's origin). **The actual next session overall is now 4B-18c**
+  (`4b-18c-realtime-csp-connect-src-fix.migration-order.md`, PRE-DRAFTed at 4B-18b's close, PORT
+  variant, tiny scope) — add operation-service's origin to `connect-src` and re-run this exact
+  smoke test a third time. Do not treat F8/realtime delivery as live in production, and do not
+  proceed to 4B-19, until 4B-18c's own live proof actually passes. After that: 4B-19 (email
+  rendering port) → 4B-20/21 (auth cutover, LAST) → 4B-22 (Phase 4 exit review) is the session
+  playbook's own remaining Phase 4B order.
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.
@@ -3492,11 +3586,18 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   with zero applied steps) created via a plan-reviewed, Davin-approved direct DDL application;
   verified via raw SQL and a real Prisma client query; 4B-12's cutover retried and succeeded live;
   full evidence chain in `DECISION-LOG.md` ·
-  **F8 fully RESOLVED (Session 4B-17, Davin)** — `operation-service`'s existing HTTP process, real
-  `socket.io-client`/`socket.io`, alert-fired notifications only, NextAuth-JWE handshake auth
-  (reusing `JwtAuthGuard`'s own `decodeNextAuthToken` path); every rejected alternative (dedicated
-  gateway service, managed realtime provider, raw-WebSocket protocol, market-tick scope, short-lived
-  ticket auth, split decision session) recorded in `DECISION-LOG.md` alongside the winner ·
+  **F8 architecturally RESOLVED (Session 4B-17, Davin)** — `operation-service`'s existing HTTP
+  process, real `socket.io-client`/`socket.io`, alert-fired notifications only, NextAuth-JWE
+  handshake auth (reusing `JwtAuthGuard`'s own `decodeNextAuthToken` path); every rejected
+  alternative (dedicated gateway service, managed realtime provider, raw-WebSocket protocol,
+  market-tick scope, short-lived ticket auth, split decision session) recorded in
+  `DECISION-LOG.md` alongside the winner. **The build/decision is sound but F8's live-production
+  proof is still not achieved** — 4B-18's live smoke test found F53 (CORS `origin` array-vs-
+  wildcard bug), fixed and verified RESOLVED at Session 4B-18b; that same session's smoke-test
+  re-run then found F54 (CSP `connect-src` missing operation-service's origin), still OPEN — see
+  `DECISION-LOG.md` for both · **F53 fully RESOLVED (Session 4B-18b, 2026-08-03)** · **F54 OPEN
+  (registered Session 4B-18b, 2026-08-03)** — monolith CSP `connect-src` gap, due before
+  4B-18c's own live proof can pass ·
   F11–F12 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents

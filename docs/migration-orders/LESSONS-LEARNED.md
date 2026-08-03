@@ -154,6 +154,37 @@ never treat a `curl`/non-browser HTTP client's success as proof a CORS-gated pat
 non-browser clients don't enforce `Access-Control-Allow-Origin` the way a real browser does." Full
 detail in `4b-18-realtime-cutover.migration-order.md`'s own Deviations and `DECISION-LOG.md` F53.
 
+**One more candidate from Session 4B-18b's close (2026-08-03), not promoted, described here for
+the next consolidation pass — a direct continuation of the F53 lesson above, found by fixing F53
+and then discovering the real browser smoke test STILL failed identically:** `Access-Control-
+Allow-Origin` (the header the `cors` npm package sets) has **zero effect on a raw WebSocket
+handshake** — browsers only enforce CORS-style origin allow-listing for `fetch`/XHR, never for
+`WebSocket` connections (RFC 6455's own handshake has no CORS concept at all; Origin enforcement
+for WS is the SERVER's own responsibility, not something a response header controls). Re-reading
+`engine.io`'s `handleUpgrade()` confirmed its `cors` middleware chain DOES run on the WS upgrade
+path too, but `cors`'s own `configureOrigin()` never aborts a request on an origin mismatch — it
+only omits/sets a header and always calls `next()`. Since `hooks/use-realtime-socket.ts` requests
+`transports: ['websocket', 'polling']` (websocket attempted first, Engine.IO v4's direct-connect
+feature), F53's own CORS bug may never have actually been the layer blocking the live symptom —
+real, and now genuinely fixed, but not proven to have been the (sole) cause. The actual blocker
+(`DECISION-LOG.md` **F54**) was a separate, EARLIER browser-enforced gate: the monolith's
+Content-Security-Policy `connect-src` directive never included operation-service's origin, which
+blocks `fetch`/XHR/WebSocket alike, client-side, before any network request is ever sent — and,
+critically, is **also invisible to every verification method this migration has used for this
+feature so far**: a `curl` handshake check (no CSP enforcement, not a browser), an in-process Nest
+e2e test with a real `socket.io-client` (Node, no CSP enforcement either), and even a raw Node
+`ws`-package handshake with a real `Origin` header (still no CSP enforcement — confirmed this
+session, the raw WS connection succeeded fine against the exact same deployed endpoint a real
+browser couldn't reach). Worth a rule along the lines of "for any browser-only feature reaching a
+different origin (a new API host, a WebSocket gateway, a CDN), CORS and CSP are TWO SEPARATE gates
+that both must independently allow the destination — fixing one's misconfiguration is not evidence
+the other is configured at all, and neither `curl` nor any Node-based script (including a real
+`socket.io-client`/`ws` instance) can prove either one, since NEITHER CORS-response-reading NOR CSP
+`connect-src` enforcement exist outside an actual browser JS engine. A real browser is the only
+verification method that can prove a cross-origin browser-initiated connection actually works — no
+protocol-level or server-log check, however thorough, substitutes for it." Full detail in
+`4b-18b-realtime-cors-origin-fix.migration-order.md`'s own Deviations and `DECISION-LOG.md` F53/F54.
+
 ---
 
 ## Active lessons
