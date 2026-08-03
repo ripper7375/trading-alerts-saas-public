@@ -8,8 +8,9 @@
 > `4b-18c-realtime-csp-connect-src-fix.migration-order.md`'s own Deviations and `DECISION-LOG.md`
 > F55.
 
-**Session:** 4B-18d · **Variant:** CONTRACT/INFRA (investigation-shaped) · **Status:** PRE-DRAFT
-**Generated:** 2026-08-03 (Executor PRE-DRAFT, at Session 4B-18c's own close) ·
+**Session:** 4B-18d · **Variant:** CONTRACT/INFRA (investigation-shaped) · **Status:** CONFIRMED
+**Generated:** 2026-08-03 (Executor PRE-DRAFT at 4B-18c close; Approved by Antigravity Advisor 2026-08-03;
+CONFIRMED by Executor 2026-08-03 — entry criteria re-verified live, Davin GO given in chat) ·
 **Flags touched:** F55 · **Estimated time:** 1-3h (genuinely unknown until root cause narrows)
 **Target service:** operation-service (primary suspect: `realtime.gateway.ts`), possibly Railway
 service-level config (WS idle-timeout), possibly `hooks/use-realtime-socket.ts` (reconnection
@@ -166,7 +167,43 @@ default via `git revert`. If Step 1's diagnostic logging is the only thing shipp
 
 ## Deviations
 
-_(empty — filled during execution once this order is CONFIRMED and run)_
+1. **CONFIRM found the order file itself modified-but-uncommitted again** (`Status: PRE-DRAFT →
+APPROVED`, same `LESSONS-LEARNED.md` L11 pattern, 11th+ recurrence) — diff was minimal (header
+   lines only, nothing dropped). Reported before proceeding; Davin confirmed live it was Antigravity
+   Advisor's own authentic edit.
+2. **A separate, unrelated repo-hygiene finding surfaced at CONFIRM, flagged not acted on:** local
+   `HEAD` (`c280a5f3`, this arc's own 4B-18c close) sits 8+ sessions ahead of `origin/main`
+   (`9b800da4`, stuck at Session 4B-8's close, 2026-08-02) — Sessions 4B-9 through 4B-18c were never
+   pushed to GitHub. Doesn't block this session (`operation-service` deploys via `railway up
+--path-as-root`, not git-triggered — `source: null` confirmed), but is a real loss-risk. Not
+   pushed or otherwise acted on this session; flagged to Davin separately from the GO decision.
+3. **Entry criterion "reconnect-loop pattern still reproducible" was only partially independently
+   re-verified at CONFIRM, not fully.** Confirmed via git log that zero commits touched
+   `realtime.gateway.ts`/`hooks/use-realtime-socket.ts` since 4B-18c's own close, and that
+   `operation-service`'s live deployment (`2116bd43`, created `2026-08-03T00:30:14Z`) was cut ~1
+   minute after the F53 fix commit — the running code is exactly what 4B-18c tested. Could NOT pull
+   a genuinely fresh reproduction: the only `/socket.io/` log activity in the hours before CONFIRM
+   was the identical `~02:57–03:44 UTC` window 4B-18c already cited (zero traffic since). Treated as
+   folded into Step 1's own live verification (which needs a fresh reproduction anyway once
+   diagnostic logging is deployed) rather than a separate blocker — flagged to Davin, who gave GO.
+4. **Step 1's own instruction ("verify the real signature options against the installed
+   `@nestjs/websockets` version before assuming") surfaced that widening `handleDisconnect`'s own
+   signature is not actually possible.** Read the installed `@nestjs/websockets` source directly
+   (`web-sockets-controller.js`'s `getConnectionHandler`): Nest's own `OnGatewayDisconnect` dispatch
+   forwards only the bare `client` through an internal RxJS Subject — the disconnect `reason`
+   argument socket.io actually supplies is structurally discarded before `handleDisconnect` is ever
+   invoked, regardless of how that method's signature is declared. Built the diagnostic differently
+   than the order's own literal phrasing suggested: a raw `client.on('disconnect', (reason) => ...)`
+   listener registered inside `handleConnection`'s success path (Socket.IO's own documented pattern
+   for this exact case), logging `[F55] User <id> disconnected (socket <id>) — reason: <reason>`.
+   `handleDisconnect` itself is untouched.
+5. **Building the diagnostic surfaced a real, if narrow, test-fixture gap, not a code bug:**
+   `realtime.gateway.spec.ts`'s `makeFakeSocket()` mock had no `.on` method — the new
+   `client.on('disconnect', ...)` call threw inside `handleConnection`'s `try` block, was silently
+   swallowed by the existing broad `catch`, and caused an unintended `client.disconnect(true)` call,
+   failing the existing "joins the user room... does not disconnect" test. Fixed by adding
+   `on: jest.fn()` to the mock (additive, no assertion changed) and added one new test proving the
+   diagnostic listener registers and logs the reason correctly.
 
 ## Known wrinkles / do-not-touch
 

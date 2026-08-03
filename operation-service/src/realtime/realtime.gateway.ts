@@ -141,6 +141,18 @@ export class RealtimeGateway
       await client.join(`user:${claims.id}`);
       client.emit('authenticated', { success: true, userId: claims.id });
       this.logger.log(`Client ${client.id} authenticated as user ${claims.id}`);
+
+      // F55 diagnostic (4B-18d): Nest's own OnGatewayDisconnect dispatch
+      // (web-sockets-controller.js's getConnectionHandler) only ever forwards
+      // the bare `client` through its internal Subject — the disconnect
+      // `reason` argument socket.io actually provides never reaches
+      // handleDisconnect. Listen on the raw client directly instead, per
+      // Socket.IO's own documented pattern for this exact case.
+      client.on('disconnect', (reason: string) => {
+        this.logger.log(
+          `[F55] User ${claims.id} disconnected (socket ${client.id}) — reason: ${reason}`
+        );
+      });
     } catch {
       client.emit('error', { message: 'Invalid or expired token' });
       client.disconnect(true);

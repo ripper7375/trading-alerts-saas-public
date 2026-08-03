@@ -7,6 +7,7 @@
  * lives in realtime.gateway.e2e.spec.ts (this session's own Step 7).
  */
 
+import { Logger } from '@nestjs/common';
 import type { Redis } from 'ioredis';
 import type { Server, Socket } from 'socket.io';
 
@@ -47,6 +48,7 @@ function makeFakeSocket(
     emit: jest.fn(),
     disconnect: jest.fn(),
     join: jest.fn().mockResolvedValue(undefined),
+    on: jest.fn(),
   } as unknown as jest.Mocked<Socket>;
 }
 
@@ -192,6 +194,36 @@ describe('RealtimeGateway', () => {
         userId: 'user-42',
       });
       expect(socket.disconnect).not.toHaveBeenCalled();
+    });
+
+    it('registers a raw disconnect listener that logs the reason string (F55 diagnostic)', async () => {
+      mockDecodeNextAuthToken.mockResolvedValueOnce({
+        id: 'user-42',
+        email: 'a@b.com',
+      } as never);
+      const socket = makeFakeSocket({ token: 'a-valid-jwe' });
+      const logSpy = jest
+        .spyOn(Logger.prototype, 'log')
+        .mockImplementation(() => undefined);
+
+      await gateway.handleConnection(socket);
+
+      expect(socket.on).toHaveBeenCalledWith(
+        'disconnect',
+        expect.any(Function)
+      );
+      const disconnectHandler = socket.on.mock.calls.find(
+        (call) => call[0] === 'disconnect'
+      )?.[1] as (reason: string) => void;
+
+      disconnectHandler('ping timeout');
+
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '[F55] User user-42 disconnected (socket socket-1) — reason: ping timeout'
+        )
+      );
+      logSpy.mockRestore();
     });
 
     it('disconnects if NEXTAUTH_SECRET is not configured', async () => {
