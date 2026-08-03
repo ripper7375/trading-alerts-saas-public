@@ -194,11 +194,24 @@ password`) both require `password`, not `newPassword` — every submission throu
    each bridge login and after the 2FA-completion login, with no separate confirmation call needed
    beyond the `getSession()` this session's own code already added.
 
+10. **Steps 3-4 executed.** Davin's own explicit direction to "resume Steps 3-6" (given after F58
+    was found and being investigated) constituted Step 3's approval — reconfirmed as still valid
+    once F58 resolved to a false positive and Step 2 genuinely passed. `NEXT_PUBLIC_AUTH_BRIDGE_
+ENABLED` added to Vercel production (`vercel env add`, value-blind re-verified present via
+    `vercel env ls production`'s name-only listing, L17), then `vercel --prod --archive=tgz --yes`
+    (L36) redeployed clean — `dpl_7TigfKa65wsyJhLfS84iGGm8Y4n3`, `readyState: READY`, aliased to
+    the real production URL. Live-verified: `/login` → 200, `/dashboard` (unauthenticated) → 307
+    redirect (unchanged, auth gate still correct), homepage → 200.
+11. **Step 5 (Davin's own live browser smoke test) — handed off, awaiting his report.** Per the
+    order's own Rule, any red result here means abort and revert
+    (`NEXT_PUBLIC_AUTH_BRIDGE_ENABLED=false` + redeploy) — do not proceed to Step 6 until this
+    passes clean.
+
 ## Next-session handoff
 
-- Steps 3-6 (production flag flip, live smoke test, `CredentialsProvider` retirement) are the
-  remaining work in THIS same order, proceeding now per Davin's own explicit direction — not
-  deferred to a new session.
+- Step 6 (retire `CredentialsProvider` from `auth-options.ts`) and Step 7 (retire the monolith's
+  dead credentials-path code) proceed once Davin's Step 5 live smoke test reports clean — in THIS
+  same order, same session, not deferred.
 - Once 4B-21 fully closes (all 6 remaining steps done): **4B-22 (Phase 4 exit review)** — the last
   session in Phase 4B, walking the phase-exit criteria from the plan one by one. This is the literal
   final domain session before that review; no further PRE-DRAFT beyond 4B-22 is implied by this
