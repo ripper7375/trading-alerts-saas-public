@@ -70,13 +70,19 @@ to a single count line same day (Session 4B-19) per this file's own hygiene rule
   further Sessions between 4B-4 and 4B-18d also flagged this exact pattern in their own CLAUDE.md
   close-outs (mostly benign — order body byte-identical to its committed PRE-DRAFT, only header
   metadata changed) without a matching entry ever being appended here; not reconstructed
-  retroactively, flagged as its own gap. Most recent: **Session 4B-19** (2026-08-03) — benign
-  variant, order body byte-identical to the committed PRE-DRAFT, only header metadata (status,
-  variant line, Generated line) changed; confirmed live as Antigravity Advisor's own authentic
-  edit before executing. This is the single most-recurring finding class in this migration — still
-  worth the Advisor's attention on whether the order-authoring pipeline itself should change (e.g.
-  every status-field edit going through a reviewable commit) rather than relying on CONFIRM-time
-  detection every single session.
+  retroactively, flagged as its own gap. Most recent, and the most consequential to date:
+  **Session 4B-20** (2026-08-03) — NOT benign: the working copy dropped its own committed
+  PRE-DRAFT's explicit "not fast-path eligible under any circumstance... needs a full Advisor
+  DRAFT and Davin APPROVED" framing entirely, jumped straight to `Status: APPROVED`/"Option B
+  selected" with zero corresponding `DECISION-LOG.md` entry and all 4 Entry Criteria checkboxes
+  still unchecked — on the single highest-blast-radius session in the whole migration (auth
+  semantics). Resolved the same way as every prior instance (asked Davin directly rather than
+  silently trusting or correcting); confirmed live as his own authentic decision and recorded as
+  `DECISION-LOG.md` F56 before treating the entry criterion as satisfied. This is the single
+  most-recurring finding class in this migration — still worth the Advisor's attention on whether
+  the order-authoring pipeline itself should change (e.g. every status-field edit going through a
+  reviewable commit) rather than relying on CONFIRM-time detection every single session, and this
+  session is a concrete argument that the stakes of skipping that fix keep rising, not falling.
 
 ### L12 — A catch block checking `error.message` for a marker the source only ever sets on `error.code` is dead code
 

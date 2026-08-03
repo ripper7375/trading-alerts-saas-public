@@ -2827,8 +2827,48 @@ block rather than hand-editing the original compiled inventory.
 
 </details>
 
+<details>
+<summary>Auth Cutover BUILD & UI Rewire — 5 new files, 5 modified
+(Session 4B-20, PORT/UI-BUILD hybrid, Option B for OAuth, DECISION-LOG.md F56)</summary>
+
+Zero traffic cutover — `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED` defaults unset/`false` everywhere. F56
+resolved Entry Criterion 0 (Option B: narrow OAuth-only `[...nextauth]` shim kept indefinitely,
+credentials/2FA/registration/sessions cut to operation-service) and the rollout mechanism
+(client-readable flag).
+
+- **New:** `app/api/auth/token-register/route.ts` — the one genuinely-missing bridge route
+  (mirrors `token-login`'s shape exactly: CSRF/origin validation, `forwardedRequestContext()`,
+  `OperationServiceError` handling; sets no cookies, matching SOURCE — registration never logs
+  the user in immediately).
+- **New:** `lib/auth/auth-bridge-flag.ts` — `isAuthBridgeEnabled()`, the client-readable flag
+  reader (bracket-notation `process.env['NEXT_PUBLIC_AUTH_BRIDGE_ENABLED']`, matching this
+  repo's own existing live precedent in `hooks/use-ohlcv-socket.ts`).
+- **New:** `__tests__/api/auth/token-register.test.ts` (8 tests), `__tests__/components/auth/
+login-form.test.tsx` (5 tests), `__tests__/components/auth/register-form.test.tsx` (4 tests) —
+  no test file previously existed for either UI component (L28-class gap, closed).
+- **Modified:** `operation-service/src/auth/auth.service.ts` — `register()` now actually calls
+  `sendVerificationEmail()` on the non-auto-verify path, closing a real gap open since Session
+  3-2 (the method generated/stored a `verificationToken` but never emailed it — F27 had correctly
+  deferred `/auth/register` routing until email-sending was ported, and nothing had revisited
+  this specific method since). Log-and-continue on send failure, matching the monolith SOURCE's
+  own non-fatal handling. `operation-service/src/auth/auth.service.spec.ts` updated to mock
+  `../email/email.util` and cover the new call + failure path (+3 tests).
+- **Modified:** `components/auth/login-form.tsx` / `register-form.tsx` — both flag-gated to call
+  the `token-login`/`token-register` bridge routes instead of `next-auth/react`'s
+  `signIn('credentials', ...)` / the monolith's own `/api/auth/register`, when
+  `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED === 'true'`. Default path (flag off) is byte-for-byte
+  unchanged. `lib/auth/auth-options.ts`, `components/auth/social-auth-buttons.tsx`, and
+  `middleware.ts` are confirmed untouched (`git diff --stat`) — OAuth and the cookie/middleware
+  bridge are both fully unaffected.
+- **Modified:** `.env.example` — documents `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED=false`.
+
+Test suites: `operation-service` 42/42 suites, 381/381 tests (was 380/380 — +1). Monolith 126/126
+suites, 2174/2174 tests (was 123/123, 2157/2157 — +3 suites, +17 tests). `tsc --noEmit` clean both
+sides; `eslint app components lib hooks --max-warnings 0` clean (0 errors, 0 warnings).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-03 (Session 4B-19, Email Rendering Port Audit &
-Verification, Option A)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-03 (Session 4B-20, Auth Cutover BUILD & UI Rewire)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

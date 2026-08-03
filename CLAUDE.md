@@ -26,61 +26,91 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-19 (Email Rendering Port Audit & Verification, PORT/VERIFY-RETIRE
-  variant, Option A), CONFIRMED and executed 2026-08-03 — **CLOSED SUCCESSFUL, one commit, zero
-  flags touched, zero test regressions.**
-  CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern once more (order file
-  modified-but-uncommitted, `PRE-DRAFT → APPROVED` with Option A selected in the header, no
-  visible Advisor→Davin approval commit trail) — this time fully benign: the entire body (all 4
-  Background findings, Entry Criteria, File Port Order, Rules, Slice-level verification,
-  Next-session handoff) diffed byte-identical to the committed PRE-DRAFT, only the header metadata
-  changed. Reported before proceeding; Davin confirmed live it was Antigravity Advisor's own
-  authentic edit.
-  **Independently re-verified all 4 of the PRE-DRAFT's own Background findings against live code
-  before trusting them** (not assumed from the order's prose): (1) `lib/email/email.ts` (984
-  lines) is genuinely fully ported — diffed exported function names against
-  `operation-service/src/email/email.util.ts` and confirmed all 24 functions match, same names,
-  same order; (2) `lib/email/subscription-emails.ts` (865 lines) genuinely has 5 of its email
-  types already ported to `operation-service/src/email/subscription-email.util.ts` (588 lines:
-  cancellation, payment-failed, payment-receipt, subscription-canceled, affiliate-commission) —
-  confirmed `getUpgradeEmailTemplate`/`sendUpgradeEmail` and
-  `getRenewalReminderEmailTemplate`/`sendRenewalReminderEmail` have zero callers anywhere in
-  `app/`, `lib/`, `components/` (self-referential only), and confirmed the file's other 5
-  functions are still genuinely live (imported by `app/api/subscription/cancel/route.ts` and
-  `lib/stripe/webhook-handlers.ts`) — retirement correctly scoped to just the 2 dead functions.
-  Found one immaterial citation slip: the order said "5 of 8 functions," the file actually defines
-  7 email-type pairs (14 exports), not 8. (3) `emails/*.tsx` (4 React Email components + barrel,
-  908 lines) — confirmed zero real imports anywhere in `app/`, `lib/`, `components/`, despite
-  `emails/index.ts`'s own header claiming a dLocal-payment-flow purpose. (4) `lib/email/templates/
-affiliate/*.tsx` (5 React Email components, 1087 lines) — confirmed the only reference anywhere
-  in real code is one commented-out line, `lib/affiliate/registration.ts:124`; no `send*Email`
-  wrapper was ever built for any of the 5 templates. All 4 findings held with zero drift since the
-  2026-08-03 drafting; Davin gave live GO to execute under Option A.
-  **Executed (one commit, per the order's own explicit "if Option A... one commit" rule):**
-  removed `getUpgradeEmailTemplate`/`sendUpgradeEmail`/`getRenewalReminderEmailTemplate`/
-  `sendRenewalReminderEmail` from `lib/email/subscription-emails.ts` (865→612 lines, via a small
-  scripted line-range deletion rather than hand-built `Edit` matches, given the functions are
-  large raw-HTML-string template literals — script deleted after use, zero repo residue); deleted
-  all 10 dead files via `git rm -r` (`emails/{index.ts,payment-confirmation,payment-failure,
-renewal-reminder,subscription-expired}.tsx` + `lib/email/templates/affiliate/{welcome,
-code-distributed,code-used,monthly-report,payment-processed}.tsx` — `lib/email/templates/` is
-  now gone entirely, it had no other contents).
-  **Full verification:** `operation-service` 42/42 suites, 380/380 tests (unchanged — this service
-  was not touched); `nest build`/`tsc --noEmit` clean. Monolith `test:ci` 123/123 suites,
-  2157/2157 tests (unchanged from 4B-18d's baseline — zero regressions from the retirement);
-  `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` clean (0 errors/
-  warnings). Confirmed via `git show --stat` that exactly the 12 intended files changed (10
-  deletions + `subscription-emails.ts` + the order file itself) — nothing else touched.
-  **No `DECISION-LOG.md` entry applies** (no F-numbered decision was open or resolved this
-  session — Option A closes a stale playbook-description item against already-completed
-  prior-session work, not an open flag). **No `migration-cutover-table.md` change** (this session
-  touched zero traffic-carrying slices/flags — same precedent as every prior pure
-  audit/hygiene/INFRA session).
-  **Artifacts updated:** `4b-19-email-rendering-port.migration-order.md` (Status → CONFIRMED,
-  Entry criteria + Slice-level verification checked, Deviations filled in full — 5 entries),
-  `migration-stack-analysis.md` (new `<details>` entry for the 10 deleted files + 1 trimmed file),
-  this file. New `4b-20-21-auth-cutover.migration-order.md` PRE-DRAFTed (final Phase 4B domain
-  session per the playbook's own framing, before 4B-22/Phase 4 exit review).
+- **Current:** Session 4B-20 (Auth Cutover BUILD & UI Rewire, PORT/UI-BUILD hybrid), CONFIRMED
+  and executed 2026-08-03 — **CLOSED SUCCESSFUL. Zero traffic cutover — `auth-options.ts`/
+  `[...nextauth]`/the monolith's own `/api/auth/register` keep serving 100% of real traffic.**
+  CONFIRM found this order's working copy self-contradicting its own committed PRE-DRAFT — header
+  claimed `Status: APPROVED`/"Option B selected for OAuth" with all 4 Entry Criteria checkboxes
+  still unchecked, zero corresponding `DECISION-LOG.md` entry, and no DRAFT-stage commit trail
+  between the committed PRE-DRAFT (`12e8a940`, which explicitly read "not fast-path eligible
+  under any circumstance... needs a full Advisor DRAFT and Davin APPROVED") and the uncommitted
+  claim — `LESSONS-LEARNED.md` L11's most consequential recurrence to date, given this order's own
+  stakes (auth semantics, highest blast radius in the migration). Reported in full before
+  proceeding; Davin confirmed live, in chat, that Option B and the flag rollout mechanism were his
+  own authentic decisions — recorded as `DECISION-LOG.md` **F56** with full evidence before
+  treating Entry Criterion 0 as resolved.
+  **Re-verified Findings 1-6 from the order's own audit against live code, not assumed:** all
+  held with only trivial drift (Finding 3's `middleware.ts` cited 66 lines, real file is 67;
+  Finding 6's "19 files" undercounted by roughly 1-2 against a fresh grep, plus one test file the
+  original audit missed) — zero commits had touched the auth surface since Session 4B-11, so drift
+  risk from other in-flight work was zero.
+  **F56 resolved (Davin, live):** Option B — keep a narrow OAuth-only `[...nextauth]` shim
+  indefinitely (Google/Twitter/LinkedIn); `CredentialsProvider` is removed from it only once
+  credentials fully cut over (Session 4B-21, not this session). Rollout mechanism: a
+  client-readable flag, `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED` (default unset/`false`).
+  **Built:** `app/api/auth/token-register/route.ts` (the one genuinely-missing bridge route,
+  mirrors `token-login`'s shape exactly — CSRF/origin validation, `forwardedRequestContext()`,
+  `OperationServiceError` handling, no cookies set since registration never logs the user in
+  immediately); `lib/auth/auth-bridge-flag.ts` (`isAuthBridgeEnabled()`, bracket-notation
+  `NEXT_PUBLIC_` read matching this repo's own live precedent in `hooks/use-ohlcv-socket.ts`).
+  **A real, previously-undiscovered gap found reading `AuthService.register()` before trusting it
+  as a genuine behavior-preserving PORT target:** the method has generated and stored a
+  `verificationToken` since Session 3-2 but never actually called `sendVerificationEmail()` —
+  unlike `resendVerification()` in the same file, which does. The method's own header comment
+  documented this as a known gap at the time ("no email goes out yet... Session 3-3 wires it
+  up") — but 3-3 built login/refresh/logout instead (F27 correctly deferred `/auth/register`
+  routing until email-sending was ported), and nothing had revisited this specific method since.
+  Fixed this session as a small, exact mirror of `resendVerification()`'s own existing call
+  pattern (log-and-continue on send failure, matching the monolith SOURCE's own non-fatal
+  handling) — without this, wiring a real UI consumer to `token-register` would have been a live
+  functional regression the moment the flag flips. Covered by 3 new/updated
+  `operation-service` tests (mock added for `../email/email.util`, matching
+  `auth.service.email-flows.spec.ts`'s established convention).
+  **Rewired both `components/auth/login-form.tsx` and `register-form.tsx`** (Davin's explicit GO
+  named both, not just the order's own recommended single prototype target) behind
+  `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED`: bridge path calls `token-login`/`token-register`; default
+  (flag off) path is byte-for-byte unchanged (`next-auth/react`'s `signIn('credentials', ...)` /
+  the monolith's own `/api/auth/register`). `login-form.tsx`'s bridge branch correctly handles the
+  `twoFactorRequired` redirect and maps `EMAIL_NOT_VERIFIED`/other errors to the same UI states as
+  the NextAuth path — operation-service's `login()` has no "locked" concept (confirmed neither
+  does `auth-options.ts`'s own `authorize()` — that UI branch was already dead code on both
+  paths, left alone, not this session's scope to remove). Closed a real, pre-existing L28-class
+  gap: no test file existed for either component before this session — 9 new tests added
+  (`__tests__/components/auth/{login-form,register-form}.test.tsx`) using this repo's established
+  RTL/jsdom harness and mocking conventions (`__tests__/components/layout/header.test.tsx`).
+  **Confirmed via `git diff --stat`, not assumed:** `lib/auth/auth-options.ts`,
+  `components/auth/social-auth-buttons.tsx`, and `middleware.ts` are byte-identical to before this
+  session — OAuth (Google/Twitter/LinkedIn) and the cookie/middleware bridge mechanism are both
+  completely unaffected, matching the order's own Rules.
+  **A real, deliberately-unresolved open question, disclosed rather than silently glossed over:**
+  `login-form.tsx`'s bridge success path still works correctly for this 2-file prototype because
+  `app/(dashboard)/layout.tsx`'s auth gate is server-side (`getServerSession`, reads the cookie
+  fresh on every navigation) — but any of the ~17 other files that call client-side
+  `useSession()`/`getSession()` directly (e.g. `components/layout/header.tsx`,
+  `components/notifications/notification-bell.tsx`) would very likely show a stale "not logged
+  in" view after a bridge login, since `next-auth/react`'s own `SessionProvider` client cache
+  isn't told about the new cookie. Session 4B-21 must resolve this explicitly (a thin custom
+  auth-context replacing `SessionProvider`, or a forced `getSession()`/`update()` call after
+  bridge login/logout) before cutting over any client component that reads session state — not
+  decided or guessed at here.
+  **Full verification:** `operation-service` 42/42 suites, 381/381 tests (was 380/380 — +1).
+  Monolith 126/126 suites, 2174/2174 tests (was 123/123, 2157/2157 — +3 suites, +17 tests).
+  `tsc --noEmit` clean both sides; `eslint app components lib hooks --max-warnings 0` clean (0
+  errors, 0 warnings).
+  **No `migration-cutover-table.md` change** (zero traffic-carrying flag flip this session — same
+  precedent as every prior pure-BUILD session in this migration; 4B-21 will be this whole Phase
+  4B track's first auth-specific cutover row).
+  **Artifacts updated:** `4b-20-21-auth-cutover.migration-order.md` (Status → CONFIRMED, executed,
+  CLOSED SUCCESSFUL; Entry criteria all checked with evidence; Done-when all checked; Deviations
+  filled in full — 5 entries), `DECISION-LOG.md` (new **F56**, RESOLVED, full findings entry),
+  `migration-stack-analysis.md` (new `<details>` entry, 5 new files + 5 modified), this file. New
+  `4b-21-auth-cutover.migration-order.md` PRE-DRAFTed (PORT/UI-BUILD hybrid CUTOVER, explicitly
+  NOT fast-path eligible, needs a full Advisor DRAFT + Davin APPROVED before CONFIRM) — carries
+  the SessionProvider/client-cache-staleness question forward as its own hard entry criterion.
+- **Previous:** _(superseded-by-above, retained for context)_ Session 4B-19 (Email Rendering Port
+  Audit & Verification, PORT/VERIFY-RETIRE variant, Option A), CONFIRMED and executed 2026-08-03 —
+  CLOSED SUCCESSFUL, one commit, zero flags touched, zero test regressions. Full detail moved to
+  `docs/migration-orders/history/sessions-archive.md` per this file's own hygiene rule.
 - **Previous:** Session 4B-18d (Realtime Reconnect Loop Investigation & Fix, CONTRACT/INFRA
   variant), CONFIRMED and executed 2026-08-03 — **CLOSED SUCCESSFUL, closing the 4-session
   F53/F54/F55 arc. F8/Slice-6 realtime delivery is now genuinely live in production for the first
@@ -3639,6 +3669,23 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   in production this whole time.** This push itself will trigger a fresh Vercel deployment from
   the now-current `origin/main` regardless — worth Davin spot-checking the resulting deployment
   once it completes, same as any other monolith redeploy.
+- **(105, NEW — CRITICAL, blocks 4B-21's own safe execution — Session 4B-20, 2026-08-03)**
+  `next-auth/react`'s `SessionProvider` (wrapped around the app in `app/providers.tsx`) keeps its
+  own client-side session cache, populated by NextAuth's own `/api/auth/session` endpoint and
+  revalidated on focus/interval/manual `getSession()`/`update()` calls — it has no way to know a
+  bridge login (`token-login`) just set a matching cookie underneath it. This session's own
+  2-file prototype (`login-form.tsx`/`register-form.tsx`) is unaffected because the only
+  post-bridge-login read this session exercises is `app/(dashboard)/layout.tsx`'s
+  `getServerSession()` — a fresh SERVER-side read on every navigation, not the client cache. Any
+  of the ~17 remaining files that call `useSession()`/`getSession()` directly client-side (at
+  minimum `components/layout/header.tsx`, `components/notifications/notification-bell.tsx`, both
+  confirmed via grep) would very likely show a stale "not logged in" view after a bridge login
+  until that cache naturally revalidates. **Session 4B-21 must resolve this explicitly before
+  cutting over any client component that reads session state** — options include replacing
+  `SessionProvider` with a thin custom auth-context backed by a "who am I" read, or forcing a
+  `getSession()`/`update()` call immediately after every bridge login/logout so the existing
+  cache stays correct. Not decided or guessed at in this session — recorded as 4B-21's own hard
+  Entry Criterion.
 - **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
   2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
   **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:
@@ -3742,6 +3789,23 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   (monolith 123/123 suites/2157/2157 tests, `operation-service` 42/42/380/380, both unchanged).
   **The actual next session overall is now 4B-20/21** (Auth cutover, LAST domain session before
   4B-22/Phase 4 exit review) — PRE-DRAFTed at 4B-19's close.
+  **Session 4B-20 (Auth Cutover BUILD & UI Rewire, PORT/UI-BUILD hybrid) is now CONFIRMED,
+  executed, and CLOSED SUCCESSFUL** (2026-08-03 — see Current above for full detail).
+  `DECISION-LOG.md` **F56** RESOLVED (Option B — narrow OAuth-only `[...nextauth]` shim kept
+  indefinitely; credentials/2FA/registration/sessions cut to operation-service). `token-register`
+  built (the last missing bridge route); `login-form.tsx`/`register-form.tsx` both flag-gated
+  behind the new `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED` (default off — zero traffic cutover, matching
+  every prior Phase 4B BUILD-then-CUTOVER pair). A real gap in `AuthService.register()` (never
+  sent the verification email, open since Session 3-2) was found and fixed as part of making
+  `token-register` genuinely behavior-preserving. **The actual next session overall is now 4B-21**
+  (`4b-21-auth-cutover.migration-order.md`, PRE-DRAFTed at 4B-20's close — PORT/UI-BUILD hybrid
+  CUTOVER, explicitly NOT fast-path eligible, needs a full Advisor DRAFT + Davin APPROVED before
+  CONFIRM) — the literal last domain session before 4B-22/Phase 4 exit review. It carries forward
+  a real, deliberately-unresolved open question as its own hard entry criterion: whether
+  `next-auth/react`'s `SessionProvider` needs replacing (or a forced client-cache refresh added)
+  before any of the ~17 remaining files that call client-side `useSession()`/`getSession()`
+  directly can be safely swapped onto the bridge — not needed for 4B-20's own 2-file prototype
+  (both route through server-side `getServerSession()`), but load-bearing for the rest.
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.
@@ -3930,6 +3994,10 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   2026-08-03)** · **F55 fully RESOLVED (Session 4B-18d, 2026-08-03)** — real disconnect reason
   captured (`"transport close"`, not ping-timeout), pattern did not reproduce, `[F55]`-tagged
   diagnostic logging left in production as the durable interim mitigation for any recurrence ·
+  **F56 fully RESOLVED (Session 4B-20, Davin)** — Option B: narrow OAuth-only `[...nextauth]`
+  shim kept indefinitely; `CredentialsProvider`/2FA/registration/sessions cut to
+  operation-service via the `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED` flag (default off, cutover is
+  Session 4B-21) ·
   F11–F12 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
