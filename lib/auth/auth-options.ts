@@ -349,7 +349,14 @@ export const authOptions: NextAuthOptions = {
           '[SignIn] Provider:',
           account?.provider,
           'Email:',
-          user.email
+          user.email,
+          // Temporary diagnostic (not a secret - Google's opaque per-account
+          // subject id): lets us manually create the missing Account row for
+          // an existing verified user without enabling
+          // allowDangerousEmailAccountLinking. Safe to remove once no longer
+          // needed.
+          'ProviderAccountId:',
+          account?.providerAccountId
         );
 
         // Only apply security check to OAuth providers (not credentials)
