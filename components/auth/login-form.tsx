@@ -16,6 +16,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+
 import SocialAuthButtons from './social-auth-buttons';
 
 // Validation schema
@@ -27,7 +29,13 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-type ErrorType = 'invalid' | 'locked' | 'server' | 'unverified' | '2fa_required' | null;
+type ErrorType =
+  | 'invalid'
+  | 'locked'
+  | 'server'
+  | 'unverified'
+  | '2fa_required'
+  | null;
 
 export default function LoginForm(): JSX.Element {
   const router = useRouter();
@@ -46,12 +54,57 @@ export default function LoginForm(): JSX.Element {
     mode: 'onChange',
   });
 
+  // Bridge path (Session 4B-20, DECISION-LOG.md F56): calls operation-
+  // service's /auth/login via the token-login route instead of next-auth/
+  // react's signIn('credentials', ...). Gated behind NEXT_PUBLIC_AUTH_BRIDGE_
+  // ENABLED (default false) — dormant/parallel until Session 4B-21's own
+  // cutover. Prototyped against this file specifically, per the order's own
+  // Done-when ("prototyped against one real consumer... before committing to
+  // the full 19-file swap").
+  const onSubmitViaBridge = async (data: LoginFormData): Promise<void> => {
+    const response = await fetch('/api/auth/token-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: data.email, password: data.password }),
+    });
+    const body = await response.json();
+
+    if (response.ok) {
+      if ('twoFactorRequired' in body && body.twoFactorRequired) {
+        router.push(`/verify-2fa?token=${encodeURIComponent(body.token)}`);
+        return;
+      }
+      setIsSuccess(true);
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 1500);
+      return;
+    }
+
+    if (body?.error === 'EMAIL_NOT_VERIFIED') {
+      setError('unverified');
+    } else {
+      // operation-service's login() only ever throws INVALID_CREDENTIALS or
+      // EMAIL_NOT_VERIFIED (see auth.service.ts) — there is no server-side
+      // "locked" concept on either side of the bridge (auth-options.ts never
+      // had one either; that branch below is unreachable dead code on both
+      // paths, kept only because it predates this session and isn't this
+      // order's scope to remove).
+      setError('invalid');
+    }
+  };
+
   const onSubmit = async (data: LoginFormData): Promise<void> => {
     setIsSubmitting(true);
     setError(null);
     setCurrentEmail(data.email);
 
     try {
+      if (isAuthBridgeEnabled()) {
+        await onSubmitViaBridge(data);
+        return;
+      }
+
       const result = await signIn('credentials', {
         email: data.email,
         password: data.password,
@@ -145,12 +198,12 @@ export default function LoginForm(): JSX.Element {
   if (isSuccess) {
     return (
       <div className="w-full max-w-md">
-        <div className="bg-card rounded-lg shadow-xl p-8">
-          <div className="text-center py-8">
-            <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4 animate-bounce">
-              <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
+        <div className="rounded-lg bg-card p-8 shadow-xl">
+          <div className="py-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 animate-bounce items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+              <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">
+            <h2 className="mb-2 text-2xl font-bold text-foreground">
               Welcome back!
             </h2>
             <p className="text-muted-foreground">Redirecting to dashboard...</p>
@@ -162,9 +215,9 @@ export default function LoginForm(): JSX.Element {
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-card rounded-lg shadow-xl p-8">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold mb-2 text-foreground">
+      <div className="rounded-lg bg-card p-8 shadow-xl">
+        <div className="mb-6 text-center">
+          <h1 className="mb-2 text-3xl font-bold text-foreground">
             Welcome Back
           </h1>
           <p className="text-muted-foreground">
@@ -175,26 +228,26 @@ export default function LoginForm(): JSX.Element {
         {/* Error Alert */}
         {error && errorConfig && (
           <div
-            className={`${errorConfig.bg} border-l-4 ${errorConfig.border} rounded-lg p-4 mb-6 relative animate-in slide-in-from-top duration-300`}
+            className={`${errorConfig.bg} border-l-4 ${errorConfig.border} animate-in slide-in-from-top relative mb-6 rounded-lg p-4 duration-300`}
           >
             <div className="flex items-start gap-3">
               <AlertCircle
-                className={`${errorConfig.icon} flex-shrink-0 mt-0.5`}
+                className={`${errorConfig.icon} mt-0.5 flex-shrink-0`}
                 size={20}
               />
               <div className="flex-1">
-                <p className={`${errorConfig.text} font-medium text-sm`}>
+                <p className={`${errorConfig.text} text-sm font-medium`}>
                   {errorConfig.title}
                 </p>
                 {errorConfig.subtitle && (
-                  <p className={`${errorConfig.text} text-sm mt-1`}>
+                  <p className={`${errorConfig.text} mt-1 text-sm`}>
                     {errorConfig.subtitle}
                   </p>
                 )}
                 {errorConfig?.action === 'verify' && currentEmail && (
                   <Link
                     href={`/verify-email/pending?email=${encodeURIComponent(currentEmail)}`}
-                    className="text-blue-600 underline text-sm mt-2 hover:text-blue-700 block"
+                    className="mt-2 block text-sm text-blue-600 underline hover:text-blue-700"
                   >
                     Resend verification email
                   </Link>
@@ -202,7 +255,7 @@ export default function LoginForm(): JSX.Element {
                 {errorConfig?.action === 'reset' && (
                   <Link
                     href="/forgot-password"
-                    className="text-blue-600 underline text-sm mt-2 hover:text-blue-700 block"
+                    className="mt-2 block text-sm text-blue-600 underline hover:text-blue-700"
                   >
                     Reset password
                   </Link>
@@ -210,7 +263,7 @@ export default function LoginForm(): JSX.Element {
               </div>
               <button
                 onClick={() => setError(null)}
-                className={`${errorConfig.icon} hover:opacity-70 text-xl font-bold cursor-pointer`}
+                className={`${errorConfig.icon} cursor-pointer text-xl font-bold hover:opacity-70`}
               >
                 ×
               </button>
@@ -233,7 +286,7 @@ export default function LoginForm(): JSX.Element {
                 type="email"
                 placeholder="john@example.com"
                 {...register('email')}
-                className={`w-full px-3 py-2 pr-10 border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200 ${
+                className={`w-full rounded-md border bg-background px-3 py-2 pr-10 text-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary ${
                   errors.email
                     ? 'border-red-500 focus:ring-red-500'
                     : touchedFields.email && !errors.email
@@ -255,7 +308,7 @@ export default function LoginForm(): JSX.Element {
             {errors.email && (
               <p
                 id="email-error"
-                className="text-red-600 text-sm mt-1 flex items-center gap-1"
+                className="mt-1 flex items-center gap-1 text-sm text-red-600"
               >
                 <span>⚠️</span>
                 {errors.email.message}
@@ -277,7 +330,7 @@ export default function LoginForm(): JSX.Element {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your password"
                 {...register('password')}
-                className={`w-full px-3 py-2 pr-10 border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200 ${
+                className={`w-full rounded-md border bg-background px-3 py-2 pr-10 text-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary ${
                   errors.password
                     ? 'border-red-500 focus:ring-red-500'
                     : touchedFields.password && !errors.password
@@ -291,7 +344,7 @@ export default function LoginForm(): JSX.Element {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -300,7 +353,7 @@ export default function LoginForm(): JSX.Element {
             {errors.password && (
               <p
                 id="password-error"
-                className="text-red-600 text-sm mt-1 flex items-center gap-1"
+                className="mt-1 flex items-center gap-1 text-sm text-red-600"
               >
                 <span>⚠️</span>
                 {errors.password.message}
@@ -319,14 +372,14 @@ export default function LoginForm(): JSX.Element {
               />
               <label
                 htmlFor="rememberMe"
-                className="text-sm text-muted-foreground cursor-pointer font-normal"
+                className="cursor-pointer text-sm font-normal text-muted-foreground"
               >
                 Remember me for 30 days
               </label>
             </div>
             <Link
               href="/forgot-password"
-              className="text-sm text-blue-600 hover:underline font-medium"
+              className="text-sm font-medium text-blue-600 hover:underline"
             >
               Forgot password?
             </Link>
@@ -335,12 +388,12 @@ export default function LoginForm(): JSX.Element {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-primary hover:bg-primary/90 py-3 text-lg font-semibold rounded-md text-primary-foreground shadow-lg transition-all duration-200 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+            className="hover:bg-primary/90 w-full rounded-md bg-primary py-3 text-lg font-semibold text-primary-foreground shadow-lg transition-all duration-200 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
             disabled={isSubmitting || !isValid}
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="inline h-5 w-5 animate-spin mr-2" />
+                <Loader2 className="mr-2 inline h-5 w-5 animate-spin" />
                 <span className="opacity-70">Signing in...</span>
               </>
             ) : (
@@ -355,7 +408,7 @@ export default function LoginForm(): JSX.Element {
             <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-card text-muted-foreground">OR</span>
+            <span className="bg-card px-4 text-muted-foreground">OR</span>
           </div>
         </div>
 
@@ -363,11 +416,13 @@ export default function LoginForm(): JSX.Element {
         <SocialAuthButtons />
 
         {/* Footer Links */}
-        <div className="text-center mt-6">
-          <span className="text-muted-foreground">Don&apos;t have an account?</span>
+        <div className="mt-6 text-center">
+          <span className="text-muted-foreground">
+            Don&apos;t have an account?
+          </span>
           <Link
             href="/register"
-            className="text-primary font-semibold hover:underline ml-1"
+            className="ml-1 font-semibold text-primary hover:underline"
           >
             Sign up for free →
           </Link>

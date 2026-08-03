@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
 import SocialAuthButtons from './social-auth-buttons';
@@ -145,7 +146,18 @@ export default function RegisterForm(): JSX.Element {
         referralCode: verifiedCode || undefined,
       };
 
-      const response = await fetch('/api/auth/register', {
+      // Bridge path (Session 4B-20, DECISION-LOG.md F56): token-register
+      // forwards to operation-service's /auth/register instead of the
+      // monolith's own Prisma-backed handler. Gated behind
+      // NEXT_PUBLIC_AUTH_BRIDGE_ENABLED (default false) — dormant/parallel
+      // until Session 4B-21's own cutover. Both routes ignore
+      // submitData.referralCode identically (neither's schema reads it —
+      // pre-existing behavior, unrelated to this migration).
+      const registerEndpoint = isAuthBridgeEnabled()
+        ? '/api/auth/token-register'
+        : '/api/auth/register';
+
+      const response = await fetch(registerEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -166,7 +178,9 @@ export default function RegisterForm(): JSX.Element {
         setError('Database connection error. Please try again later.');
       } else {
         // Display the actual error message from the API if available
-        setError(responseData?.error || 'Registration failed. Please try again.');
+        setError(
+          responseData?.error || 'Registration failed. Please try again.'
+        );
       }
     } catch (err) {
       console.error('Registration error:', err);
@@ -178,11 +192,11 @@ export default function RegisterForm(): JSX.Element {
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-card rounded-lg shadow-xl p-8">
-        <h1 className="text-3xl font-bold text-center mb-6 text-foreground">
+      <div className="rounded-lg bg-card p-8 shadow-xl">
+        <h1 className="mb-6 text-center text-3xl font-bold text-foreground">
           Create Your Account
         </h1>
-        <p className="text-muted-foreground text-center mb-8">
+        <p className="mb-8 text-center text-muted-foreground">
           Start trading smarter today
         </p>
 
@@ -191,7 +205,7 @@ export default function RegisterForm(): JSX.Element {
           <div>
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-foreground mb-1"
+              className="mb-1 block text-sm font-medium text-foreground"
             >
               Full Name
             </label>
@@ -201,7 +215,7 @@ export default function RegisterForm(): JSX.Element {
                 type="text"
                 placeholder="John Trader"
                 {...register('name')}
-                className={`w-full px-3 py-2 border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200 ${
+                className={`w-full rounded-md border bg-background px-3 py-2 text-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary ${
                   errors.name && touchedFields.name
                     ? 'border-red-500'
                     : touchedFields.name && name?.length >= 2
@@ -210,12 +224,12 @@ export default function RegisterForm(): JSX.Element {
                 }`}
               />
               {touchedFields.name && name?.length >= 2 && !errors.name && (
-                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600" />
+                <Check className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-green-600" />
               )}
             </div>
             {errors.name && touchedFields.name && (
-              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                <X className="w-4 h-4" />
+              <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
+                <X className="h-4 w-4" />
                 {errors.name.message}
               </p>
             )}
@@ -225,7 +239,7 @@ export default function RegisterForm(): JSX.Element {
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-foreground mb-1"
+              className="mb-1 block text-sm font-medium text-foreground"
             >
               Email Address
             </label>
@@ -235,7 +249,7 @@ export default function RegisterForm(): JSX.Element {
                 type="email"
                 placeholder="john@example.com"
                 {...register('email')}
-                className={`w-full px-3 py-2 border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200 ${
+                className={`w-full rounded-md border bg-background px-3 py-2 text-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary ${
                   errors.email && touchedFields.email
                     ? 'border-red-500'
                     : touchedFields.email && !errors.email && email
@@ -244,12 +258,12 @@ export default function RegisterForm(): JSX.Element {
                 }`}
               />
               {touchedFields.email && !errors.email && email && (
-                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600" />
+                <Check className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-green-600" />
               )}
             </div>
             {errors.email && touchedFields.email && (
-              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                <X className="w-4 h-4" />
+              <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
+                <X className="h-4 w-4" />
                 {errors.email.message}
               </p>
             )}
@@ -259,7 +273,7 @@ export default function RegisterForm(): JSX.Element {
           <div>
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-foreground mb-1"
+              className="mb-1 block text-sm font-medium text-foreground"
             >
               Password
             </label>
@@ -269,7 +283,7 @@ export default function RegisterForm(): JSX.Element {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 {...register('password')}
-                className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 pr-10 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <button
                 type="button"
@@ -277,9 +291,9 @@ export default function RegisterForm(): JSX.Element {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
+                  <EyeOff className="h-5 w-5" />
                 ) : (
-                  <Eye className="w-5 h-5" />
+                  <Eye className="h-5 w-5" />
                 )}
               </button>
             </div>
@@ -289,9 +303,9 @@ export default function RegisterForm(): JSX.Element {
               <div className="mt-2 space-y-1">
                 <div className="flex items-center gap-2 text-sm">
                   {passwordValidation.minLength ? (
-                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                   ) : (
-                    <X className="w-4 h-4 text-muted-foreground" />
+                    <X className="h-4 w-4 text-muted-foreground" />
                   )}
                   <span
                     className={
@@ -305,9 +319,9 @@ export default function RegisterForm(): JSX.Element {
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   {passwordValidation.hasUppercase ? (
-                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                   ) : (
-                    <X className="w-4 h-4 text-muted-foreground" />
+                    <X className="h-4 w-4 text-muted-foreground" />
                   )}
                   <span
                     className={
@@ -321,9 +335,9 @@ export default function RegisterForm(): JSX.Element {
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   {passwordValidation.hasLowercase ? (
-                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                   ) : (
-                    <X className="w-4 h-4 text-muted-foreground" />
+                    <X className="h-4 w-4 text-muted-foreground" />
                   )}
                   <span
                     className={
@@ -337,9 +351,9 @@ export default function RegisterForm(): JSX.Element {
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   {passwordValidation.hasNumber ? (
-                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                   ) : (
-                    <X className="w-4 h-4 text-muted-foreground" />
+                    <X className="h-4 w-4 text-muted-foreground" />
                   )}
                   <span
                     className={
@@ -353,9 +367,9 @@ export default function RegisterForm(): JSX.Element {
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   {passwordValidation.hasSpecial ? (
-                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                   ) : (
-                    <X className="w-4 h-4 text-muted-foreground" />
+                    <X className="h-4 w-4 text-muted-foreground" />
                   )}
                   <span
                     className={
@@ -375,7 +389,7 @@ export default function RegisterForm(): JSX.Element {
           <div>
             <label
               htmlFor="confirmPassword"
-              className="block text-sm font-medium text-foreground mb-1"
+              className="mb-1 block text-sm font-medium text-foreground"
             >
               Confirm Password
             </label>
@@ -385,7 +399,7 @@ export default function RegisterForm(): JSX.Element {
                 type={showConfirmPassword ? 'text' : 'password'}
                 placeholder="••••••••"
                 {...register('confirmPassword')}
-                className={`w-full px-3 py-2 pr-10 border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200 ${
+                className={`w-full rounded-md border bg-background px-3 py-2 pr-10 text-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary ${
                   errors.confirmPassword && touchedFields.confirmPassword
                     ? 'border-red-500'
                     : touchedFields.confirmPassword &&
@@ -401,21 +415,21 @@ export default function RegisterForm(): JSX.Element {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 {showConfirmPassword ? (
-                  <EyeOff className="w-5 h-5" />
+                  <EyeOff className="h-5 w-5" />
                 ) : (
-                  <Eye className="w-5 h-5" />
+                  <Eye className="h-5 w-5" />
                 )}
               </button>
               {touchedFields.confirmPassword &&
                 confirmPassword === password &&
                 password &&
                 !errors.confirmPassword && (
-                  <Check className="w-5 h-5 text-green-600 absolute right-10 top-1/2 -translate-y-1/2" />
+                  <Check className="absolute right-10 top-1/2 h-5 w-5 -translate-y-1/2 text-green-600" />
                 )}
             </div>
             {errors.confirmPassword && touchedFields.confirmPassword && (
-              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                <X className="w-4 h-4" />
+              <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
+                <X className="h-4 w-4" />
                 {errors.confirmPassword.message}
               </p>
             )}
@@ -425,11 +439,11 @@ export default function RegisterForm(): JSX.Element {
           <div>
             <label
               htmlFor="referralCode"
-              className="block text-sm font-medium text-foreground mb-1"
+              className="mb-1 block text-sm font-medium text-foreground"
             >
               Referral Code (Optional)
             </label>
-            <p className="text-xs text-primary mb-1">
+            <p className="mb-1 text-xs text-primary">
               Have an affiliate code? Get {discountPercent}% off this month!
             </p>
             <div className="flex items-center gap-2">
@@ -450,7 +464,7 @@ export default function RegisterForm(): JSX.Element {
                       setVerifiedCode(null);
                     }
                   }}
-                  className={`w-full px-3 py-2 pr-10 border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200 ${
+                  className={`w-full rounded-md border bg-background px-3 py-2 pr-10 text-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary ${
                     isCodeValid
                       ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                       : codeError
@@ -460,21 +474,21 @@ export default function RegisterForm(): JSX.Element {
                   maxLength={20}
                 />
                 {isCodeValid && (
-                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-green-600" />
+                  <Check className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-green-600" />
                 )}
                 {codeError && (
-                  <X className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-red-600" />
+                  <X className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-red-600" />
                 )}
               </div>
               <button
                 type="button"
                 onClick={() => verifyCode(referralCode)}
                 disabled={referralCode.length < 6 || isVerifying}
-                className="px-4 py-2 bg-muted border border-border rounded-md hover:bg-muted/80 text-sm font-medium text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                className="hover:bg-muted/80 rounded-md border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isVerifying ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin inline" />
+                    <Loader2 className="inline h-4 w-4 animate-spin" />
                   </>
                 ) : (
                   'Verify'
@@ -483,20 +497,20 @@ export default function RegisterForm(): JSX.Element {
             </div>
             {isCodeValid && (
               <>
-                <p className="text-sm text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
-                  <Check className="w-4 h-4 flex-shrink-0" />
+                <p className="mt-1 flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
+                  <Check className="h-4 w-4 flex-shrink-0" />
                   Valid code! You&apos;ll get {discountPercent}% off PRO ($
                   {calculateDiscountedPrice(regularPrice).toFixed(2)}/month
                   instead of ${regularPrice.toFixed(2)})
                 </p>
-                <span className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-3 py-1 rounded-full text-sm font-semibold mt-2 inline-block">
+                <span className="mt-2 inline-block rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-300">
                   🎉 {discountPercent}% DISCOUNT APPLIED
                 </span>
               </>
             )}
             {codeError && (
-              <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                <X className="w-4 h-4" />
+              <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
+                <X className="h-4 w-4" />
                 {codeError}
               </p>
             )}
@@ -513,26 +527,26 @@ export default function RegisterForm(): JSX.Element {
             <div className="flex-1">
               <label
                 htmlFor="terms"
-                className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
+                className="cursor-pointer text-sm leading-relaxed text-muted-foreground"
               >
                 I agree to the{' '}
                 <Link
                   href="/terms"
-                  className="text-primary underline hover:text-primary/80"
+                  className="hover:text-primary/80 text-primary underline"
                 >
                   Terms of Service
                 </Link>{' '}
                 and{' '}
                 <Link
                   href="/privacy"
-                  className="text-primary underline hover:text-primary/80"
+                  className="hover:text-primary/80 text-primary underline"
                 >
                   Privacy Policy
                 </Link>
               </label>
               {errors.agreedToTerms && (
-                <p className="text-red-600 text-sm mt-1 flex items-center gap-1">
-                  <X className="w-4 h-4" />
+                <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
+                  <X className="h-4 w-4" />
                   {errors.agreedToTerms.message}
                 </p>
               )}
@@ -541,8 +555,10 @@ export default function RegisterForm(): JSX.Element {
 
           {/* Error Display */}
           {error && (
-            <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-800">
-              <div className="text-sm text-red-700 dark:text-red-300">{error}</div>
+            <div className="rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+              <div className="text-sm text-red-700 dark:text-red-300">
+                {error}
+              </div>
             </div>
           )}
 
@@ -550,11 +566,11 @@ export default function RegisterForm(): JSX.Element {
           <button
             type="submit"
             disabled={!isValid || isSubmitting}
-            className="w-full bg-primary hover:bg-primary/90 py-3 text-lg font-semibold rounded-md text-primary-foreground disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
+            className="hover:bg-primary/90 w-full rounded-md bg-primary py-3 text-lg font-semibold text-primary-foreground shadow-lg transition-all duration-200 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="w-5 h-5 inline animate-spin mr-2" />
+                <Loader2 className="mr-2 inline h-5 w-5 animate-spin" />
                 Creating account...
               </>
             ) : (
@@ -569,7 +585,7 @@ export default function RegisterForm(): JSX.Element {
             <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-card text-muted-foreground">
+            <span className="bg-card px-4 text-muted-foreground">
               Or register with
             </span>
           </div>
@@ -579,17 +595,17 @@ export default function RegisterForm(): JSX.Element {
         <SocialAuthButtons />
 
         {/* Footer Links */}
-        <div className="text-center mt-6 space-y-2">
-          <p className="text-muted-foreground text-sm">
+        <div className="mt-6 space-y-2 text-center">
+          <p className="text-sm text-muted-foreground">
             Already have an account?{' '}
             <Link
               href="/login"
-              className="text-primary font-semibold hover:underline"
+              className="font-semibold text-primary hover:underline"
             >
               Login
             </Link>
           </p>
-          <div className="flex items-center justify-center gap-2 text-sm flex-wrap">
+          <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
             <Link
               href="/forgot-password"
               className="text-primary hover:underline"
@@ -599,7 +615,7 @@ export default function RegisterForm(): JSX.Element {
             <span className="text-muted-foreground">—</span>
             <Link
               href="/affiliate/join"
-              className="text-primary hover:underline text-xs"
+              className="text-xs text-primary hover:underline"
             >
               Don&apos;t have a referral code? Join our Affiliate Program
             </Link>
