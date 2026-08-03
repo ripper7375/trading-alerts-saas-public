@@ -105,9 +105,35 @@ use-realtime-socket.ts`) — approved for inclusion; a third, `hooks/use-auth.ts
   shape `UsersService.getProfile()` uses; a value-blind hostname check showing operation-service's
   real `DATABASE_URL` resolves to the Railway-internal `postgres.railway.internal`) proves the code
   itself is correct but could not conclusively identify why the LIVE container's own query returns
-  empty for a row that demonstrably exists. **F58 stays OPEN, Steps 3-6 stay BLOCKED** — full
-  evidence chain and remaining hypotheses in `DECISION-LOG.md` F58; this needs Davin's own Railway
-  project/dashboard access to go further, this environment has exhausted its diagnostic options.
+  empty for a row that demonstrably exists.
+  **F58 RESOLVED, same day — turned out to be a false positive.** Davin directed a resilient
+  `resolveUserId(userId, email?)` email-lookup fallback in `UsersService`/`TwoFactorService`
+  (`getProfile`/`changePassword` + every `JwtAuthGuard`-derived `TwoFactorService` method);
+  implemented, tested (42/42 suites/385/385 tests), redeployed (`e2ff66e6-...`, polled to genuine
+  `SUCCESS`) — **F58 still reproduced identically even with the fix live**, which is what proved
+  the bug couldn't be inside those services at all. Bypassing the monolith's forwarding layer
+  entirely and calling operation-service DIRECTLY (with both a fresh `accessToken` and the
+  monolith-issued session cookie used as a raw Bearer token) returned clean `200`s every time; the
+  SAME cookie sent through the monolith's own `/api/user/profile` route still 404'd. Root cause:
+  **this session's own local `.env.local` never had `MIGRATE_USER_PROFILE`/`MIGRATE_USER_2FA` set**
+  — every `/api/user/profile`/`/api/user/2fa/*` call in this session's local testing silently fell
+  through to the monolith's OWN native Prisma lookup against `DATABASE_URL` (the STAGING database,
+  `LESSONS-LEARNED.md` L19's own precedent), never reaching operation-service at all — bridge-
+  registered test users (created via `token-register`, which genuinely does reach operation-
+  service and writes to real production) simply don't exist in that staging database. **Both flags
+  are already `true` in real Vercel production** (Session 4B-11's own close-out) — this was purely
+  a local-test-environment gap, never a production risk, and operation-service was never broken.
+  Set both flags locally to match production and re-ran the full smoke test: **22 of 23 checks
+  passed** — register, verify-email, login, logout, forgot-password, reset-password, re-login,
+  2FA setup, 2FA verify-setup (real TOTP code), login-with-2FA-required, 2FA verify, and — this
+  session's own new code — login completion via the `__2fa_verified__` sentinel, all proven
+  working end-to-end against real production operation-service. The one "failure" (a manually
+  resent raw cookie still authenticating after `token-logout`) is a test-methodology artifact, not
+  a bug — NextAuth's default JWE session strategy is stateless by design, unrelated to the bridge.
+  The `resolveUserId` fallback stays deployed (safe, tested, harmless) per Davin's own direction,
+  even though it wasn't the actual fix. **Step 2 now genuinely PASSES. Steps 3-6 are unblocked** —
+  proceeding per Davin's own explicit direction to resume them. Full evidence chain in
+  `DECISION-LOG.md` F58.
 - **Previous:** Session 4B-20 (Auth Cutover BUILD & UI Rewire, PORT/UI-BUILD hybrid), CONFIRMED
   and executed 2026-08-03 — **CLOSED SUCCESSFUL. Zero traffic cutover — `auth-options.ts`/
   `[...nextauth]`/the monolith's own `/api/auth/register` keep serving 100% of real traffic.**
