@@ -26,7 +26,77 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-20 (Auth Cutover BUILD & UI Rewire, PORT/UI-BUILD hybrid), CONFIRMED
+- **Current:** Session 4B-21 (Auth Cutover & UI Rewire, PORT/UI-BUILD hybrid), CONFIRMED and
+  IN PROGRESS 2026-08-03 — **BLOCKED, not closed.** Step 1 (UI swap) done and fully verified;
+  Step 2 (local smoke test) executed and returned RED per the order's own explicit rule.
+  **CONFIRM found the same `LESSONS-LEARNED.md` L11 self-contradiction that hit 4B-20 recurring
+  immediately**: the working copy jumped `PRE-DRAFT → APPROVED` with no DRAFT stage, silently
+  dropped the committed PRE-DRAFT's own "NOT fast-path eligible... needs a full Advisor DRAFT"
+  framing, and claimed "entry criteria verified" while all 4 checkboxes were unchecked and one
+  (session-cache staleness) was a genuinely unresolved architecture question. Reported in full;
+  Davin confirmed live (`AskUserQuestion`) it was his own authentic edit. Re-running 4B-20's own
+  greps found real drift: 2 live consumers not on either session's file list
+  (`hooks/use-login-tracking.ts` via `components/auth/login-tracker.tsx`, `hooks/
+use-realtime-socket.ts`) — approved for inclusion; a third, `hooks/use-auth.ts`, is dead code in
+  the monolith, flagged not touched.
+  **Entry Criterion 1 resolved as `DECISION-LOG.md` F57** (Davin, live): force a `getSession()`
+  refresh at every auth-mutating bridge call site rather than replacing `SessionProvider` with a
+  custom auth-context — this shrank Step 1's real scope to just 4 files that complete/end a login
+  (`login-form.tsx`, `verify-2fa/page.tsx`, `header.tsx`, `app/admin/login/page.tsx`) plus 4 more
+  with a simple endpoint swap and no cache implications (`forgot-password`, `reset-password`,
+  `verify-email`, `verify-email/pending`) — the other ~15 files are pure `useSession()` readers
+  needing zero changes, confirmed by checking each has no `signIn()`/`signOut()`/`getSession()`
+  call of its own.
+  **Also found (Deviations #6): the order's own Step 1 text over-scoped "2FA setup/verify/disable/
+  backup-codes" as needing new `token-2fa-*` wiring** — `/api/user/2fa/*` already forwards to
+  operation-service via a DIFFERENT, already-live flag (`MIGRATE_USER_2FA`, Session 4B-11); wiring
+  the 5 redundant `token-2fa-*` routes would have been pure duplication — not done. The one genuine
+  2FA gap was the mid-login completion call in `verify-2fa/page.tsx`, which now re-POSTs to
+  `token-login` with the same `__2fa_verified__` sentinel instead of calling `signIn('credentials',
+...)`.
+  **A real, pre-existing, unrelated bug found and left unfixed** (out of PORT scope):
+  `forgot-password/page.tsx`'s embedded `?token=` reset step sends `newPassword` instead of
+  `password` — has always failed validation on both the legacy and bridge endpoint; confirmed this
+  path is unreachable in practice (the real reset email points at `/reset-password?token=...`
+  instead, whose own page sends the correct field). Preserved byte-for-byte, not fixed.
+  **Full verification (Step 1):** `tsc --noEmit` clean, `eslint app components lib hooks
+--max-warnings 0` clean, full `test:ci` 129/129 suites, 2190/2190 tests (3 new test files, 2
+  extended). 3 commits: `d964d609` (F57), `d9ee2843` (CONFIRM), `c5c9fd31` (Step 1 code).
+  **Step 2 (local integration smoke test, Davin's own chosen method via `AskUserQuestion`): a
+  scratch script against a local monolith dev server (flag on) pointed at real production
+  `operation-service`, reading verification/reset tokens directly from production's own DB rather
+  than an inbox.** Register → verify-email → login → logout → forgot-password → reset-password →
+  re-login all passed cleanly end-to-end against real production `operation-service` — proves this
+  session's own new `token-*` call sites and the F57 fix both work correctly.
+  **RED RESULT — `DECISION-LOG.md` F58 (new, OPEN):** every operation-service `/user/*` route
+  (profile, 2FA — both cut over since Session 4B-11, unrelated to this session's own code) returns
+  "User not found" for a user created via `token-register`, despite the row provably existing —
+  proven via a direct production-DB query at the EXACT moment of the failure. Reproduced across 3
+  fresh test users. Extensively ruled out before escalating (not guessed at): JWE encode/decode
+  mismatch (read both `encodeNextAuthToken`/`decodeNextAuthToken` directly, both correct), stale-
+  read/wrong-database (direct `DIRECT_URL` query proved the row exists at the exact failure
+  moment), 2FA-specific code (`GET /api/user/profile` — a different route, same lookup shape —
+  fails identically), and this session's own changes (4B-21 touched zero files under
+  `operation-service/src/users/`, `two-factor.service.ts`, or the Prisma schema; `AuthController`'s
+  own routes — all genuinely new-in-this-session call sites — work correctly for the same row
+  throughout). Leading hypothesis, NOT confirmed (no access from this environment to verify):
+  operation-service's live production deployment may be running an older build than this checkout
+  for the `UsersController`/`TwoFactorService` code path — every prior session that exercised
+  `/user/*` routes did so against the long-lived canonical test fixtures
+  (`affiliate-test@trading-alerts.test`/`free-test@trading-alerts.test`, created via the OLD
+  monolith path long before this migration), never against a row created via operation-service's
+  OWN `AuthService.register()` — this exact interaction may simply never have been exercised
+  before. `operation-service` has no connected GitHub source (L23/L38, Waiting-on #77) — a redeploy
+  requires a manual `railway up`, so "the checkout is correct" does not imply "the running instance
+  matches it."
+  **Per this order's own explicit rule ("any red result at Step 2 = abort, do not proceed to
+  production flip"), Steps 3-6 (Davin's flip approval, the flag flip, the production smoke test,
+  retiring `CredentialsProvider`) are BLOCKED until F58 is resolved.** 3 tagged test users
+  (`4b21-smoke-*@trading-alerts.test`) were created in production during this diagnosis — left in
+  place, not deleted. **This session is not closed** — once F58 is resolved (most likely: Davin
+  checks operation-service's Railway deployment status/logs directly and redeploys if stale), the
+  remaining 6 Checklist steps continue in this same order, same session.
+- **Previous:** Session 4B-20 (Auth Cutover BUILD & UI Rewire, PORT/UI-BUILD hybrid), CONFIRMED
   and executed 2026-08-03 — **CLOSED SUCCESSFUL. Zero traffic cutover — `auth-options.ts`/
   `[...nextauth]`/the monolith's own `/api/auth/register` keep serving 100% of real traffic.**
   CONFIRM found this order's working copy self-contradicting its own committed PRE-DRAFT — header

@@ -166,9 +166,40 @@ password`) both require `password`, not `newPassword` — every submission throu
    `__tests__/app/auth-verify-2fa.test.tsx`, `__tests__/app/admin-login.test.tsx`,
    `__tests__/app/auth-bridge-endpoint-swaps.test.tsx`; extended: `login-form.test.tsx` (added
    `getSession` mock + 2 new assertions), `header.test.tsx` (added `getSession`/flag mocks)).
+8. **Checklist Step 2 (local integration smoke test) executed — RED RESULT, per this order's own
+   "any red result = abort, do not proceed to production flip" rule.** Davin chose (`AskUserQuestion`)
+   a scratch-script method against a local monolith dev server (flag on) pointed at real production
+   `operation-service`, reading verification/reset tokens directly from production's own DB rather
+   than checking an inbox. Register → verify-email → login → logout → forgot-password → reset-
+   password → re-login all passed cleanly end-to-end against real production `operation-service`
+   (proves this session's own new `token-*` call sites and the F57 session-cache fix all work
+   correctly). **Found `DECISION-LOG.md` F58 (new, OPEN):** every operation-service `/user/*` route
+   (profile, 2FA — cut over since Session 4B-11, unrelated to this session's own code) returns
+   "User not found" for a user created via `token-register`, despite the row provably existing
+   (proven via a direct production-DB query at the exact moment of the failure) — reproduced across
+   3 fresh test users. Extensively ruled out before escalating: JWE encode/decode mismatch, stale-
+   read/wrong-database, 2FA-specific code, and this session's own changes (see F58's full evidence
+   chain). **This blocks Steps 3-6** (Davin's flip approval, the flag flip itself, the production
+   smoke test, and retiring `CredentialsProvider`) until F58 is resolved — flipping the flag today
+   would mean every new signup can't use profile/2FA/sessions/preferences, only existing
+   pre-migration users would be unaffected. 3 tagged test users were created in production as part
+   of this diagnosis (`4b21-smoke-*@trading-alerts.test`) — left in place, not deleted (does not
+   permanently delete production data).
+9. Session-cache staleness fix (F57) is independently proven correct by this same smoke test: the
+   monolith's own `GET /api/auth/session` correctly reflected the logged-in user immediately after
+   each bridge login, with no separate confirmation call needed beyond the `getSession()` this
+   session's own code already added.
 
 ## Next-session handoff
 
-- Once 4B-21 closes: **4B-22 (Phase 4 exit review)** — the last session in Phase 4B, walking the
-  phase-exit criteria from the plan one by one. This is the literal final domain session before
-  that review; no further PRE-DRAFT beyond 4B-22 is implied by this order.
+- **F58 must be resolved before this order can proceed past Step 2.** Likely next step: Davin
+  checks operation-service's Railway deployment status/logs directly (last deployed commit/build
+  timestamp — this environment has no such visibility for operation-service, which has no
+  connected GitHub source, `LESSONS-LEARNED.md` L23/L38/Waiting-on #77) and redeploys if stale;
+  if a fresh deploy doesn't resolve it, this needs its own investigation session.
+  Once F58 is resolved, Steps 3-6 (production flag flip, live smoke test, `CredentialsProvider`
+  retirement) are the remaining work in THIS same order — not deferred to a new session.
+- Once 4B-21 fully closes (all 6 remaining steps done): **4B-22 (Phase 4 exit review)** — the last
+  session in Phase 4B, walking the phase-exit criteria from the plan one by one. This is the literal
+  final domain session before that review; no further PRE-DRAFT beyond 4B-22 is implied by this
+  order.
