@@ -63,7 +63,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   async getProfile(@Req() request: AuthenticatedRequest) {
-    return this.usersService.getProfile(request.user.id);
+    return this.usersService.getProfile(request.user.id, request.user.email);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -111,9 +111,12 @@ export class UsersController {
     @Req() request: AuthenticatedRequest,
     @Body(new ZodValidationPipe(changePasswordSchema)) dto: ChangePasswordDto
   ) {
-    return this.usersService.changePassword(request.user.id, dto, {
-      ipAddress: request.ip,
-    });
+    return this.usersService.changePassword(
+      request.user.id,
+      dto,
+      { ipAddress: request.ip },
+      request.user.email
+    );
   }
 
   // ─── Sessions & History ───────────────────────────────────────────────
@@ -177,14 +180,14 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Get('2fa/setup')
   async get2FAStatus(@Req() request: AuthenticatedRequest) {
-    return this.usersService.get2FAStatus(request.user.id);
+    return this.usersService.get2FAStatus(request.user.id, request.user.email);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('2fa/setup')
   @HttpCode(200)
   async setup2FA(@Req() request: AuthenticatedRequest) {
-    return this.usersService.setup2FA(request.user.id);
+    return this.usersService.setup2FA(request.user.id, request.user.email);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -197,14 +200,18 @@ export class UsersController {
     return this.usersService.verifySetup2FA(
       request.user.id,
       dto.code,
-      request.ip
+      request.ip,
+      request.user.email
     );
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('2fa/backup-codes')
   async getBackupCodesStatus(@Req() request: AuthenticatedRequest) {
-    return this.usersService.getBackupCodesStatus(request.user.id);
+    return this.usersService.getBackupCodesStatus(
+      request.user.id,
+      request.user.email
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -216,7 +223,8 @@ export class UsersController {
   ) {
     return this.usersService.regenerateBackupCodes(
       request.user.id,
-      dto.password
+      dto.password,
+      request.user.email
     );
   }
 
@@ -231,7 +239,8 @@ export class UsersController {
       request.user.id,
       dto.password,
       dto.code,
-      request.ip
+      request.ip,
+      request.user.email
     );
   }
 

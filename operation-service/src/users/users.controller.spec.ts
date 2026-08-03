@@ -84,7 +84,7 @@ describe('UsersController', () => {
       const controller = makeController({ getProfile });
 
       await controller.getProfile(mockRequest());
-      expect(getProfile).toHaveBeenCalledWith('user-1');
+      expect(getProfile).toHaveBeenCalledWith('user-1', 'a@b.com');
     });
 
     it('updateProfile delegates with id + current email + dto', async () => {
@@ -102,9 +102,12 @@ describe('UsersController', () => {
       const dto = { currentPassword: 'x', newPassword: 'Newpass1' } as never;
 
       await controller.changePassword(mockRequest({ ip: '9.9.9.9' }), dto);
-      expect(changePassword).toHaveBeenCalledWith('user-1', dto, {
-        ipAddress: '9.9.9.9',
-      });
+      expect(changePassword).toHaveBeenCalledWith(
+        'user-1',
+        dto,
+        { ipAddress: '9.9.9.9' },
+        'a@b.com'
+      );
     });
 
     it('revokeSession delegates with sessionId + caller id', async () => {

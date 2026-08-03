@@ -89,6 +89,28 @@ describe('TwoFactorService', () => {
       expect(updateArgs.data.twoFactorSecret).not.toBe(result.secret);
       expect(updateArgs.data.twoFactorEnabled).toBeUndefined();
     });
+
+    // F58 (DECISION-LOG.md): resolveUserId's email fallback.
+    it('falls back to an email lookup when the id lookup misses', async () => {
+      prisma.user.findUnique
+        .mockResolvedValueOnce(null) // resolveUserId's id lookup
+        .mockResolvedValueOnce({ id: 'user-1' }) // resolveUserId's email lookup
+        .mockResolvedValueOnce(makeUser()); // setup()'s own lookup
+
+      const result = await service.setup('user-1', 'alice@example.com');
+      expect(result.success).toBe(true);
+      expect(prisma.user.findUnique).toHaveBeenNthCalledWith(2, {
+        where: { email: 'alice@example.com' },
+        select: { id: true },
+      });
+    });
+
+    it('throws NotFoundException when both id and email lookups miss', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      await expect(
+        service.setup('user-1', 'nobody@example.com')
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
   });
 
   describe('verifySetup', () => {

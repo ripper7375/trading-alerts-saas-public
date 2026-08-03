@@ -43,7 +43,33 @@ export interface TwoFactorRequestContext {
 export class TwoFactorService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getStatus(userId: string) {
+  // F58 (DECISION-LOG.md): JwtAuthGuard-derived userId sometimes fails
+  // findUnique({where:{id}}) against the live container for a user created
+  // via the auth bridge's own token-register, despite the row provably
+  // existing (proven correct in isolation against the same database — see
+  // F58's full evidence chain; root cause not conclusively identified).
+  // Resolving by email first when available is a reliable fallback (email
+  // lookups have never exhibited this symptom in any of this session's
+  // testing) — zero behavior change for the success path, since it only
+  // fires when the id lookup already came back empty.
+  private async resolveUserId(userId: string, email?: string): Promise<string> {
+    const byId = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (byId) return userId;
+    if (email) {
+      const byEmail = await this.prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
+      if (byEmail) return byEmail.id;
+    }
+    throw new NotFoundException('User not found');
+  }
+
+  async getStatus(userId: string, email?: string) {
+    userId = await this.resolveUserId(userId, email);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { twoFactorEnabled: true, twoFactorVerifiedAt: true },
@@ -57,7 +83,8 @@ export class TwoFactorService {
     };
   }
 
-  async setup(userId: string) {
+  async setup(userId: string, email?: string) {
+    userId = await this.resolveUserId(userId, email);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, email: true, twoFactorEnabled: true },
@@ -94,8 +121,10 @@ export class TwoFactorService {
   async verifySetup(
     userId: string,
     code: string,
-    context: TwoFactorRequestContext = {}
+    context: TwoFactorRequestContext = {},
+    email?: string
   ) {
+    userId = await this.resolveUserId(userId, email);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -201,8 +230,12 @@ export class TwoFactorService {
       );
     }
 
+    const resolvedUserId = await this.resolveUserId(
+      payload.userId,
+      payload.email
+    );
     const user = await this.prisma.user.findUnique({
-      where: { id: payload.userId },
+      where: { id: resolvedUserId },
       select: {
         id: true,
         email: true,
@@ -264,7 +297,8 @@ export class TwoFactorService {
     return { success: true, verified: true, method: 'totp' as const };
   }
 
-  async getBackupCodesStatus(userId: string) {
+  async getBackupCodesStatus(userId: string, email?: string) {
+    userId = await this.resolveUserId(userId, email);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { twoFactorEnabled: true, twoFactorBackupCodes: true },
@@ -287,7 +321,12 @@ export class TwoFactorService {
     };
   }
 
-  async regenerateBackupCodes(userId: string, password: string) {
+  async regenerateBackupCodes(
+    userId: string,
+    password: string,
+    email?: string
+  ) {
+    userId = await this.resolveUserId(userId, email);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -329,8 +368,10 @@ export class TwoFactorService {
     userId: string,
     password: string,
     code: string,
-    context: TwoFactorRequestContext = {}
+    context: TwoFactorRequestContext = {},
+    email?: string
   ) {
+    userId = await this.resolveUserId(userId, email);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {

@@ -42,9 +42,35 @@ export class UsersService {
     private readonly twoFactorService: TwoFactorService
   ) {}
 
+  // F58 (DECISION-LOG.md): JwtAuthGuard-derived userId sometimes fails
+  // findUnique({where:{id}}) against the live container for a user created
+  // via the auth bridge's own token-register, despite the row provably
+  // existing (proven correct in isolation against the same database — see
+  // F58's full evidence chain; root cause not conclusively identified).
+  // Resolving by email first when available is a reliable fallback (email
+  // lookups have never exhibited this symptom in any of this session's
+  // testing) — zero behavior change for the success path, since it only
+  // fires when the id lookup already came back empty.
+  private async resolveUserId(userId: string, email?: string): Promise<string> {
+    const byId = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (byId) return userId;
+    if (email) {
+      const byEmail = await this.prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
+      if (byEmail) return byEmail.id;
+    }
+    throw new NotFoundException('User not found');
+  }
+
   // ─── Profile ──────────────────────────────────────────────────────────
 
-  async getProfile(userId: string) {
+  async getProfile(userId: string, email?: string) {
+    userId = await this.resolveUserId(userId, email);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -163,10 +189,12 @@ export class UsersService {
   async changePassword(
     userId: string,
     dto: ChangePasswordInput,
-    context: RequestContext = {}
+    context: RequestContext = {},
+    email?: string
   ) {
     const { currentPassword, newPassword } = dto;
 
+    userId = await this.resolveUserId(userId, email);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, email: true, name: true, password: true },
@@ -532,16 +560,26 @@ export class UsersService {
 
   // ─── 2FA (thin delegates to the existing TwoFactorService) ─────────────
 
-  async get2FAStatus(userId: string) {
-    return this.twoFactorService.getStatus(userId);
+  async get2FAStatus(userId: string, email?: string) {
+    return this.twoFactorService.getStatus(userId, email);
   }
 
-  async setup2FA(userId: string) {
-    return this.twoFactorService.setup(userId);
+  async setup2FA(userId: string, email?: string) {
+    return this.twoFactorService.setup(userId, email);
   }
 
-  async verifySetup2FA(userId: string, code: string, ipAddress?: string) {
-    return this.twoFactorService.verifySetup(userId, code, { ipAddress });
+  async verifySetup2FA(
+    userId: string,
+    code: string,
+    ipAddress?: string,
+    email?: string
+  ) {
+    return this.twoFactorService.verifySetup(
+      userId,
+      code,
+      { ipAddress },
+      email
+    );
   }
 
   /** Unauthenticated by design — see UsersController's own guard note. */
@@ -549,23 +587,32 @@ export class UsersService {
     return this.twoFactorService.verify(code, token);
   }
 
-  async getBackupCodesStatus(userId: string) {
-    return this.twoFactorService.getBackupCodesStatus(userId);
+  async getBackupCodesStatus(userId: string, email?: string) {
+    return this.twoFactorService.getBackupCodesStatus(userId, email);
   }
 
-  async regenerateBackupCodes(userId: string, password: string) {
-    return this.twoFactorService.regenerateBackupCodes(userId, password);
+  async regenerateBackupCodes(
+    userId: string,
+    password: string,
+    email?: string
+  ) {
+    return this.twoFactorService.regenerateBackupCodes(userId, password, email);
   }
 
   async disable2FA(
     userId: string,
     password: string,
     code: string,
-    ipAddress?: string
+    ipAddress?: string,
+    email?: string
   ) {
-    return this.twoFactorService.disable(userId, password, code, {
-      ipAddress,
-    });
+    return this.twoFactorService.disable(
+      userId,
+      password,
+      code,
+      { ipAddress },
+      email
+    );
   }
 
   // ─── Account Deletion (F21 stays OPEN; ports the existing 7-day flow) ──

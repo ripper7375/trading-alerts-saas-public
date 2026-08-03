@@ -12,13 +12,11 @@ jest.mock('../email/email.util', () => ({
   sendPasswordChangedEmail: jest.fn().mockResolvedValue({ success: true }),
 }));
 jest.mock('../security/geo-location.util', () => ({
-  getGeoLocation: jest
-    .fn()
-    .mockResolvedValue({
-      country: 'Unknown',
-      city: 'Unknown',
-      region: 'Unknown',
-    }),
+  getGeoLocation: jest.fn().mockResolvedValue({
+    country: 'Unknown',
+    city: 'Unknown',
+    region: 'Unknown',
+  }),
   formatLocation: jest.fn().mockReturnValue('Unknown location'),
 }));
 
@@ -81,11 +79,43 @@ describe('UsersService', () => {
       expect(result.user.emailVerified).toBe(true);
     });
 
-    it('throws NotFoundException when the user is missing', async () => {
+    it('throws NotFoundException when the user is missing and no email fallback is given', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
       await expect(makeService().getProfile('user-1')).rejects.toBeInstanceOf(
         NotFoundException
       );
+    });
+
+    // F58 (DECISION-LOG.md): resolveUserId's email fallback.
+    it('falls back to an email lookup when the id lookup misses', async () => {
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce(null) // resolveUserId's id lookup
+        .mockResolvedValueOnce({ id: 'user-1' }) // resolveUserId's email lookup
+        .mockResolvedValueOnce({
+          id: 'user-1',
+          name: 'A',
+          email: 'a@b.com',
+          image: null,
+          tier: 'PRO',
+          role: 'USER',
+          emailVerified: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }); // getProfile's own lookup
+
+      const result = await makeService().getProfile('user-1', 'a@b.com');
+      expect(result.user.email).toBe('a@b.com');
+      expect(mockPrisma.user.findUnique).toHaveBeenNthCalledWith(2, {
+        where: { email: 'a@b.com' },
+        select: { id: true },
+      });
+    });
+
+    it('throws NotFoundException when both id and email lookups miss', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      await expect(
+        makeService().getProfile('user-1', 'nobody@b.com')
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 
@@ -258,7 +288,8 @@ describe('UsersService', () => {
         'user-1',
         'pw',
         '123456',
-        { ipAddress: '1.2.3.4' }
+        { ipAddress: '1.2.3.4' },
+        undefined
       );
     });
   });
