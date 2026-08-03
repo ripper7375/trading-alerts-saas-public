@@ -3612,6 +3612,18 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   several sessions running. Worth a dedicated cleanup session (or the Advisor) walking the whole
   file once: keep only the true Current + Previous pair, mark everything else superseded, and
   move those into `docs/migration-orders/history/sessions-archive.md`.
+- **(103, NEW — Session 4B-19, 2026-08-03)** Found while appending L11's archived recurrence
+  history to `LESSONS-ARCHIVE.md`: the file already has real character-encoding corruption in
+  several places — em-dashes rendered as `��` mojibake, at minimum in the 4B-18b/4B-18c-era
+  entries near the file's own end (`docs/migration-orders/LESSONS-ARCHIVE.md`, lines ~1195-1230).
+  `file`/`Read` both confirm the file is otherwise valid UTF-8 (no BOM issue), so this is most
+  likely a prior session appending via a tool that doesn't force UTF-8 output (PowerShell's
+  `Add-Content`/`Set-Content` default to the system codepage unless `-Encoding utf8` is passed
+  explicitly — a documented gotcha in this environment's own PowerShell tool notes). Not fixed
+  here (this session's own append used plain ASCII punctuation to avoid adding to the corruption,
+  not a repair of the existing damage) — worth a future pass finding and re-typing the corrupted
+  spans from the original session transcripts/commits if the lost characters matter, or just
+  accepting the cosmetic loss (no factual content appears lost, only em-dash-style punctuation).
 - **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
   2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
   **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:

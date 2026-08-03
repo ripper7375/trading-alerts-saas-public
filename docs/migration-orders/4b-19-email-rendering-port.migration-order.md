@@ -123,7 +123,7 @@ meaningfully "preserve the behavior of" — there is no live behavior to preserv
 - [x] `operation-service` test suite green (42/42 suites, 380/380 tests — unchanged, this service
       was not touched), monolith `test:ci` green (123/123 suites, 2157/2157 tests — unchanged from
       4B-18d's baseline, zero regressions), `tsc --noEmit` clean both sides, `eslint app components
-    lib hooks --max-warnings 0` clean (0 errors/warnings), `operation-service` `nest build` clean.
+  lib hooks --max-warnings 0` clean (0 errors/warnings), `operation-service` `nest build` clean.
 
 ## Deviations
 
@@ -156,6 +156,17 @@ payment-processed}.tsx` (5 files) — the PRE-DRAFT's own "9 unused `.tsx` templ
    is now gone entirely (git doesn't track empty directories).
 5. **One commit for the whole retirement**, per this order's own explicit Rules section ("If
    Option A: ... one commit").
+6. **Lesson harvested at close, per `LESSONS-LEARNED.md` L11's own hygiene rule ("5+ recurrences
+   → single count line"):** CONFIRM found the by-now-familiar L11 pattern again (order file
+   modified-but-uncommitted, header status flipped with no visible Advisor→Davin commit trail) —
+   this session's occurrence was the 11th documented one, well past the file's own consolidation
+   threshold. Collapsed L11's 9 individually-narrated `Recurrence (Session ...)` bullets into a
+   single count line in `LESSONS-LEARNED.md`; the full narrative (plus this session's own
+   recurrence) moved verbatim to `LESSONS-ARCHIVE.md`. No new numbered lesson was warranted from
+   this session's own execution work (nothing cost >30 min to diagnose, recurred in a genuinely
+   new shape, or reached CI/production). Incidentally found pre-existing character-encoding
+   corruption (mojibake) in `LESSONS-ARCHIVE.md`'s own 4B-18b/4B-18c-era entries while appending —
+   not fixed, flagged in `CLAUDE.md` Waiting-on #103.
 
 ## Known wrinkles / do-not-touch
 

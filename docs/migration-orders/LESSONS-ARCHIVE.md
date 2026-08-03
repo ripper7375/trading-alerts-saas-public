@@ -1228,3 +1228,89 @@ of "when a log shows repeated success events for the same logical entity (same u
 their own timestamps against each other before concluding health ��  a cluster of short-lived
 successes is a strong signal of a connect/disconnect loop, not proof of stability." Full detail in
 `4b-18c-realtime-csp-connect-src-fix.migration-order.md`'s own Deviations and `DECISION-LOG.md` F55.
+
+---
+
+## L11 recurrence history (moved from LESSONS-LEARNED.md, Session 4B-19, 2026-08-03)
+
+LESSONS-LEARNED.md's L11 ("Never trust an order's header status field alone; cross-check
+entry-criteria checkboxes and git history") had accumulated 9 individually-narrated
+"Recurrence (Session ...)" bullets - well past that file's own "5+ recurrences into a single
+count line" hygiene rule. Collapsed to a count line in the active file; the full narrative is
+preserved here, verbatim, for anyone who needs the detail behind a specific occurrence.
+
+- Source: Session 4A-6. Symptom: an order arrived with header Status: APPROVED while its own
+  Entry Criteria list still had an unchecked "Davin approves this DRAFT" box, and the file was
+  untracked with no PRE-DRAFT to DRAFT to APPROVED commit history at all.
+- Recurrence (Session 4A-3): same pattern - PRE-DRAFT note block vs. an uncommitted APPROVED
+  status-line edit, no Advisor-DRAFT/Davin-approval commit history, and the paired evidence file
+  (manual-trigger idempotency checklist) showed 0/8 boxes checked despite the claimed-done state.
+  Resolved by asking Davin directly rather than trusting the file; this is now a 2nd occurrence,
+  worth the Advisor's attention on how order status edits get made outside the Advisor to Davin
+  pipeline.
+- Recurrence (Session 5-1): same pattern - order file arrived untracked with Status: APPROVED
+  header while 4/4 entry criteria checkboxes were unchecked. Resolved by asking Davin live ("Go")
+  to confirm before execution. (3rd occurrence).
+- Recurrence (Session 4A-7b): same pattern again - the order's own "Updated" note read "updated
+  to DRAFT for authorization" while the header field one line above it claimed Status: APPROVED,
+  and the edit was uncommitted with no PRE-DRAFT to DRAFT to APPROVED history. Resolved by asking
+  Davin directly rather than trusting the file; he confirmed live approval and corrected the note.
+  (4th occurrence - worth the Advisor's attention on why order-status edits keep arriving outside
+  the normal pipeline with self-contradicting text.)
+- Recurrence (Session 4A-W1): a new variant - git status showed the order file
+  modified-but-uncommitted; git diff against the last commit showed Status: DRAFT to APPROVED
+  with no approval commit trail, AND all five of the order's own entry-criteria line-count numbers
+  had independently drifted by exactly +1 away from both the last commit and the live codebase.
+  Resolved by asking Davin directly rather than trusting or silently correcting either field; he
+  confirmed the status flip was his own intentional approval and separately fixed the line counts
+  back to the wc -l baseline before execution began. (5th occurrence - first time the
+  self-contradiction included corrupted evidence numbers alongside the status field, not just the
+  status field alone. Worth the Advisor's attention on whether order files should be edited in a
+  working copy at all versus only via a reviewable diff/PR.)
+- Recurrence (Session 4A-W2): same pattern - order file modified-but-uncommitted,
+  Status: PRE-DRAFT to APPROVED with no Advisor-DRAFT/Davin-approval commit trail, and all four
+  of the order's own line-count entry-criteria numbers had shifted +1 away from both the
+  committed version and the live codebase. Resolved by asking Davin directly; confirmed his own
+  edit, numbers corrected to the wc -l baseline. (6th occurrence.)
+- Recurrence (Session 4A-W3a): same pattern, first pass - order arrived with a self-reported
+  "APPROVED" status but 4/6 entry criteria FAILED against live state (F39/F41 still open,
+  WISE_API_TOKEN absent, three cited line counts stale by up to +212 lines from an intervening
+  session's own migration commit). Reported in full, execution declined; second pass after Davin
+  resolved the open flags confirmed the split/APPROVED status was his own intentional edit
+  (again no commit trail). (7th occurrence.)
+- Recurrence (Session 4A-W3b): same status-flip/no-commit-trail shape, plus a new variant: the
+  rewritten order body had silently resolved two open design questions the PRE-DRAFT text had
+  explicitly deferred to CONFIRM ("flag or flag-less?", "should the admin page allow an action or
+  stay view-only?") with no visible decision recorded anywhere - not just the status field or
+  line-count evidence drifting, but substantive scope questions being answered invisibly. Resolved
+  by asking Davin directly for all three (status-flip provenance + both design questions) before
+  marking CONFIRMED. (8th occurrence - worth the Advisor's attention on whether a PRE-DRAFT's own
+  explicitly-flagged open questions should be answered as separate, individually-commit-tracked
+  edits rather than folded silently into the APPROVED rewrite.)
+- Recurrence (Session 4B-2): same shape again - only the PRE-DRAFT (Status: PRE-DRAFT) was ever
+  committed; the working copy was fully rewritten to Status: APPROVED with no DRAFT to APPROVED
+  commit trail, and the rewrite silently DROPPED a whole entry criterion the PRE-DRAFT had
+  explicitly carried forward (the Waiting-on #79 Railway-packaging-risk item) rather than just
+  drifting a status field or a line count. Resolved by reporting the full CONFIRM findings
+  (including the dropped criterion) before execution and asking directly; confirmed as Davin's/the
+  Advisor's own authentic edit, the dropped criterion was re-added, and explicit clearance to
+  execute was given in chat. (9th occurrence - the "silently drops real content, not just
+  metadata" variant first seen at 4A-W3b keeps recurring; still worth the Advisor's attention.)
+- Recurrence (Session 4B-3): same shape, most severe yet - the committed version was an unusually
+  HONEST PRE-DRAFT (explicitly listing every entry criterion as "NOT MET" and stating "there is no
+  clock to report an end time for"), and the uncommitted working copy didn't just flip the status
+  field - it deleted every one of those honest caveats wholesale while rewriting the entire
+  document. Resolved the same way as every prior occurrence: reported the discrepancy directly
+  rather than trusting or silently correcting it, then verified the underlying facts (deploy
+  status, flag existence, live logs) independently regardless of which version of the text was
+  "correct" - which is what actually caught the 7 further real gaps this session's own Deviations
+  document. (10th occurrence - worth the Advisor's attention on whether order files should ever be
+  edited as an in-place working-copy rewrite at all, versus only via a reviewable diff.)
+- Recurrence (Session 4B-19, 2026-08-03): a fully benign variant - the order's entire body
+  (Background, Entry Criteria, File Port Order, Rules, Slice-level verification, Next-session
+  handoff) diffed byte-identical to the committed PRE-DRAFT; only header metadata (Status line,
+  variant label, Generated line) changed in the uncommitted working copy. Confirmed live as
+  Antigravity Advisor's own authentic edit before execution. (11th documented occurrence. Several
+  further recurrences almost certainly happened in Sessions 4B-4 through 4B-18d per their own
+  CLAUDE.md close-out notes, but were never individually appended to this list - not
+  reconstructed retroactively here.)

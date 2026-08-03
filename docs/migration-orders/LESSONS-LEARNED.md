@@ -5,7 +5,9 @@
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
 **Hard cap ~40 active lessons.** Currently at 53 (L1–L53) — a consolidation pass is overdue.
-Candidates promoted and preamble archived 2026-08-03. Full history in `LESSONS-ARCHIVE.md`.
+Candidates promoted and preamble archived 2026-08-03; L11's own 9-recurrence narrative collapsed
+to a single count line same day (Session 4B-19) per this file's own hygiene rule, detail moved to
+`LESSONS-ARCHIVE.md`. Full history in `LESSONS-ARCHIVE.md`.
 
 ---
 
@@ -62,24 +64,19 @@ Candidates promoted and preamble archived 2026-08-03. Full history in `LESSONS-A
 - Symptom: an order arrived with header `Status: APPROVED` while its own Entry Criteria list still had an unchecked "Davin approves this DRAFT" box, and the file was untracked with no PRE-DRAFT→DRAFT→APPROVED commit history at all.
 - Rule: at CONFIRM, cross-check the header's claimed status against (a) the order's own entry-criteria checkboxes and (b) git history for that file. A self-contradicting order is a stop-and-ask trigger, not something to silently trust or silently fix.
 - Source: Session 4A-6 · Status: ACTIVE
-- Recurrence (Session 4A-3): same pattern — PRE-DRAFT note block vs. an uncommitted `APPROVED` status-line edit, no Advisor-DRAFT/Davin-approval commit history, and the paired evidence file (manual-trigger idempotency checklist) showed 0/8 boxes checked despite the claimed-done state. Resolved by asking Davin directly rather than trusting the file; this is now a 2nd occurrence, worth the Advisor's attention on how order status edits get made outside the Advisor→Davin pipeline.
-- Recurrence (Session 5-1): same pattern — order file arrived untracked (`??`) with `Status: APPROVED` header while 4/4 entry criteria checkboxes were `[ ]` unchecked. Resolved by asking Davin live ("Go") to confirm before execution. (3rd occurrence).
-- Recurrence (Session 4A-7b): same pattern again — the order's own "Updated" note read "updated to DRAFT for authorization" while the header field one line above it claimed `Status: APPROVED`, and the edit was uncommitted with no PRE-DRAFT→DRAFT→APPROVED history. Resolved by asking Davin directly rather than trusting the file; he confirmed live approval and corrected the note. (4th occurrence — worth the Advisor's attention on why order-status edits keep arriving outside the normal pipeline with self-contradicting text.)
-- Recurrence (Session 4A-W1): a new variant — `git status` showed the order file modified-but-uncommitted; `git diff` against the last commit showed `Status: DRAFT → APPROVED` with no approval commit trail, **and** all five of the order's own entry-criteria line-count numbers had independently drifted by exactly `+1` away from both the last commit and the live codebase. Resolved by asking Davin directly rather than trusting or silently correcting either field; he confirmed the status flip was his own intentional approval and separately fixed the line counts back to the `wc -l` baseline before execution began. (5th occurrence — first time the self-contradiction included corrupted _evidence_ numbers alongside the status field, not just the status field alone. Worth the Advisor's attention on whether order files should be edited in a working copy at all versus only via a reviewable diff/PR.)
-- Recurrence (Session 4A-W2): same pattern — order file modified-but-uncommitted, `Status: PRE-DRAFT → APPROVED` with no Advisor-DRAFT/Davin-approval commit trail, and all four of the order's own line-count entry-criteria numbers had shifted `+1` away from both the committed version and the live codebase. Resolved by asking Davin directly; confirmed his own edit, numbers corrected to the `wc -l` baseline. (6th occurrence.)
-- Recurrence (Session 4A-W3a): same pattern, first pass — order arrived with a self-reported "APPROVED" status but 4/6 entry criteria FAILED against live state (F39/F41 still open, `WISE_API_TOKEN` absent, three cited line counts stale by up to +212 lines from an intervening session's own migration commit). Reported in full, execution declined; second pass after Davin resolved the open flags confirmed the split/`APPROVED` status was his own intentional edit (again no commit trail). (7th occurrence.)
-- Recurrence (Session 4A-W3b): same status-flip/no-commit-trail shape, **plus a new variant**: the rewritten order body had silently resolved two open design questions the PRE-DRAFT text had explicitly deferred to CONFIRM ("flag or flag-less?", "should the admin page allow an action or stay view-only?") with no visible decision recorded anywhere — not just the status field or line-count evidence drifting, but substantive scope questions being answered invisibly. Resolved by asking Davin directly for all three (status-flip provenance + both design questions) before marking CONFIRMED. (8th occurrence — worth the Advisor's attention on whether a PRE-DRAFT's own explicitly-flagged open questions should be answered as separate, individually-commit-tracked edits rather than folded silently into the APPROVED rewrite.)
-- Recurrence (Session 4B-2): same shape again — only the PRE-DRAFT (`Status: PRE-DRAFT`) was ever committed; the working copy was fully rewritten to `Status: APPROVED` with no DRAFT→APPROVED commit trail, and the rewrite silently DROPPED a whole entry criterion the PRE-DRAFT had explicitly carried forward (the Waiting-on #79 Railway-packaging-risk item) rather than just drifting a status field or a line count. Resolved by reporting the full CONFIRM findings (including the dropped criterion) before execution and asking directly; confirmed as Davin's/the Advisor's own authentic edit, the dropped criterion was re-added, and explicit clearance to execute was given in chat. (9th occurrence — the "silently drops real content, not just metadata" variant first seen at 4A-W3b keeps recurring; still worth the Advisor's attention.)
-- Recurrence (Session 4B-3): same shape, most severe yet — the committed version was an unusually
-  HONEST PRE-DRAFT (explicitly listing every entry criterion as "NOT MET" and stating "there is no
-  clock to report an end time for"), and the uncommitted working copy didn't just flip the status
-  field — it deleted every one of those honest caveats wholesale while rewriting the entire
-  document. Resolved the same way as every prior occurrence: reported the discrepancy directly
-  rather than trusting or silently correcting it, then verified the underlying facts (deploy
-  status, flag existence, live logs) independently regardless of which version of the text was
-  "correct" — which is what actually caught the 7 further real gaps this session's own Deviations
-  document. (10th occurrence — worth the Advisor's attention on whether order files should ever be
-  edited as an in-place working-copy rewrite at all, versus only via a reviewable diff.)
+- Recurrence count: 10+ times through Session 4B-3, each individually documented (full per-session
+  detail moved to `LESSONS-ARCHIVE.md` per this file's own "5+ recurrences → single count line"
+  hygiene rule) — Sessions 4A-3, 5-1, 4A-7b, 4A-W1, 4A-W2, 4A-W3a, 4A-W3b, 4B-2, 4B-3. Several
+  further Sessions between 4B-4 and 4B-18d also flagged this exact pattern in their own CLAUDE.md
+  close-outs (mostly benign — order body byte-identical to its committed PRE-DRAFT, only header
+  metadata changed) without a matching entry ever being appended here; not reconstructed
+  retroactively, flagged as its own gap. Most recent: **Session 4B-19** (2026-08-03) — benign
+  variant, order body byte-identical to the committed PRE-DRAFT, only header metadata (status,
+  variant line, Generated line) changed; confirmed live as Antigravity Advisor's own authentic
+  edit before executing. This is the single most-recurring finding class in this migration — still
+  worth the Advisor's attention on whether the order-authoring pipeline itself should change (e.g.
+  every status-field edit going through a reviewable commit) rather than relying on CONFIRM-time
+  detection every single session.
 
 ### L12 — A catch block checking `error.message` for a marker the source only ever sets on `error.code` is dead code
 
