@@ -61,6 +61,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F54  | Monolith CSP `connect-src` never included operation-service's origin — blocks the realtime WebSocket connection client-side before any network request is sent                                                                  | RESOLVED — Session 4B-18c (2026-08-03): fixed and independently verified via a live `101 Switching Protocols` WS handshake; live browser proof still blocked by the separate, NEW F55 gap                                                                     |
 | F55  | Realtime WS connection authenticates server-side then repeatedly disconnects/reconnects in a loop (many cycles, several ~25-30s apart) - `isConnected` never observed true client-side despite genuine server-side auth success | RESOLVED - Session 4B-18d (2026-08-03): reason captured as `"transport close"` (not ping-timeout); pattern did not reproduce across ~2h active monitoring; full live smoke test passed clean with real end-to-end delivery proof, closing the F53/F54/F55 arc |
 | F56  | OAuth handling for the Auth Cutover (4B-20/21) — operation-service has zero OAuth support; auth-options.ts configures 3 conditional providers on top of CredentialsProvider                                                     | RESOLVED — Session 4B-20 (Davin): Option B — keep a narrow OAuth-only `[...nextauth]` shim indefinitely; cut credentials/2FA/registration/sessions to operation-service                                                                                       |
+| F57  | 4B-21 Entry Criterion 1 — client-side session-cache staleness after a bridge login/logout (next-auth/react's `SessionProvider` cache can't see a cookie the bridge sets/clears server-side)                                     | RESOLVED — Session 4B-21 (Davin, live during CONFIRM): force a `getSession()` refresh at every auth-state-changing bridge call site (login, 2FA-login-completion, logout) rather than replacing `SessionProvider` with a custom auth-context                  |
 
 > **Note on numbering (updated 4A-W4, 2026-07-26).** F36–F42 (Part 19.5 / Wise) were registered at
 > Session **4A-W1**, closing the register's F35→F44 gap. **F43** is now registered (Session
@@ -173,4 +174,44 @@ _(F55 RESOLVED at Session 4B-18d, 2026-08-03 — full resolution entry moved to
   `LESSONS-LEARNED.md` L11's most consequential recurrence to date, given this session's own explicit
   "not fast-path eligible under any circumstance" framing). Davin confirmed live this was his own
   authentic decision before CONFIRM proceeded.
+- Approved by: Davin
+
+## F57 — 4B-21 Entry Criterion 1: client-side session-cache staleness after a bridge login/logout
+
+- Status: RESOLVED
+- Session: 4B-21 · Date: 2026-08-03
+- Found while: this order's own CONFIRM re-verification — token-login/token-logout set/clear the
+  shared NextAuth-format session cookie server-side (F26), which `getServerSession()` reads fine
+  (fresh on every request), but `next-auth/react`'s `SessionProvider` maintains its own client-side
+  cache that only refetches on its own triggers (focus, its own polling interval, or an explicit
+  `signIn()`/`signOut()`/`getSession()`/`update()` call) — none of which a bridge login/logout goes
+  through. Left unresolved, every client component reading `useSession()`/`getSession()` directly
+  (at minimum: `components/layout/header.tsx`, `components/notifications/notification-bell.tsx`,
+  `hooks/use-realtime-socket.ts`, `hooks/use-login-tracking.ts` via `components/auth/
+login-tracker.tsx`, plus every settings/pricing/checkout page) would show a stale "not logged in"
+  view after a real bridge login, or a stale "still logged in" view after a bridge logout.
+- Decision: force a `getSession()` call (from `next-auth/react`) immediately after every
+  auth-state-changing bridge call — `token-login` success (`login-form.tsx`), the mid-login 2FA
+  completion re-POST to `token-login` (`verify-2fa/page.tsx`), `token-logout` (`header.tsx`), and the
+  admin login form's own `token-login` call (`app/admin/login/page.tsx`) — rather than replacing
+  `SessionProvider` with a thin custom auth-context. `getSession()`'s own internal broadcast
+  (`next-auth/react`'s documented cross-tab/cross-consumer sync mechanism) is what notifies every
+  OTHER mounted `useSession()` instance to refetch and re-render, so this is a genuinely centralized
+  fix, not a per-consumer one — the ~19 files that only READ session state (settings pages, pricing,
+  checkout, `providers.tsx`, notification-bell/list, trading-chart, DrawingLayer, the realtime-socket
+  hook, the login-tracker hook) needed ZERO code changes, confirmed by reading each for a
+  `signIn()`/`signOut()`/`getSession()` call of their own (none has one) before leaving it untouched.
+  The custom-auth-context alternative was explicitly rejected: it would have touched all ~19 files
+  individually (larger diff, more regression surface on the last domain session before Phase 4B
+  closes) while still needing `next-auth/react`'s own session for OAuth-only users
+  (`social-auth-buttons.tsx`), meaning two auth-state sources to keep in sync either way.
+- Evidence: Live decision from Davin (`AskUserQuestion`, this session's CONFIRM), alongside
+  confirming the order's own APPROVED/"entry criteria verified" edit was his authentic action and
+  approving the inclusion of 2 files (`hooks/use-login-tracking.ts`/`login-tracker.tsx`,
+  `hooks/use-realtime-socket.ts`) found via a fresh re-run of 4B-20's own greps that weren't in
+  either session's own file list. Implemented and verified: `tsc --noEmit` clean, `eslint app
+components lib hooks --max-warnings 0` clean, full `test:ci` 129/129 suites, 2190/2190 tests (new
+  coverage added for every touched file's bridge branch, including a dedicated assertion that
+  `getSession()` fires after a successful bridge login and does NOT fire on the twoFactorRequired
+  branch).
 - Approved by: Davin
