@@ -57,12 +57,19 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F42  | RiseWorks archival depth (archive vs delete)                                                                                                                                                                                                                   | RESOLVED — 2026-07-25 (Davin): archive, never delete; restorable                                                                                                                                                                                                                                                             |
 | F43  | Funding-SLA alert channel: how to notify Davin when a batch group nears Wise's 14-day expiration unfunded (Slack webhook / Discord webhook / monolith email proxy) — money-service has no email capability of its own                                          | RESOLVED — Session 4A-W6 (Davin): Option (a), Resend REST direct, no new dependency                                                                                                                                                                                                                                          |
 | F47  | Wise quote `targetAmount`/currency-unit correctness for non-USD payouts (interacts with F38's already-RESOLVED fee-bearer decision)                                                                                                                            | OPEN — found Session 4A-W7, due before any further non-USD Wise payout                                                                                                                                                                                                                                                       |
+| F48  | dLocal outbound payment-creation request signing is wrong (pre-existing, both monolith and money-service)                                                                                                                                                      | RESOLVED — Session 4A-10c (2026-07-30): corrected `Authorization`/`X-Login`/`X-Trans-Key` to dLocal's real `V2-HMAC-SHA256` scheme, verified live (dLocal now returns `400` payload-validation, not `403` credential rejection)                                                                                              |
+| F49  | dLocal outbound payment-creation request body is missing the required `payment_method_flow` field (pre-existing, both monolith and money-service; was masked by F48)                                                                                           | OPEN — found Session 4A-10c, blocks Group B (dLocal) of Slice 4's write-API cutover; full detail in `history/decisions-archive.md`                                                                                                                                                                                           |
+| F50  | `COMMISSION_CREDITED` outbox event's `aggregateId` resolves to the wrong recipient (the paying subscriber, not the affiliate)                                                                                                                                  | OPEN — found Session 4A-11, non-blocking (this eventType deliberately skipped rather than emailed to the wrong person); full detail in `history/decisions-archive.md`                                                                                                                                                        |
+| F51  | Slice 5 cutover wait-clock: no shadow-run mechanism exists                                                                                                                                                                                                     | RESOLVED — Session 4A-11 (Davin): no formal wait-clock, same resolution as F44                                                                                                                                                                                                                                               |
+| F52  | `market_data_v6` was never actually created in production; its own migration was baselined with zero applied steps                                                                                                                                             | RESOLVED — ad-hoc repair session 2026-08-02 (Davin present): table created via reviewed/approved DDL, verified via raw SQL and a real Prisma query, Slice 12 cutover retried and succeeded live                                                                                                                              |
 | F53  | `RealtimeGateway`'s CORS `origin` array-vs-wildcard-string bug blocks every real cross-origin browser connection                                                                                                                                               | RESOLVED — Session 4B-18b (2026-08-03): fixed and verified via a real cross-origin preflight probe; live browser proof still blocked by the separate F54 gap                                                                                                                                                                 |
 | F54  | Monolith CSP `connect-src` never included operation-service's origin — blocks the realtime WebSocket connection client-side before any network request is sent                                                                                                 | RESOLVED — Session 4B-18c (2026-08-03): fixed and independently verified via a live `101 Switching Protocols` WS handshake; live browser proof still blocked by the separate, NEW F55 gap                                                                                                                                    |
 | F55  | Realtime WS connection authenticates server-side then repeatedly disconnects/reconnects in a loop (many cycles, several ~25-30s apart) - `isConnected` never observed true client-side despite genuine server-side auth success                                | RESOLVED - Session 4B-18d (2026-08-03): reason captured as `"transport close"` (not ping-timeout); pattern did not reproduce across ~2h active monitoring; full live smoke test passed clean with real end-to-end delivery proof, closing the F53/F54/F55 arc                                                                |
 | F56  | OAuth handling for the Auth Cutover (4B-20/21) — operation-service has zero OAuth support; auth-options.ts configures 3 conditional providers on top of CredentialsProvider                                                                                    | RESOLVED & EXECUTED — decided Session 4B-20 (Davin): Option B; executed Session 4B-21 — `CredentialsProvider` removed from `auth-options.ts`, live production smoke test passed for credentials login/registration/OAuth/logout                                                                                              |
 | F57  | 4B-21 Entry Criterion 1 — client-side session-cache staleness after a bridge login/logout (next-auth/react's `SessionProvider` cache can't see a cookie the bridge sets/clears server-side)                                                                    | RESOLVED — Session 4B-21 (Davin, live during CONFIRM): force a `getSession()` refresh at every auth-state-changing bridge call site (login, 2FA-login-completion, logout) rather than replacing `SessionProvider` with a custom auth-context                                                                                 |
 | F58  | Every operation-service `/user/*` route (profile, 2FA, sessions, preferences — cut over since Session 4B-11) returns "User not found" for a user created via `token-register` (this session's own bridge registration path), despite the row provably existing | RESOLVED — Session 4B-21: false positive, caused by this session's own local dev server never having `MIGRATE_USER_PROFILE`/`MIGRATE_USER_2FA` set (silently falling through to the monolith's own native lookup against the wrong `DATABASE_URL`); operation-service itself was never broken, proven by calling it directly |
+| F59  | Phase 4 exit criterion 3 ("NextAuth fully retired; JWT auth is the only auth system") literally conflicts with F56's own indefinite OAuth-on-NextAuth retention                                                                                                | RESOLVED — Session 4B-22 (Davin, via Antigravity Advisor approval): amend criterion 3's own wording, do not silently mark it checked                                                                                                                                                                                         |
+| F60  | Stripe webhook migration (part of the plan's own Slice 4 scope, "`Write APIs + Stripe webhook`") was never executed — money-service has a fully-built, dormant `StripeWebhookController`; Stripe's dashboard was never repointed, no flag exists               | OPEN — found Session 4B-22 (Phase 4 exit review), needs its own scoped cutover session                                                                                                                                                                                                                                       |
 
 > **Note on numbering (updated 4A-W4, 2026-07-26).** F36–F42 (Part 19.5 / Wise) were registered at
 > Session **4A-W1**, closing the register's F35→F44 gap. **F43** is now registered (Session
@@ -314,3 +321,54 @@ LEARNED.md` L19's own precedent), never reaching operation-service at all — an
   production's real flag state.
 - Approved by: Davin (directed the `resolveUserId` fallback fix; root-caused live in this
   session)
+
+## F59 — Phase 4 exit criterion 3 wording vs. F56's indefinite OAuth-on-NextAuth retention
+
+- Status: RESOLVED
+- Session: 4B-22 · Date: 2026-08-04
+- Found while: this session's own Checklist step 4 — the plan's literal exit criterion 3
+  ("NextAuth fully retired; JWT auth is the only auth system," §6) is false as written: F56
+  (Session 4B-20, executed 4B-21) keeps a narrow OAuth-only `[...nextauth]`/`auth-options.ts`
+  shim alive **indefinitely** for Google/Twitter/LinkedIn — a deliberate, Davin-approved
+  architectural decision, not an oversight, but one the plan's own exit gate can't be checked off
+  against as literally worded.
+- Decision: amend criterion 3's own wording in
+  `monolith-to-microservices-migration-implementation-plan.md` §6 to: "Credentials, 2FA,
+  registration, email verification, password reset, and user sessions migrated to JWT via
+  operation-service; OAuth intentionally retained on NextAuth via narrow provider shim per F56."
+  Recorded here rather than silently amended — the wording was reconciled by Antigravity Advisor
+  (approving this session's order, 2026-08-04) with Davin, and applied to the plan doc as this
+  session's own explicit act, not a unilateral Executor edit.
+- Evidence: `docs/migration-orders/4b-22-phase-4-exit-review.migration-order.md`'s own header
+  ("Approved by Antigravity Advisor 2026-08-04 with Criterion 3 wording reconciled per F56");
+  `CLAUDE.md`'s Session 4B-22 Current entry quotes the identical reconciled wording verbatim.
+- Approved by: Davin (via Antigravity Advisor)
+
+## F60 — Stripe webhook migration (plan's own Slice 4 scope) was never executed
+
+- Status: OPEN
+- Session: 4B-22 · Date: 2026-08-04
+- Found while: this session's fresh `app/api/**` census (Checklist step 3) — `app/api/webhooks/
+stripe/route.ts` is still 100% monolith-native: raw body read, `constructWebhookEvent`, and
+  `lib/stripe/webhook-handlers.ts`'s full tier/subscription/commission logic, unchanged.
+- **This is a real gap against the plan's own literal scope, not an out-of-scope route.** The
+  plan's own Phase 4 section (§6, 4A item 4) explicitly reads: "Write APIs **+ Stripe webhook**
+  (rollback: flip back)." Session 4A-9 (2026-07-27) built a complete, deployed
+  `StripeWebhookController`/`StripeWebhookService` in money-service — it has sat fully dormant,
+  never receiving a single real request, for the entire remainder of Phase 4B (roughly 8 days of
+  further migration work at the time this was found).
+- Confirmed, not assumed: `lib/money-service/flags.ts` has `shouldUseMoneyServiceForStripeWrite`
+  (checkout/subscription-cancel only) but no Stripe-webhook-specific reader anywhere in the
+  codebase; no session's close-out anywhere in `CLAUDE.md` records repointing Stripe's dashboard
+  webhook URL (unlike dLocal's explicit repoint at Session 4A-5); Stripe's own webhook subscription
+  was never touched.
+- **Not fixed this session** (AUDIT/VERIFY-RETIRE variant, near-zero dial — a real cutover
+  requiring Davin's live approval per `EXECUTOR-PROTOCOL.md` §7 is out of scope for an exit
+  review). Needs its own dedicated cutover session: verify money-service's `StripeWebhookController`
+  still matches Stripe's real event shape after 8 days of drift, repoint Stripe's dashboard webhook
+  URL (mirroring the dLocal precedent), and prove it live with Davin present.
+- Owner: Davin/Advisor — due before Phase 4 can be called genuinely, literally complete against
+  its own Slice 4 scope (does not block declaring Phase 4 CLOSED-WITH-NAMED-EXCEPTIONS now).
+- Follow-up: `4a-13-stripe-webhook-cutover.migration-order.md` PRE-DRAFTed at Session 4B-22's
+  close (VERIFY-RETIRE/CUTOVER block) — dashboard-repoint cutover, mirrors the dLocal/4A-5
+  precedent exactly, not a rebuild (money-service's receiving side is already fully built).

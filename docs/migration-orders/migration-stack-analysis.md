@@ -219,6 +219,82 @@ split), with this section as the flag that it's shared, not CORE-exclusive.
 
 ---
 
+## Session 4B-22 (Phase 4 Exit Review) — fresh `app/api/**` route census, 2026-08-04
+
+Per that session's own Checklist step 2/3 (walking exit criteria 1-2 against live reality, not
+memory). This is a route-file (not lib-file) census — it complements, not replaces, the 143-file
+CORE/BUSINESS-FUNCTION appendix below, which is about `lib/*` service-layer files. Full reasoning
+and Davin-facing writeup lives in `CLAUDE.md`'s Session 4B-22 Current entry; this is the durable
+data backing it.
+
+**Method:** every `app/api/**/route.ts` (122 files) checked for a `MIGRATE_*`/`shouldUseOperationServiceFor*`/
+`shouldUseMoneyServiceFor*`/money-service-transport reference (server-side forwarding), plus a
+manual check of the auth-bridge pages for client-side ternary route selection (a flag check that
+lives in the calling page component, not the route handler, so it doesn't grep-match).
+
+- **1 file deleted outright:** `app/api/auth/register/route.ts` (Session 4B-21, superseded by
+  `token-register`, confirmed dead before deleting).
+- **~34 files are flag-gated dual-implementation** (old monolith-native route stays as the
+  flag-off/rollback path; new route or forwarding call is the flag-on path) — Slice 3 read APIs,
+  Slice 4 write APIs (Stripe/dLocal/Admin/Disbursement), Slices 7-11 domain cutovers (alerts,
+  drawings, notifications, tier, user/2FA/sessions), Wise recipient routes, and the 4
+  client-side-ternary auth pages (forgot-password/reset-password/verify-email/resend-verification).
+- **8 files are the bridge's own new-side routes** (`token-login`, `token-register`,
+  `token-logout`, `token-refresh`, `token-forgot-password`, `token-reset-password`,
+  `token-verify-email`, `token-resend-verification`) — always call `operation-service` directly;
+  no flag check needed in the route itself since the flag lives client-side.
+- **6 files are dead/orphaned, found this session, not previously flagged anywhere:**
+  `app/api/auth/token-2fa-{backup-codes,disable,setup,status,verify-setup,verify}/route.ts` — a
+  parallel bridge-prototype path (likely Session 3-4/3-5 era) with **zero UI consumers** (grep
+  confirmed), superseded by `/api/user/2fa/*`'s own, different, already-live
+  `MIGRATE_USER_2FA` cutover (Session 4B-11 — see that session's own Deviations, which explicitly
+  called building these 5 routes "pure duplication — not done" but didn't note these 6 files
+  already existed unwired from an earlier session). Harmless (unreferenced), not fixed this
+  session (AUDIT variant, no code changes) — worth a small cleanup pass.
+- **7 files are orphaned by an external cutover, not a flag:** `app/api/cron/*` — `vercel.json`'s
+  `crons` array is empty since Session 4A-3; these route files are never invoked by anything
+  anymore (money-service's own `CronsScheduler` runs all 8 jobs). Confirmed no other invocation
+  path (grepped `.github/`, `railway*`, `package.json`).
+- **1 file is orphaned by an external dashboard repoint:** `app/api/webhooks/dlocal/route.ts` —
+  dLocal's own webhook subscription was repointed to money-service's URL directly (Session 4A-5);
+  the monolith route stays as documented rollback capability, receiving no real traffic.
+- **1 file is intentionally archived-not-deleted:** `app/api/webhooks/riseworks/route.ts` — per
+  F42 (RiseWorks archival, not deletion — restorable).
+- **1 file is a genuine, permanent, intentional exception matching the plan's own criterion-2
+  example ("cookie-set helper from Phase 3"):** `app/api/auth/[...nextauth]/route.ts` (F56, OAuth
+  stays on NextAuth indefinitely) and `app/api/realtime/token/route.ts` (the WS-bridge token
+  issuer, monolith-side by design since Session 4B-17 — a persistent client socket can't be
+  proxied through a route handler the way a REST call can).
+- **1 real, unambiguous gap against the plan's own Slice 4 scope, found this session:**
+  `app/api/webhooks/stripe/route.ts` is still 100% monolith-native. The plan's own Phase 4
+  section (§6, 4A item 4) explicitly scopes Slice 4 as "Write APIs **+ Stripe webhook**" — and
+  money-service HAS a fully-built, deployed `StripeWebhookController`/`StripeWebhookService`
+  (Session 4A-9) — but Stripe's dashboard webhook subscription was never repointed, no
+  `MIGRATE_*` flag exists for it (`lib/money-service/flags.ts` has no stripe-webhook reader), and
+  nothing in any session's close-out ever named this as a deliberate exception. This is a real,
+  previously-undiscovered gap against the plan's own literal scope — reported to Davin at this
+  session's close, not fixed here (AUDIT variant).
+- **~64 files were never part of Phase 4's own defined scope in the first place** (cross-checked
+  against the plan's own explicit 4A 5-slice list and 4B domain-module list, §6) — most of
+  `app/api/disbursement/**` beyond batch-execute, most of `app/api/admin/**` beyond code-dist,
+  `app/api/affiliate/{auth,profile}/**`, `app/api/candles/[symbol]`, `app/api/checkout/validate-code`,
+  `app/api/config/affiliate`, `app/api/invoices`, `app/api/payments/dlocal/*` (ancillary, non-`create`
+  routes), `app/api/subscription` (GET), `app/api/test/seed`. These are correctly "routes that
+  intentionally remain" under exit criterion 2's own wording — not because someone decided to
+  keep them, but because Phase 4's own plan never targeted them. Worth Davin/Advisor confirming
+  this reading is the intended one (vs. some of these being silently-dropped scope), since the
+  plan's own text doesn't enumerate them individually.
+
+**Reconciliation:** 1 (deleted) + 34 (flag-gated) + 8 (bridge new-side) + 6 (dead/orphaned) + 7
+(cron-orphaned) + 1 (dlocal-webhook-orphaned) + 1 (riseworks-archived) + 2 (permanent exceptions)
+
+- 1 (Stripe webhook gap) + 64 (never-in-scope) − 4 (the auth-bridge pages double-counted in both
+  the "34 flag-gated" bucket and needing no separate line) ≈ 122 (rounding artifacts from bucket
+  overlap, not independently re-verified to the file — see `CLAUDE.md` for the exact per-bucket
+  file lists).
+
+---
+
 ## Appendix: Full File Listings by Stack
 
 Grouped by top-level directory; expand each to see the files. Counts are the same "approximate,
@@ -731,13 +807,17 @@ role). Everything else in each list is exclusively that track's own code._
 #### CORE (operation-service) — 72 files
 
 <details>
-<summary><code>(root)/</code> — 3 files</summary>
+<summary><code>(root)/</code> — 2 files (was 3; Session 4B-17 retired 1, 2026-08-02 — backfilled Session 4B-22)</summary>
 
 - `docker-compose.yml`
 - `docker-compose.dev.yml` (new, Session 0-5 — CC-I local dev stack: Postgres, Redis,
   Next.js dev server; `mt5-service` intentionally excluded, SEPARATE_STACK; PgBouncer and
   the NestJS services join in later phases)
-- `railway-worker.json`
+- ~~`railway-worker.json`~~ — **RETIRED, Session 4B-17** (alongside `scripts/alert-worker.ts`,
+  itself already retired Session 4B-3 — this file only ever pointed at that script; the
+  `worker:alerts` npm script was dropped in the same commit). This entry was never
+  backfilled here until Session 4B-22's Phase 4 exit review found it live-missing from disk
+  while the doc still listed it as present.
 
 </details>
 
@@ -958,9 +1038,13 @@ migrations are complete, not before.
 </details>
 
 <details>
-<summary><code>lib/websocket/</code> — 1 file</summary>
+<summary><code>lib/websocket/</code> — 0 files (was 1; Session 4B-17 retired it, 2026-08-02 — backfilled Session 4B-22)</summary>
 
-- `lib/websocket/server.ts`
+- ~~`lib/websocket/server.ts`~~ — **RETIRED, Session 4B-17**: `initWebSocketServer` was never
+  actually called in production (no custom server wraps `next start`); confirmed dead code via
+  grep before deleting. Real-time delivery now lives in `operation-service`'s `RealtimeGateway`
+  (Sessions 4B-17/18). This entry was never backfilled here until Session 4B-22's Phase 4 exit
+  review found it live-missing from disk while the doc still listed it as present.
 
 </details>
 
@@ -1075,13 +1159,15 @@ client` block (`output = "../../node_modules/.prisma/market-client"`). **Session
 </details>
 
 <details>
-<summary><code>emails/</code> — 5 files</summary>
+<summary><code>emails/</code> — 0 files (was 5; Session 4B-19 retired all 5, 2026-08-03 — backfilled Session 4B-22)</summary>
 
-- `emails/index.ts`
-- `emails/payment-confirmation.tsx`
-- `emails/payment-failure.tsx`
-- `emails/renewal-reminder.tsx`
-- `emails/subscription-expired.tsx`
+- ~~`emails/index.ts`~~, ~~`emails/payment-confirmation.tsx`~~, ~~`emails/payment-failure.tsx`~~,
+  ~~`emails/renewal-reminder.tsx`~~, ~~`emails/subscription-expired.tsx`~~ — **RETIRED, Session
+  4B-19** (Email Rendering Port Audit, Option A): confirmed never-wired-up — the live
+  email-sending infrastructure was already fully in `operation-service`
+  (`subscription-email.util.ts`, Sessions 3-4/4A-11); these were dead React-email templates with
+  zero real callers. This entry was never backfilled here until Session 4B-22's Phase 4 exit
+  review found the files live-missing from disk while the doc still listed them as present.
 
 </details>
 
@@ -1168,14 +1254,18 @@ client` block (`output = "../../node_modules/.prisma/market-client"`). **Session
 </details>
 
 <details>
-<summary><code>lib/email/</code> — 6 files</summary>
+<summary><code>lib/email/</code> — 1 file (was 6; Session 4B-19 retired 5, 2026-08-03 — backfilled Session 4B-22)</summary>
 
-- `lib/email/subscription-emails.ts`
-- `lib/email/templates/affiliate/code-distributed.tsx`
-- `lib/email/templates/affiliate/code-used.tsx`
-- `lib/email/templates/affiliate/monthly-report.tsx`
-- `lib/email/templates/affiliate/payment-processed.tsx`
-- `lib/email/templates/affiliate/welcome.tsx`
+- `lib/email/subscription-emails.ts` — **KEPT, trimmed**: Session 4B-19 removed 2 confirmed-dead
+  functions (never called anywhere); the rest of the file is still live.
+- ~~`lib/email/templates/affiliate/code-distributed.tsx`~~,
+  ~~`lib/email/templates/affiliate/code-used.tsx`~~,
+  ~~`lib/email/templates/affiliate/monthly-report.tsx`~~,
+  ~~`lib/email/templates/affiliate/payment-processed.tsx`~~,
+  ~~`lib/email/templates/affiliate/welcome.tsx`~~ — **RETIRED, Session 4B-19**, same
+  never-wired-up finding as `emails/*` above. This entry was never backfilled here until Session
+  4B-22's Phase 4 exit review found the files live-missing from disk while the doc still listed
+  them as present.
 
 </details>
 

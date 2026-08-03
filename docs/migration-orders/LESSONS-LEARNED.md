@@ -4,10 +4,11 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 53 (L1–L53) — a consolidation pass is overdue.
-Candidates promoted and preamble archived 2026-08-03; L11's own 9-recurrence narrative collapsed
-to a single count line same day (Session 4B-19) per this file's own hygiene rule, detail moved to
-`LESSONS-ARCHIVE.md`. Full history in `LESSONS-ARCHIVE.md`.
+**Hard cap ~40 active lessons.** Currently at 55 (L1–L55) — a consolidation pass is overdue and
+now more overdue than at last count; the next session that isn't itself time-constrained should
+do it before adding more. Candidates promoted and preamble archived 2026-08-03; L11's own
+9-recurrence narrative collapsed to a single count line same day (Session 4B-19) per this file's
+own hygiene rule, detail moved to `LESSONS-ARCHIVE.md`. Full history in `LESSONS-ARCHIVE.md`.
 
 ---
 
@@ -70,7 +71,13 @@ to a single count line same day (Session 4B-19) per this file's own hygiene rule
   further Sessions between 4B-4 and 4B-18d also flagged this exact pattern in their own CLAUDE.md
   close-outs (mostly benign — order body byte-identical to its committed PRE-DRAFT, only header
   metadata changed) without a matching entry ever being appended here; not reconstructed
-  retroactively, flagged as its own gap. Most recent, and the most consequential to date:
+  retroactively, flagged as its own gap. Recurred again at Session 4B-22: both the order file and
+  `CLAUDE.md` were modified-but-uncommitted, `PRE-DRAFT → APPROVED`, matching committed `HEAD`'s own
+  `PRE-DRAFT` — benign this time on two counts: the VERIFY-RETIRE variant is explicitly fast-path
+  eligible per `EXECUTOR-PROTOCOL.md` §4 (no dropped DRAFT-stage requirement, unlike 4B-20's own
+  case), and Davin's own chat message opening the session directly stated the APPROVED status and
+  the F56 reconciliation, serving as the live confirmation this check exists to obtain. Most recent,
+  and the most consequential to date:
   **Session 4B-20** (2026-08-03) — NOT benign: the working copy dropped its own committed
   PRE-DRAFT's explicit "not fast-path eligible under any circumstance... needs a full Advisor
   DRAFT and Davin APPROVED" framing entirely, jumped straight to `Status: APPROVED`/"Option B
@@ -660,3 +667,17 @@ dist/main` (the plain `npm start` script) instead of the `start:worker` script n
 - Root cause: `railway run` injects a service's real production env vars into a LOCAL process; it does not proxy or tunnel network access into Railway's private network. Same class as `DATABASE_URL` vs `DATABASE_PUBLIC_URL` (L19), but for Redis, and not yet documented for it.
 - Rule: when scripting against a Railway resource from a local `railway run` process, use `railway run --service <the-resource-itself>` (not the consuming app service) and its own `*_PUBLIC_URL` variable (e.g., `REDIS_PUBLIC_URL` on the `Redis` service) — never the internal-hostname variable the app services reference via `${{Redis.REDIS_URL}}`.
 - Source: Session 4B-18d (2026-08-03) · Status: ACTIVE
+
+### L54 — The plan's "143 BACKEND files" is a `lib/*` service-layer census, not an `app/api/**` route census — the two exit criteria are about different file sets
+
+- Symptom: at Phase 4 exit review, it was tempting to walk `app/api/**/route.ts` files against the "143 BACKEND files" figure directly — they don't correspond. `migration-stack-analysis.md`'s own 72 CORE + 71 BUSINESS FUNCTION appendix lists almost entirely `lib/*`/`__tests__/*` files; zero `app/api/**/route.ts` entries appear anywhere in it.
+- Root cause: the plan's own readiness notes say it explicitly ("`FRONTEND (320 files)`... `app/api/**/route.ts` routes will need to become Railway API calls... as each BACKEND module migrates") — route files are tracked separately (the cutover table), not counted in the 143. Easy to miss without re-reading that specific paragraph.
+- Rule: exit criterion 1 ("143 BACKEND files retired") is answered by checking `lib/*` file existence against the stack-analysis appendix; exit criterion 2 ("`app/api/**` reduced to intentional remainders") is answered by a separate route-file census against the cutover table and each slice's own close-out. Don't conflate the two when auditing either one.
+- Source: Session 4B-22 (2026-08-04) · Status: ACTIVE
+
+### L55 — Archiving a RESOLVED flag's full entry can silently carry still-OPEN flags out of `DECISION-LOG.md`'s main register table too
+
+- Symptom: reviewing "every OPEN flag" for the Phase 4 exit review, `DECISION-LOG.md`'s own register table came up empty for F48-F52 — all 5 existed only in `history/decisions-archive.md` (2 RESOLVED, but F49/F50 genuinely still OPEN), only found by directly grepping the archive file after the table search came up empty.
+- Root cause: the file's own hygiene rule says "after resolving a flag, move its full resolution entry to the archive" — but when a batch of flags (F48-F52) was archived together, the still-OPEN ones (F49, F50) went with them, dropping out of the one place ("register table + OPEN entries") a future session is told to check.
+- Rule: when moving a resolved flag's full entry to `history/decisions-archive.md`, first re-verify every flag in that batch is actually RESOLVED — if any are still OPEN, they (and their register-table row) MUST stay in `DECISION-LOG.md`'s main body, archive entry or not.
+- Source: Session 4B-22 (2026-08-04) · Status: ACTIVE

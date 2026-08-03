@@ -472,7 +472,13 @@ Migration order by self-containment (per `migration-stack-analysis.md` readiness
   the §5.6-style stability window met.
 - Monolith's `app/api/**` reduced to only routes that intentionally remain (if any — e.g.
   cookie-set helper from Phase 3).
-- NextAuth fully retired; JWT auth is the only auth system.
+- ~~NextAuth fully retired; JWT auth is the only auth system.~~ **Amended, Session 4B-22
+  (`DECISION-LOG.md` F59), Davin via Antigravity Advisor, 2026-08-04:** Credentials, 2FA,
+  registration, email verification, password reset, and user sessions migrated to JWT via
+  operation-service; OAuth intentionally retained on NextAuth via a narrow provider shim per F56
+  (Google/Twitter/LinkedIn — operation-service has no OAuth support, and building it or dropping
+  OAuth login were both explicitly rejected). This is a deliberate, permanent architectural
+  decision, not a phase-exit exception awaiting later cleanup.
 
 ---
 
