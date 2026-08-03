@@ -4,207 +4,8 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** (Consolidated by Advisor on 2026-07-22. Full history moved to `LESSONS-ARCHIVE.md`).
-
-**Past cap as of Session 4B-4's close (L1-L42) — a consolidation pass is now genuinely overdue,
-not just flagged.** Session 4B-3 hit FOUR existing lessons as live recurrences in a single
-session (L11, L17, L38, L40 — see their own recurrence notes below) at unusually high volume (8
-independent CONFIRM cycles), plus one genuinely new pattern (L41, added below at Davin's explicit
-direction to harvest despite the cap). Session 4B-4 added one more genuinely new pattern (L42,
-below, at Davin's explicit direction to harvest despite the cap). The still-unpromoted candidate
-from 4B-2's close (never fabricate a shadow/mirror-run's start or end timestamp — check whether
-the underlying work actually happened first; `DECISION-LOG.md` F51 / `CLAUDE.md` Waiting-on #75
-and #84, 2nd occurrence) remains a candidate, not promoted — 4B-3/4B-4 did NOT hit this pattern
-again, so it isn't re-flagged as a fresh recurrence, but it and this cap overrun are both worth
-the Advisor's attention at the next consolidation pass.
-
-**One more candidate from Session 4B-4's close (2026-08-01), not promoted (no explicit direction
-to exceed the cap for this one), described here for the next consolidation pass:** a live-boot
-verification step used `taskkill //F //IM node.exe //T` to clean up a single spawned test
-process — a blanket kill of every Node process on the machine, not scoped to the one PID actually
-spawned. Caught and disclosed immediately, not repeated (switched to foreground-only `node -e`
-scripts and `Test.createTestingModule` + `supertest`'s in-memory server for the rest of the
-session, neither of which needs any manual process spawn/cleanup at all) — worth a rule along the
-lines of "never `taskkill`/`pkill` by image name to clean up a test process you spawned; capture
-and kill the specific PID, or better, avoid spawning a real background process for verification
-when an in-memory test harness can prove the same thing." Full detail in
-`4b-4-shared-infra-observability.migration-order.md`'s own Deviations (#11).
-
-**One more candidate from Session 4B-5's close (2026-08-01), not promoted, described here for the
-next consolidation pass:** `operation-service` does not consume the root `packages/types` package
-at all — it has its own separately embedded, git-tracked copy at `operation-service/packages/types/`
-(commit `87242f09`, created to solve the Railway single-directory-upload packaging risk, since
-`operation-service` has no connected GitHub source, L38/CLAUDE.md Waiting-on #77/#79/#80). This
-session hoisted new exports into the root package and only discovered the embedded copy was stale
-when `tsc --noEmit` failed with "has no exported member" despite the root package building clean —
-nothing about the root package's own build success signals whether `operation-service`'s embedded
-copy is in sync. No automated sync mechanism exists between the two copies. Worth a rule along the
-lines of "any change to `packages/types` must also sync (or verify already-synced)
-`operation-service/packages/types`, and `operation-service`'s own `tsc --noEmit` is the check that
-actually catches drift — the root package's own `npm run build` succeeding proves nothing about the
-embedded copy." Full detail in `4b-5-alerts-crud-port.migration-order.md`'s own Deviations (#4).
-
-**One more candidate from Session 4B-6's close (2026-08-01), not promoted, described here for the
-next consolidation pass:** a background `tsc --noEmit` verification run gave a false "clean" (exit 0) result for a commit (`02917e9e`) that genuinely had 4 real `TS2322` errors, because an edit to a
-file inside the check's scan scope landed while that check (or an earlier one) was still running —
-`tsc --noEmit` scans the whole program on every invocation, not just a commit's staged files, so an
-in-flight edit anywhere in the tree can invalidate a background check's result even if the edit
-looks unrelated to the step actually being verified. Caught one step later by a fresh,
-uncontaminated run with zero edits in flight; independently reproduced by stashing the fix and
-re-running `tsc --noEmit` directly against the suspect commit alone. Fixed in the very next commit,
-same session — no broken code reached `origin/main`. Worth a rule along the lines of "never trust a
-background `tsc`/build/test verification result if any file edit happened anywhere in the repo
-after that check was launched — re-run fresh, with nothing in flight, immediately before committing
-on the strength of it." Full detail in
-`4b-6-alerts-crud-write-transport.migration-order.md`'s own Deviations (#8) and `CLAUDE.md`
-Waiting-on #88.
-
-**One more candidate from Session 4B-8's close (2026-08-01), not promoted, described here for the
-next consolidation pass:** the plain, unflagged `railway logs --service <svc>` command silently
-returned output frozen more than 8 hours in the past (verified by comparing its last timestamp
-against the real current time) — the same general "don't trust a Railway log command's freshness
-at face value" class as Session 4B-7's own `railway logs --build` stale-cache incident (L38's own
-recurrence note), but a NEW manifestation: this time the plain deploy-log stream itself was stale,
-not just `--build`. Switching to `railway logs --http --path /drawings --since 2h` didn't fix it
-either — that returned nothing at all, a false negative. The combination that actually worked was
-`railway logs --http -n 20 --since 2h` (or any invocation pairing `--http`/`--since` with
-`-n`/`--lines`) — omitting `-n` silently returns empty even when matching entries exist. Worth a
-rule along the lines of "never trust a `railway logs` invocation's absence of output, or its most
-recent timestamp, as proof of anything — always pair `--http` with an explicit `-n`/`--lines`
-count, and sanity-check the returned timestamp range against the real current time before treating
-a log query as authoritative." Full detail in
-`4b-8-drawings-port-and-cutover.migration-order.md`'s own Deviations (#4).
-
-**One more candidate from Session 4B-11's close (2026-08-02), not promoted, described here for the
-next consolidation pass:** the shared monolith-to-operation-service forwarders
-(`forwardRequestToOperationService()`/the money-service equivalent, used by EVERY cutover slice
-since Session 4A-7a/4B-6) only ever propagate `Authorization` and `x-correlation-id` — `user-agent`
-and `x-forwarded-for` are silently dropped on every forwarded request, and have been since these
-forwarders were first built. Invisible for 6+ prior cutover slices (Tier/Notifications/Drawings/
-Alerts/etc.) because none of their ported code reads those headers; found live, by the cutover's
-own post-flip smoke test, the first time a slice's ported code actually needed them (session
-device-tracking, IP/location in security-alert emails) — Davin's own session-list showed his
-current session as "Unknown on Unknown" instead of his real browser. A `forwardedRequestContext()`
-helper already existed in `client.ts` for exactly this purpose but was never wired into either
-forwarder until this session found the gap. Not a security/auth-identity bug (session ownership was
-always correct) — only descriptive metadata was wrong, but it silently degrades any FUTURE ported
-route that reads `request.ip`/`user-agent` at operation-service, exactly the way this one did. Worth
-a rule along the lines of "before porting any route whose behavior reads `request.ip` or a
-`user-agent`/device-fingerprint header, verify the monolith's own forwarding helper actually
-propagates those headers — the existing forwarders don't, by default, and the gap won't show up in
-mocked unit tests, only in a live smoke test against real traffic." Full detail in
-`4b-11-user-profile-2fa-sessions.migration-order.md`'s own Deviations (#9).
-
-**One more candidate from Session 4B-12's close (2026-08-02), not promoted, described here for the
-next consolidation pass:** `_prisma_migrations.applied_steps_count` recording a nonzero
-`finished_at` timestamp does NOT mean a migration's DDL actually ran — Session 2-3's own
-migration-history baseline (2026-07-20, resolving the whole pre-existing history at once via what
-was almost certainly `prisma migrate resolve --applied`) marked `20260705000000_add_market_data_v6`
-as finished with `applied_steps_count: 0`, and the underlying `CREATE TABLE market_data_v6` never
-ran — undetected for 13 days and 11 subsequent sessions that touched `operation-service`'s own
-`MarketDataV6` model (Session 4B-2 mirrored it, this session widened it) because nothing before this
-session's live smoke test ever unconditionally executed a Prisma query against that specific table
-in production (the alert-engine's own XAUUSD lookup prefers an HTTP gateway-pipeline call first).
-Found only by directly querying `_prisma_migrations` and comparing `applied_steps_count` against a
-genuinely-executed sibling migration (`20260721000000_add_refresh_token_table`, `steps: 1`) — a
-`migrate status` read-only check alone would likely have reported this migration as "applied" too,
-without revealing the zero-steps discrepancy. Worth a rule along the lines of "after any migration-
-history baseline (`resolve --applied`), spot-check that each baselined migration's actual schema
-change is present in the real database (e.g. `to_regclass()` for a `CREATE TABLE`, not just
-`_prisma_migrations` row presence) — a baseline can be wrong for one migration in a batch while
-being correct for all the others, and the failure stays completely invisible until something
-finally exercises that specific table for real." Full detail in `DECISION-LOG.md` **F52** and
-`4b-12-market-data-channel-proxy.migration-order.md`'s own Deviations (#6).
-
-**One more candidate from Session 4B-17's close (2026-08-02), not promoted, described here for the
-next consolidation pass:** `railway logs`'s default target (no `--latest`) silently shows the
-**previous successful deployment's** logs when the most recent deployment failed — a real Railway
-build failure (`socket.io-client` missing from `operation-service/package.json`, only resolvable
-locally via this monorepo's root `node_modules`, absent in Railway's isolated single-directory
-build) was invisible via the plain `railway logs --service operation-service --build` command,
-which kept showing an OLDER, successful build's logs (confirmed via the embedded image-creation
-timestamp inside the log output, hours stale). `--latest --build` correctly surfaced the real
-`TS2307` error. But once the FIX was deployed and genuinely succeeded (`railway service list
---json`'s `latestDeployment.status: SUCCESS`, matching timestamps, non-stale), NO flag combination
-tried (`--latest --deployment`, `-s <service-id>`, `--since 15m`, plain `-n 300`) surfaced any
-application/boot-log output at all for that deployment — not even the usual flood of "Mapped
-{route}" lines every prior session's boot log has shown. Independent live HTTP/protocol-level
-checks (a health endpoint, a route's expected 401, or — the strongest signal used this session — a
-raw Engine.IO handshake request, `GET /socket.io/?EIO=4&transport=polling` returning a real
-`0{"sid":...}` packet) proved the deployment was genuinely live and correct when `railway logs`
-could not. Worth a rule along the lines of "`--latest --build` is the one combination proven to
-surface a FAILED deployment's real build error; for confirming what's actually running in
-production right now, a direct protocol/HTTP-level check is more reliable than any `railway logs`
-invocation tried so far." Full detail in
-`4b-17-realtime-websocket-decision-and-build.migration-order.md`'s own Deviations (#5-#6).
-
-**One more candidate from Session 4B-18's close (2026-08-02), not promoted, described here for the
-next consolidation pass:** a `cors`-option `origin` value of the ARRAY `['*']` is not the same as
-the bare STRING `'*'` — only the bare string means "allow any origin" to the standalone `cors`
-npm package (and, by extension, `engine.io`'s own CORS handling, which delegates to it directly).
-`RealtimeGateway`'s `cors: { origin: (process.env['ALLOWED_ORIGINS'] ?? '*').split(','), ... }`
-always produces an array, even when the env var is literally `'*'` — so every real cross-origin
-browser connection was silently CORS-rejected in production (confirmed via a live browser smoke
-test, `DECISION-LOG.md` **F53**), while every `curl`-based Engine.IO handshake check performed
-across 4B-17/4B-18 kept passing, because `curl` sends no `Origin` header and does not enforce CORS
-at all — a `curl`-based "the gateway answers" check cannot prove a real browser can connect through
-it. Worth a rule along the lines of "when deriving a CORS `origin` option from an env var via
-`.split(',')`, special-case the literal `'*'` value to pass the bare string, never an array — and
-never treat a `curl`/non-browser HTTP client's success as proof a CORS-gated path works, since
-non-browser clients don't enforce `Access-Control-Allow-Origin` the way a real browser does." Full
-detail in `4b-18-realtime-cutover.migration-order.md`'s own Deviations and `DECISION-LOG.md` F53.
-
-**One more candidate from Session 4B-18b's close (2026-08-03), not promoted, described here for
-the next consolidation pass — a direct continuation of the F53 lesson above, found by fixing F53
-and then discovering the real browser smoke test STILL failed identically:** `Access-Control-
-Allow-Origin` (the header the `cors` npm package sets) has **zero effect on a raw WebSocket
-handshake** — browsers only enforce CORS-style origin allow-listing for `fetch`/XHR, never for
-`WebSocket` connections (RFC 6455's own handshake has no CORS concept at all; Origin enforcement
-for WS is the SERVER's own responsibility, not something a response header controls). Re-reading
-`engine.io`'s `handleUpgrade()` confirmed its `cors` middleware chain DOES run on the WS upgrade
-path too, but `cors`'s own `configureOrigin()` never aborts a request on an origin mismatch — it
-only omits/sets a header and always calls `next()`. Since `hooks/use-realtime-socket.ts` requests
-`transports: ['websocket', 'polling']` (websocket attempted first, Engine.IO v4's direct-connect
-feature), F53's own CORS bug may never have actually been the layer blocking the live symptom —
-real, and now genuinely fixed, but not proven to have been the (sole) cause. The actual blocker
-(`DECISION-LOG.md` **F54**) was a separate, EARLIER browser-enforced gate: the monolith's
-Content-Security-Policy `connect-src` directive never included operation-service's origin, which
-blocks `fetch`/XHR/WebSocket alike, client-side, before any network request is ever sent — and,
-critically, is **also invisible to every verification method this migration has used for this
-feature so far**: a `curl` handshake check (no CSP enforcement, not a browser), an in-process Nest
-e2e test with a real `socket.io-client` (Node, no CSP enforcement either), and even a raw Node
-`ws`-package handshake with a real `Origin` header (still no CSP enforcement — confirmed this
-session, the raw WS connection succeeded fine against the exact same deployed endpoint a real
-browser couldn't reach). Worth a rule along the lines of "for any browser-only feature reaching a
-different origin (a new API host, a WebSocket gateway, a CDN), CORS and CSP are TWO SEPARATE gates
-that both must independently allow the destination — fixing one's misconfiguration is not evidence
-the other is configured at all, and neither `curl` nor any Node-based script (including a real
-`socket.io-client`/`ws` instance) can prove either one, since NEITHER CORS-response-reading NOR CSP
-`connect-src` enforcement exist outside an actual browser JS engine. A real browser is the only
-verification method that can prove a cross-origin browser-initiated connection actually works — no
-protocol-level or server-log check, however thorough, substitutes for it." Full detail in
-`4b-18b-realtime-cors-origin-fix.migration-order.md`'s own Deviations and `DECISION-LOG.md` F53/F54.
-
-**One more candidate from Session 4B-18c's close (2026-08-03), not promoted, described here for
-the next consolidation pass — two more, in the same live smoke test:** (1) the browser's own
-**Resource Timing API** (`performance.getEntriesByType('resource')`) does not reliably capture
-native **WebSocket** handshake connections in most Chromium versions — a check using it reported
-"zero network activity" to operation-service's origin, which read as a genuine new blocker, until
-DevTools' own dedicated **"WS"/"Socket" row filter** (a different, more reliable surface) showed a
-real `101 Switching Protocols` row the whole time. Worth a rule along the lines of "never trust a
-Resource-Timing-API-based 'zero requests' finding for a WebSocket-specific claim — re-check via
-the Network panel's native WS filter before treating it as a real absence." (2) A server log line
-proving an application-level event succeeded (here, `RealtimeGateway.handleConnection` logging
-"Client X authenticated as user Y", immediately after a real `client.emit('authenticated', ...)`
-call) proves that ONE request/connection instance succeeded — it does not prove the connection
-STAYED open or usable. This session found the same real user re-authenticating via 15+ distinct
-socket IDs across ~50 minutes, each disconnecting shortly after — genuine repeated success events
-that, read in isolation without comparing their own timestamps against each other, could easily
-be mistaken for one healthy connection rather than a reconnect loop. Worth a rule along the lines
-of "when a log shows repeated success events for the same logical entity (same user/session), diff
-their own timestamps against each other before concluding health — a cluster of short-lived
-successes is a strong signal of a connect/disconnect loop, not proof of stability." Full detail in
-`4b-18c-realtime-csp-connect-src-fix.migration-order.md`'s own Deviations and `DECISION-LOG.md` F55.
+**Hard cap ~40 active lessons.** Currently at 53 (L1–L53) — a consolidation pass is overdue.
+Candidates promoted and preamble archived 2026-08-03. Full history in `LESSONS-ARCHIVE.md`.
 
 ---
 
@@ -784,3 +585,75 @@ dist/main` (the plain `npm start` script) instead of the `start:worker` script n
 - Root cause: NestJS assigns `201` as the default HTTP status for any `@Post()` handler (every other verb defaults to `200`) unless overridden with `@HttpCode()`. A PORT session's "preserve exact response structures" instinct checks the JSON body against SOURCE; nothing prompts a check of the per-verb default status against SOURCE's own implicit-200 behavior. Worse: every unit test written for the new controller (`new NotificationsController(mockService)`, called directly) never touches Nest's real HTTP pipeline at all — `@HttpCode()` resolution only happens when a real `INestApplication` handles a real HTTP request, so this class of bug is invisible to that entire test style.
 - Rule: for any PORT session moving a POST-based mutating endpoint from a Next.js route (implicitly `200` via `NextResponse.json()`) to a NestJS `@Post()` handler, add `@HttpCode(200)` explicitly unless SOURCE genuinely returns `201`. Verify the REAL status via an e2e spec (`Test.createTestingModule` + `supertest` against a live Nest app, same pattern as `all-exceptions.filter.e2e.spec.ts`) — a controller-construction unit test proves the response body, never the status code Nest actually assigns.
 - Source: Session 4B-9 (2026-08-02), found live via Railway HTTP logs during the cutover's own smoke test, fixed same-session · Status: ACTIVE
+
+### L44 — Never `taskkill` by image name for test processes
+
+- Symptom: A single test process spawned for verification caused a blanket kill of every Node process on the machine.
+- Root cause: `taskkill //IM node.exe` is not scoped to the spawned PID.
+- Rule: Capture and kill the specific PID, or avoid spawning a background process by using in-memory test harnesses instead.
+- Source: Session 4B-4 · Status: ACTIVE
+
+### L45 — Always manually sync `operation-service/packages/types`
+
+- Symptom: `operation-service`'s `tsc` failed despite root `packages/types` building clean.
+- Root cause: `operation-service` has an embedded, git-tracked copy of types without an automated sync mechanism.
+- Rule: Any change to `packages/types` must sync to the embedded copy. The root build succeeding proves nothing.
+- Detect early: Run `tsc --noEmit` inside `operation-service`.
+- Source: Session 4B-5 · Status: ACTIVE
+
+### L46 — Never trust a background verification result if edits happened in flight
+
+- Symptom: Background `tsc --noEmit` gave a false "clean" result for a commit with TS errors.
+- Root cause: `tsc` scans the whole program; an in-flight edit invalidated the check's result.
+- Rule: Re-run verifications fresh, with nothing in flight, immediately before committing.
+- Source: Session 4B-6 · Status: ACTIVE
+
+### L47 — Railway logs are unreliable for freshness or absence of output
+
+- Symptom: `railway logs` returned stale output or nothing at all for failed/successful builds.
+- Root cause: Railway CLI caches logs and `--latest` behaves inconsistently across build states.
+- Rule: Always pair `--http` with `-n`/`--lines`. Use `--latest --build` for failed builds. For success, a direct HTTP/protocol check is more reliable than reading logs.
+- Source: Sessions 4B-8, 4B-17 (Extends L38) · Status: ACTIVE
+
+### L48 — Verify headers like `user-agent` propagate in forwarders
+
+- Symptom: Monolith-to-operation-service forwarders dropped `user-agent` and `x-forwarded-for`.
+- Root cause: Forwarders did not wire `forwardedRequestContext()` by default.
+- Rule: Before porting routes reading device headers, verify forwarders propagate them via live smoke test.
+- Source: Session 4B-11 · Status: ACTIVE
+
+### L49 — Spot-check real DB schema after Prisma baseline
+
+- Symptom: `applied_steps_count: 0` but zero error, table wasn't actually created.
+- Root cause: A migration-history baseline can mark a migration finished without executing its DDL.
+- Rule: After any baseline, spot-check the schema change is in the real database (e.g., `to_regclass()`).
+- Source: Session 4B-12 · Status: ACTIVE
+
+### L50 — Verify cross-origin connections with a real browser, not non-browser clients
+
+- Symptom: CORS `['*']` array blocked browsers but passed curl Engine.IO tests. CSP `connect-src` blocked it entirely.
+- Root cause: Non-browser clients do not enforce CORS or CSP. CORS and CSP are two separate gates.
+- Rule: A real browser is the only way to prove a cross-origin browser-initiated connection works.
+- Source: Sessions 4B-18, 4B-18b · Status: ACTIVE
+
+### L51 — Validate WebSocket health via DevTools WS filter and diff log timestamps
+
+- Symptom: Resource Timing API falsely reported zero activity, while repeated success logs masked a reconnect loop.
+- Root cause: Resource Timing misses native WS handshakes; single log lines don't prove connection stability.
+- Rule: Use DevTools Network WS filter to confirm handshakes. Diff timestamps of repeated success logs to detect loops.
+- Source: Session 4B-18c · Status: ACTIVE
+- Recurrence (Session 4B-18d): DevTools does NOT retroactively show a WS connection that was already open before the Network panel started recording — a reload (with "Preserve log" checked) is required to capture the handshake and Messages tab for an existing connection.
+
+### L52 — NestJS's `OnGatewayDisconnect` dispatch discards every socket.io disconnect argument except the client; widening `handleDisconnect`'s signature cannot recover the reason
+
+- Symptom: needed the real Socket.IO disconnect `reason` string (`"ping timeout"`, `"transport close"`, etc.) for a live investigation; assumed `handleDisconnect(client, reason)` would work.
+- Root cause: read the installed `@nestjs/websockets` source directly — `web-sockets-controller.js`'s `getConnectionHandler` feeds `handleDisconnect` via a bare RxJS `Subject<Socket>`, calling `.next(client)` only. No NestJS-provided path carries additional event args through to this lifecycle hook, for socket.io or `ws`.
+- Rule: to capture a raw socket.io event argument NestJS's own gateway lifecycle doesn't expose (disconnect reason, or any multi-arg native event), attach a listener directly on the raw client inside `handleConnection` (`client.on('disconnect', (reason) => ...)`) — Socket.IO's own documented pattern — rather than trying to widen a Nest lifecycle hook's signature.
+- Source: Session 4B-18d (2026-08-03), `DECISION-LOG.md` F55 · Status: ACTIVE
+
+### L53 — `railway run` executes locally; Railway's internal `*.railway.internal` hostnames (`REDIS_URL`, etc.) only resolve from inside Railway's own network — use the resource's own `*_PUBLIC_URL` variable instead
+
+- Symptom: `railway run --service operation-service node script.js` (using `process.env.REDIS_URL`) failed with `ENOTFOUND redis.railway.internal` — the injected env var's hostname is only DNS-resolvable from a container actually running on Railway.
+- Root cause: `railway run` injects a service's real production env vars into a LOCAL process; it does not proxy or tunnel network access into Railway's private network. Same class as `DATABASE_URL` vs `DATABASE_PUBLIC_URL` (L19), but for Redis, and not yet documented for it.
+- Rule: when scripting against a Railway resource from a local `railway run` process, use `railway run --service <the-resource-itself>` (not the consuming app service) and its own `*_PUBLIC_URL` variable (e.g., `REDIS_PUBLIC_URL` on the `Redis` service) — never the internal-hostname variable the app services reference via `${{Redis.REDIS_URL}}`.
+- Source: Session 4B-18d (2026-08-03) · Status: ACTIVE

@@ -147,17 +147,24 @@ arc has already had two "obvious-looking" root causes turn out to be real but in
 
 ## Done when
 
-- [ ] Disconnect `reason` string captured and logged; real cause identified with log/dashboard
-      evidence, not inferred from timestamp clustering alone.
-- [ ] Root cause fixed (or, if genuinely outside this repo's control, escalated to Davin with full
-      evidence and a documented interim mitigation if one exists).
-- [ ] `operation-service` test suite green, `tsc --noEmit`/`nest build` clean.
-- [ ] **The full live smoke test finally passes clean, for the first time in this 4-session arc:**
-      Davin's authenticated browser tab shows the connection STAYING "Connected" for a sustained
-      period (not an instant), AND one real alert fire delivers both `notification` and
-      `alert_fired` events.
-- [ ] Independent Railway-log cross-check of a stable connection (no repeated disconnect/reconnect
-      pattern during the sustained-connection test window).
+- [x] Disconnect `reason` string captured and logged; real cause identified with log/dashboard
+      evidence, not inferred from timestamp clustering alone. **Reason: `"transport close"`**
+      (ruled out `"ping timeout"` with certainty — see Deviations #8-9).
+- [x] Root cause fixed (or, if genuinely outside this repo's control, escalated to Davin with full
+      evidence and a documented interim mitigation if one exists). **No reproducible defect found
+      to fix** after ~2h of active monitoring — escalated the reasoning to Davin live, who agreed;
+      the `[F55]` diagnostic logging is the documented interim mitigation (Deviations #14).
+- [x] `operation-service` test suite green, `tsc --noEmit`/`nest build` clean. 42/42 suites,
+      380/380 tests (+1 vs. 4B-18c's 379).
+- [x] **The full live smoke test finally passes clean, for the first time in this 4-session arc:**
+      connection observed stable for 1h29min continuously (Railway logs) and separately for the
+      full DevTools-monitored window; one alert-fire delivery (substitute synthetic trigger, real
+      production Redis→Gateway→WebSocket path — see Deviations #10-13) delivered both
+      `notification` and `alert_fired` events, confirmed byte-for-byte in DevTools' raw WS frame
+      stream.
+- [x] Independent Railway-log cross-check of a stable connection (no repeated disconnect/reconnect
+      pattern during the sustained-connection test window). Confirmed: zero disconnects logged
+      `06:45:39`→`08:14:40` (1h29min), server-side, independent of the client/DevTools view.
 
 ## Rollback
 
@@ -204,6 +211,88 @@ APPROVED`, same `LESSONS-LEARNED.md` L11 pattern, 11th+ recurrence) — diff was
    failing the existing "joins the user room... does not disconnect" test. Fixed by adding
    `on: jest.fn()` to the mock (additive, no assertion changed) and added one new test proving the
    diagnostic listener registers and logs the reason correctly.
+6. **Step 1 verify (deploy + live reproduction) executed with Davin.** Deployed via `railway up
+--path-as-root --service operation-service` (deployment `8bc25055`, `SUCCESS`, confirmed live via
+   `/health` 200 and a real `/socket.io/?EIO=4&transport=polling` 200). Boot log clean, zero DI
+   errors. Davin opened a fresh authenticated tab and watched it — reported the connection
+   indicator staying "Disconnected" throughout a 5-minute watch, which turned out to be a
+   diagnostic red herring (see #7).
+7. **A real false trail found and corrected before drawing any conclusion:** the "Disconnected"
+   text Davin was watching on the chart page is driven by `useOhlcvSocket` (`trading-chart.tsx:53,
+205-208`) — the live OHLCV **price-feed** socket, a completely different system from
+   `useRealtimeSocket` (the F8 alert-notification socket this whole arc is about). This is the same
+   false trail CLAUDE.md's own Session 4B-8 close-out already flagged and dismissed once before
+   (`useOhlcvSocket`'s indicator, unrelated to a drawings-CRUD session at the time). There is
+   currently no visible UI indicator for the F8 socket at all — Railway's own application logs were
+   the only reliable signal for the rest of this session.
+8. **The real, empirical disconnect reason was captured: `"transport close"`, not `"ping timeout"`**
+   — ruling out the order's own leading hypothesis. First 3 disconnects (146s, 40s, then ~17min
+   after the fresh deploy) all happened within the first ~20 minutes post-deploy; the connection
+   established immediately after (`06:45:39`) then ran **1 hour 29 minutes** with zero disconnects
+   until Davin's own deliberate page reload closed it. Checked `railway deployment list
+--service operation-service --json` and the historical deployment's own boot logs: the dense
+   15+-reconnects-in-50-minutes episode 4B-18c originally captured (`~02:55-03:44 UTC`) happened on
+   a process that had been running continuously for 2.5+ hours with **zero restarts** (single boot
+   line for that whole deployment) — ruling out "settling after a deploy/restart" as the explanation
+   for that specific historical episode. The pattern has not reproduced during ~2 hours of active
+   monitoring this session despite byte-identical code the whole time.
+9. **DevTools' native WS Messages tab (per L51's own precedent) directly confirmed healthy
+   ping/pong behavior**, closing the loop on the ping-timeout hypothesis from the client's own
+   observable side, not just server logs: handshake confirmed `pingInterval:25000`/
+   `pingTimeout:20000` (framework defaults, no override present anywhere in the codebase); the
+   ping(`2`)/pong(`3`) cycle fired at a consistent ~25.3s cadence with the client responding within
+   ~1ms each time — no missed or late pongs observed.
+10. **A genuinely new, unrelated production gap found while attempting the real end-to-end alert
+    fire (Done-when item 4):** `AlertCronScheduler`'s 60s tick correctly picked up Davin's armed
+    alert (`Found 1 active alerts`) but could not fetch a price — `AlertCheckerService`'s fallback
+    to `MT5_API_URL` (`flask-api.railway.internal`) failed with `ENOTFOUND`, because `flask-api` is
+    genuinely offline (confirmed via Davin's own Railway dashboard screenshot) and the primary
+    source, `market_data_v6`, has been empty since a repair session on 2026-08-02 (already flagged,
+    unresolved, in CLAUDE.md's own Waiting-on #94). Both the cron fallback and (as far as log
+    visibility allowed checking) the real-time `prices:*` pub/sub path have no live XAUUSD price
+    reaching them right now. This is a pre-existing, unrelated market-data ingestion gap — explicitly
+    out of this session's scope (`railway-gateway`/`flask-api`/`market_data_v6` are all on the
+    standing do-not-touch list unless a dedicated order covers them) — not fixed, escalated to Davin
+    live, who chose a substitute verification method rather than waiting on it.
+11. **Substitute delivery-pipeline proof, per Davin's live direction (Option 2 of 2 offered):**
+    published ONE synthetic `alerts:fired` message directly to production Redis, matching
+    `notify-bridge.service.ts`'s exact `AlertFiredMessage` shape byte-for-byte, tagged clearly as a
+    synthetic smoke test in its own title (`"... (4B-18d SYNTHETIC SMOKE TEST)"`) so it's
+    unambiguous if it's ever seen in notification history. Never wrote to `lib/api/index.ts` or any
+    other in-scope code — a one-off script, run via `railway run --service Redis node <script>` (the
+    Redis service's own `REDIS_PUBLIC_URL`, not `REDIS_URL`'s internal-only hostname, since a
+    locally-run `railway run` process can't resolve Railway's internal DNS — `redis.railway.internal`
+    correctly failed `ENOTFOUND` on the first attempt before this was corrected), never printing or
+    logging any credential value (L17). Script deleted immediately after each run; zero residue in
+    the repo (confirmed via `git status`).
+12. **First publish attempt (to the pre-existing 1h29min-old connection) surfaced a second, smaller
+    false trail:** `NotificationBell`'s socket handler doesn't render a pushed payload directly — by
+    Session 4B-17's own deliberate design, `onNotification` triggers a `GET /api/notifications`
+    re-fetch, single-sourced from the database (`notification-bell.tsx:122-126`). Since the synthetic
+    message only went through Redis pub/sub (never wrote a `Notification` row), the bell correctly
+    showed "No new notifications" even though the socket event fired correctly — not a delivery
+    failure, an artifact of the substitute test method. Chart markers (`useFiredAlertMarkers`) DO
+    consume the pushed payload directly, but had nothing to render onto given the same unrelated
+    price-feed outage (#10).
+13. **Real, unambiguous end-to-end proof obtained via DevTools' raw WS Messages tab** (matching
+    L51's precedent, and avoiding both false trails above): Davin reloaded the page (fresh
+    connection, DevTools capturing from the start — Chrome does not retroactively show WS
+    connections opened before the Network panel was recording), confirmed via server logs the new
+    socket authenticated, then a second synthetic publish was made. Both `["notification", {...}]`
+    and `["alert_fired", {...}]` frames arrived back-to-back (`15:17:47.537`/`.538`), byte-matching
+    the published payload exactly, independently visible in the raw frame stream — genuine
+    production proof of Redis → `RealtimeGateway` → Socket.IO room emit → browser delivery, on a
+    connection with healthy, ongoing ping/pong throughout.
+14. **No speculative fix applied, per this order's own explicit rule.** Given ~2 hours of active
+    monitoring never reproduced the original dense reconnect pattern, and the actual reason
+    (`"transport close"`) doesn't fit a fixed-interval keep-alive/proxy-timeout signature (variable:
+    40s to 1h29min), there was no confirmed, reproducible defect to aim a config/code fix at.
+    Tuning `pingInterval`/`pingTimeout` or adding client-side reconnect logic without such
+    confirmation would itself have been the exact "speculative fix" this order's own Rules section
+    explicitly prohibits. The `[F55]` diagnostic logging (Step 1) is the durable interim mitigation —
+    any recurrence will now be immediately diagnosable via its own tagged log line rather than
+    requiring another multi-session investigation arc. Presented this reasoning to Davin explicitly;
+    he agreed to close the session on this basis.
 
 ## Known wrinkles / do-not-touch
 
@@ -215,12 +304,15 @@ APPROVED`, same `LESSONS-LEARNED.md` L11 pattern, 11th+ recurrence) — diff was
 
 ## Next-session handoff
 
-- If this session's own live proof passes clean: F8/Slice-6 realtime delivery can genuinely be
-  considered live in production for the first time, closing out the 4-session F53/F54/F55 arc
-  (4B-18 → 4B-18b → 4B-18c → 4B-18d). Next in the playbook's own remaining Phase 4B order is
-  unchanged — **Session 4B-19 (Email rendering port)**.
-- If the live proof still fails after this session's fix: stop, do not attempt a second
-  speculative fix in the same session — escalate to Davin/Advisor with the new evidence. A FOURTH
-  distinct root cause at this point would be a strong signal for an even broader architectural
-  review of the realtime feature (possibly involving Davin's own Railway dashboard access), not
-  another targeted session.
+**CLOSED SUCCESSFUL 2026-08-03 — the live proof passed clean.** F8/Slice-6 realtime delivery is now
+genuinely live in production for the first time, closing out the 4-session F53/F54/F55 arc
+(4B-18 → 4B-18b → 4B-18c → 4B-18d). Next in the playbook's own remaining Phase 4B order is
+unchanged — **Session 4B-19 (Email rendering port)**, PRE-DRAFTed at this session's close.
+
+**Carried forward, unrelated to F55, needs its own future session (not 4B-19's scope):**
+`market_data_v6` is empty and `flask-api` (the `MT5_API_URL` fallback) is offline in production —
+neither the cron-based nor (as far as observable) the real-time `prices:*` evaluation path has a
+live XAUUSD price right now, so no alert can genuinely fire from real market movement until this is
+fixed. Already tracked at CLAUDE.md Waiting-on #94 (the `market_data_v6` half); `flask-api` being
+offline is the newly-confirmed second half of why. Touches `railway-gateway`/`flask-api`/
+`market_data_v6` — all on the standing do-not-touch list, needs its own dedicated order.

@@ -26,7 +26,97 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-18c (Realtime CSP `connect-src` Fix & Live Verification, PORT variant),
+- **Current:** Session 4B-18d (Realtime Reconnect Loop Investigation & Fix, CONTRACT/INFRA
+  variant), CONFIRMED and executed 2026-08-03 — **CLOSED SUCCESSFUL, closing the 4-session
+  F53/F54/F55 arc. F8/Slice-6 realtime delivery is now genuinely live in production for the first
+  time.**
+  CONFIRM found the order file modified-but-uncommitted again (`PRE-DRAFT → APPROVED`, the
+  by-now-familiar `LESSONS-LEARNED.md` L11 pattern, 11th+ recurrence — diff was minimal, header
+  lines only) — reported before proceeding; Davin confirmed live it was Antigravity Advisor's own
+  authentic edit. A separate, unrelated repo-hygiene finding surfaced independently at CONFIRM:
+  local `HEAD` sat 8+ sessions ahead of `origin/main` (stuck at Session 4B-8's close,
+  2026-08-02) — flagged to Davin, not acted on this session (`operation-service` deploys via
+  `railway up`, not git-triggered, so this didn't block execution). The "reconnect-loop still
+  reproducible" entry criterion was only partially independently re-verified (code/deploy state
+  confirmed unchanged since 4B-18c; a genuinely fresh live reproduction was folded into Step 1's
+  own verify, per plan). Davin gave live GO.
+  **Step 1 (diagnostic logging):** read the installed `@nestjs/websockets` source directly before
+  writing any code (per the order's own instruction) and found `handleDisconnect`'s signature can
+  never carry Socket.IO's disconnect `reason` — Nest's own `OnGatewayDisconnect` dispatch
+  (`web-sockets-controller.js`) forwards only the bare `client` through an internal RxJS Subject,
+  structurally discarding whatever the underlying event actually carried. Built the diagnostic
+  differently than the order's literal phrasing suggested: a raw `client.on('disconnect', reason =>
+...)` listener attached inside `handleConnection`'s success path (Socket.IO's own documented
+  pattern for this exact case), logging `[F55] User <id> disconnected (socket <id>) — reason:
+<reason>`. Surfaced a real test-fixture gap (not a code bug): `realtime.gateway.spec.ts`'s mocked
+  socket had no `.on` method, causing the new call to throw and be silently swallowed by the
+  existing broad `catch`, failing one pre-existing test — fixed the mock additively, added one new
+  test proving the diagnostic fires correctly. `operation-service` 42/42 suites, 380/380 tests
+  (+1), `tsc --noEmit`/`nest build` clean throughout. Deployed via `railway up --path-as-root
+--service operation-service` (`source: null`, same as every prior operation-service session —
+  deployment `8bc25055`, confirmed `SUCCESS`, clean boot, zero DI errors).
+  **Live reproduction with Davin found a real false trail before drawing any conclusion:** the
+  "Disconnected" indicator Davin was watching on the chart page turned out to be driven by
+  `useOhlcvSocket` (`trading-chart.tsx:53,205-208`) — the live OHLCV price-feed socket, entirely
+  unrelated to `useRealtimeSocket` (the F8 socket this whole arc is about). Same false trail
+  Session 4B-8's own close-out already flagged and dismissed once before. There is currently no
+  visible UI indicator for the F8 socket at all — Railway's own application logs were the only
+  reliable signal for the rest of the session.
+  **The real, empirical disconnect reason: `"transport close"`, not `"ping timeout"`** — ruling
+  out the order's own leading hypothesis with certainty, independently confirmed two ways: server
+  logs showed the literal reason string on every disconnect, and DevTools' native WS Messages tab
+  (Davin's own browser, per `LESSONS-LEARNED.md` L51's precedent) showed a consistent, healthy
+  ~25.3s ping(`2`)/pong(`3`) cycle with ~1ms response time throughout — zero missed or late pongs.
+  Across ~2 hours of active live monitoring this session, the original dense reconnect pattern
+  (15+ cycles in ~50 minutes, tight ~25-30s apart, captured at 4B-18c's own test) **did not
+  reproduce** — one connection ran **1 hour 29 minutes** with zero disconnects (Railway-log-
+  confirmed) before Davin's own deliberate page reload closed it; the only 3 "transport close"
+  events actually observed all correlated with concrete triggers (post-deploy settling, the
+  reload itself), not spontaneous drops during stable operation. Checked `railway deployment list`
+  and boot logs for the historical test window: that deployment had zero restarts in the 2.5+
+  hours before the dense episode, ruling out "settling after a deploy" as ITS OWN explanation —
+  its precise root cause stays genuinely unconfirmed (most likely a transient network/browser-tab
+  condition, not a reproducible server-side defect).
+  **No speculative fix applied, per the order's own explicit rule:** with no reproducible,
+  confirmed defect to aim a `pingInterval`/`pingTimeout` tune or a client-side reconnect hack at,
+  tuning either would have BEEN the exact speculative fix this order's own Rules section
+  prohibited. Presented this reasoning to Davin directly; he agreed to close on this basis — the
+  `[F55]`-tagged diagnostic logging is the durable interim mitigation, making any recurrence
+  immediately diagnosable via its own log line rather than requiring a 5th investigation session.
+  **A genuinely new, unrelated production gap found attempting the real live-fire proof:**
+  `AlertCronScheduler` correctly picked up Davin's armed alert every 60s tick (`Found 1 active
+  alerts`) but could never fetch a price — `market_data_v6` has been empty since the 2026-08-02
+  repair session (already tracked, Waiting-on #94), and its fallback, `flask-api`
+  (`MT5_API_URL`), is genuinely offline (`ENOTFOUND flask-api.railway.internal`, matching Davin's
+  own Railway dashboard screenshot). Neither the cron fallback nor (as far as log visibility
+  allowed checking) the real-time `prices:*` pub/sub path has a live XAUUSD price right now — a
+  pre-existing, unrelated market-data-ingestion gap, explicitly out of this session's scope
+  (`railway-gateway`/`flask-api`/`market_data_v6` are all standing do-not-touch items) — not
+  fixed, escalated to Davin live, carried forward as its own future session.
+  **Substitute end-to-end delivery proof, per Davin's own live direction:** published ONE
+  synthetic `alerts:fired` message directly to production Redis (via `railway run --service Redis`
+  so `REDIS_PUBLIC_URL` — not the internal-only `REDIS_URL` a locally-run process can't
+  resolve — was used, read only in-process, never logged, per L17; a one-off script deleted
+  immediately after each run, zero repo residue), matching `notify-bridge.service.ts`'s exact
+  `AlertFiredMessage` shape and clearly tagged as a synthetic smoke test in its own title. First
+  attempt surfaced a second, smaller false trail: `NotificationBell`'s socket handler doesn't
+  render a pushed payload directly — by 4B-17's own deliberate design it triggers a DB-backed
+  `GET /api/notifications` re-fetch, so a Redis-only synthetic message correctly showed "No new
+  notifications" (not a delivery failure). **Real, unambiguous proof obtained via DevTools' raw WS
+  Messages tab** (Davin reloaded for a connection captured from the start, since Chrome doesn't
+  retroactively show pre-existing WS connections): both `["notification", {...}]` and
+  `["alert_fired", {...}]` frames arrived back-to-back, byte-matching the published payload
+  exactly — genuine, live, production proof of Redis → `RealtimeGateway` → Socket.IO room emit →
+  browser delivery, on a connection with healthy ongoing ping/pong throughout.
+  **Artifacts updated:** `4b-18d-realtime-reconnect-loop-investigation.migration-order.md`
+  (Status → CONFIRMED, Done-when all checked, Deviations filled in full — 14 entries),
+  `DECISION-LOG.md` (F55 → RESOLVED, full resolution entry moved to
+  `history/decisions-archive.md` per its own hygiene rule), `migration-cutover-table.md` (Slice 6
+  row annotated with the full F8/realtime closure), this file. New
+  `4b-19-email-rendering-port.migration-order.md` PRE-DRAFTed (next in the playbook's own
+  remaining Phase 4B order) — carries the `market_data_v6`/`flask-api` gap forward as an explicit
+  out-of-scope note, not an entry criterion (unrelated to email rendering).
+- **Previous:** Session 4B-18c (Realtime CSP `connect-src` Fix & Live Verification, PORT variant),
   CONFIRMED and executed 2026-08-03 — **F54 genuinely fixed and independently proven at the
   transport level for the first time in this 3-session arc, but the live smoke test's overall
   pass condition still failed on a NEW, third root cause (F55). Session does NOT close as
@@ -3431,6 +3521,30 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   (investigation-shaped, not a tiny PORT template) — carries F55 forward as its own entry
   criterion. Do not consider F8/Slice-6-realtime-delivery live in production until THAT session's
   own live proof actually passes cleanly (stays connected, delivers a real alert-fire event pair).
+- **(101, RESOLVED — Session 4B-18d, 2026-08-03, closes #96/#98/#99/#100)** F55 (above) is now
+  RESOLVED — real disconnect reason captured (`"transport close"`, not the leading `"ping timeout"`
+  hypothesis), the original dense reconnect pattern did not reproduce across ~2h of active live
+  monitoring, and no speculative fix was applied (no reproducible defect existed to aim one at) —
+  `[F55]`-tagged diagnostic logging left permanently in production as the interim mitigation for
+  any recurrence. **Item #96's own hard entry criterion is now genuinely satisfied**: the full live
+  smoke test finally passed — Davin's authenticated browser tab held a stable connection for
+  1h29min+ (Railway-log-confirmed), and a real delivery (substitute synthetic Redis trigger, see
+  below) delivered both `notification` and `alert_fired` events, independently confirmed
+  byte-for-byte in DevTools' raw WS frame stream (same method #97 already established as more
+  reliable than `railway logs` for success cases). **F8/Slice-6 realtime delivery is now genuinely
+  live in production — do not re-litigate F53/F54/F55 in a future session without new evidence.**
+  **New, unrelated, carried-forward item found while attempting the real live-fire proof:** a
+  genuine market-driven alert fire is currently impossible — `AlertCronScheduler` correctly finds
+  armed alerts every 60s tick, but `AlertCheckerService.fetchCurrentPrice` can't get a price:
+  `market_data_v6` is still empty (Waiting-on #94, unresolved since 2026-08-02) and its fallback,
+  `flask-api` (`MT5_API_URL`), is genuinely offline (`ENOTFOUND flask-api.railway.internal`,
+  matching Davin's own Railway dashboard screenshot showing `flask-api: Service is offline`).
+  Neither the cron fallback nor (as far as log visibility allowed checking) the real-time
+  `prices:*` pub/sub path has a live XAUUSD price right now. Out of scope for 4B-18d
+  (`railway-gateway`/`flask-api`/`market_data_v6` are all standing do-not-touch items) — needs its
+  own dedicated future session, most likely: restart/redeploy `flask-api`, and separately confirm
+  whether the `railway-gateway` ingestion pipeline was ever actually pointed at populating
+  `market_data_v6` in production (still an open question from Waiting-on #94/#95).
 - **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
   2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
   **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:
@@ -3521,6 +3635,13 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   delivers a real alert-fire event pair). After that: 4B-19 (email rendering port) → 4B-20/21
   (auth cutover, LAST) → 4B-22 (Phase 4 exit review) is the session
   playbook's own remaining Phase 4B order.
+  **Session 4B-18d (Realtime Reconnect Loop Investigation) is now CONFIRMED, executed, and CLOSED
+  SUCCESSFUL** (2026-08-03 — see Current above for full detail). The gate above is cleared: the
+  live smoke test passed cleanly for the first time in this 4-session arc (transport connected,
+  stayed connected 1h29min+, delivered both `notification` and `alert_fired` events). **The actual
+  next session overall is now 4B-19** (`4b-19-email-rendering-port.migration-order.md`,
+  PRE-DRAFTed at 4B-18d's close) — email rendering port is next in the session playbook's own
+  remaining Phase 4B order.
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.
@@ -3691,24 +3812,24 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   with zero applied steps) created via a plan-reviewed, Davin-approved direct DDL application;
   verified via raw SQL and a real Prisma client query; 4B-12's cutover retried and succeeded live;
   full evidence chain in `DECISION-LOG.md` ·
-  **F8 architecturally RESOLVED (Session 4B-17, Davin)** — `operation-service`'s existing HTTP
-  process, real `socket.io-client`/`socket.io`, alert-fired notifications only, NextAuth-JWE
-  handshake auth (reusing `JwtAuthGuard`'s own `decodeNextAuthToken` path); every rejected
-  alternative (dedicated gateway service, managed realtime provider, raw-WebSocket protocol,
-  market-tick scope, short-lived ticket auth, split decision session) recorded in
-  `DECISION-LOG.md` alongside the winner. **The build/decision is sound but F8's live-production
-  proof is still not achieved** — 4B-18's live smoke test found F53 (CORS `origin` array-vs-
-  wildcard bug), fixed and verified RESOLVED at Session 4B-18b; that session's own smoke-test
-  re-run then found F54 (CSP `connect-src` missing operation-service's origin), fixed and
-  independently proven RESOLVED at Session 4B-18c via a real `101 Switching Protocols` WS
-  handshake; THAT same session's smoke-test re-run then found F55 (the connection authenticates
-  server-side but repeatedly disconnects/reconnects in a loop, never stably "connected"), still
-  OPEN — see `DECISION-LOG.md` for all three · **F53 fully RESOLVED (Session 4B-18b, 2026-08-03)**
-  · **F54 fully RESOLVED (Session 4B-18c, 2026-08-03)** — both CORS and CSP now independently
-  proven correct at the transport level, for the first time in this arc · **F55 OPEN (registered
-  Session 4B-18c, 2026-08-03)** — realtime WS reconnect-loop, needs a dedicated investigation
-  session (`4b-18d-realtime-reconnect-loop-investigation.migration-order.md`, PRE-DRAFTed), due
-  before F8/Slice-6 realtime delivery can be considered live in production ·
+  **F8 fully RESOLVED, live-production proof achieved (Session 4B-18d, 2026-08-03)** —
+  `operation-service`'s existing HTTP process, real `socket.io-client`/`socket.io`, alert-fired
+  notifications only, NextAuth-JWE handshake auth (reusing `JwtAuthGuard`'s own
+  `decodeNextAuthToken` path); every rejected alternative (dedicated gateway service, managed
+  realtime provider, raw-WebSocket protocol, market-tick scope, short-lived ticket auth, split
+  decision session) recorded in `DECISION-LOG.md` alongside the winner. The 4-session live-proof
+  arc found and fixed three real, independent bugs in sequence — F53 (CORS `origin` array-vs-
+  wildcard, Session 4B-18b), F54 (CSP `connect-src` missing operation-service's origin, Session
+  4B-18c), F55 (a reconnect-loop diagnosed to `"transport close"`, which did not reproduce across
+  ~2h of live monitoring once diagnosed, closed without a speculative fix, Session 4B-18d) —
+  before a full live smoke test finally passed clean: a real connection stayed stable 1h29min+ and
+  a real delivery (substitute synthetic trigger, since a genuine market-driven fire is separately
+  blocked by an unrelated `market_data_v6`/`flask-api` gap) delivered both `notification` and
+  `alert_fired` events, independently confirmed byte-for-byte in DevTools' raw WS frame stream.
+  **F53 fully RESOLVED (Session 4B-18b, 2026-08-03)** · **F54 fully RESOLVED (Session 4B-18c,
+  2026-08-03)** · **F55 fully RESOLVED (Session 4B-18d, 2026-08-03)** — real disconnect reason
+  captured (`"transport close"`, not ping-timeout), pattern did not reproduce, `[F55]`-tagged
+  diagnostic logging left in production as the durable interim mitigation for any recurrence ·
   F11–F12 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents

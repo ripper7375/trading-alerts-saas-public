@@ -53,7 +53,16 @@ playbook; strategy lives in the plan.
 2. **Deviations:** finalize the order's Deviations section.
 3. **Update the artifacts** (this is the handoff — the Advisor plans ONLY from these):
    - `CLAUDE.md` state block: current session done, what next, waiting-on, flag changes.
+     **Session-history hygiene (do this every session):** `CLAUDE.md` must keep only
+     **Current** and **Previous** (the two most recent sessions). When writing a new
+     Current entry, demote the old Current to Previous and mark all older entries with
+     `_(superseded-by-above, retained for context)_`. Then move every entry carrying
+     that marker to `docs/migration-orders/history/sessions-archive.md` (append at top,
+     most recent first). This keeps `CLAUDE.md` small enough for fast session-OPEN reads.
    - `DECISION-LOG.md`: any flag touched (evidence + resolution or progress note).
+     **Decision-log hygiene:** keep only the register table and OPEN flag entries in
+     `DECISION-LOG.md`. After resolving a flag, move its full resolution entry to
+     `docs/migration-orders/history/decisions-archive.md` (append, newest last).
    - `migration-cutover-table.md`: any route/slice whose status moved.
    - `migration-stack-analysis.md`: affected entries IF files were created/moved/deleted.
 4. **Harvest lessons:** if any error this session cost >30 min to diagnose, recurred, or
@@ -61,6 +70,14 @@ playbook; strategy lives in the plan.
    `LESSONS-LEARNED.md` (format in that file's header; the rule, not the story). If a
    lesson can become an automated check instead, prefer the check and mark the entry
    AUTOMATED.
+   **Lesson-file hygiene:**
+   - Active lessons must stay ≤ 40 entries and ≤ 6 lines each.
+   - New lessons MUST be written as proper `### L<N>` entries immediately — never as
+     narrative "candidate" paragraphs in the preamble.
+   - Recurrence notes on existing lessons are capped at 3 lines. If a lesson has
+     recurred 5+ times, replace per-session notes with a single count line.
+   - If the file exceeds 40 active entries, consolidate: merge duplicates, generalize
+     related rules, and move rarely-recurred entries to `LESSONS-ARCHIVE.md`.
 5. **PRE-DRAFT the next session's order:** correct template variant, informed by today's
    deviations; status `PRE-DRAFT`. Exception — next session is VERIFY-RETIRE: the
    PRE-DRAFT may go straight to Davin (fast-path), note that in it.
