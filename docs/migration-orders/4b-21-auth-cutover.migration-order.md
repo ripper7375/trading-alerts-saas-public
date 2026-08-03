@@ -2,7 +2,8 @@
 
 > Completes the auth cutover 4B-20 built and prototyped. Read `00-SKELETON-AND-RULES.md` first — §4's dial: **near-zero** for the actual flag flip/retirement steps. Approved by Antigravity Advisor with Option B selected (OAuth shim retained).
 
-**Session:** 4B-21 (Auth CUTOVER) · **Variant:** PORT / UI-BUILD hybrid · **Status:** CONFIRMED
+**Session:** 4B-21 (Auth CUTOVER) · **Variant:** PORT / UI-BUILD hybrid · **Status:** CONFIRMED,
+executed, **CLOSED SUCCESSFUL** (2026-08-04)
 **Generated:** 2026-08-03 (Executor PRE-DRAFT at 4B-20 close; Approved by Antigravity Advisor
 2026-08-03; CONFIRMED by Executor 2026-08-03 after CONFIRM found the working copy's own
 APPROVED/"entry criteria verified" claim self-contradicting — the committed PRE-DRAFT's "NOT
@@ -213,17 +214,54 @@ ENABLED` added to Vercel production (`vercel env add`, value-blind re-verified p
     either, so there's no client-side cache state to purge there. Full suite 129/129 suites,
     2191/2191 tests (+1). Redeployed clean — `dpl_8VSYv7PD3PxcWwt3QiHFBhipFAk1`, `READY`,
     live-verified (`/login` → 200, `/dashboard` unauthenticated → 307).
-12. **Step 5 (Davin's own live browser smoke test) — handed off, awaiting his report.** Per the
-    order's own Rule, any red result here means abort and revert
-    (`NEXT_PUBLIC_AUTH_BRIDGE_ENABLED=false` + redeploy) — do not proceed to Step 6 until this
-    passes clean.
+12. **Step 5 (Davin's own live browser smoke test) — PASSED CLEAN.** Davin reported the production
+    smoke test passed cleanly for credentials login, registration, OAuth, and logout — no red
+    result, so Steps 6-7 proceeded in this same session per the order's own Rule.
+13. **Steps 6-7 executed (2026-08-04).** `CredentialsProvider` (and its `authorize()` implementation)
+    removed from `lib/auth/auth-options.ts`, along with its two now-dead helpers exclusive to that
+    branch (`generate2FAToken`, the `PrismaUserWith2FA` type) and the now-unused `bcrypt`/
+    `jsonwebtoken` imports — file shrank 583 → ~370 lines. Three inline comments that referenced
+    "credentials provider" were corrected (not left stale) to describe the OAuth-only reality; the
+    `signIn` callback's `account.provider !== 'credentials'` guard simplified to a bare truthiness
+    check (behaviorally identical — `'credentials'` can no longer occur). Header doc comment
+    rewritten to explain the file's new OAuth-only scope and point at F56.
+    `app/api/auth/register/route.ts` deleted (Step 7) — confirmed superseded by `token-register`
+    and zero real dependents before deleting (only a mock error-log example string in
+    `app/api/admin/error-logs/route.ts` and an archived, inactive e2e spec referenced its path).
+    `scripts/verify-auth-config.js` (a standalone dev utility, not wired into `package.json`/CI)
+    updated to check for `CredentialsProvider`'s _absence_ and `token-register/route.ts`'s presence
+    instead of the old, now-backwards checks — avoids it reporting false errors against the new
+    architecture.
+    **Dependents re-confirmed safe before editing:** `login-form.tsx`, `verify-2fa/page.tsx`,
+    `admin/login/page.tsx`, `register-form.tsx` all still carry a flag-off legacy fallback branch
+    (`signIn('credentials', ...)` / `POST /api/auth/register`) — per this order's own Rollback
+    note, these are now permanently non-functional unless a rollback also reverts this session's
+    commits; this is Option B/F56's own accepted design, not an oversight. No test file exercises
+    `authOptions`'s provider array or `authorize()` directly (confirmed via repo-wide search before
+    editing) — zero tests needed updating.
+    **Full verification:** `tsc --noEmit` clean, `eslint app components lib hooks --max-warnings 0`
+    clean (0 errors/warnings), full `test:ci` 129/129 suites, 2191/2191 tests — byte-identical
+    counts to before the removal, confirming zero regressions.
+14. **Step 8 (post-flip monitoring window) — not run as a dedicated waiting period this session.**
+    Davin's own live production smoke test (Step 5) is itself the strongest available evidence
+    (a real authenticated round-trip through the bridge, not just an absence of errors) — per this
+    migration's own established practice (same class as Slices 1/2/3's own "spot-check on the next
+    real event" caveat), a future session or Davin's own spot-check of `/api/auth/*` and
+    `/api/user/2fa/*` error rates over the following days is the natural continuation, not a
+    blocking item for closing this order.
+15. **Step 9 (record artifacts) executed as part of this same close-out:** `migration-cutover-table.md`
+    (new row — the first this whole Phase 4B track has needed, since auth was never flag-gated at
+    the traffic level before this session), `DECISION-LOG.md` (F56 → RESOLVED & EXECUTED, full
+    entry moved to `docs/migration-orders/history/decisions-archive.md` per that file's own hygiene
+    rule), `CLAUDE.md` (this order's own Current/Previous rotation).
 
 ## Next-session handoff
 
-- Step 6 (retire `CredentialsProvider` from `auth-options.ts`) and Step 7 (retire the monolith's
-  dead credentials-path code) proceed once Davin's Step 5 live smoke test reports clean — in THIS
-  same order, same session, not deferred.
-- Once 4B-21 fully closes (all 6 remaining steps done): **4B-22 (Phase 4 exit review)** — the last
-  session in Phase 4B, walking the phase-exit criteria from the plan one by one. This is the literal
-  final domain session before that review; no further PRE-DRAFT beyond 4B-22 is implied by this
-  order.
+- Steps 6-7 executed (Deviation 13) once Davin's Step 5 live smoke test reported clean — in this
+  same order, same session, not deferred. **4B-21 is CLOSED SUCCESSFUL.**
+- **4B-22 (Phase 4 exit review)** — the last session in Phase 4B, walking the phase-exit criteria
+  from the plan one by one. This is the literal final domain session before that review; no
+  further PRE-DRAFT beyond 4B-22 is implied by this order. PRE-DRAFTed at this session's close.
+- Carried forward, not blocking: Step 8's monitoring window (Deviation 14) is a spot-check item,
+  not a gate; F47 (Wise non-USD quote bug) and the `market_data_v6`/`flask-api` gap (both
+  pre-existing, unrelated to auth) remain open per their own tracking.

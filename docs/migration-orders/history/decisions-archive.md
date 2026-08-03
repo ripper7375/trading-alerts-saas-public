@@ -2516,3 +2516,71 @@ Protocols`) and the real user completed `RealtimeGateway.handleConnection`'s JWE
   on a connection with healthy ongoing ping/pong throughout.
 - Approved by: Davin (live GO for execution; live agreement to close on this basis without a
   confirmed fix, given the pattern's non-reproduction and the diagnostic logging as mitigation).
+
+## F56 — OAuth handling for the Auth Cutover (4B-20/21): Option A/B/C per this order's own Finding 5
+
+- Status: RESOLVED & EXECUTED
+- Session: 4B-20 (decision) → 4B-21 (execution) · Date: 2026-08-03 (decision) / 2026-08-04
+  (execution)
+- Found while: this order's own PRE-DRAFT audit (2026-08-03) — `operation-service`'s `AuthController`
+  has zero OAuth support of any kind (credentials-only: register/login/refresh/logout/me/
+  forgot-password/reset-password/verify-email/resend-verification), while `lib/auth/auth-options.ts`
+  (583 lines) genuinely configures THREE conditional OAuth providers (`GoogleProvider`,
+  `TwitterProvider`, `LinkedInProvider`, each gated on its own `isXConfigured` env-var check) on top
+  of `CredentialsProvider`, rendered live via `components/auth/social-auth-buttons.tsx`'s three real
+  `signIn('google'|'twitter'|'linkedin', ...)` buttons. The playbook's own one-line framing for this
+  session ("retire `[...nextauth]`... delete `auth-options.ts`") would have silently broken OAuth
+  login for any real user who signed up via Google/Twitter/LinkedIn, with no equivalent path to fall
+  back to.
+- Decision: **Option B** — keep a narrow `[...nextauth]` route alive indefinitely, scoped to OAuth
+  providers only. `CredentialsProvider` is removed from `auth-options.ts` once credentials fully cut
+  over (Session 4B-21, not this session — 4B-20 is BUILD-only, zero traffic cutover). Credentials,
+  2FA, registration, and sessions are cut over to operation-service's `token-*` bridge routes; OAuth
+  login (Google/Twitter/LinkedIn) stays on `next-auth/react`'s `signIn()` against the narrowed
+  `auth-options.ts` indefinitely — building real OAuth support into `operation-service` (Option A) or
+  deprecating OAuth login outright (Option C) were both explicitly rejected.
+- Rollout mechanism (same decision, same prompt): a client-readable flag,
+  `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED` (default unset/`false` — forms stay on `next-auth/react`'s
+  credentials path until Session 4B-21 flips it), read via `lib/auth/auth-bridge-flag.ts`'s
+  `isAuthBridgeEnabled()`. Matches this migration's own established per-slice flag pattern
+  (`lib/operation-service/flags.ts`) rather than an atomic swap with `git revert` as rollback — auth
+  is the single highest-blast-radius surface in the app, and a staged/instantly-revertible rollout is
+  worth the extra flag plumbing.
+- Evidence (decision): Live decision from Davin via interactive prompt, in direct response to this
+  order's own Entry Criterion 0 and rollout-mechanism question (both raised at this session's CONFIRM,
+  since the order's own working copy had claimed "Option B selected"/"APPROVED" with zero
+  corresponding DECISION-LOG.md entry, no entry-criteria checkboxes checked, and no DRAFT-stage commit
+  trail — `LESSONS-LEARNED.md` L11's most consequential recurrence to date, given this session's own
+  explicit "not fast-path eligible under any circumstance" framing). Davin confirmed live this was his
+  own authentic decision before CONFIRM proceeded.
+- **Execution (Session 4B-21, 2026-08-04):** Steps 1-5 of the order's own Checklist (UI swap, local
+  integration smoke test, Davin's flip approval, the production flag flip, Davin's own live production
+  smoke test) all completed and passed clean in prior turns of this same session (see this order's own
+  Deviations 1-12 and `DECISION-LOG.md` F57/F58) — Davin reported the production smoke test passed
+  cleanly for credentials login, registration, OAuth, and logout. Step 6 then executed:
+  `CredentialsProvider` (and its two now-dead helpers, `generate2FAToken` and the `PrismaUserWith2FA`
+  type, both exclusively used by `authorize()`) removed from `lib/auth/auth-options.ts` — file shrank
+  583 → ~370 lines. `bcrypt`/`jsonwebtoken` imports removed (no remaining consumer in the file). Three
+  inline comments that referenced "credentials provider" were corrected to describe the OAuth-only
+  reality rather than left stale; the `signIn` callback's `account.provider !== 'credentials'` guard
+  simplified to a bare truthiness check (behaviorally identical, since `'credentials'` can no longer
+  occur). Step 7 executed in the same pass: `app/api/auth/register/route.ts` deleted (superseded by
+  `token-register`, confirmed zero other real consumers — only a mock error-log example string and an
+  archived, inactive e2e test referenced its path). `scripts/verify-auth-config.js` (a standalone dev
+  utility, not wired into `package.json`/CI) updated to check for `CredentialsProvider`'s _absence_
+  and `token-register/route.ts`'s presence, so it no longer reports false errors against the new
+  architecture.
+- **Dependents checked before removal, all confirmed safe:** `login-form.tsx`, `verify-2fa/page.tsx`,
+  `admin/login/page.tsx`, and `register-form.tsx` all still have a legacy `signIn('credentials', ...)`
+  / `/api/auth/register` fallback branch behind `isAuthBridgeEnabled()` being `false` — per this
+  order's own Rollback note, these branches are now permanently non-functional (NextAuth returns a
+  graceful error, not a crash — no unhandled exception) unless a future rollback reverts this
+  Session's commits alongside the flag. This is the accepted, by-design consequence of Option B/F56,
+  not an oversight. No test file exercises `authOptions`'s provider array or `authorize()` directly
+  (confirmed via repo-wide search before editing), so none of Session 4B-21's own or prior sessions'
+  tests needed updating.
+- **Full verification:** `tsc --noEmit` clean, `eslint app components lib hooks --max-warnings 0`
+  clean (0 errors/warnings), full `test:ci` 129/129 suites, 2191/2191 tests — byte-identical counts to
+  before this change, confirming zero regressions from the removal.
+- Approved by: Davin (decision, 4B-20; execution directed live, 4B-21, after his own reported
+  production smoke-test pass)

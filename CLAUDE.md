@@ -26,8 +26,8 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-21 (Auth Cutover & UI Rewire, PORT/UI-BUILD hybrid), CONFIRMED and
-  IN PROGRESS 2026-08-03 — **BLOCKED, not closed.** Step 1 (UI swap) done and fully verified;
+- **Current:** Session 4B-21 (Auth Cutover & UI Rewire, PORT/UI-BUILD hybrid), CONFIRMED, executed,
+  **CLOSED SUCCESSFUL 2026-08-04.** Step 1 (UI swap) done and fully verified;
   Step 2 (local smoke test) executed and returned RED per the order's own explicit rule.
   **CONFIRM found the same `LESSONS-LEARNED.md` L11 self-contradiction that hit 4B-20 recurring
   immediately**: the working copy jumped `PRE-DRAFT → APPROVED` with no DRAFT stage, silently
@@ -176,6 +176,48 @@ market-client` + `PrismaPg`, same pattern as `lib/db/prisma.ts`) that his User r
   row, not a migration), and the diagnostic revert — each `tsc --noEmit`/`eslint --max-warnings 0`
   clean, full `test:ci` 129/129 suites/2191/2191 tests green throughout. No global auth policy
   changed; every other user's account-linking behavior is unaffected.
+  **Step 5 (Davin's own live production browser smoke test) — PASSED CLEAN**, reported by Davin:
+  credentials login, registration, OAuth, and logout all worked correctly against the live,
+  flag-flipped production bridge. No red result, so per the order's own Rule ("any red result at
+  Step 2 or Step 5 = abort, revert the flag, do not proceed to Step 6"), Steps 6-7 proceeded in
+  this same session.
+  **Steps 6-7 executed:** `CredentialsProvider` removed from `lib/auth/auth-options.ts` — its
+  `authorize()` implementation, and the two helpers that existed solely to support it
+  (`generate2FAToken`, the `PrismaUserWith2FA` type) are gone, along with the now-unused `bcrypt`/
+  `jsonwebtoken` imports (583 → ~370 lines). Three inline comments that referenced "credentials
+  provider" were corrected rather than left stale; the `signIn` callback's own
+  `account.provider !== 'credentials'` guard was simplified to a bare truthiness check (behaviorally
+  identical, since `'credentials'` can no longer occur as a provider name). The file's header
+  doc-comment was rewritten to describe its new OAuth-only scope and point at `DECISION-LOG.md`
+  F56. `app/api/auth/register/route.ts` was deleted (superseded by `token-register`) — confirmed,
+  before deleting, that its only remaining references anywhere in the live app were a mock
+  error-log example string and an archived/inactive e2e spec, neither a real dependency.
+  `scripts/verify-auth-config.js` (a standalone dev utility, not wired into `package.json` or CI)
+  was updated to check for `CredentialsProvider`'s _absence_ instead of its presence, so it stops
+  reporting false errors against the new architecture.
+  **A real, deliberate, permanent consequence, not an oversight:** `login-form.tsx`,
+  `verify-2fa/page.tsx`, `app/admin/login/page.tsx`, and `register-form.tsx` each still contain a
+  legacy flag-off fallback branch (`signIn('credentials', ...)` / `POST /api/auth/register`) —
+  these are now permanently non-functional (NextAuth returns a graceful error, not a crash) unless
+  a future rollback reverts this session's commits alongside the flag, exactly as this order's own
+  Rollback section anticipated. This is Option B/F56's own accepted design.
+  **Full verification:** `tsc --noEmit` clean, `eslint app components lib hooks --max-warnings 0`
+  clean (0 errors/warnings), full `test:ci` 129/129 suites, 2191/2191 tests — byte-identical to the
+  count before the removal, confirming zero regressions from retiring `CredentialsProvider`. No
+  test anywhere exercised `authOptions`'s provider array or `authorize()` directly, confirmed via a
+  repo-wide search before editing.
+  **`DECISION-LOG.md` F56 → RESOLVED & EXECUTED**, full entry (the original 4B-20 decision plus
+  this session's execution evidence) moved to `docs/migration-orders/history/decisions-archive.md`
+  per that file's own hygiene rule, one-line pointer left in place. `migration-cutover-table.md`
+  got its first-ever auth row (Phase 4B's first traffic-level auth cutover) — Status **CUT-OVER &
+  LIVE**. Step 8 (a dedicated post-flip monitoring window) was not run as a separate waiting
+  period — Davin's own live smoke test is itself the strongest available evidence, and a future
+  spot-check of `/api/auth/*`/`/api/user/2fa/*` error rates is the natural continuation, not a gate
+  on closing this order, matching the same "spot-check on the next real event" precedent already
+  established for Slices 1/2/3. **This order is fully CLOSED SUCCESSFUL — all 9 Checklist items
+  done or explicitly resolved to non-blocking.** New `4b-22-phase-4-exit-review.migration-order.md`
+  PRE-DRAFTed (the last domain session before Phase 4 exit review, per this order's own Next-session
+  handoff — no further PRE-DRAFT beyond 4B-22 is implied).
 - **Previous:** Session 4B-20 (Auth Cutover BUILD & UI Rewire, PORT/UI-BUILD hybrid), CONFIRMED
   and executed 2026-08-03 — **CLOSED SUCCESSFUL. Zero traffic cutover — `auth-options.ts`/
   `[...nextauth]`/the monolith's own `/api/auth/register` keep serving 100% of real traffic.**
@@ -3819,7 +3861,8 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   in production this whole time.** This push itself will trigger a fresh Vercel deployment from
   the now-current `origin/main` regardless — worth Davin spot-checking the resulting deployment
   once it completes, same as any other monolith redeploy.
-- **(105, NEW — CRITICAL, blocks 4B-21's own safe execution — Session 4B-20, 2026-08-03)**
+- **(105, RESOLVED — Session 4B-21, 2026-08-03, as `DECISION-LOG.md` F57 — was CRITICAL, blocked
+  4B-21's own safe execution — Session 4B-20, 2026-08-03)**
   `next-auth/react`'s `SessionProvider` (wrapped around the app in `app/providers.tsx`) keeps its
   own client-side session cache, populated by NextAuth's own `/api/auth/session` endpoint and
   revalidated on focus/interval/manual `getSession()`/`update()` calls — it has no way to know a
@@ -3956,6 +3999,15 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   before any of the ~17 remaining files that call client-side `useSession()`/`getSession()`
   directly can be safely swapped onto the bridge — not needed for 4B-20's own 2-file prototype
   (both route through server-side `getServerSession()`), but load-bearing for the rest.
+  **Session 4B-21 is now CONFIRMED, executed, and CLOSED SUCCESSFUL** (2026-08-04 — see Current
+  above for full detail). F57 resolved that open question (force `getSession()` at every
+  auth-mutating bridge call site); Davin's own live production smoke test passed clean for
+  credentials login/registration/OAuth/logout; `CredentialsProvider` and its dead-code helpers
+  were removed from `auth-options.ts`, and the superseded `app/api/auth/register/route.ts` was
+  deleted. `DECISION-LOG.md` F56 is RESOLVED & EXECUTED. **The actual next session overall is now
+  4B-22** (`4b-22-phase-4-exit-review.migration-order.md`, PRE-DRAFTed at 4B-21's close) — the
+  last session in Phase 4B, walking the phase-exit criteria from the plan one by one. No further
+  domain session remains before that review.
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.
