@@ -255,17 +255,48 @@ password`/re-`token-login` with the new password all still succeed normally for 
     wiring, and `PrismaModule`'s DI wiring were all read directly and look structurally correct —
     only one `PrismaService`/`PrismaModule` exists in the whole service (no split-client
     possibility, unlike the monolith's market/non-market split).
-- Leading hypothesis, NOT confirmed (no access from this environment to verify): operation-service's
-  live production deployment may be running an older build than what's in this checkout for the
-  `UsersController`/`TwoFactorService` code path specifically — every prior session that exercised
-  `/user/*` routes did so against the long-lived canonical test fixtures
-  (`affiliate-test@trading-alerts.test`/`free-test@trading-alerts.test`, created via the OLD
-  monolith registration path long before this migration), never against a row created via
-  operation-service's OWN `AuthService.register()` — so this specific interaction may simply never
-  have been exercised before, by this session or any prior one. `operation-service` has no connected
-  GitHub source (`LESSONS-LEARNED.md` L23/L38, Waiting-on #77) — a redeploy requires a manual
-  `railway up`, so "the code in this checkout is correct" does not imply "the running instance
-  matches it."
+- **Original leading hypothesis (stale deployment) — TESTED AND RULED OUT, same session:** Davin
+  had `railway up --path-as-root --service operation-service` re-run (deployment
+  `e6d716ac-2d6c-4f02-9a51-ab213715270d`); polled `latestDeployment.status` (not the stale
+  top-level field, L38) until genuinely `SUCCESS`; fresh boot log confirmed clean startup, zero DI
+  errors, `UsersController {/user}` mapped with all its routes including `GET /user/profile`. Re-ran
+  the exact same check against this freshly-redeployed instance — **F58 still reproduced
+  identically.** This rules out staleness as the cause.
+- **Further isolation performed after the redeploy, conclusive:**
+  1. Decoded the raw session-cookie JWE directly (via operation-service's own `jose`/`@panva/hkdf`
+     packages, replicating `decodeNextAuthToken()`'s exact derivation) — `claims.id` is a
+     byte-perfect match to the real row's `id` (verified via character codes, not just string
+     equality), ruling out any encoding/truncation/whitespace issue.
+  2. Instantiated operation-service's own generated `@prisma/client` + `@prisma/adapter-pg` (the
+     exact classes `PrismaService` uses) directly, pointed at `DIRECT_URL`, and ran
+     `UsersService.getProfile()`'s EXACT query (`findUnique` by id, by email, and with its full
+     `select` shape) — **all three found the row correctly.** This proves the code, the schema,
+     and the adapter are all correct when pointed at the known-good database.
+  3. Checked operation-service's real Railway `DATABASE_URL` value-blind (hostname only, never the
+     credential): it resolves to `postgres.railway.internal` — a Railway-internal hostname
+     (L53) scoped to whatever Postgres resource is linked within operation-service's own Railway
+     project, not directly comparable to `DIRECT_URL`'s public proxy host from outside Railway's
+     network. Whether this actually points at the identical physical database `DIRECT_URL` reaches
+     could not be verified further from this environment (`AuthService`'s register/login/forgot/
+     reset calls — which use the SAME injected `PrismaService`/`DATABASE_URL` — all correctly read
+     and write rows visible via `DIRECT_URL`, which argues against a wrong-database explanation,
+     but doesn't fully resolve the contradiction with items 1-2 above).
+  4. Checked operation-service's own application logs (`railway logs`) around the failing requests
+     for a genuine Prisma-level error (connection, prepared-statement, or pooling exception) that
+     might be silently swallowed into the generic `NotFoundException` — found none; the query
+     appears to genuinely execute and cleanly return zero rows from the live container's own
+     perspective, which contradicts the identical query succeeding via items 1-2 above.
+- **Status after this session's investigation: still OPEN, root cause not conclusively identified.**
+  The contradiction (code+schema+adapter proven correct in isolation, yet the live container gets a
+  clean empty result for a row that demonstrably exists) points at something in the live container's
+  actual runtime environment or connection behavior that isn't reproducible from outside — most
+  likely something PgBouncer/pooling-related specific to `DATABASE_URL`'s pooled connection string
+  (Prisma's own documented `pgbouncer=true` connection-string parameter for transaction-mode pooling
+  is one candidate worth checking, though this wouldn't typically explain a clean silent miss rather
+  than an error) — but this is NOT confirmed, only the most plausible remaining candidate. Needs
+  Davin's own Railway project/dashboard access (comparing the real `DATABASE_URL` value against the
+  monolith's own production connection string beyond just the hostname, or attaching to the live
+  container directly) to go further; this environment has exhausted its available diagnostic paths.
 - Impact if not resolved before the flag flip: every NEW user who registers through the bridge
   (100% of new signups, the moment `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED=true` goes live) would be unable
   to use ANY `/user/*` feature — profile, 2FA setup, sessions list, preferences, account deletion —

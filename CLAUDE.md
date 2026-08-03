@@ -96,6 +96,18 @@ use-realtime-socket.ts`) — approved for inclusion; a third, `hooks/use-auth.ts
   place, not deleted. **This session is not closed** — once F58 is resolved (most likely: Davin
   checks operation-service's Railway deployment status/logs directly and redeploys if stale), the
   remaining 6 Checklist steps continue in this same order, same session.
+  **Update, same day:** Davin had `operation-service` redeployed (`railway up --path-as-root
+--service operation-service`, deployment `e6d716ac-...`, polled to genuine `latestDeployment.status
+=== SUCCESS`, not the stale top-level field per L38) — **F58 still reproduced identically against
+  the freshly-deployed instance**, ruling out staleness. Further isolation (decoding the raw JWE
+  directly, byte-perfect claim match; instantiating operation-service's own generated Prisma client +
+  adapter locally against the known-good DB, which correctly finds the row with the exact same query
+  shape `UsersService.getProfile()` uses; a value-blind hostname check showing operation-service's
+  real `DATABASE_URL` resolves to the Railway-internal `postgres.railway.internal`) proves the code
+  itself is correct but could not conclusively identify why the LIVE container's own query returns
+  empty for a row that demonstrably exists. **F58 stays OPEN, Steps 3-6 stay BLOCKED** — full
+  evidence chain and remaining hypotheses in `DECISION-LOG.md` F58; this needs Davin's own Railway
+  project/dashboard access to go further, this environment has exhausted its diagnostic options.
 - **Previous:** Session 4B-20 (Auth Cutover BUILD & UI Rewire, PORT/UI-BUILD hybrid), CONFIRMED
   and executed 2026-08-03 — **CLOSED SUCCESSFUL. Zero traffic cutover — `auth-options.ts`/
   `[...nextauth]`/the monolith's own `/api/auth/register` keep serving 100% of real traffic.**
