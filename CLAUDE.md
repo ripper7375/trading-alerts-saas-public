@@ -134,6 +134,22 @@ use-realtime-socket.ts`) — approved for inclusion; a third, `hooks/use-auth.ts
   even though it wasn't the actual fix. **Step 2 now genuinely PASSES. Steps 3-6 are unblocked** —
   proceeding per Davin's own explicit direction to resume them. Full evidence chain in
   `DECISION-LOG.md` F58.
+  **Further post-flip logout hardening (same track, Davin's direct instruction):**
+  `handleLogout` in `components/layout/header.tsx` navigated to `/login` via `router.push`
+  after `token-logout`/`signOut` — client-side SPA navigation, meaning React/`SessionProvider`
+  state and any in-flight cookie header from the just-ended session could still be alive at
+  the moment the next sign-in starts, a plausible vector for NextAuth to attempt OAuth account
+  linking against stale session state. Both `handleLogout` branches (bridge and legacy) now use
+  `window.location.href = '/login'` — a full browser navigation guarantees nothing survives.
+  The now-unused `useRouter` import/call was removed. No other `handleLogout`-shaped function
+  exists in the live app (`hooks/use-auth.ts`'s `logout` is confirmed dead code, untouched per
+  standing note above; `app/admin/login/page.tsx`'s `signOut` call is an unauthorized-role
+  forced-logout on the login page itself, not this pattern; `frontend/`'s mirror is out of
+  scope per `EXECUTOR-PROTOCOL.md` §5). Verified: `tsc --noEmit` clean, `eslint
+components/layout/header.tsx --max-warnings 0` clean, full `test:ci` 129/129 suites, 2191/2191
+  tests. Commit `160b4935`, pushed to `origin/main`, Vercel auto-deployed clean
+  (`dpl_FREJXM2f72YN8tspbvahtSQzzWpp`, aliased to `trading-alerts-saas-frontend.vercel.app`,
+  live `200`).
 - **Previous:** Session 4B-20 (Auth Cutover BUILD & UI Rewire, PORT/UI-BUILD hybrid), CONFIRMED
   and executed 2026-08-03 — **CLOSED SUCCESSFUL. Zero traffic cutover — `auth-options.ts`/
   `[...nextauth]`/the monolith's own `/api/auth/register` keep serving 100% of real traffic.**
