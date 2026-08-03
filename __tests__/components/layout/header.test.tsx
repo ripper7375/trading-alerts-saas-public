@@ -267,6 +267,14 @@ describe('Header Component', () => {
     it('should have the auth bridge flag mock available', () => {
       expect(mockIsAuthBridgeEnabled).toBeDefined();
     });
+
+    // Davin's explicit direction: the bridge logout path also calls
+    // signOut({redirect:false}) alongside token-logout, so next-auth/react's
+    // own SessionProvider state is purged via its native path too, not just
+    // the getSession() refetch.
+    it('should have signOut mock available for the bridge logout path too', () => {
+      expect(mockSignOut).toBeDefined();
+    });
   });
 
   // ============================================================================

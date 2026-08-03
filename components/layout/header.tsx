@@ -68,12 +68,16 @@ export function Header({ user }: HeaderProps): React.ReactElement {
   const handleLogout = async (): Promise<void> => {
     if (isAuthBridgeEnabled()) {
       // Bridge path (Session 4B-21, DECISION-LOG.md F56/F57): token-logout
-      // clears the shared session cookie server-side without going through
-      // NextAuth's own signOut() flow. A forced getSession() refresh (which
-      // will now resolve to null) is what tells every useSession() consumer
-      // app-wide the user is logged out — the same mechanism the bridge
-      // login path uses in reverse (Entry Criterion 1).
+      // clears the shared session cookie server-side. signOut({redirect:
+      // false}) is ALSO called alongside it (Davin's explicit direction) so
+      // next-auth/react's own SessionProvider state is purged via its own
+      // native path too, not just the getSession() refetch — belt-and-
+      // suspenders against any stale internal NextAuth client state before a
+      // user switches to a different OAuth provider. OAuth's own
+      // [...nextauth] route stays live (Option B, F56), so this call
+      // continues to resolve normally.
       await fetch('/api/auth/token-logout', { method: 'POST' });
+      await signOut({ redirect: false });
       await getSession();
       router.push('/login');
       return;
