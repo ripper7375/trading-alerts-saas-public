@@ -3624,6 +3624,21 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   not a repair of the existing damage) — worth a future pass finding and re-typing the corrupted
   spans from the original session transcripts/commits if the lost characters matter, or just
   accepting the cosmetic loss (no factual content appears lost, only em-dash-style punctuation).
+- **(104, RESOLVED — Session 4B-19, 2026-08-03, the largest occurrence of the `LESSONS-LEARNED.md`
+  L38 class found so far)** At this session's own `git push`, found local `main` was **62 commits**
+  ahead of `origin/main` — `origin/main`'s `HEAD` sat frozen at the Session 4B-8 close-out commit
+  (`9b800da4`, 2026-08-02 06:46 UTC+7). Every commit from Sessions 4B-9 through this session's own
+  4B-19 close (4B-9, 4B-10, 4B-11, 4B-12, 4B-17, 4B-18, 4B-18b, 4B-18c, 4B-18d, 4B-19 — spanning
+  over a day of real, CONFIRMED, executed migration work) had never reached GitHub. Confirmed clean
+  fast-forward before pushing (`git rev-list --count main..origin/main` = 0, no divergence) —
+  pushed (`9b800da4..9e5ffa2d`), full pre-push validation suite ran clean (type-check, lint,
+  123/123 suites/2157/2157 tests) before the push completed. **Not fully investigated: whether any
+  of those sessions' own monolith deploys used `vercel --prod --archive=tgz --yes` directly
+  (bypassing git, per L36) and are therefore already live in production regardless of this gap, or
+  whether some genuinely relied on git-push-triggered auto-deploy and have been running STALE code
+  in production this whole time.** This push itself will trigger a fresh Vercel deployment from
+  the now-current `origin/main` regardless — worth Davin spot-checking the resulting deployment
+  once it completes, same as any other monolith redeploy.
 - **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
   2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
   **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:
