@@ -26,7 +26,79 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-18b (Realtime CORS Origin Fix & Live Verification, PORT variant),
+- **Current:** Session 4B-18c (Realtime CSP `connect-src` Fix & Live Verification, PORT variant),
+  CONFIRMED and executed 2026-08-03 — **F54 genuinely fixed and independently proven at the
+  transport level for the first time in this 3-session arc, but the live smoke test's overall
+  pass condition still failed on a NEW, third root cause (F55). Session does NOT close as
+  successful.**
+  CONFIRM found the order file modified-but-uncommitted again (`PRE-DRAFT → APPROVED`, status/
+  Generated-line only — the by-now-familiar `LESSONS-LEARNED.md` L11 pattern, 11th+ recurrence) —
+  reported before proceeding; Davin confirmed live it was Antigravity Advisor's own authentic
+  edit. All 3 entry criteria independently re-verified live and PASSED with zero drift: `next
+.config.js`'s CSP `connect-src` unchanged since 4B-18b's close (`git log` shows nothing since a
+  pre-4B-17 Phase-5 commit); `operation-service`'s live URL confirmed still `https://operation-
+service-production.up.railway.app` (`railway service list --json`, status `SUCCESS`, plus a live
+  `curl .../health` → `200`); `DECISION-LOG.md` F53 RESOLVED / F54 OPEN as expected. Davin gave
+  live GO.
+  **Built (File 1/1, one commit):** added BOTH `https://` and `wss://operation-service-production
+.up.railway.app` to `next.config.js`'s `connect-src` directive (both schemes needed —
+  `hooks/use-realtime-socket.ts` configures `transports: ['websocket', 'polling']`, polling needs
+  `https://`, the WS upgrade needs `wss://`) and removed the confirmed-dead `wss://*.pusher.com`
+  entry, approved live by Davin per the order's own "ask, don't assume" rule. `tsc --noEmit`/
+  `eslint --max-warnings 0`/`next build` all clean. Deployed via `vercel --prod --archive=tgz
+--yes` (`dpl_ELhtB77VKv79D7CAvndbBBNXSmp9`, aliased to production); live CSP header independently
+  re-verified via `curl -I` to genuinely include both new entries post-deploy, not just trusted
+  from the source diff.
+  **F54 independently proven fixed, beyond the order's own minimum:** Davin's live browser smoke
+  test showed a genuine `GET .../socket.io/?EIO=4&transport=websocket` request completing with
+  **`101 Switching Protocols`** in DevTools' native WS-filtered Network view — direct transport-
+  level proof, for the first time in this arc, that a real cross-origin browser can both attempt
+  AND complete the WS handshake (both F53's CORS fix and F54's CSP fix are now independently
+  confirmed correct). `operation-service`'s own live application logs cross-check this: the real
+  user (`cmsa5a8pa0001d8v2ikyfm5h5`) shows repeated genuine `RealtimeGateway.handleConnection`
+  JWE-auth successes, timestamp-correlated to Davin's test window.
+  **Two rounds of live misdirection resolved before reaching that conclusion, both disclosed in
+  full rather than silently worked around:** Davin's first re-test reported the OLD symptom
+  (repeating connect errors) gone, but ALSO reported apparently zero network activity to
+  operation-service at all (via the Resource Timing API) and the connection indicator staying red.
+  Diagnosed live and read-only (zero code changed): confirmed `OPERATION_SERVICE_URL` genuinely SET
+  on Vercel production (ruling out the `?? 'http://localhost:3001'` fallback theory) — though
+  Vercel marks the value `[SENSITIVE]`/write-only via CLI, so Davin read the non-secret `url` field
+  himself via a `fetch()` in his own authenticated console and confirmed it byte-correct. Then
+  flagged that the Resource Timing API is known NOT to reliably capture native WebSocket handshakes
+  (a real, documented browser-API gap, distinct from DevTools' own dedicated "WS" row filter) —
+  asked Davin to re-check via that specific UI filter instead, which surfaced the real `101`
+  handshake row: the "zero activity" finding was a diagnostic-method artifact, not a true zero.
+  **A genuinely NEW, third root cause found via further read-only diagnosis (no code changed),
+  per this arc's own "escalate with new evidence, don't speculative-fix" rule:** pulled
+  `operation-service`'s live application logs for Davin's test window (`~02:55-03:44 UTC`) and
+  found the same real user authenticating via 15+ DISTINCT socket IDs in that ~50-minute span,
+  each disconnecting shortly after (several gaps clustering suspiciously close to Socket.IO's
+  default 25s `pingInterval`/20s `pingTimeout` keep-alive cycle) then reconnecting — a genuine
+  repeated connect→authenticate→disconnect→reconnect loop, not a single stable connection. Read
+  `realtime.gateway.ts`'s `handleConnection`/`handleDisconnect` in full (read-only, on this order's
+  own explicit do-not-touch list): confirmed `client.emit('authenticated', ...)` IS correctly
+  called on the success path (not a missing-emit bug) and neither method explicitly disconnects a
+  successfully authenticated client — the cause is elsewhere (hypothesis: a Railway proxy/idle-
+  timeout interaction with Socket.IO's ping/pong cycle, NOT confirmed, only well-evidenced).
+  Separately noted: `handleDisconnect`'s own signature doesn't capture Socket.IO's disconnect
+  `reason` string at all, a diagnostic gap worth closing in the fix session.
+  **New `DECISION-LOG.md` F55** (OPEN) — full evidence chain, carries forward to a genuinely NEW,
+  investigation-shaped session (not another tiny PORT fix), per this order's own explicit
+  instruction that a third distinct root cause is a strong signal for broader scope.
+  **Not fixed this session, deliberately** — `realtime.gateway.ts` and `hooks/use-realtime-
+socket.ts` both read-only; zero bytes changed in operation-service or in either client-side file.
+  **F53 and F54 both stay RESOLVED** (independently proven at the transport level, for real, for
+  the first time) **but F8/Slice-6 realtime delivery is still NOT live in production** — blocked
+  on F55, carried to `4b-18d-realtime-reconnect-loop-investigation.migration-order.md` (PRE-DRAFTed
+  this session's close).
+  **Artifacts updated:** `4b-18c-realtime-csp-connect-src-fix.migration-order.md` (Status →
+  CONFIRMED, Done-when checked with the honest partial-pass framing, Deviations filled in full — 5
+  entries, explicitly NOT marked closed-successful), `DECISION-LOG.md` (F54 → RESOLVED with full
+  verification evidence, new F55 OPEN with full root-cause chain), this file. New
+  `4b-18d-realtime-reconnect-loop-investigation.migration-order.md` PRE-DRAFTed (investigation-
+  shaped, not a PORT template) — carries F55 forward as its own entry criterion.
+- **Previous:** Session 4B-18b (Realtime CORS Origin Fix & Live Verification, PORT variant),
   CONFIRMED and executed 2026-08-03 — **F53 genuinely fixed and verified, but the live browser
   smoke test still FAILED on a NEW, distinct root cause. Session does NOT close as successful.**
   CONFIRM found the order modified-but-uncommitted (`PRE-DRAFT → APPROVED`, no visible
@@ -3337,6 +3409,28 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   PRE-DRAFTed (PORT, tiny scope) — add operation-service's origin to `connect-src` and re-run this
   exact smoke test again. Do not consider F8/Slice-6-realtime-delivery live in production until
   THAT session's own live proof actually passes.
+- **(100, NEW — CRITICAL, blocks 4B-18d's own live proof — Session 4B-18c, 2026-08-03)** F54
+  (above) is now genuinely fixed and independently proven at the transport level — a real
+  `GET .../socket.io/?EIO=4&transport=websocket` request completed with `101 Switching Protocols`
+  in DevTools' native WS-filtered view (only after ruling out a Resource Timing API false negative
+  that initially made it look like zero connection attempts were happening at all), and
+  `operation-service`'s own live logs show the real user's `RealtimeGateway.handleConnection` JWE
+  auth genuinely succeeding, repeatedly, timestamp-correlated to the test. Davin's live smoke test
+  still did not fully pass: `DECISION-LOG.md` **F55** — the same real user authenticated via 15+
+  DISTINCT socket IDs across a ~50-minute window, each disconnecting shortly after (several gaps
+  clustering suspiciously close to Socket.IO's default 25s `pingInterval`/20s `pingTimeout`
+  keep-alive cycle) then reconnecting — a genuine repeated connect→auth→disconnect→reconnect loop,
+  not a stable connection. Read `realtime.gateway.ts`'s `handleConnection`/`handleDisconnect` in
+  full (read-only): `client.emit('authenticated', ...)` IS correctly called on the success path
+  (not a missing-emit bug), and neither method explicitly disconnects a successfully authenticated
+  client — the real cause is still unconfirmed (leading hypothesis: a Railway proxy/idle-timeout
+  interaction with Socket.IO's own ping/pong cycle, not yet proven). Also found:
+  `handleDisconnect`'s own signature doesn't capture Socket.IO's disconnect `reason` string at all
+  — a diagnostic gap worth closing in the fix session, so the next investigation isn't flying as
+  blind. New `4b-18d-realtime-reconnect-loop-investigation.migration-order.md` PRE-DRAFTed
+  (investigation-shaped, not a tiny PORT template) — carries F55 forward as its own entry
+  criterion. Do not consider F8/Slice-6-realtime-delivery live in production until THAT session's
+  own live proof actually passes cleanly (stays connected, delivers a real alert-fire event pair).
 - **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
   2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
   **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:
@@ -3409,12 +3503,23 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   not successful** (2026-08-03 — see Current above for full detail). F53 itself is genuinely fixed
   and independently verified; Davin's re-run of the identical live browser smoke test still FAILED
   on a NEW, distinct root cause (`DECISION-LOG.md` **F54** — the monolith's CSP `connect-src` never
-  included operation-service's origin). **The actual next session overall is now 4B-18c**
-  (`4b-18c-realtime-csp-connect-src-fix.migration-order.md`, PRE-DRAFTed at 4B-18b's close, PORT
-  variant, tiny scope) — add operation-service's origin to `connect-src` and re-run this exact
-  smoke test a third time. Do not treat F8/realtime delivery as live in production, and do not
-  proceed to 4B-19, until 4B-18c's own live proof actually passes. After that: 4B-19 (email
-  rendering port) → 4B-20/21 (auth cutover, LAST) → 4B-22 (Phase 4 exit review) is the session
+  included operation-service's origin).
+  **Session 4B-18c (Realtime CSP `connect-src` Fix) is now CONFIRMED and executed, but ALSO CLOSED
+  RED, not successful** (2026-08-03 — see Current above for full detail). F54 itself is genuinely
+  fixed and independently proven at the transport level for the first time in this arc (a real
+  `101 Switching Protocols` WS handshake, real server-side JWE auth success) — both F53 and F54 are
+  now confirmed correct. Davin's re-run of the same live browser smoke test still did not fully
+  pass: the connection authenticates then repeatedly disconnects/reconnects in a loop, never
+  stably "connected" (`DECISION-LOG.md` **F55**, new). **The actual next session overall is now
+  4B-18d** (`4b-18d-realtime-reconnect-loop-investigation.migration-order.md`, PRE-DRAFTed at
+  4B-18c's close, investigation-shaped — NOT a tiny PORT template, per this arc's own explicit
+  "a third distinct root cause needs broader scope" instruction) — carries F55's full evidence
+  chain (Railway log timestamps, the ~25-30s pingInterval/pingTimeout clustering hypothesis, the
+  missing disconnect-`reason` diagnostic gap) forward as its own entry criterion. Do not treat
+  F8/realtime delivery as live in production, and do not proceed to 4B-19, until a session in this
+  arc's own live proof actually passes cleanly (transport connects AND stays connected AND
+  delivers a real alert-fire event pair). After that: 4B-19 (email rendering port) → 4B-20/21
+  (auth cutover, LAST) → 4B-22 (Phase 4 exit review) is the session
   playbook's own remaining Phase 4B order.
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
@@ -3593,11 +3698,17 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   market-tick scope, short-lived ticket auth, split decision session) recorded in
   `DECISION-LOG.md` alongside the winner. **The build/decision is sound but F8's live-production
   proof is still not achieved** — 4B-18's live smoke test found F53 (CORS `origin` array-vs-
-  wildcard bug), fixed and verified RESOLVED at Session 4B-18b; that same session's smoke-test
-  re-run then found F54 (CSP `connect-src` missing operation-service's origin), still OPEN — see
-  `DECISION-LOG.md` for both · **F53 fully RESOLVED (Session 4B-18b, 2026-08-03)** · **F54 OPEN
-  (registered Session 4B-18b, 2026-08-03)** — monolith CSP `connect-src` gap, due before
-  4B-18c's own live proof can pass ·
+  wildcard bug), fixed and verified RESOLVED at Session 4B-18b; that session's own smoke-test
+  re-run then found F54 (CSP `connect-src` missing operation-service's origin), fixed and
+  independently proven RESOLVED at Session 4B-18c via a real `101 Switching Protocols` WS
+  handshake; THAT same session's smoke-test re-run then found F55 (the connection authenticates
+  server-side but repeatedly disconnects/reconnects in a loop, never stably "connected"), still
+  OPEN — see `DECISION-LOG.md` for all three · **F53 fully RESOLVED (Session 4B-18b, 2026-08-03)**
+  · **F54 fully RESOLVED (Session 4B-18c, 2026-08-03)** — both CORS and CSP now independently
+  proven correct at the transport level, for the first time in this arc · **F55 OPEN (registered
+  Session 4B-18c, 2026-08-03)** — realtime WS reconnect-loop, needs a dedicated investigation
+  session (`4b-18d-realtime-reconnect-loop-investigation.migration-order.md`, PRE-DRAFTed), due
+  before F8/Slice-6 realtime delivery can be considered live in production ·
   F11–F12 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents

@@ -185,6 +185,27 @@ verification method that can prove a cross-origin browser-initiated connection a
 protocol-level or server-log check, however thorough, substitutes for it." Full detail in
 `4b-18b-realtime-cors-origin-fix.migration-order.md`'s own Deviations and `DECISION-LOG.md` F53/F54.
 
+**One more candidate from Session 4B-18c's close (2026-08-03), not promoted, described here for
+the next consolidation pass — two more, in the same live smoke test:** (1) the browser's own
+**Resource Timing API** (`performance.getEntriesByType('resource')`) does not reliably capture
+native **WebSocket** handshake connections in most Chromium versions — a check using it reported
+"zero network activity" to operation-service's origin, which read as a genuine new blocker, until
+DevTools' own dedicated **"WS"/"Socket" row filter** (a different, more reliable surface) showed a
+real `101 Switching Protocols` row the whole time. Worth a rule along the lines of "never trust a
+Resource-Timing-API-based 'zero requests' finding for a WebSocket-specific claim — re-check via
+the Network panel's native WS filter before treating it as a real absence." (2) A server log line
+proving an application-level event succeeded (here, `RealtimeGateway.handleConnection` logging
+"Client X authenticated as user Y", immediately after a real `client.emit('authenticated', ...)`
+call) proves that ONE request/connection instance succeeded — it does not prove the connection
+STAYED open or usable. This session found the same real user re-authenticating via 15+ distinct
+socket IDs across ~50 minutes, each disconnecting shortly after — genuine repeated success events
+that, read in isolation without comparing their own timestamps against each other, could easily
+be mistaken for one healthy connection rather than a reconnect loop. Worth a rule along the lines
+of "when a log shows repeated success events for the same logical entity (same user/session), diff
+their own timestamps against each other before concluding health — a cluster of short-lived
+successes is a strong signal of a connect/disconnect loop, not proof of stability." Full detail in
+`4b-18c-realtime-csp-connect-src-fix.migration-order.md`'s own Deviations and `DECISION-LOG.md` F55.
+
 ---
 
 ## Active lessons
