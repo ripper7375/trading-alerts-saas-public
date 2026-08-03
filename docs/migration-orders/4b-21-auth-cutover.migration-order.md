@@ -202,7 +202,18 @@ ENABLED` added to Vercel production (`vercel env add`, value-blind re-verified p
     (L36) redeployed clean — `dpl_7TigfKa65wsyJhLfS84iGGm8Y4n3`, `readyState: READY`, aliased to
     the real production URL. Live-verified: `/login` → 200, `/dashboard` (unauthenticated) → 307
     redirect (unchanged, auth gate still correct), homepage → 200.
-11. **Step 5 (Davin's own live browser smoke test) — handed off, awaiting his report.** Per the
+11. **Post-flip hardening, Davin's own explicit direction, before Step 5's live test:**
+    `handleLogout`'s bridge branch (`header.tsx`) now also calls `signOut({redirect: false})`
+    alongside `token-logout`, purging `next-auth/react`'s own `SessionProvider` state via its
+    native path in addition to the existing `getSession()` refetch — defense-in-depth against any
+    stale internal NextAuth client state before switching to a different OAuth provider (both
+    mechanisms use the same underlying broadcast, so this is additive redundancy, not a fix for a
+    proven gap). `app/admin/login/page.tsx`'s non-admin revert branch deliberately left unchanged
+    — not a `handleLogout` function, and it never calls `getSession()` after its own bridge login
+    either, so there's no client-side cache state to purge there. Full suite 129/129 suites,
+    2191/2191 tests (+1). Redeployed clean — `dpl_8VSYv7PD3PxcWwt3QiHFBhipFAk1`, `READY`,
+    live-verified (`/login` → 200, `/dashboard` unauthenticated → 307).
+12. **Step 5 (Davin's own live browser smoke test) — handed off, awaiting his report.** Per the
     order's own Rule, any red result here means abort and revert
     (`NEXT_PUBLIC_AUTH_BRIDGE_ENABLED=false` + redeploy) — do not proceed to Step 6 until this
     passes clean.
