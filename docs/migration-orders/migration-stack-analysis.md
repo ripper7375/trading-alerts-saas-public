@@ -2791,8 +2791,44 @@ deployment this session, every flag combination tried returned empty).
 
 </details>
 
+<details>
+<summary><code>lib/email/*</code>, <code>emails/</code> — 10 files deleted, 1 file trimmed
+(Session 4B-19, Email Rendering Port Audit & Verification, PORT/VERIFY-RETIRE Option A)</summary>
+
+VERIFY-RETIRE-shaped close (Option A selected by Davin over porting the dead code or skipping the
+session). Audit found the live, real email-sending infrastructure was already fully ported to
+`operation-service` in Sessions 3-4 (`email.util.ts`, F29) and 4A-11 (`subscription-email.util.ts`,
+5 of 7 email types) — nothing left to genuinely PORT. What remained in the monolith was dead or
+never-finished code:
+
+- **Deleted:** `emails/index.ts`, `emails/payment-confirmation.tsx`, `emails/payment-failure.tsx`,
+  `emails/renewal-reminder.tsx`, `emails/subscription-expired.tsx` — React Email components for a
+  dLocal-payment-flow email feature that was built but never wired to any real caller (zero
+  consumers anywhere in `app/`, `lib/`, `components/`).
+- **Deleted:** `lib/email/templates/affiliate/{welcome,code-distributed,code-used,
+monthly-report,payment-processed}.tsx` — React Email components for an affiliate-notification
+  feature that was also built but never finished; the only reference anywhere was a single
+  commented-out call in `lib/affiliate/registration.ts:124`.
+- **Trimmed (not deleted):** `lib/email/subscription-emails.ts` (865→612 lines) — removed
+  `getUpgradeEmailTemplate`/`sendUpgradeEmail` and `getRenewalReminderEmailTemplate`/
+  `sendRenewalReminderEmail` (zero callers anywhere, confirmed dead). The file's other 5
+  functions stay — still imported by `app/api/subscription/cancel/route.ts` and
+  `lib/stripe/webhook-handlers.ts`.
+
+Test suites: `operation-service` 42/42 (unchanged, not touched). Monolith `test:ci` 123/123
+suites, 2157/2157 tests (unchanged from 4B-18d's baseline, zero regressions); `tsc --noEmit`
+clean, `eslint --max-warnings 0` clean.
+
+Note: the file-inventory table/lists compiled 2026-07-08 (e.g. the `emails/*.tsx` row and the
+`lib/email/templates/affiliate/*` list further up this document) were not edited in place to
+remove these now-deleted paths — consistent with this document's own "regenerate via the
+categorization script" note and every prior session's practice of appending a new `<details>`
+block rather than hand-editing the original compiled inventory.
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-02 (Session 4B-17, Realtime/Websocket Decision &
-Build, F8)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-03 (Session 4B-19, Email Rendering Port Audit &
+Verification, Option A)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

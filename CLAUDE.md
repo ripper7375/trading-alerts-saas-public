@@ -26,7 +26,62 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4B-18d (Realtime Reconnect Loop Investigation & Fix, CONTRACT/INFRA
+- **Current:** Session 4B-19 (Email Rendering Port Audit & Verification, PORT/VERIFY-RETIRE
+  variant, Option A), CONFIRMED and executed 2026-08-03 — **CLOSED SUCCESSFUL, one commit, zero
+  flags touched, zero test regressions.**
+  CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern once more (order file
+  modified-but-uncommitted, `PRE-DRAFT → APPROVED` with Option A selected in the header, no
+  visible Advisor→Davin approval commit trail) — this time fully benign: the entire body (all 4
+  Background findings, Entry Criteria, File Port Order, Rules, Slice-level verification,
+  Next-session handoff) diffed byte-identical to the committed PRE-DRAFT, only the header metadata
+  changed. Reported before proceeding; Davin confirmed live it was Antigravity Advisor's own
+  authentic edit.
+  **Independently re-verified all 4 of the PRE-DRAFT's own Background findings against live code
+  before trusting them** (not assumed from the order's prose): (1) `lib/email/email.ts` (984
+  lines) is genuinely fully ported — diffed exported function names against
+  `operation-service/src/email/email.util.ts` and confirmed all 24 functions match, same names,
+  same order; (2) `lib/email/subscription-emails.ts` (865 lines) genuinely has 5 of its email
+  types already ported to `operation-service/src/email/subscription-email.util.ts` (588 lines:
+  cancellation, payment-failed, payment-receipt, subscription-canceled, affiliate-commission) —
+  confirmed `getUpgradeEmailTemplate`/`sendUpgradeEmail` and
+  `getRenewalReminderEmailTemplate`/`sendRenewalReminderEmail` have zero callers anywhere in
+  `app/`, `lib/`, `components/` (self-referential only), and confirmed the file's other 5
+  functions are still genuinely live (imported by `app/api/subscription/cancel/route.ts` and
+  `lib/stripe/webhook-handlers.ts`) — retirement correctly scoped to just the 2 dead functions.
+  Found one immaterial citation slip: the order said "5 of 8 functions," the file actually defines
+  7 email-type pairs (14 exports), not 8. (3) `emails/*.tsx` (4 React Email components + barrel,
+  908 lines) — confirmed zero real imports anywhere in `app/`, `lib/`, `components/`, despite
+  `emails/index.ts`'s own header claiming a dLocal-payment-flow purpose. (4) `lib/email/templates/
+affiliate/*.tsx` (5 React Email components, 1087 lines) — confirmed the only reference anywhere
+  in real code is one commented-out line, `lib/affiliate/registration.ts:124`; no `send*Email`
+  wrapper was ever built for any of the 5 templates. All 4 findings held with zero drift since the
+  2026-08-03 drafting; Davin gave live GO to execute under Option A.
+  **Executed (one commit, per the order's own explicit "if Option A... one commit" rule):**
+  removed `getUpgradeEmailTemplate`/`sendUpgradeEmail`/`getRenewalReminderEmailTemplate`/
+  `sendRenewalReminderEmail` from `lib/email/subscription-emails.ts` (865→612 lines, via a small
+  scripted line-range deletion rather than hand-built `Edit` matches, given the functions are
+  large raw-HTML-string template literals — script deleted after use, zero repo residue); deleted
+  all 10 dead files via `git rm -r` (`emails/{index.ts,payment-confirmation,payment-failure,
+renewal-reminder,subscription-expired}.tsx` + `lib/email/templates/affiliate/{welcome,
+code-distributed,code-used,monthly-report,payment-processed}.tsx` — `lib/email/templates/` is
+  now gone entirely, it had no other contents).
+  **Full verification:** `operation-service` 42/42 suites, 380/380 tests (unchanged — this service
+  was not touched); `nest build`/`tsc --noEmit` clean. Monolith `test:ci` 123/123 suites,
+  2157/2157 tests (unchanged from 4B-18d's baseline — zero regressions from the retirement);
+  `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` clean (0 errors/
+  warnings). Confirmed via `git show --stat` that exactly the 12 intended files changed (10
+  deletions + `subscription-emails.ts` + the order file itself) — nothing else touched.
+  **No `DECISION-LOG.md` entry applies** (no F-numbered decision was open or resolved this
+  session — Option A closes a stale playbook-description item against already-completed
+  prior-session work, not an open flag). **No `migration-cutover-table.md` change** (this session
+  touched zero traffic-carrying slices/flags — same precedent as every prior pure
+  audit/hygiene/INFRA session).
+  **Artifacts updated:** `4b-19-email-rendering-port.migration-order.md` (Status → CONFIRMED,
+  Entry criteria + Slice-level verification checked, Deviations filled in full — 5 entries),
+  `migration-stack-analysis.md` (new `<details>` entry for the 10 deleted files + 1 trimmed file),
+  this file. New `4b-20-21-auth-cutover.migration-order.md` PRE-DRAFTed (final Phase 4B domain
+  session per the playbook's own framing, before 4B-22/Phase 4 exit review).
+- **Previous:** Session 4B-18d (Realtime Reconnect Loop Investigation & Fix, CONTRACT/INFRA
   variant), CONFIRMED and executed 2026-08-03 — **CLOSED SUCCESSFUL, closing the 4-session
   F53/F54/F55 arc. F8/Slice-6 realtime delivery is now genuinely live in production for the first
   time.**
@@ -3545,6 +3600,18 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   own dedicated future session, most likely: restart/redeploy `flask-api`, and separately confirm
   whether the `railway-gateway` ingestion pipeline was ever actually pointed at populating
   `market_data_v6` in production (still an open question from Waiting-on #94/#95).
+- **(102, NEW — Session 4B-19, 2026-08-03)** This file's own session-history hygiene rule
+  (`EXECUTOR-PROTOCOL.md` §3: "keep only Current and Previous... mark all older entries with
+  `_(superseded-by-above, retained for context)_`... move every such entry to
+  `history/sessions-archive.md`") has a real backlog — found while updating this session's own
+  Current entry, not fixed here (a large, mechanical, error-prone reorganization across ~3800
+  lines is out of a single audit session's own scope). At least 4 consecutive `**Previous:**`-
+  labeled entries (4B-18d, 4B-18c, 4B-18b, 4B-18) sit above the first `_(superseded-by-above)_`
+  marker (at 4B-17), and similar un-demoted `**Previous:**` entries recur further down (4B-12,
+  4B-9) interspersed with correctly-marked ones — the rotation hasn't been strictly applied for
+  several sessions running. Worth a dedicated cleanup session (or the Advisor) walking the whole
+  file once: keep only the true Current + Previous pair, mark everything else superseded, and
+  move those into `docs/migration-orders/history/sessions-archive.md`.
 - **Next session (Phase 4B track):** 4B-3 (Alert Engine CUTOVER & RETIRE),
   2026-08-01, is CONFIRMED, executed, and fully closed — see Current/Order-status above.
   **Slice 6 is CUT-OVER & LIVE.** The one deliberately-deferred item this track carries forward:
@@ -3638,10 +3705,16 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   **Session 4B-18d (Realtime Reconnect Loop Investigation) is now CONFIRMED, executed, and CLOSED
   SUCCESSFUL** (2026-08-03 — see Current above for full detail). The gate above is cleared: the
   live smoke test passed cleanly for the first time in this 4-session arc (transport connected,
-  stayed connected 1h29min+, delivered both `notification` and `alert_fired` events). **The actual
-  next session overall is now 4B-19** (`4b-19-email-rendering-port.migration-order.md`,
-  PRE-DRAFTed at 4B-18d's close) — email rendering port is next in the session playbook's own
-  remaining Phase 4B order.
+  stayed connected 1h29min+, delivered both `notification` and `alert_fired` events).
+  **Session 4B-19 (Email Rendering Port Audit & Verification, PORT/VERIFY-RETIRE Option A) is now
+  CONFIRMED, executed, and fully closed** (2026-08-03 — see Current above for full detail).
+  Audit found nothing left to genuinely PORT — the live email-sending infrastructure was already
+  fully in `operation-service` (Sessions 3-4/4A-11); retired 2 confirmed-dead functions from
+  `lib/email/subscription-emails.ts` plus 9 never-wired-up `.tsx` template files (`emails/*` +
+  `lib/email/templates/affiliate/*`), one commit, zero flags touched, zero test regressions
+  (monolith 123/123 suites/2157/2157 tests, `operation-service` 42/42/380/380, both unchanged).
+  **The actual next session overall is now 4B-20/21** (Auth cutover, LAST domain session before
+  4B-22/Phase 4 exit review) — PRE-DRAFTed at 4B-19's close.
 - **Next session (other tracks, unaffected by 4B-1):** 4A-12 (Slice 5 cutover) is CONFIRMED, executed, and effectively closed — flag
   live, mechanism proven end-to-end; first real delivery is Waiting-on #78, not a blocker for
   anything else. Three independent tracks are now open; Davin to decide relative ordering.
