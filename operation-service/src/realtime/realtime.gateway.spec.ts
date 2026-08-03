@@ -13,7 +13,7 @@ import type { Server, Socket } from 'socket.io';
 import type { AlertFiredMessage } from '../alert-engine/notify-bridge.service';
 import { RedisService } from '../redis/redis.service';
 
-import { RealtimeGateway } from './realtime.gateway';
+import { RealtimeGateway, resolveRealtimeCorsOrigin } from './realtime.gateway';
 
 jest.mock('../auth/next-auth-jwt.util', () => ({
   decodeNextAuthToken: jest.fn(),
@@ -49,6 +49,57 @@ function makeFakeSocket(
     join: jest.fn().mockResolvedValue(undefined),
   } as unknown as jest.Mocked<Socket>;
 }
+
+describe('resolveRealtimeCorsOrigin (F53 fix)', () => {
+  const originalAllowedOrigins = process.env['ALLOWED_ORIGINS'];
+
+  afterEach(() => {
+    if (originalAllowedOrigins === undefined) {
+      delete process.env['ALLOWED_ORIGINS'];
+    } else {
+      process.env['ALLOWED_ORIGINS'] = originalAllowedOrigins;
+    }
+  });
+
+  it('returns the bare string "*" when ALLOWED_ORIGINS is unset', () => {
+    delete process.env['ALLOWED_ORIGINS'];
+
+    const origin = resolveRealtimeCorsOrigin();
+
+    expect(origin).toBe('*');
+    expect(Array.isArray(origin)).toBe(false);
+  });
+
+  it('returns the bare string "*" when ALLOWED_ORIGINS is literally "*"', () => {
+    process.env['ALLOWED_ORIGINS'] = '*';
+
+    const origin = resolveRealtimeCorsOrigin();
+
+    expect(origin).toBe('*');
+    expect(Array.isArray(origin)).toBe(false);
+  });
+
+  it('returns the split array for a real explicit comma-separated allow-list', () => {
+    process.env['ALLOWED_ORIGINS'] =
+      'https://trading-alerts-saas-frontend.vercel.app,https://staging.example.com';
+
+    const origin = resolveRealtimeCorsOrigin();
+
+    expect(origin).toEqual([
+      'https://trading-alerts-saas-frontend.vercel.app',
+      'https://staging.example.com',
+    ]);
+  });
+
+  it('returns a single-element array for one explicit origin (not the wildcard)', () => {
+    process.env['ALLOWED_ORIGINS'] =
+      'https://trading-alerts-saas-frontend.vercel.app';
+
+    const origin = resolveRealtimeCorsOrigin();
+
+    expect(origin).toEqual(['https://trading-alerts-saas-frontend.vercel.app']);
+  });
+});
 
 describe('RealtimeGateway', () => {
   const originalSecret = process.env['NEXTAUTH_SECRET'];

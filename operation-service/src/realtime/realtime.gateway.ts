@@ -20,6 +20,23 @@ import { RedisService } from '../redis/redis.service';
 const ALERTS_FIRED_CHANNEL = 'alerts:fired';
 
 /**
+ * Derives the `cors.origin` option from `ALLOWED_ORIGINS` (F53 fix).
+ *
+ * `'*'.split(',')` always produces the array `['*']`, never the bare string
+ * `'*'` — and the underlying `cors` package only treats the origin as
+ * "allow any" when it is EXACTLY the bare string `'*'` (or falsy); an array
+ * falls through to an exact per-element match against the browser's real
+ * `Origin` header, which never literally equals `'*'`. That silently
+ * rejected every real cross-origin browser connection in production (see
+ * `DECISION-LOG.md` F53). Only a real, explicit comma-separated allow-list
+ * should ever become an array.
+ */
+export function resolveRealtimeCorsOrigin(): string | string[] {
+  const raw = process.env['ALLOWED_ORIGINS'] ?? '*';
+  return raw === '*' ? raw : raw.split(',');
+}
+
+/**
  * Realtime delivery gateway (F8, Session 4B-17) — the browser-facing half of
  * the alert-fired pipeline. `NotifyBridgeService` (Session 4B-2/3) publishes
  * to Redis `alerts:fired`; this gateway is the subscriber half, re-emitting
@@ -35,7 +52,7 @@ const ALERTS_FIRED_CHANNEL = 'alerts:fired';
  */
 @WebSocketGateway({
   cors: {
-    origin: (process.env['ALLOWED_ORIGINS'] ?? '*').split(','),
+    origin: resolveRealtimeCorsOrigin(),
     credentials: true,
   },
 })
