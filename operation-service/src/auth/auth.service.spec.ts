@@ -5,6 +5,18 @@ import jwt from 'jsonwebtoken';
 
 import { PrismaService } from '../prisma/prisma.service';
 
+// Session 4B-20: register() now sends the verification email (Deviation 2 —
+// closes a gap left open since Session 3-2). Mocked the same way
+// auth.service.email-flows.spec.ts already mocks this module, so register()'s
+// tests don't make a real network call.
+jest.mock('../email/email.util', () => ({
+  sendPasswordResetEmail: jest.fn().mockResolvedValue({ success: true }),
+  sendVerificationEmail: jest.fn().mockResolvedValue({ success: true }),
+  sendWelcomeEmail: jest.fn().mockResolvedValue({ success: true }),
+}));
+
+import { sendVerificationEmail } from '../email/email.util';
+
 import { AuthService } from './auth.service';
 import {
   AccountExistsError,
@@ -66,6 +78,7 @@ describe('AuthService', () => {
   let service: AuthService;
 
   beforeEach(() => {
+    jest.clearAllMocks();
     process.env['NEXTAUTH_SECRET'] = TEST_SECRET;
     prisma = {
       user: { findUnique: jest.fn(), create: jest.fn() },
@@ -128,6 +141,11 @@ describe('AuthService', () => {
         message: expect.stringContaining('check your email'),
         autoVerified: false,
       });
+      expect(sendVerificationEmail).toHaveBeenCalledWith(
+        'bob@example.com',
+        'Bob',
+        createArgs.data.verificationToken
+      );
     });
 
     it('auto-verifies in development (matches app/api/auth/register behavior)', async () => {
@@ -143,6 +161,31 @@ describe('AuthService', () => {
       expect(createArgs.data.emailVerified).toEqual(expect.any(Date));
       expect(createArgs.data.verificationToken).toBeNull();
       expect(result.autoVerified).toBe(true);
+      expect(sendVerificationEmail).not.toHaveBeenCalled();
+    });
+
+    it('logs but does not fail registration when the verification email fails to send (Deviation 2, matches SOURCE non-fatal handling)', async () => {
+      process.env['NODE_ENV'] = 'production';
+      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.create.mockImplementation(({ data }) =>
+        Promise.resolve({ id: 'new-user', ...data })
+      );
+      (sendVerificationEmail as jest.Mock).mockResolvedValueOnce({
+        success: false,
+        error: 'Resend API down',
+      });
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined);
+
+      const result = await service.register('dave@example.com', 'Sup3r$ecret');
+
+      expect(result.userId).toBe('new-user');
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[AuthService.register] Failed to send verification email:',
+        'Resend API down'
+      );
+      consoleErrorSpy.mockRestore();
     });
   });
 

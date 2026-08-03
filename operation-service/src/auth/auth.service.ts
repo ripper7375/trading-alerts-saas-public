@@ -72,12 +72,16 @@ export class AuthService {
 
   /**
    * Ported from app/api/auth/register/route.ts (Session 3-2 finding — the
-   * real SOURCE for this behavior, not lib/auth/*; see Deviations). Not
-   * ported: actual email sending (lib/email/email.ts, a Resend/Next.js-only
-   * integration, never in this order's file inventory) — the verification
-   * token is generated and stored identically, but no email goes out yet.
-   * Documented gap, not a silent skip (see Deviations) — this endpoint is
-   * additive/not-yet-live this session anyway (Session 3-3 wires it up).
+   * real SOURCE for this behavior, not lib/auth/*; see Deviations).
+   * Session 4B-20 closed a gap left open since Session 3-2 (this method's
+   * own prior comment: "no email goes out yet... Session 3-3 wires it up" —
+   * 3-3 built login/refresh/logout instead, F27 correctly deferred
+   * /auth/register routing until email-sending was ported, and nothing
+   * revisited this specific method since): sendVerificationEmail() is now
+   * called on the non-auto-verify path, matching SOURCE's own non-fatal
+   * handling (log and continue, never fail the registration itself if the
+   * email fails to send) — same call shape resendVerification() below
+   * already uses for the identical email.
    */
   async register(
     email: string,
@@ -107,6 +111,20 @@ export class AuthService {
         verificationToken: autoVerify ? null : verificationToken,
       },
     });
+
+    if (!autoVerify) {
+      const emailResult = await sendVerificationEmail(
+        user.email,
+        user.name || 'User',
+        verificationToken
+      );
+      if (!emailResult.success) {
+        console.error(
+          '[AuthService.register] Failed to send verification email:',
+          emailResult.error
+        );
+      }
+    }
 
     const message = autoVerify
       ? 'Registration successful. You can now log in. (Email verification skipped in development)'
