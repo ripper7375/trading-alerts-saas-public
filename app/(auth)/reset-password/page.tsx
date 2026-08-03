@@ -8,6 +8,8 @@ import { useState, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+
 const resetPasswordSchema = z
   .object({
     password: z
@@ -70,7 +72,13 @@ function ResetPasswordForm(): JSX.Element {
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
+      // Bridge path (Session 4B-21, DECISION-LOG.md F56): request-only, never
+      // logs the user in, so no session-cache refresh is needed (Entry
+      // Criterion 1 only applies to login/2FA-completion/logout).
+      const endpoint = isAuthBridgeEnabled()
+        ? '/api/auth/token-reset-password'
+        : '/api/auth/reset-password';
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -111,7 +119,7 @@ function ResetPasswordForm(): JSX.Element {
         </div>
         <Link
           href="/forgot-password"
-          className="text-indigo-600 hover:text-indigo-500 font-medium"
+          className="font-medium text-indigo-600 hover:text-indigo-500"
         >
           Request a new link
         </Link>
@@ -152,13 +160,13 @@ function ResetPasswordForm(): JSX.Element {
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
                   required
-                  className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                   placeholder="New Password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -172,9 +180,9 @@ function ResetPasswordForm(): JSX.Element {
                 <div className="mt-2 space-y-1">
                   <div className="flex items-center gap-2 text-sm">
                     {passwordValidation.minLength ? (
-                      <Check className="w-4 h-4 text-green-600" />
+                      <Check className="h-4 w-4 text-green-600" />
                     ) : (
-                      <X className="w-4 h-4 text-gray-400" />
+                      <X className="h-4 w-4 text-gray-400" />
                     )}
                     <span
                       className={
@@ -188,9 +196,9 @@ function ResetPasswordForm(): JSX.Element {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     {passwordValidation.hasUppercase ? (
-                      <Check className="w-4 h-4 text-green-600" />
+                      <Check className="h-4 w-4 text-green-600" />
                     ) : (
-                      <X className="w-4 h-4 text-gray-400" />
+                      <X className="h-4 w-4 text-gray-400" />
                     )}
                     <span
                       className={
@@ -204,9 +212,9 @@ function ResetPasswordForm(): JSX.Element {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     {passwordValidation.hasLowercase ? (
-                      <Check className="w-4 h-4 text-green-600" />
+                      <Check className="h-4 w-4 text-green-600" />
                     ) : (
-                      <X className="w-4 h-4 text-gray-400" />
+                      <X className="h-4 w-4 text-gray-400" />
                     )}
                     <span
                       className={
@@ -220,9 +228,9 @@ function ResetPasswordForm(): JSX.Element {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     {passwordValidation.hasNumber ? (
-                      <Check className="w-4 h-4 text-green-600" />
+                      <Check className="h-4 w-4 text-green-600" />
                     ) : (
-                      <X className="w-4 h-4 text-gray-400" />
+                      <X className="h-4 w-4 text-gray-400" />
                     )}
                     <span
                       className={
@@ -236,9 +244,9 @@ function ResetPasswordForm(): JSX.Element {
                   </div>
                   <div className="flex items-center gap-2 text-sm">
                     {passwordValidation.hasSpecial ? (
-                      <Check className="w-4 h-4 text-green-600" />
+                      <Check className="h-4 w-4 text-green-600" />
                     ) : (
-                      <X className="w-4 h-4 text-gray-400" />
+                      <X className="h-4 w-4 text-gray-400" />
                     )}
                     <span
                       className={
@@ -263,7 +271,7 @@ function ResetPasswordForm(): JSX.Element {
                 {...register('confirmPassword')}
                 type="password"
                 required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                 placeholder="Confirm New Password"
               />
               {errors.confirmPassword && (
@@ -284,11 +292,11 @@ function ResetPasswordForm(): JSX.Element {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400"
+              className="group relative flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-gray-400"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" />
+                  <Loader2 className="-ml-1 mr-3 h-4 w-4 animate-spin text-white" />
                   Updating...
                 </>
               ) : (
@@ -308,10 +316,10 @@ export default function ResetPasswordPage(): JSX.Element {
     <Suspense
       fallback={
         <div className="w-full max-w-md">
-          <div className="bg-white shadow-xl p-8 rounded-lg">
-            <div className="text-center py-8">
-              <Loader2 className="w-10 h-10 mx-auto animate-spin text-indigo-600" />
-              <p className="text-gray-600 mt-4">Loading...</p>
+          <div className="rounded-lg bg-white p-8 shadow-xl">
+            <div className="py-8 text-center">
+              <Loader2 className="mx-auto h-10 w-10 animate-spin text-indigo-600" />
+              <p className="mt-4 text-gray-600">Loading...</p>
             </div>
           </div>
         </div>

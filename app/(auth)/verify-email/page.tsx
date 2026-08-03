@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 
+import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+
 function VerifyEmailContent(): JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -25,7 +27,13 @@ function VerifyEmailContent(): JSX.Element {
 
       try {
         setStatus('loading');
-        const response = await fetch(`/api/auth/verify-email?token=${token}`);
+        // Bridge path (Session 4B-21, DECISION-LOG.md F56): this verifies a
+        // pending registration's email, before any session ever exists — no
+        // session-cache refresh applies (Entry Criterion 1 doesn't apply).
+        const endpoint = isAuthBridgeEnabled()
+          ? '/api/auth/token-verify-email'
+          : '/api/auth/verify-email';
+        const response = await fetch(`${endpoint}?token=${token}`);
 
         if (response.ok) {
           setStatus('success');
@@ -54,7 +62,7 @@ function VerifyEmailContent(): JSX.Element {
       case 'loading':
         return (
           <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-600" />
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-indigo-600" />
             <h2 className="mt-4 text-xl font-semibold text-gray-900">
               Verifying your email...
             </h2>
@@ -114,12 +122,13 @@ function VerifyEmailContent(): JSX.Element {
             </h2>
             <p className="mt-2 text-sm text-gray-600">{error}</p>
             <p className="mt-2 text-sm text-gray-500">
-              The link may have expired. Try signing in to request a new verification email.
+              The link may have expired. Try signing in to request a new
+              verification email.
             </p>
             <div className="mt-6">
               <Link
                 href="/login"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
               >
                 Go to Sign In
               </Link>
@@ -152,12 +161,13 @@ function VerifyEmailContent(): JSX.Element {
               The verification token is missing from the link.
             </p>
             <p className="mt-2 text-sm text-gray-500">
-              Please click the link in your verification email, or sign in to request a new one.
+              Please click the link in your verification email, or sign in to
+              request a new one.
             </p>
             <div className="mt-6">
               <Link
                 href="/login"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
               >
                 Go to Sign In
               </Link>
@@ -171,9 +181,9 @@ function VerifyEmailContent(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-8">
+        <div className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10">
           {renderContent()}
         </div>
       </div>
@@ -186,10 +196,10 @@ export default function VerifyEmailPage(): JSX.Element {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex min-h-screen items-center justify-center bg-gray-50">
           <div className="text-center">
-            <Loader2 className="w-10 h-10 mx-auto animate-spin text-indigo-600" />
-            <p className="text-gray-600 mt-4">Loading...</p>
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-indigo-600" />
+            <p className="mt-4 text-gray-600">Loading...</p>
           </div>
         </div>
       }

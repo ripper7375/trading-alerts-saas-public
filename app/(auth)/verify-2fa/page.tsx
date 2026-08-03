@@ -1,10 +1,18 @@
 'use client';
 
-import { AlertCircle, CheckCircle2, Loader2, Shield, ArrowLeft } from 'lucide-react';
+import {
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  Shield,
+  ArrowLeft,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { useState, useEffect, useRef, Suspense } from 'react';
+
+import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
 
 function TwoFactorVerificationContent(): JSX.Element {
   const router = useRouter();
@@ -54,7 +62,10 @@ function TwoFactorVerificationContent(): JSX.Element {
     }
   };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>): void => {
+  const handleKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>
+  ): void => {
     if (e.key === 'Backspace' && !code[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
@@ -62,7 +73,10 @@ function TwoFactorVerificationContent(): JSX.Element {
 
   const handlePaste = (e: React.ClipboardEvent): void => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    const pastedData = e.clipboardData
+      .getData('text')
+      .replace(/\D/g, '')
+      .slice(0, 6);
     const newCode = [...code];
 
     for (let i = 0; i < pastedData.length && i < 6; i++) {
@@ -83,7 +97,9 @@ function TwoFactorVerificationContent(): JSX.Element {
   };
 
   const handleSubmit = async (codeValue?: string): Promise<void> => {
-    const verificationCode = isBackupCode ? backupCode : (codeValue || code.join(''));
+    const verificationCode = isBackupCode
+      ? backupCode
+      : codeValue || code.join('');
 
     if (!isBackupCode && verificationCode.length !== 6) {
       setError('Please enter all 6 digits');
@@ -123,6 +139,33 @@ function TwoFactorVerificationContent(): JSX.Element {
         return;
       }
 
+      if (isAuthBridgeEnabled()) {
+        // Bridge path (Session 4B-21, DECISION-LOG.md F56/F57): token-login's
+        // AuthService.login() handles this exact '__2fa_verified__' sentinel
+        // itself (see token-login/route.ts's own comment) — completes the
+        // login and sets the shared session cookie server-side. A forced
+        // getSession() refresh keeps next-auth/react's client cache correct,
+        // matching login-form.tsx's bridge branch (Entry Criterion 1).
+        const bridgeResponse = await fetch('/api/auth/token-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: '__2fa_verified__', password: token }),
+        });
+
+        if (bridgeResponse.ok) {
+          await getSession();
+        }
+        // Matches the non-bridge branch below: the 2FA code was already
+        // verified above regardless of this completion call's own result, so
+        // the user sees success and is sent to the dashboard either way (its
+        // own server-side session check is the real gate).
+        setIsSuccess(true);
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1500);
+        return;
+      }
+
       // 2FA verified, complete login with special 2FA-verified credential
       const result = await signIn('credentials', {
         email: '__2fa_verified__',
@@ -155,12 +198,12 @@ function TwoFactorVerificationContent(): JSX.Element {
   if (isSuccess) {
     return (
       <div className="w-full max-w-md">
-        <div className="bg-card rounded-lg shadow-xl p-8">
-          <div className="text-center py-8">
-            <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4 animate-bounce">
-              <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
+        <div className="rounded-lg bg-card p-8 shadow-xl">
+          <div className="py-8 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 animate-bounce items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+              <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">
+            <h2 className="mb-2 text-2xl font-bold text-foreground">
               Verified!
             </h2>
             <p className="text-muted-foreground">Redirecting to dashboard...</p>
@@ -173,9 +216,9 @@ function TwoFactorVerificationContent(): JSX.Element {
   if (!token) {
     return (
       <div className="w-full max-w-md">
-        <div className="bg-card rounded-lg shadow-xl p-8">
-          <div className="text-center py-8">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
+        <div className="rounded-lg bg-card p-8 shadow-xl">
+          <div className="py-8 text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         </div>
       </div>
@@ -184,12 +227,12 @@ function TwoFactorVerificationContent(): JSX.Element {
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-card rounded-lg shadow-xl p-8">
-        <div className="text-center mb-6">
-          <div className="mx-auto w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-            <Shield className="w-7 h-7 text-primary" />
+      <div className="rounded-lg bg-card p-8 shadow-xl">
+        <div className="mb-6 text-center">
+          <div className="bg-primary/10 mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full">
+            <Shield className="h-7 w-7 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold mb-2 text-foreground">
+          <h1 className="mb-2 text-2xl font-bold text-foreground">
             Two-Factor Authentication
           </h1>
           <p className="text-muted-foreground">
@@ -201,10 +244,15 @@ function TwoFactorVerificationContent(): JSX.Element {
 
         {/* Error Alert */}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 rounded-lg p-4 mb-6 animate-in slide-in-from-top duration-300">
+          <div className="animate-in slide-in-from-top mb-6 rounded-lg border-l-4 border-red-500 bg-red-50 p-4 duration-300 dark:bg-red-900/20">
             <div className="flex items-start gap-3">
-              <AlertCircle className="text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" size={20} />
-              <p className="text-red-800 dark:text-red-200 font-medium text-sm">{error}</p>
+              <AlertCircle
+                className="mt-0.5 flex-shrink-0 text-red-600 dark:text-red-400"
+                size={20}
+              />
+              <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                {error}
+              </p>
             </div>
           </div>
         )}
@@ -212,7 +260,7 @@ function TwoFactorVerificationContent(): JSX.Element {
         {!isBackupCode ? (
           <>
             {/* 6-digit code input */}
-            <div className="flex justify-center gap-2 mb-6">
+            <div className="mb-6 flex justify-center gap-2">
               {code.map((digit, index) => (
                 <input
                   key={index}
@@ -227,7 +275,7 @@ function TwoFactorVerificationContent(): JSX.Element {
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   onPaste={handlePaste}
                   disabled={isSubmitting}
-                  className="w-12 h-14 text-center text-2xl font-bold border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="h-14 w-12 rounded-lg border bg-background text-center text-2xl font-bold text-foreground transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label={`Digit ${index + 1}`}
                 />
               ))}
@@ -237,11 +285,11 @@ function TwoFactorVerificationContent(): JSX.Element {
             <button
               onClick={() => handleSubmit()}
               disabled={isSubmitting || code.some((c) => c === '')}
-              className="w-full bg-primary hover:bg-primary/90 py-3 text-lg font-semibold rounded-md text-primary-foreground shadow-lg transition-all duration-200 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+              className="hover:bg-primary/90 w-full rounded-md bg-primary py-3 text-lg font-semibold text-primary-foreground shadow-lg transition-all duration-200 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="inline h-5 w-5 animate-spin mr-2" />
+                  <Loader2 className="mr-2 inline h-5 w-5 animate-spin" />
                   <span className="opacity-70">Verifying...</span>
                 </>
               ) : (
@@ -262,10 +310,10 @@ function TwoFactorVerificationContent(): JSX.Element {
                   setError(null);
                 }}
                 disabled={isSubmitting}
-                className="w-full px-4 py-3 text-center text-xl font-mono border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all disabled:opacity-50"
+                className="w-full rounded-lg border bg-background px-4 py-3 text-center font-mono text-xl text-foreground transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
                 aria-label="Backup code"
               />
-              <p className="text-sm text-muted-foreground mt-2 text-center">
+              <p className="mt-2 text-center text-sm text-muted-foreground">
                 Enter one of your 8-character backup codes
               </p>
             </div>
@@ -274,11 +322,11 @@ function TwoFactorVerificationContent(): JSX.Element {
             <button
               onClick={() => handleSubmit()}
               disabled={isSubmitting || backupCode.length < 8}
-              className="w-full bg-primary hover:bg-primary/90 py-3 text-lg font-semibold rounded-md text-primary-foreground shadow-lg transition-all duration-200 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed"
+              className="hover:bg-primary/90 w-full rounded-md bg-primary py-3 text-lg font-semibold text-primary-foreground shadow-lg transition-all duration-200 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="inline h-5 w-5 animate-spin mr-2" />
+                  <Loader2 className="mr-2 inline h-5 w-5 animate-spin" />
                   <span className="opacity-70">Verifying...</span>
                 </>
               ) : (
@@ -299,7 +347,9 @@ function TwoFactorVerificationContent(): JSX.Element {
             }}
             className="text-sm text-primary hover:underline"
           >
-            {isBackupCode ? 'Use authenticator app instead' : 'Use a backup code instead'}
+            {isBackupCode
+              ? 'Use authenticator app instead'
+              : 'Use a backup code instead'}
           </button>
         </div>
 
@@ -323,9 +373,9 @@ export default function TwoFactorVerificationPage(): JSX.Element {
     <Suspense
       fallback={
         <div className="w-full max-w-md">
-          <div className="bg-card rounded-lg shadow-xl p-8">
-            <div className="text-center py-8">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-muted-foreground" />
+          <div className="rounded-lg bg-card p-8 shadow-xl">
+            <div className="py-8 text-center">
+              <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           </div>
         </div>

@@ -34,8 +34,16 @@ jest.mock('next/link', () => {
 
 // Mock next-auth/react
 const mockSignOut = jest.fn();
+const mockGetSession = jest.fn();
 jest.mock('next-auth/react', () => ({
   signOut: (options: { redirect: boolean }) => mockSignOut(options),
+  getSession: () => mockGetSession(),
+}));
+
+// Mock the auth bridge flag (Session 4B-21, DECISION-LOG.md F56/F57)
+const mockIsAuthBridgeEnabled = jest.fn();
+jest.mock('@/lib/auth/auth-bridge-flag', () => ({
+  isAuthBridgeEnabled: () => mockIsAuthBridgeEnabled(),
 }));
 
 // Mock MobileNav component
@@ -68,6 +76,8 @@ const proUser = {
 describe('Header Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockIsAuthBridgeEnabled.mockReturnValue(false);
+    global.fetch = jest.fn();
   });
 
   // ============================================================================
@@ -241,6 +251,21 @@ describe('Header Component', () => {
     it('should have router mock available for redirect', () => {
       // Verify the mock is configured correctly
       expect(mockPush).toBeDefined();
+    });
+
+    // Bridge path (Session 4B-21, DECISION-LOG.md F56/F57): handleLogout is
+    // not exported and its dropdown item lives inside a Radix Portal this
+    // suite's own established convention (above) can't reliably exercise in
+    // jsdom — these confirm the new mocks are wired correctly; the actual
+    // bridge-vs-signOut branch behavior is proven by this order's own
+    // Checklist Step 2 (local smoke test) and Step 5 (Davin's live browser
+    // check), not by a unit test here.
+    it('should have getSession mock available for the bridge logout path', () => {
+      expect(mockGetSession).toBeDefined();
+    });
+
+    it('should have the auth bridge flag mock available', () => {
+      expect(mockIsAuthBridgeEnabled).toBeDefined();
     });
   });
 

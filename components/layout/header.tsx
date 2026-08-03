@@ -11,9 +11,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'next-auth/react';
+import { getSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
 
+import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -65,6 +66,18 @@ export function Header({ user }: HeaderProps): React.ReactElement {
 
   // Handle logout
   const handleLogout = async (): Promise<void> => {
+    if (isAuthBridgeEnabled()) {
+      // Bridge path (Session 4B-21, DECISION-LOG.md F56/F57): token-logout
+      // clears the shared session cookie server-side without going through
+      // NextAuth's own signOut() flow. A forced getSession() refresh (which
+      // will now resolve to null) is what tells every useSession() consumer
+      // app-wide the user is logged out — the same mechanism the bridge
+      // login path uses in reverse (Entry Criterion 1).
+      await fetch('/api/auth/token-logout', { method: 'POST' });
+      await getSession();
+      router.push('/login');
+      return;
+    }
     await signOut({ redirect: false });
     router.push('/login');
   };
@@ -92,7 +105,7 @@ export function Header({ user }: HeaderProps): React.ReactElement {
               <span className="text-2xl" role="img" aria-label="Trading Alerts">
                 📊
               </span>
-              <span className="hidden sm:inline-block font-bold text-lg text-foreground">
+              <span className="hidden text-lg font-bold text-foreground sm:inline-block">
                 Trading Alerts
               </span>
             </Link>
@@ -106,8 +119,8 @@ export function Header({ user }: HeaderProps): React.ReactElement {
               data-testid="tier-badge"
               className={
                 user.tier === 'PRO'
-                  ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
-                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  ? 'hover:bg-primary/90 bg-primary text-primary-foreground'
+                  : 'hover:bg-secondary/80 bg-secondary text-secondary-foreground'
               }
             >
               {user.tier === 'PRO' ? '⭐ PRO' : 'FREE'}
@@ -125,16 +138,20 @@ export function Header({ user }: HeaderProps): React.ReactElement {
                 >
                   <Bell className="h-5 w-5" />
                   {/* Notification dot - show when there are unread notifications */}
-                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
+                  <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80" data-testid="notification-dropdown">
+              <DropdownMenuContent
+                align="end"
+                className="w-80"
+                data-testid="notification-dropdown"
+              >
                 <DropdownMenuLabel>Notifications</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <div className="p-4 text-center text-sm text-muted-foreground">
-                  <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <Bell className="mx-auto mb-2 h-8 w-8 opacity-50" />
                   <p>No new notifications</p>
-                  <p className="text-xs mt-1">
+                  <p className="mt-1 text-xs">
                     You&apos;ll be notified when your alerts are triggered
                   </p>
                 </div>
@@ -157,21 +174,30 @@ export function Header({ user }: HeaderProps): React.ReactElement {
                       src={user.image || undefined}
                       alt={user.name}
                     />
-                    <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
+                    <AvatarFallback className="bg-blue-100 text-sm text-blue-600">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden sm:inline-block text-sm font-medium text-foreground">
+                  <span className="hidden text-sm font-medium text-foreground sm:inline-block">
                     {user.name.split(' ')[0]}
                   </span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56" data-testid="user-menu-dropdown">
+              <DropdownMenuContent
+                align="end"
+                className="w-56"
+                data-testid="user-menu-dropdown"
+              >
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium" data-testid="user-name">{user.name}</p>
-                    <p className="text-xs text-muted-foreground" data-testid="user-email">
+                    <p className="text-sm font-medium" data-testid="user-name">
+                      {user.name}
+                    </p>
+                    <p
+                      className="text-xs text-muted-foreground"
+                      data-testid="user-email"
+                    >
                       {user.email}
                     </p>
                   </div>
@@ -179,7 +205,11 @@ export function Header({ user }: HeaderProps): React.ReactElement {
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem asChild>
-                    <Link href="/settings" className="cursor-pointer" data-testid="menu-profile">
+                    <Link
+                      href="/settings"
+                      className="cursor-pointer"
+                      data-testid="menu-profile"
+                    >
                       <User className="mr-2 h-4 w-4" />
                       Profile
                     </Link>
@@ -195,7 +225,11 @@ export function Header({ user }: HeaderProps): React.ReactElement {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/settings" className="cursor-pointer" data-testid="menu-settings">
+                    <Link
+                      href="/settings"
+                      className="cursor-pointer"
+                      data-testid="menu-settings"
+                    >
                       <Settings className="mr-2 h-4 w-4" />
                       Settings
                     </Link>
@@ -203,7 +237,7 @@ export function Header({ user }: HeaderProps): React.ReactElement {
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="text-red-600 focus:text-red-600 cursor-pointer"
+                  className="cursor-pointer text-red-600 focus:text-red-600"
                   onClick={handleLogout}
                   data-testid="logout-button"
                 >

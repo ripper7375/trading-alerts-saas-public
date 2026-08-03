@@ -1,9 +1,17 @@
 'use client';
 
-import { Mail, Loader2, CheckCircle2, RefreshCw, AlertCircle } from 'lucide-react';
+import {
+  Mail,
+  Loader2,
+  CheckCircle2,
+  RefreshCw,
+  AlertCircle,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
+
+import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
 
 function VerifyEmailPendingContent(): JSX.Element {
   const searchParams = useSearchParams();
@@ -51,7 +59,13 @@ function VerifyEmailPendingContent(): JSX.Element {
     setErrorMessage('');
 
     try {
-      const response = await fetch('/api/auth/resend-verification', {
+      // Bridge path (Session 4B-21, DECISION-LOG.md F56): never logs the
+      // user in, so no session-cache refresh is needed (Entry Criterion 1
+      // only applies to login/2FA-completion/logout).
+      const endpoint = isAuthBridgeEnabled()
+        ? '/api/auth/token-resend-verification'
+        : '/api/auth/resend-verification';
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -71,43 +85,45 @@ function VerifyEmailPendingContent(): JSX.Element {
         setErrorMessage(data.error || 'Please wait before resending.');
       } else {
         setResendStatus('error');
-        setErrorMessage(data.error || 'Failed to resend verification email. Please try again.');
+        setErrorMessage(
+          data.error || 'Failed to resend verification email. Please try again.'
+        );
       }
     } catch (error) {
       console.error('Resend error:', error);
       setResendStatus('error');
-      setErrorMessage('Network error. Please check your connection and try again.');
+      setErrorMessage(
+        'Network error. Please check your connection and try again.'
+      );
     }
   };
 
   return (
     <div className="w-full max-w-md">
-      <div className="bg-white rounded-lg shadow-xl p-8">
+      <div className="rounded-lg bg-white p-8 shadow-xl">
         <div className="text-center">
           {/* Email Icon */}
-          <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-6">
-            <Mail className="w-8 h-8 text-indigo-600" />
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100">
+            <Mail className="h-8 w-8 text-indigo-600" />
           </div>
 
           {/* Title */}
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="mb-2 text-2xl font-bold text-gray-900">
             Check your email
           </h2>
 
           {/* Description */}
-          <p className="text-gray-600 mb-2">
+          <p className="mb-2 text-gray-600">
             We&apos;ve sent a verification link to:
           </p>
 
           {/* Email Display or Input */}
           {!showEmailInput && email ? (
             <div className="mb-6">
-              <p className="text-indigo-600 font-medium break-all">
-                {email}
-              </p>
+              <p className="break-all font-medium text-indigo-600">{email}</p>
               <button
                 onClick={() => setShowEmailInput(true)}
-                className="text-xs text-gray-500 hover:text-gray-700 mt-2"
+                className="mt-2 text-xs text-gray-500 hover:text-gray-700"
               >
                 Wrong email?
               </button>
@@ -123,18 +139,18 @@ function VerifyEmailPendingContent(): JSX.Element {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="mt-2 text-xs text-gray-500">
                 Enter the email you used to register
               </p>
             </div>
           )}
 
           {/* Instructions */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
-            <h3 className="font-medium text-gray-900 mb-2">Next steps:</h3>
-            <ol className="text-sm text-gray-600 space-y-2 list-decimal list-inside">
+          <div className="mb-6 rounded-lg bg-gray-50 p-4 text-left">
+            <h3 className="mb-2 font-medium text-gray-900">Next steps:</h3>
+            <ol className="list-inside list-decimal space-y-2 text-sm text-gray-600">
               <li>Check your email inbox (and spam folder)</li>
               <li>Click the verification link in the email</li>
               <li>You&apos;ll be redirected to your dashboard</li>
@@ -143,29 +159,33 @@ function VerifyEmailPendingContent(): JSX.Element {
 
           {/* Resend Section */}
           <div className="border-t border-gray-200 pt-6">
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="mb-4 text-sm text-gray-600">
               Didn&apos;t receive the email?
             </p>
 
             {/* Status Messages */}
             {resendStatus === 'success' && (
-              <div className="flex items-center justify-center gap-2 text-green-600 mb-4 bg-green-50 py-2 px-4 rounded-lg">
-                <CheckCircle2 className="w-5 h-5" />
-                <span className="text-sm font-medium">✓ Verification email sent! Check your inbox.</span>
+              <div className="mb-4 flex items-center justify-center gap-2 rounded-lg bg-green-50 px-4 py-2 text-green-600">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="text-sm font-medium">
+                  ✓ Verification email sent! Check your inbox.
+                </span>
               </div>
             )}
 
             {resendStatus === 'error' && (
-              <div className="flex items-start justify-center gap-2 text-red-600 mb-4 bg-red-50 py-2 px-4 rounded-lg">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <span className="text-sm text-left">{errorMessage}</span>
+              <div className="mb-4 flex items-start justify-center gap-2 rounded-lg bg-red-50 px-4 py-2 text-red-600">
+                <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+                <span className="text-left text-sm">{errorMessage}</span>
               </div>
             )}
 
             {resendStatus === 'rate_limited' && (
-              <div className="flex items-center justify-center gap-2 text-amber-600 mb-4 bg-amber-50 py-2 px-4 rounded-lg">
-                <AlertCircle className="w-5 h-5" />
-                <span className="text-sm font-medium">Please wait {countdown} seconds before resending</span>
+              <div className="mb-4 flex items-center justify-center gap-2 rounded-lg bg-amber-50 px-4 py-2 text-amber-600">
+                <AlertCircle className="h-5 w-5" />
+                <span className="text-sm font-medium">
+                  Please wait {countdown} seconds before resending
+                </span>
               </div>
             )}
 
@@ -178,40 +198,40 @@ function VerifyEmailPendingContent(): JSX.Element {
                 !email ||
                 !email.includes('@')
               }
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 shadow-sm transition-all duration-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {resendStatus === 'loading' ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Sending...
                 </>
               ) : resendStatus === 'rate_limited' ? (
                 <>
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="h-4 w-4" />
                   Resend in {countdown}s
                 </>
               ) : (
                 <>
-                  <RefreshCw className="w-4 h-4" />
+                  <RefreshCw className="h-4 w-4" />
                   Resend verification email
                 </>
               )}
             </button>
 
             {!email && (
-              <p className="text-xs text-red-600 mt-2">
+              <p className="mt-2 text-xs text-red-600">
                 Please enter your email address above
               </p>
             )}
           </div>
 
           {/* Back to Login Link */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
+          <div className="mt-6 border-t border-gray-200 pt-6">
             <p className="text-sm text-gray-600">
               Already verified?{' '}
               <Link
                 href="/login"
-                className="text-indigo-600 font-medium hover:text-indigo-500"
+                className="font-medium text-indigo-600 hover:text-indigo-500"
               >
                 Sign in
               </Link>
@@ -238,10 +258,10 @@ export default function VerifyEmailPendingPage(): JSX.Element {
     <Suspense
       fallback={
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-lg shadow-xl p-8">
-            <div className="text-center py-8">
-              <Loader2 className="w-10 h-10 mx-auto animate-spin text-indigo-600" />
-              <p className="text-gray-600 mt-4">Loading...</p>
+          <div className="rounded-lg bg-white p-8 shadow-xl">
+            <div className="py-8 text-center">
+              <Loader2 className="mx-auto h-10 w-10 animate-spin text-indigo-600" />
+              <p className="mt-4 text-gray-600">Loading...</p>
             </div>
           </div>
         </div>

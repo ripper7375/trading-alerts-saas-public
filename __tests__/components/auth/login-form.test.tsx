@@ -26,8 +26,10 @@ jest.mock('next/link', () => {
 });
 
 const mockSignIn = jest.fn();
+const mockGetSession = jest.fn();
 jest.mock('next-auth/react', () => ({
   signIn: (...args: unknown[]) => mockSignIn(...args),
+  getSession: () => mockGetSession(),
   getProviders: jest.fn().mockResolvedValue(null),
 }));
 
@@ -54,6 +56,7 @@ describe('LoginForm', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     global.fetch = jest.fn();
+    mockGetSession.mockResolvedValue(null);
   });
 
   it('calls next-auth/react signIn when the bridge flag is off (default, unchanged behavior)', async () => {
@@ -96,6 +99,35 @@ describe('LoginForm', () => {
       )
     );
     expect(mockSignIn).not.toHaveBeenCalled();
+  });
+
+  it('forces a getSession() refresh after a successful bridge login (Entry Criterion 1, F57)', async () => {
+    mockIsAuthBridgeEnabled.mockReturnValue(true);
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ user: { id: '1', email: 'alice@example.com' } }),
+    });
+
+    render(<LoginForm />);
+    await fillAndSubmit();
+
+    await waitFor(() => expect(mockGetSession).toHaveBeenCalled());
+  });
+
+  it('does not force a getSession() refresh when the bridge reports twoFactorRequired', async () => {
+    mockIsAuthBridgeEnabled.mockReturnValue(true);
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ twoFactorRequired: true, token: 'tok-123' }),
+    });
+
+    render(<LoginForm />);
+    await fillAndSubmit();
+
+    await waitFor(() =>
+      expect(mockPush).toHaveBeenCalledWith('/verify-2fa?token=tok-123')
+    );
+    expect(mockGetSession).not.toHaveBeenCalled();
   });
 
   it('redirects to /verify-2fa when the bridge reports twoFactorRequired', async () => {

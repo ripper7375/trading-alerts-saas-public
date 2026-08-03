@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -74,6 +74,16 @@ export default function LoginForm(): JSX.Element {
         router.push(`/verify-2fa?token=${encodeURIComponent(body.token)}`);
         return;
       }
+      // token-login sets the shared NextAuth-format session cookie server-side
+      // (F26), but next-auth/react's SessionProvider client cache has no way
+      // to know a new cookie appeared underneath it — nothing here went
+      // through NextAuth's own signIn() flow, which is the only thing that
+      // normally triggers a cache refetch. Force one explicitly (Entry
+      // Criterion 1, DECISION-LOG.md F57) so every useSession()/getSession()
+      // consumer app-wide (header, notification bell, realtime socket status,
+      // login tracker, etc.) sees the correct authenticated state on the very
+      // next render, not just the server-side getServerSession() reads.
+      await getSession();
       setIsSuccess(true);
       setTimeout(() => {
         router.push('/dashboard');
