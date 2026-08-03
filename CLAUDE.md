@@ -150,6 +150,32 @@ components/layout/header.tsx --max-warnings 0` clean, full `test:ci` 129/129 sui
   tests. Commit `160b4935`, pushed to `origin/main`, Vercel auto-deployed clean
   (`dpl_FREJXM2f72YN8tspbvahtSQzzWpp`, aliased to `trading-alerts-saas-frontend.vercel.app`,
   live `200`).
+  **OAuthAccountNotLinked request declined as literally asked, resolved narrower instead:** Davin
+  asked to add `allowDangerousEmailAccountLinking: true` to Google/Twitter/LinkedIn in
+  `lib/auth/auth-options.ts` to fix `ripper7375@gmail.com` hitting `OAuthAccountNotLinked`. Found
+  this directly contradicts `docs/decisions/google-oauth-decisions.md` Decision #3 and
+  `docs/policies/08-google-oauth-implementation-rules.md` — both call verified-only linking "the
+  MOST IMPORTANT policy" and list this exact flag on their "Common Pitfalls"/security-checklist
+  "DO NOT" items, with a documented attack scenario (unverified email/password squatter account +
+  later legitimate OAuth sign-in = auto-merged takeover). Flagged the conflict via
+  `AskUserQuestion` instead of silently complying or silently refusing; Davin chose the narrower,
+  equally-effective fix: leave `auth-options.ts`'s global policy untouched, manually link only his
+  own account. Confirmed via a direct read-only production query (`DIRECT_URL`, `.prisma/non-
+market-client` + `PrismaPg`, same pattern as `lib/db/prisma.ts`) that his User row
+  (`cmkp6ftxd0000hr5xnjly47a3`) has a verified email (since 2026-01-22), a password, and zero
+  linked `Account` rows — exactly the safe-to-link case the existing `signIn` callback's own
+  verified-only check already allows. Added a temporary diagnostic (`providerAccountId` in the
+  existing `[SignIn]` console.log, not a secret), deployed, had Davin attempt Google sign-in on
+  production (still correctly 40x'd on `OAuthAccountNotLinked` — the flag was never touched), then
+  read the value (`113017035789984861714`) from `vercel logs`. Checked no other `Account` row
+  already used that `(provider, providerAccountId)` pair, then created exactly one row
+  (`Account.create({userId, type:'oauth', provider:'google', providerAccountId})`),
+  independently re-verified via a fresh read. Davin then confirmed live Google sign-in succeeds.
+  Diagnostic log reverted (file is byte-identical to before this change) and redeployed. 3
+  commits: `8b9d1906` (diagnostic added), the DB write itself (no code, one production `Account`
+  row, not a migration), and the diagnostic revert — each `tsc --noEmit`/`eslint --max-warnings 0`
+  clean, full `test:ci` 129/129 suites/2191/2191 tests green throughout. No global auth policy
+  changed; every other user's account-linking behavior is unaffected.
 - **Previous:** Session 4B-20 (Auth Cutover BUILD & UI Rewire, PORT/UI-BUILD hybrid), CONFIRMED
   and executed 2026-08-03 — **CLOSED SUCCESSFUL. Zero traffic cutover — `auth-options.ts`/
   `[...nextauth]`/the monolith's own `/api/auth/register` keep serving 100% of real traffic.**
