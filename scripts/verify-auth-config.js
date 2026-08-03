@@ -33,9 +33,15 @@ const symbols = {
   info: 'ℹ',
 };
 
-console.log(`\n${colors.cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}`);
-console.log(`${colors.cyan}  Authentication Configuration Verification${colors.reset}`);
-console.log(`${colors.cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}\n`);
+console.log(
+  `\n${colors.cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}`
+);
+console.log(
+  `${colors.cyan}  Authentication Configuration Verification${colors.reset}`
+);
+console.log(
+  `${colors.cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}\n`
+);
 
 let passCount = 0;
 let failCount = 0;
@@ -182,8 +188,14 @@ const validators = {
   },
 
   postgresUrl: (value) => {
-    if (!value.startsWith('postgres://') && !value.startsWith('postgresql://')) {
-      return { valid: false, message: 'Must be a PostgreSQL connection string' };
+    if (
+      !value.startsWith('postgres://') &&
+      !value.startsWith('postgresql://')
+    ) {
+      return {
+        valid: false,
+        message: 'Must be a PostgreSQL connection string',
+      };
     }
     return { valid: true };
   },
@@ -214,7 +226,9 @@ async function verifyConfiguration() {
   } else if (!hasGoogleId && !hasGoogleSecret) {
     logInfo('Google OAuth is not configured (optional)');
   } else {
-    logError('Incomplete Google OAuth configuration (need both CLIENT_ID and CLIENT_SECRET)');
+    logError(
+      'Incomplete Google OAuth configuration (need both CLIENT_ID and CLIENT_SECRET)'
+    );
   }
 
   // 3. Twitter OAuth Configuration
@@ -228,7 +242,9 @@ async function verifyConfiguration() {
   } else if (!hasTwitterId && !hasTwitterSecret) {
     logInfo('Twitter OAuth is not configured (optional)');
   } else {
-    logError('Incomplete Twitter OAuth configuration (need both CLIENT_ID and CLIENT_SECRET)');
+    logError(
+      'Incomplete Twitter OAuth configuration (need both CLIENT_ID and CLIENT_SECRET)'
+    );
   }
 
   // 4. LinkedIn OAuth Configuration
@@ -242,7 +258,9 @@ async function verifyConfiguration() {
   } else if (!hasLinkedInId && !hasLinkedInSecret) {
     logInfo('LinkedIn OAuth is not configured (optional)');
   } else {
-    logError('Incomplete LinkedIn OAuth configuration (need both CLIENT_ID and CLIENT_SECRET)');
+    logError(
+      'Incomplete LinkedIn OAuth configuration (need both CLIENT_ID and CLIENT_SECRET)'
+    );
   }
 
   // 5. Email Service Configuration
@@ -257,7 +275,7 @@ async function verifyConfiguration() {
   const requiredFiles = [
     'lib/auth/auth-options.ts',
     'app/api/auth/[...nextauth]/route.ts',
-    'app/api/auth/register/route.ts',
+    'app/api/auth/token-register/route.ts',
     'app/api/auth/verify-email/route.ts',
   ];
 
@@ -274,7 +292,13 @@ async function verifyConfiguration() {
   printSection('7. NextAuth Configuration Check');
 
   try {
-    const authOptionsPath = path.join(__dirname, '..', 'lib', 'auth', 'auth-options.ts');
+    const authOptionsPath = path.join(
+      __dirname,
+      '..',
+      'lib',
+      'auth',
+      'auth-options.ts'
+    );
     const authOptionsContent = fs.readFileSync(authOptionsPath, 'utf8');
 
     // Check for OAuth providers
@@ -290,10 +314,18 @@ async function verifyConfiguration() {
       logWarning('Twitter OAuth provider not found in auth-options.ts');
     }
 
+    // Session 4B-21 (DECISION-LOG.md F56): CredentialsProvider was retired
+    // from auth-options.ts once email/password auth cut over to
+    // operation-service via the token-* bridge routes - its presence here
+    // would now be the regression, not its absence.
     if (authOptionsContent.includes('CredentialsProvider')) {
-      logSuccess('Credentials provider configured in auth-options.ts');
+      logError(
+        'CredentialsProvider found in auth-options.ts (should be OAuth-only since Session 4B-21)'
+      );
     } else {
-      logError('Credentials provider not found in auth-options.ts');
+      logSuccess(
+        'auth-options.ts is OAuth-only, as expected since Session 4B-21'
+      );
     }
 
     // Check for custom adapter
@@ -304,12 +336,14 @@ async function verifyConfiguration() {
     }
 
     // Check for security callbacks
-    if (authOptionsContent.includes('signIn') && authOptionsContent.includes('callback')) {
+    if (
+      authOptionsContent.includes('signIn') &&
+      authOptionsContent.includes('callback')
+    ) {
       logSuccess('Sign-in callback configured (security checks)');
     } else {
       logWarning('Sign-in callback may not be configured');
     }
-
   } catch (error) {
     logError(`Failed to read auth-options.ts: ${error.message}`);
   }
@@ -318,26 +352,40 @@ async function verifyConfiguration() {
   printSection('Summary');
 
   console.log(`\n${colors.cyan}Results:${colors.reset}`);
-  console.log(`  ${colors.green}${symbols.success} Passed: ${passCount}${colors.reset}`);
-  console.log(`  ${colors.yellow}${symbols.warning} Warnings: ${warnCount}${colors.reset}`);
-  console.log(`  ${colors.red}${symbols.error} Failed: ${failCount}${colors.reset}`);
+  console.log(
+    `  ${colors.green}${symbols.success} Passed: ${passCount}${colors.reset}`
+  );
+  console.log(
+    `  ${colors.yellow}${symbols.warning} Warnings: ${warnCount}${colors.reset}`
+  );
+  console.log(
+    `  ${colors.red}${symbols.error} Failed: ${failCount}${colors.reset}`
+  );
 
-  console.log(`\n${colors.cyan}Available Authentication Methods:${colors.reset}`);
+  console.log(
+    `\n${colors.cyan}Available Authentication Methods:${colors.reset}`
+  );
   const methods = [];
   if (hasGoogleId && hasGoogleSecret) methods.push('Google OAuth');
   if (hasTwitterId && hasTwitterSecret) methods.push('Twitter OAuth');
   if (hasLinkedInId && hasLinkedInSecret) methods.push('LinkedIn OAuth');
   methods.push('Email/Password');
 
-  methods.forEach(method => {
+  methods.forEach((method) => {
     console.log(`  ${colors.green}${symbols.success}${colors.reset} ${method}`);
   });
 
   // Recommendations
   if (failCount > 0) {
-    console.log(`\n${colors.red}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}`);
-    console.log(`${colors.red}  Action Required: Fix ${failCount} critical issue(s)${colors.reset}`);
-    console.log(`${colors.red}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}\n`);
+    console.log(
+      `\n${colors.red}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}`
+    );
+    console.log(
+      `${colors.red}  Action Required: Fix ${failCount} critical issue(s)${colors.reset}`
+    );
+    console.log(
+      `${colors.red}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}\n`
+    );
     console.log(`${colors.yellow}Next steps:${colors.reset}`);
     console.log(`1. Review the errors above`);
     console.log(`2. Follow COMPLETE_AUTH_FIX_GUIDE.md to fix issues`);
@@ -345,18 +393,30 @@ async function verifyConfiguration() {
     console.log(`4. Redeploy and run this script again\n`);
     process.exit(1);
   } else if (warnCount > 0) {
-    console.log(`\n${colors.yellow}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}`);
-    console.log(`${colors.yellow}  ${warnCount} warning(s) - Review recommended${colors.reset}`);
-    console.log(`${colors.yellow}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}\n`);
+    console.log(
+      `\n${colors.yellow}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}`
+    );
+    console.log(
+      `${colors.yellow}  ${warnCount} warning(s) - Review recommended${colors.reset}`
+    );
+    console.log(
+      `${colors.yellow}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}\n`
+    );
     console.log(`${colors.cyan}Next steps:${colors.reset}`);
     console.log(`1. Review warnings above (optional OAuth providers)`);
     console.log(`2. If all required auth methods work, proceed to testing`);
     console.log(`3. Follow AUTH_TESTING_CHECKLIST.md to verify\n`);
     process.exit(0);
   } else {
-    console.log(`\n${colors.green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}`);
-    console.log(`${colors.green}  ✓ All checks passed! Configuration looks good${colors.reset}`);
-    console.log(`${colors.green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}\n`);
+    console.log(
+      `\n${colors.green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}`
+    );
+    console.log(
+      `${colors.green}  ✓ All checks passed! Configuration looks good${colors.reset}`
+    );
+    console.log(
+      `${colors.green}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}\n`
+    );
     console.log(`${colors.cyan}Next steps:${colors.reset}`);
     console.log(`1. Deploy to Vercel (if not already deployed)`);
     console.log(`2. Ensure all environment variables are set in Vercel`);
@@ -367,7 +427,10 @@ async function verifyConfiguration() {
 }
 
 // Run verification
-verifyConfiguration().catch(error => {
-  console.error(`\n${colors.red}${symbols.error} Verification failed:${colors.reset}`, error.message);
+verifyConfiguration().catch((error) => {
+  console.error(
+    `\n${colors.red}${symbols.error} Verification failed:${colors.reset}`,
+    error.message
+  );
   process.exit(1);
 });

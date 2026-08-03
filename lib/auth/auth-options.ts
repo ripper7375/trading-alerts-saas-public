@@ -1,10 +1,7 @@
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { type NextAuthOptions } from 'next-auth';
 import type { Account, User } from 'next-auth';
 import type { Adapter, AdapterUser } from 'next-auth/adapters';
-import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import LinkedInProvider from 'next-auth/providers/linkedin';
 import TwitterProvider from 'next-auth/providers/twitter';
@@ -30,39 +27,6 @@ if (process.env.NODE_ENV === 'development') {
     twitter: isTwitterConfigured,
     linkedin: isLinkedInConfigured,
   });
-}
-
-// Type for user with 2FA fields (until Prisma client is regenerated)
-interface PrismaUserWith2FA {
-  id: string;
-  email: string;
-  name: string | null;
-  image: string | null;
-  password: string | null;
-  tier: string;
-  role: string;
-  isAffiliate: boolean;
-  isActive: boolean;
-  emailVerified: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-  twoFactorEnabled: boolean;
-}
-
-/**
- * Generate a temporary 2FA token for the verification step
- */
-export function generate2FAToken(userId: string, email: string): string {
-  const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret) {
-    throw new Error('NEXTAUTH_SECRET not configured');
-  }
-
-  return jwt.sign(
-    { userId, email, purpose: '2fa_verification' },
-    secret,
-    { expiresIn: '5m' } // Token expires in 5 minutes
-  );
 }
 
 /**
@@ -111,12 +75,19 @@ function CustomPrismaAdapter(): Adapter {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * NextAuth Configuration with Google OAuth + Credentials providers
+ * NextAuth Configuration — OAuth only (Google, Twitter/X, LinkedIn)
+ *
+ * Session 4B-21 (DECISION-LOG.md F56, Option B): CredentialsProvider was
+ * retired from here once email/password login, registration, 2FA, and
+ * logout fully cut over to operation-service via the token-* bridge routes
+ * (see lib/auth/auth-bridge-flag.ts). This file now exists solely to keep
+ * OAuth sign-in working indefinitely - it is not a staging step toward
+ * removal.
  *
  * Features:
  * - Google OAuth 2.0 for seamless user authentication
  * - Twitter/X OAuth 2.0 for social login
- * - Email/password credentials provider for traditional login
+ * - LinkedIn OAuth 2.0 for social login
  * - JWT session strategy for serverless-friendly authentication
  * - Verified-only account linking (security-first)
  * - Tier, role, and affiliate status in JWT and session
@@ -175,144 +146,6 @@ export const authOptions: NextAuthOptions = {
           }),
         ]
       : []),
-
-    // Credentials Provider (Email/Password) - Always available
-    CredentialsProvider({
-      name: 'credentials',
-      credentials: {
-        email: {
-          label: 'Email',
-          type: 'email',
-          placeholder: 'john@example.com',
-        },
-        password: {
-          label: 'Password',
-          type: 'password',
-        },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        try {
-          // Handle 2FA-verified login (special case)
-          if (credentials.email === '__2fa_verified__') {
-            // The password contains the 2FA token
-            const twoFactorToken = credentials.password;
-
-            try {
-              const secret = process.env.NEXTAUTH_SECRET;
-              if (!secret) {
-                throw new Error('NEXTAUTH_SECRET not configured');
-              }
-
-              const decoded = jwt.verify(twoFactorToken, secret) as {
-                userId: string;
-                email: string;
-                purpose: string;
-              };
-
-              if (decoded.purpose !== '2fa_verification') {
-                return null;
-              }
-
-              // Token is valid, get user and complete login
-              const user = await prisma.user.findUnique({
-                where: { id: decoded.userId },
-              });
-
-              if (!user) {
-                return null;
-              }
-
-              console.log('[Auth] 2FA verification complete for:', user.email);
-
-              return {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                tier: user.tier as UserTier,
-                role: user.role as UserRole,
-                isAffiliate: user.isAffiliate,
-                image: user.image,
-                isActive: user.isActive,
-                createdAt: user.createdAt,
-                updatedAt: user.updatedAt,
-              };
-            } catch {
-              console.error('[Auth] Invalid 2FA token');
-              return null;
-            }
-          }
-
-          // Find user in database
-          const user = (await prisma.user.findUnique({
-            where: { email: credentials.email },
-          })) as PrismaUserWith2FA | null;
-
-          // OAuth-only users don't have passwords
-          if (!user || !user.password) {
-            return null;
-          }
-
-          // Verify password
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
-
-          if (!isPasswordValid) {
-            return null;
-          }
-
-          // Check if email is verified (only for email/password registration)
-          // Users who registered via email must verify their email before logging in
-          if (!user.emailVerified) {
-            console.log(
-              '[Auth] Login rejected: Email not verified for',
-              user.email
-            );
-            throw new Error('EMAIL_NOT_VERIFIED');
-          }
-
-          // Check if 2FA is enabled
-          if (user.twoFactorEnabled) {
-            console.log('[Auth] 2FA required for user:', user.email);
-            // Generate temporary token for 2FA verification
-            const twoFactorToken = generate2FAToken(user.id, user.email);
-            // Throw special error with token to trigger 2FA flow
-            throw new Error(`TWO_FACTOR_REQUIRED:${twoFactorToken}`);
-          }
-
-          // Return user object with actual database values
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            tier: user.tier as UserTier,
-            role: user.role as UserRole,
-            isAffiliate: user.isAffiliate,
-            image: user.image,
-            isActive: user.isActive,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-          };
-        } catch (error) {
-          // Re-throw EMAIL_NOT_VERIFIED and TWO_FACTOR_REQUIRED errors
-          if (error instanceof Error) {
-            if (
-              error.message === 'EMAIL_NOT_VERIFIED' ||
-              error.message.startsWith('TWO_FACTOR_REQUIRED:')
-            ) {
-              throw error;
-            }
-          }
-          console.error('Credentials authorization error:', error);
-          return null;
-        }
-      },
-    }),
   ],
 
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -352,8 +185,9 @@ export const authOptions: NextAuthOptions = {
           user.email
         );
 
-        // Only apply security check to OAuth providers (not credentials)
-        if (account?.provider && account.provider !== 'credentials') {
+        // account.provider is always an OAuth provider name here - this file
+        // registers no other kind (Session 4B-21, F56).
+        if (account?.provider) {
           // Twitter doesn't provide email - generate a placeholder email using Twitter ID
           if (!user.email && account.provider === 'twitter') {
             const twitterId = account.providerAccountId;
@@ -442,8 +276,8 @@ export const authOptions: NextAuthOptions = {
         if (user) {
           console.log('[JWT] User ID:', user.id);
 
-          // For credentials provider, user already has tier/role
-          // For OAuth, we need to fetch from database
+          // Always fetch fresh from the database - OAuth's own user object
+          // never carries tier/role.
           const dbUser = await prisma.user.findUnique({
             where: { id: user.id },
             select: {
@@ -469,7 +303,9 @@ export const authOptions: NextAuthOptions = {
             token.isAffiliate = dbUser.isAffiliate;
             console.log('[JWT] Token populated from DB');
           } else {
-            // Fallback to user object (credentials provider)
+            // Fallback: the DB lookup above found nothing (shouldn't happen
+            // for a real OAuth sign-in, since the adapter creates the row
+            // first) - keep whatever the user object itself carries.
             token.id = user.id;
             token.tier = ('tier' in user ? user.tier : 'FREE') as UserTier;
             token.role = ('role' in user ? user.role : 'USER') as UserRole;
