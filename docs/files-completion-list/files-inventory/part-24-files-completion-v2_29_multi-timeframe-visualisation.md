@@ -82,20 +82,22 @@ python -m mtf_render --db /path/to/xauusd.db --variant cherry_a --limit 200 --ou
 
 ## Testing Checklist
 
-| Test                          | Command                              | Expected Result                         |
-| ------------------------------ | ------------------------------------- | ---------------------------------------- |
-| Smoke test suite               | `python -m pytest test_mtf_render.py` | Fixture build + render round-trip passes |
-| Demo render (no DB)            | `python -m mtf_render --out chart.png` | Produces a 3-panel PNG from the fixture |
-| Real-DB render                 | `python -m mtf_render --db xauusd.db --out chart.png` | Reads real `market_data`, same layout |
+| Test                | Command                                               | Expected Result                          |
+| ------------------- | ----------------------------------------------------- | ---------------------------------------- |
+| Smoke test suite    | `python -m pytest test_mtf_render.py`                 | Fixture build + render round-trip passes |
+| Demo render (no DB) | `python -m mtf_render --out chart.png`                | Produces a 3-panel PNG from the fixture  |
+| Real-DB render      | `python -m mtf_render --db xauusd.db --out chart.png` | Reads real `market_data`, same layout    |
 
 ## Dependencies
 
 ### Upstream
+
 - `market_data` table (`v2_29_data_pipeline_architecture/sqlite_schema_v6_xauusd.sql`) — the
   source of the OHLCV + per-variant channel columns this package reads
 - `sqlite_schema_v6_xauusd_preview.txt` — sample rows used to develop against
 
 ### External (Python)
+
 - matplotlib >= 3.7 (headless `Agg` backend)
 - pandas >= 2.0
 - numpy >= 1.24

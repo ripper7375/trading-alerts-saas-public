@@ -168,21 +168,23 @@ v2_29_data_pipeline_architecture/
 
 ## Testing Checklist
 
-| Test                              | Command                                                          | Expected Result           |
-| ---------------------------------- | ----------------------------------------------------------------| -------------------------- |
-| Calc-stack unit/golden suite       | `python3 test_phase1_golden.py` / `test_phase2_lines.py` / `test_phase3_centroid.py` | 93/93 passing |
-| Golden certification vs MQL5       | `python3 golden_certification.py <exports> <TF> <statistics>`   | M15 50/50, M5 39/50 (accepted) |
-| Quarantine replay (dry run)        | `python3 replay_quarantine.py --dry-run`                        | Previews rows without POSTing |
-| Collector one-shot (mock/testing)  | `export_collector_validator_v2.py --once --no-market-hours`     | Runs a single cycle |
+| Test                              | Command                                                                              | Expected Result                |
+| --------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------ |
+| Calc-stack unit/golden suite      | `python3 test_phase1_golden.py` / `test_phase2_lines.py` / `test_phase3_centroid.py` | 93/93 passing                  |
+| Golden certification vs MQL5      | `python3 golden_certification.py <exports> <TF> <statistics>`                        | M15 50/50, M5 39/50 (accepted) |
+| Quarantine replay (dry run)       | `python3 replay_quarantine.py --dry-run`                                             | Previews rows without POSTing  |
+| Collector one-shot (mock/testing) | `export_collector_validator_v2.py --once --no-market-hours`                          | Runs a single cycle            |
 
 ## Dependencies
 
 ### Runtime
+
 - Python 3.x, `aiohttp`, `requests` (per `install_services.bat` prereqs)
 - SQLite (`xauusd.db`, schema in `sqlite_schema_v6_xauusd.sql`)
 - NSSM (Windows service manager) for the three VPS services
 
 ### Downstream
+
 - `railway-gateway/` (NestJS) — the gateway this stack's push worker posts to (see
   `backend-file-inventory.md` reconciliation note, 2026-07-05)
 - `prisma/migrations/20260705000000_add_market_data_v6` — the root Next.js app's Postgres table
@@ -219,7 +221,7 @@ Companion stack: `v2_29_multi-timeframe-visualisation-files-completion.md`.
 - 🐛 **Fixed (critical): `railway-gateway/src/worker/market-data.processor.ts`** — the
   controller enqueues Bull jobs **named** `'process'` (`queue.add('process', data, {jobId})`)
   but the processor used an unnamed `@Process({ concurrency: 1 })`, which only handles
-  *unnamed* jobs. Every row would have been accepted with a 200 "queued" and then failed in
+  _unnamed_ jobs. Every row would have been accepted with a 200 "queued" and then failed in
   the queue with "Missing process handler for job type process" — nothing would ever reach
   `market_data_v6` (and the push worker would still stamp `synced_at`, believing it synced).
   The e2e spec mocks the queue, so tests couldn't catch it. Fixed:
@@ -231,7 +233,7 @@ Companion stack: `v2_29_multi-timeframe-visualisation-files-completion.md`.
   Auth (`Authorization: Bearer` ↔ `API_KEYS`), endpoint paths (`/api/v1/market-data`,
   `/api/v1/health`), and the upsert key (`symbol_timeframe_timestamp` == Bull jobId) all line
   up. `lib/jobs/alert-checker.ts` reads `marketDataV6` gateway-first as documented (its
-  Flask *fallback* route was broken and fixed — see the drawing-engine/Part-06 audit notes).
+  Flask _fallback_ route was broken and fixed — see the drawing-engine/Part-06 audit notes).
 - **⚠️ PENDING VERIFICATION:** `cd railway-gateway && npm run build && npm test` after the
   processor-name fix (the audit environment could not execute the build). Also redeploy the
   gateway — the committed `dist/` predates this fix, so a deploy from stale `dist/` would
@@ -240,8 +242,7 @@ Companion stack: `v2_29_multi-timeframe-visualisation-files-completion.md`.
 
 ### Addendum — legacy decommission note
 
-The sibling `../architecture-document/old-architecture/README.md` (backend-file-inventory.md row
-623) was added the same day, formally marking the pre-v6 EA lineage
+The sibling `../architecture-document/old-architecture/README.md` (backend-file-inventory.md row 623) was added the same day, formally marking the pre-v6 EA lineage
 (`SimpleDataCollector_v2_25/26/27_API_GATEWAY.mq5/.ex5`, `backfill_worker_api_gateway_v2/v3.py` —
 the tema/hrma/smma/Keltner/Heiken-Ashi/8-level-S-R/zigzag_high-low/pinbar/fractal indicator set) as
 decommissioned, superseded by this stack. The other 8 legacy files in that folder are pre-existing
