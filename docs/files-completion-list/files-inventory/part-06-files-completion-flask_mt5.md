@@ -1,128 +1,244 @@
-# Part 6: Flask MT5 Service - List of files completion
+# Part 6: Flask MT5 Service - List of Files Completion
 
-## Root Configuration Files (5 files)
+**Last Updated:** 2026-08-04
+**Status:** ✅ Complete (100%)
 
-**File 1/32:** ✅ `mt5-service/.env.example` - Environment variables template
-**File 2/32:** ✅ `mt5-service/Dockerfile` - Docker container configuration
-**File 3/32:** ✅ `mt5-service/requirements.txt` - Production dependencies
-**File 4/32:** ✅ `mt5-service/requirements-dev.txt` - Development/test dependencies
-**File 5/32:** ✅ `mt5-service/run.py` - Application entry point
+---
 
-## Application Code (14 files)
+## 📋 Files Built in Part 06
 
-**File 6/32:** ✅ `mt5-service/app/__init__.py` - Flask app factory (create*app)
-**File 7/32:** ✅ `mt5-service/app/redis_pub.py` - Best-effort Redis publisher (`prices:{symbol}:{timeframe}`) feeding `lib/alert-engine`'s line-touch alerts; see Update 2026-07-05 below
-**File 8/32:** ✅ `mt5-service/app/websocket.py` - WebSocket support for real-time OHLCV streaming
-**File 9/32:** ✅ `mt5-service/app/routes/__init__.py` - Routes package init
-**File 10/32:** ✅ `mt5-service/app/routes/admin.py` - Admin endpoints (/api/admin/*)
-**File 11/32:** ✅ `mt5-service/app/routes/indicators.py` - Indicator endpoints (/api/indicators/\_)
-**File 12/32:** ✅ `mt5-service/app/services/__init__.py` - Services package init
-**File 13/32:** ✅ `mt5-service/app/services/health_monitor.py` - Background health monitoring
-**File 14/32:** ✅ `mt5-service/app/services/indicator_reader.py` - MT5 OHLCV data reading (indicator support removed)
-**File 15/32:** ✅ `mt5-service/app/services/mt5_connection_pool.py` - Multi-terminal connection pool
-**File 16/32:** ✅ `mt5-service/app/services/tier_service.py` - FREE/PRO tier validation
-**File 17/32:** ✅ `mt5-service/app/utils/__init__.py` - Utils package init
-**File 18/32:** ✅ `mt5-service/app/utils/constants.py` - Tier symbols/timeframes constants
-**File 19/32:** ✅ `mt5-service/app/utils/symbol_resolver.py` - Broker-specific symbol name resolution (handles Eightcap .i suffix)
+### Root Configuration & Build Files (5 files)
 
-## Configuration & Documentation (5 files)
+**File 1/33:** ✅ `mt5-service/.env.example`
 
-**File 20/32:** ✅ `mt5-service/config/mt5_terminals.json` - MT5 terminal configurations
-**File 21/32:** ✅ `mt5-service/config/mt5_terminals_test.json` - Test MT5 terminal configurations
-**File 22/32:** ✅ `mt5-service/indicators/README.md` - Custom indicators documentation
-**File 23/32:** ✅ `mt5-service/docs/symbol-resolution.md` - Symbol resolution guide and architecture
-**File 24/32:** ✅ `mt5-service/REDIS-PUBLISH-SNIPPET.md` - Reference snippet/notes for the `redis_pub.py` integration
+- **Status:** Complete
+- **Description:** Environment variables template (includes MT5 login credentials, Redis host/port, and `ALERT_PUBLISH_ROOMS`)
 
-## Tests (8 files)
+**File 2/33:** ✅ `mt5-service/Dockerfile`
 
-**File 25/32:** ✅ `mt5-service/tests/conftest.py` - pytest fixtures
-**File 26/32:** ✅ `mt5-service/tests/mock_mt5_server.py` - Mock MT5 server for integration testing
-**File 27/32:** ✅ `mt5-service/tests/mt5-mock-server-integration-tests-implementation.md` - Mock server test documentation
-**File 28/32:** ✅ `mt5-service/tests/test_connection_pool.py` - Connection pool & tier tests
-**File 29/32:** ✅ `mt5-service/tests/test_indicators.py` - Indicator endpoint tests
-**File 30/32:** ✅ `mt5-service/tests/test_mt5_integration.py` - MT5 integration tests with mock server
-**File 31/32:** ✅ `mt5-service/tests/test_redis_pub.py` - Tests for `redis_pub.py`'s best-effort publish behavior
-**File 32/32:** ✅ `mt5-service/tests/test_symbol_resolver.py` - Symbol resolver unit tests
+- **Status:** Complete
+- **Description:** Docker container configuration running Wine + MetaTrader 5 + Python microservice
 
-## Status Summary
+**File 3/33:** ✅ `mt5-service/requirements.txt`
 
-- **Completed:** 32/32 files (100%) — up from 29/29; see Update 2026-07-10 below
-- **Missing:** None
-- **Architecture:** OHLCV-only data service (no custom indicators)
-- **Recent Changes (2025-01-15):**
-  - ✅ Removed all fractal/trendline references from documentation and tests
-  - ✅ Updated `.env.example` to remove fractal indicator setup instructions
-  - ✅ Rewrote `indicators/README.md` to explain OHLCV-only architecture
-  - ✅ Updated `tests/mock_mt5_server.py` to remove fractal indicators from known list
-  - ✅ Updated `tests/test_mt5_integration.py` to remove fractal indicator tests
-  - ✅ Part 6 now correctly reflects OHLCV-only data fetching via `copy_rates_from_pos()`
-  - ✅ All indicators come from Part 20 (SQLite-Sync) which processes MQL5 exports
-- **Recent Changes (2026-03-05):**
-  - ✅ `websocket.py` background loop check interval changed from 1s → **0.25s**
-  - ✅ Change detection upgraded: now tracks `{timestamp, close}` per room instead of
-    only the bar open timestamp — intra-bar close price ticks now trigger `ohlcv_update`
-    pushes, so the live candle body updates in real-time as the market moves
-  - ✅ Frontend chart components now consume WebSocket (see Part 09) — HTTP polling
-    from `trading-chart.tsx` has been removed
-- **Key Features:**
-  - OHLCV data fetching via MT5 Python API `copy_rates_from_pos()`
-  - Symbol resolver for broker-specific naming (Eightcap .i suffix)
-  - Real-time WebSocket OHLCV streaming via Socket.IO (flask-socketio + eventlet)
-  - Background loop checks every **0.25s** per active subscription room
-  - Pushes on new bar open (timestamp advances) **or** intra-bar close tick change
-  - Subscription rooms only exist when a browser tab is actively viewing that symbol/timeframe — idle combinations consume zero resources
-  - No Redis required for single-instance deployment (eventlet handles concurrent connections)
-  - Multi-terminal connection pool (15 symbols across 15 terminals)
-  - FREE/PRO tier validation (symbol and timeframe restrictions)
-  - Comprehensive test suite with mock MT5 server
-- **Why No Custom Indicators:**
-  - MT5 Python API's `iCustom()` and `copy_buffer()` are unreliable
-  - Fractals and trendlines were calculated incorrectly from OHLCV data
-  - Part 20 (SQLite-Sync) provides all indicator data from MQL5 expert advisor exports
+- **Status:** Complete
+- **Description:** Production Python dependencies (Flask, flask-socketio, MetaTrader5, redis, eventlet)
 
-## WebSocket Update Frequency (Clarification)
+**File 4/33:** ✅ `mt5-service/requirements-dev.txt`
 
-The 0.25s interval is the **change-detection granularity**, not a guaranteed broadcast rate:
+- **Status:** Complete
+- **Description:** Development and testing Python dependencies (pytest, pytest-cov, mock)
 
-| Trigger                                  | What happens                    |
-| ---------------------------------------- | ------------------------------- |
-| New bar opens (timestamp advances)       | Push `ohlcv_update` immediately |
-| Current bar's close price changes (tick) | Push `ohlcv_update` immediately |
-| No price movement                        | No push — silence is free       |
+**File 5/33:** ✅ `mt5-service/run.py`
 
-Real-world push frequency depends on market activity:
+- **Status:** Complete
+- **Description:** Application entry point initializing eventlet and launching Flask-SocketIO server
 
-- Active liquid pairs (EURUSD during London/NY session): multiple pushes per second
-- Quiet pairs or off-hours: sparse pushes, possibly minutes apart
-- Subscription rooms are only active when a user's browser tab is open on that chart
+---
 
-## Update 2026-07-05 — Cross-stack system audit
+### Application Source Code (`mt5-service/app/`, 14 files)
 
-- ✅ **`ALERT_PUBLISH_ROOMS` added** (`app/websocket.py`, `app/__init__.py`, `.env.example`):
-  optional comma-separated `SYMBOL_TIMEFRAME` list the background loop always polls and
-  publishes to Redis, independent of browser subscriptions. Fixes the audit finding that
-  line-touch alerts (`lib/alert-engine`) received no price events once the last chart tab
-  closed. Default (unset) preserves the original rooms-only behavior. When set, the loop now
-  starts at app boot instead of on first subscription, and the connection pool is fetched
-  inside the loop so a late-initializing pool retries instead of killing the thread.
-- ✅ Confirmed the `redis_pub.py` → `prices:{symbol}:{timeframe}` payload still matches
-  `lib/alert-engine/types.ts` `PriceEvent` field-for-field.
-- ✅ Confirmed Socket.IO event contract (`subscribe`/`initial_data`/`ohlcv_update`/`error`)
-  matches `hooks/use-ohlcv-socket.ts`.
-- ℹ️ For `lib/jobs/alert-checker.ts` (Next.js side), its Flask fallback previously targeted a
-  nonexistent `/api/mt5/price` route — fixed to use this service's real
-  `/api/indicators/{symbol}/{timeframe}` endpoint. No Flask-side change was needed.
+**File 6/33:** ✅ `mt5-service/app/__init__.py`
 
-## Update 2026-07-10 — file count backfill (29 → 32)
+- **Status:** Complete
+- **Description:** Flask app factory (`create_app`), blueprint registration, Socket.IO initialization, and Redis publisher startup
 
-This doc's numbered list was never updated when the Redis publisher (added as part of the
-2026-07-05 cross-stack audit above) landed — the prose above already described `redis_pub.py`'s
-behavior, but the file list itself still said 29/29. Found via a three-way count check against
-`migration-stack-analysis.md` (which had 32, sourced from `backend-file-inventory.md` rows
-530/615/616 — both already correct) versus this doc's stale 29. Added the 3 missing files:
+**File 7/33:** ✅ `mt5-service/app/redis_pub.py`
 
-- `mt5-service/app/redis_pub.py` — the publisher itself
-- `mt5-service/REDIS-PUBLISH-SNIPPET.md` — its reference doc
-- `mt5-service/tests/test_redis_pub.py` — its test
+- **Status:** Complete
+- **Description:** Best-effort Redis publisher publishing OHLCV price events to channel `prices:{symbol}:{timeframe}` feeding Next.js line-touch alert engine
 
-No other gaps found; all other files in this Part were already accurate.
+**File 8/33:** ✅ `mt5-service/app/websocket.py`
+
+- **Status:** Complete
+- **Description:** Socket.IO real-time OHLCV streaming server (0.25s background polling loop, intra-bar tick change detection, `ALERT_PUBLISH_ROOMS` support)
+
+**File 9/33:** ✅ `mt5-service/app/routes/__init__.py`
+
+- **Status:** Complete
+- **Description:** Routes package initializer
+
+**File 10/33:** ✅ `mt5-service/app/routes/admin.py`
+
+- **Status:** Complete
+- **Description:** Admin monitoring & management API endpoints (`/api/admin/*`)
+
+**File 11/33:** ✅ `mt5-service/app/routes/indicators.py`
+
+- **Status:** Complete
+- **Description:** OHLCV candlestick data API endpoints (`/api/indicators/*`)
+
+**File 12/33:** ✅ `mt5-service/app/services/__init__.py`
+
+- **Status:** Complete
+- **Description:** Services package initializer
+
+**File 13/33:** ✅ `mt5-service/app/services/health_monitor.py`
+
+- **Status:** Complete
+- **Description:** Background terminal health monitoring & connection recovery service
+
+**File 14/33:** ✅ `mt5-service/app/services/indicator_reader.py`
+
+- **Status:** Complete
+- **Description:** MT5 OHLCV data reader service fetching candles using `copy_rates_from_pos()`
+
+**File 15/33:** ✅ `mt5-service/app/services/mt5_connection_pool.py`
+
+- **Status:** Complete
+- **Description:** Multi-terminal MT5 connection pool manager for terminal routing and connection lifecycle
+
+**File 16/33:** ✅ `mt5-service/app/services/tier_service.py`
+
+- **Status:** Complete
+- **Description:** Tier validation service enforcing symbol and timeframe restrictions
+
+**File 17/33:** ✅ `mt5-service/app/utils/__init__.py`
+
+- **Status:** Complete
+- **Description:** Utils package initializer
+
+**File 18/33:** ✅ `mt5-service/app/utils/constants.py`
+
+- **Status:** Complete
+- **Description:** Constants module for symbols, timeframes, and tier configurations
+
+**File 19/33:** ✅ `mt5-service/app/utils/symbol_resolver.py`
+
+- **Status:** Complete
+- **Description:** Broker-specific symbol name resolution (e.g. Eightcap `.i` suffix handling)
+
+---
+
+### Configuration & Documentation (5 files)
+
+**File 20/33:** ✅ `mt5-service/config/mt5_terminals.json`
+
+- **Status:** Complete
+- **Description:** Production MT5 terminal configuration mapping
+
+**File 21/33:** ✅ `mt5-service/config/mt5_terminals_test.json`
+
+- **Status:** Complete
+- **Description:** Test environment MT5 terminal configuration mapping
+
+**File 22/33:** ✅ `mt5-service/indicators/README.md`
+
+- **Status:** Complete
+- **Description:** Technical documentation explaining the OHLCV-only architecture
+
+**File 23/33:** ✅ `mt5-service/docs/symbol-resolution.md`
+
+- **Status:** Complete
+- **Description:** Comprehensive symbol resolution architecture guide
+
+**File 24/33:** ✅ `mt5-service/REDIS-PUBLISH-SNIPPET.md`
+
+- **Status:** Complete
+- **Description:** Reference snippet and documentation for Redis publishing integration
+
+---
+
+### Test Suite (`mt5-service/tests/`, 8 files)
+
+**File 25/33:** ✅ `mt5-service/tests/conftest.py`
+
+- **Status:** Complete
+- **Description:** Pytest test fixtures and configuration
+
+**File 26/33:** ✅ `mt5-service/tests/mock_mt5_server.py`
+
+- **Status:** Complete
+- **Description:** Mock MT5 server for integration testing without a live Windows MT5 environment
+
+**File 27/33:** ✅ `mt5-service/tests/mt5-mock-server-integration-tests-implementation.md`
+
+- **Status:** Complete
+- **Description:** Documentation and implementation guide for mock server integration tests
+
+**File 28/33:** ✅ `mt5-service/tests/test_connection_pool.py`
+
+- **Status:** Complete
+- **Description:** Unit tests for connection pool and multi-terminal management
+
+**File 29/33:** ✅ `mt5-service/tests/test_indicators.py`
+
+- **Status:** Complete
+- **Description:** Unit tests for indicator/OHLCV route handlers
+
+**File 30/33:** ✅ `mt5-service/tests/test_mt5_integration.py`
+
+- **Status:** Complete
+- **Description:** Integration tests running against the mock MT5 server
+
+**File 31/33:** ✅ `mt5-service/tests/test_redis_pub.py`
+
+- **Status:** Complete
+- **Description:** Unit tests for best-effort Redis publishing logic
+
+**File 32/33:** ✅ `mt5-service/tests/test_symbol_resolver.py`
+
+- **Status:** Complete
+- **Description:** Unit tests for symbol resolver and broker suffix handling
+
+---
+
+### Part Documentation (1 file)
+
+**File 33/33:** ✅ `docs/open-api-documents/part-06-flask_mt5_openapi.yaml`
+
+- **Status:** Complete
+- **Description:** Complete OpenAPI 3.0.3 specification for Flask MT5 Microservice API
+
+---
+
+## 📊 Status Summary
+
+- **Total Production Files:** 33/33 (100%)
+- **Microservice Files (`mt5-service/`):** 32 files (5 build/config + 14 app + 5 config/docs + 8 tests)
+- **Documentation (`docs/`):** 1 file (`part-06-flask_mt5_openapi.yaml`)
+- **Architecture:** Raw OHLCV data microservice with Socket.IO & Redis streaming
+
+---
+
+## 🎯 Architectural Principles & Key Features
+
+### 1. OHLCV-Only Data Service
+
+- Fetches raw OHLCV candlestick data via MetaTrader 5 Python API (`copy_rates_from_pos()`).
+- Does NOT calculate custom indicators or run custom MT5 indicator buffers (custom indicators are handled via MQL5 EA exports / Part 20 pipeline or client-side calculation).
+
+### 2. High-Frequency Real-Time Streaming
+
+- **WebSocket Streaming:** Real-time Socket.IO streaming (`flask-socketio` + `eventlet`).
+- **0.25s Polling Loop:** Background thread checks for timestamp advancement or intra-bar close price tick updates every 250ms per active room.
+- **On-Demand Subscription Rooms:** Rooms are created dynamically when client tabs view a chart, consuming zero resources when idle.
+
+### 3. Redis Alert Engine Publisher (`ALERT_PUBLISH_ROOMS`)
+
+- Publishes best-effort price events to Redis channel `prices:{symbol}:{timeframe}` (`lib/auth`/`lib/alert-engine`).
+- When `ALERT_PUBLISH_ROOMS` is configured in `.env`, price publishing runs continuously for line-touch alert evaluation even if no browser tabs are connected.
+
+### 4. Multi-Terminal Connection Pooling & Fault Isolation
+
+- Multi-terminal connection pool (`mt5_connection_pool.py`) manages MT5 terminal instances.
+- Multi-terminal architecture distributes load across terminals and provides fault isolation.
+- `health_monitor.py` automatically detects disconnected terminals and triggers reconnection routines.
+
+### 5. Broker Symbol Resolution
+
+- `symbol_resolver.py` dynamically resolves generic symbol names (e.g. `XAUUSD`) to broker-specific symbols (e.g. Eightcap `XAUUSD.i`).
+
+---
+
+## 🔗 Related Documentation
+
+- **Microservice Entry Point:** `mt5-service/run.py`
+- **Socket.IO Streaming Server:** `mt5-service/app/websocket.py`
+- **Redis Publisher:** `mt5-service/app/redis_pub.py`
+- **Symbol Resolver Guide:** `mt5-service/docs/symbol-resolution.md`
+- **OpenAPI Specification:** `docs/open-api-documents/part-06-flask_mt5_openapi.yaml`
+
+---
+
+**Part 06 Status:** ✅ Complete and production-ready

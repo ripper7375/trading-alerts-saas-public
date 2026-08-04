@@ -1,206 +1,108 @@
-# Part 18A: dLocal Payment Creation Flow (Vertical Slice 1 of 3) - Files Inventory
+# Part 18A: dLocal Payment Creation Flow (Vertical Slice 1 of 3) - List of Files Completion
 
-## Status Summary
+**Last Updated:** 2026-08-04
+**Total Files:** 23 files (15 implementation + 8 test files)
+**Status:** ✅ Complete (100%)
 
-- **Total Production Files:** 15 files
-- **Total Test Files:** 8 files
+---
+
+## 📋 Production & Test Files Inventory (23 Files)
+
+### Phase A: Database & Types (5 files)
+
+**File 1/23:** ✅ `prisma/non-market-data/schema.prisma`
+
+- **Status:** Complete
+- **Description:** `Payment` model defining dLocal payment fields (`paymentProvider`, `dLocalPaymentId`, `orderId`, `amount`, `currency`, `localAmount`, `localCurrency`, `paymentMethod`, `status`)
+
+**File 2/23:** ✅ `types/dlocal.ts`
+
+- **Status:** Complete
+- **Description:** TypeScript interface definitions (`DLocalCountry`, `DLocalCurrency`, `PlanType`, `PaymentStatus`, `DLocalPaymentRequest`, `DLocalPaymentResponse`, `DLocalWebhookPayload`)
+
+**File 3/23:** ✅ `lib/dlocal/constants.ts`
+
+- **Status:** Complete
+- **Description:** Configuration constants for 8 supported dLocal countries (IN, NG, PK, VN, ID, TH, ZA, TR), local currencies, payment method mappings, and pricing
+
+**File 4/23:** ✅ `__tests__/types/dlocal.test.ts`
+
+- **Status:** Complete
+- **Description:** Type contract verification test suite for dLocal interfaces
+
+**File 5/23:** ✅ `__tests__/lib/dlocal/constants.test.ts`
+
+- **Status:** Complete
+- **Description:** Unit test suite for country and currency mapping functions
+
+---
+
+### Phase B: Core Services (9 files)
+
+**File 6/23:** ✅ `lib/dlocal/currency-converter.service.ts`
+
+- **Status:** Complete
+- **Description:** Service fetching exchange rates with 1-hour caching and converting USD prices to local currencies
+
+**File 7/23:** ✅ `lib/dlocal/payment-methods.service.ts`
+
+- **Status:** Complete
+- **Description:** Service retrieving available local payment methods (UPI, MoMo, GoPay, JazzCash, bank transfer) by country
+
+**File 8/23:** ✅ `lib/dlocal/dlocal-payment.service.ts`
+
+- **Status:** Complete
+- **Description:** Core dLocal payment creation service generating HMAC-SHA256 signatures, unique order IDs, and API requests
+
+**File 9/23:** ✅ `lib/geo/detect-country.ts`
+
+- **Status:** Complete
+- **Description:** IP-based geolocation detection service identifying client country
+
+**File 10/23:** ✅ `lib/logger.ts`
+
+- **Status:** Complete
+- **Description:** Centralized logger utility for payment event tracking
+
+**File 11/23:** ✅ `__tests__/lib/dlocal/currency-converter.test.ts` — TDD test suite for currency conversion logic
+**File 12/23:** ✅ `__tests__/lib/dlocal/payment-methods.test.ts` — TDD test suite for payment method resolution
+**File 13/23:** ✅ `__tests__/lib/dlocal/dlocal-payment.test.ts` — TDD test suite for payment creation & HMAC verification
+**File 14/23:** ✅ `__tests__/lib/geo/detect-country.test.ts` — TDD test suite for geolocation detection
+
+---
+
+### Phase C: API Endpoints & Webhooks (7 files)
+
+**File 15/23:** ✅ `app/api/payments/dlocal/methods/route.ts` — `GET`: Retrieve available payment methods for target country
+**File 16/23:** ✅ `app/api/payments/dlocal/exchange-rate/route.ts` — `GET`: Retrieve USD exchange rate for local currency
+**File 17/23:** ✅ `app/api/payments/dlocal/convert/route.ts` — `GET`: Convert USD price to local currency amount
+**File 18/23:** ✅ `app/api/payments/dlocal/create/route.ts` — `POST`: Create dLocal payment transaction
+**File 19/23:** ✅ `app/api/payments/dlocal/[paymentId]/route.ts` — `GET`: Poll or fetch payment status
+**File 20/23:** ✅ `app/api/webhooks/dlocal/route.ts` — `POST`: Primary dLocal webhook handler verifying HMAC signatures and executing shared affiliate conversion logic via `lib/affiliate/conversion-processor.ts`
+**File 21/23:** ✅ `__tests__/api/webhooks/dlocal/route.test.ts` — Unit test suite for dLocal webhook verification
+
+---
+
+### Phase D & E: Integration Testing & Handoff (2 files)
+
+**File 22/23:** ✅ `__tests__/integration/payment-creation.test.ts` — Integration test suite verifying end-to-end payment creation flow
+**File 23/23:** ✅ `docs/part18a-handoff.md` — Technical handoff documentation detailing Vertical Slice 1 implementation
+
+---
+
+## 📊 Status Summary
+
+- **Total Production Files:** 15/15 (100%)
+- **Total Test Files:** 8/8 (100%)
 - **Grand Total:** 23 files
-- **Frontend Mirror Files:** 13 files (services, types, routes)
+- **Supported Countries:** 8 emerging markets (India, Nigeria, Pakistan, Vietnam, Indonesia, Thailand, South Africa, Turkey)
 
 ---
 
-## Phase A: Database & Types (3 production + 2 test = 5 files)
+## 🎯 Shared Affiliate Conversion Integration
 
-| #   | File Path                                | Type   | Lines | Description                              |
-| --- | ---------------------------------------- | ------ | ----- | ---------------------------------------- |
-| 1   | `prisma/schema.prisma`                   | UPDATE | -     | Add Payment model (basic fields for 18A) |
-| 2   | `types/dlocal.ts`                        | NEW    | 151   | dLocal type definitions                  |
-| 3   | `lib/dlocal/constants.ts`                | NEW    | 163   | Countries, currencies, pricing constants |
-| T1  | `__tests__/types/dlocal.test.ts`         | TEST   | -     | Test type definitions                    |
-| T2  | `__tests__/lib/dlocal/constants.test.ts` | TEST   | -     | Test country/currency mappings           |
-
-### Types Defined (`types/dlocal.ts`)
-
-- `PaymentProvider` - 'DLOCAL' | 'STRIPE'
-- `DLocalCountry` - IN, NG, PK, VN, ID, TH, ZA, TR (8 countries)
-- `DLocalCurrency` - INR, NGN, PKR, VND, IDR, THB, ZAR, TRY
-- `PlanType` - 'THREE_DAY' | 'MONTHLY'
-- `PaymentStatus` - PENDING, COMPLETED, FAILED, CANCELLED, REFUNDED
-- `DLocalPaymentRequest` / `DLocalPaymentResponse`
-- `DLocalWebhookPayload`
-- `CurrencyConversionResult`
-- `PaymentMethodInfo`
-- `CountryConfig`
-- `CreatePaymentOptions`
-- `PaymentStatusResponse`
-
-### Constants Defined (`lib/dlocal/constants.ts`)
-
-- `DLOCAL_SUPPORTED_COUNTRIES` - 8 countries array
-- `COUNTRY_CURRENCY_MAP` - Country to currency mapping
-- `COUNTRY_NAMES` - Display names
-- `PAYMENT_METHODS` - Per-country payment methods
-- `PRICING` - THREE_DAY_USD: $1.99, MONTHLY_USD: $29.00
-- `PLAN_DURATION` - 3 days / 30 days
-- Helper functions: `isDLocalCountry()`, `getCurrency()`, `getPaymentMethods()`, etc.
+- When a dLocal payment completes (`payment.paid`), `app/api/webhooks/dlocal/route.ts` routes conversion processing through `lib/affiliate/conversion-processor.ts` to idempotently update promo code usage, log pending commissions, and notify affiliates.
 
 ---
 
-## Phase B: Core Services (5 production + 4 test = 9 files)
-
-| #   | File Path                                         | Type | Lines | Description                      |
-| --- | ------------------------------------------------- | ---- | ----- | -------------------------------- |
-| 4   | `lib/dlocal/currency-converter.service.ts`        | NEW  | 156   | USD to local currency conversion |
-| 5   | `lib/dlocal/payment-methods.service.ts`           | NEW  | 118   | Fetch payment methods by country |
-| 6   | `lib/dlocal/dlocal-payment.service.ts`            | NEW  | 237   | Create payments, verify webhooks |
-| 7   | `lib/geo/detect-country.ts`                       | NEW  | -     | IP geolocation country detection |
-| 8   | `lib/logger.ts`                                   | NEW  | -     | Simple logging utility           |
-| T3  | `__tests__/lib/dlocal/currency-converter.test.ts` | TEST | -     | TDD: Currency conversion         |
-| T4  | `__tests__/lib/dlocal/payment-methods.test.ts`    | TEST | -     | TDD: Payment methods             |
-| T5  | `__tests__/lib/dlocal/dlocal-payment.test.ts`     | TEST | -     | TDD: Payment creation            |
-| T6  | `__tests__/lib/geo/detect-country.test.ts`        | TEST | -     | TDD: Country detection           |
-
-### Service Capabilities
-
-**Currency Converter Service:**
-
-- `convertUSDToLocal()` - Convert USD to local currency
-- Exchange rate caching (1-hour TTL)
-- Fallback rates for offline mode
-- exchangerate-api.com integration
-
-**Payment Methods Service:**
-
-- `getPaymentMethodsForCountry()` - Get available payment methods
-- `isValidPaymentMethod()` - Validate payment method for country
-- `getPaymentMethodDetails()` - Get detailed method info
-- `getPaymentMethodType()` - Classify method type (bank, wallet, qr, card)
-
-**dLocal Payment Service:**
-
-- `createPayment()` - Create dLocal payment with HMAC-SHA256 signature
-- `verifyWebhookSignature()` - Verify webhook signatures
-- `mapDLocalStatus()` - Map dLocal status to internal status
-- `generateSignature()` - HMAC SHA256 signature generation
-- `generateOrderId()` - Unique order ID generation
-
----
-
-## Phase C: API Routes (6 production + 1 test = 7 files)
-
-| #   | File Path                                        | Type | Lines | Description                          |
-| --- | ------------------------------------------------ | ---- | ----- | ------------------------------------ |
-| 9   | `app/api/payments/dlocal/methods/route.ts`       | NEW  | 79    | GET payment methods for country      |
-| 10  | `app/api/payments/dlocal/exchange-rate/route.ts` | NEW  | 79    | GET exchange rate USD to currency    |
-| 11  | `app/api/payments/dlocal/convert/route.ts`       | NEW  | 98    | GET currency conversion              |
-| 12  | `app/api/payments/dlocal/create/route.ts`        | NEW  | 217   | POST create dLocal payment           |
-| 13  | `app/api/payments/dlocal/[paymentId]/route.ts`   | NEW  | 113   | GET payment status                   |
-| 14  | `app/api/webhooks/dlocal/route.ts`               | NEW  | -     | POST webhook handler (BASIC version) |
-| T7  | `__tests__/api/webhooks/dlocal/route.test.ts`    | TEST | -     | Unit test: Basic webhook handler     |
-
-### API Endpoints Summary
-
-| Method | Endpoint                             | Description                     |
-| ------ | ------------------------------------ | ------------------------------- |
-| GET    | `/api/payments/dlocal/methods`       | Get payment methods for country |
-| GET    | `/api/payments/dlocal/exchange-rate` | Get USD exchange rate           |
-| GET    | `/api/payments/dlocal/convert`       | Convert USD to local currency   |
-| POST   | `/api/payments/dlocal/create`        | Create dLocal payment           |
-| GET    | `/api/payments/dlocal/[paymentId]`   | Get payment status              |
-| POST   | `/api/webhooks/dlocal`               | Handle dLocal webhooks          |
-
----
-
-## Phase D: Integration Test (0 production + 1 test = 1 file)
-
-| #   | File Path                                        | Type | Description                        |
-| --- | ------------------------------------------------ | ---- | ---------------------------------- |
-| T8  | `__tests__/integration/payment-creation.test.ts` | TEST | Integration: Complete payment flow |
-
----
-
-## Phase E: Documentation (1 production + 0 test = 1 file)
-
-| #   | File Path                 | Type | Description              |
-| --- | ------------------------- | ---- | ------------------------ |
-| 15  | `docs/part18a-handoff.md` | NEW  | Handoff doc for Part 18B |
-
----
-
-## Frontend Mirror Files (13 files)
-
-These files mirror the backend services for frontend deployment:
-
-### Types
-
-| File Path                  | Mirrors           |
-| -------------------------- | ----------------- |
-| `frontend/types/dlocal.ts` | `types/dlocal.ts` |
-
-### Services
-
-| File Path                                            | Mirrors                                     |
-| ---------------------------------------------------- | ------------------------------------------- |
-| `frontend/lib/dlocal/constants.ts`                   | `lib/dlocal/constants.ts`                   |
-| `frontend/lib/dlocal/currency-converter.service.ts`  | `lib/dlocal/currency-converter.service.ts`  |
-| `frontend/lib/dlocal/payment-methods.service.ts`     | `lib/dlocal/payment-methods.service.ts`     |
-| `frontend/lib/dlocal/dlocal-payment.service.ts`      | `lib/dlocal/dlocal-payment.service.ts`      |
-| `frontend/lib/dlocal/three-day-validator.service.ts` | `lib/dlocal/three-day-validator.service.ts` |
-
-### API Routes
-
-| File Path                                                               | Mirrors                                                        |
-| ----------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `frontend/app/api/payments/dlocal/methods/route.ts`                     | `app/api/payments/dlocal/methods/route.ts`                     |
-| `frontend/app/api/payments/dlocal/exchange-rate/route.ts`               | `app/api/payments/dlocal/exchange-rate/route.ts`               |
-| `frontend/app/api/payments/dlocal/convert/route.ts`                     | `app/api/payments/dlocal/convert/route.ts`                     |
-| `frontend/app/api/payments/dlocal/create/route.ts`                      | `app/api/payments/dlocal/create/route.ts`                      |
-| `frontend/app/api/payments/dlocal/[paymentId]/route.ts`                 | `app/api/payments/dlocal/[paymentId]/route.ts`                 |
-| `frontend/app/api/payments/dlocal/validate-discount/route.ts`           | `app/api/payments/dlocal/validate-discount/route.ts`           |
-| `frontend/app/api/payments/dlocal/check-three-day-eligibility/route.ts` | `app/api/payments/dlocal/check-three-day-eligibility/route.ts` |
-
----
-
-## Supported Countries & Payment Methods
-
-| Country      | Code | Currency | Payment Methods                     |
-| ------------ | ---- | -------- | ----------------------------------- |
-| India        | IN   | INR      | UPI, Paytm, PhonePe, Net Banking    |
-| Nigeria      | NG   | NGN      | Bank Transfer, USSD, Paystack       |
-| Pakistan     | PK   | PKR      | JazzCash, Easypaisa                 |
-| Vietnam      | VN   | VND      | VNPay, MoMo, ZaloPay                |
-| Indonesia    | ID   | IDR      | GoPay, OVO, Dana, ShopeePay         |
-| Thailand     | TH   | THB      | TrueMoney, Rabbit LINE Pay, Thai QR |
-| South Africa | ZA   | ZAR      | Instant EFT, EFT                    |
-| Turkey       | TR   | TRY      | Bank Transfer, Local Cards          |
-
----
-
-## Pricing
-
-| Plan    | USD Price | Duration | Notes                        |
-| ------- | --------- | -------- | ---------------------------- |
-| 3-Day   | $1.99     | 3 days   | One-time, lifetime limit     |
-| Monthly | $29.00    | 30 days  | Recurring via manual renewal |
-
----
-
-## Total File Count
-
-| Category                | Production | Test  | Total  |
-| ----------------------- | ---------- | ----- | ------ |
-| Phase A: Database/Types | 3          | 2     | 5      |
-| Phase B: Services       | 5          | 4     | 9      |
-| Phase C: API Routes     | 6          | 1     | 7      |
-| Phase D: Integration    | 0          | 1     | 1      |
-| Phase E: Documentation  | 1          | 0     | 1      |
-| **Total**               | **15**     | **8** | **23** |
-| Frontend Mirrors        | 13         | 0     | 13     |
-
----
-
-## Update 2026-07-04
-
-No new files; `app/api/payments/dlocal/create/route.ts` and `app/api/webhooks/dlocal/route.ts`
-were **modified** (still complete) so the dLocal webhook routes affiliate conversions through the
-shared `lib/affiliate/conversion-processor.ts`.
+**Part 18A Status:** ✅ Complete and production-ready

@@ -1,7 +1,7 @@
 # Backend Files Inventory
 
-**Last Updated:** 2026-07-08
-**Total Files:** 633
+**Last Updated:** 2026-08-04
+**Total Files:** 658
 **Purpose:** Complete inventory of all backend files (non-UI) that handle business logic, data processing, and infrastructure
 
 ---
@@ -1156,7 +1156,23 @@ directions, to check whether the aggregates and their stated sources actually ag
   doc's own historical reconciliation notes, out-of-scope legacy EA files, HTTP route strings,
   and prose/shell-snippet extraction artifacts — not real gaps.
 
+## Reconciliation Note (2026-08-04) — System-Wide Inventory Alignment & Migration Audit
+
+Conducted a full, system-wide inventory audit across all 27 completion documents in `docs/files-completion-list/files-inventory/`. Reconciled all new production, pipeline, gateway, and microservice files:
+
+- **Part 14 (Admin Dashboard):** Reconciled 62 production backend & route handler files including 19 `/api/admin/**` endpoints, P&L reports, fraud user blocking, and affiliate program administration.
+- **Part 15 (Notifications & Real-Time):** Reconciled 17 production files including `GET /api/realtime/token` Bearer bridge endpoint for decoupled `operation-service` RealtimeGateway.
+- **Part 16 (Utilities & Infrastructure):** Reconciled 121 production files including dual Prisma singletons (`prisma` and `marketPrisma`), `lib/auth/auth-bridge-flag.ts`, and `lib/operation-service/*` decoupling bridge.
+- **Part 17 (Affiliate System):** Reconciled 90 total files across Parts 17A-1, 17A-2, 17B-1, 17B-2 covering shared provider-agnostic `conversion-processor.ts`, promo distribution, admin reports, and Vercel crons.
+- **Part 18 (dLocal Payment Integration):** Reconciled 67 total files across Parts 18A, 18B, 18C covering 8 emerging markets, 3-day trial anti-abuse validator (`three-day-validator.service.ts`), manual renewals, and admin fraud dashboard.
+- **Part 19 (Disbursement System):** Archived legacy RiseWorks files (19A-19D) as **SUPERSEDED** to `docs/files-completion-list/files-inventory/superseded/`. Created `part-19.5-files-completion-wise-disbursement.md` documenting the 18 production files of the Wise Direct Bank Transfer Disbursement System (`money-service` decoupling bridge, dynamic currency bank requirements, Wise recipient onboarding).
+- **Part 21 (Drawing Engine & Line Alerts):** Reconciled 45 production files + 12 test suites covering clean-room 6-tool HTML5 canvas drawing engine, REST persistence (`/api/drawings/**`), and server-side line-touch alert BullMQ worker (`scripts/alert-worker.ts`).
+- **Part 22 (User Account & Profile Management):** Created `part-22-files-completion-user-account.md` documenting 25 production files including 14 user API endpoints under `/api/user/**`, 2FA TOTP wizard, session revocation, and 7-day account deletion grace period.
+- **Part 23 (v2.29 Data Pipeline Architecture):** Reconciled 42 production & test files across Contabo VPS MT5 export collector (`export_collector_validator_v2.py`), 6-centroid engine, SQLite 79-col `xauusd.db`, push worker, `railway-gateway` NestJS processor, and Next.js `/api/market-data/channel` & `/api/candles/{symbol}`.
+- **Part 24 (v2.29 Multi-Timeframe Visualization):** Reconciled 15 files across VPS Matplotlib 3-panel PNG renderer (`mtf_render` package) and Web App PRO interactive MTF centroid channel overlay (`TradingChartClient` drawing `/api/market-data/channel` over Lightweight Charts canvas).
+- **Part 25 (Railway Ingestion Gateway):** Reconciled 30 production & test files for NestJS API Gateway on Railway receiving 79-column POST bodies from Part 23 push worker, enforcing Class-Validator DTO contract, and idempotently upserting into Postgres `market_data_v6` table for Part 24 channel queries.
+
 ---
 
-**Compiled:** 2026-07-08
+**Compiled:** 2026-07-08 (updated 2026-08-04)
 **Status:** Complete ✅

@@ -1,201 +1,161 @@
-# Part 4: Tier System & Constants - List of files completion
+# Part 4: Tier System & Constants - List of Files Completion
 
-## Core Tier Configuration (lib/)
-
-**File 1/9:** ✅ `lib/tier-config.ts` - Centralized tier configuration (V8: XAUUSD/M5/M15 for both tiers — see Update 2026-07-08)
-**File 2/9:** ✅ `lib/tier-validation.ts` - User access validation based on subscription tier (V8: indicator/column access always allowed)
-**File 3/9:** ✅ `lib/tier-helpers.ts` - Helper functions for tier operations
-
-## Indicator Tier System (lib/tier/) — ❌ REMOVED 2026-07-08 (dead code)
-
-~~**File 4/9:** `lib/tier/constants.ts`~~ - **DELETED** — indicator tier constants/metadata/colors
-for the decommissioned 63-column schema; only consumed by the two dead chart components below
-~~**File 5/9:** `lib/tier/validator.ts`~~ - **DELETED** — access-control functions for
-tier-gated indicators/columns; V8 made all of this ungated, and its only real caller was
-`components/charts/indicator-toggles.tsx`
-~~**File 6/9:** `lib/tier/index.ts`~~ - **DELETED** — barrel re-export with zero external
-consumers once the two files above were confirmed dead
-
-See the Update 2026-07-08 section below for the full investigation (traced transitively: nothing
-live imported any of `lib/tier/*` outside `components/charts/{indicator-toggles,pro-indicator-overlay}.tsx`,
-which were also deleted the same day — see `part-09-files-completion.md`).
-
-## API Routes (app/api/tier/)
-
-**File 4/9:** ✅ `app/api/tier/check/[symbol]/route.ts` - V8: `allowed=true` only for XAUUSD, any tier
-**File 5/9:** ✅ `app/api/tier/combinations/route.ts` - V8: returns the 2 XAUUSD×{M5,M15} combinations, identical for both tiers
-**File 6/9:** ✅ `app/api/tier/symbols/route.ts` - V8: returns the single-symbol list, no `proOnly` flag
-
-## Tests
-
-~~`lib/tier/__tests__/constants.test.ts`~~ - **DELETED 2026-07-07** as a stale pre-V8 test
-(asserted a FREE/PRO indicator split that no longer exists)
-~~`lib/tier/__tests__/validator.test.ts`~~ - **DELETED 2026-07-08** — tested the deleted `validator.ts`
-**File 7/9:** ✅ `__tests__/api/tier.test.ts` - Tests for tier API endpoints (updated 2026-07-07 for V8 limits)
-
-## Documentation
-
-**File 8/9:** ✅ `docs/open-api-documents/part-04-tier-system-openapi.yaml` - OpenAPI specification (pre-V8; not yet updated to reflect the single-symbol contract — see Update note)
-**File 9/9:** ✅ `types/tier.ts` - Canonical `Tier`/`TierLimits` types, tracked here since Part 04 owns the tier system (also listed under Part 03/08/16)
-
-## Status Summary
-
-- **Completed:** 9/9 current files (100%) — down from the original 13 (3 `lib/tier/*` files + 2
-  test files deleted as dead code across 2026-07-07/08; see Update note)
-- **Missing:** None (of what's meant to exist today)
-- **Library Files:** 3 (was 6)
-- **API Routes:** 3
-- **Tests:** 1 (was 3)
-- **Documentation:** 1
-
-## Tier System Features — V8 (current, since 2026-07-07)
-
-**Both tiers, identical:** XAUUSD only, M5 + M15 only, full access to all 79 `market_data_v6`
-columns (no indicator/column gating — `canAccessIndicator`/`canAccessColumn` always return
-`true`). See `change-to-new-design.md` and `lib/tier-config.ts`'s own doc comment.
-
-**FREE Tier:** 0 alerts (Alerts are PRO-only), 60 req/hour, $0/month
-**PRO Tier:** 100 alerts, multi-timeframe visualization, drawing-engine line alerts, 300
-req/hour, configurable price/month (`NEXT_PUBLIC_PRO_PRICE_MONTHLY`, default $29), 7-day trial
-
-Watchlists were removed from the product entirely (see `part-10-files-completion.md`) — there is
-nothing left to size a "watchlist limit" against with a single symbol.
-
-## Tier System Features — pre-V8 (historical, superseded 2026-07-07)
-
-### Two-Tier Subscription Model
-
-**FREE Tier:**
-
-- 5 symbols (BTCUSD, EURUSD, USDJPY, US30, XAUUSD)
-- 3 timeframes (H1, H4, D1)
-- 15 chart combinations (5 × 3)
-- 5 max alerts
-- 1 max watchlist
-- 5 max watchlist items
-- 2 indicators (fractal_diagonal, fractal_horizontal)
-- 24 total columns (8 system + 16 indicator)
-- 60 requests/hour (HTTP API; chart OHLCV uses WebSocket, does not count)
-- **Chart OHLCV update: real-time via WebSocket** (push on price change, ≤0.25s detection)
-- $0/month
-
-**PRO Tier:**
-
-- 15 symbols (all FREE + 10 additional)
-- 9 timeframes (M5, M15, M30, H1, H2, H4, H8, H12, D1)
-- 135 chart combinations (15 × 9)
-- 20 max alerts
-- 5 max watchlists
-- 50 max watchlist items
-- 8 indicators (all FREE + 6 PRO-only)
-- 57 total columns (8 system + 49 indicator)
-- 300 requests/hour (HTTP API; chart OHLCV uses WebSocket, does not count)
-- **Chart OHLCV update: real-time via WebSocket** (push on price change, ≤0.25s detection)
-- $29/month
-- 7-day free trial
-
-### 57-Column Database Schema
-
-**System Columns (8):** timestamp, open, high, low, close, volume, timeframe, collected_at
-
-**FREE Indicators (16 columns):**
-
-- fractal_diagonal (8): diag_asc_line_1-3, diag_desc_line_1-3, diag_high/low_map
-- fractal_horizontal (8): horiz_peak_line_1-3, horiz_bottom_line_1-3, horiz_high/low_map
-
-**PRO-Only Indicators (33 columns):**
-
-- moving_averages (3): tema, hrma, smma
-- body_momentum (2): z_score_of_body_size, candle_classification
-- heiken_ashi (7): ha_open, ha_high, ha_low, ha_close, ha_classification, ha_body_size, ha_body_zscore
-- keltner_channels (10): kc_ultra_extreme_upper → kc_ultra_extreme_lower
-- support_resistance (8): sr_support_1-4, sr_resistance_1-4
-- zigzag (3): zigzag_peak, zigzag_bottom, ema_26
-
-## API Endpoints
-
-1. **GET /api/tier/check/[symbol]** - V8: `allowed=true` only for XAUUSD, for any tier; no
-   `upgradeRequired` field anymore (no tier unlocks additional symbols)
-2. **GET /api/tier/combinations** - V8: returns the 2 XAUUSD×{M5,M15} combinations, identical
-   for both tiers, no tier gating
-3. **GET /api/tier/symbols** - V8: returns the single-symbol list; no `proOnly` flag (nothing is
-   PRO-exclusive at the symbol level anymore)
-
-_(Pre-V8 versions of these three descriptions — tier-filtered symbol/timeframe lists — are
-superseded; see each route's own file for the current implementation.)_
-
-## Access Control Functions (current, in `lib/tier-config.ts` / `lib/tier-validation.ts`)
-
-**Symbol & Timeframe (tier-independent in V8 — kept for API compatibility):**
-
-- `canAccessSymbol(symbol, tier)` - Always `XAUUSD`-only check, `tier` ignored
-- `canAccessTimeframe(timeframe, tier)` - Always `M5`/`M15`-only check, `tier` ignored
-
-**Alerts (the one real gate left):**
-
-- `canCreateAlert(tier, currentAlerts)` - FREE: always denied (403, "Alerts are a PRO feature");
-  PRO: allowed up to 100
-
-**Indicator/Column (V8: no gating — kept as always-`true`/always-empty stubs for compatibility):**
-
-- `canAccessIndicator(indicator, tier)` - Always `true`
-- `getAccessibleIndicators(tier)` / `getLockedIndicators(tier)` - Always `[]` (no metadata
-  source left to enumerate — see the `lib/tier/*` deletion above)
-
-**Removed (were tier-gated, no longer applicable — feature deleted, not just ungated):**
-
-- ~~`canCreateWatchlist(currentCount, tier)`~~, ~~`canAddWatchlistItem(tier, currentItems)`~~ —
-  watchlists removed from the product (2026-07-07)
-- ~~`canAccessColumn(tier, columnName)`~~, ~~`filterDataByTier(tier, data)`~~,
-  ~~`validateChartAccess(tier, symbol, timeframe)`~~ — lived in the deleted `lib/tier/validator.ts`
-
-## Notes
-
-**Files removed from original list (functionality already exists):**
-
-- ~~`lib/tier/middleware.ts`~~ - Validation logic covered by `lib/tier-validation.ts`
-- ~~`lib/config/plans.ts`~~ - Tier/pricing config covered by `lib/tier-config.ts`
-
-**Recent Updates:**
-
-- Added 57-column database schema support (2025-01-24)
-- Added column-level access control for indicators (2025-01-24)
-- Added comprehensive OpenAPI specification (2025-01-24)
-- Added tier system API endpoints (2025-01-24)
-- Added test coverage for all tier functions (2025-01-24)
-- Updated tier feature table to reflect real-time WebSocket chart updates (2026-03-05):
-  both FREE and PRO chart OHLCV now delivered via Socket.IO push (no polling interval
-  difference between tiers); HTTP request rate limits apply only to REST API calls
-
-## Update 2026-07-08 — V8 single-symbol architecture + dead-code removal (this doc was stale on both)
-
-This Part doc had not been touched during either the 2026-07-07 V8 reconciliation pass or the
-2026-07-08 dead-code cleanup, despite Part 04 owning both the tier system that was rewritten and
-two of the files that were deleted. Backfilling both now:
-
-- **V8 rewrite (2026-07-07, `change-to-new-design.md`):** `lib/tier-config.ts`,
-  `lib/tier-validation.ts`, `app/api/tier/{check/[symbol],combinations,symbols}/route.ts`,
-  `__tests__/api/tier.test.ts`, and `types/tier.ts` were all rewritten for the single-symbol
-  (XAUUSD, M5/M15) architecture — see the "V8 (current)" features section and the current
-  Access Control Functions list above. Watchlist limits and PRO-exclusive
-  symbol/timeframe/indicator gating no longer exist as concepts, not just as ungated stubs.
-- **Dead-code removal (2026-07-08):** `lib/tier/constants.ts`, `lib/tier/validator.ts`, and
-  `lib/tier/index.ts` were deleted — traced transitively and confirmed their only real consumers
-  were `components/charts/indicator-toggles.tsx` and `components/charts/pro-indicator-overlay.tsx`
-  (also deleted the same day; see `part-09-files-completion.md`), both of which modeled the
-  already-decommissioned 63-column `MarketData` schema and were never rendered by any page.
-  `lib/tier/__tests__/validator.test.ts` was deleted alongside (its own
-  `lib/tier/__tests__/constants.test.ts` had already been deleted 2026-07-07 as a stale pre-V8
-  test). Verified with a clean `tsc --noEmit` and full Jest run (111 suites, 2046 tests) after
-  removal.
-- **Not yet updated:** `docs/open-api-documents/part-04-tier-system-openapi.yaml` still describes
-  the pre-V8 multi-symbol contract (5→15 symbols, 3→9 timeframes, watchlist limits). This spec
-  file itself wasn't touched by this reconciliation pass — flagging it as known-stale rather than
-  rewriting an OpenAPI contract as a side effect of a files-inventory audit.
-
-Full detail in `backend-file-inventory.md`'s and `part-16-files-completion.md`'s own 2026-07-08
-reconciliation notes.
+**Last Updated:** 2026-08-04
+**Status:** ✅ Complete (100%)
 
 ---
 
-**Last Updated:** 2026-07-08
+## 📋 Files Built in Part 04
+
+### Core Tier Configuration & Validation (`lib/`)
+
+**File 1/12:** ✅ `lib/tier-config.ts`
+
+- **Status:** Complete
+- **Description:** Centralized single source of truth for tier configuration and constants (V8 architecture)
+- **Key Features:**
+  - Single symbol (`SYMBOLS = ['XAUUSD']`) and timeframes (`TIMEFRAMES = ['M5', 'M15']`) for BOTH tiers
+  - Identical data access (all 79 `market_data_v6` columns) for both tiers
+  - FREE Tier: 0 alerts, 60 req/hour, $0/month
+  - PRO Tier: 100 alerts, multi-timeframe visualization & drawing-engine line alerts enabled, 300 req/hour, $29/month (`NEXT_PUBLIC_PRO_PRICE_MONTHLY`), 7-day free trial
+  - Functions: `getTierConfig()`, `getAccessibleSymbols()`, `getAccessibleTimeframes()`, `canAccessSymbol()`, `canAccessTimeframe()`, `getChartCombinations()`
+
+**File 2/12:** ✅ `lib/tier-validation.ts`
+
+- **Status:** Complete
+- **Description:** User access validation logic based on subscription tier
+- **Key Features:**
+  - Alert limit gating (`canCreateAlert()` — FREE: always denied with PRO upgrade message; PRO: allowed up to 100)
+  - Ungated symbol & timeframe validation for XAUUSD / M5 & M15
+  - Ungated indicator & column access stubs (`canAccessIndicator()` always returns `true`)
+  - Hourly rate limit helpers (`getRateLimit()`)
+  - Comprehensive access validation helper (`validateFullTierAccess()`)
+
+**File 3/12:** ✅ `lib/tier-helpers.ts`
+
+- **Status:** Complete
+- **Description:** Helper functions for tier operations and display logic
+- **Functions:**
+  - `hasChartAccess()`, `getAvailableSymbols()`, `getAvailableTimeframes()`, `getChartCombinations()`
+  - `allowsCombination()`, `getTierDisplayName()`, `canUpgradeTier()`, `getUpgradePath()`
+
+---
+
+### API Routes (`app/api/tier/`)
+
+**File 4/12:** ✅ `app/api/tier/check/[symbol]/route.ts`
+
+- **Status:** Complete
+- **Description:** Symbol access check API endpoint (`GET /api/tier/check/[symbol]`)
+- **Behavior:** V8 architecture — returns `allowed: true` for XAUUSD for any tier. Unknown symbols return `allowed: false` without upgrade prompts. Supports `operation-service` delegation when feature flag is active.
+
+**File 5/12:** ✅ `app/api/tier/combinations/route.ts`
+
+- **Status:** Complete
+- **Description:** Chart combinations API endpoint (`GET /api/tier/combinations`)
+- **Behavior:** V8 architecture — returns the 2 supported combinations (XAUUSD × M5/M15), identical for both tiers. Supports `operation-service` delegation when feature flag is active.
+
+**File 6/12:** ✅ `app/api/tier/symbols/route.ts`
+
+- **Status:** Complete
+- **Description:** Accessible symbols API endpoint (`GET /api/tier/symbols`)
+- **Behavior:** V8 architecture — returns the platform symbol list (`XAUUSD`), with `proOnly: false` (no PRO-exclusive symbols). Supports `operation-service` delegation when feature flag is active.
+
+---
+
+### Test Files
+
+**File 7/12:** ✅ `__tests__/api/tier.test.ts`
+
+- **Status:** Complete
+- **Description:** Integration tests for tier API endpoints (`/api/tier/check/[symbol]`, `/api/tier/combinations`, `/api/tier/symbols`)
+
+**File 8/12:** ✅ `__tests__/lib/tier-config.test.ts`
+
+- **Status:** Complete
+- **Description:** Unit tests for `lib/tier-config.ts` constants and helper functions
+
+**File 9/12:** ✅ `__tests__/lib/tier-helpers.test.ts`
+
+- **Status:** Complete
+- **Description:** Unit tests for `lib/tier-helpers.ts` tier display, upgrade path, and chart access functions
+
+**File 10/12:** ✅ `__tests__/lib/tier-validation.test.ts`
+
+- **Status:** Complete
+- **Description:** Unit tests for `lib/tier-validation.ts` validation functions and tier limits
+
+---
+
+### Documentation & Type Definitions
+
+**File 11/12:** ✅ `docs/open-api-documents/part-04-tier-system-openapi.yaml`
+
+- **Status:** Complete
+- **Description:** OpenAPI 3.1.0 specification for Tier System API (regenerated in Session 0-2 for V8 single-symbol architecture)
+
+**File 12/12:** ✅ `types/tier.ts`
+
+- **Status:** Complete
+- **Description:** Type definitions for tier system (`Tier`, `TierLimits`, `TrialStatus`, `Timeframe`, `Symbol`, `TIER_CONFIG`)
+
+---
+
+## 🗑️ Decommissioned & Deleted Files (Dead Code Cleanup)
+
+The following 5 files were deleted during previous cleanup passes:
+
+1. ~~`lib/tier/constants.ts`~~ — **Deleted 2026-07-08** (stale 63-column indicator metadata)
+2. ~~`lib/tier/validator.ts`~~ — **Deleted 2026-07-08** (stale column-gating logic)
+3. ~~`lib/tier/index.ts`~~ — **Deleted 2026-07-08** (barrel re-export)
+4. ~~`lib/tier/__tests__/constants.test.ts`~~ — **Deleted 2026-07-07** (stale pre-V8 test)
+5. ~~`lib/tier/__tests__/validator.test.ts`~~ — **Deleted 2026-07-08** (stale pre-V8 validator test)
+
+---
+
+## 📊 Status Summary
+
+- **Total Production Files:** 12/12 (100%)
+- **Library Files (`lib/`):** 3 files (`tier-config.ts`, `tier-validation.ts`, `tier-helpers.ts`)
+- **API Routes (`app/api/tier/`):** 3 files (`check/[symbol]`, `combinations`, `symbols`)
+- **Tests (`__tests__/`):** 4 files (`api/tier.test.ts`, `lib/tier-config.test.ts`, `lib/tier-helpers.test.ts`, `lib/tier-validation.test.ts`)
+- **Documentation & Types:** 2 files (`part-04-tier-system-openapi.yaml`, `types/tier.ts`)
+
+---
+
+## 🎯 Tier System Features — V8 Architecture
+
+### Current V8 Contract (Both Tiers)
+
+- **Supported Symbol:** `XAUUSD` (Gold / US Dollar) only
+- **Supported Timeframes:** `M5` (5 Minutes) and `M15` (15 Minutes)
+- **Market Data Access:** Both tiers get full, ungated access to all 79 `market_data_v6` columns
+- **Watchlists:** Removed from the product entirely for all tiers
+
+### Tier Differentiation Breakdown
+
+| Feature                       | FREE Tier           | PRO Tier                         |
+| ----------------------------- | ------------------- | -------------------------------- |
+| Symbols                       | 1 (`XAUUSD`)        | 1 (`XAUUSD`)                     |
+| Timeframes                    | 2 (`M5`, `M15`)     | 2 (`M5`, `M15`)                  |
+| Chart Combinations            | 2                   | 2                                |
+| Market Data Columns           | All 79              | All 79                           |
+| Max Price Alerts              | 0 (Alerts disabled) | 100                              |
+| Drawing Line Alerts           | No                  | Yes                              |
+| Multi-Timeframe Visualization | No                  | Yes                              |
+| API Rate Limit                | 60 req/hour         | 300 req/hour                     |
+| Price                         | $0/month            | Configurable (default $29/month) |
+| Free Trial                    | N/A                 | 7-day free PRO trial             |
+
+---
+
+## 🔗 Related Documentation
+
+- **Tier Configuration Source:** `lib/tier-config.ts`
+- **Tier Access Validation:** `lib/tier-validation.ts`
+- **Type Definitions:** `types/tier.ts`
+- **OpenAPI Specification:** `docs/open-api-documents/part-04-tier-system-openapi.yaml`
+
+---
+
+**Part 04 Status:** ✅ Complete and production-ready

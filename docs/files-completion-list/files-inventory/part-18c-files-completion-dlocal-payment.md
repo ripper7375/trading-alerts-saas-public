@@ -1,401 +1,85 @@
-# Part 18C: User Experience & Admin Dashboard (Vertical Slice 3 of 3) - Files Inventory
+# Part 18C: User Experience & Admin Fraud Dashboard (Vertical Slice 3 of 3) - List of Files Completion
 
-## Status Summary
-
-- **Total Production Files:** 24 files
-- **Total Test Files:** 3 files
-- **Grand Total:** 27 files
-- **Frontend Mirror Files:** 8 files (components, checkout page)
+**Last Updated:** 2026-08-04
+**Total Files:** 25 files (22 implementation + 3 test files)
+**Status:** ✅ Complete (100%)
 
 ---
 
-## Phase A: Payment UI Components (7 production + 2 test = 9 files)
+## 📋 Production & Test Files Inventory (25 Files)
 
-| #   | File Path                                             | Type | Description                        |
-| --- | ----------------------------------------------------- | ---- | ---------------------------------- |
-| 1   | `components/payments/CountrySelector.tsx`             | NEW  | Country dropdown with flags        |
-| 2   | `components/payments/PlanSelector.tsx`                | NEW  | 3-day vs Monthly plan cards        |
-| 3   | `components/payments/PaymentMethodSelector.tsx`       | NEW  | Payment method grid                |
-| 4   | `components/payments/PriceDisplay.tsx`                | NEW  | Local currency + USD display       |
-| 5   | `components/payments/DiscountCodeInput.tsx`           | NEW  | Discount code input (monthly only) |
-| 6   | `components/payments/PaymentButton.tsx`               | NEW  | Payment submit button              |
-| 7   | `components/payments/index.ts`                        | NEW  | Component exports barrel file      |
-| T1  | `__tests__/components/payments/PlanSelector.test.tsx` | TEST | Component test: Plan selector      |
-| T2  | `__tests__/components/payments/PriceDisplay.test.tsx` | TEST | Component test: Price display      |
+### Phase A: Payment UI Components (9 files)
 
-### Component Features
-
-**CountrySelector:**
-
-- Dropdown with 8 supported countries
-- Country flags display
-- Auto-detect country from IP
-- Currency display alongside country
-
-**PlanSelector:**
-
-- 3-Day plan card ($1.99 USD)
-- Monthly plan card ($29.00 USD)
-- Visual plan comparison
-- Eligibility indicators
-
-**PaymentMethodSelector:**
-
-- Grid of payment methods per country
-- Payment method icons/logos
-- Method type badges (Bank, Wallet, QR, Card)
-- Interactive selection
-
-**PriceDisplay:**
-
-- Local currency amount (primary)
-- USD equivalent (secondary)
-- Real-time conversion
-- Exchange rate display
-
-**DiscountCodeInput:**
-
-- Input field with validation
-- Apply button with loading state
-- Success/error feedback
-- Only enabled for monthly plan
-
-**PaymentButton:**
-
-- Submit button with loading state
-- Disabled states handling
-- Error display
+**File 1/25:** ✅ `components/payments/CountrySelector.tsx` — Dropdown component supporting 8 dLocal countries with flag icons and currency labels
+**File 2/25:** ✅ `components/payments/PlanSelector.tsx` — Visual plan selector component for 3-Day ($1.99) vs Monthly ($29.00) plans with trial eligibility badges
+**File 3/25:** ✅ `components/payments/PaymentMethodSelector.tsx` — Grid component rendering local payment methods (UPI, MoMo, GoPay, JazzCash, bank transfer)
+**File 4/25:** ✅ `components/payments/PriceDisplay.tsx` — Real-time price display showing local currency amount alongside USD reference
+**File 5/25:** ✅ `components/payments/DiscountCodeInput.tsx` — Discount promo code input field with real-time validation (monthly plan only)
+**File 6/25:** ✅ `components/payments/PaymentButton.tsx` — Interactive payment submit button with loading and error states
+**File 7/25:** ✅ `components/payments/index.ts` — Barrel export for payment UI components
+**File 8/25:** ✅ `__tests__/components/payments/PlanSelector.test.tsx` — Unit test suite for `PlanSelector` component
+**File 9/25:** ✅ `__tests__/components/payments/PriceDisplay.test.tsx` — Unit test suite for `PriceDisplay` component
 
 ---
 
-## Phase B: Unified Checkout Page (1 production + 0 test = 1 file)
+### Phase B: Unified Checkout Page (1 file)
 
-| #   | File Path               | Type | Description                        |
-| --- | ----------------------- | ---- | ---------------------------------- |
-| 8   | `app/checkout/page.tsx` | NEW  | Unified checkout (Stripe + dLocal) |
+**File 10/25:** ✅ `app/checkout/page.tsx`
 
-### Checkout Page Features
-
-**Flow B: Unified Payment Flow** - Both Stripe and dLocal on same page
-
-- **Stripe (Primary)**: International payments shown first
-  - Prominent card at top with shadow styling
-  - Pay with card, Apple Pay, Google Pay, or PayPal
-  - PRO Monthly at $29/mo
-  - Available for all users globally
-
-- **dLocal (Secondary)**: Local payment methods shown below
-  - Alternative option with dashed border styling
-  - Country auto-detection to filter payment methods
-  - 8 supported countries: IN, NG, PK, VN, ID, TH, ZA, TR
-  - Local currency pricing with real-time conversion
-  - 3-day plan eligibility checking (one-time per user)
-  - Discount code application (monthly plan only)
-  - Country-specific payment methods (UPI, Paytm, bank transfer, etc.)
+- **Status:** Complete
+- **Description:** Unified checkout UI presenting Stripe (international cards/wallets) as primary option and dLocal (emerging market local payment methods) as secondary option
 
 ---
 
-## Phase C: Email Templates (5 production + 0 test = 5 files)
+### Phase C: Transactional Email Templates (5 files)
 
-| #   | File Path                         | Type | Description                  |
-| --- | --------------------------------- | ---- | ---------------------------- |
-| 9   | `emails/payment-confirmation.tsx` | NEW  | Payment success email        |
-| 10  | `emails/renewal-reminder.tsx`     | NEW  | 3-day before expiry reminder |
-| 11  | `emails/subscription-expired.tsx` | NEW  | Expired notification         |
-| 12  | `emails/payment-failure.tsx`      | NEW  | Payment failed email         |
-| 13  | `emails/index.ts`                 | NEW  | Email template exports       |
-
-### Email Template Features
-
-**Payment Confirmation:**
-
-- Plan type and duration
-- Amount paid (local + USD)
-- Subscription expiry date
-- Payment method used
-- Manual renewal instructions (for dLocal)
-
-**Renewal Reminder:**
-
-- Days until expiry
-- Current plan details
-- Renewal link
-- Price in local currency
-
-**Subscription Expired:**
-
-- Expiry confirmation
-- Features now unavailable
-- Re-subscribe CTA
-- Pricing reminder
-
-**Payment Failure:**
-
-- Failure reason
-- Retry instructions
-- Alternative payment methods
-- Support contact
+**File 11/25:** ✅ `emails/payment-confirmation.tsx` — Payment success email template with local currency breakdown and manual renewal instructions
+**File 12/25:** ✅ `emails/renewal-reminder.tsx` — Renewal reminder email template sent 3 days before subscription expiration
+**File 13/25:** ✅ `emails/subscription-expired.tsx` — Subscription expiration email notification with re-subscribe CTA
+**File 14/25:** ✅ `emails/payment-failure.tsx` — Payment failure notification email template with retry instructions
+**File 15/25:** ✅ `emails/index.ts` — Email template exports barrel
 
 ---
 
-## Phase D: Admin Fraud Dashboard (6 production + 0 test = 6 files)
+### Phase D: Admin Fraud Dashboard (6 files)
 
-| #   | File Path                                          | Type | Description                |
-| --- | -------------------------------------------------- | ---- | -------------------------- |
-| 14  | `app/(dashboard)/admin/fraud-alerts/page.tsx`      | NEW  | Fraud alerts list page     |
-| 15  | `app/(dashboard)/admin/fraud-alerts/[id]/page.tsx` | NEW  | Fraud alert detail page    |
-| 16  | `app/api/admin/fraud-alerts/route.ts`              | NEW  | GET/POST fraud alerts API  |
-| 17  | `app/api/admin/fraud-alerts/[id]/route.ts`         | NEW  | GET/PUT single alert API   |
-| 18  | `components/admin/FraudAlertCard.tsx`              | NEW  | Fraud alert card component |
-| 19  | `components/admin/FraudPatternBadge.tsx`           | NEW  | Severity/pattern badge     |
-
-### Fraud Dashboard Features
-
-**Fraud Alert List Page:**
-
-- Paginated list of fraud alerts
-- Filter by status (New, Investigating, Resolved)
-- Filter by severity (Low, Medium, High, Critical)
-- Filter by pattern type
-- Date range filter
-
-**Fraud Alert Detail Page:**
-
-- Full alert details
-- User information
-- Payment history
-- Pattern analysis
-- Investigation notes
-- Resolution actions
-
-**Fraud Alert API:**
-
-- List alerts with filters
-- Create new fraud alert
-- Get single alert details
-- Update alert status/resolution
-
-**Fraud Patterns Detected:**
-
-- Multiple 3-day plan attempts
-- Rapid payment failures
-- Country hopping
-- Unusual payment methods
-- High-value repeated failures
+**File 16/25:** ✅ `app/(dashboard)/admin/fraud-alerts/page.tsx` — Fraud alerts monitoring dashboard with severity and status filters
+**File 17/25:** ✅ `app/(dashboard)/admin/fraud-alerts/[id]/page.tsx` — Fraud alert detail page with user risk profile, payment history, and account blocking actions
+**File 18/25:** ✅ `app/api/admin/fraud-alerts/route.ts` — `GET`: List fraud alerts with status/severity filters and summary metrics
+**File 19/25:** ✅ `app/api/admin/fraud-alerts/[id]/route.ts` — `GET`/`PATCH`: Fetch or update fraud alert status (marking `BLOCKED` suspends user account)
+**File 20/25:** ✅ `components/admin/FraudAlertCard.tsx` — Alert card component displaying severity badge, risk score, and quick actions
+**File 21/25:** ✅ `components/admin/FraudPatternBadge.tsx` — Badge component for detected fraud patterns (multiple 3-day attempts, rapid failures, country hopping)
 
 ---
 
-## Phase E: Part 12 Frontend Integration (2 production + 0 test = 2 files)
+### Phase E & F: Part 12 Integration & Discount API (3 files)
 
-| #   | File Path                                  | Type   | Description                          |
-| --- | ------------------------------------------ | ------ | ------------------------------------ |
-| 20  | `app/(marketing)/pricing/page.tsx`         | MODIFY | Add dLocal support, 3-day plan       |
-| 21  | `components/billing/subscription-card.tsx` | MODIFY | Show provider, manual renewal notice |
-
-### Pricing Page Updates
-
-- Display 3-day plan option
-- Show local currency prices based on location
-- dLocal vs Stripe provider indication
-- Available payment methods by region
-
-### Subscription Card Updates
-
-- Display payment provider (Stripe or dLocal)
-- Manual renewal notice for dLocal subscriptions
-- Expiry date display
-- Renewal button for dLocal (links to checkout)
+**File 22/25:** ✅ `app/(marketing)/pricing/page.tsx` — Marketing pricing page featuring dLocal regional pricing and 3-day trial option
+**File 23/25:** ✅ `components/billing/subscription-card.tsx` — Billing subscription card displaying active provider (Stripe/dLocal) and renewal countdown
+**File 24/25:** ✅ `app/api/payments/dlocal/validate-discount/route.ts` — `POST`: API validating promo codes and calculating final discounted price for monthly plan
 
 ---
 
-## Phase F: Discount Validation API (1 production + 0 test = 1 file)
+### Phase G: E2E Test Suite (1 file)
 
-| #   | File Path                                            | Type | Lines | Description                 |
-| --- | ---------------------------------------------------- | ---- | ----- | --------------------------- |
-| 22  | `app/api/payments/dlocal/validate-discount/route.ts` | NEW  | 138   | POST validate discount code |
-
-### Discount Validation Features
-
-**Request:**
-
-```json
-{
-  "code": "SAVE20",
-  "planType": "MONTHLY"
-}
-```
-
-**Response (Valid):**
-
-```json
-{
-  "valid": true,
-  "code": "SAVE20",
-  "discountType": "PERCENTAGE",
-  "discountValue": 20,
-  "finalPrice": 23.2
-}
-```
-
-**Response (Invalid):**
-
-```json
-{
-  "valid": false,
-  "error": "Code not found or expired"
-}
-```
-
-**Validation Rules:**
-
-- Discount codes only for MONTHLY plan
-- Check code existence and expiry
-- Verify usage limits
-- Calculate final price after discount
+**File 25/25:** ✅ `__tests__/e2e/dlocal-payment-flow.test.ts` — End-to-end test suite verifying country selection, plan choice, payment creation, webhook handling, and PRO unlock
 
 ---
 
-## Phase G: E2E Tests (0 production + 1 test = 1 file)
+## 📊 Status Summary
 
-| #   | File Path                                   | Type | Description                      |
-| --- | ------------------------------------------- | ---- | -------------------------------- |
-| T3  | `__tests__/e2e/dlocal-payment-flow.test.ts` | TEST | End-to-end: Complete dLocal flow |
-
-### E2E Test Coverage
-
-- Country selection flow
-- Plan selection (3-day vs monthly)
-- Payment method selection
-- Price display and conversion
-- Discount code application
-- Payment creation
-- Webhook processing
-- Subscription activation
-- Email sending
+- **Total Production Files:** 22/22 (100%)
+- **Total Test Files:** 3/3 (100%)
+- **Grand Total:** 25 files
+- **Complete Part 18 Suite:** 67 total files across 18A (23 files), 18B (19 files), and 18C (25 files)
 
 ---
 
-## Frontend Mirror Files (8 files)
+## 🎯 Fraud Detection & UX Architecture
 
-These files mirror the backend components for frontend deployment:
-
-### Components
-
-| File Path                                                | Mirrors                                         |
-| -------------------------------------------------------- | ----------------------------------------------- |
-| `frontend/components/payments/CountrySelector.tsx`       | `components/payments/CountrySelector.tsx`       |
-| `frontend/components/payments/PlanSelector.tsx`          | `components/payments/PlanSelector.tsx`          |
-| `frontend/components/payments/PaymentMethodSelector.tsx` | `components/payments/PaymentMethodSelector.tsx` |
-| `frontend/components/payments/PriceDisplay.tsx`          | `components/payments/PriceDisplay.tsx`          |
-| `frontend/components/payments/DiscountCodeInput.tsx`     | `components/payments/DiscountCodeInput.tsx`     |
-| `frontend/components/payments/PaymentButton.tsx`         | `components/payments/PaymentButton.tsx`         |
-| `frontend/components/payments/index.ts`                  | `components/payments/index.ts`                  |
-
-### Checkout Page
-
-| File Path                        | Mirrors                 |
-| -------------------------------- | ----------------------- |
-| `frontend/app/checkout/page.tsx` | `app/checkout/page.tsx` |
+- **Unified Dual-Provider Checkout:** Offers international Stripe payments as primary and dLocal local payment methods as secondary alternative.
+- **Account Blocking Mechanism:** Resolving a fraud alert to `BLOCKED` in `app/api/admin/fraud-alerts/[id]/route.ts` automatically updates `User.status = BLOCKED` to mitigate multi-trial anti-abuse.
 
 ---
 
-## User Journey Flow
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│       Unified Payment Flow (Flow B) - Stripe Primary        │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  1. User visits /pricing or /checkout                       │
-│     └── Country auto-detected via IP (for dLocal options)   │
-│                                                             │
-│  2. Checkout Page displays TWO payment options:             │
-│                                                             │
-│     ┌─────────────────────────────────────────────────┐     │
-│     │  PRIMARY: Stripe International Payment          │     │
-│     │  ─────────────────────────────────────────────  │     │
-│     │  • PRO Monthly: $29/mo                          │     │
-│     │  • Card, Apple Pay, Google Pay, PayPal          │     │
-│     │  • [Continue to Payment] button                 │     │
-│     └─────────────────────────────────────────────────┘     │
-│                                                             │
-│     ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐     │
-│     │  SECONDARY: dLocal Local Payment Methods        │     │
-│     │  ─────────────────────────────────────────────  │     │
-│     │  • Select country (auto-detected)               │     │
-│     │  • Select plan (3-Day $1.99 or Monthly $29)     │     │
-│     │  • Select local payment method                  │     │
-│     │  • View price in local currency                 │     │
-│     │  • Apply discount code (monthly only)           │     │
-│     │  • [Pay with Local Method] button               │     │
-│     └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘     │
-│                                                             │
-│  3. User chooses payment option:                            │
-│                                                             │
-│     OPTION A: Stripe (International Payments)               │
-│     ├── Click "Continue to Payment"                         │
-│     ├── Redirect to Stripe Checkout                         │
-│     ├── Enter card details → Pay                            │
-│     ├── Stripe webhook: checkout.session.completed          │
-│     └── Subscription created → PRO tier unlocked            │
-│                                                             │
-│     OPTION B: dLocal (Local Payment Methods)                │
-│     ├── Select country, plan, payment method                │
-│     ├── Click "Pay with Local Method"                       │
-│     ├── Redirect to dLocal payment page                     │
-│     ├── Complete payment with local method                  │
-│     ├── dLocal webhook: payment.paid                        │
-│     └── Subscription created → PRO tier unlocked            │
-│                                                             │
-│  4. Success → Dashboard with PRO features unlocked          │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Component Exports (`components/payments/index.ts`)
-
-```typescript
-export { CountrySelector } from './CountrySelector';
-export { PlanSelector } from './PlanSelector';
-export { PaymentMethodSelector } from './PaymentMethodSelector';
-export { PriceDisplay } from './PriceDisplay';
-export { DiscountCodeInput } from './DiscountCodeInput';
-export { PaymentButton } from './PaymentButton';
-```
-
----
-
-## Total File Count
-
-| Category                     | Production | Test  | Total  |
-| ---------------------------- | ---------- | ----- | ------ |
-| Phase A: UI Components       | 7          | 2     | 9      |
-| Phase B: Checkout Page       | 1          | 0     | 1      |
-| Phase C: Email Templates     | 5          | 0     | 5      |
-| Phase D: Fraud Dashboard     | 6          | 0     | 6      |
-| Phase E: Part 12 Integration | 2          | 0     | 2      |
-| Phase F: Discount API        | 1          | 0     | 1      |
-| Phase G: E2E Tests           | 0          | 1     | 1      |
-| **Total**                    | **22**     | **3** | **25** |
-| Frontend Mirrors             | 8          | 0     | 8      |
-
----
-
-## Complete Part 18 Summary
-
-| Part             | Description                    | Production | Test   | Total  |
-| ---------------- | ------------------------------ | ---------- | ------ | ------ |
-| 18A              | Payment Creation Flow          | 15         | 8      | 23     |
-| 18B              | Subscription Lifecycle         | 15         | 4      | 19     |
-| 18C              | User Experience & Admin        | 22         | 3      | 25     |
-| **Total**        | **dLocal Payment Integration** | **52**     | **15** | **67** |
-| Frontend Mirrors | All Parts                      | 21         | 0      | 21     |
-
----
-
-## Update 2026-07-04
-
-No new files; `app/api/payments/dlocal/validate-discount/route.ts` was **modified** (still
-complete) as part of the shared affiliate-conversion refactor.
+**Part 18C Status:** ✅ Complete and production-ready

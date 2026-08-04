@@ -1,214 +1,82 @@
-# Part 17B-1: Admin Portal - Backend & Reports with TDD - List of files completion
+# Part 17B-1: Admin Portal - Affiliate Management Backend & Reports - List of Files Completion
 
-**Last Updated:** 2026-07-04
+**Last Updated:** 2026-08-04
 **Total Files:** 21 files (19 implementation + 2 test files)
+**Status:** ✅ Complete (100%)
 
 ---
 
-## PART 17B-1: 20 FILES ARE BUILT
+## 📋 Production & Test Files Inventory (21 Files)
 
-### PHASE 0: VERIFY DEPENDENCIES (3 steps) ✅
-
-├─ Step 1: VERIFY - ✅ Part 17A files exist
-├─ Step 2: T1 - ✅ Verify `__tests__/setup.ts` exists
-└─ Step 3: T2 - ✅ Verify `__tests__/helpers/supertest-setup.ts` exists
-
-### PHASE E: ADMIN BACKEND WITH TDD (12 files) ✅
+### Phase E: Admin Affiliate Library & API Routes (12 files)
 
 #### Admin Library (1 file)
 
-├─ Step 4: F1 - ✅ `lib/admin/affiliate-management.ts`
-│ └─ Exports: getAffiliatesList(), getAffiliateDetails() - with pagination & filtering
+**File 1/21:** ✅ `lib/admin/affiliate-management.ts` — Admin data fetching utilities (`getAffiliatesList`, `getAffiliateDetails`) with status filtering, search, and pagination
 
-#### Admin List & Detail APIs (2 files)
+#### Affiliate Management APIs (5 files)
 
-├─ Step 5: F2 - ✅ `app/api/admin/affiliates/route.ts`
-│ └─ GET: List all affiliates with filters (status, country, paymentMethod) and pagination
-└─ Step 6: F3 - ✅ `app/api/admin/affiliates/[id]/route.ts`
-└─ GET: Detailed affiliate info with codes, commissions, user data
+**File 2/21:** ✅ `app/api/admin/affiliates/route.ts` — `GET`: List affiliates with status, country, and payment method filters
+**File 3/21:** ✅ `app/api/admin/affiliates/[id]/route.ts` — `GET`: Detailed affiliate profile with code inventory and earnings history
+**File 4/21:** ✅ `app/api/admin/affiliates/[id]/distribute-codes/route.ts` — `POST`: Distribute bonus promo codes to specific affiliate with audit reason
+**File 5/21:** ✅ `app/api/admin/affiliates/[id]/suspend/route.ts` — `POST`: Suspend affiliate account with reason log
+**File 6/21:** ✅ `app/api/admin/affiliates/[id]/reactivate/route.ts` — `POST`: Reactivate suspended affiliate account
 
-#### Affiliate Actions APIs (3 files)
+#### Reports APIs (5 files)
 
-├─ Step 7: F4 - ✅ `app/api/admin/affiliates/[id]/distribute-codes/route.ts`
-│ └─ POST: Distribute bonus codes to affiliate (with reason)
-├─ Step 8: F5 - ✅ `app/api/admin/affiliates/[id]/suspend/route.ts`
-│ └─ POST: Suspend affiliate account with reason
-└─ Step 9: F6 - ✅ `app/api/admin/affiliates/[id]/reactivate/route.ts`
-└─ POST: Reactivate suspended affiliate
+**File 7/21:** ✅ `app/api/admin/affiliates/reports/profit-loss/route.ts` — `GET`: P&L report (gross revenue, discount totals, net revenue, commissions, profit margins)
+**File 8/21:** ✅ `app/api/admin/affiliates/reports/sales-performance/route.ts` — `GET`: Sales conversion rankings and performance metrics
+**File 9/21:** ✅ `app/api/admin/affiliates/reports/commission-owings/route.ts` — `GET`: Unpaid commission tracking report (affiliates meeting $50 minimum threshold)
+**File 10/21:** ✅ `app/api/admin/affiliates/reports/code-inventory/route.ts` — `GET`: Point-in-time code inventory census
+**File 11/21:** ✅ `app/api/admin/affiliates/reports/code-flows/route.ts` — `GET`: Period reconciliation code flows report (opening balance + additions - reductions) using `buildGlobalCodeInventoryReport`
 
-#### Report APIs (4 files)
+#### Settings API & Unit Tests (2 files)
 
-├─ Step 10: F7 - ✅ `app/api/admin/affiliates/reports/profit-loss/route.ts`
-│ └─ GET: P&L report - gross revenue, discounts, net revenue, commissions, profit margin
-├─ Step 11: F8 - ✅ `app/api/admin/affiliates/reports/sales-performance/route.ts`
-│ └─ GET: Top performers by conversions with conversion rates
-├─ Step 12: F9 - ✅ `app/api/admin/affiliates/reports/commission-owings/route.ts`
-│ └─ GET: Affiliates with pending balance >= minimum payout ($50)
-├─ Step 13: F10 - ✅ `app/api/admin/affiliates/reports/code-inventory/route.ts`
-│ └─ GET: Global code inventory stats (distributed, active, used, expired)
-└─ Step 13b: F10b - ✅ `app/api/admin/affiliates/reports/code-flows/route.ts` (NEW 2026-07-04)
-└─ GET: Global code FLOWS for a period (opening + additions by reason − reductions);
-period reconciliation complementing the point-in-time code-inventory census. Uses
-`buildGlobalCodeInventoryReport()` from `lib/affiliate/report-builder.ts`.
-
-#### Admin Settings API (1 file)
-
-└─ Step 14: F11 - ✅ `app/api/admin/settings/affiliate/route.ts`
-└─ GET/PATCH: Manage affiliate config (discount%, commission%, codes/month, base price)
-
-#### Admin Test Files (1 file)
-
-└─ Step 15: T3 - ✅ `__tests__/lib/admin/affiliate-management.test.ts`
-└─ Tests: getAffiliatesList(), getAffiliateDetails(), filtering, pagination
-
-### PHASE F: ADMIN FRONTEND (7 files) ✅
-
-#### Admin Affiliate Pages (2 files)
-
-├─ Step 16: F12 - ✅ `app/admin/affiliates/page.tsx`
-│ └─ Affiliates list: filterable table, status badges, quick actions
-└─ Step 17: F13 - ✅ `app/admin/affiliates/[id]/page.tsx`
-└─ Affiliate detail: full profile, codes list, commissions, action buttons
-
-#### Admin Report Pages (4 files)
-
-├─ Step 18: F14 - ✅ `app/admin/affiliates/reports/profit-loss/page.tsx`
-│ └─ P&L dashboard: summary cards, breakdown table, trend chart
-├─ Step 19: F15 - ✅ `app/admin/affiliates/reports/sales-performance/page.tsx`
-│ └─ Top performers table with conversion metrics
-├─ Step 20: F16 - ✅ `app/admin/affiliates/reports/commission-owings/page.tsx`
-│ └─ Pending payments list with pay action buttons
-└─ Step 21: F17 - ✅ `app/admin/affiliates/reports/code-inventory/page.tsx`
-└─ Global inventory stats with charts
-
-#### Admin Settings Page (1 file)
-
-└─ Step 22: F18 - ✅ `app/admin/settings/affiliate/page.tsx`
-└─ Configure affiliate program settings with real-time updates
+**File 12/21:** ✅ `app/api/admin/settings/affiliate/route.ts` — `GET`/`PATCH`: Retrieve and update dynamic affiliate program settings (discount %, commission %, codes per month, base price) with audit logging
+**File 13/21:** ✅ `__tests__/lib/admin/affiliate-management.test.ts` — Unit tests for `getAffiliatesList` and `getAffiliateDetails`
 
 ---
 
-## Status Summary
+### Phase F: Admin Frontend Pages (7 files)
 
-| Category                | Count  | Status      |
-| ----------------------- | ------ | ----------- |
-| Dependency Verification | 3      | ✅ Complete |
-| Admin Library           | 1      | ✅ Complete |
-| Admin Affiliate APIs    | 5      | ✅ Complete |
-| Admin Report APIs       | 5      | ✅ Complete |
-| Admin Settings API      | 1      | ✅ Complete |
-| Admin Test Files        | 1      | ✅ Complete |
-| Admin Pages             | 7      | ✅ Complete |
-| **TOTAL**               | **21** | **100%**    |
+#### Affiliate Admin Pages (2 files)
 
----
+**File 14/21:** ✅ `app/admin/affiliates/page.tsx` — Admin affiliate management table page with status badges, search, and action modals
+**File 15/21:** ✅ `app/admin/affiliates/[id]/page.tsx` — Admin individual affiliate detail view (profile, assigned codes, earnings, suspension toggle)
 
-## Admin API Architecture Notes
+#### Report Pages (4 files)
 
-### Affiliate Management Endpoints
+**File 16/21:** ✅ `app/admin/affiliates/reports/profit-loss/page.tsx` — P&L dashboard with summary metric cards, breakdown table, and trend chart
+**File 17/21:** ✅ `app/admin/affiliates/reports/sales-performance/page.tsx` — Sales performance page ranking top affiliate converters
+**File 18/21:** ✅ `app/admin/affiliates/reports/commission-owings/page.tsx` — Unpaid commissions report page with payout execution buttons
+**File 19/21:** ✅ `app/admin/affiliates/reports/code-inventory/page.tsx` — Code inventory report page with allocation charts
 
-```
-GET  /api/admin/affiliates              # List with filters
-GET  /api/admin/affiliates/:id          # Detail view
-POST /api/admin/affiliates/:id/distribute-codes  # Give bonus codes
-POST /api/admin/affiliates/:id/suspend   # Suspend account
-POST /api/admin/affiliates/:id/reactivate # Reactivate account
-```
+#### Settings Page (1 file)
 
-### Report Endpoints
+**File 20/21:** ✅ `app/admin/settings/affiliate/page.tsx` — Configuration page for updating discount %, commission %, and promo code rules
 
-```
-GET /api/admin/affiliates/reports/profit-loss       # P&L report
-GET /api/admin/affiliates/reports/sales-performance # Top performers
-GET /api/admin/affiliates/reports/commission-owings # Pending payments
-GET /api/admin/affiliates/reports/code-inventory    # Code stats (point-in-time census)
-GET /api/admin/affiliates/reports/code-flows        # Code flows (period reconciliation)
-```
+#### Dependency & Helper Tests (1 file)
 
-### Settings Endpoint
-
-```
-GET   /api/admin/settings/affiliate    # Get current config
-PATCH /api/admin/settings/affiliate    # Update config (audited)
-```
-
-### Query Parameters
-
-- **status**: ACTIVE, PENDING_VERIFICATION, SUSPENDED, DELETED
-- **country**: 2-letter ISO code (US, UK, CA, etc.)
-- **paymentMethod**: BANK_TRANSFER, PAYPAL, CRYPTOCURRENCY, WISE
-- **page**: Pagination (default: 1)
-- **limit**: Items per page (default: 20, max: 100)
-- **period**: Report timeframe (3months, 6months, 1year)
-
-### P&L Report Structure
-
-```json
-{
-  "period": { "start": "...", "end": "..." },
-  "revenue": {
-    "grossRevenue": 870.0,
-    "discounts": 174.0,
-    "netRevenue": 696.0,
-    "discountPercent": 20.0
-  },
-  "costs": {
-    "paidCommissions": 100.0,
-    "pendingCommissions": 39.2,
-    "totalCommissions": 139.2,
-    "commissionPercent": 20.0,
-    "averageCommission": 4.64
-  },
-  "profit": {
-    "netProfit": 556.8,
-    "margin": 80.0
-  },
-  "totalSales": 30
-}
-```
+**File 21/21:** ✅ `__tests__/helpers/supertest-setup.ts` — Supertest API test helper for admin route verification
 
 ---
 
-## Admin Page Features
+## 📊 Status Summary
 
-### Affiliates List Page
-
-- Sortable columns (name, status, conversions, balance)
-- Bulk action support
-- Export to CSV
-- Quick filters sidebar
-
-### Affiliate Detail Page
-
-- Profile overview card
-- Codes table with status
-- Commission history
-- Action buttons (distribute codes, suspend, etc.)
-- Activity timeline
-
-### P&L Report Page
-
-- Summary cards (revenue, costs, profit)
-- Interactive breakdown table
-- Trend chart (by month)
-- Export functionality
-
-### Settings Page
-
-- Real-time config updates
-- Audit log display
-- Validation with preview
-- Rollback capability
+- **Total Production & Test Files:** 21/21 (100%)
+- **Admin Library:** 1 file
+- **Admin API Endpoints:** 11 files (affiliate actions, reports, settings)
+- **Admin UI Pages:** 7 files
+- **Tests:** 2 files
 
 ---
 
-## Notes
+## 🎯 Security & Financial Reporting
 
-- All admin routes require `role: 'ADMIN'` session
-- Settings changes are audited in SystemConfigHistory
-- Reports support period filtering (3mo, 6mo, 1yr)
-- Minimum payout threshold configurable via SystemConfig
-- All monetary values in USD with 2 decimal precision
-- **Updated 2026-07-04:** added `app/api/admin/affiliates/reports/code-flows/route.ts` — a
-  period-based code-flow reconciliation report (opening + additions − reductions) to complement
-  the existing point-in-time `code-inventory` census
+- **ADMIN Role Security:** All admin routes (`app/api/admin/affiliates/**`) enforce `ADMIN` role checks.
+- **Audited Configuration:** Dynamic program settings updates are logged to `SystemConfigHistory` table.
+- **Dual Reporting System:** Point-in-time census (`code-inventory`) complemented by period-reconciliation reporting (`code-flows`).
+
+---
+
+**Part 17B-1 Status:** ✅ Complete and production-ready

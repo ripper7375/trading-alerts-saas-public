@@ -1,134 +1,136 @@
-# Part 9: Charts & Visualization - List of files completion
+# Part 9: Charts & Visualization - List of Files Completion
 
-## App Routes (3 files)
+**Last Updated:** 2026-08-04
+**Status:** ✅ Complete (100%)
+
+---
+
+## 📋 Production Files Built in Part 09
+
+### App Routes & Client Wrappers (`app/(dashboard)/charts/`)
 
 **File 1/11:** ✅ `app/(dashboard)/charts/page.tsx`
 
+- **Status:** Complete
+- **Description:** Chart selection landing page displaying symbol and timeframe selector
+
 **File 2/11:** ✅ `app/(dashboard)/charts/[symbol]/[timeframe]/page.tsx`
 
-- Enforces tier access control (symbol + timeframe) before rendering
-- Passes `tier` to `ChartControls` and upgrade UI — does NOT pass `tier` to
-  `TradingChartClient` (tier no longer needed there after WebSocket migration)
+- **Status:** Complete
+- **Description:** Dynamic chart view page for symbol and timeframe with tier validation and upgrade prompts
 
 **File 3/11:** ✅ `app/(dashboard)/charts/[symbol]/[timeframe]/trading-chart-client.tsx`
 
-- Dynamic-imports `TradingChart` (ssr: false) to avoid SSR canvas issues
-- Props: `symbol`, `timeframe` only — `tier` prop removed (2026-03-05)
+- **Status:** Complete
+- **Description:** Dynamic client import wrapper (`ssr: false`) for `TradingChart` to prevent SSR canvas rendering errors
 
-## Components (3 files)
+---
 
-**File 4/8:** ✅ `components/charts/trading-chart.tsx`
+### Multi-Timeframe (MTF) Channel API (`app/api/market-data/`)
 
-- Renders TradingView-style candlestick chart via `lightweight-charts`
-- **Rewritten (2026-03-05):** replaces HTTP polling (`fetch` + `setInterval`) with
-  `useOhlcvSocket(symbol, timeframe)` hook for real-time Socket.IO data
-- `tier` prop removed — no longer needed for refresh-interval logic
-- Header shows live green/red connection status dot instead of "Last updated" timestamp
-- Chart data updates whenever the WebSocket hook delivers new OHLCV bars
+**File 4/11:** ✅ `app/api/market-data/channel/route.ts`
 
-**File 5/8:** ✅ `components/charts/chart-controls.tsx`
-**File 6/8:** ✅ `components/charts/timeframe-selector.tsx`
+- **Status:** Complete
+- **Description:** PRO-exclusive Multi-Timeframe Channel API endpoint (`GET /api/market-data/channel`) returning equal-distance channel lines (`uoedt`, `base_fl`, `loedt`) from `market_data_v6` for a centroid-regression variant. Supports `operation-service` delegation when feature flag is active.
 
-~~**File 7/8:** `components/charts/pro-indicator-overlay.tsx`~~ — **DELETED 2026-07-08** (dead
-code: never rendered by any page; modeled the decommissioned 63-column `MarketData` schema)
-~~**File 8/8:** `components/charts/indicator-toggles.tsx`~~ — **DELETED 2026-07-08** (same reason)
+---
 
-## Hooks (2 files)
+### Chart Components (`components/charts/`)
 
-**File 7/8:** ✅ `hooks/use-ohlcv-socket.ts` _(added 2026-03-05)_
+**File 5/11:** ✅ `components/charts/trading-chart.tsx`
 
-- Wraps `socket.io-client` for real-time OHLCV streaming from Flask MT5 service
-- Connects to `NEXT_PUBLIC_MT5_WS_URL` (default `http://localhost:5001`)
-- Lifecycle: emits `subscribe {symbol, timeframe}` on connect; emits `unsubscribe`
-  and disconnects on cleanup
-- Handles events: `initial_data`, `ohlcv_update`, `connect_error`, `error`
-- Returns `{ data: OhlcvSocketData | null, isConnected, isLoading, error }`
-- Reconnects automatically (up to 5 attempts, 2s base delay)
-- Both FREE and PRO tiers use this hook — no tier-based polling difference
+- **Status:** Complete
+- **Description:** TradingView-style candlestick chart built with `lightweight-charts`, consuming real-time Socket.IO WebSocket stream via `useOhlcvSocket` (includes live green/red connection status indicator)
 
-**File 8/8:** ✅ `hooks/use-auth.ts`
+**File 6/11:** ✅ `components/charts/chart-controls.tsx`
 
-~~`hooks/use-indicators.ts`~~ — **DELETED 2026-07-08** (dead code: exported `useIndicators()` was
-never called anywhere; HTTP-polling hook for the decommissioned 63-column indicator schema)
+- **Status:** Complete
+- **Description:** Chart header and controls bar (symbol/timeframe selection, MTF toggle, drawing tools trigger)
 
-## Multi-Timeframe (MTF) Overlay — PRO-only, V8 (3 files, added 2026-07-07)
+**File 7/11:** ✅ `components/charts/timeframe-selector.tsx`
 
-**File 9/11:** ✅ `app/api/market-data/channel/route.ts`
+- **Status:** Complete
+- **Description:** Interactive timeframe selector component (`M5`, `M15`)
 
-- `GET /api/market-data/channel?timeframe=M5&variant=best_fit&limit=300`
-- PRO-exclusive (403 for FREE): returns the M5 equal-distance-channel points
-  (`{variant}_uoedt`/`_base_fl`/`_loedt`) from `market_data_v6` for a centroid-regression variant
-- Backs the "overlay M5 structure on the M15 chart" feature (mirrors the backend-stack-c v2.29
-  `mtf_render` design — see `v2_29_multi-timeframe-visualisation-files-completion.md`)
+**File 8/11:** ✅ `components/charts/mtf/useMtfOverlay.ts`
 
-**File 10/11:** ✅ `components/charts/mtf/useMtfOverlay.ts`
+- **Status:** Complete
+- **Description:** Custom hook for rendering `lightweight-charts` line series for multi-timeframe channel overlay (upper, mid, lower)
 
-- `.ts` hook (backend-tracked per the `.ts`=backend/`.tsx`=frontend convention): fetches the
-  channel above and renders 3 `lightweight-charts` line series (upper/mid/lower) on the host chart
-- Inert while `enabled=false` — FREE users never fetch
+**File 9/11:** ✅ `components/charts/mtf/MtfToggle.tsx`
 
-**File 11/11:** ✅ `components/charts/mtf/MtfToggle.tsx` _(frontend UI — tracked in
-`frontend-ui-file-inventory.md`, not counted in this Part's backend total below)_
+- **Status:** Complete
+- **Description:** UI toggle button component for multi-timeframe visualization (PRO-gated with locked badge for FREE users)
 
-- PRO-gated toggle button rendered on the M15 chart header (`components/charts/trading-chart.tsx`);
-  FREE users see a locked control that routes to `/pricing`
+---
 
-## Status Summary
+### Custom Hooks (`hooks/`)
 
-- **Completed:** 10/10 backend files (100%) — 8 original + 2 MTF backend files
-  (`app/api/market-data/channel/route.ts`, `components/charts/mtf/useMtfOverlay.ts`)
-- **Frontend UI:** `components/charts/mtf/MtfToggle.tsx` tracked separately in
-  `frontend-ui-file-inventory.md`
-- **Deleted 2026-07-08 (dead code):** `components/charts/pro-indicator-overlay.tsx`,
-  `components/charts/indicator-toggles.tsx`, `hooks/use-indicators.ts` — see the Notes section
-- **Missing:** None
+**File 10/11:** ✅ `hooks/use-ohlcv-socket.ts`
 
-## Notes
+- **Status:** Complete
+- **Description:** Socket.IO client hook for real-time OHLCV data streaming from Flask MT5 service (`NEXT_PUBLIC_MT5_WS_URL`). Emits `subscribe` / `unsubscribe` events, handles `initial_data` and `ohlcv_update` events, and manages auto-reconnection.
 
-- **Updated (2026-07-08):** Removed 3 dead-code files traced during the V8 cleanup pass —
-  `components/charts/pro-indicator-overlay.tsx`, `components/charts/indicator-toggles.tsx`, and
-  `hooks/use-indicators.ts`. All three modeled the decommissioned 63-column `MarketData` schema
-  and were confirmed unreachable from any live page or called hook. Verified with a clean
-  `tsc --noEmit` and full Jest run (111 suites, 2046 tests) after removal. Full detail in
-  `backend-file-inventory.md`'s and `frontend-ui-file-inventory.md`'s 2026-07-08 reconciliation
-  notes.
-- **Updated (2026-07-07):** V8 single-symbol architecture (`change-to-new-design.md`) — added
-  the PRO-only multi-timeframe (MTF) overlay: `app/api/market-data/channel/route.ts`,
-  `components/charts/mtf/{useMtfOverlay.ts,MtfToggle.tsx}`. `components/charts/trading-chart.tsx`
-  wires the toggle in on the M15 chart only (overlaying M5 on its own chart is a no-op).
-  `components/charts/chart-controls.tsx` PRO-upsell copy updated (symbols/timeframes counts
-  replaced with alerts/line-alerts/MTV feature list, since chart access itself is no longer
-  tier-gated).
-- File inventory updated on 2026-01-24
-- Removed: `components/charts/indicator-overlay.tsx` (does not exist in codebase)
-- Added: `app/(dashboard)/charts/[symbol]/[timeframe]/trading-chart-client.tsx` (client component for chart rendering)
-- **Updated (2026-03-05):** WebSocket migration
-  - Added `hooks/use-ohlcv-socket.ts` — Socket.IO client hook for live OHLCV
-  - Rewrote `components/charts/trading-chart.tsx` — HTTP polling removed, WebSocket consumed
-  - Removed `tier` prop from `TradingChart` and `TradingChartClient` (was only used for polling interval)
-  - `trading-chart-client.tsx` and `page.tsx` updated to match new prop contract
-  - Both FREE and PRO tiers receive real-time chart updates with no polling interval
+**File 11/11:** ✅ `hooks/use-auth.ts`
 
-## OHLCV Update Behaviour (Post-WebSocket Migration)
+- **Status:** Complete
+- **Description:** Authentication state and session hook used across chart components
+
+---
+
+## 🗑️ Decommissioned & Deleted Dead Code
+
+The following 3 files were permanently deleted on 2026-07-08 during dead-code cleanup:
+
+1. ~~`components/charts/pro-indicator-overlay.tsx`~~ — **Deleted** (Dead code from 63-column schema; never rendered by any page)
+2. ~~`components/charts/indicator-toggles.tsx`~~ — **Deleted** (Dead code from 63-column schema; never rendered by any page)
+3. ~~`hooks/use-indicators.ts`~~ — **Deleted** (Dead code from 63-column schema; HTTP polling hook never called by live charts)
+
+---
+
+## 📊 Status Summary
+
+- **Total Production Files:** 11/11 (100%)
+- **App Routes & Client Wrappers:** 3 files (`charts/page.tsx`, `[symbol]/[timeframe]/page.tsx`, `trading-chart-client.tsx`)
+- **API Routes:** 1 file (`app/api/market-data/channel/route.ts`)
+- **Chart Components:** 5 files (`trading-chart.tsx`, `chart-controls.tsx`, `timeframe-selector.tsx`, `useMtfOverlay.ts`, `MtfToggle.tsx`)
+- **React Hooks:** 2 files (`use-ohlcv-socket.ts`, `use-auth.ts`)
+
+---
+
+## 🎯 Real-Time Streaming & MTF Architecture
+
+### 1. Real-Time WebSocket Streaming Pipeline
 
 ```
-Browser tab opens /charts/EURUSD/H1
+Browser Tab (/charts/XAUUSD/M5)
     ↓
-useOhlcvSocket('EURUSD', 'H1') connects to Flask Socket.IO
+useOhlcvSocket('XAUUSD', 'M5') connects to Flask Socket.IO
     ↓
-Flask: emits initial_data (full 1000-bar history) immediately
+Flask: Emits initial_data (full history) on connect
     ↓
-Flask background loop (0.25s): fetches MT5 data for EURUSD_H1 room
-    ├─ New H1 bar opened?   → emit ohlcv_update
-    ├─ Current bar close changed (tick)? → emit ohlcv_update
-    └─ No change?           → no push, no bandwidth
+Flask Background Polling Loop (0.25s): Checks MT5 candle state
+    ├─ New bar opened?               → Emit ohlcv_update
+    ├─ Current bar close tick changed → Emit ohlcv_update
+    └─ No tick/price change          → Zero bandwidth push
     ↓
 Browser receives ohlcv_update → lightweight-charts re-renders live candle
 ```
 
-| Scenario                          | Push rate                          |
-| --------------------------------- | ---------------------------------- |
-| Active liquid pair, trading hours | Multiple pushes/second             |
-| Quiet pair or off-hours           | Sparse, possibly minutes apart     |
-| Market closed                     | Zero pushes                        |
-| No browser tab on that chart      | Zero fetches (room does not exist) |
+### 2. Multi-Timeframe (MTF) Channel Overlay (PRO Feature)
+
+- **Endpoint:** `GET /api/market-data/channel?symbol=XAUUSD&timeframe=M5&variant=best_fit`
+- **Hook:** `useMtfOverlay.ts` renders upper (`uoedt`), mid (`base_fl`), and lower (`loedt`) channel lines from M5 onto the host M15 chart.
+- **Access Control:** PRO-gated (returns 403 for FREE users; UI shows lock badge routing to upgrade).
+
+---
+
+## 🔗 Related Documentation
+
+- **Flask MT5 WebSocket Server:** `docs/files-completion-list/files-inventory/part-06-files-completion-flask_mt5.md`
+- **MarketDataV6 Data Pipeline:** `docs/files-completion-list/files-inventory/part-23-files-completion-v2_29_data_pipeline_architecture.md`
+- **OpenAPI Specification:** `docs/open-api-documents/part-09-charts-visualization-openapi.yaml`
+
+---
+
+**Part 09 Status:** ✅ Complete and production-ready

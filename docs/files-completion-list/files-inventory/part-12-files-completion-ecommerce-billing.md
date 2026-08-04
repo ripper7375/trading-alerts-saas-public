@@ -1,103 +1,185 @@
-# Part 12: E-commerce & Billing - List of files completion
+# Part 12: E-commerce & Billing System - List of Files Completion
 
-## Frontend Pages
+**Last Updated:** 2026-08-04
+**Status:** ✅ Complete (100%)
 
-**File 1/28:** ✅ `app/(marketing)/pricing/page.tsx` - Main pricing page with tier selection
-**File 2/28:** ✅ `app/(dashboard)/settings/billing/page.tsx` - Billing settings and subscription management page
+---
 
-## Components
+## 📋 Production Files Built in Part 12
 
-**File 3/28:** ✅ `components/billing/subscription-card.tsx` - Subscription card component
-**File 4/28:** ✅ `components/billing/invoice-list.tsx` - Invoice list component
-**File 5/28:** ✅ `components/pricing/tier-comparison.tsx` - Tier comparison component
+### 1. UI Pages & Components
 
-## API Routes - Subscription
+**File 1/29:** ✅ `app/(marketing)/pricing/page.tsx`
 
-**File 6/28:** ✅ `app/api/subscription/route.ts` - Get current subscription (GET)
-**File 7/28:** ✅ `app/api/subscription/cancel/route.ts` - Cancel subscription (POST)
+- **Status:** Complete
+- **Description:** Marketing pricing page with tier selection, feature comparison, and Stripe checkout trigger
 
-## API Routes - Checkout
+**File 2/29:** ✅ `app/(dashboard)/settings/billing/page.tsx`
 
-**File 8/28:** ✅ `app/api/checkout/route.ts` - Create Stripe checkout session (POST)
-**File 9/28:** ✅ `app/api/checkout/validate-code/route.ts` - Validate affiliate code for checkout (POST)
+- **Status:** Complete
+- **Description:** User billing settings dashboard showing current plan, renewal date, payment method, and invoice history
 
-## API Routes - Invoices
+**File 3/29:** ✅ `components/billing/subscription-card.tsx`
 
-**File 10/28:** ✅ `app/api/invoices/route.ts` - List user invoices (GET)
+- **Status:** Complete
+- **Description:** Subscription card displaying current tier, status, configurable monthly price (`NEXT_PUBLIC_PRO_PRICE_MONTHLY`, default $29), upgrade button, and cancellation dialog
 
-## API Routes - Webhooks
+**File 4/29:** ✅ `components/billing/invoice-list.tsx`
 
-**File 11/28:** ✅ `app/api/webhooks/stripe/route.ts` - Stripe webhook handler (POST)
-**File 12/28:** ✅ `app/api/webhooks/dlocal/route.ts` - dLocal webhook handler (POST)
+- **Status:** Complete
+- **Description:** Invoice history table component with status badges and PDF download links
 
-## API Routes - dLocal Payments
+**File 5/29:** ✅ `components/pricing/tier-comparison.tsx`
 
-**File 13/28:** ✅ `app/api/payments/dlocal/create/route.ts` - Create dLocal payment (POST)
-**File 14/28:** ✅ `app/api/payments/dlocal/[paymentId]/route.ts` - Get dLocal payment status (GET)
-**File 15/28:** ✅ `app/api/payments/dlocal/methods/route.ts` - Get payment methods for country (GET)
-**File 16/28:** ✅ `app/api/payments/dlocal/convert/route.ts` - Convert USD to local currency (POST)
-**File 17/28:** ✅ `app/api/payments/dlocal/exchange-rate/route.ts` - Get exchange rate for currency pair (GET)
-**File 18/28:** ✅ `app/api/payments/dlocal/check-three-day-eligibility/route.ts` - Check 3-day plan eligibility (GET)
-**File 19/28:** ✅ `app/api/payments/dlocal/validate-discount/route.ts` - Validate discount code for dLocal (POST)
+- **Status:** Complete
+- **Description:** Tier comparison table reflecting V8 feature model (FREE vs PRO 100 alerts, line-touch alerts, and multi-timeframe channel visualization)
 
-## Library - Stripe
+---
 
-**File 20/28:** ✅ `lib/stripe/stripe.ts` - Stripe client initialization and utilities
-**File 21/28:** ✅ `lib/stripe/webhook-handlers.ts` - Stripe webhook event handlers
+### 2. Subscription & Checkout API Routes (`app/api/`)
 
-## Library - dLocal
+**File 6/29:** ✅ `app/api/subscription/route.ts`
 
-**File 22/28:** ✅ `lib/dlocal/dlocal-payment.service.ts` - dLocal payment service
-**File 23/28:** ✅ `lib/dlocal/payment-methods.service.ts` - Payment methods service
-**File 24/28:** ✅ `lib/dlocal/currency-converter.service.ts` - Currency conversion service
-**File 25/28:** ✅ `lib/dlocal/three-day-validator.service.ts` - Three-day plan validator service
-**File 26/28:** ✅ `lib/dlocal/constants.ts` - dLocal constants and configuration
+- **Status:** Complete
+- **Description:** `GET /api/subscription` (retrieve active subscription details from DB/Stripe) and `POST /api/subscription` (create/update subscription)
 
-## Library - Email
+**File 7/29:** ✅ `app/api/subscription/cancel/route.ts`
 
-**File 27/28:** ✅ `lib/email/subscription-emails.ts` - Subscription email templates
+- **Status:** Complete
+- **Description:** `POST /api/subscription/cancel` (cancel active subscription at end of billing period)
 
-## Types
+**File 8/29:** ✅ `app/api/checkout/route.ts`
 
-**File 28/28:** ✅ `types/payment.ts` - Payment-related TypeScript types
+- **Status:** Complete
+- **Description:** `POST /api/checkout` (create Stripe Checkout session with affiliate code tracking & `conversion-processor` integration)
 
-## Status Summary
+**File 9/29:** ✅ `app/api/checkout/validate-code/route.ts`
 
-- **Completed:** 28/28 files (100%)
-- **Missing:** None
+- **Status:** Complete
+- **Description:** `POST /api/checkout/validate-code` (validate affiliate or promotional discount code)
 
-## Notes
+**File 10/29:** ✅ `app/api/invoices/route.ts`
 
-- Supports both Stripe and dLocal payment providers
-- Includes comprehensive dLocal integration for international payments
-- Supports multiple currencies and payment methods per country
-- Includes 3-day plan and monthly subscription options
-- Affiliate code validation integrated into checkout flow
-- Full webhook handling for both Stripe and dLocal
-- Currency conversion and exchange rate tracking
-- Email notifications for subscription events
+- **Status:** Complete
+- **Description:** `GET /api/invoices` (list user invoice history)
 
-## Update 2026-07-04
+---
 
-No new files; the following existing Part 12 files were **modified** (all still ✅ complete) as
-part of the shared affiliate-conversion refactor (Stripe + dLocal now call
-`lib/affiliate/conversion-processor.ts`):
+### 3. Webhook & Cron Job API Routes
 
-- `app/api/checkout/route.ts`, `app/api/checkout/validate-code/route.ts`
-- `app/api/webhooks/dlocal/route.ts`
-- `app/api/payments/dlocal/create/route.ts`, `app/api/payments/dlocal/validate-discount/route.ts`
-- `lib/stripe/stripe.ts`, `lib/stripe/webhook-handlers.ts`
+**File 11/29:** ✅ `app/api/webhooks/stripe/route.ts`
 
-## Update 2026-07-07
+- **Status:** Complete
+- **Description:** `POST /api/webhooks/stripe` (Stripe webhook endpoint handling `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_succeeded`)
 
-No new files; the following existing Part 12 files were **modified** (all still ✅ complete) for
-the V8 single-symbol redesign (`change-to-new-design.md`):
+**File 12/29:** ✅ `app/api/cron/check-expiring-subscriptions/route.ts`
 
-- `app/(marketing)/pricing/page.tsx`, `components/pricing/tier-comparison.tsx` — copy updated to
-  reflect V8 tier differentiation (100 alerts, drawing-engine line alerts, multi-timeframe
-  visualization — PRO only) instead of the old symbol/timeframe-count pitch.
-- `components/billing/subscription-card.tsx` — PRO price display now reads
-  `PRO_MONTHLY_PRICE` (configurable via `NEXT_PUBLIC_PRO_PRICE_MONTHLY`, default $29) instead of
-  a hardcoded `$29`.
-- `lib/stripe/webhook-handlers.ts` — minor V8-related touch-up, no structural change.
-- `lib/email/subscription-emails.ts` — pricing/copy updated to match.
+- **Status:** Complete
+- **Description:** `GET /api/cron/check-expiring-subscriptions` (sends warning notification emails 3 days prior to expiration)
+
+**File 13/29:** ✅ `app/api/cron/downgrade-expired-subscriptions/route.ts`
+
+- **Status:** Complete
+- **Description:** `GET /api/cron/downgrade-expired-subscriptions` (downgrades expired accounts to FREE tier)
+
+**File 14/29:** ✅ `app/api/cron/daily-maintenance/route.ts`
+
+- **Status:** Complete
+- **Description:** `GET /api/cron/daily-maintenance` (consolidated daily maintenance cron job executing subscription expiration checks)
+
+---
+
+### 4. Stripe Libraries & Services (`lib/stripe/`)
+
+**File 15/29:** ✅ `lib/stripe/stripe.ts`
+
+- **Status:** Complete
+- **Description:** Stripe SDK client initialization (`stripe` singleton), customer lookup, and checkout session generator
+
+**File 16/29:** ✅ `lib/stripe/webhook-handlers.ts`
+
+- **Status:** Complete
+- **Description:** Event handlers for Stripe webhooks (manages user tier transitions, subscription records, and affiliate commission processing via `conversion-processor`)
+
+---
+
+### 5. Email Templates, Types & Documentation
+
+**File 17/29:** ✅ `lib/email/subscription-emails.ts`
+
+- **Status:** Complete
+- **Description:** HTML email templates for subscription welcome, renewal reminders, cancellation notices, and payment failures
+
+**File 18/29:** ✅ `types/payment.ts`
+
+- **Status:** Complete
+- **Description:** Payment and subscription TypeScript interfaces (`Subscription`, `Invoice`, `CheckoutSession`, `PaymentProvider`)
+
+**File 19/29:** ✅ `docs/open-api-documents/part-12-ecommerce-billing-openapi.yaml`
+
+- **Status:** Complete
+- **Description:** OpenAPI 3.0.3 specification for E-commerce & Billing API (v2.0.0, consolidated in Session 0-3 for Stripe checkout & cron jobs)
+
+---
+
+### 6. dLocal Payment Integration (Tracked in Parts 18a/18b/18c)
+
+The following dLocal payment files are integrated into the billing system (see Part 18 completion docs for details):
+
+- **File 20/29:** ✅ `app/api/webhooks/dlocal/route.ts` — dLocal webhook handler
+- **File 21/29:** ✅ `app/api/payments/dlocal/create/route.ts` — Create dLocal payment
+- **File 22/29:** ✅ `app/api/payments/dlocal/[paymentId]/route.ts` — Payment status check
+- **File 23/29:** ✅ `app/api/payments/dlocal/methods/route.ts` — Payment methods by country
+- **File 24/29:** ✅ `app/api/payments/dlocal/convert/route.ts` — Currency conversion
+- **File 25/29:** ✅ `app/api/payments/dlocal/exchange-rate/route.ts` — Live exchange rates
+- **File 26/29:** ✅ `app/api/payments/dlocal/check-three-day-eligibility/route.ts` — 3-day plan eligibility
+- **File 27/29:** ✅ `app/api/payments/dlocal/validate-discount/route.ts` — Validate discount code
+- **File 28/29:** ✅ `lib/dlocal/dlocal-payment.service.ts` — dLocal payment core service
+- **File 29/29:** ✅ `lib/dlocal/payment-methods.service.ts` — Payment methods service
+
+---
+
+## 🧪 Test Suite (`__tests__/`)
+
+- `__tests__/api/subscription.test.ts` — Integration tests for subscription routes
+- `__tests__/api/checkout.test.ts` — Unit tests for Stripe checkout session creation
+- `__tests__/lib/stripe.test.ts` — Unit tests for Stripe SDK wrapper and webhook handlers
+
+---
+
+## 📊 Status Summary
+
+- **Total Production Files:** 29/29 (100%)
+- **UI Pages & Components:** 5 files
+- **Stripe & Subscription API Routes:** 5 files
+- **Webhooks & Cron Jobs:** 4 files
+- **Stripe Services:** 2 files
+- **dLocal Payment Services:** 10 files (shared with Part 18)
+- **Types & Email:** 2 files
+- **OpenAPI Document:** 1 file (`part-12-ecommerce-billing-openapi.yaml`)
+- **Tests:** 3 test suites
+
+---
+
+## 🎯 Key Features & Integrations
+
+### Dual Payment Provider Architecture
+
+1. **Stripe Integration:** Primary credit card and global subscription processor (supports checkout sessions, customer portal, webhooks, and automatic retries).
+2. **dLocal Integration:** Localized alternative payment provider for emerging markets (supports 3-day micro-plans, local currency conversion, cash/bank transfers).
+
+### Affiliate System Integration
+
+- Checkout routes (`checkout/route.ts`, `dlocal/create/route.ts`) validate affiliate codes (`validate-code/route.ts`) and trigger `conversion-processor.ts` on successful payment completion to credit affiliates.
+
+---
+
+## 🔗 Related Documentation
+
+- **dLocal Payment System:** `docs/files-completion-list/files-inventory/part-18a-files-completion-dlocal-payment.md`
+- **Affiliate Portal:** `docs/files-completion-list/files-inventory/part-17a1-files-completion-affiliate.md`
+- **OpenAPI Specification:** `docs/open-api-documents/part-12-ecommerce-billing-openapi.yaml`
+
+---
+
+**Part 12 Status:** ✅ Complete and production-ready

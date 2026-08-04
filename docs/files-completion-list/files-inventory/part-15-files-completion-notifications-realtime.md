@@ -1,292 +1,167 @@
-# Part 15: Notifications & Real-time - Files Completion List
+# Part 15: Notifications & Real-Time System - List of Files Completion
 
-## Overview
-
-This document provides a comprehensive inventory of all files related to Part 15 (Notifications & Real-time) of the Trading Alerts SaaS platform. The implementation includes notification management APIs, real-time WebSocket communication, toast notifications, and system health monitoring.
-
----
-
-## PART 15 - CORE FILES COMPLETION
-
-### API Routes (Notification Endpoints)
-
-| #   | File Path                                  | Status      | Description                                                             |
-| --- | ------------------------------------------ | ----------- | ----------------------------------------------------------------------- |
-| 1   | `app/api/notifications/route.ts`           | ✅ Complete | GET: List notifications with pagination/filters; POST: Mark all as read |
-| 2   | `app/api/notifications/[id]/route.ts`      | ✅ Complete | GET: Get single notification; DELETE: Delete notification               |
-| 3   | `app/api/notifications/[id]/read/route.ts` | ✅ Complete | POST: Mark individual notification as read                              |
-
-### UI Components
-
-| #   | File Path                                        | Status      | Description                                                                               |
-| --- | ------------------------------------------------ | ----------- | ----------------------------------------------------------------------------------------- |
-| 4   | `components/notifications/notification-bell.tsx` | ✅ Complete | Bell icon with badge, dropdown with tabs (All/Alerts/System/Billing/Unread), mark as read |
-| 5   | `components/notifications/notification-list.tsx` | ✅ Complete | Full notification list page with pagination, filters, optimistic updates, undo delete     |
-
-### WebSocket & Real-time Infrastructure
-
-| #   | File Path                                     | Status      | Description                                                                      |
-| --- | --------------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
-| 6   | `lib/websocket/server.ts`                     | ✅ Complete | Socket.IO server setup, authentication, user rooms, broadcast functions          |
-| 7   | `components/providers/websocket-provider.tsx` | ✅ Complete | React context provider for WebSocket state, auto-reconnect, message subscription |
-| 8   | `hooks/use-websocket.ts`                      | ✅ Complete | React hook for WebSocket connection, auto-reconnect, cross-tab sync              |
-
-### Supporting Services
-
-| #   | File Path                          | Status      | Description                                                                         |
-| --- | ---------------------------------- | ----------- | ----------------------------------------------------------------------------------- |
-| 9   | `lib/monitoring/system-monitor.ts` | ✅ Complete | System health monitoring (DB, Redis, DataService, WebSocket), tier-specific metrics |
-| 10  | `hooks/use-toast.ts`               | ✅ Complete | Toast notification hook with success/error/warning/info types, auto-dismiss         |
+**Last Updated:** 2026-08-04
+**Status:** ✅ Complete (100%)
 
 ---
 
-## ADDITIONAL SUPPORTING FILES
+## 📋 Production Files Built in Part 15
 
-### Email Services (Related to Notifications)
+### 1. Database Schema & Models
 
-| #   | File Path                          | Status      | Description                              |
-| --- | ---------------------------------- | ----------- | ---------------------------------------- |
-| 11  | `lib/email/email.ts`               | ✅ Complete | Core email sending service using Resend  |
-| 12  | `lib/email/subscription-emails.ts` | ✅ Complete | Subscription-related email notifications |
+**File 1/17:** ✅ `prisma/non-market-data/schema.prisma` (Notification model)
 
-### Prisma Schema (Notification Model)
-
-| #   | File Path                                   | Status      | Description                                               |
-| --- | ------------------------------------------- | ----------- | --------------------------------------------------------- |
-| 13  | `prisma/schema.prisma` (Notification model) | ✅ Complete | Notification model with type, priority, read status, link |
-
-### Type Definitions
-
-| #   | File Path                 | Status      | Description                                                |
-| --- | ------------------------- | ----------- | ---------------------------------------------------------- |
-| 14  | `types/prisma-stubs.d.ts` | ✅ Complete | Notification, NotificationType, NotificationPriority types |
-
-### Test Files
-
-| #   | File Path                             | Status      | Description                          |
-| --- | ------------------------------------- | ----------- | ------------------------------------ |
-| 15  | `__tests__/api/notifications.test.ts` | ✅ Complete | API endpoint tests for notifications |
+- **Status:** Complete
+- **Description:** Defines `Notification` model (`id`, `userId`, `type`, `title`, `body`, `priority`, `read`, `readAt`, `link`), `NotificationType` enum (`ALERT`, `SUBSCRIPTION`, `PAYMENT`, `SYSTEM`), and `NotificationPriority` enum (`LOW`, `MEDIUM`, `HIGH`)
 
 ---
 
-## DATA STRUCTURES
+### 2. Notification & Real-Time API Routes (`app/api/`)
 
-### Notification Model (Prisma Schema)
+**File 2/17:** ✅ `app/api/notifications/route.ts`
 
-```prisma
-model Notification {
-  id        String   @id @default(cuid())
-  userId    String
+- **Status:** Complete
+- **Description:** `GET /api/notifications` (list user notifications with type/priority/read filters and pagination) and `POST /api/notifications` (bulk mark all notifications as read)
 
-  // Notification content
-  type      NotificationType
-  title     String
-  body      String
-  priority  NotificationPriority @default(MEDIUM)
+**File 3/17:** ✅ `app/api/notifications/[id]/route.ts`
 
-  // Read status
-  read      Boolean  @default(false)
-  readAt    DateTime?
+- **Status:** Complete
+- **Description:** `GET` (fetch single notification details) and `DELETE` (permanently delete individual notification)
 
-  // Optional link to related resource
-  link      String?
+**File 4/17:** ✅ `app/api/notifications/[id]/read/route.ts`
 
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+- **Status:** Complete
+- **Description:** `POST /api/notifications/[id]/read` (mark specific notification as read)
 
-  @@index([userId])
-  @@index([userId, read])
-  @@index([createdAt])
-}
+**File 5/17:** ✅ `app/api/realtime/token/route.ts`
 
-enum NotificationType {
-  ALERT        // Alert triggered notifications
-  SUBSCRIPTION // Subscription/billing updates
-  PAYMENT      // Payment confirmations and failures
-  SYSTEM       // System announcements and updates
-}
-
-enum NotificationPriority {
-  LOW
-  MEDIUM
-  HIGH
-}
-```
-
-### API Response Types
-
-```typescript
-// List notifications response
-interface NotificationsListResponse {
-  notifications: Notification[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-  unreadCount: number;
-}
-
-// Single notification
-interface Notification {
-  id: string;
-  userId: string;
-  type: 'ALERT' | 'SUBSCRIPTION' | 'PAYMENT' | 'SYSTEM';
-  title: string;
-  body: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH';
-  read: boolean;
-  readAt: string | null;
-  link: string | null;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-// Mark all as read response
-interface MarkAllReadResponse {
-  success: boolean;
-  updatedCount: number;
-  message: string;
-}
-
-// Mark single as read response
-interface MarkReadResponse {
-  notification: Notification;
-  success?: boolean;
-  alreadyRead?: boolean;
-  message: string;
-}
-
-// Delete response
-interface DeleteResponse {
-  success: boolean;
-  message: string;
-}
-```
-
-### WebSocket Message Types
-
-```typescript
-// WebSocket message structure
-interface WebSocketMessage {
-  type:
-    | 'notification'
-    | 'notification_read'
-    | 'pong'
-    | 'authenticated'
-    | 'error';
-  data: NotificationPayload | Record<string, unknown>;
-}
-
-// Notification payload for WebSocket
-interface NotificationPayload {
-  id: string;
-  type: 'ALERT' | 'SUBSCRIPTION' | 'PAYMENT' | 'SYSTEM';
-  title: string;
-  body: string;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH';
-  link?: string;
-  createdAt: string;
-}
-```
+- **Status:** Complete
+- **Description:** `GET /api/realtime/token` (bridges browser Socket.IO connection to decoupled `operation-service` RealtimeGateway by issuing Bearer token)
 
 ---
 
-## FEATURES IMPLEMENTED
+### 3. UI Pages & Components (`app/(dashboard)/notifications/` & `components/notifications/`)
 
-### Notification Bell Component
+**File 6/17:** ✅ `app/(dashboard)/notifications/page.tsx`
 
-- Unread count badge (shows 9+ if more than 9)
-- Dropdown with tabs: All, Alerts, System, Billing, Unread
-- Mark individual notification as read on click
-- Mark all as read button
-- Delete notification (from dropdown)
-- Navigation to notification link
-- Priority-based styling (HIGH priority highlighted)
-- Auto-refresh on popover open
+- **Status:** Complete
+- **Description:** Full notifications center page component with tabbed navigation and pagination
 
-### Notification List Page
+**File 7/17:** ✅ `components/notifications/notification-bell.tsx`
 
-- Full pagination (20 per page)
-- Status filter tabs: All, Unread, Read
-- Type filter buttons: All Types, Alert, Subscription, Payment, System
-- Optimistic updates for mark as read and delete
-- Undo delete functionality (5 second window)
-- Empty state handling
-- Loading and error states
-- Refresh button
+- **Status:** Complete
+- **Description:** Header bell icon component with unread counter badge, popover dropdown tabs (All, Alerts, System, Billing, Unread), mark all as read action, and V8 PRO upgrade prompts
 
-### WebSocket Real-time Features
+**File 8/17:** ✅ `components/notifications/notification-list.tsx`
 
-- Socket.IO server integration
-- User authentication via session token
-- User-specific rooms for targeted notifications
-- Cross-tab notification sync
-- Auto-reconnect with exponential backoff
-- Ping/pong keep-alive
-- Connection state management
-
-### Toast Notifications
-
-- Multiple types: success, error, warning, info
-- Auto-dismiss with configurable duration
-- Manual dismiss support
-- Maximum toast limit (oldest removed when exceeded)
-- Convenience methods for common toast types
-
-### System Monitoring
-
-- Database health check
-- Redis health check (placeholder)
-- Data service (Flask MT5) health check
-- WebSocket server health check
-- Tier-specific metrics (FREE/PRO)
-- Admin alert triggers based on health status
+- **Status:** Complete
+- **Description:** Full notification listing UI component with optimistic mark-as-read, delete with 5-second undo window, status filters, and PRO feature banners
 
 ---
 
-## Status Summary
+### 4. Real-Time & WebSocket Infrastructure
 
-| Category                 | Completed | Total  |
-| ------------------------ | --------- | ------ |
-| Core API Routes          | 3         | 3      |
-| UI Components            | 2         | 2      |
-| WebSocket Infrastructure | 3         | 3      |
-| Supporting Services      | 2         | 2      |
-| **Total Core Files**     | **10**    | **10** |
+**File 9/17:** ✅ `lib/websocket/server.ts`
 
-**Overall Status:** ✅ 100% Complete (10/10 core files)
+- **Status:** Complete
+- **Description:** Socket.IO server setup, authentication middleware, user rooms, `subscribe_market` room handler (`market:{symbol}:{timeframe}`), and notification broadcast helpers
 
----
+**File 10/17:** ✅ `components/providers/websocket-provider.tsx`
 
-## Related Documentation
+- **Status:** Complete
+- **Description:** React context provider managing Socket.IO connection lifecycle, state, exponential backoff auto-reconnection, and message dispatching
 
-- OpenAPI Specification: `docs/open-api-documents/part-15-notifications-realtime-openapi.yaml`
-- Build Order: `docs/build-orders/part-15-notifications.md`
-- Validation Report: `docs/validation-reports/part-15-validation-report.md`
+**File 11/17:** ✅ `hooks/use-websocket.ts`
+
+- **Status:** Complete
+- **Description:** Custom React hook for WebSocket connection, ping/pong keep-alive, and cross-tab notification synchronization
 
 ---
 
-## Update 2026-07-07 — V8: Alert notifications are now PRO-only
+### 5. System Health Monitoring & Toast Utilities
 
-Since Alerts became a PRO-exclusive feature in the V8 redesign (`change-to-new-design.md`; see
-`part-11-files-completion.md`), the notification UI now branches on tier when showing the
-Alerts-type empty state — no files added or removed, both already-listed components updated:
+**File 12/17:** ✅ `lib/monitoring/system-monitor.ts`
 
-- **`components/notifications/notification-bell.tsx`** (row 4) — the "Alerts" tab's empty state
-  now shows a PRO-upgrade prompt ("Alert notifications are a PRO feature... Upgrade to create up
-  to 100 price alerts") for FREE users instead of the generic "No notifications yet" message.
-- **`components/notifications/notification-list.tsx`** (row 5) — same branch for the `ALERT`
-  type filter's empty state.
-- **`lib/websocket/server.ts`** (row 6) — added a `subscribe_market` socket event
-  (`market:{symbol}:{timeframe}` room) and `broadcastMarketData()`, for the v6 XAUUSD pipeline to
-  push live `market_data_v6` updates to subscribed clients. **Deliberately no tier check** — both
-  FREE and PRO receive the full market-data stream; only Alerts/notifications are tier-gated.
+- **Status:** Complete
+- **Description:** System health monitoring service checking Database, Redis, Flask MT5 DataService, and WebSocket server health status with tier metrics
 
-`lib/email/{email,subscription-emails}.ts` (rows 11-12) were also touched in this commit but for
-unrelated V8 copy/pricing updates (PRO price now reads `PRO_MONTHLY_PRICE`), not a Part 15
-structural change.
+**File 13/17:** ✅ `hooks/use-toast.ts`
+
+- **Status:** Complete
+- **Description:** Client toast notification hook managing toast dispatches (success, error, warning, info) with auto-dismiss and queue limit management
 
 ---
 
-_Last Updated: 2026-07-07_
+### 6. Email Services & Types
+
+**File 14/17:** ✅ `lib/email/email.ts`
+
+- **Status:** Complete
+- **Description:** Core transactional email delivery service powered by Resend SDK
+
+**File 15/17:** ✅ `lib/email/subscription-emails.ts`
+
+- **Status:** Complete
+- **Description:** Transactional email templates for subscription welcome, renewal, cancellation, and payment alert notifications
+
+**File 16/17:** ✅ `types/prisma-stubs.d.ts`
+
+- **Status:** Complete
+- **Description:** TypeScript type stubs for `Notification`, `NotificationType`, and `NotificationPriority`
+
+---
+
+### 7. Documentation & OpenAPI Spec
+
+**File 17/17:** ✅ `docs/open-api-documents/part-15-notifications-realtime-openapi.yaml`
+
+- **Status:** Complete
+- **Description:** OpenAPI 3.0.3 specification for Notifications & Real-Time API (v2.0.0, covering notifications CRUD, WebSocket events, and priority levels)
+
+---
+
+## 🧪 Test Suite (`__tests__/`)
+
+- `__tests__/api/notifications.test.ts` — Integration tests for `/api/notifications` list and mark-all-read endpoints
+- `__tests__/api/notifications-id.test.ts` — Integration tests for single notification GET and DELETE operations
+- `__tests__/api/notifications-id-read.test.ts` — Integration tests for marking individual notifications as read
+- `__tests__/api/realtime-token.test.ts` — Unit tests for `/api/realtime/token` Bearer token bridge endpoint
+
+---
+
+## 📊 Status Summary
+
+- **Total Production Files:** 17/17 (100%)
+- **Notification API Routes:** 4 files (`app/api/notifications/**`, `app/api/realtime/token/route.ts`)
+- **UI Pages & Components:** 3 files (`page.tsx`, `notification-bell.tsx`, `notification-list.tsx`)
+- **WebSocket Infrastructure:** 3 files (`lib/websocket/server.ts`, `websocket-provider.tsx`, `use-websocket.ts`)
+- **Monitoring & Toast Utilities:** 2 files (`system-monitor.ts`, `use-toast.ts`)
+- **Email & Type Helpers:** 4 files (`email.ts`, `subscription-emails.ts`, `prisma-stubs.d.ts`, `schema.prisma`)
+- **OpenAPI Spec:** 1 file (`part-15-notifications-realtime-openapi.yaml`)
+- **Tests:** 4 test suites
+
+---
+
+## 🎯 V8 Architecture & Real-Time Features
+
+### 1. Dual Real-Time WebSocket Architecture
+
+- **In-App Notifications:** Next.js Socket.IO server (`lib/websocket/server.ts`) delivers live user notifications, unread count badge updates, and cross-tab synchronization.
+- **Decoupled Operation Service Bridge:** Endpoint `GET /api/realtime/token` issues Bearer tokens enabling direct browser Socket.IO connections to the decoupled `operation-service` RealtimeGateway.
+
+### 2. V8 PRO Notification Branching
+
+- Under V8 single-symbol architecture (`change-to-new-design.md`), price alert notifications are PRO-exclusive.
+- UI components (`notification-bell.tsx`, `notification-list.tsx`) show a PRO-upgrade banner in the "Alerts" tab empty state for FREE users.
+
+---
+
+## 🔗 Related Documentation
+
+- **Alert System:** `docs/files-completion-list/files-inventory/part-11-files-completion-alerts.md`
+- **Decoupled Operation Service:** `docs/files-completion-list/files-inventory/part-23-files-completion-v2_29_data_pipeline_architecture.md`
+- **OpenAPI Specification:** `docs/open-api-documents/part-15-notifications-realtime-openapi.yaml`
+
+---
+
+**Part 15 Status:** ✅ Complete and production-ready

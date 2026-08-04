@@ -1,409 +1,217 @@
-# Part 13: Settings System - Files Completion List
+# Part 13: Settings System - List of Files Completion
 
-## Overview
-
-The Settings System provides comprehensive user settings management including profile, preferences, security (2FA), sessions, login history, billing, privacy, and account operations.
-
-**Total Files:** 28
-**Status:** 28/28 Completed (100%)
+**Last Updated:** 2026-08-04
+**Status:** ✅ Complete (100%)
 
 ---
 
-## UI Pages (11 files)
+## 📋 Production Files Built in Part 13
 
-### Settings Layout & Home
+### 1. Settings UI Pages (`app/(dashboard)/settings/`, 11 files)
 
-**File 1/28:** `app/(dashboard)/settings/layout.tsx`
+**File 1/29:** ✅ `app/(dashboard)/settings/layout.tsx`
 
-- **Status:** Completed
-- **Purpose:** Settings layout with sidebar navigation
-- **Features:**
-  - 8-tab navigation (Profile, Appearance, Account, Security, Privacy, Billing, Language, Help)
-  - Desktop sticky sidebar
-  - Mobile horizontal tabs
-  - Breadcrumb navigation
-  - Dark mode support
+- **Status:** Complete
+- **Description:** Settings section layout wrapper with desktop sidebar and mobile horizontal navigation tabs
 
-**File 2/28:** `app/(dashboard)/settings/page.tsx`
+**File 2/29:** ✅ `app/(dashboard)/settings/page.tsx`
 
-- **Status:** Completed
-- **Purpose:** Settings home/overview page
-- **Features:**
-  - Current plan display (FREE/PRO)
-  - Usage statistics by tier
-  - Quick links to settings sections
-  - Upgrade prompt for FREE users
+- **Status:** Complete
+- **Description:** Settings overview landing page featuring current plan badge, usage stats, and quick links
 
-### Profile & Appearance
+**File 3/29:** ✅ `app/(dashboard)/settings/profile/page.tsx`
 
-**File 3/28:** `app/(dashboard)/settings/profile/page.tsx`
+- **Status:** Complete
+- **Description:** User profile management page (avatar upload, name, email, bio, username availability check)
 
-- **Status:** Completed
-- **Purpose:** User profile management
-- **Features:**
-  - Profile photo upload with drag-and-drop
-  - Name, email, username, bio, company fields
-  - Username availability checking with debounce
-  - Unsaved changes warning
-  - Form validation
-- **API Integration:** `PATCH /api/user/profile`
+**File 4/29:** ✅ `app/(dashboard)/settings/appearance/page.tsx`
 
-**File 4/28:** `app/(dashboard)/settings/appearance/page.tsx`
+- **Status:** Complete
+- **Description:** Visual customization page (theme mode: Light/Dark/System, color scheme, candlestick colors, grid opacity)
 
-- **Status:** Completed
-- **Purpose:** Visual customization settings
-- **Features:**
-  - Theme selection (Light, Dark, System)
-  - Color scheme selector (Blue, Purple, Green, Orange)
-  - Chart preferences (candlestick colors, grid opacity)
-  - localStorage-based persistence
-  - Immediate application (no save button)
+**File 5/29:** ✅ `app/(dashboard)/settings/account/page.tsx`
 
-### Account & Security
+- **Status:** Complete
+- **Description:** Account management page (password change, active sessions list, sign out all devices, 7-day deletion request)
 
-**File 5/28:** `app/(dashboard)/settings/account/page.tsx`
+**File 6/29:** ✅ `app/(dashboard)/settings/security/page.tsx`
 
-- **Status:** Completed
-- **Purpose:** Account management
-- **Features:**
-  - Password change form with strength indicator
-  - 2FA toggle link to security page
-  - Active sessions list with device/location info
-  - Sign out all other devices
-  - Account deletion with 7-day grace period
-- **API Integration:**
-  - `POST /api/user/password`
-  - `GET/DELETE /api/user/sessions`
-  - `DELETE /api/user/sessions/{id}`
-  - `POST /api/user/account/deletion-request`
+- **Status:** Complete
+- **Description:** Security & 2FA management page (TOTP QR code setup, 10 backup codes, security alert preferences, login history table)
 
-**File 6/28:** `app/(dashboard)/settings/security/page.tsx`
+**File 7/29:** ✅ `app/(dashboard)/settings/privacy/page.tsx`
 
-- **Status:** Completed
-- **Purpose:** Security settings and 2FA management
-- **Features:**
-  - Security alert preferences (new device, password change)
-  - Two-factor authentication (TOTP) setup
-    - QR code display
-    - 6-digit verification code entry
-    - Backup codes management (10 codes)
-    - Enable/disable with password
-  - Login history with pagination
-    - Device icons based on OS
-    - Status badges (SUCCESS, FAILED, BLOCKED)
-    - Relative time formatting
-- **API Integration:**
-  - `POST /api/user/2fa/setup`
-  - `POST /api/user/2fa/verify-setup`
-  - `POST /api/user/2fa/disable`
-  - `GET/POST /api/user/2fa/backup-codes`
-  - `GET /api/user/login-history`
-  - `PUT /api/user/preferences` (security alerts)
+- **Status:** Complete
+- **Description:** Privacy settings page (profile visibility, trading stats toggle, email privacy, data export request)
 
-### Privacy, Billing, Language & Help
+**File 8/29:** ✅ `app/(dashboard)/settings/billing/page.tsx`
 
-**File 7/28:** `app/(dashboard)/settings/privacy/page.tsx`
+- **Status:** Complete
+- **Description:** Billing & subscription management page (Stripe/dLocal plan status, payment methods, invoice download history)
 
-- **Status:** Completed
-- **Purpose:** Privacy settings
-- **Features:**
-  - Profile visibility toggle (Public/Private/Connections)
-  - Show trading stats toggle
-  - Show email publicly toggle
-  - Data export request
-- **API Integration:** `PUT /api/user/preferences`
+**File 9/29:** ✅ `app/(dashboard)/settings/language/page.tsx`
 
-**File 8/28:** `app/(dashboard)/settings/billing/page.tsx`
+- **Status:** Complete
+- **Description:** Language & regional settings page (8 languages, 11+ timezones, date/time formats, currency preferences)
 
-- **Status:** Completed
-- **Purpose:** Billing and subscription management
-- **Features:**
-  - Current plan card (FREE/PRO)
-  - Plan features comparison list
-  - Upgrade/Cancel subscription buttons
-  - Payment method display
-  - Usage statistics (Alerts, Watchlists, API calls)
-  - Invoice history table
-  - Affiliate discount display
+**File 10/29:** ✅ `app/(dashboard)/settings/help/page.tsx`
 
-**File 9/28:** `app/(dashboard)/settings/language/page.tsx`
+- **Status:** Complete
+- **Description:** Help center page (FAQ accordion, documentation links, support ticket contact form)
 
-- **Status:** Completed
-- **Purpose:** Language and regional settings
-- **Features:**
-  - Language selection (8 languages)
-  - Timezone selection (11+ timezones)
-  - Date format (MDY, DMY, YMD)
-  - Time format (12h, 24h)
-  - Currency selection (7 currencies)
-  - Real-time timezone preview
-- **API Integration:** `PUT /api/user/preferences`
+**File 11/29:** ✅ `app/(dashboard)/settings/terms/page.tsx`
 
-**File 10/28:** `app/(dashboard)/settings/help/page.tsx`
-
-- **Status:** Completed
-- **Purpose:** Help and support page
-- **Features:**
-  - Quick links (Docs, Chat, Email, Bug Report)
-  - FAQ accordion (8 items)
-  - Contact form with subject dropdown
-  - Toast notifications
+- **Status:** Complete
+- **Description:** Legal terms of service and privacy policy viewer
 
 ---
 
-## API Routes (14 files)
+### 2. User API Routes (`app/api/user/`, 14 files)
 
-### Profile & Preferences
+**File 12/29:** ✅ `app/api/user/profile/route.ts`
 
-**File 11/28:** `app/api/user/profile/route.ts`
+- **Status:** Complete
+- **Description:** `GET` (fetch user profile) and `PATCH` (update profile details and avatar URL)
 
-- **Status:** Completed
-- **Methods:** GET, PATCH
-- **Purpose:** User profile CRUD operations
-- **Features:**
-  - Get user profile with tier and verification status
-  - Update name (2-50 chars), email, avatarUrl
-  - Email duplicate check
-  - Zod schema validation
+**File 13/29:** ✅ `app/api/user/preferences/route.ts`
 
-**File 12/28:** `app/api/user/preferences/route.ts`
+- **Status:** Complete
+- **Description:** `GET` (retrieve user preferences) and `PUT` (upsert preferences: theme, locale, chart settings, security alerts)
 
-- **Status:** Completed
-- **Methods:** GET, PUT
-- **Purpose:** User preferences management
-- **Features:**
-  - Upsert pattern for UserPreferences model
-  - Merge with DEFAULT_PREFERENCES
-  - Partial updates supported
-- **Validated Fields:**
-  - theme: light, dark, system
-  - colorScheme: blue, purple, green, orange
-  - language, timezone, currency (strings)
-  - dateFormat: MDY, DMY, YMD
-  - timeFormat: 12h, 24h
-  - profileVisibility: public, private, connections
-  - showStats, showEmail, emailNotifications, pushNotifications
-  - newDeviceAlerts, passwordChangeAlerts
-  - chartUpColor, chartDownColor, gridOpacity (0-100)
+**File 14/29:** ✅ `app/api/user/password/route.ts`
 
-### Password Management
+- **Status:** Complete
+- **Description:** `POST` (change password with current password verification and security alert notification)
 
-**File 13/28:** `app/api/user/password/route.ts`
+**File 15/29:** ✅ `app/api/user/sessions/route.ts`
 
-- **Status:** Completed
-- **Method:** POST
-- **Purpose:** Password change
-- **Features:**
-  - Current password verification using bcryptjs
-  - New password requirements (8+ chars, 1 uppercase, 1 lowercase, 1 number)
-  - Prevents reuse of current password
-  - OAuth-only user detection
-  - Security alert creation if enabled
-  - Email notification on password change
+- **Status:** Complete
+- **Description:** `GET` (list all active sessions with device/location info) and `DELETE` (revoke all other active sessions)
 
-### Session Management
+**File 16/29:** ✅ `app/api/user/sessions/[id]/route.ts`
 
-**File 14/28:** `app/api/user/sessions/route.ts`
+- **Status:** Complete
+- **Description:** `DELETE` (revoke specific active session by ID)
 
-- **Status:** Completed
-- **Methods:** GET, DELETE
-- **Purpose:** Session listing and bulk revocation
-- **Features:**
-  - List all active sessions
-  - User agent and IP detection
-  - Device fingerprinting
-  - Revoke all sessions except current
-- **Returns:** device, browser, OS, location, lastActive, isCurrent
+**File 17/29:** ✅ `app/api/user/login-history/route.ts`
 
-**File 15/28:** `app/api/user/sessions/[id]/route.ts`
+- **Status:** Complete
+- **Description:** `GET` (paginated login history with IP, browser, OS, location, and status badges)
 
-- **Status:** Completed
-- **Method:** DELETE
-- **Purpose:** Individual session revocation
-- **Features:**
-  - Revoke specific session by ID
-  - Ownership validation
+**File 18/29:** ✅ `app/api/user/2fa/setup/route.ts`
 
-### Login History
+- **Status:** Complete
+- **Description:** `POST` (initiate 2FA TOTP setup, returning QR code base64 SVG and TOTP secret)
 
-**File 16/28:** `app/api/user/login-history/route.ts`
+**File 19/29:** ✅ `app/api/user/2fa/verify-setup/route.ts`
 
-- **Status:** Completed
-- **Method:** GET
-- **Purpose:** Login history retrieval
-- **Query Parameters:**
-  - `limit`: 1-100 (default 20)
-  - `offset`: pagination offset
-- **Features:**
-  - Location formatting (City, Region, Country)
-  - Device/browser/OS formatting
-  - Pagination metadata
-  - Status filtering (SUCCESS, FAILED, BLOCKED)
+- **Status:** Complete
+- **Description:** `POST` (verify TOTP code to enable 2FA and issue 10 backup codes)
 
-### Two-Factor Authentication (2FA)
+**File 20/29:** ✅ `app/api/user/2fa/verify/route.ts`
 
-**File 17/28:** `app/api/user/2fa/setup/route.ts`
+- **Status:** Complete
+- **Description:** `POST` (verify 2FA TOTP or backup code during login flow)
 
-- **Status:** Completed
-- **Method:** POST
-- **Purpose:** Initiate 2FA setup
-- **Returns:** QR code image (base64) and TOTP secret
+**File 21/29:** ✅ `app/api/user/2fa/disable/route.ts`
 
-**File 18/28:** `app/api/user/2fa/verify-setup/route.ts`
+- **Status:** Complete
+- **Description:** `POST` (disable 2FA requiring current password and valid TOTP code)
 
-- **Status:** Completed
-- **Method:** POST
-- **Purpose:** Verify TOTP code and enable 2FA
-- **Body:** `{ code: string }` (6-digit)
-- **Returns:** 10 backup codes on success
+**File 22/29:** ✅ `app/api/user/2fa/backup-codes/route.ts`
 
-**File 19/28:** `app/api/user/2fa/verify/route.ts`
+- **Status:** Complete
+- **Description:** `GET` (get remaining backup codes count) and `POST` (regenerate 10 backup codes)
 
-- **Status:** Completed
-- **Method:** POST
-- **Purpose:** Verify 2FA code during login
-- **Body:** `{ code: string }` (6-digit or backup code)
+**File 23/29:** ✅ `app/api/user/account/deletion-request/route.ts`
 
-**File 20/28:** `app/api/user/2fa/disable/route.ts`
+- **Status:** Complete
+- **Description:** `POST` (initiate account deletion request with 7-day grace period and confirmation token)
 
-- **Status:** Completed
-- **Method:** POST
-- **Purpose:** Disable 2FA
-- **Body:** `{ password: string, code: string }`
-- **Features:** Requires current password + valid 2FA code
+**File 24/29:** ✅ `app/api/user/account/deletion-confirm/route.ts`
 
-**File 21/28:** `app/api/user/2fa/backup-codes/route.ts`
+- **Status:** Complete
+- **Description:** `POST` (verify confirmation token and execute permanent cascading account deletion)
 
-- **Status:** Completed
-- **Methods:** GET, POST
-- **Purpose:** Backup codes management
-- **GET:** Returns remaining backup codes count
-- **POST:** Regenerate backup codes (requires password)
+**File 25/29:** ✅ `app/api/user/account/deletion-cancel/route.ts`
 
-### Account Deletion
-
-**File 22/28:** `app/api/user/account/deletion-request/route.ts`
-
-- **Status:** Completed
-- **Method:** POST
-- **Purpose:** Initiate account deletion
-- **Features:**
-  - 7-day grace period
-  - Random token generation
-  - Duplicate request detection
-  - Email notification trigger
-
-**File 23/28:** `app/api/user/account/deletion-confirm/route.ts`
-
-- **Status:** Completed
-- **Method:** POST
-- **Purpose:** Confirm and execute account deletion
-- **Body:** `{ token: string }`
-- **Features:**
-  - Token verification
-  - Permanent account deletion
-  - Cascading deletes via Prisma
-
-**File 24/28:** `app/api/user/account/deletion-cancel/route.ts`
-
-- **Status:** Completed
-- **Method:** POST
-- **Purpose:** Cancel pending account deletion
-- **Body:** `{ token: string }`
+- **Status:** Complete
+- **Description:** `POST` (cancel pending account deletion request)
 
 ---
 
-## Utilities (1 file)
+### 3. Utilities & Providers (3 files)
 
-**File 25/28:** `lib/preferences/defaults.ts`
+**File 26/29:** ✅ `lib/preferences/defaults.ts`
 
-- **Status:** Completed
-- **Purpose:** Preference defaults and utilities
-- **Exports:**
-  - `DEFAULT_PREFERENCES` - Default preference values
-  - `mergePreferences()` - Merge custom with defaults
-  - `isValidPreference()` - Validate preference values
-  - `sanitizePreferences()` - Remove invalid values
-- **Default Values:**
-  - theme: 'system'
-  - colorScheme: 'blue'
-  - language: 'en-US'
-  - timezone: 'America/New_York'
-  - dateFormat: 'MDY'
-  - timeFormat: '12h'
-  - currency: 'USD'
-  - profileVisibility: 'private'
-  - chartUpColor: '#22c55e'
-  - chartDownColor: '#ef4444'
-  - gridOpacity: 50
+- **Status:** Complete
+- **Description:** Preference defaults (`DEFAULT_PREFERENCES`), sanitization, and merging utilities
+
+**File 27/29:** ✅ `components/providers/theme-provider.tsx`
+
+- **Status:** Complete
+- **Description:** Dark mode theme provider using `next-themes` library with system preference auto-detection
+
+**File 28/29:** ✅ `components/providers/websocket-provider.tsx`
+
+- **Status:** Complete
+- **Description:** Real-time WebSocket context provider managing connection state and auto-reconnection
 
 ---
 
-## Providers (2 files)
+### 4. Part Documentation & OpenAPI Spec
 
-**File 26/28:** `components/providers/theme-provider.tsx`
+**File 29/29:** ✅ `docs/open-api-documents/part-13-settings-openapi.yaml`
 
-- **Status:** Completed
-- **Purpose:** Dark mode provider
-- **Features:**
-  - Uses next-themes library
-  - System preference detection
-  - Persistent theme storage
-
-**File 27/28:** `components/providers/websocket-provider.tsx`
-
-- **Status:** Completed
-- **Purpose:** Real-time updates provider
-- **Features:**
-  - WebSocket connection management
-  - Auto-reconnect logic
-  - Context for real-time data
+- **Status:** Complete
+- **Description:** Complete OpenAPI 3.0.3 specification for Settings System API (v2.0.0, covering profile, preferences, 2FA, sessions, and account deletion)
 
 ---
 
-## Database Models (Reference)
+## 🧪 Test Suite (`__tests__/`)
 
-**File 28/28:** `prisma/schema.prisma` (Settings-related models)
-
-- **Status:** Completed
-- **Models:**
-  - `UserPreferences` - JSON-based preference storage
-  - `User` - Extended with 2FA fields (twoFactorEnabled, twoFactorSecret, twoFactorBackupCodes)
-  - `SecurityAlert` - Security event tracking
-  - `LoginHistory` - Login attempt records
-  - `UserSession` - Extended session tracking
-  - `AccountDeletionRequest` - Deletion workflow management
+- `__tests__/api/user.test.ts` — Integration tests for User Settings API endpoints (`profile`, `preferences`, `password`, `sessions`, `2fa`, `deletion`)
 
 ---
 
-## Status Summary
+## 📊 Status Summary
 
-| Category   | Files  | Completed     |
-| ---------- | ------ | ------------- |
-| UI Pages   | 11     | 11            |
-| API Routes | 14     | 14            |
-| Utilities  | 1      | 1             |
-| Providers  | 2      | 2             |
-| **Total**  | **28** | **28 (100%)** |
+- **Total Production Files:** 29/29 (100%)
+- **Settings UI Pages:** 11 files (`app/(dashboard)/settings/*`)
+- **User API Routes:** 14 files (`app/api/user/*`)
+- **Utilities & Providers:** 3 files
+- **OpenAPI Document:** 1 file (`part-13-settings-openapi.yaml`)
+- **Tests:** 1 comprehensive test suite (`__tests__/api/user.test.ts`)
 
 ---
 
-## Dependencies
+## 🎯 Key Features Implemented
 
-- **Part 5 (Auth):** Session management, authentication
-- **Part 12 (Billing):** Subscription and payment integration
+### 1. Two-Factor Authentication (2FA TOTP)
 
-## Feature Matrix
+- Standard TOTP setup with base64 QR code generation (`2fa/setup`).
+- Verification & 10 hashed backup codes generation (`2fa/verify-setup`).
+- Disable 2FA requires password + code verification (`2fa/disable`).
 
-| Feature            | Endpoint/Page                                                         | Status    |
-| ------------------ | --------------------------------------------------------------------- | --------- |
-| Profile Management | `/settings/profile`, `/api/user/profile`                              | Completed |
-| Preferences        | `/settings/appearance`, `/settings/language`, `/api/user/preferences` | Completed |
-| Password Change    | `/settings/account`, `/api/user/password`                             | Completed |
-| Session Management | `/settings/account`, `/api/user/sessions`                             | Completed |
-| Two-Factor Auth    | `/settings/security`, `/api/user/2fa/*`                               | Completed |
-| Login History      | `/settings/security`, `/api/user/login-history`                       | Completed |
-| Privacy Settings   | `/settings/privacy`, `/api/user/preferences`                          | Completed |
-| Billing Display    | `/settings/billing`                                                   | Completed |
-| Account Deletion   | `/settings/account`, `/api/user/account/*`                            | Completed |
-| Help & Support     | `/settings/help`                                                      | Completed |
+### 2. Session & Device Tracking
+
+- Active session listing (`/api/user/sessions`) with device, browser, OS, and location parsing.
+- Selective or bulk session revocation ("Sign out all other devices").
+- Paginated login history tracking with IP and geolocation (`/api/user/login-history`).
+
+### 3. Account Deletion Workflow
+
+- 7-day grace period for account deletion requests (`deletion-request`).
+- Confirmation token verification (`deletion-confirm`) and cancellation option (`deletion-cancel`).
+
+---
+
+## 🔗 Related Documentation
+
+- **Authentication System:** `docs/files-completion-list/files-inventory/part-05-files-completion-authentication.md`
+- **Billing & Subscriptions:** `docs/files-completion-list/files-inventory/part-12-files-completion-ecommerce-billing.md`
+- **OpenAPI Specification:** `docs/open-api-documents/part-13-settings-openapi.yaml`
+
+---
+
+**Part 13 Status:** ✅ Complete and production-ready

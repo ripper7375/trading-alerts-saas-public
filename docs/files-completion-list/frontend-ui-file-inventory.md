@@ -1,7 +1,7 @@
 # Frontend UI Files Inventory
 
-**Last Updated:** 2026-07-08
-**Total Files:** 150
+**Last Updated:** 2026-08-04
+**Total Files:** 168
 **Purpose:** Complete inventory of all frontend UI files that create user visualization and/or allow user interaction
 
 ---
@@ -215,14 +215,14 @@
 
 ### Distribution by User Role
 
-| User Role                 | File Count | Key Areas                                                                          |
-| ------------------------- | ---------- | ---------------------------------------------------------------------------------- |
+| User Role                 | File Count | Key Areas                                                                                      |
+| ------------------------- | ---------- | ---------------------------------------------------------------------------------------------- |
 | **End Users**             | 56         | Dashboard, Alerts (PRO-only), Charts (incl. drawing tools, line alerts, MTF overlay), Settings |
-| **Affiliates**            | 14         | Registration, Dashboard, Commissions, Profile                                      |
-| **Admins**                | 38         | User Management, Fraud Detection, Disbursements, Reports                           |
-| **Public/Marketing**      | 4          | Landing Page, Pricing                                                              |
-| **Authentication**        | 10         | Login, Register, Password Reset, Verification, 2FA                                 |
-| **Shared/Infrastructure** | 31         | Layouts, Notifications, Billing, shadcn/ui primitives, Theme                       |
+| **Affiliates**            | 14         | Registration, Dashboard, Commissions, Profile                                                  |
+| **Admins**                | 38         | User Management, Fraud Detection, Disbursements, Reports                                       |
+| **Public/Marketing**      | 4          | Landing Page, Pricing                                                                          |
+| **Authentication**        | 10         | Login, Register, Password Reset, Verification, 2FA                                             |
+| **Shared/Infrastructure** | 31         | Layouts, Notifications, Billing, shadcn/ui primitives, Theme                                   |
 
 > User-role counts use a path-based heuristic and are approximate; the per-file
 > source of truth is the inventory table above.
@@ -545,7 +545,20 @@ immediately after deletion.
 `frontend/components/indicators/indicator-selector.tsx` (the mirror) was left in place, same
 rationale as above.
 
+## Reconciliation Note (2026-08-04) — Frontend UI Inventory Alignment & Component Audit
+
+Conducted a full audit of all frontend UI pages, modal dialogs, drawer components, settings forms, affiliate portals, checkout flows, wise recipient onboarding forms, and interactive drawing toolbars:
+
+- **Part 14 (Admin Dashboard UI):** Reconciled 14 frontend UI components (`components/admin/*`), 5 core admin pages (`app/(dashboard)/admin/*`), 2 fraud alert management pages, 10 disbursement pages, and 8 affiliate management admin pages.
+- **Part 15 (Notifications & Real-Time UI):** Reconciled notification bell component (`components/notifications/notification-bell.tsx`), notification list drawer (`components/notifications/notification-list.tsx`), and real-time connection status badge.
+- **Part 17 (Affiliate Portal UI):** Reconciled affiliate dashboard layout (`app/(affiliate)/layout.tsx`), overview page (`app/(affiliate)/dashboard/page.tsx`), promo code generator form (`components/affiliate/code-generator-form.tsx`), link builder, and payout history table.
+- **Part 18 (dLocal Checkout & Fraud UI):** Reconciled unified checkout page ([`app/checkout/page.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/app/checkout/page.tsx)), country selector widget, dLocal payment method picker (`dlocal-payment-picker.tsx`), and admin fraud management interface ([`app/(dashboard)/admin/fraud-alerts/page.tsx`](<file:///d:/SaaS%20Project/trading-alerts-saas-public/app/(dashboard)/admin/fraud-alerts/page.tsx>)).
+- **Part 19.5 (Wise Disbursement UI):** Reconciled Wise recipient bank account onboarding modal form ([`components/disbursement/wise-recipient-form.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/components/disbursement/wise-recipient-form.tsx)), dynamic bank field validator, recipient verification table, and payout batch execution UI.
+- **Part 21 (Drawing Engine UI):** Reconciled 6-tool HTML5 canvas drawing toolbar ([`components/charts/drawing/Toolbar.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/components/charts/drawing/Toolbar.tsx)), canvas overlay ([`DrawingLayer.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/components/charts/drawing/DrawingLayer.tsx)), line alert configuration dialog ([`AlertDialog.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/components/charts/drawing/AlertDialog.tsx)), active alerts manager panel ([`AlertsPanel.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/components/charts/drawing/AlertsPanel.tsx)), and style customizer editor ([`StyleEditor.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/components/charts/drawing/StyleEditor.tsx)).
+- **Part 22 (User Account & Profile Settings UI):** Reconciled 5 user settings pages under `app/(dashboard)/settings/*` (`profile`, `security` with 2FA TOTP wizard, `sessions` with active session revocation, `preferences`, `account` with 7-day deletion grace period controls).
+- **Part 24 (Multi-Timeframe Visualization UI):** Reconciled `TradingChartClient` multi-timeframe centroid channel overlay toggle button, channel line series renderer over TradingView Lightweight Charts v5.
+
 ---
 
-**Compiled:** 2026-06-26 (updated 2026-07-08)
+**Compiled:** 2026-06-26 (updated 2026-08-04)
 **Status:** Complete ✅

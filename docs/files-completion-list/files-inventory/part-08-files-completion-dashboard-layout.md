@@ -1,470 +1,185 @@
 # Part 08: Dashboard & Layout Components - Files Completion List
 
-**Last Updated:** 2026-01-24
+**Last Updated:** 2026-08-04
 **Status:** ✅ Complete (100%)
-**Total Files:** 56
 
 ---
 
 ## 📊 Overview
 
-Part 08 implements the complete dashboard layout system including:
+Part 08 implements the core SaaS dashboard layout system including:
 
-- Main dashboard pages and navigation
-- Interactive alerts and watchlist management
-- Trading charts interface
-- Settings and preferences pages
-- Admin dashboard pages
-- Tier-aware UI components
-- Responsive layout components
-- Dashboard widgets and stats cards
-
-**Database Schema Note:** Recently migrated from 14-column JSON structure to flat 57-column MarketData schema for improved performance and tier-aware data access.
+- Main dashboard layout, navigation, and dashboard homepage
+- Interactive alerts management interface
+- Trading charts interface with `MarketDataV6` integration
+- User settings and preferences pages (Account, Profile, Security 2FA, Billing, Appearance, etc.)
+- Admin dashboard portal and sub-pages
+- Responsive layout components (Header, Sidebar, Mobile Nav, Footer)
+- Dashboard stats cards and widgets
+- Tier-aware navigation and feature gating (FREE vs PRO)
 
 ---
 
-## 🏗️ Core Dashboard Pages (9 files)
+## 📋 Files Built in Part 08
 
-### Main Dashboard Area
+### 🏗️ Core Dashboard Pages
 
-**File 1/56:** ✅ `app/(dashboard)/layout.tsx`
+**File 1/52:** ✅ `app/(dashboard)/layout.tsx`
 
-- Main dashboard layout wrapper with authentication
-- Responsive grid with sidebar (desktop) and mobile navigation
-- Session management and user data extraction
-- Protected route with redirect to /login
-- **Size:** 1,772 bytes
+- Main dashboard layout wrapper with NextAuth authentication check
+- Responsive layout with desktop fixed sidebar and mobile navigation drawer
+- Protected route redirecting unauthenticated users to `/login`
 
-**File 2/56:** ✅ `app/(dashboard)/dashboard/page.tsx`
+**File 2/52:** ✅ `app/(dashboard)/dashboard/page.tsx`
 
-- Dashboard home page with welcome message and tier badge
-- 5 tier-specific stats cards (symbols, timeframes, charts, max alerts, indicators)
-- 4 usage stats cards (active alerts, API usage, chart views) — watchlist-items stat removed
-- RecentAlerts component (WatchlistWidget removed 2026-07-07 — see V8 update note below)
-- UpgradePrompt for FREE users
-- **Size:** 8,967 bytes (pre-V8; watchlist widget removed since)
+- Dashboard homepage with user welcome section and tier badge
+- Stats cards (Tier features, active alerts count, API usage)
+- `RecentAlerts` component (displays recent price & line-touch alert activity)
+- `UpgradePrompt` component for FREE tier users
 
-### Alerts Management
+**File 3/52:** ✅ `app/(dashboard)/alerts/page.tsx`
 
-**File 3/56:** ✅ `app/(dashboard)/alerts/page.tsx`
+- Server-side alerts listing page with tier-based limits
 
-- Alerts list page with tier-based limits
-- Server-side data fetching
-- Computed alert status
+**File 4/52:** ✅ `app/(dashboard)/alerts/new/page.tsx`
 
-**File 4/56:** ✅ `app/(dashboard)/alerts/new/page.tsx`
+- Create new alert page with alert configuration form
 
-- Create new alert page
-- Form for alert configuration
+**File 5/52:** ✅ `app/(dashboard)/alerts/alerts-client.tsx`
 
-**File 5/56:** ✅ `app/(dashboard)/alerts/alerts-client.tsx`
+- Interactive client-side alerts management (filtering, status tabs, search, delete with undo)
 
-- Client-side interactive alerts management
-- Filtering, search, delete with undo
-- Status tabs and alert details display
-- **Size:** 20,503 bytes
+**File 6/52:** ✅ `app/(dashboard)/charts/page.tsx`
 
-### Watchlist Management — ❌ REMOVED 2026-07-07 (V8: feature deleted for all tiers)
+- Trading charts landing and symbol/timeframe selector page
 
-**File 6/56:** ❌ ~~`app/(dashboard)/watchlist/page.tsx`~~ — **DELETED**
-**File 7/56:** ❌ ~~`app/(dashboard)/watchlist/watchlist-client.tsx`~~ — **DELETED**
+**File 7/52:** ✅ `app/(dashboard)/charts/[symbol]/[timeframe]/page.tsx`
 
-See the V8 update note at the end of this document for the full removal detail.
+- Dynamic chart view page integrated with `MarketDataV6` 79-column data and Socket.IO real-time WebSocket updates
 
-### Trading Charts
-
-**File 8/56:** ✅ `app/(dashboard)/charts/page.tsx`
-
-- Chart selector page
-- Tier-based symbol and timeframe filtering
-- Display tier statistics
-
-**File 9/56:** ✅ `app/(dashboard)/charts/[symbol]/[timeframe]/page.tsx`
-
-- Individual chart display page
-- Dynamic routing for symbol and timeframe
-- 57-column MarketData integration
+_(Note: Watchlist pages `app/(dashboard)/watchlist/_` were deleted 2026-07-07 — feature eliminated in V8 for all tiers)\*
 
 ---
 
-## ⚙️ Settings Pages (11 files)
+### ⚙️ User Settings Pages (`app/(dashboard)/settings/`)
 
-**File 10/56:** ✅ `app/(dashboard)/settings/layout.tsx`
-
-- Settings section layout wrapper
-- Navigation sidebar for settings
-
-**File 11/56:** ✅ `app/(dashboard)/settings/page.tsx`
-
-- Settings overview/landing page
-
-**File 12/56:** ✅ `app/(dashboard)/settings/account/page.tsx`
-
-- Account management settings
-
-**File 13/56:** ✅ `app/(dashboard)/settings/appearance/page.tsx`
-
-- Theme and appearance preferences
-
-**File 14/56:** ✅ `app/(dashboard)/settings/billing/page.tsx`
-
-- Subscription and payment management
-- Upgrade/downgrade options
-
-**File 15/56:** ✅ `app/(dashboard)/settings/help/page.tsx`
-
-- Help and support resources
-
-**File 16/56:** ✅ `app/(dashboard)/settings/language/page.tsx`
-
-- Language preferences
-
-**File 17/56:** ✅ `app/(dashboard)/settings/privacy/page.tsx`
-
-- Privacy settings and data control
-
-**File 18/56:** ✅ `app/(dashboard)/settings/profile/page.tsx`
-
-- User profile editing
-- Avatar, name, email management
-
-**File 19/56:** ✅ `app/(dashboard)/settings/security/page.tsx`
-
-- Security settings
-- Two-factor authentication
-- Password management
-
-**File 20/56:** ✅ `app/(dashboard)/settings/terms/page.tsx`
-
-- Terms of service display
+**File 8/52:** ✅ `app/(dashboard)/settings/layout.tsx` - Settings section layout with sidebar navigation
+**File 9/52:** ✅ `app/(dashboard)/settings/page.tsx` - Settings overview landing page
+**File 10/52:** ✅ `app/(dashboard)/settings/account/page.tsx` - Account settings and deletion requests
+**File 11/52:** ✅ `app/(dashboard)/settings/appearance/page.tsx` - Theme (light/dark/system) and display preferences
+**File 12/52:** ✅ `app/(dashboard)/settings/billing/page.tsx` - Subscription management, Stripe/dLocal plans, and billing history
+**File 13/52:** ✅ `app/(dashboard)/settings/help/page.tsx` - Help documentation and support resources
+**File 14/52:** ✅ `app/(dashboard)/settings/language/page.tsx` - Language and locale selection
+**File 15/52:** ✅ `app/(dashboard)/settings/privacy/page.tsx` - Privacy controls and data permissions
+**File 16/52:** ✅ `app/(dashboard)/settings/profile/page.tsx` - Profile editing (avatar, name, email)
+**File 17/52:** ✅ `app/(dashboard)/settings/security/page.tsx` - Security management, password updates, and 2FA TOTP setup
+**File 18/52:** ✅ `app/(dashboard)/settings/terms/page.tsx` - Terms of Service & Privacy Policy viewer
 
 ---
 
-## 👥 Admin Dashboard Pages (16 files)
+### 👥 Admin Dashboard Pages (`app/(dashboard)/admin/`)
 
-**File 21/56:** ✅ `app/(dashboard)/admin/page.tsx`
+**File 19/52:** ✅ `app/(dashboard)/admin/layout.tsx` - Admin portal layout wrapper with role verification (`ADMIN` role guard)
+**File 20/52:** ✅ `app/(dashboard)/admin/page.tsx` - Admin system overview dashboard with user/revenue stats
+**File 21/52:** ✅ `app/(dashboard)/admin/users/page.tsx` - User administration table with tier management and status toggles
+**File 22/52:** ✅ `app/(dashboard)/admin/fraud-alerts/page.tsx` - Security and fraud alert management table
+**File 23/52:** ✅ `app/(dashboard)/admin/api-usage/page.tsx` - API usage and rate limit monitoring
+**File 24/52:** ✅ `app/(dashboard)/admin/errors/page.tsx` - System error logs viewer
 
-- Admin overview dashboard
-
-**File 22/56:** ✅ `app/(dashboard)/admin/users/page.tsx`
-
-- User management interface
-
-**File 23/56:** ✅ `app/(dashboard)/admin/fraud-alerts/page.tsx`
-
-- Fraud detection and alerts
-
-**File 24/56:** ✅ `app/(dashboard)/admin/api-usage/page.tsx`
-
-- API usage monitoring
-
-**File 25/56:** ✅ `app/(dashboard)/admin/error-logs/page.tsx`
-
-- System error logs viewer
-
-**Disbursement Management (11 pages):**
-
-**File 26/56:** ✅ `app/(dashboard)/admin/disbursements/page.tsx`
-
-- Disbursement overview
-
-**File 27/56:** ✅ `app/(dashboard)/admin/disbursements/accounts/page.tsx`
-
-- Disbursement accounts management
-
-**File 28/56:** ✅ `app/(dashboard)/admin/disbursements/affiliates/page.tsx`
-
-- Affiliate disbursement management
-
-**File 29/56:** ✅ `app/(dashboard)/admin/disbursements/batches/page.tsx`
-
-- Disbursement batch processing
-
-**File 30/56:** ✅ `app/(dashboard)/admin/disbursements/transactions/page.tsx`
-
-- Transaction history
-
-**File 31/56:** ✅ `app/(dashboard)/admin/disbursements/audit-logs/page.tsx`
-
-- Audit log viewer
-
-**File 32/56:** ✅ `app/(dashboard)/admin/disbursements/config/page.tsx`
-
-- Disbursement configuration
-
-**File 33/56:** ✅ `app/(dashboard)/admin/disbursements/[id]/page.tsx`
-
-- Individual disbursement details
-
-**File 34/56:** ✅ `app/(dashboard)/admin/disbursements/create/page.tsx`
-
-- Create new disbursement
-
-**File 35/56:** ✅ `app/(dashboard)/admin/disbursements/edit/[id]/page.tsx`
-
-- Edit disbursement
-
-**File 36/56:** ✅ `app/(dashboard)/admin/disbursements/preview/[id]/page.tsx`
-
-- Preview disbursement before processing
+**Disbursement Management Pages (`admin/disbursement/`):**
+**File 25/52:** ✅ `app/(dashboard)/admin/disbursement/layout.tsx` - Disbursement sub-navigation layout
+**File 26/52:** ✅ `app/(dashboard)/admin/disbursement/page.tsx` - Disbursement system dashboard
+**File 27/52:** ✅ `app/(dashboard)/admin/disbursement/accounts/page.tsx` - Payout accounts management
+**File 28/52:** ✅ `app/(dashboard)/admin/disbursement/affiliates/page.tsx` - Affiliate payout eligibility management
+**File 29/52:** ✅ `app/(dashboard)/admin/disbursement/batches/page.tsx` - Batch payout execution and history
+**File 30/52:** ✅ `app/(dashboard)/admin/disbursement/transactions/page.tsx` - Individual payout transactions viewer
+**File 31/52:** ✅ `app/(dashboard)/admin/disbursement/audit/page.tsx` - Disbursement audit log viewer
+**File 32/52:** ✅ `app/(dashboard)/admin/disbursement/config/page.tsx` - Disbursement provider configuration (Wise/RiseWorks)
+**File 33/52:** ✅ `app/(dashboard)/admin/disbursement/recipients/page.tsx` - Wise recipient bank details management (Part 19.5)
 
 ---
 
-## 🎨 Dashboard Components (4 files)
+### 🎨 Dashboard & Layout Components
 
-**File 37/56:** ✅ `components/dashboard/stats-card.tsx`
+**File 34/52:** ✅ `components/dashboard/stats-card.tsx` - Reusable metric card component (supports percentage change and progress variants)
+**File 35/52:** ✅ `components/dashboard/recent-alerts.tsx` - Displays user's recent price and line-touch alert activity
+**File 36/52:** ✅ `components/dashboard/upgrade-prompt.tsx` - PRO tier promotion component with dynamic pricing
+**File 37/52:** ✅ `components/layout/header.tsx` - Sticky dashboard header with user menu, tier badge, and notifications
+**File 38/52:** ✅ `components/layout/sidebar.tsx` - Fixed desktop left sidebar with tier-aware navigation links
+**File 39/52:** ✅ `components/layout/mobile-nav.tsx` - Mobile responsive navigation drawer
+**File 40/52:** ✅ `components/layout/footer.tsx` - Footer component with copyright and legal links
 
-- Reusable stats card component
-- Two variants: 'default' (change %) and 'usage' (progress bar)
-- High usage warning (>80%)
-- **Size:** 4,661 bytes
-
-**File 38/56:** ✅ `components/dashboard/recent-alerts.tsx`
-
-- Displays last 5 alerts
-- Status indicators: watching, triggered, paused
-- Empty state with CTA
-- **Size:** 5,340 bytes
-
-**File 39/56:** ❌ ~~`components/dashboard/watchlist-widget.tsx`~~ — **DELETED 2026-07-07** (V8: watchlist feature removed for all tiers)
-
-**File 40/56:** ✅ `components/dashboard/upgrade-prompt.tsx`
-
-- Upgrade promotion for FREE users
-- Dynamic PRO pricing from SystemConfig
-- Feature highlights
-- **Size:** 2,041 bytes
+_(Note: `components/dashboard/watchlist-widget.tsx` was deleted 2026-07-07 — feature eliminated)_
 
 ---
 
-## 🧭 Layout Components (4 files)
+### 🛠️ Configuration & Core Tier Files
 
-**File 41/56:** ✅ `components/layout/header.tsx`
-
-- Sticky header with logo and user menu
-- Mobile menu button
-- User avatar dropdown with tier badge
-- Notification bell and theme toggle
-- **Size:** 7,853 bytes
-
-**File 42/56:** ✅ `components/layout/sidebar.tsx`
-
-- Fixed left sidebar (desktop only)
-- 8 main navigation items + 2 bottom items
-- Tier-aware navigation (lock icons for PRO features)
-- Active link highlighting
-- **Size:** 6,605 bytes
-
-**File 43/56:** ✅ `components/layout/mobile-nav.tsx`
-
-- Mobile navigation drawer
-- Same tier-based logic as sidebar
-- Responsive menu trigger
-- **Size:** 7,136 bytes
-
-**File 44/56:** ✅ `components/layout/footer.tsx`
-
-- Dashboard footer with links
-- Copyright information
-- **Size:** 2,135 bytes
+**File 41/52:** ✅ `lib/tier-config.ts` - Canonical tier configuration (V8: `XAUUSD`, `M5`/`M15` for both tiers)
+**File 42/52:** ✅ `types/tier.ts` - Tier system type definitions (`Tier`, `TierLimits`, `TrialStatus`, `Timeframe`, `Symbol`)
 
 ---
 
-## 🛠️ Utilities & Configuration (2 files)
+### 🎣 Custom React Hooks
 
-**File 45/56:** ✅ `lib/tier-config.ts`
+**File 43/52:** ✅ `hooks/use-alerts.ts` - React hook for alert management and creation
+**File 44/52:** ✅ `hooks/use-auth.ts` - Authentication state hook
+**File 45/52:** ✅ `hooks/use-indicators.ts` - Indicator data hook
+**File 46/52:** ✅ `hooks/use-login-tracking.ts` - Device and session tracking hook
+**File 47/52:** ✅ `hooks/use-optimistic-mutation.ts` - Optimistic UI mutation helper hook
+**File 48/52:** ✅ `hooks/use-toast.ts` - Toast notification dispatcher hook
+**File 49/52:** ✅ `hooks/use-websocket.ts` - Socket.IO real-time chart data hook
 
-- Centralized tier constants — **rewritten 2026-07-07 for V8** (see update note below)
-- FREE: XAUUSD only, M5+M15 (2 combos), 0 alerts, 60 req/hr
-- PRO: XAUUSD only, M5+M15 (2 combos), 100 alerts, 300 req/hr
-- Symbol and timeframe lists identical for both tiers
-
-**File 46/56:** ✅ `types/tier.ts`
-
-- Tier type definitions — **rewritten 2026-07-07 for V8**
-- TierLimits interface (dropped `maxWatchlists`; added `alerts`/`multiTimeframe`/
-  `drawingLineAlerts` feature flags)
-- Timeframe type narrowed to `'M5' | 'M15'`; symbol narrowed to `'XAUUSD'`
-- Trial status enums (unchanged)
+_(Note: `hooks/use-watchlist.ts` was deleted 2026-07-07 — feature eliminated)_
 
 ---
 
-## 🎣 React Hooks (8 files)
+### 🧪 Test Files
 
-**File 47/56:** ✅ `hooks/use-alerts.ts`
-
-- Alerts management hook
-
-**File 48/56:** ❌ ~~`hooks/use-watchlist.ts`~~ — **DELETED 2026-07-07** (V8: watchlist feature removed)
-
-**File 49/56:** ✅ `hooks/use-auth.ts`
-
-- Authentication hook
-
-**File 50/56:** ✅ `hooks/use-indicators.ts`
-
-- Indicators hook for PRO features
-
-**File 51/56:** ✅ `hooks/use-login-tracking.ts`
-
-- Login tracking hook
-
-**File 52/56:** ✅ `hooks/use-optimistic-mutation.ts`
-
-- Optimistic UI updates hook
-
-**File 53/56:** ✅ `hooks/use-toast.ts`
-
-- Toast notifications hook
-
-**File 54/56:** ✅ `hooks/use-websocket.ts`
-
-- WebSocket connection hook for real-time updates
+**File 50/52:** ✅ `__tests__/components/dashboard/recent-alerts.test.tsx` - Unit tests for `RecentAlerts` component
+**File 51/52:** ✅ `__tests__/components/dashboard/stats-card.test.tsx` - Unit tests for `StatsCard` component
+**File 52/52:** ✅ `docs/open-api-documents/part-08-dashboard-layout-openapi.yaml` - OpenAPI specification for Dashboard Layout endpoints
 
 ---
 
-## 🧪 Test Files (3 files)
+## 🗑️ Decommissioned & Deleted Files (V8 Watchlist Removal)
 
-**File 55/56:** ✅ `__tests__/components/dashboard/recent-alerts.test.tsx`
+The following 5 watchlist-related files were permanently removed from Part 08 during the V8 architecture update (2026-07-07):
 
-- Tests for RecentAlerts component
-
-**File 56/56:** ✅ `__tests__/components/dashboard/stats-card.test.tsx`
-
-- Tests for StatsCard component
-
-**File 57/56:** ❌ ~~`__tests__/components/dashboard/watchlist-widget.test.tsx`~~ — **DELETED 2026-07-07**
+1. ~~`app/(dashboard)/watchlist/page.tsx`~~ — **Deleted** (Watchlist page)
+2. ~~`app/(dashboard)/watchlist/watchlist-client.tsx`~~ — **Deleted** (Watchlist client component)
+3. ~~`components/dashboard/watchlist-widget.tsx`~~ — **Deleted** (Dashboard watchlist widget)
+4. ~~`hooks/use-watchlist.ts`~~ — **Deleted** (Watchlist React hook)
+5. ~~`__tests__/components/dashboard/watchlist-widget.test.tsx`~~ — **Deleted** (Watchlist widget unit tests)
 
 ---
 
-## 📊 Database Integration
+## 📊 Status Summary
 
-### Prisma Models Used by Dashboard:
-
-1. **User Model** (147 lines)
-   - Authentication, tier, trial period
-   - Two-factor authentication support
-   - Relationships to alerts, watchlists, subscriptions
-
-2. **Alert Model** (407 lines)
-   - User price alerts with conditions
-   - Fields: name, symbol, timeframe, alertType, isActive
-   - Indexed on userId, symbol+timeframe
-
-3. **Watchlist & WatchlistItem Models** — ❌ **REMOVED 2026-07-07** (migration
-   `20260706000000_drop_watchlists`); watchlists deleted from the product for all tiers.
-
-4. **Subscription Model** (345-381 lines)
-   - Subscription status tracking
-   - Stripe and dLocal integration
-   - Affiliate code tracking
-
-5. **MarketData Model** — ❌ **REMOVED 2026-07-05** (migration `20260705010000_drop_market_data`);
-   the old 63-column EA v2.27 schema was decommissioned, never read/written by any live route.
-   **`MarketDataV6` Model** (added `20260705000000_add_market_data_v6`) is its replacement's
-   downstream store — 79 columns (centroid-regression variants, fractal EDT, Z-score candle,
-   ZigZag), identical access for both tiers. See
-   `docs/files-completion-list/files-inventory/v2_29_data_pipeline_architecture-files-completion.md`.
-
-6. **UserPreferences Model** (312-324 lines)
-   - JSON preferences storage
-
-7. **Notification Model** (666-690 lines)
-   - Notification system (ALERT, SUBSCRIPTION, PAYMENT, SYSTEM)
-
-8. **LoginHistory & SecurityAlert Models** (234-302 lines)
-   - Login tracking and security monitoring
+- **Total Production Files:** 52/52 (100%)
+- **Dashboard Pages:** 33 pages (7 core dashboard + 11 settings + 15 admin)
+- **Layout & Dashboard Components:** 7 components
+- **Config & Types:** 2 files (`lib/tier-config.ts`, `types/tier.ts`)
+- **React Hooks:** 7 custom hooks
+- **Tests & Docs:** 3 files (`recent-alerts.test.tsx`, `stats-card.test.tsx`, `part-08-dashboard-layout-openapi.yaml`)
 
 ---
 
-## 📚 Supporting Components
+## 🎯 Architectural Features
 
-### UI Components (23 files in `components/ui/`)
-
-- Alert dialog, Avatar, Badge, Breadcrumb, Button, Card, Dialog
-- Dropdown menu, Input, Label, Pagination, Popover, Progress
-- Scroll area, Select, Separator, Sheet, Skeleton, Switch, Tabs
-- Toast container, Upgrade button
+- **V8 Single-Symbol Architecture:** `XAUUSD` only, `M5` & `M15` timeframes for both FREE and PRO tiers. Both tiers access full 79-column `MarketDataV6` data.
+- **Tier Feature Gating:** FREE users have 0 price alerts (read-only view); PRO users get 100 price alerts, multi-timeframe visualization, and drawing-engine line alerts.
+- **Real-Time WebSocket Updates:** Chart views utilize `use-websocket.ts` and Socket.IO real-time streaming (0.25s check interval) instead of HTTP polling.
+- **Modular Admin & Settings:** Role-guarded admin portal (`ADMIN` role required) and user settings section covering security (2FA TOTP), billing (Stripe + dLocal), and payouts (Wise/RiseWorks).
 
 ---
 
-## 🔄 Status Summary
+## 🔗 Related Documentation
 
-- **Total Files:** 52 (56 minus 4 watchlist files deleted 2026-07-07 — page, client, widget, hook;
-  the widget's test file was also deleted, separately counted under Test Files)
-- **Completed:** 52/52 (100%)
-- **Dashboard Pages:** 34 pages (main + settings + admin; watchlist page removed)
-- **Components:** 7 (3 dashboard + 4 layout; watchlist widget removed)
-- **Hooks:** 7 custom React hooks (use-watchlist removed)
-- **Tests:** 2 test suites (watchlist-widget test removed)
-- **Missing:** None
+- **Tier System Configuration:** `lib/tier-config.ts`
+- **MarketDataV6 Pipeline:** `docs/files-completion-list/files-inventory/part-23-files-completion-v2_29_data_pipeline_architecture.md`
+- **Alert System:** `docs/files-completion-list/files-inventory/part-11-files-completion-alerts-openapi.md`
 
 ---
 
-## 📝 Implementation Notes
-
-### Key Features:
-
-- ✅ Tier-aware UI (FREE vs PRO features)
-- ✅ Responsive design (desktop and mobile)
-- ✅ Real-time updates via WebSocket
-- ✅ Server-side authentication and data fetching
-- ✅ Optimistic UI updates for better UX
-- ✅ Comprehensive error handling
-- ✅ Toast notifications system
-- ✅ Theme support (light/dark mode)
-- ✅ Admin dashboard for system management
-- ✅ 57-column MarketData schema integration
-
-### Recent Changes:
-
-- **2026-01-24:** Updated to reflect 57-column MarketData schema migration
-- **2026-01-24:** Added comprehensive file inventory including admin pages
-- **2026-01-24:** Documented all hooks, utilities, and test files
-
----
-
-## 🎯 Next Steps
-
-Part 08 is **100% complete**. The dashboard layout system is fully implemented with:
-
-- All UI pages and components
-- Tier-aware navigation and features
-- Responsive layout for desktop and mobile
-- Integration with 57-column MarketData schema
-- Admin dashboard for system management
-- Comprehensive testing coverage
-
-**Ready for:** Production deployment and user testing.
-
----
-
-## Update 2026-07-07 — V8 single-symbol architecture: Watchlist removed
-
-Commit `f213bd12` deleted the Watchlist feature from the product for all tiers
-(`change-to-new-design.md`: XAUUSD-only, nothing to maintain a symbol list for). Removed from
-Part 08:
-
-- `app/(dashboard)/watchlist/page.tsx`, `app/(dashboard)/watchlist/watchlist-client.tsx`
-- `components/dashboard/watchlist-widget.tsx`
-- `hooks/use-watchlist.ts`
-- `__tests__/components/dashboard/watchlist-widget.test.tsx`
-
-`app/(dashboard)/dashboard/page.tsx` no longer renders `WatchlistWidget` or the watchlist-items
-usage stat. `lib/tier-config.ts` and `types/tier.ts` were rewritten for the V8 tier model (XAUUSD
-only, M5/M15 only, both tiers identical; `maxWatchlists` removed; alerts now FREE:0/PRO:100).
-The `MarketData` Prisma model (57/63-column schema referenced throughout this document's older
-sections) was separately decommissioned 2026-07-05 in favor of `MarketDataV6` — see
-`v2_29_data_pipeline_architecture-files-completion.md`.
-
-No new Part 08 files were added by this batch — the new `components/charts/mtf/MtfToggle.tsx`
-and `components/alerts/alerts-pro-upgrade.tsx` belong to Part 09 (Charts) and Part 11 (Alerts)
-respectively. Also touched: `app/(dashboard)/admin/users/page.tsx` (File 22/56) and its backing
-`app/api/admin/users/route.ts` / `app/api/admin/api-usage/route.ts` (tracked in
-`backend-file-inventory.md`, Part 14) dropped the per-user `watchlistCount` column now that the
-feature is gone.
-
----
-
-**Document Version:** 2.1.0 (V8: Watchlist removed)
-**Last Validated:** 2026-07-07
+**Part 08 Status:** ✅ Complete and production-ready
