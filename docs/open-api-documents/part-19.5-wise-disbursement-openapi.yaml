@@ -1,0 +1,326 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Wise Disbursement API (Part 19.5)
+  version: 1.0.0
+  description: |
+    Wise Direct Bank Transfer Disbursement API for Trading Alerts SaaS platform (Part 19.5).
+
+    Replaces the legacy RiseWorks cryptocurrency disbursement stack with Wise direct bank payouts.
+    Provides dynamic bank requirement validation across international currencies (IBAN, ACH, SWIFT/BIC,
+    local bank codes), recipient account onboarding, and admin batch execution via the decoupled `money-service` bridge.
+
+  contact:
+    name: API Support
+    email: support@tradingalerts.example.com
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.tradingalerts.example.com
+    description: Production server
+
+security:
+  - sessionAuth: []
+
+tags:
+  - name: Wise Recipients
+    description: Affiliate bank account recipient onboarding and management
+  - name: Admin Disbursement
+    description: Admin payout batch execution and Wise transfer monitoring
+
+paths:
+  /api/wise/recipients/requirements:
+    get:
+      tags: [Wise Recipients]
+      summary: Fetch bank requirement fields for a currency
+      description: |
+        Queries Wise via the money-service bridge to retrieve required bank fields (IBAN, ACH routing number,
+        SWIFT/BIC, account type) dynamically tailored to the target currency and account holder type.
+      operationId: getWiseRecipientRequirements
+      parameters:
+        - name: currency
+          in: query
+          required: true
+          schema:
+            type: string
+            example: USD
+          description: Target payout currency ISO code (e.g. USD, EUR, GBP, VND)
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [personal, business]
+            default: personal
+          description: Account holder entity type
+      responses:
+        '200':
+          description: Dynamic bank requirement schema
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currency:
+                    type: string
+                  fields:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        label:
+                          type: string
+                        required:
+                          type: boolean
+                        validationRegexp:
+                          type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/wise/recipients:
+    get:
+      tags: [Wise Recipients]
+      summary: List affiliate's saved Wise recipients
+      description: Returns all active bank account recipients configured for the authenticated affiliate user.
+      operationId: listWiseRecipients
+      responses:
+        '200':
+          description: List of Wise recipients
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  recipients:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WiseRecipient'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Wise Recipients]
+      summary: Create new Wise recipient bank account
+      description: Validates bank details and registers a new payout recipient in Wise for affiliate commission disbursements.
+      operationId: createWiseRecipient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [accountHolderName, currency, details]
+              properties:
+                accountHolderName:
+                  type: string
+                  example: Jane Doe
+                currency:
+                  type: string
+                  example: USD
+                type:
+                  type: string
+                  enum: [personal, business]
+                  default: personal
+                details:
+                  type: object
+                  description: Currency-specific bank account details (e.g. IBAN, routingNumber, accountNumber, swiftCode)
+                  additionalProperties: true
+      responses:
+        '201':
+          description: Recipient created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WiseRecipient'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/wise/recipients/{id}:
+    get:
+      tags: [Wise Recipients]
+      summary: Get Wise recipient details
+      description: Returns specific Wise recipient information by ID.
+      operationId: getWiseRecipient
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Recipient object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WiseRecipient'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Wise Recipients]
+      summary: Deactivate Wise recipient
+      description: Marks a recipient as inactive, preventing future payout batch assignment.
+      operationId: deleteWiseRecipient
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Recipient deactivated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /api/admin/disbursement/batches:
+    get:
+      tags: [Admin Disbursement]
+      summary: List payout batches
+      description: Admin-only endpoint listing affiliate payout batches and execution statuses.
+      operationId: listDisbursementBatches
+      security: [{ sessionAuth: [] }, { adminRole: [] }]
+      responses:
+        '200':
+          description: List of payout batches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  batches:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WisePayoutBatch'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Admin Disbursement]
+      summary: Create payout batch for approved commissions
+      description: Collects approved affiliate commissions and creates a pending Wise payout batch.
+      operationId: createDisbursementBatch
+      security: [{ sessionAuth: [] }, { adminRole: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [commissionIds]
+              properties:
+                commissionIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Payout batch created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WisePayoutBatch'
+
+  /api/admin/disbursement/batches/{id}/execute:
+    post:
+      tags: [Admin Disbursement]
+      summary: Execute Wise payout batch
+      description: Submits a payout batch to Wise via money-service for bank execution and updates commission status to PAID.
+      operationId: executeDisbursementBatch
+      security: [{ sessionAuth: [] }, { adminRole: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Batch executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  batchId:
+                    type: string
+                  status:
+                    type: string
+                    example: PROCESSING
+                  totalAmount:
+                    type: number
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+    adminRole:
+      type: apiKey
+      in: header
+      name: X-Admin-Role
+
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Entity ID
+
+  schemas:
+    WiseRecipient:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        wiseRecipientId:
+          type: string
+        accountHolderName:
+          type: string
+        currency:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+          enum: [PENDING_VERIFICATION, VERIFIED, REJECTED]
+        createdAt:
+          type: string
+          format: date-time
+
+    WisePayoutBatch:
+      type: object
+      properties:
+        id:
+          type: string
+        batchReference:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, SUBMITTED, PROCESSING, COMPLETED, FAILED]
+        totalAmount:
+          type: number
+        itemCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+    Unauthorized:
+      description: Authentication required
+    Forbidden:
+      description: Admin privileges required
+    NotFound:
+      description: Resource not found

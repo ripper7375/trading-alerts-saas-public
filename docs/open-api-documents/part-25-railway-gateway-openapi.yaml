@@ -1,0 +1,180 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Railway Ingestion Gateway API (Part 25)
+  version: 1.0.0
+  description: |
+    Railway Market Data Ingestion Gateway API for Trading Alerts SaaS platform (Part 25).
+
+    Standalone NestJS microservice deployed on Railway (`railway-gateway/`). Receives 79-column POST payloads from the
+    Contabo VPS push worker (`backfill_worker_api_gateway_v5.py`), validates schema integrity against `gateway_contract_market_data.schema.json`,
+    enqueues jobs to BullMQ with an idempotent job key (`{symbol}_{timeframe}_{timestamp}`), and asynchronously upserts into PostgreSQL `market_data_v6`.
+
+  contact:
+    name: API Support
+    email: support@tradingalerts.example.com
+
+servers:
+  - url: http://localhost:3001
+    description: Local Gateway server
+  - url: https://gateway.tradingalerts.example.com
+    description: Production Railway Gateway server
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Market Data Ingest
+    description: High-throughput market data ingestion from Contabo VPS push worker
+  - name: Gateway Health & Monitoring
+    description: System health status, Redis checks, and BullMQ queue metrics
+
+paths:
+  /api/v1/market-data:
+    post:
+      tags: [Market Data Ingest]
+      summary: Ingest 79-column market data bar
+      description: |
+        Validates payload schema and tick sanity, enqueues to BullMQ queue, and returns 200 OK immediately for async idempotent upsert.
+      operationId: ingestMarketData
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarketDataDto'
+      responses:
+        '200':
+          description: Market data bar successfully validated and queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: queued
+                  jobId:
+                    type: string
+                    example: XAUUSD_M5_1775347200
+                  processingTimeMs:
+                    type: number
+                    example: 14.2
+        '400':
+          description: Invalid payload, OHLC inconsistency, or schema mismatch
+        '401':
+          description: Invalid or missing Bearer API Key
+
+  /api/v1/health:
+    get:
+      tags: [Gateway Health & Monitoring]
+      summary: Gateway health check
+      description: Returns health status of the Gateway service, PostgreSQL database connection, and Redis instance.
+      operationId: getGatewayHealth
+      security: []
+      responses:
+        '200':
+          description: Gateway health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, down]
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+                  services:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: up
+                      redis:
+                        type: string
+                        example: up
+
+  /api/v1/queue/stats:
+    get:
+      tags: [Gateway Health & Monitoring]
+      summary: Get BullMQ queue metrics
+      description: Returns real-time counts of waiting, active, completed, failed, and delayed ingestion jobs.
+      operationId: getQueueStats
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: BullMQ queue statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  waiting:
+                    type: integer
+                    example: 0
+                  active:
+                    type: integer
+                    example: 1
+                  completed:
+                    type: integer
+                    example: 45892
+                  failed:
+                    type: integer
+                    example: 0
+                  delayed:
+                    type: integer
+                    example: 0
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: APIKey
+
+  schemas:
+    MarketDataDto:
+      type: object
+      required:
+        [symbol, timeframe, timestamp, open, high, low, close, tick_volume]
+      properties:
+        terminal_id:
+          type: string
+          example: Contabo_VPS_01
+        symbol:
+          type: string
+          example: XAUUSD
+        timeframe:
+          type: string
+          example: M5
+        timestamp:
+          type: integer
+          example: 1775347200
+        open:
+          type: number
+          example: 2340.50
+        high:
+          type: number
+          example: 2345.80
+        low:
+          type: number
+          example: 2338.20
+        close:
+          type: number
+          example: 2342.10
+        tick_volume:
+          type: integer
+          example: 1450
+        best_fit_uoedt:
+          type: number
+          example: 2348.00
+        best_fit_base_fl:
+          type: number
+          example: 2342.00
+        best_fit_loedt:
+          type: number
+          example: 2336.00
+      additionalProperties: true

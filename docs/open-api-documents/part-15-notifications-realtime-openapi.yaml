@@ -5,7 +5,7 @@ info:
   description: |
     Notifications and Real-time Communication API for Trading Alerts SaaS platform (Part 15).
 
-    This API provides comprehensive notification management and real-time communication capabilities.
+    **Last Updated:** 2026-08-04 — verified against notification handlers, Socket.IO gateway, and `GET /api/realtime/token` Bearer token bridge endpoint for `operation-service`.
 
     ## Features
     - Notification CRUD operations with pagination and filtering
@@ -793,7 +793,16 @@ components:
       properties:
         type:
           type: string
-          enum: [authenticate, authenticated, notification, notification_read, ping, pong, error]
+          enum:
+            [
+              authenticate,
+              authenticated,
+              notification,
+              notification_read,
+              ping,
+              pong,
+              error,
+            ]
         data:
           oneOf:
             - $ref: '#/components/schemas/NotificationPayload'

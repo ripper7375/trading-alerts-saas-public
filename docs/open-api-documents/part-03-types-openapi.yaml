@@ -30,8 +30,8 @@ info:
 
     4. **Indicator Types** (`types/indicator.ts`)
        - Candlestick data structures
-       - PRO indicator types (Keltner, ZigZag, Momentum, etc.)
-       - 61-column database schema types
+       - Centroid regression variant types (best_fit, cherry_a, cherry_b, etc.)
+       - 79-column flat MarketDataV6 database schema types
        - Chart data structures
 
     5. **API Types** (`types/api.ts`)
@@ -46,15 +46,10 @@ info:
        - Currency conversion
 
     7. **Disbursement Types** (`types/disbursement.ts`)
-       - RiseWorks payment system
-       - Batch payments
-       - KYC status
+       - Wise Direct Bank Transfer payment system
+       - Batch bank payouts
+       - Bank requirement validation
        - Affiliate payouts
-
-    8. **Watchlist Types** (`types/watchlist.ts`)
-       - Watchlist model
-       - Watchlist items
-       - CRUD requests
 
     9. **NextAuth Types** (`types/next-auth.d.ts`)
        - Session augmentation
@@ -476,7 +471,8 @@ components:
 
     UserPreferences:
       type: object
-      required: [theme, notifications, defaultTimeframe, defaultSymbol, language]
+      required:
+        [theme, notifications, defaultTimeframe, defaultSymbol, language]
       properties:
         theme:
           type: string

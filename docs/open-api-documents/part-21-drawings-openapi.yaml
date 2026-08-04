@@ -5,9 +5,7 @@ info:
   description: |
     Chart drawing persistence API for Trading Alerts SaaS platform (Part 21).
 
-    **Generated:** 2026-07-17, Session 0-2, directly from live route handlers
-    (`app/api/drawings/route.ts`, `app/api/drawings/[id]/route.ts`) and the shared
-    Zod schemas in `lib/drawing/schema.ts`. No prior spec existed for this domain.
+    **Last Updated:** 2026-08-04 — verified against drawing persistence API handlers (`app/api/drawings/**`).
 
     Drawings (trendlines, horizontal lines, channels, Fibonacci retracements/extensions,
     text) are persisted as price/time anchors so the server can recompute alert-trigger

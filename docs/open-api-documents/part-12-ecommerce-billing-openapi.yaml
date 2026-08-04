@@ -7,8 +7,7 @@ info:
     checkout, subscription management, invoices, the Stripe webhook, and the 3
     billing-related cron jobs.
 
-    **Generated:** 2026-07-17, Session 0-3, regenerated directly from live route
-    handlers — consolidated to remove duplicate coverage with part-18.
+    **Last Updated:** 2026-08-04 (Session 0-3 consolidation) — verified against live handlers for Stripe checkout, billing, and subscription management.
 
     dLocal payment routes and their webhook, formerly duplicated here, are now
     solely documented in `part-18-dlocal-payment-openapi.yaml` (Session 0-3

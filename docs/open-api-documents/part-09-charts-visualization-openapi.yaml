@@ -5,8 +5,7 @@ info:
   description: |
     Part 09: Charts & Visualization Components
 
-    **Note:** This part consists entirely of UI components and has no backend API endpoints.
-    Chart data is fetched from `/api/indicators/{symbol}/{timeframe}` which proxies to the Flask MT5 API (Part 06).
+    **Last Updated:** 2026-08-04 — verified against live `TradingChartClient`, Lightweight Charts v5, and `/api/market-data/channel` overlay series (V8 single-symbol XAUUSD, M5/M15 scope).
 
     ## Components Included (10 total):
 

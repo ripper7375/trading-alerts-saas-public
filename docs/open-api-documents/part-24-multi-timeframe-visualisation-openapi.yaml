@@ -1,0 +1,128 @@
+openapi: 3.0.3
+info:
+  title: Trading Alerts SaaS - Multi-Timeframe Visualization API (Part 24)
+  version: 1.0.0
+  description: |
+    Multi-Timeframe Visualization API for Trading Alerts SaaS platform (Part 24).
+
+    Provides PRO-gated endpoints serving equal-distance channel overlays (upper, mid, lower channel lines)
+    computed from single-symbol XAUUSD market data (`market_data_v6`). Designed to be rendered on a host chart of a different
+    timeframe (e.g. overlaying M5 centroid regression channels over an M15 chart canvas).
+
+  contact:
+    name: API Support
+    email: support@tradingalerts.example.com
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.tradingalerts.example.com
+    description: Production server
+
+security:
+  - sessionAuth: []
+
+tags:
+  - name: MTF Channel Overlay
+    description: PRO-exclusive multi-timeframe centroid channel overlay series
+
+paths:
+  /api/market-data/channel:
+    get:
+      tags: [MTF Channel Overlay]
+      summary: Fetch multi-timeframe channel overlay series
+      description: |
+        Returns equal-distance channel lines (upper line, mid base line, lower line) for a selected
+        centroid variant from `market_data_v6`. This endpoint is PRO-exclusive.
+      operationId: getMtfChannelOverlay
+      security: [{ sessionAuth: [] }]
+      parameters:
+        - name: symbol
+          in: query
+          required: false
+          schema:
+            type: string
+            default: XAUUSD
+          description: Symbol ticker (V8 single-symbol scope defaults to XAUUSD)
+        - name: timeframe
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [M5, M15]
+            default: M5
+          description: Source timeframe the channel was computed on
+        - name: variant
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [best_fit, cherry_a, cherry_b, most_recent, non_a, non_b]
+            default: best_fit
+          description: Centroid regression variant
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 200
+            maximum: 1000
+          description: Number of recent historical bars to fetch
+      responses:
+        '200':
+          description: Channel overlay points retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  symbol:
+                    type: string
+                    example: XAUUSD
+                  timeframe:
+                    type: string
+                    example: M5
+                  variant:
+                    type: string
+                    example: best_fit
+                  points:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        timestamp:
+                          type: integer
+                          description: Unix timestamp in seconds
+                          example: 1775347200
+                        upper:
+                          type: number
+                          nullable: true
+                          description: Upper equal-distance channel level (`uoedt`)
+                          example: 2345.50
+                        mid:
+                          type: number
+                          nullable: true
+                          description: Mid baseline level (`base_fl`)
+                          example: 2340.00
+                        lower:
+                          type: number
+                          nullable: true
+                          description: Lower equal-distance channel level (`loedt`)
+                          example: 2334.50
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+    Forbidden:
+      description: PRO tier subscription required for multi-timeframe visualization

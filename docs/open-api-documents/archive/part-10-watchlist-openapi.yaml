@@ -1020,7 +1020,8 @@ x-implementation-notes:
     location: lib/tier-validation.ts
     functions:
       - canAccessSymbol(tier, symbol): boolean
-      - validateTimeframeAccess(tier, timeframe): { allowed: boolean, reason?: string }
+      - validateTimeframeAccess(tier, timeframe):
+          { allowed: boolean, reason?: string }
     config: lib/tier-config.ts
     constants:
       - FREE_SYMBOLS: readonly array of 5 symbols

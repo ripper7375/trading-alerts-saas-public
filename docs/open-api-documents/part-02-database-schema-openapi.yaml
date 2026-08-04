@@ -19,10 +19,10 @@ info:
     1. **User Management**: Authentication, authorization, tier management
     2. **Subscription System**: Stripe and dLocal payment integration
     3. **Affiliate Marketing**: Complete affiliate tracking and commission system
-    4. **Market Data**: 61-column schema for FREE and PRO tier indicators (v3.0 — EA v2.26+)
+    4. **Market Data**: 79-column flat `MarketDataV6` schema for XAUUSD market data (EA v2.29+)
     5. **Security**: 2FA, fraud detection, session tracking
     6. **Notifications**: Alert and notification management
-    7. **Disbursement**: RiseWorks integration for affiliate payouts
+    7. **Disbursement**: Wise Direct Bank Transfer integration for affiliate payouts
 
   version: 1.0.0
   contact:
@@ -1200,7 +1200,7 @@ components:
           type: number
           format: float
           nullable: true
-          description: "1 = bullish, -1 = bearish, 0 = neutral"
+          description: '1 = bullish, -1 = bearish, 0 = neutral'
 
         # PRO tier indicators - Group 5: Heiken Ashi (7 columns)
         ha_open:
@@ -1227,12 +1227,12 @@ components:
           type: number
           format: float
           nullable: true
-          description: "1 = green, -1 = red"
+          description: '1 = green, -1 = red'
         ha_trend:
           type: number
           format: float
           nullable: true
-          description: "1 = uptrend, -1 = downtrend"
+          description: '1 = uptrend, -1 = downtrend'
         ha_strength:
           type: number
           format: float
@@ -1690,4 +1690,3 @@ components:
         - changedAt
 
 paths: {}
-

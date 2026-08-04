@@ -5,12 +5,7 @@ info:
   description: |
     Admin Dashboard API for Trading Alerts SaaS platform (Part 14).
 
-    **Generated 2026-07-17, Session 0-3** — added `code-flows` (new gap, no prior spec
-    documented it), absorbed `fraud-alerts` + `fraud-alerts/{id}` from
-    `part-18-dlocal-payment-openapi.yaml` (that spec's copies are being deleted by a
-    parallel session), and verified all 19 admin routes against live handlers (Session
-    0-3 consolidation). This is now the SOLE authoritative spec for everything under
-    `app/api/admin/**`.
+    **Last Updated:** 2026-08-04 — verified against all 19 live admin route handlers under `app/api/admin/**`.
 
     Several field-level bugs were found and fixed versus the prior version of this file
     — see the per-operation descriptions below for what changed. The two biggest:

@@ -5,9 +5,7 @@ info:
   description: |
     User account management API for Trading Alerts SaaS platform (Part 22).
 
-    **Generated:** 2026-07-17, Session 0-2, directly from live route handlers under
-    `app/api/user/**` (14 routes across 6 sub-domains). No prior spec existed for this
-    domain.
+    **Last Updated:** 2026-08-04 — verified against all 14 live route handlers under `app/api/user/**` (6 sub-domains).
 
     ## Sub-domains
     - **Two-Factor Auth** (`/api/user/2fa/*`): TOTP setup/verify/disable, backup codes

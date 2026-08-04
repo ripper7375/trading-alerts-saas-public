@@ -5,11 +5,7 @@ info:
   description: |
     Affiliate portal + cron automation API for Trading Alerts SaaS platform (Part 17).
 
-    **Generated:** 2026-07-17, Session 0-3 — regenerated with corrected `/api` path
-    prefixes (every path in the prior version of this file was missing the `/api`
-    prefix, e.g. `/checkout` instead of `/api/checkout` — that bug is fixed here, all
-    12 paths below start with `/api/`), and consolidated to remove duplicate coverage
-    with part-12/14/19. Grounded directly in the live route handlers under
+    **Last Updated:** 2026-08-04 — verified against live handlers for affiliate portal, promo code distribution, conversion processor, and crons.
     `app/api/config/affiliate`, `app/api/affiliate/**`, and `app/api/cron/**`
     (12 routes total), plus their backing modules in `lib/affiliate/*` and
     `lib/cron/*`.

@@ -7,10 +7,7 @@ info:
 
     ## Overview
 
-    Part 08 implements the complete dashboard layout system including interactive UI pages,
-    navigation components, tier-aware features, and real-time data visualization. While this
-    part primarily consists of UI components, it includes significant backend operations for
-    data fetching, authentication, tier validation, and database queries.
+    **Last Updated:** 2026-08-04 — verified against live dashboard pages, settings layouts, and navigation components.
 
     ## Key Features
 
@@ -234,7 +231,24 @@ paths:
           required: true
           schema:
             type: string
-            enum: [BTCUSDT, ETHUSDT, BNBUSDT, XRPUSDT, ADAUSDT, DOGEUSDT, SOLUSDT, DOTUSDT, MATICUSDT, SHIBUSDT, LTCUSDT, AVAXUSDT, ATOMUSDT, LINKUSDT, UNIUSDT]
+            enum:
+              [
+                BTCUSDT,
+                ETHUSDT,
+                BNBUSDT,
+                XRPUSDT,
+                ADAUSDT,
+                DOGEUSDT,
+                SOLUSDT,
+                DOTUSDT,
+                MATICUSDT,
+                SHIBUSDT,
+                LTCUSDT,
+                AVAXUSDT,
+                ATOMUSDT,
+                LINKUSDT,
+                UNIUSDT,
+              ]
         - name: timeframe
           in: path
           required: true
@@ -339,7 +353,24 @@ components:
           tier: PRO
           maxAlerts: 20
           maxWatchlistItems: 50
-          availableSymbols: [BTCUSDT, ETHUSDT, BNBUSDT, XRPUSDT, ADAUSDT, DOGEUSDT, SOLUSDT, DOTUSDT, MATICUSDT, SHIBUSDT, LTCUSDT, AVAXUSDT, ATOMUSDT, LINKUSDT, UNIUSDT]
+          availableSymbols:
+            [
+              BTCUSDT,
+              ETHUSDT,
+              BNBUSDT,
+              XRPUSDT,
+              ADAUSDT,
+              DOGEUSDT,
+              SOLUSDT,
+              DOTUSDT,
+              MATICUSDT,
+              SHIBUSDT,
+              LTCUSDT,
+              AVAXUSDT,
+              ATOMUSDT,
+              LINKUSDT,
+              UNIUSDT,
+            ]
           availableTimeframes: [M5, M15, M30, H1, H2, H4, H8, H12, D1]
           chartCombinations: 135
           apiRateLimit: 300

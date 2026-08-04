@@ -5,8 +5,7 @@ info:
   description: |
     Settings System API for Trading Alerts SaaS platform (Part 13).
 
-    This API provides comprehensive user settings management including profile, preferences,
-    security (2FA), session management, login history, and account operations.
+    **Last Updated:** 2026-08-04 — verified against user settings handlers, 2FA TOTP wizard, session revocation, and 7-day account deletion grace period.
 
     ## Features
     - User profile management (name, email, avatar)

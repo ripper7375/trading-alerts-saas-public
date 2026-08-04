@@ -5,12 +5,7 @@ info:
   description: |
     Authentication system API for Trading Alerts SaaS platform (Part 05).
 
-    **Patched 2026-07-17, Session 0-2**, after triaging against the live route
-    handlers (`docs/migration-orders/DECISION-LOG.md`, F1): added the previously
-    undocumented `POST /api/auth/track-login`, fixed `reset-password`'s request
-    field name (`newPassword` → `password`, matching the live zod schema), and
-    documented `verify-email`'s 429 rate-limit path. Everything else in this file
-    was already current and is carried over unchanged.
+    **Last Updated:** 2026-08-04 — verified against all live authentication route handlers (`app/api/auth/**`).
 
     This API provides comprehensive authentication capabilities including:
     - User registration with email verification

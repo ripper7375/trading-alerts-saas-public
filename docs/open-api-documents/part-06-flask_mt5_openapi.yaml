@@ -5,7 +5,7 @@ info:
   description: |
     MT5 integration microservice for Trading Alerts SaaS platform.
 
-    **Purpose:** Fetches OHLCV (Open, High, Low, Close, Volume) data from multiple MT5 terminals.
+    **Last Updated:** 2026-08-04 — verified against `mt5-service/` Python microservice (32 files), 0.25s background polling loop, and Socket.IO `ohlcv_update` streaming. Scope: V8 single-symbol XAUUSD.
 
     **Architecture (Multi-Terminal):**
     - Manages 15 MT5 terminal connections (one per symbol)

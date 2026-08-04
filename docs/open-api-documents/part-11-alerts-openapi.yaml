@@ -5,7 +5,7 @@ info:
   description: |
     Alerts System API for Trading Alerts SaaS platform (Part 11).
 
-    **Regenerated 2026-07-17, Session 0-2, from live route handlers.**
+    **Last Updated:** 2026-08-04 — verified against live handlers for price alerts and drawing-engine line alerts.
 
     **Superseded architecture notice:** the previous version of this spec (v2.0.0)
     documented a pre-V8 model where FREE users could hold up to 5 alerts across 5

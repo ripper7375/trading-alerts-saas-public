@@ -8,8 +8,7 @@ info:
     This API provides alternative payment processing for users in specific regions
     through dLocal, supporting local payment methods and currencies.
 
-    **Generated:** 2026-07-17, Session 0-3, regenerated from live handlers —
-    consolidated to remove duplicate coverage with part-12 and part-14.
+    **Last Updated:** 2026-08-04 — verified against live handlers for dLocal 8 emerging market currencies, 3-day trial anti-abuse, and webhooks.
 
     admin/fraud-alerts routes now solely documented in
     `part-14-admin-dashboard-openapi.yaml`; subscription cron jobs now solely in

@@ -6,8 +6,7 @@ info:
     Market data API for Trading Alerts SaaS platform (Part 23): multi-timeframe
     channel overlays plus raw real-time candle data.
 
-    **Generated:** 2026-07-17, Session 0-2, directly from the live route handler
-    (`app/api/market-data/channel/route.ts`). No prior spec existed for this domain.
+    **Last Updated:** 2026-08-04 — verified against live route handlers (`app/api/market-data/channel/route.ts` and `app/api/candles/[symbol]/route.ts`).
 
     **Extended:** 2026-07-17, Session 0-3 — added `/api/candles/{symbol}`. This route
     was an uncovered leftover domain (not part of batch 1 or batch 2's named scope,
