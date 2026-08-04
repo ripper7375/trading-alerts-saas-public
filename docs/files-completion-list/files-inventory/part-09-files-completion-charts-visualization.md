@@ -126,9 +126,9 @@ Flask background loop (0.25s): fetches MT5 data for EURUSD_H1 room
 Browser receives ohlcv_update → lightweight-charts re-renders live candle
 ```
 
-| Scenario | Push rate |
-|---|---|
-| Active liquid pair, trading hours | Multiple pushes/second |
-| Quiet pair or off-hours | Sparse, possibly minutes apart |
-| Market closed | Zero pushes |
-| No browser tab on that chart | Zero fetches (room does not exist) |
+| Scenario                          | Push rate                          |
+| --------------------------------- | ---------------------------------- |
+| Active liquid pair, trading hours | Multiple pushes/second             |
+| Quiet pair or off-hours           | Sparse, possibly minutes apart     |
+| Market closed                     | Zero pushes                        |
+| No browser tab on that chart      | Zero fetches (room does not exist) |

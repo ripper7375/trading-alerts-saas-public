@@ -398,7 +398,7 @@ Part 11 there, not here). Changes to existing files:
   `z.enum(TIMEFRAMES)` (XAUUSD / M5,M15 only) instead of free-text `z.string()`.
 - **`lib/validations/alert.ts`** (File 3/23) — `SYMBOLS` narrowed to `['XAUUSD']`,
   `TIMEFRAMES` narrowed to `['M5', 'M15']` (was 10 symbols / 7 timeframes). `isSymbolValidForTier`/
-  `getAllowedSymbols`/`createAlertSchemaForTier` are now tier-independent (alert *creation* is
+  `getAllowedSymbols`/`createAlertSchemaForTier` are now tier-independent (alert _creation_ is
   gated separately, upstream, not by symbol/timeframe access).
 - **`lib/tier-config.ts`** (File 17/23) — FREE `maxAlerts` is now **0** (was 5); PRO is **100**
   (was 20). Symbol/timeframe lists collapsed to the single XAUUSD/M5/M15 set for both tiers —

@@ -51,14 +51,14 @@ Part 16 encompasses all utility libraries, helper functions, infrastructure conf
 
 ## CATEGORY 4: Tier System (3 Files, was 6)
 
-| #   | File Path                | Status | Description                        |
-| --- | ------------------------ | ------ | ---------------------------------- |
-| 17  | `lib/tier-config.ts`     | ✅     | Tier definitions and configuration |
-| 18  | `lib/tier-validation.ts` | ✅     | Tier validation logic              |
-| 19  | `lib/tier-helpers.ts`    | ✅     | Tier helper functions              |
+| #   | File Path                   | Status                    | Description                                                                                 |
+| --- | --------------------------- | ------------------------- | ------------------------------------------------------------------------------------------- |
+| 17  | `lib/tier-config.ts`        | ✅                        | Tier definitions and configuration                                                          |
+| 18  | `lib/tier-validation.ts`    | ✅                        | Tier validation logic                                                                       |
+| 19  | `lib/tier-helpers.ts`       | ✅                        | Tier helper functions                                                                       |
 | 20  | ~~`lib/tier/constants.ts`~~ | ❌ **DELETED 2026-07-08** | Dead code — only consumed by the deleted indicator-toggles/pro-indicator-overlay components |
-| 21  | ~~`lib/tier/validator.ts`~~ | ❌ **DELETED 2026-07-08** | Dead code — same reason |
-| 22  | ~~`lib/tier/index.ts`~~  | ❌ **DELETED 2026-07-08** | Barrel re-export with zero external consumers once 20-21 were removed |
+| 21  | ~~`lib/tier/validator.ts`~~ | ❌ **DELETED 2026-07-08** | Dead code — same reason                                                                     |
+| 22  | ~~`lib/tier/index.ts`~~     | ❌ **DELETED 2026-07-08** | Barrel re-export with zero external consumers once 20-21 were removed                       |
 
 ---
 
@@ -74,12 +74,12 @@ Part 16 encompasses all utility libraries, helper functions, infrastructure conf
 
 ## CATEGORY 6: Validation Schemas (4 Files)
 
-| #   | File Path                      | Status | Description                |
-| --- | ------------------------------ | ------ | -------------------------- |
-| 26  | `lib/validations/auth.ts`      | ✅     | Authentication Zod schemas |
-| 27  | `lib/validations/alert.ts`     | ✅     | Alert input validation (V8: XAUUSD/M5/M15 only — see 2026-07-07 update) |
-| 28  | ~~`lib/validations/watchlist.ts`~~ | ❌ **DELETED 2026-07-07** | Watchlist feature removed (V8) |
-| 29  | `lib/validations/user.ts`      | ✅     | User profile validation    |
+| #   | File Path                          | Status                    | Description                                                             |
+| --- | ---------------------------------- | ------------------------- | ----------------------------------------------------------------------- |
+| 26  | `lib/validations/auth.ts`          | ✅                        | Authentication Zod schemas                                              |
+| 27  | `lib/validations/alert.ts`         | ✅                        | Alert input validation (V8: XAUUSD/M5/M15 only — see 2026-07-07 update) |
+| 28  | ~~`lib/validations/watchlist.ts`~~ | ❌ **DELETED 2026-07-07** | Watchlist feature removed (V8)                                          |
+| 29  | `lib/validations/user.ts`          | ✅                        | User profile validation                                                 |
 
 ---
 
@@ -123,46 +123,46 @@ Part 16 encompasses all utility libraries, helper functions, infrastructure conf
 
 ## CATEGORY 10: API Utilities (1 File, was 3)
 
-| #   | File Path                  | Status | Description             |
-| --- | -------------------------- | ------ | ----------------------- |
-| 47  | `lib/api/index.ts`         | ✅     | API utilities index     |
+| #   | File Path                      | Status                    | Description                                                                             |
+| --- | ------------------------------ | ------------------------- | --------------------------------------------------------------------------------------- |
+| 47  | `lib/api/index.ts`             | ✅                        | API utilities index                                                                     |
 | 48  | ~~`lib/api/mt5-client.ts`~~    | ❌ **DELETED 2026-07-08** | Dead code — never imported anywhere; Part 07's doc had already flagged it as superseded |
-| 49  | ~~`lib/api/mt5-transform.ts`~~ | ❌ **DELETED 2026-07-08** | Dead code — never imported anywhere |
+| 49  | ~~`lib/api/mt5-transform.ts`~~ | ❌ **DELETED 2026-07-08** | Dead code — never imported anywhere                                                     |
 
 ---
 
 ## CATEGORY 11: React Hooks (7 Files, was 9)
 
-| #   | File Path                          | Status | Description                  |
-| --- | ---------------------------------- | ------ | ---------------------------- |
-| 50  | `hooks/use-alerts.ts`              | ✅     | Alerts state management hook |
-| 51  | `hooks/use-auth.ts`                | ✅     | Authentication state hook    |
+| #   | File Path                          | Status                    | Description                                                      |
+| --- | ---------------------------------- | ------------------------- | ---------------------------------------------------------------- |
+| 50  | `hooks/use-alerts.ts`              | ✅                        | Alerts state management hook                                     |
+| 51  | `hooks/use-auth.ts`                | ✅                        | Authentication state hook                                        |
 | 52  | ~~`hooks/use-indicators.ts`~~      | ❌ **DELETED 2026-07-08** | Dead code — exported `useIndicators()` was never called anywhere |
-| 53  | `hooks/use-login-tracking.ts`      | ✅     | Login tracking hook          |
-| 54  | `hooks/use-optimistic-mutation.ts` | ✅     | Optimistic update mutations  |
-| 55  | `hooks/use-toast.ts`               | ✅     | Toast notification hook      |
-| 56  | ~~`hooks/use-watchlist.ts`~~       | ❌ **DELETED 2026-07-07** | Watchlist feature removed (V8) |
-| 57  | `hooks/use-websocket.ts`           | ✅     | WebSocket connection hook    |
-| 58  | `lib/hooks/useAffiliateConfig.ts`  | ✅     | Affiliate configuration hook |
+| 53  | `hooks/use-login-tracking.ts`      | ✅                        | Login tracking hook                                              |
+| 54  | `hooks/use-optimistic-mutation.ts` | ✅                        | Optimistic update mutations                                      |
+| 55  | `hooks/use-toast.ts`               | ✅                        | Toast notification hook                                          |
+| 56  | ~~`hooks/use-watchlist.ts`~~       | ❌ **DELETED 2026-07-07** | Watchlist feature removed (V8)                                   |
+| 57  | `hooks/use-websocket.ts`           | ✅                        | WebSocket connection hook                                        |
+| 58  | `lib/hooks/useAffiliateConfig.ts`  | ✅                        | Affiliate configuration hook                                     |
 
 ---
 
 ## CATEGORY 12: Type Definitions (12 Files)
 
-| #   | File Path                 | Status | Description              |
-| --- | ------------------------- | ------ | ------------------------ |
-| 59  | `types/index.ts`          | ✅     | Type exports index       |
-| 60  | `types/alert.ts`          | ✅     | Alert type definitions   |
-| 61  | `types/api.ts`            | ✅     | API response types       |
-| 62  | `types/disbursement.ts`   | ✅     | Disbursement types       |
-| 63  | `types/dlocal.ts`         | ✅     | DLocal payment types     |
-| 64  | `types/indicator.ts`      | ✅     | Indicator types          |
-| 65  | `types/next-auth.d.ts`    | ✅     | NextAuth type extensions |
-| 66  | `types/payment.ts`        | ✅     | Payment types            |
-| 67  | `types/prisma-stubs.d.ts` | ✅     | Prisma type stubs        |
-| 68  | `types/tier.ts`           | ✅     | Tier type definitions    |
-| 69  | `types/user.ts`           | ✅     | User type definitions (V8: dropped `Watchlist` interface, `totalWatchlists` stat) |
-| 70  | ~~`types/watchlist.ts`~~  | ❌ **DELETED 2026-07-07** | Watchlist feature removed (V8) |
+| #   | File Path                 | Status                    | Description                                                                       |
+| --- | ------------------------- | ------------------------- | --------------------------------------------------------------------------------- |
+| 59  | `types/index.ts`          | ✅                        | Type exports index                                                                |
+| 60  | `types/alert.ts`          | ✅                        | Alert type definitions                                                            |
+| 61  | `types/api.ts`            | ✅                        | API response types                                                                |
+| 62  | `types/disbursement.ts`   | ✅                        | Disbursement types                                                                |
+| 63  | `types/dlocal.ts`         | ✅                        | DLocal payment types                                                              |
+| 64  | `types/indicator.ts`      | ✅                        | Indicator types                                                                   |
+| 65  | `types/next-auth.d.ts`    | ✅                        | NextAuth type extensions                                                          |
+| 66  | `types/payment.ts`        | ✅                        | Payment types                                                                     |
+| 67  | `types/prisma-stubs.d.ts` | ✅                        | Prisma type stubs                                                                 |
+| 68  | `types/tier.ts`           | ✅                        | Tier type definitions                                                             |
+| 69  | `types/user.ts`           | ✅                        | User type definitions (V8: dropped `Watchlist` interface, `totalWatchlists` stat) |
+| 70  | ~~`types/watchlist.ts`~~  | ❌ **DELETED 2026-07-07** | Watchlist feature removed (V8)                                                    |
 
 ---
 
@@ -188,9 +188,9 @@ Part 16 encompasses all utility libraries, helper functions, infrastructure conf
 
 ## CATEGORY 15: WebSocket (1 File, was 2)
 
-| #   | File Path                            | Status | Description                     |
-| --- | ------------------------------------ | ------ | ------------------------------- |
-| 77  | `lib/websocket/server.ts`            | ✅     | WebSocket server implementation |
+| #   | File Path                                | Status                    | Description                                                        |
+| --- | ---------------------------------------- | ------------------------- | ------------------------------------------------------------------ |
+| 77  | `lib/websocket/server.ts`                | ✅                        | WebSocket server implementation                                    |
 | 78  | ~~`lib/websocket/use-mt5-websocket.ts`~~ | ❌ **DELETED 2026-07-08** | Dead code — exported `useMT5WebSocket()` was never called anywhere |
 
 ---
@@ -309,43 +309,43 @@ Part 16 encompasses all utility libraries, helper functions, infrastructure conf
 
 ## CATEGORY 25: Tier Tests (0 Files, was 2) — category retired 2026-07-08
 
-| #   | File Path                              | Status | Description          |
-| --- | -------------------------------------- | ------ | -------------------- |
+| #   | File Path                                  | Status                    | Description                                                                   |
+| --- | ------------------------------------------ | ------------------------- | ----------------------------------------------------------------------------- |
 | 128 | ~~`lib/tier/__tests__/constants.test.ts`~~ | ❌ **DELETED 2026-07-07** | Stale pre-V8 test — asserted a FREE/PRO indicator split that no longer exists |
-| 129 | ~~`lib/tier/__tests__/validator.test.ts`~~ | ❌ **DELETED 2026-07-08** | Tested the deleted `lib/tier/validator.ts` — nothing left to test |
+| 129 | ~~`lib/tier/__tests__/validator.test.ts`~~ | ❌ **DELETED 2026-07-08** | Tested the deleted `lib/tier/validator.ts` — nothing left to test             |
 
 ---
 
 ## Status Summary
 
-| Category                    | Files   | Completed | Status      |
-| --------------------------- | ------- | --------- | ----------- |
-| Core Utilities              | 6       | 6         | ✅ 100%     |
-| Database Utilities          | 4       | 4         | ✅ 100%     |
-| Authentication Utilities    | 6       | 6         | ✅ 100%     |
-| Tier System                 | 3       | 3         | ✅ 100% (was 6; `lib/tier/{constants,validator,index}.ts` deleted 2026-07-08 as dead code) |
-| Error Handling              | 3       | 3         | ✅ 100%     |
-| Validation Schemas          | 3       | 3         | ✅ 100% (was 4; `watchlist.ts` deleted 2026-07-07) |
-| Cache & Redis               | 2       | 2         | ✅ 100%     |
-| Email Services              | 11      | 11        | ✅ 100%     |
-| Utility Functions           | 3       | 3         | ✅ 100%     |
-| API Utilities               | 1       | 1         | ✅ 100% (was 3; `mt5-{client,transform}.ts` deleted 2026-07-08 as dead code) |
+| Category                    | Files   | Completed | Status                                                                                                 |
+| --------------------------- | ------- | --------- | ------------------------------------------------------------------------------------------------------ |
+| Core Utilities              | 6       | 6         | ✅ 100%                                                                                                |
+| Database Utilities          | 4       | 4         | ✅ 100%                                                                                                |
+| Authentication Utilities    | 6       | 6         | ✅ 100%                                                                                                |
+| Tier System                 | 3       | 3         | ✅ 100% (was 6; `lib/tier/{constants,validator,index}.ts` deleted 2026-07-08 as dead code)             |
+| Error Handling              | 3       | 3         | ✅ 100%                                                                                                |
+| Validation Schemas          | 3       | 3         | ✅ 100% (was 4; `watchlist.ts` deleted 2026-07-07)                                                     |
+| Cache & Redis               | 2       | 2         | ✅ 100%                                                                                                |
+| Email Services              | 11      | 11        | ✅ 100%                                                                                                |
+| Utility Functions           | 3       | 3         | ✅ 100%                                                                                                |
+| API Utilities               | 1       | 1         | ✅ 100% (was 3; `mt5-{client,transform}.ts` deleted 2026-07-08 as dead code)                           |
 | React Hooks                 | 7       | 7         | ✅ 100% (was 9 → 8 → 7; `use-watchlist.ts` deleted 2026-07-07, `use-indicators.ts` deleted 2026-07-08) |
-| Type Definitions            | 11      | 11        | ✅ 100% (was 12; `types/watchlist.ts` deleted 2026-07-07) |
-| Constants & Business Rules  | 1       | 1         | ✅ 100%     |
-| Cron Jobs & Background Jobs | 5       | 5         | ✅ 100%     |
-| WebSocket                   | 1       | 1         | ✅ 100% (was 2; `use-mt5-websocket.ts` deleted 2026-07-08 as dead code) |
-| Security & Fraud            | 2       | 2         | ✅ 100%     |
-| Monitoring & Geo            | 2       | 2         | ✅ 100%     |
-| User Preferences            | 1       | 1         | ✅ 100%     |
-| Middleware                  | 1       | 1         | ✅ 100%     |
-| App Infrastructure          | 5       | 5         | ✅ 100%     |
-| Configuration Files         | 6       | 6         | ✅ 100%     |
-| CI/CD & GitHub Workflows    | 11      | 11        | ✅ 100%     |
-| Docker & Deployment         | 3       | 3         | ✅ 100%     |
-| Scripts                     | 18      | 18        | ✅ 100%     |
-| Tier Tests                  | 0       | 0         | ✅ 100% (was 2; both files deleted — `constants.test.ts` 2026-07-07, `validator.test.ts` 2026-07-08) |
-| **TOTAL**                   | **117** | **117**   | **✅ 100%** |
+| Type Definitions            | 11      | 11        | ✅ 100% (was 12; `types/watchlist.ts` deleted 2026-07-07)                                              |
+| Constants & Business Rules  | 1       | 1         | ✅ 100%                                                                                                |
+| Cron Jobs & Background Jobs | 5       | 5         | ✅ 100%                                                                                                |
+| WebSocket                   | 1       | 1         | ✅ 100% (was 2; `use-mt5-websocket.ts` deleted 2026-07-08 as dead code)                                |
+| Security & Fraud            | 2       | 2         | ✅ 100%                                                                                                |
+| Monitoring & Geo            | 2       | 2         | ✅ 100%                                                                                                |
+| User Preferences            | 1       | 1         | ✅ 100%                                                                                                |
+| Middleware                  | 1       | 1         | ✅ 100%                                                                                                |
+| App Infrastructure          | 5       | 5         | ✅ 100%                                                                                                |
+| Configuration Files         | 6       | 6         | ✅ 100%                                                                                                |
+| CI/CD & GitHub Workflows    | 11      | 11        | ✅ 100%                                                                                                |
+| Docker & Deployment         | 3       | 3         | ✅ 100%                                                                                                |
+| Scripts                     | 18      | 18        | ✅ 100%                                                                                                |
+| Tier Tests                  | 0       | 0         | ✅ 100% (was 2; both files deleted — `constants.test.ts` 2026-07-07, `validator.test.ts` 2026-07-08)   |
+| **TOTAL**                   | **117** | **117**   | **✅ 100%**                                                                                            |
 
 ---
 
