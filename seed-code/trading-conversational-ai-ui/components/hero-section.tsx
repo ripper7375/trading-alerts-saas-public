@@ -11,7 +11,7 @@ export function HeroSection() {
 
   const handleSubmit = () => {
     if (prompt.trim()) {
-      router.push('/chat');
+      router.push('/');
     }
   };
 

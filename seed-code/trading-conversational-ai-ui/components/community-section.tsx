@@ -34,7 +34,7 @@ export function CommunitySection() {
   const router = useRouter();
 
   const handleCardClick = (symbol: string) => {
-    router.push(`/chat?symbol=${symbol}`);
+    router.push(`/?symbol=${symbol}`);
   };
 
   return (

@@ -21,7 +21,7 @@ export default function Page() {
   };
 
   return (
-    <div className="bg-background flex h-screen w-full overflow-hidden">
+    <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Left Sidebar */}
       <ChatSidebar
         isCollapsed={isSidebarCollapsed}
