@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -15,18 +14,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import {
-  Send,
   User,
-  Paperclip,
   Brain,
-  ArrowUp,
   Lock,
   Sparkles,
   ChevronLeft,
-  ChevronRight,
-  TrendingUp,
-  Activity,
   Zap,
+  CornerDownLeft,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Message, Symbol, Timeframe, Tier } from '@/lib/types';
@@ -42,10 +36,12 @@ interface ChatPanelProps {
   onToggleSidebar?: () => void;
   onCollapsePanel?: () => void;
   onOpenUpgradeModal?: (feature: string) => void;
+  predeterminedQuestion?: string | null;
+  onClearPredeterminedQuestion?: () => void;
 }
 
 export const ANALYST_MODELS = [
-  { id: 'gemini-3-6-flash', name: 'Gemini 3.6 Flash (High)', isDefault: true },
+  { id: 'gemini-3-6-flash', name: 'Gemini 3.6 Flash', isDefault: true },
   { id: 'claude-sonnet-5', name: 'Claude Sonnet 5' },
   { id: 'gpt-5-6-terra', name: 'GPT 5.6 Terra' },
   { id: 'glm-5-2', name: 'GLM-5.2' },
@@ -59,6 +55,8 @@ export default function ChatPanel({
   timeframe,
   onCollapsePanel,
   onOpenUpgradeModal,
+  predeterminedQuestion,
+  onClearPredeterminedQuestion,
 }: ChatPanelProps) {
   const [selectedModel, setSelectedModel] = useState('gemini-3-6-flash');
   const [tokensUsed, setTokensUsed] = useState(42500);
@@ -69,20 +67,7 @@ export default function ChatPanel({
       id: '1',
       role: 'assistant',
       timestamp: Date.now() - 300000,
-      content: `Hello! I'm analyzing **${symbol}** on **${timeframe}**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).\n\nBelow is the quad-retrieved 3-panel Matplotlib vision analysis rendering for XAUUSD:`,
-      chartThumbnail: '/mtf_render_xauusd_sample.png',
-      tradeSetup: {
-        symbol: 'XAUUSD',
-        timeframe: 'M5',
-        direction: 'BUY',
-        entryPrice: 2634.5,
-        takeProfit: 2648.0,
-        stopLoss: 2627.0,
-        riskReward: '1 : 3.2',
-        confidence: 88,
-        rationale:
-          'Double bottom wick rejection at lower M5 EDT boundary aligned with M15 SSA bullish trend bias.',
-      },
+      content: `Hello! I'm analyzing **${symbol}** on **${timeframe}**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).`,
     },
   ]);
   const [input, setInput] = useState('');
@@ -92,6 +77,34 @@ export default function ChatPanel({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Handle predetermined questions triggered from the chart avatar button (C3/C5)
+  useEffect(() => {
+    if (predeterminedQuestion && tier === 'PRO') {
+      const userMsg: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: predeterminedQuestion,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, userMsg]);
+      setIsTyping(true);
+      setTokensUsed((prev) => Math.min(prev + 1250, monthlyQuota));
+
+      setTimeout(() => {
+        setIsTyping(false);
+        const aiResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          timestamp: Date.now(),
+          content: `Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.`,
+        };
+        setMessages((prev) => [...prev, aiResponse]);
+      }, 1000);
+
+      if (onClearPredeterminedQuestion) onClearPredeterminedQuestion();
+    }
+  }, [predeterminedQuestion, tier]);
 
   const handleSendMessage = () => {
     if (!input.trim() || tier === 'FREE') return;
@@ -115,18 +128,6 @@ export default function ChatPanel({
         role: 'assistant',
         timestamp: Date.now(),
         content: `I've evaluated the **${symbol}** M5/M15 order flow using VANNA SQL retrieval & txtai strategy rules.\n\n- **Immediate Resistance**: $2,648.10 (SSA Upper Limit)\n- **Key Support**: $2,634.50 (EDT Lower Channel Line)\n- **Structure**: M15 ZigZag Higher Low confirmed.\n\nRecommended tactical posture: Wait for price confirmation above $2,636.00 before executing buy limit.`,
-        tradeSetup: {
-          symbol: 'XAUUSD',
-          timeframe: 'M5',
-          direction: 'BUY',
-          entryPrice: 2635.0,
-          takeProfit: 2648.0,
-          stopLoss: 2628.5,
-          riskReward: '1 : 2.8',
-          confidence: 84,
-          rationale:
-            'Confluence of lower EDT channel support & bullish M15 SSA slope.',
-        },
       };
       setMessages((prev) => [...prev, aiResponse]);
     }, 1200);
@@ -135,19 +136,16 @@ export default function ChatPanel({
   const activeModelObj = ANALYST_MODELS.find((m) => m.id === selectedModel);
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden border-r border-slate-800/80 bg-[#0c0d12] shadow-xl select-none">
-      {/* Panel Header — Dark Slate Tone #131620 */}
-      <div className="flex h-14 items-center justify-between border-b border-slate-800/80 bg-[#131620] px-3">
+    <div className="relative flex h-full flex-col overflow-hidden border-r border-slate-800/80 bg-[#0b0d14] shadow-xl select-none">
+      {/* B2: Panel Header — AI Chart Analyst */}
+      <div className="flex h-14 items-center justify-between border-b border-slate-800/80 bg-[#121622] px-3.5">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400 shadow-xs ring-1 ring-amber-500/30">
             <Brain className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="flex items-center gap-1.5 text-xs font-bold tracking-tight text-slate-100">
-              AI Analyst
-              <span className="font-mono text-[10px] text-amber-400/80">
-                (Stack D)
-              </span>
+            <h2 className="flex items-center gap-1.5 text-xs font-extrabold tracking-tight text-slate-100">
+              AI Chart Analyst
             </h2>
           </div>
         </div>
@@ -158,10 +156,10 @@ export default function ChatPanel({
             onValueChange={setSelectedModel}
             disabled={tier === 'FREE'}
           >
-            <SelectTrigger className="border-slate-750 h-7 w-[170px] bg-[#090a0f] text-xs font-medium text-slate-200 focus:ring-amber-500/30">
+            <SelectTrigger className="border-slate-750 h-7 w-[160px] bg-[#090b10] text-xs font-semibold text-slate-200 focus:ring-amber-500/30">
               <SelectValue placeholder="Select AI Model" />
             </SelectTrigger>
-            <SelectContent className="border-slate-750 bg-[#121520]">
+            <SelectContent className="border-slate-750 bg-[#121622]">
               {ANALYST_MODELS.map((model) => (
                 <SelectItem
                   key={model.id}
@@ -188,27 +186,8 @@ export default function ChatPanel({
         </div>
       </div>
 
-      {/* Monthly Token Usage Bar (PRO ONLY) */}
-      {tier === 'PRO' && (
-        <div className="border-b border-slate-800/60 bg-[#10121a] px-3.5 py-1.5 text-[11px]">
-          <div className="mb-1 flex items-center justify-between font-medium">
-            <span className="flex items-center gap-1 text-slate-300">
-              <Zap className="h-3 w-3 text-amber-400" />
-              Monthly Token Quota
-            </span>
-            <span className="font-mono text-[10px] font-bold text-amber-400">
-              {tokensUsed.toLocaleString()} / {monthlyQuota.toLocaleString()}
-            </span>
-          </div>
-          <Progress
-            value={(tokensUsed / monthlyQuota) * 100}
-            className="h-1.5 bg-slate-800"
-          />
-        </div>
-      )}
-
       {/* Messages Scroll Area */}
-      <ScrollArea className="flex-1 p-3">
+      <ScrollArea className="flex-1 p-3.5">
         <div className="mx-auto max-w-2xl space-y-4">
           {messages.map((message) => (
             <div
@@ -231,172 +210,28 @@ export default function ChatPanel({
                 )}
               </Avatar>
 
-              <div className="flex max-w-[88%] flex-col gap-2">
+              <div className="flex max-w-[90%] flex-col gap-2">
                 <div
                   className={cn(
-                    'relative rounded-xl px-4 py-2.5 text-xs leading-relaxed shadow-md',
+                    'relative rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-md',
                     message.role === 'user'
                       ? 'rounded-tr-xs bg-amber-500 font-semibold text-slate-950'
-                      : 'rounded-tl-xs border border-slate-800/90 bg-[#141722] text-slate-100 backdrop-blur-xs'
+                      : 'rounded-tl-xs border border-slate-800/90 bg-[#131724] text-slate-100 backdrop-blur-xs'
                   )}
                 >
                   {message.role === 'assistant' && (
-                    <div className="mb-1 flex items-center justify-between border-b border-slate-800/80 pb-1 text-[10px] font-bold tracking-wider text-amber-400 uppercase">
+                    <div className="mb-1.5 flex items-center justify-between border-b border-slate-800/80 pb-1 text-[10px] font-extrabold tracking-wider text-amber-400 uppercase">
                       <span>
                         DAVINTRADE AI • {activeModelObj?.name.split(' ')[0]}
                       </span>
-                      <span className="text-[9px] font-normal text-slate-400">
-                        Sub-500ms Quad-RAG
+                      <span className="font-mono text-[9px] font-normal text-slate-400">
+                        SUB-500MS QUAD-RAG
                       </span>
                     </div>
                   )}
 
                   <div className="whitespace-pre-wrap">{message.content}</div>
                 </div>
-
-                {/* Multimodal 3-Panel Matplotlib PNG Chart Thumbnail */}
-                {message.chartThumbnail && (
-                  <div className="space-y-1 overflow-hidden rounded-lg border border-amber-500/40 bg-[#07080d] p-2 shadow-lg shadow-black/40">
-                    <div className="flex items-center justify-between px-1 text-[10px] font-semibold text-amber-300">
-                      <span>
-                        Matplotlib 3-Panel Vision Render (Part 24 Engine 1)
-                      </span>
-                      <Badge
-                        variant="outline"
-                        className="border-amber-500/40 bg-amber-500/10 px-1 py-0 text-[9px] text-amber-400"
-                      >
-                        PNG Artifact
-                      </Badge>
-                    </div>
-
-                    <div className="relative flex h-32 w-full flex-col justify-between overflow-hidden rounded border border-blue-900/40 bg-[#0b0e17] p-2 shadow-inner">
-                      <div className="flex items-center justify-between font-mono text-[10px] font-bold text-emerald-400">
-                        <span>XAUUSD,M5 [SSA & EDT]</span>
-                        <span>$2,634.50</span>
-                      </div>
-                      <svg className="h-20 w-full" viewBox="0 0 300 80">
-                        <line
-                          x1="0"
-                          y1="20"
-                          x2="300"
-                          y2="10"
-                          stroke="#eab308"
-                          strokeWidth="1.5"
-                          strokeDasharray="3,3"
-                        />
-                        <path
-                          d="M 0 45 Q 75 35 150 40 T 300 25"
-                          fill="none"
-                          stroke="#3b82f6"
-                          strokeWidth="2"
-                        />
-                        <line
-                          x1="0"
-                          y1="70"
-                          x2="300"
-                          y2="55"
-                          stroke="#eab308"
-                          strokeWidth="1.5"
-                        />
-                        <line
-                          x1="30"
-                          y1="50"
-                          x2="30"
-                          y2="30"
-                          stroke="#ef4444"
-                          strokeWidth="1"
-                        />
-                        <rect
-                          x="28"
-                          y="35"
-                          width="4"
-                          height="10"
-                          fill="#ef4444"
-                        />
-                        <line
-                          x1="80"
-                          y1="45"
-                          x2="80"
-                          y2="25"
-                          stroke="#22c55e"
-                          strokeWidth="1"
-                        />
-                        <rect
-                          x="78"
-                          y="28"
-                          width="4"
-                          height="12"
-                          fill="#22c55e"
-                        />
-                        <line
-                          x1="140"
-                          y1="65"
-                          x2="140"
-                          y2="40"
-                          stroke="#22c55e"
-                          strokeWidth="1"
-                        />
-                        <rect
-                          x="138"
-                          y="45"
-                          width="4"
-                          height="15"
-                          fill="#22c55e"
-                        />
-                        <circle cx="140" cy="62" r="3" fill="#22c55e" />
-                      </svg>
-                    </div>
-                  </div>
-                )}
-
-                {/* Trade Setup Card */}
-                {message.tradeSetup && (
-                  <div className="space-y-2 rounded-lg border border-emerald-500/40 bg-[#091512] p-3 text-xs shadow-lg shadow-emerald-950/20">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <TrendingUp className="h-4 w-4 text-emerald-400" />
-                        <span className="text-[11px] font-bold tracking-wider text-emerald-400 uppercase">
-                          Trade Setup Card
-                        </span>
-                      </div>
-                      <Badge className="border border-emerald-500/50 bg-emerald-500/20 font-mono text-[10px] font-bold text-emerald-300">
-                        {message.tradeSetup.direction} LIMIT @ $
-                        {message.tradeSetup.entryPrice.toFixed(2)}
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 rounded border border-emerald-900/40 bg-[#060b09] p-2 font-mono text-[11px]">
-                      <div>
-                        <div className="text-[9px] text-slate-400">
-                          Take Profit
-                        </div>
-                        <div className="font-bold text-emerald-400">
-                          ${message.tradeSetup.takeProfit.toFixed(2)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[9px] text-slate-400">
-                          Stop Loss
-                        </div>
-                        <div className="font-bold text-rose-400">
-                          ${message.tradeSetup.stopLoss.toFixed(2)}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[9px] text-slate-400">
-                          Risk / Reward
-                        </div>
-                        <div className="font-bold text-amber-400">
-                          {message.tradeSetup.riskReward}
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="text-[11px] leading-tight text-slate-300">
-                      {message.tradeSetup.rationale}
-                    </p>
-                  </div>
-                )}
               </div>
             </div>
           ))}
@@ -407,7 +242,7 @@ export default function ChatPanel({
                 <AvatarImage src="/DavinTrade_Logo.jpg" />
               </Avatar>
               <span className="animate-pulse font-mono text-[11px] text-amber-300">
-                {activeModelObj?.name.split(' ')[0]} is generating vision
+                {activeModelObj?.name.split(' ')[0]} is processing market
                 analysis...
               </span>
             </div>
@@ -416,8 +251,27 @@ export default function ChatPanel({
         </div>
       </ScrollArea>
 
-      {/* Input Area */}
-      <div className="border-t border-slate-800/80 bg-[#0e1017] p-3">
+      {/* B3: Relocated Monthly Token Quota Bar (Bottom right above Input Box B7) */}
+      {tier === 'PRO' && (
+        <div className="border-t border-slate-800/60 bg-[#0e1018] px-3.5 py-1.5 text-[11px]">
+          <div className="mb-1 flex items-center justify-between font-medium">
+            <span className="flex items-center gap-1 text-slate-300">
+              <Zap className="h-3 w-3 text-amber-400" />
+              Monthly Token Quota
+            </span>
+            <span className="font-mono text-[10px] font-bold text-amber-400">
+              {tokensUsed.toLocaleString()} / {monthlyQuota.toLocaleString()}
+            </span>
+          </div>
+          <Progress
+            value={(tokensUsed / monthlyQuota) * 100}
+            className="h-1.5 bg-slate-800"
+          />
+        </div>
+      )}
+
+      {/* B7: Larger Chat Box with Large Invitation Quote & Simple ENTER Icon */}
+      <div className="border-t border-slate-800/90 bg-[#0d0f17] p-3.5">
         <div className="relative mx-auto max-w-2xl">
           <textarea
             value={input}
@@ -431,20 +285,21 @@ export default function ChatPanel({
             }}
             placeholder={
               tier === 'PRO'
-                ? `Ask ${activeModelObj?.name.split(' ')[0]} about XAUUSD chart structure...`
+                ? `Ask ${activeModelObj?.name.split(' ')[0]}...`
                 : 'AI Analyst Chat is locked in FREE tier.'
             }
-            className="border-slate-750 min-h-[44px] w-full resize-none rounded-xl border bg-[#07080d] py-2.5 pr-10 pl-3 text-xs text-slate-100 shadow-inner placeholder:text-slate-500 focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/30 focus:outline-none disabled:opacity-40"
-            rows={1}
+            className="border-slate-750 min-h-[58px] w-full resize-none rounded-xl border bg-[#07090f] py-3.5 pr-12 pl-4 text-sm text-slate-100 shadow-inner placeholder:text-base placeholder:font-medium placeholder:text-slate-500 focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/30 focus:outline-none disabled:opacity-40"
+            rows={2}
           />
-          <div className="absolute right-2.5 bottom-2 flex gap-1">
+          <div className="absolute right-3 bottom-3.5 flex gap-1">
             <Button
               size="icon"
               disabled={tier === 'FREE' || !input.trim()}
-              className="h-7 w-7 rounded-lg bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-30"
+              className="h-8 w-8 rounded-lg bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-30"
               onClick={handleSendMessage}
+              title="Press ENTER to send"
             >
-              <Send className="h-3.5 w-3.5" />
+              <CornerDownLeft className="h-4 w-4 stroke-[2.5]" />
             </Button>
           </div>
         </div>
@@ -463,18 +318,17 @@ export default function ChatPanel({
             🔒 PRO Subscriber Feature
           </Badge>
           <h3 className="mb-1 text-base font-bold text-slate-100">
-            AI Analyst Chat (Stack D)
+            AI Chart Analyst
           </h3>
           <p className="mb-4 max-w-xs text-xs leading-relaxed text-slate-400">
-            AI Analyst Chat is exclusive to PRO subscribers. Upgrade to access
-            real-time Gemini 3.6 multimodal chart vision, VANNA SQL quantitative
-            queries, and trade setup cards.
+            AI Chart Analyst is exclusive to PRO subscribers. Upgrade to access
+            real-time Gemini 3.6 chart analysis and VANNA SQL quantitative
+            queries.
           </p>
           <Button
             size="sm"
             onClick={() =>
-              onOpenUpgradeModal &&
-              onOpenUpgradeModal('Stack D: AI Analyst Chat')
+              onOpenUpgradeModal && onOpenUpgradeModal('AI Chart Analyst')
             }
             className="bg-gradient-to-r from-amber-500 to-amber-600 font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
           >

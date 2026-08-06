@@ -4,24 +4,18 @@ import { useState } from 'react';
 import Image from 'next/image';
 import {
   LayoutDashboard,
-  LineChart,
-  Wallet,
-  Globe,
+  Bell,
   MessageSquare,
-  Settings,
   ChevronRight,
   ChevronLeft,
-  Sun,
-  Moon,
+  ChevronDown,
+  Download,
   ShieldCheck,
-  Lock,
-  Zap,
+  Settings,
 } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Tier } from '@/lib/types';
@@ -31,42 +25,54 @@ interface ChatSidebarProps {
   onToggleCollapse?: () => void;
   tier: Tier;
   onTierChange: (tier: Tier) => void;
+  onNavigate?: (page: 'Home' | 'Alerts') => void;
+  activePage?: 'Home' | 'Alerts';
+  unreadAlertsCount?: number;
 }
 
 export function ChatSidebar({
   isCollapsed = false,
   onToggleCollapse,
   tier,
-  onTierChange,
+  onNavigate,
+  activePage = 'Home',
+  unreadAlertsCount = 3,
 }: ChatSidebarProps) {
-  const { setTheme, theme } = useTheme();
-  const [activeItem, setActiveItem] = useState('Chart Analysis');
+  const [selectedNav, setSelectedNav] = useState<'Home' | 'Alerts'>(activePage);
 
-  const mainNavItems = [
-    { icon: LayoutDashboard, label: 'Dashboard' },
-    { icon: LineChart, label: 'Chart Analysis' },
-    { icon: Wallet, label: 'Portfolio' },
-    { icon: Globe, label: 'Market News' },
-  ];
+  const handleNavClick = (page: 'Home' | 'Alerts') => {
+    setSelectedNav(page);
+    if (onNavigate) onNavigate(page);
+  };
 
-  const recentChats = [
+  const sessions = [
     'XAUUSD M5 Scalp Setup',
     'XAUUSD M15 EDT Retest',
     'XAUUSD Resistance Rejection',
     'XAUUSD Macro Structure',
   ];
 
+  // Action A6: Trigger PNG Download of Part 24 Matplotlib 3-Panel Vision Render
+  const handleDownloadPng = () => {
+    const link = document.createElement('a');
+    link.href = '/mtf_render_xauusd_sample.png';
+    link.download = 'XAUUSD_Matplotlib_3Panel_Vision_Render.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <aside
       className={cn(
-        'relative z-10 flex flex-col border-r border-slate-800/80 bg-[#07080c] shadow-2xl transition-all duration-300 select-none',
+        'relative z-20 flex flex-col border-r border-slate-800/80 bg-[#06070a] shadow-2xl transition-all duration-300 select-none',
         isCollapsed ? 'w-16' : 'w-64'
       )}
     >
-      {/* Header / Brand — Deep Slate Tone */}
-      <div className="flex h-14 items-center justify-between border-b border-slate-800/80 bg-[#0d0f17] px-3">
+      {/* A1: Header / Brand */}
+      <div className="flex h-14 items-center justify-between border-b border-slate-800/80 bg-[#090b11] px-3.5">
         {!isCollapsed && (
-          <div className="flex items-center gap-2 text-lg font-bold tracking-tight">
+          <div className="flex items-center gap-2.5 text-lg font-bold tracking-tight">
             <div className="relative h-7 w-7 overflow-hidden rounded-md shadow-xs ring-1 ring-amber-500/40">
               <Image
                 src="/DavinTrade_Logo.jpg"
@@ -76,7 +82,7 @@ export function ChatSidebar({
                 priority
               />
             </div>
-            <span className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-transparent drop-shadow-xs">
+            <span className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text font-extrabold text-transparent drop-shadow-xs">
               DavinTrade
             </span>
           </div>
@@ -86,7 +92,7 @@ export function ChatSidebar({
           size="icon"
           onClick={onToggleCollapse}
           className={cn(
-            'h-8 w-8 text-slate-400 hover:bg-slate-800 hover:text-slate-100',
+            'h-8 w-8 text-slate-400 hover:bg-slate-800/80 hover:text-slate-100',
             isCollapsed && 'mx-auto'
           )}
           title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
@@ -100,92 +106,79 @@ export function ChatSidebar({
       </div>
 
       <ScrollArea className="flex-1 py-3">
-        {/* Tier Mode Switcher Header Badge */}
-        {!isCollapsed && (
-          <div className="mx-2.5 mb-3 rounded-xl border border-amber-500/30 bg-[#10131d] p-2 text-xs shadow-inner">
-            <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-slate-400">
-              <span>PREVIEW TIER</span>
-              <Badge
-                variant="outline"
-                className={cn(
-                  'font-mono text-[10px]',
-                  tier === 'PRO'
-                    ? 'border-amber-500/50 bg-amber-500/10 font-bold text-amber-400'
-                    : 'border-slate-700 bg-slate-800 text-slate-400'
-                )}
-              >
-                {tier}
-              </Badge>
-            </div>
-            <div className="grid grid-cols-2 gap-1">
-              <Button
-                variant={tier === 'FREE' ? 'default' : 'outline'}
-                size="sm"
-                className={cn(
-                  'h-7 border-slate-700 text-xs font-semibold',
-                  tier === 'FREE' && 'bg-slate-700 text-white'
-                )}
-                onClick={() => onTierChange('FREE')}
-              >
-                FREE
-              </Button>
-              <Button
-                variant={tier === 'PRO' ? 'default' : 'outline'}
-                size="sm"
-                className={cn(
-                  'h-7 border-amber-500/40 text-xs font-semibold',
-                  tier === 'PRO' &&
-                    'bg-amber-500 font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:bg-amber-400'
-                )}
-                onClick={() => onTierChange('PRO')}
-              >
-                <Zap className="mr-1 h-3 w-3 fill-black" />
-                PRO
-              </Button>
-            </div>
-          </div>
-        )}
-
-        <nav className="grid gap-1 px-2">
-          {mainNavItems.map((item) => (
-            <Button
-              key={item.label}
-              variant={activeItem === item.label ? 'secondary' : 'ghost'}
+        {/* A3: Navigation Items (Home vs Alerts with Notification Dot) */}
+        <nav className="grid gap-1.5 px-2.5">
+          <Button
+            variant={selectedNav === 'Home' ? 'default' : 'ghost'}
+            className={cn(
+              'h-10 justify-start rounded-xl text-xs font-semibold transition-all',
+              isCollapsed && 'justify-center px-0',
+              selectedNav === 'Home'
+                ? 'border border-amber-500/40 bg-amber-500/15 font-bold text-amber-400 shadow-md shadow-amber-500/10'
+                : 'text-slate-300 hover:bg-slate-800/60 hover:text-slate-100'
+            )}
+            onClick={() => handleNavClick('Home')}
+          >
+            <LayoutDashboard
               className={cn(
-                'h-9 justify-start text-xs font-medium text-slate-300 hover:bg-slate-800/60 hover:text-slate-100',
-                isCollapsed && 'justify-center px-0',
-                activeItem === item.label &&
-                  'border border-amber-500/30 bg-amber-500/15 font-bold text-amber-300'
+                'h-4 w-4',
+                !isCollapsed && 'mr-2.5',
+                selectedNav === 'Home' && 'text-amber-400'
               )}
-              onClick={() => setActiveItem(item.label)}
-            >
-              <item.icon
+            />
+            {!isCollapsed && <span>Home</span>}
+          </Button>
+
+          <Button
+            variant={selectedNav === 'Alerts' ? 'default' : 'ghost'}
+            className={cn(
+              'relative h-10 justify-start rounded-xl text-xs font-semibold transition-all',
+              isCollapsed && 'justify-center px-0',
+              selectedNav === 'Alerts'
+                ? 'border border-amber-500/40 bg-amber-500/15 font-bold text-amber-400 shadow-md shadow-amber-500/10'
+                : 'text-slate-300 hover:bg-slate-800/60 hover:text-slate-100'
+            )}
+            onClick={() => handleNavClick('Alerts')}
+          >
+            <div className="relative flex items-center">
+              <Bell
                 className={cn(
                   'h-4 w-4',
-                  !isCollapsed && 'mr-2',
-                  activeItem === item.label && 'text-amber-400'
+                  !isCollapsed && 'mr-2.5',
+                  selectedNav === 'Alerts' && 'text-amber-400'
                 )}
               />
-              {!isCollapsed && item.label}
-            </Button>
-          ))}
+              {unreadAlertsCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 animate-pulse rounded-full bg-rose-500 ring-2 ring-[#06070a]" />
+              )}
+            </div>
+            {!isCollapsed && (
+              <div className="flex flex-1 items-center justify-between">
+                <span>Alerts</span>
+                {unreadAlertsCount > 0 && (
+                  <Badge className="h-4 border-rose-500/40 bg-rose-500/20 px-1.5 font-mono text-[9px] text-rose-300">
+                    {unreadAlertsCount}
+                  </Badge>
+                )}
+              </div>
+            )}
+          </Button>
         </nav>
 
-        <Separator className="mx-2 my-4 bg-slate-800/80" />
-
-        <div className="px-2">
+        {/* A4: Sessions Section with Larger Font Header */}
+        <div className="mt-6 px-2.5">
           {!isCollapsed && (
-            <h3 className="mb-2 px-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-              XAUUSD Sessions
+            <h3 className="mb-2.5 px-2 text-xs font-bold tracking-wider text-slate-300 uppercase">
+              SESSIONS
             </h3>
           )}
           <div className="grid gap-1">
-            {recentChats.map((chat, index) => (
+            {sessions.map((session, index) => (
               <Button
                 key={index}
                 variant="ghost"
                 className={cn(
-                  'h-8 justify-start text-xs font-normal text-slate-400 hover:bg-slate-800/50 hover:text-slate-100',
+                  'h-8 justify-start rounded-lg text-xs font-normal text-slate-400 hover:bg-slate-800/50 hover:text-slate-100',
                   isCollapsed && 'justify-center px-0'
                 )}
               >
@@ -195,73 +188,69 @@ export function ChatSidebar({
                     !isCollapsed && 'mr-2'
                   )}
                 />
-                {!isCollapsed && <span className="truncate">{chat}</span>}
+                {!isCollapsed && (
+                  <span className="truncate text-[11px]">{session}</span>
+                )}
               </Button>
             ))}
           </div>
         </div>
       </ScrollArea>
 
-      {/* Footer Area */}
-      <div className="mt-auto space-y-2 border-t border-slate-800/80 bg-[#0a0c13] p-2">
+      {/* A6: Transformation of Theme Button to PNG Download Button */}
+      <div className="border-t border-slate-800/80 bg-[#090b11] p-2.5">
         <Button
           variant="outline"
           size="sm"
+          onClick={handleDownloadPng}
           className={cn(
-            'border-slate-750 w-full justify-start bg-[#07080c] text-xs text-slate-300 hover:bg-slate-800',
-            isCollapsed && 'justify-center px-0'
+            'h-auto w-full flex-col justify-center rounded-xl border-amber-500/30 bg-amber-500/5 py-2 text-center shadow-xs transition-all hover:border-amber-500/60 hover:bg-amber-500/15',
+            isCollapsed && 'p-2'
           )}
-          onClick={() => {
-            const newTheme = theme === 'dark' ? 'light' : 'dark';
-            setTheme(newTheme);
-            document.cookie = `davintrade-theme=${newTheme}; path=/; max-age=31536000; SameSite=Lax`;
-          }}
         >
-          <Sun className="h-4 w-4 scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-          <Moon className="absolute h-4 w-4 scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-          {!isCollapsed && <span className="ml-2">Switch Theme</span>}
+          {!isCollapsed ? (
+            <div className="flex flex-col items-center">
+              <span className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+                <Download className="h-3.5 w-3.5" />
+                PNG Download
+              </span>
+              <span className="mt-0.5 font-mono text-[9px] text-slate-400">
+                Matplotlib 3-Panel Vision Render
+              </span>
+            </div>
+          ) : (
+            <Download className="h-4 w-4 text-amber-400" />
+          )}
         </Button>
+      </div>
 
+      {/* A7: User Profile Footer */}
+      <div className="border-t border-slate-800/80 bg-[#07090e] p-2.5">
         <div
           className={cn(
-            'flex items-center gap-2 rounded-lg border border-slate-800 bg-[#0f121d] p-2 shadow-inner',
+            'flex cursor-pointer items-center gap-2.5 rounded-xl border border-slate-800 bg-[#0d101a] p-2 shadow-inner transition-colors hover:bg-slate-800/60',
             isCollapsed && 'justify-center border-0 bg-transparent p-1'
           )}
         >
           <Avatar className="h-7 w-7 ring-1 ring-amber-500/40">
             <AvatarImage src="/placeholder-user.jpg" />
-            <AvatarFallback className="bg-slate-800 text-slate-200">
+            <AvatarFallback className="bg-slate-800 text-xs text-slate-200">
               TU
             </AvatarFallback>
           </Avatar>
           {!isCollapsed && (
-            <div className="flex flex-col overflow-hidden">
-              <span className="truncate text-xs font-semibold text-slate-100">
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <span className="truncate text-xs font-bold text-slate-100">
                 Trader User
               </span>
-              <span
-                className={cn(
-                  'flex items-center gap-1 truncate text-[10px] font-bold',
-                  tier === 'PRO' ? 'text-amber-400' : 'text-slate-400'
-                )}
-              >
-                {tier === 'PRO' ? (
-                  <ShieldCheck className="inline h-3 w-3 text-amber-400" />
-                ) : (
-                  <Lock className="inline h-3 w-3 text-slate-400" />
-                )}
-                {tier === 'PRO' ? 'Pro Plan' : 'Free Plan'}
+              <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400">
+                <ShieldCheck className="h-3 w-3 text-amber-400" />
+                Pro Plan
               </span>
             </div>
           )}
           {!isCollapsed && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="ml-auto h-6 w-6 text-slate-400 hover:text-slate-100"
-            >
-              <Settings className="h-3 w-3" />
-            </Button>
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
           )}
         </div>
       </div>

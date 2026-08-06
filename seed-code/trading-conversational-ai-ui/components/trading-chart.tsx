@@ -9,12 +9,33 @@ import {
   CrosshairMode,
   CandlestickSeries,
   LineSeries,
+  BarSeries,
 } from 'lightweight-charts';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Lock, Layers, Activity } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  RefreshCw,
+  Lock,
+  Layers,
+  Activity,
+  MousePointer,
+  TrendingUp,
+  GitBranch,
+  Type,
+  Ruler,
+  Sliders,
+  CandlestickChart as CandleIcon,
+  BarChart2,
+  EyeOff,
+} from 'lucide-react';
 import type { Symbol, Timeframe, Tier, M15ViewMode } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -25,7 +46,10 @@ interface TradingChartProps {
   onSymbolChange: (symbol: Symbol) => void;
   onTimeframeChange: (timeframe: Timeframe) => void;
   onOpenUpgradeModal?: (featureName: string) => void;
+  onAskAiFromChart?: (question: string) => void;
 }
+
+export type PriceDisplayMode = 'CANDLE' | 'BAR' | 'HIDE';
 
 export default function TradingChart({
   tier = 'FREE',
@@ -34,20 +58,25 @@ export default function TradingChart({
   onSymbolChange,
   onTimeframeChange,
   onOpenUpgradeModal,
+  onAskAiFromChart,
 }: TradingChartProps) {
   const containerM5Ref = useRef<HTMLDivElement>(null);
   const containerM15Ref = useRef<HTMLDivElement>(null);
   const chartM5Ref = useRef<IChartApi | null>(null);
   const chartM15Ref = useRef<IChartApi | null>(null);
 
-  const seriesM5Ref = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const seriesM15Ref = useRef<ISeriesApi<'Candlestick'> | null>(null);
-
   // M15 Lower Chart View Mode: SSA/EDT vs ZigZag
   const [m15ViewMode, setM15ViewMode] = useState<M15ViewMode>('SSA_EDT');
 
   // Part 24 Engine 2 MTF Overlay Toggle: M5 on M15
   const [isM5OnM15, setIsM5OnM15] = useState(false);
+
+  // Price Display Mode for M5 and M15 (BAR | CANDLE | HIDE)
+  const [m5PriceMode, setM5PriceMode] = useState<PriceDisplayMode>('CANDLE');
+  const [m15PriceMode, setM15PriceMode] = useState<PriceDisplayMode>('CANDLE');
+
+  // Active Drawing Tool (Left vertical strip)
+  const [activeTool, setActiveTool] = useState<string>('pointer');
 
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
@@ -78,13 +107,12 @@ export default function TradingChart({
     setIsM5OnM15(checked);
   };
 
-  // Initialize Charts with distinct shades & tones for M5 vs M15
+  // Initialize Charts (No Grid Overlay as requested!)
   useEffect(() => {
     if (!containerM5Ref.current || !containerM15Ref.current) return;
 
-    // --- Chart 1: M5 (Upper Chart) — Deep Navy-Blue Shade ---
-    const bgM5 = isDark ? '#0b0e17' : '#ffffff';
-    const gridM5 = isDark ? '#141a29' : '#e2e8f0';
+    // --- Chart 1: M5 (Upper Chart) ---
+    const bgM5 = isDark ? '#080b12' : '#ffffff';
     const textM5 = isDark ? '#94a3b8' : '#334155';
 
     const chartM5 = createChart(containerM5Ref.current, {
@@ -93,13 +121,13 @@ export default function TradingChart({
         textColor: textM5,
       },
       grid: {
-        vertLines: { color: gridM5 },
-        horzLines: { color: gridM5 },
+        vertLines: { visible: false },
+        horzLines: { visible: false },
       },
       crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderColor: gridM5 },
+      rightPriceScale: { borderColor: '#1e293b' },
       timeScale: {
-        borderColor: gridM5,
+        borderColor: '#1e293b',
         timeVisible: true,
         secondsVisible: false,
       },
@@ -108,17 +136,24 @@ export default function TradingChart({
     });
     chartM5Ref.current = chartM5;
 
-    const candlestickM5 = chartM5.addSeries(CandlestickSeries, {
-      upColor: '#22c55e',
-      downColor: '#ef4444',
-      borderVisible: false,
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
-    });
-    seriesM5Ref.current = candlestickM5;
-
     const dataM5 = generateCandleData(2635, 120, 5);
-    candlestickM5.setData(dataM5);
+
+    if (m5PriceMode === 'CANDLE') {
+      const candlestickM5 = chartM5.addSeries(CandlestickSeries, {
+        upColor: '#22c55e',
+        downColor: '#ef4444',
+        borderVisible: false,
+        wickUpColor: '#22c55e',
+        wickDownColor: '#ef4444',
+      });
+      candlestickM5.setData(dataM5);
+    } else if (m5PriceMode === 'BAR') {
+      const barM5 = chartM5.addSeries(BarSeries, {
+        upColor: '#22c55e',
+        downColor: '#ef4444',
+      });
+      barM5.setData(dataM5);
+    }
 
     // M5 SSA Line (Blue)
     const ssaM5 = chartM5.addSeries(LineSeries, {
@@ -141,9 +176,8 @@ export default function TradingChart({
     });
     lowerEdtM5.setData(generateLineData(dataM5, -12));
 
-    // --- Chart 2: M15 (Lower Chart) — Deep Amethyst-Slate Shade ---
-    const bgM15 = isDark ? '#110d18' : '#f8fafc';
-    const gridM15 = isDark ? '#1d172a' : '#cbd5e1';
+    // --- Chart 2: M15 (Lower Chart) ---
+    const bgM15 = isDark ? '#0f0a17' : '#f8fafc';
     const textM15 = isDark ? '#a78bfa' : '#475569';
 
     const chartM15 = createChart(containerM15Ref.current, {
@@ -152,13 +186,13 @@ export default function TradingChart({
         textColor: textM15,
       },
       grid: {
-        vertLines: { color: gridM15 },
-        horzLines: { color: gridM15 },
+        vertLines: { visible: false },
+        horzLines: { visible: false },
       },
       crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderColor: gridM15 },
+      rightPriceScale: { borderColor: '#1e293b' },
       timeScale: {
-        borderColor: gridM15,
+        borderColor: '#1e293b',
         timeVisible: true,
         secondsVisible: false,
       },
@@ -167,17 +201,24 @@ export default function TradingChart({
     });
     chartM15Ref.current = chartM15;
 
-    const candlestickM15 = chartM15.addSeries(CandlestickSeries, {
-      upColor: '#22c55e',
-      downColor: '#ef4444',
-      borderVisible: false,
-      wickUpColor: '#22c55e',
-      wickDownColor: '#ef4444',
-    });
-    seriesM15Ref.current = candlestickM15;
-
     const dataM15 = generateCandleData(2635, 80, 15);
-    candlestickM15.setData(dataM15);
+
+    if (m15PriceMode === 'CANDLE') {
+      const candlestickM15 = chartM15.addSeries(CandlestickSeries, {
+        upColor: '#22c55e',
+        downColor: '#ef4444',
+        borderVisible: false,
+        wickUpColor: '#22c55e',
+        wickDownColor: '#ef4444',
+      });
+      candlestickM15.setData(dataM15);
+    } else if (m15PriceMode === 'BAR') {
+      const barM15 = chartM15.addSeries(BarSeries, {
+        upColor: '#22c55e',
+        downColor: '#ef4444',
+      });
+      barM15.setData(dataM15);
+    }
 
     if (m15ViewMode === 'SSA_EDT') {
       const ssaM15 = chartM15.addSeries(LineSeries, {
@@ -208,9 +249,9 @@ export default function TradingChart({
     // Overlay M5 EDT onto M15 Chart Canvas when isM5OnM15 is enabled in PRO mode
     if (isM5OnM15 && tier === 'PRO') {
       const m5OverlaidUpper = chartM15.addSeries(LineSeries, {
-        color: '#06b6d4', // Cyan for overlaid M5 EDT on M15
+        color: '#06b6d4',
         lineWidth: 2,
-        lineStyle: 2, // Dashed
+        lineStyle: 2,
       });
       m5OverlaidUpper.setData(generateLineData(dataM15, 10));
 
@@ -229,20 +270,27 @@ export default function TradingChart({
       chartM5.remove();
       chartM15.remove();
     };
-  }, [isDark, m15ViewMode, isM5OnM15, tier]);
+  }, [isDark, m15ViewMode, isM5OnM15, m5PriceMode, m15PriceMode, tier]);
+
+  // Drawing Tools Definition for left vertical strip
+  const drawingTools = [
+    { id: 'pointer', icon: MousePointer, label: 'Crosshair' },
+    { id: 'trendline', icon: TrendingUp, label: 'Trendline' },
+    { id: 'pitchfork', icon: GitBranch, label: 'Fork' },
+    { id: 'text', icon: Type, label: 'Text' },
+    { id: 'ruler', icon: Ruler, label: 'Ruler' },
+  ];
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden border-x border-slate-800/80 bg-[#07090e] shadow-2xl select-none">
-      {/* Top Header Toolbar with Sleek Charcoal Slate Background */}
-      <div className="flex h-14 flex-wrap items-center justify-between gap-2 border-b border-slate-800/90 bg-[#121622] px-3.5 shadow-xs">
-        {/* Symbol Indicator */}
+    <div className="relative flex h-full flex-col overflow-hidden border-x border-slate-800/80 bg-[#06070b] shadow-2xl select-none">
+      {/* C2: Top Header Toolbar */}
+      <div className="flex h-14 flex-wrap items-center justify-between gap-2 border-b border-slate-800/90 bg-[#11141e] px-3.5 shadow-xs">
         <div className="flex items-center gap-2">
-          <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-400 shadow-xs">
+          <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs font-bold text-amber-400 shadow-xs">
             XAUUSD
           </Badge>
 
-          {/* M15 View Preset Selector Buttons */}
-          <div className="border-slate-750 flex items-center gap-1 rounded-lg border bg-[#0a0d14] p-1 shadow-inner">
+          <div className="border-slate-750 flex items-center gap-1 rounded-lg border bg-[#090b10] p-1 shadow-inner">
             <Button
               variant={m15ViewMode === 'SSA_EDT' ? 'secondary' : 'ghost'}
               size="sm"
@@ -273,14 +321,13 @@ export default function TradingChart({
           </div>
         </div>
 
-        {/* Part 24 Engine 2: MTF Overlay Toggle [ M5 on M15 ] */}
         <div className="flex items-center gap-3">
           <div
             className={cn(
               'flex items-center gap-2 rounded-lg border px-3 py-1 text-xs shadow-xs transition-all',
               isM5OnM15 && tier === 'PRO'
                 ? 'border-cyan-500/60 bg-cyan-500/15 text-cyan-200 shadow-cyan-500/10'
-                : 'border-slate-800 bg-[#0a0d14] text-slate-400'
+                : 'border-slate-800 bg-[#090b10] text-slate-400'
             )}
           >
             <Switch
@@ -294,15 +341,8 @@ export default function TradingChart({
               className="flex cursor-pointer items-center gap-1.5 text-xs font-bold tracking-tight"
             >
               <span>M5 on M15</span>
-              {tier === 'FREE' ? (
+              {tier === 'FREE' && (
                 <Lock className="inline h-3 w-3 text-amber-400" />
-              ) : (
-                <Badge
-                  variant="outline"
-                  className="border-cyan-500/50 bg-cyan-500/20 px-1 py-0 font-mono text-[9px] text-cyan-300"
-                >
-                  Engine 2
-                </Badge>
               )}
             </label>
           </div>
@@ -310,7 +350,7 @@ export default function TradingChart({
           <Button
             variant="outline"
             size="sm"
-            className="h-8 border-slate-700 bg-[#0a0d14] text-xs font-medium hover:bg-slate-800"
+            className="border-slate-750 h-8 bg-[#090b10] text-xs font-medium hover:bg-slate-800"
           >
             <RefreshCw className="mr-1.5 h-3.5 w-3.5 text-emerald-400" />
             Auto-Refresh
@@ -318,29 +358,166 @@ export default function TradingChart({
         </div>
       </div>
 
-      {/* Dual Stacked Chart Canvases with Distinct Color Tones */}
+      {/* Dual Stacked Chart Canvases */}
       <div className="flex flex-1 flex-col gap-1 overflow-hidden bg-black/80 p-1">
-        {/* Upper Window: XAUUSD, M5 (Deep Navy Blue Tone #0b0e17) */}
+        {/* C3: Upper Window: XAUUSD, M5 */}
         <div className="relative flex-1 overflow-hidden rounded-lg border border-blue-900/40 shadow-lg shadow-blue-950/20">
+          {/* Left Vertical Drawing Toolbar Strip */}
+          <div className="absolute top-12 left-2 z-20 flex flex-col gap-0.5 rounded-lg border border-slate-800 bg-[#090c14]/90 p-0.5 shadow-lg backdrop-blur-md">
+            {drawingTools.map((tool) => (
+              <Button
+                key={tool.id}
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-7 w-7 rounded-md text-slate-400 hover:bg-slate-800/80 hover:text-slate-100',
+                  activeTool === tool.id &&
+                    'border border-blue-500/50 bg-blue-600/30 font-bold text-blue-300'
+                )}
+                onClick={() => setActiveTool(tool.id)}
+                title={tool.label}
+              >
+                <tool.icon className="h-3.5 w-3.5" />
+              </Button>
+            ))}
+          </div>
+
+          {/* Top Left Badge Overlay */}
           <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-2">
-            <Badge className="border border-blue-500/50 bg-[#0b0e17]/90 px-2.5 py-1 font-mono text-[11px] text-blue-300 shadow-md backdrop-blur-md">
+            <Badge className="border border-blue-500/50 bg-[#080b12]/90 px-2.5 py-1 font-mono text-[11px] text-blue-300 shadow-md backdrop-blur-md">
               🟢 XAUUSD,M5
             </Badge>
-            <span className="rounded border border-blue-900/60 bg-[#0b0e17]/80 px-2 py-0.5 font-mono text-[10px] text-blue-300/80 backdrop-blur-xs">
+            <span className="rounded border border-blue-900/60 bg-[#080b12]/80 px-2 py-0.5 font-mono text-[10px] text-blue-300/80 backdrop-blur-xs">
               M5 SSA & EDT Channel Canvas
             </span>
           </div>
+
+          {/* Top Right Controls: EDT Configuration + 3 Price View Modes */}
+          <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 rounded-lg border border-slate-800 bg-[#080b12]/90 p-1 shadow-md backdrop-blur-md">
+            <div className="border-slate-750 flex items-center rounded border bg-black/40 p-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-6 w-6 text-slate-400 hover:text-slate-100',
+                  m5PriceMode === 'BAR' && 'bg-blue-600/30 text-blue-300'
+                )}
+                onClick={() => setM5PriceMode('BAR')}
+                title="Show Price Bar"
+              >
+                <BarChart2 className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-6 w-6 text-slate-400 hover:text-slate-100',
+                  m5PriceMode === 'CANDLE' && 'bg-blue-600/30 text-blue-300'
+                )}
+                onClick={() => setM5PriceMode('CANDLE')}
+                title="Show Price Candle"
+              >
+                <CandleIcon className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-6 w-6 text-slate-400 hover:text-slate-100',
+                  m5PriceMode === 'HIDE' && 'bg-rose-600/30 text-rose-300'
+                )}
+                onClick={() => setM5PriceMode('HIDE')}
+                title="Hide Price Bar & Candle (Indicators Only)"
+              >
+                <EyeOff className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  className="h-7 border border-slate-700 bg-slate-800/80 text-[11px] font-bold text-slate-200 hover:bg-slate-700"
+                >
+                  <Sliders className="mr-1 h-3 w-3 text-amber-400" />
+                  EDT Configuration
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="border-slate-750 w-64 space-y-2 bg-[#121622] p-3 text-xs text-slate-200">
+                <div className="border-b border-slate-800 pb-1 font-bold text-amber-400">
+                  M5 EDT Parameters
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span>Channel Width:</span>{' '}
+                  <span className="font-mono font-bold text-emerald-400">
+                    12.0 pips
+                  </span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span>SSA Smoothing Period:</span>{' '}
+                  <span className="font-mono font-bold text-blue-400">
+                    24 bars
+                  </span>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Lower Left Overlay: Ask AI Avatar Button (Positioned at lower left as requested!) */}
+          <div className="absolute bottom-2.5 left-2.5 z-20">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-2 rounded-full border-amber-500/50 bg-[#090d16]/95 px-3 text-[11px] font-bold text-amber-300 shadow-xl backdrop-blur-md hover:bg-amber-500/25"
+              onClick={() => {
+                if (onAskAiFromChart) {
+                  onAskAiFromChart(
+                    'What is the current M5 SSA trend & EDT channel situation for XAUUSD?'
+                  );
+                }
+              }}
+              title="Click to ask AI about M5 chart situation"
+            >
+              <Avatar className="h-4.5 w-4.5 border border-amber-400/80">
+                <AvatarImage src="/DavinTrade_Logo.jpg" />
+                <AvatarFallback>AI</AvatarFallback>
+              </Avatar>
+              <span>Ask AI about M5 Chart</span>
+            </Button>
+          </div>
+
           <div ref={containerM5Ref} className="absolute inset-0" />
         </div>
 
-        {/* Lower Window: XAUUSD, M15 (Deep Amethyst Purple Tone #110d18) */}
+        {/* C5: Lower Window: XAUUSD, M15 */}
         <div className="relative flex-1 overflow-hidden rounded-lg border border-purple-900/40 shadow-lg shadow-purple-950/20">
+          {/* Left Vertical Drawing Toolbar Strip */}
+          <div className="absolute top-12 left-2 z-20 flex flex-col gap-0.5 rounded-lg border border-slate-800 bg-[#0f0a17]/90 p-0.5 shadow-lg backdrop-blur-md">
+            {drawingTools.map((tool) => (
+              <Button
+                key={tool.id}
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-7 w-7 rounded-md text-slate-400 hover:bg-slate-800/80 hover:text-slate-100',
+                  activeTool === tool.id &&
+                    'border border-purple-500/50 bg-purple-600/30 font-bold text-purple-300'
+                )}
+                onClick={() => setActiveTool(tool.id)}
+                title={tool.label}
+              >
+                <tool.icon className="h-3.5 w-3.5" />
+              </Button>
+            ))}
+          </div>
+
+          {/* Top Left Badge Overlay */}
           <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-2">
-            <Badge className="border border-purple-500/50 bg-[#110d18]/90 px-2.5 py-1 font-mono text-[11px] text-purple-300 shadow-md backdrop-blur-md">
+            <Badge className="border border-purple-500/50 bg-[#0f0a17]/90 px-2.5 py-1 font-mono text-[11px] text-purple-300 shadow-md backdrop-blur-md">
               🟢 XAUUSD,M15
             </Badge>
 
-            <span className="rounded border border-purple-900/60 bg-[#110d18]/80 px-2 py-0.5 font-mono text-[10px] text-purple-300/80 backdrop-blur-xs">
+            <span className="rounded border border-purple-900/60 bg-[#0f0a17]/80 px-2 py-0.5 font-mono text-[10px] text-purple-300/80 backdrop-blur-xs">
               {m15ViewMode === 'SSA_EDT'
                 ? 'M15 SSA & EDT Channel'
                 : 'M15 ZigZag Polyline'}
@@ -354,6 +531,101 @@ export default function TradingChart({
                 ⚡ M5 EDT Overlaid
               </Badge>
             )}
+          </div>
+
+          {/* Top Right Controls: EDT Configuration + 3 Price View Modes */}
+          <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0f0a17]/90 p-1 shadow-md backdrop-blur-md">
+            <div className="border-slate-750 flex items-center rounded border bg-black/40 p-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-6 w-6 text-slate-400 hover:text-slate-100',
+                  m15PriceMode === 'BAR' && 'bg-purple-600/30 text-purple-300'
+                )}
+                onClick={() => setM15PriceMode('BAR')}
+                title="Show Price Bar"
+              >
+                <BarChart2 className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-6 w-6 text-slate-400 hover:text-slate-100',
+                  m15PriceMode === 'CANDLE' &&
+                    'bg-purple-600/30 text-purple-300'
+                )}
+                onClick={() => setM15PriceMode('CANDLE')}
+                title="Show Price Candle"
+              >
+                <CandleIcon className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-6 w-6 text-slate-400 hover:text-slate-100',
+                  m15PriceMode === 'HIDE' && 'bg-rose-600/30 text-rose-300'
+                )}
+                onClick={() => setM15PriceMode('HIDE')}
+                title="Hide Price Bar & Candle (Indicators Only)"
+              >
+                <EyeOff className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  className="h-7 border border-slate-700 bg-slate-800/80 text-[11px] font-bold text-slate-200 hover:bg-slate-700"
+                >
+                  <Sliders className="mr-1 h-3 w-3 text-amber-400" />
+                  EDT Configuration
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="border-slate-750 w-64 space-y-2 bg-[#121622] p-3 text-xs text-slate-200">
+                <div className="border-b border-slate-800 pb-1 font-bold text-amber-400">
+                  M15 EDT Parameters
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span>Channel Width:</span>{' '}
+                  <span className="font-mono font-bold text-emerald-400">
+                    18.0 pips
+                  </span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span>SSA Smoothing Period:</span>{' '}
+                  <span className="font-mono font-bold text-purple-400">
+                    48 bars
+                  </span>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Lower Left Overlay: Ask AI Avatar Button (Positioned at lower left as requested!) */}
+          <div className="absolute bottom-2.5 left-2.5 z-20">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-2 rounded-full border-amber-500/50 bg-[#0e0817]/95 px-3 text-[11px] font-bold text-amber-300 shadow-xl backdrop-blur-md hover:bg-amber-500/25"
+              onClick={() => {
+                if (onAskAiFromChart) {
+                  onAskAiFromChart(
+                    'What is the M15 market structure & ZigZag confirmation for XAUUSD?'
+                  );
+                }
+              }}
+              title="Click to ask AI about M15 chart situation"
+            >
+              <Avatar className="h-4.5 w-4.5 border border-amber-400/80">
+                <AvatarImage src="/DavinTrade_Logo.jpg" />
+                <AvatarFallback>AI</AvatarFallback>
+              </Avatar>
+              <span>Ask AI about M15 Chart</span>
+            </Button>
           </div>
 
           <div ref={containerM15Ref} className="absolute inset-0" />
@@ -393,7 +665,6 @@ function generateCandleData(
   return data;
 }
 
-// Generate Trend Line Data for SSA and EDT Channel Lines
 function generateLineData(candleData: any[], offset = 0) {
   return candleData.map((c, i) => {
     const trendBase = c.close + offset + Math.sin(i / 10) * 2;
@@ -404,7 +675,6 @@ function generateLineData(candleData: any[], offset = 0) {
   });
 }
 
-// Generate ZigZag Polyline Data
 function generateZigZagData(candleData: any[]) {
   const points = [];
   let currentDir = 1;

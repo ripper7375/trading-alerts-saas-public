@@ -118,20 +118,28 @@
   }
 }
 
-/* Add this at the end of app/globals.css */
+/* Hide TradingView logo link in lightweight-charts */
+a[href*="tradingview"],
+a[title*="TradingView"],
+.tv-lightweight-charts-logo,
+[class*="logo"] a,
+td a[target="_blank"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
 
 @layer utilities {
-  /* Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
 
   .no-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
-  /* Custom Slim Scrollbar for Sidebar and Panels */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -142,11 +150,11 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: oklch(0.27 0 0); /* Subtle dark grey */
+    background: oklch(0.27 0 0);
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.4 0 0); /* Lighter on hover */
+    background: oklch(0.4 0 0);
   }
 }

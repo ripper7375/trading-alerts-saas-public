@@ -18,9 +18,15 @@ import {
   Minus,
   Activity,
   BarChart2,
+  HelpCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { Tier, MarketComment, QualityMetrics } from '@/lib/types';
+import type {
+  Tier,
+  MarketComment,
+  QualityMetrics,
+  TradeSetup,
+} from '@/lib/types';
 
 interface MarketCommentsPanelProps {
   tier: Tier;
@@ -31,38 +37,31 @@ interface MarketCommentsPanelProps {
 const INITIAL_COMMENTS: MarketComment[] = [
   {
     id: '1',
-    iconType: 'EDT_TOUCH',
-    timestamp: '14:22:05',
-    shortComment: 'XAUUSD M5 Touched Lower EDT Channel ($2,634.50)',
-    callAction: 'BUY',
+    iconType: 'SSA_CROSS',
+    timestamp: '22:48:26',
+    shortComment: 'XAUUSD M5 SSA Baseline Cross',
+    callAction: 'NEUTRAL',
   },
   {
     id: '2',
-    iconType: 'ALERT_RESISTANCE',
-    timestamp: '14:18:30',
-    shortComment: 'XAUUSD M15 Rejection at SSA Resistance ($2,648.10)',
-    callAction: 'SELL',
+    iconType: 'SSA_CROSS',
+    timestamp: '22:47:02',
+    shortComment: 'XAUUSD M5 SSA Baseline Cross',
+    callAction: 'NEUTRAL',
   },
   {
     id: '3',
-    iconType: 'SSA_CROSS',
-    timestamp: '14:10:15',
-    shortComment: 'XAUUSD M15 Higher Low Confirmed at $2,638.00',
-    callAction: 'NEUTRAL',
+    iconType: 'ALERT_RESISTANCE',
+    timestamp: '22:45:30',
+    shortComment: 'XAUUSD M15 Resistance Test at $2647.78',
+    callAction: 'SELL',
   },
   {
     id: '4',
-    iconType: 'ALERT_SUPPORT',
-    timestamp: '14:05:40',
-    shortComment: 'XAUUSD M5 Z-score Candle Expansion Beyond Upper Band',
+    iconType: 'EDT_TOUCH',
+    timestamp: '22:41:05',
+    shortComment: 'XAUUSD M5 Touched Lower EDT Channel ($2,634.50)',
     callAction: 'BUY',
-  },
-  {
-    id: '5',
-    iconType: 'NEUTRAL_INFO',
-    timestamp: '13:58:12',
-    shortComment: 'XAUUSD M15 EDT Baseline Symmetry Pivot Retest',
-    callAction: 'NEUTRAL',
   },
 ];
 
@@ -74,12 +73,49 @@ const METRICS_DATA: QualityMetrics = {
   symmetryBias: 'LOEDT Bias',
 };
 
+const DEFAULT_TRADE_SETUP: TradeSetup = {
+  symbol: 'XAUUSD',
+  timeframe: 'M5',
+  direction: 'BUY',
+  entryPrice: 2634.5,
+  takeProfit: 2648.0,
+  stopLoss: 2627.0,
+  riskReward: '1 : 3.2',
+  confidence: 88,
+  rationale:
+    'Double bottom wick rejection at lower M5 EDT boundary aligned with M15 SSA bullish trend bias.',
+};
+
 export default function MarketCommentsPanel({
   tier,
   onCollapsePanel,
   onOpenUpgradeModal,
 }: MarketCommentsPanelProps) {
   const [comments, setComments] = useState<MarketComment[]>(INITIAL_COMMENTS);
+  const [tradeSetup, setTradeSetup] = useState<TradeSetup>(DEFAULT_TRADE_SETUP);
+
+  // Live ticking countdown timer for London session news event (D4)
+  const [countdownSeconds, setCountdownSeconds] = useState(
+    5 * 3600 + 19 * 60 + 36
+  );
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdownSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatCountdown = (totalSec: number) => {
+    const hrs = Math.floor(totalSec / 3600)
+      .toString()
+      .padStart(2, '0');
+    const mins = Math.floor((totalSec % 3600) / 60)
+      .toString()
+      .padStart(2, '0');
+    const secs = (totalSec % 60).toString().padStart(2, '0');
+    return `${hrs}:${mins}:${secs}`;
+  };
 
   // Simulate Socket.IO live comments stream in PRO mode
   useEffect(() => {
@@ -113,8 +149,8 @@ export default function MarketCommentsPanel({
         callAction: action,
       };
 
-      setComments((prev) => [newComment, ...prev.slice(0, 14)]);
-    }, 6000);
+      setComments((prev) => [newComment, ...prev.slice(0, 5)]);
+    }, 8000);
 
     return () => clearInterval(interval);
   }, [tier]);
@@ -155,20 +191,77 @@ export default function MarketCommentsPanel({
     }
   };
 
+  // Helper component for Apache ECharts style circular gauge progress dials (D5)
+  const RenderGaugeDial = ({
+    label,
+    value,
+    color,
+  }: {
+    label: string;
+    value: number;
+    color: string;
+  }) => {
+    const radius = 34;
+    const circumference = 2 * Math.PI * radius;
+    const strokeDashoffset = circumference - (value / 100) * circumference;
+
+    return (
+      <div className="flex flex-col items-center justify-center text-center">
+        <div className="relative flex h-20 w-20 items-center justify-center">
+          <svg className="h-20 w-20 -rotate-90" viewBox="0 0 80 80">
+            {/* Background Arc Track */}
+            <circle
+              cx="40"
+              cy="40"
+              r={radius}
+              stroke="#1e293b"
+              strokeWidth="6"
+              fill="transparent"
+            />
+            {/* Progress Arc */}
+            <circle
+              cx="40"
+              cy="40"
+              r={radius}
+              stroke={color}
+              strokeWidth="6"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              fill="transparent"
+              className="transition-all duration-1000 ease-out"
+            />
+          </svg>
+          <div className="absolute flex flex-col items-center justify-center text-center">
+            <span className="font-mono text-base font-black text-slate-100">
+              {value}
+            </span>
+            <span className="font-mono text-[8px] text-slate-400 uppercase">
+              pts
+            </span>
+          </div>
+        </div>
+        <span className="mt-1.5 text-[10px] font-extrabold text-slate-300">
+          {label}
+        </span>
+      </div>
+    );
+  };
+
   return (
-    <div className="relative flex h-full flex-col overflow-hidden border-l border-emerald-950/60 bg-[#090e0c] shadow-xl select-none">
-      {/* Panel Header — Deep Dark Emerald Tone #111815 */}
-      <div className="flex h-14 items-center justify-between border-b border-emerald-900/40 bg-[#111815] px-3.5">
+    <div className="relative flex h-full flex-col space-y-3.5 overflow-y-auto border-l border-emerald-950/70 bg-[#080d0a] p-0.5 shadow-2xl select-none">
+      {/* D2: Panel Header — Market Comments : LIVE (Larger Font Size) */}
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-emerald-900/40 bg-[#101713] px-4">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400 shadow-xs ring-1 ring-emerald-500/30">
             <Activity className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="flex items-center gap-1.5 text-xs font-bold tracking-tight text-slate-100">
+            <h2 className="flex items-center gap-2 text-base font-extrabold tracking-tight text-slate-100">
               Market Comments :
               {tier === 'PRO' && (
-                <span className="flex items-center gap-1 font-mono text-[10px] font-normal text-emerald-400">
-                  <span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-400" />
+                <span className="flex items-center gap-1.5 font-mono text-xs font-bold text-emerald-400">
+                  <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400" />
                   LIVE
                 </span>
               )}
@@ -189,27 +282,27 @@ export default function MarketCommentsPanel({
         )}
       </div>
 
-      {/* Top Section: Real-Time Market Comments Feed */}
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex items-center justify-between border-b border-emerald-900/30 bg-[#0d1411] px-3.5 py-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-          <span>Alert / Timestamp / Comment</span>
-          <span>Action</span>
+      {/* D3: Expanded Market Comments Feed (Space expanded to allow 3 full rows of comments comfortably) */}
+      <div className="flex shrink-0 flex-col px-3">
+        <div className="flex items-center justify-between rounded-t-lg border border-emerald-900/40 bg-[#0c1310] px-3.5 py-2 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase">
+          <span>ALERT / TIMESTAMP / COMMENT</span>
+          <span>ACTION</span>
         </div>
 
-        <ScrollArea className="flex-1 p-2">
-          <div className="space-y-1.5">
+        <ScrollArea className="h-44 rounded-b-lg border-x border-b border-emerald-900/40 bg-[#0a0f0c] p-2">
+          <div className="space-y-2">
             {comments.map((comment) => (
               <div
                 key={comment.id}
-                className="flex items-center justify-between gap-2 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-2 text-xs shadow-xs transition-all hover:border-emerald-700/40 hover:bg-[#101915]"
+                className="flex items-center justify-between gap-2 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-2.5 text-xs shadow-xs transition-all hover:border-emerald-700/40 hover:bg-[#101915]"
               >
                 <div className="flex min-w-0 items-center gap-2">
                   {renderIcon(comment.iconType)}
                   <div className="flex min-w-0 flex-col">
-                    <span className="font-mono text-[10px] text-slate-400">
+                    <span className="font-mono text-[9px] text-slate-400">
                       {comment.timestamp}
                     </span>
-                    <span className="truncate text-[11px] font-medium text-slate-200">
+                    <span className="truncate text-[11px] font-semibold text-slate-200">
                       {comment.shortComment}
                     </span>
                   </div>
@@ -222,26 +315,147 @@ export default function MarketCommentsPanel({
         </ScrollArea>
       </div>
 
-      {/* Bottom Section: 4 Statistical Quality Metrics Cards (Progress Bar Meters) */}
-      <div className="shrink-0 space-y-3 border-t border-emerald-900/50 bg-[#0b100e] p-3.5 shadow-lg">
-        <div className="flex items-center justify-between text-xs font-bold text-slate-100">
-          <span className="flex items-center gap-1.5">
-            <BarChart2 className="h-4 w-4 text-amber-400" />
-            Market Quality Metrics
+      {/* D4: Session & Countdown Banner (Sydney 🇦🇺, Tokyo 🇯🇵, London 🇬🇧, New York 🇺🇸 flags) */}
+      <div className="shrink-0 px-3">
+        <div className="relative overflow-hidden rounded-xl border border-amber-500/60 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 p-3.5 text-slate-950 shadow-xl shadow-amber-500/15">
+          <div className="mb-1.5 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-sm font-black">
+              <span className="text-base">🇬🇧</span>
+              <span>London Session</span>
+            </div>
+            <div className="flex items-center gap-1 text-[11px] font-bold opacity-90">
+              <span title="Sydney">🇦🇺</span>
+              <span title="Tokyo">🇯🇵</span>
+              <span title="London">🇬🇧</span>
+              <span title="New York">🇺🇸</span>
+              <HelpCircle className="ml-1 inline h-3.5 w-3.5 cursor-pointer text-slate-900" />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold tracking-tight uppercase opacity-90">
+              Upcoming High Impact News/Event Countdown
+            </span>
+            <span className="rounded-md bg-amber-400/90 px-2.5 py-0.5 font-mono text-base font-black tracking-widest text-slate-950 shadow-xs">
+              {formatCountdown(countdownSeconds)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* D5: 3 Circular Speedometer / Gauge-Progress Dials */}
+      <div className="mx-3 shrink-0 rounded-xl border border-emerald-900/40 bg-[#0a0f0c] py-3 shadow-md">
+        <div className="grid grid-cols-3 gap-2">
+          <RenderGaugeDial
+            label="M15 EDT Stochastic"
+            value={85}
+            color="#3b82f6"
+          />
+          <RenderGaugeDial
+            label="M15 SSA Deviation"
+            value={72}
+            color="#10b981"
+          />
+          <RenderGaugeDial
+            label="M15 Market Momentum"
+            value={61}
+            color="#f59e0b"
+          />
+        </div>
+      </div>
+
+      {/* D6: Transferred TRADE SETUP CARD with Thicker Outline & Direction Themes */}
+      <div className="shrink-0 px-3">
+        <div
+          className={cn(
+            'space-y-2.5 rounded-xl border-3 p-4 text-xs shadow-2xl transition-all',
+            tradeSetup.direction === 'BUY'
+              ? 'border-emerald-400 bg-[#071612] shadow-emerald-500/20'
+              : 'border-rose-500 bg-[#17090b] shadow-rose-500/20'
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp
+                className={cn(
+                  'h-4 w-4 stroke-[2.5]',
+                  tradeSetup.direction === 'BUY'
+                    ? 'text-emerald-400'
+                    : 'text-rose-400'
+                )}
+              />
+              <span
+                className={cn(
+                  'text-xs font-black tracking-wider uppercase',
+                  tradeSetup.direction === 'BUY'
+                    ? 'text-emerald-400'
+                    : 'text-rose-400'
+                )}
+              >
+                TRADE SETUP CARD
+              </span>
+            </div>
+            <Badge
+              className={cn(
+                'border-2 px-2.5 py-0.5 font-mono text-xs font-black',
+                tradeSetup.direction === 'BUY'
+                  ? 'border-emerald-400 bg-emerald-500/30 text-emerald-200'
+                  : 'border-rose-500 bg-rose-500/30 text-rose-200'
+              )}
+            >
+              {tradeSetup.direction} LIMIT @ ${tradeSetup.entryPrice.toFixed(2)}
+            </Badge>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 rounded-lg border border-slate-800 bg-black/60 p-2.5 font-mono text-[11px]">
+            <div>
+              <div className="text-[9px] font-bold text-slate-400 uppercase">
+                Take Profit
+              </div>
+              <div className="text-xs font-extrabold text-emerald-400">
+                ${tradeSetup.takeProfit.toFixed(2)}
+              </div>
+            </div>
+            <div>
+              <div className="text-[9px] font-bold text-slate-400 uppercase">
+                Stop Loss
+              </div>
+              <div className="text-xs font-extrabold text-rose-400">
+                ${tradeSetup.stopLoss.toFixed(2)}
+              </div>
+            </div>
+            <div>
+              <div className="text-[9px] font-bold text-slate-400 uppercase">
+                Risk / Reward
+              </div>
+              <div className="text-xs font-extrabold text-amber-400">
+                {tradeSetup.riskReward}
+              </div>
+            </div>
+          </div>
+
+          <p className="text-[11px] leading-relaxed font-medium text-slate-200">
+            {tradeSetup.rationale}
+          </p>
+        </div>
+      </div>
+
+      {/* D7: EDT Quality Metrics (Removed Stack E badge as requested!) */}
+      <div className="mt-2 shrink-0 space-y-3 border-t border-emerald-900/50 bg-[#0a0f0c] p-4">
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-2 text-base font-black text-slate-100">
+            <BarChart2 className="h-4.5 w-4.5 text-amber-400" />
+            EDT Quality Metrics
           </span>
-          <Badge
-            variant="outline"
-            className="border-emerald-500/40 bg-emerald-500/10 font-mono text-[9px] text-emerald-400"
-          >
-            Stack E
-          </Badge>
         </div>
 
-        <div className="space-y-2.5 font-mono text-xs">
+        <div className="space-y-2 font-mono text-xs">
           {/* 1. Bar Coverage */}
-          <div className="space-y-1 rounded border border-emerald-900/30 bg-[#0d1411] p-2">
+          <div className="space-y-1 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-2">
             <div className="flex justify-between text-[11px]">
-              <span className="font-sans text-slate-400">Bar Coverage</span>
+              <span className="font-sans font-semibold text-slate-400">
+                Bar Coverage
+              </span>
               <span className="font-bold text-emerald-400">
                 Excellent {METRICS_DATA.barCoverage}%
               </span>
@@ -253,9 +467,11 @@ export default function MarketCommentsPanel({
           </div>
 
           {/* 2. Regression R² */}
-          <div className="space-y-1 rounded border border-emerald-900/30 bg-[#0d1411] p-2">
+          <div className="space-y-1 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-2">
             <div className="flex justify-between text-[11px]">
-              <span className="font-sans text-slate-400">Regression R²</span>
+              <span className="font-sans font-semibold text-slate-400">
+                Regression R²
+              </span>
               <span className="font-bold text-amber-400">
                 Fair {METRICS_DATA.regressionR2}%
               </span>
@@ -267,9 +483,11 @@ export default function MarketCommentsPanel({
           </div>
 
           {/* 3. EDT Fitness */}
-          <div className="space-y-1 rounded border border-emerald-900/30 bg-[#0d1411] p-2">
+          <div className="space-y-1 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-2">
             <div className="flex justify-between text-[11px]">
-              <span className="font-sans text-slate-400">EDT Fitness</span>
+              <span className="font-sans font-semibold text-slate-400">
+                EDT Fitness
+              </span>
               <span className="font-bold text-rose-400">
                 Underfit {METRICS_DATA.edtFitness}%
               </span>
@@ -281,9 +499,9 @@ export default function MarketCommentsPanel({
           </div>
 
           {/* 4. Baseline Symmetry */}
-          <div className="space-y-1 rounded border border-emerald-900/30 bg-[#0d1411] p-2">
+          <div className="space-y-1 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-1.5">
             <div className="flex justify-between text-[11px]">
-              <span className="font-sans text-slate-400">
+              <span className="font-sans font-semibold text-slate-400">
                 Baseline Symmetry
               </span>
               <span className="font-bold text-cyan-400">
@@ -314,9 +532,9 @@ export default function MarketCommentsPanel({
             Live Feeds & Quality Metrics
           </h3>
           <p className="mb-4 max-w-xs text-xs leading-relaxed text-slate-400">
-            Live Market Comments and 4 Statistical Quality Metrics require a PRO
-            subscription. Upgrade to unlock real-time WebSocket feeds for
-            XAUUSD.
+            Live Market Comments, Session Countdowns, Gauges, and EDT Quality
+            Metrics require a PRO subscription. Upgrade to unlock real-time
+            WebSocket feeds for XAUUSD.
           </p>
           <Button
             size="sm"
