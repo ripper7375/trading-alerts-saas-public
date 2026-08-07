@@ -1,0 +1,17 @@
+{
+  "nav.dashboard": "मुख्य डैशबोर्ड",
+  "nav.ai_analyst": "एआई चार्ट विश्लेषक",
+  "nav.alerts": "रियल-टाइम अलर्ट",
+  "nav.pricing": "मूल्य निर्धारण और अपग्रेड",
+  "nav.profile": "प्रोफ़ाइल सेटिंग्स",
+  "nav.security": "सुरक्षा और 2FA",
+  "nav.billing": "बिलिंग और चालान",
+  "nav.language": "भाषा और क्षेत्र",
+  "nav.help": "सहायता और सहायता",
+  "header.search_placeholder": "सिंबल खोजें (जैसे XAUUSD)...",
+  "header.pro_tag": "प्रो प्लान",
+  "header.free_tag": "फ्री प्लान",
+  "settings.language_title": "भाषा, समय क्षेत्र और क्षेत्रीय प्रारूप",
+  "settings.save_btn": "प्रांत प्राथमिकताएं सहेजें",
+  "settings.saved_btn": "सहेज लिया गया!"
+}

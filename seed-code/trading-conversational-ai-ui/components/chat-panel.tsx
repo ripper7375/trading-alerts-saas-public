@@ -27,19 +27,7 @@ import { cn } from '@/lib/utils';
 import type { Message, Symbol, Timeframe, Tier } from '@/lib/types';
 import { PRO_TIER_CONFIG } from '@/lib/tier-config';
 
-interface ChatPanelProps {
-  tier: Tier;
-  symbol: Symbol;
-  timeframe: Timeframe;
-  onSymbolChange: (symbol: Symbol) => void;
-  onTimeframeChange: (timeframe: Timeframe) => void;
-  isSidebarCollapsed?: boolean;
-  onToggleSidebar?: () => void;
-  onCollapsePanel?: () => void;
-  onOpenUpgradeModal?: (feature: string) => void;
-  predeterminedQuestion?: string | null;
-  onClearPredeterminedQuestion?: () => void;
-}
+import { useLocale } from '@/lib/context/locale-context';
 
 export const ANALYST_MODELS = [
   {
@@ -64,6 +52,7 @@ export default function ChatPanel({
   predeterminedQuestion,
   onClearPredeterminedQuestion,
 }: ChatPanelProps) {
+  const { t } = useLocale();
   const [selectedModel, setSelectedModel] = useState('gemini-3-6-flash');
   const [tokensUsed, setTokensUsed] = useState(42500);
   const monthlyQuota = PRO_TIER_CONFIG.aiMonthlyTokenQuota; // 500,000
@@ -297,7 +286,9 @@ export default function ChatPanel({
                     </div>
                   )}
 
-                  <div className="whitespace-pre-wrap">{message.content}</div>
+                  <div className="whitespace-pre-wrap">
+                    {t(message.content)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -323,7 +314,7 @@ export default function ChatPanel({
         <div className="mb-1 flex items-center justify-between font-medium">
           <span className="flex items-center gap-1 text-slate-300">
             <Zap className="h-3 w-3 text-amber-400" />
-            Monthly Token Quota
+            {t('chat.monthly_token_quota', 'Monthly Token Quota')}
           </span>
           <span className="font-mono text-[10px] font-bold text-amber-400">
             {tokensUsed.toLocaleString()} /{' '}

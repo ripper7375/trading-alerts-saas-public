@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import './globals.css';
 import { ThemeProvider } from './providers';
 import { ThemeSync } from '@/components/theme-sync';
+import ClientProviders from '@/components/providers/client-providers';
 
 export const metadata: Metadata = {
   title: 'DavinTrade AI',
@@ -75,7 +76,7 @@ export default function RootLayout({
           <Suspense fallback={null}>
             <ThemeSync />
           </Suspense>
-          {children}
+          <ClientProviders>{children}</ClientProviders>
         </ThemeProvider>
       </body>
     </html>

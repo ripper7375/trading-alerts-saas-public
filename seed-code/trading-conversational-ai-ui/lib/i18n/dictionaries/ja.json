@@ -1,0 +1,17 @@
+{
+  "nav.dashboard": "メインダッシュボード",
+  "nav.ai_analyst": "AIチャートアナリスト",
+  "nav.alerts": "リアルタイムアラート",
+  "nav.pricing": "料金プラン・アップグレード",
+  "nav.profile": "プロフィール設定",
+  "nav.security": "セキュリティと2段階認証",
+  "nav.billing": "請求と領収書",
+  "nav.language": "言語と地域",
+  "nav.help": "ヘルプとサポート",
+  "header.search_placeholder": "銘柄検索 (例: XAUUSD)...",
+  "header.pro_tag": "PROプラン",
+  "header.free_tag": "FREEプラン",
+  "settings.language_title": "言語、タイムゾーン、地域フォーマット",
+  "settings.save_btn": "地域設定を保存",
+  "settings.saved_btn": "地域設定を保存しました！"
+}

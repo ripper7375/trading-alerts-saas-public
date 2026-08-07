@@ -1,0 +1,17 @@
+{
+  "nav.dashboard": "Panel Principal",
+  "nav.ai_analyst": "Analista de Gráficos IA",
+  "nav.alerts": "Alertas en Tiempo Real",
+  "nav.pricing": "Precios y Mejoras",
+  "nav.profile": "Ajustes de Perfil",
+  "nav.security": "Seguridad y 2FA",
+  "nav.billing": "Facturación y Recibos",
+  "nav.language": "Idioma y Región",
+  "nav.help": "Ayuda y Soporte",
+  "header.search_placeholder": "Buscar símbolo (ej. XAUUSD)...",
+  "header.pro_tag": "NIVEL PRO",
+  "header.free_tag": "NIVEL GRATIS",
+  "settings.language_title": "Idioma, Zona Horaria y Formatos Regionales",
+  "settings.save_btn": "Guardar Preferencias Regionales",
+  "settings.saved_btn": "¡Preferencias Guardadas!"
+}

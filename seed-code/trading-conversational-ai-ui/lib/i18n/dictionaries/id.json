@@ -1,0 +1,17 @@
+{
+  "nav.dashboard": "Dasbor Utama",
+  "nav.ai_analyst": "Analis Grafik AI",
+  "nav.alerts": "Peringatan Real-Time",
+  "nav.pricing": "Harga & Upgrade",
+  "nav.profile": "Pengaturan Profil",
+  "nav.security": "Keamanan & 2FA",
+  "nav.billing": "Tagihan & Faktur",
+  "nav.language": "Bahasa & Wilayah",
+  "nav.help": "Bantuan & Dukungan",
+  "header.search_placeholder": "Cari simbol (contoh XAUUSD)...",
+  "header.pro_tag": "TINGKAT PRO",
+  "header.free_tag": "TINGKAT GRATIS",
+  "settings.language_title": "Bahasa, Zona Waktu & Format Regional",
+  "settings.save_btn": "Simpan Preferensi Regional",
+  "settings.saved_btn": "Preferensi Tersimpan!"
+}

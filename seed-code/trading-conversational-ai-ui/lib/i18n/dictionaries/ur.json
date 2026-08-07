@@ -1,0 +1,17 @@
+{
+  "nav.dashboard": "مین ڈیش بورڈ",
+  "nav.ai_analyst": "اے آئی چارٹ اینالسٹ",
+  "nav.alerts": "ریئل ٹائم الرٹس",
+  "nav.pricing": "قیمت اور اپ گریڈ",
+  "nav.profile": "پروفائل کی ترتیبات",
+  "nav.security": "سیکیورٹی اور 2FA",
+  "nav.billing": "بلنگ اور انوائس",
+  "nav.language": "زبان اور علاقہ",
+  "nav.help": "مدد اور مدد",
+  "header.search_placeholder": "سمبل تلاش کریں (مثلاً XAUUSD)...",
+  "header.pro_tag": "پرو لیول",
+  "header.free_tag": "مفت لیول",
+  "settings.language_title": "زبان، ٹائم زون اور علاقائی فارمیٹس",
+  "settings.save_btn": "ترجیحات کو محفوظ کریں",
+  "settings.saved_btn": "محفوظ کر لیا گیا!"
+}

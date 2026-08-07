@@ -1,0 +1,17 @@
+{
+  "nav.dashboard": "Painel Principal",
+  "nav.ai_analyst": "Analista de Gráficos IA",
+  "nav.alerts": "Alertas em Tempo Real",
+  "nav.pricing": "Preços e Planos",
+  "nav.profile": "Configurações de Perfil",
+  "nav.security": "Segurança e 2FA",
+  "nav.billing": "Faturamento e Faturas",
+  "nav.language": "Idioma e Região",
+  "nav.help": "Ajuda e Suporte",
+  "header.search_placeholder": "Buscar símbolo (ex: XAUUSD)...",
+  "header.pro_tag": "PLANO PRO",
+  "header.free_tag": "PLANO GRÁTIS",
+  "settings.language_title": "Idioma, Fuso Horário e Formatados Regionais",
+  "settings.save_btn": "Salvar Preferências Regionais",
+  "settings.saved_btn": "Preferências Salvas!"
+}

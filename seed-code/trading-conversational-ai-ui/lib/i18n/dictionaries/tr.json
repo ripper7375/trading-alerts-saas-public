@@ -1,0 +1,17 @@
+{
+  "nav.dashboard": "Ana Kontrol Paneli",
+  "nav.ai_analyst": "Yapay Zeka Grafik Analisti",
+  "nav.alerts": "Gerçek Zamanlı Uyarılar",
+  "nav.pricing": "Fiyatlandırma & Yükseltme",
+  "nav.profile": "Profil Ayarları",
+  "nav.security": "Güvenlik & 2FA",
+  "nav.billing": "Faturalandırma & Faturalar",
+  "nav.language": "Dil & Bölge",
+  "nav.help": "Yardım & Destek",
+  "header.search_placeholder": "Sembol ara (ör. XAUUSD)...",
+  "header.pro_tag": "PRO SÜRÜM",
+  "header.free_tag": "ÜCRETSİZ SÜRÜM",
+  "settings.language_title": "Dil, Saat Dilimi ve Bölgesel Formatlar",
+  "settings.save_btn": "Bölgesel Tercihleri Kaydet",
+  "settings.saved_btn": "Tercihler Kaydedildi!"
+}

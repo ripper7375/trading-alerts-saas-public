@@ -41,8 +41,10 @@ import {
   BarChart2,
   EyeOff,
 } from 'lucide-react';
-import type { Symbol, Timeframe, Tier, M15ViewMode } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import type { Symbol, Timeframe, Tier } from '@/lib/types';
+import { useLocale } from '@/lib/context/locale-context';
+import type { M15ViewMode } from '@/lib/types';
 
 interface TradingChartProps {
   tier?: Tier;
@@ -65,6 +67,7 @@ export default function TradingChart({
   onOpenUpgradeModal,
   onAskAiFromChart,
 }: TradingChartProps) {
+  const { t } = useLocale();
   const containerM5Ref = useRef<HTMLDivElement>(null);
   const containerM15Ref = useRef<HTMLDivElement>(null);
   const chartM5Ref = useRef<IChartApi | null>(null);
@@ -507,7 +510,7 @@ export default function TradingChart({
                   <AvatarImage src="/DavinTrade_Logo.jpg" />
                   <AvatarFallback>AI</AvatarFallback>
                 </Avatar>
-                <span>Ask AI about M5 Chart</span>
+                <span>{t('Ask AI about M5 Chart')}</span>
               </Button>
             </div>
 
@@ -657,7 +660,7 @@ export default function TradingChart({
                   <AvatarImage src="/DavinTrade_Logo.jpg" />
                   <AvatarFallback>AI</AvatarFallback>
                 </Avatar>
-                <span>Ask AI about M15 Chart</span>
+                <span>{t('Ask AI about M15 Chart')}</span>
               </Button>
             </div>
 

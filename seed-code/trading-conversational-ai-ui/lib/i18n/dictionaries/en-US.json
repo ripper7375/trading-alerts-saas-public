@@ -1,0 +1,21 @@
+{
+  "nav.dashboard": "Main Dashboard",
+  "nav.ai_analyst": "AI Chart Analyst",
+  "nav.alerts": "Real-Time Alerts",
+  "nav.pricing": "Pricing & Upgrade",
+  "nav.profile": "Profile Settings",
+  "nav.security": "Security & 2FA",
+  "nav.billing": "Billing & Invoices",
+  "nav.language": "Language & Region",
+  "nav.help": "Help & Support",
+  "header.search_placeholder": "Search symbol (e.g. XAUUSD), session or alert rule...",
+  "header.pro_tag": "PRO TIER",
+  "header.free_tag": "FREE TIER",
+  "dashboard.title": "Quantitative Terminal Dashboard",
+  "dashboard.subtitle": "Multi-Timeframe Market Structure & Sub-Second Server Alert Telemetry",
+  "alerts.title": "Server-Side Real-Time Alerts Manager",
+  "settings.language_title": "Language, Timezone & Regional Formats",
+  "settings.language_subtitle": "Configure internationalization, session clock timezones, and date formats",
+  "settings.save_btn": "Save Regional Preferences",
+  "settings.saved_btn": "Regional Preferences Saved!"
+}

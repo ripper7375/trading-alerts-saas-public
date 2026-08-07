@@ -27,6 +27,7 @@ import type {
   QualityMetrics,
   TradeSetup,
 } from '@/lib/types';
+import { useLocale } from '@/lib/context/locale-context';
 
 interface MarketCommentsPanelProps {
   tier: Tier;
@@ -91,6 +92,7 @@ export default function MarketCommentsPanel({
   onCollapsePanel,
   onOpenUpgradeModal,
 }: MarketCommentsPanelProps) {
+  const { t, formatTimestamp } = useLocale();
   const [comments, setComments] = useState<MarketComment[]>(INITIAL_COMMENTS);
   const [tradeSetup, setTradeSetup] = useState<TradeSetup>(DEFAULT_TRADE_SETUP);
 
@@ -258,7 +260,7 @@ export default function MarketCommentsPanel({
           </div>
           <div>
             <h2 className="flex items-center gap-2 text-base font-extrabold tracking-tight text-slate-100">
-              Market Comments :
+              {t('comments.title', 'Market Comments')} :
               {tier === 'PRO' && (
                 <span className="flex items-center gap-1.5 font-mono text-xs font-bold text-emerald-400">
                   <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400" />
@@ -285,8 +287,10 @@ export default function MarketCommentsPanel({
       {/* D3: Expanded Market Comments Feed (Space expanded to allow 3 full rows of comments comfortably) */}
       <div className="flex shrink-0 flex-col px-3">
         <div className="flex items-center justify-between rounded-t-lg border border-emerald-900/40 bg-[#0c1310] px-3.5 py-2 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase">
-          <span>ALERT / TIMESTAMP / COMMENT</span>
-          <span>ACTION</span>
+          <span>
+            {t('comments.col_comment', 'ALERT / TIMESTAMP / COMMENT')}
+          </span>
+          <span>{t('comments.col_action', 'ACTION')}</span>
         </div>
 
         <ScrollArea className="h-44 rounded-b-lg border-x border-b border-emerald-900/40 bg-[#0a0f0c] p-2">
@@ -334,7 +338,10 @@ export default function MarketCommentsPanel({
 
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold tracking-tight uppercase opacity-90">
-              Upcoming High Impact News/Event Countdown
+              {t(
+                'comments.news_countdown',
+                'UPCOMING HIGH IMPACT NEWS/EVENT COUNTDOWN'
+              )}
             </span>
             <span className="rounded-md bg-amber-400/90 px-2.5 py-0.5 font-mono text-base font-black tracking-widest text-slate-950 shadow-xs">
               {formatCountdown(countdownSeconds)}
@@ -349,17 +356,17 @@ export default function MarketCommentsPanel({
           <RenderGaugeDial
             label="M15 EDT Stochastic"
             value={85}
-            color="#3b82f6"
+            color="#38bdf8"
           />
           <RenderGaugeDial
             label="M15 SSA Deviation"
             value={72}
-            color="#10b981"
+            color="#38bdf8"
           />
           <RenderGaugeDial
             label="M15 Market Momentum"
             value={61}
-            color="#f59e0b"
+            color="#38bdf8"
           />
         </div>
       </div>
@@ -368,14 +375,14 @@ export default function MarketCommentsPanel({
       <div className="shrink-0 px-3">
         <div
           className={cn(
-            'space-y-2.5 rounded-xl border-3 p-4 text-xs shadow-2xl transition-all',
+            'relative space-y-3 rounded-xl border-2 p-3.5 shadow-2xl transition-all',
             tradeSetup.direction === 'BUY'
-              ? 'border-emerald-400 bg-[#071612] shadow-emerald-500/20'
-              : 'border-rose-500 bg-[#17090b] shadow-rose-500/20'
+              ? 'border-emerald-400 bg-gradient-to-br from-[#062014] via-[#092b1b] to-[#04170e] text-slate-100 shadow-emerald-950/50'
+              : 'border-rose-500 bg-gradient-to-br from-[#2a0910] via-[#380c15] to-[#1c0409] text-slate-100 shadow-rose-950/50'
           )}
         >
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <TrendingUp
                 className={cn(
                   'h-4 w-4 stroke-[2.5]',
@@ -392,7 +399,7 @@ export default function MarketCommentsPanel({
                     : 'text-rose-400'
                 )}
               >
-                TRADE SETUP CARD
+                {t('comments.trade_setup_card', 'TRADE SETUP CARD')}
               </span>
             </div>
             <Badge
@@ -435,7 +442,7 @@ export default function MarketCommentsPanel({
           </div>
 
           <p className="text-[11px] leading-relaxed font-medium text-slate-200">
-            {tradeSetup.rationale}
+            {t(tradeSetup.rationale)}
           </p>
         </div>
       </div>
@@ -445,7 +452,7 @@ export default function MarketCommentsPanel({
         <div className="flex items-center justify-between">
           <span className="flex items-center gap-2 text-base font-black text-slate-100">
             <BarChart2 className="h-4.5 w-4.5 text-amber-400" />
-            EDT Quality Metrics
+            {t('comments.edt_quality_metrics', 'EDT Quality Metrics')}
           </span>
         </div>
 
@@ -454,7 +461,7 @@ export default function MarketCommentsPanel({
           <div className="space-y-1 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-2">
             <div className="flex justify-between text-[11px]">
               <span className="font-sans font-semibold text-slate-400">
-                Bar Coverage
+                {t('comments.bar_coverage', 'Bar Coverage')}
               </span>
               <span className="font-bold text-emerald-400">
                 Excellent {METRICS_DATA.barCoverage}%
@@ -470,7 +477,7 @@ export default function MarketCommentsPanel({
           <div className="space-y-1 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-2">
             <div className="flex justify-between text-[11px]">
               <span className="font-sans font-semibold text-slate-400">
-                Regression R²
+                {t('comments.regression_r2', 'Regression R²')}
               </span>
               <span className="font-bold text-amber-400">
                 Fair {METRICS_DATA.regressionR2}%
@@ -486,7 +493,7 @@ export default function MarketCommentsPanel({
           <div className="space-y-1 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-2">
             <div className="flex justify-between text-[11px]">
               <span className="font-sans font-semibold text-slate-400">
-                EDT Fitness
+                {t('comments.edt_fitness', 'EDT Fitness')}
               </span>
               <span className="font-bold text-rose-400">
                 Underfit {METRICS_DATA.edtFitness}%

@@ -1,0 +1,17 @@
+{
+  "nav.dashboard": "Haupt-Dashboard",
+  "nav.ai_analyst": "KI-Chart-Analyst",
+  "nav.alerts": "Echtzeit-Benachrichtigungen",
+  "nav.pricing": "Preise & Upgrade",
+  "nav.profile": "Profileinstellungen",
+  "nav.security": "Sicherheit & 2FA",
+  "nav.billing": "Abrechnung & Rechnungen",
+  "nav.language": "Sprache & Region",
+  "nav.help": "Hilfe & Support",
+  "header.search_placeholder": "Symbol suchen (z.B. XAUUSD)...",
+  "header.pro_tag": "PRO TIER",
+  "header.free_tag": "FREE TIER",
+  "settings.language_title": "Sprache, Zeitzone & Regionale Formate",
+  "settings.save_btn": "Regionale Einstellungen Speichern",
+  "settings.saved_btn": "Einstellungen Gespeichert!"
+}
