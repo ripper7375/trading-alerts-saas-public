@@ -22,6 +22,11 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from '@/components/ui/resizable';
+import {
   RefreshCw,
   Lock,
   Layers,
@@ -95,6 +100,22 @@ export default function TradingChart({
       });
     }
   }, []);
+
+  // ResizeObserver for dynamic container drag resizing
+  useEffect(() => {
+    if (!containerM5Ref.current || !containerM15Ref.current) return;
+
+    const observer = new ResizeObserver(() => {
+      handleResize();
+    });
+
+    observer.observe(containerM5Ref.current);
+    observer.observe(containerM15Ref.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [handleResize]);
 
   // Handle M5 on M15 Toggle
   const handleToggleM5OnM15 = (checked: boolean) => {
@@ -284,7 +305,7 @@ export default function TradingChart({
   return (
     <div className="relative flex h-full flex-col overflow-hidden border-x border-slate-800/80 bg-[#06070b] shadow-2xl select-none">
       {/* C2: Top Header Toolbar */}
-      <div className="flex h-14 flex-wrap items-center justify-between gap-2 border-b border-slate-800/90 bg-[#11141e] px-3.5 shadow-xs">
+      <div className="flex h-14 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-800/90 bg-[#11141e] px-3.5 shadow-xs">
         <div className="flex items-center gap-2">
           <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs font-bold text-amber-400 shadow-xs">
             XAUUSD
@@ -358,279 +379,292 @@ export default function TradingChart({
         </div>
       </div>
 
-      {/* Dual Stacked Chart Canvases */}
-      <div className="flex flex-1 flex-col gap-1 overflow-hidden bg-black/80 p-1">
+      {/* C4: Dual Stacked Chart Canvases with Horizontal Reciprocal Drag-Resizable Divider */}
+      <ResizablePanelGroup
+        direction="vertical"
+        className="flex-1 overflow-hidden bg-black/80 p-1"
+      >
         {/* C3: Upper Window: XAUUSD, M5 */}
-        <div className="relative flex-1 overflow-hidden rounded-lg border border-blue-900/40 shadow-lg shadow-blue-950/20">
-          {/* Left Vertical Drawing Toolbar Strip */}
-          <div className="absolute top-12 left-2 z-20 flex flex-col gap-0.5 rounded-lg border border-slate-800 bg-[#090c14]/90 p-0.5 shadow-lg backdrop-blur-md">
-            {drawingTools.map((tool) => (
-              <Button
-                key={tool.id}
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'h-7 w-7 rounded-md text-slate-400 hover:bg-slate-800/80 hover:text-slate-100',
-                  activeTool === tool.id &&
-                    'border border-blue-500/50 bg-blue-600/30 font-bold text-blue-300'
-                )}
-                onClick={() => setActiveTool(tool.id)}
-                title={tool.label}
-              >
-                <tool.icon className="h-3.5 w-3.5" />
-              </Button>
-            ))}
-          </div>
+        <ResizablePanel defaultSize={50} minSize={20}>
+          <div className="relative h-full w-full overflow-hidden rounded-lg border border-blue-900/40 shadow-lg shadow-blue-950/20">
+            {/* Left Vertical Drawing Toolbar Strip */}
+            <div className="absolute top-12 left-2 z-20 flex flex-col gap-0.5 rounded-lg border border-slate-800 bg-[#090c14]/90 p-0.5 shadow-lg backdrop-blur-md">
+              {drawingTools.map((tool) => (
+                <Button
+                  key={tool.id}
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-7 w-7 rounded-md text-slate-400 hover:bg-slate-800/80 hover:text-slate-100',
+                    activeTool === tool.id &&
+                      'border border-blue-500/50 bg-blue-600/30 font-bold text-blue-300'
+                  )}
+                  onClick={() => setActiveTool(tool.id)}
+                  title={tool.label}
+                >
+                  <tool.icon className="h-3.5 w-3.5" />
+                </Button>
+              ))}
+            </div>
 
-          {/* Top Left Badge Overlay */}
-          <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-2">
-            <Badge className="border border-blue-500/50 bg-[#080b12]/90 px-2.5 py-1 font-mono text-[11px] text-blue-300 shadow-md backdrop-blur-md">
-              🟢 XAUUSD,M5
-            </Badge>
-            <span className="rounded border border-blue-900/60 bg-[#080b12]/80 px-2 py-0.5 font-mono text-[10px] text-blue-300/80 backdrop-blur-xs">
-              M5 SSA & EDT Channel Canvas
-            </span>
-          </div>
+            {/* Top Left Badge Overlay */}
+            <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-2">
+              <Badge className="border border-blue-500/50 bg-[#080b12]/90 px-2.5 py-1 font-mono text-[11px] text-blue-300 shadow-md backdrop-blur-md">
+                🟢 XAUUSD,M5
+              </Badge>
+              <span className="rounded border border-blue-900/60 bg-[#080b12]/80 px-2 py-0.5 font-mono text-[10px] text-blue-300/80 backdrop-blur-xs">
+                M5 SSA & EDT Channel Canvas
+              </span>
+            </div>
 
-          {/* Top Right Controls: EDT Configuration + 3 Price View Modes */}
-          <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 rounded-lg border border-slate-800 bg-[#080b12]/90 p-1 shadow-md backdrop-blur-md">
-            <div className="border-slate-750 flex items-center rounded border bg-black/40 p-0.5">
+            {/* Top Right Controls: EDT Configuration + 3 Price View Modes */}
+            <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 rounded-lg border border-slate-800 bg-[#080b12]/90 p-1 shadow-md backdrop-blur-md">
+              <div className="border-slate-750 flex items-center rounded border bg-black/40 p-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-6 w-6 text-slate-400 hover:text-slate-100',
+                    m5PriceMode === 'BAR' && 'bg-blue-600/30 text-blue-300'
+                  )}
+                  onClick={() => setM5PriceMode('BAR')}
+                  title="Show Price Bar"
+                >
+                  <BarChart2 className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-6 w-6 text-slate-400 hover:text-slate-100',
+                    m5PriceMode === 'CANDLE' && 'bg-blue-600/30 text-blue-300'
+                  )}
+                  onClick={() => setM5PriceMode('CANDLE')}
+                  title="Show Price Candle"
+                >
+                  <CandleIcon className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-6 w-6 text-slate-400 hover:text-slate-100',
+                    m5PriceMode === 'HIDE' && 'bg-rose-600/30 text-rose-300'
+                  )}
+                  onClick={() => setM5PriceMode('HIDE')}
+                  title="Hide Price Bar & Candle (Indicators Only)"
+                >
+                  <EyeOff className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="h-7 border border-slate-700 bg-slate-800/80 text-[11px] font-bold text-slate-200 hover:bg-slate-700"
+                  >
+                    <Sliders className="mr-1 h-3 w-3 text-amber-400" />
+                    EDT Configuration
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="border-slate-750 w-64 space-y-2 bg-[#121622] p-3 text-xs text-slate-200">
+                  <div className="border-b border-slate-800 pb-1 font-bold text-amber-400">
+                    M5 EDT Parameters
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span>Channel Width:</span>{' '}
+                    <span className="font-mono font-bold text-emerald-400">
+                      12.0 pips
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span>SSA Smoothing Period:</span>{' '}
+                    <span className="font-mono font-bold text-blue-400">
+                      24 bars
+                    </span>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Lower Left Overlay: Ask AI Avatar Button */}
+            <div className="absolute bottom-2.5 left-2.5 z-20">
               <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'h-6 w-6 text-slate-400 hover:text-slate-100',
-                  m5PriceMode === 'BAR' && 'bg-blue-600/30 text-blue-300'
-                )}
-                onClick={() => setM5PriceMode('BAR')}
-                title="Show Price Bar"
+                variant="outline"
+                size="sm"
+                className="h-7 gap-2 rounded-full border-amber-500/50 bg-[#090d16]/95 px-3 text-[11px] font-bold text-amber-300 shadow-xl backdrop-blur-md hover:bg-amber-500/25"
+                onClick={() => {
+                  if (onAskAiFromChart) {
+                    onAskAiFromChart(
+                      'What is the current M5 SSA trend & EDT channel situation for XAUUSD?'
+                    );
+                  }
+                }}
+                title="Click to ask AI about M5 chart situation"
               >
-                <BarChart2 className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'h-6 w-6 text-slate-400 hover:text-slate-100',
-                  m5PriceMode === 'CANDLE' && 'bg-blue-600/30 text-blue-300'
-                )}
-                onClick={() => setM5PriceMode('CANDLE')}
-                title="Show Price Candle"
-              >
-                <CandleIcon className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'h-6 w-6 text-slate-400 hover:text-slate-100',
-                  m5PriceMode === 'HIDE' && 'bg-rose-600/30 text-rose-300'
-                )}
-                onClick={() => setM5PriceMode('HIDE')}
-                title="Hide Price Bar & Candle (Indicators Only)"
-              >
-                <EyeOff className="h-3.5 w-3.5" />
+                <Avatar className="h-4.5 w-4.5 border border-amber-400/80">
+                  <AvatarImage src="/DavinTrade_Logo.jpg" />
+                  <AvatarFallback>AI</AvatarFallback>
+                </Avatar>
+                <span>Ask AI about M5 Chart</span>
               </Button>
             </div>
 
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  size="sm"
-                  className="h-7 border border-slate-700 bg-slate-800/80 text-[11px] font-bold text-slate-200 hover:bg-slate-700"
-                >
-                  <Sliders className="mr-1 h-3 w-3 text-amber-400" />
-                  EDT Configuration
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="border-slate-750 w-64 space-y-2 bg-[#121622] p-3 text-xs text-slate-200">
-                <div className="border-b border-slate-800 pb-1 font-bold text-amber-400">
-                  M5 EDT Parameters
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span>Channel Width:</span>{' '}
-                  <span className="font-mono font-bold text-emerald-400">
-                    12.0 pips
-                  </span>
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span>SSA Smoothing Period:</span>{' '}
-                  <span className="font-mono font-bold text-blue-400">
-                    24 bars
-                  </span>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <div ref={containerM5Ref} className="absolute inset-0" />
           </div>
+        </ResizablePanel>
 
-          {/* Lower Left Overlay: Ask AI Avatar Button (Positioned at lower left as requested!) */}
-          <div className="absolute bottom-2.5 left-2.5 z-20">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 gap-2 rounded-full border-amber-500/50 bg-[#090d16]/95 px-3 text-[11px] font-bold text-amber-300 shadow-xl backdrop-blur-md hover:bg-amber-500/25"
-              onClick={() => {
-                if (onAskAiFromChart) {
-                  onAskAiFromChart(
-                    'What is the current M5 SSA trend & EDT channel situation for XAUUSD?'
-                  );
-                }
-              }}
-              title="Click to ask AI about M5 chart situation"
-            >
-              <Avatar className="h-4.5 w-4.5 border border-amber-400/80">
-                <AvatarImage src="/DavinTrade_Logo.jpg" />
-                <AvatarFallback>AI</AvatarFallback>
-              </Avatar>
-              <span>Ask AI about M5 Chart</span>
-            </Button>
-          </div>
-
-          <div ref={containerM5Ref} className="absolute inset-0" />
-        </div>
+        {/* C4: Reciprocal Drag-Resizable Horizontal Divider Handle */}
+        <ResizableHandle
+          withHandle
+          className="my-0.5 cursor-row-resize border-y border-amber-500/40 bg-[#101522] shadow-lg hover:bg-amber-500/60"
+        />
 
         {/* C5: Lower Window: XAUUSD, M15 */}
-        <div className="relative flex-1 overflow-hidden rounded-lg border border-purple-900/40 shadow-lg shadow-purple-950/20">
-          {/* Left Vertical Drawing Toolbar Strip */}
-          <div className="absolute top-12 left-2 z-20 flex flex-col gap-0.5 rounded-lg border border-slate-800 bg-[#0f0a17]/90 p-0.5 shadow-lg backdrop-blur-md">
-            {drawingTools.map((tool) => (
-              <Button
-                key={tool.id}
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'h-7 w-7 rounded-md text-slate-400 hover:bg-slate-800/80 hover:text-slate-100',
-                  activeTool === tool.id &&
-                    'border border-purple-500/50 bg-purple-600/30 font-bold text-purple-300'
-                )}
-                onClick={() => setActiveTool(tool.id)}
-                title={tool.label}
-              >
-                <tool.icon className="h-3.5 w-3.5" />
-              </Button>
-            ))}
-          </div>
+        <ResizablePanel defaultSize={50} minSize={20}>
+          <div className="relative h-full w-full overflow-hidden rounded-lg border border-purple-900/40 shadow-lg shadow-purple-950/20">
+            {/* Left Vertical Drawing Toolbar Strip */}
+            <div className="absolute top-12 left-2 z-20 flex flex-col gap-0.5 rounded-lg border border-slate-800 bg-[#0f0a17]/90 p-0.5 shadow-lg backdrop-blur-md">
+              {drawingTools.map((tool) => (
+                <Button
+                  key={tool.id}
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-7 w-7 rounded-md text-slate-400 hover:bg-slate-800/80 hover:text-slate-100',
+                    activeTool === tool.id &&
+                      'border border-purple-500/50 bg-purple-600/30 font-bold text-purple-300'
+                  )}
+                  onClick={() => setActiveTool(tool.id)}
+                  title={tool.label}
+                >
+                  <tool.icon className="h-3.5 w-3.5" />
+                </Button>
+              ))}
+            </div>
 
-          {/* Top Left Badge Overlay */}
-          <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-2">
-            <Badge className="border border-purple-500/50 bg-[#0f0a17]/90 px-2.5 py-1 font-mono text-[11px] text-purple-300 shadow-md backdrop-blur-md">
-              🟢 XAUUSD,M15
-            </Badge>
-
-            <span className="rounded border border-purple-900/60 bg-[#0f0a17]/80 px-2 py-0.5 font-mono text-[10px] text-purple-300/80 backdrop-blur-xs">
-              {m15ViewMode === 'SSA_EDT'
-                ? 'M15 SSA & EDT Channel'
-                : 'M15 ZigZag Polyline'}
-            </span>
-
-            {isM5OnM15 && tier === 'PRO' && (
-              <Badge
-                variant="outline"
-                className="border-cyan-500/60 bg-cyan-950/80 font-mono text-[10px] text-cyan-300 shadow-xs backdrop-blur-md"
-              >
-                ⚡ M5 EDT Overlaid
+            {/* Top Left Badge Overlay */}
+            <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-2">
+              <Badge className="border border-purple-500/50 bg-[#0f0a17]/90 px-2.5 py-1 font-mono text-[11px] text-purple-300 shadow-md backdrop-blur-md">
+                🟢 XAUUSD,M15
               </Badge>
-            )}
-          </div>
 
-          {/* Top Right Controls: EDT Configuration + 3 Price View Modes */}
-          <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0f0a17]/90 p-1 shadow-md backdrop-blur-md">
-            <div className="border-slate-750 flex items-center rounded border bg-black/40 p-0.5">
+              <span className="rounded border border-purple-900/60 bg-[#0f0a17]/80 px-2 py-0.5 font-mono text-[10px] text-purple-300/80 backdrop-blur-xs">
+                {m15ViewMode === 'SSA_EDT'
+                  ? 'M15 SSA & EDT Channel'
+                  : 'M15 ZigZag Polyline'}
+              </span>
+
+              {isM5OnM15 && tier === 'PRO' && (
+                <Badge
+                  variant="outline"
+                  className="border-cyan-500/60 bg-cyan-950/80 font-mono text-[10px] text-cyan-300 shadow-xs backdrop-blur-md"
+                >
+                  ⚡ M5 EDT Overlaid
+                </Badge>
+              )}
+            </div>
+
+            {/* Top Right Controls: EDT Configuration + 3 Price View Modes */}
+            <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0f0a17]/90 p-1 shadow-md backdrop-blur-md">
+              <div className="border-slate-750 flex items-center rounded border bg-black/40 p-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-6 w-6 text-slate-400 hover:text-slate-100',
+                    m15PriceMode === 'BAR' && 'bg-purple-600/30 text-purple-300'
+                  )}
+                  onClick={() => setM15PriceMode('BAR')}
+                  title="Show Price Bar"
+                >
+                  <BarChart2 className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-6 w-6 text-slate-400 hover:text-slate-100',
+                    m15PriceMode === 'CANDLE' &&
+                      'bg-purple-600/30 text-purple-300'
+                  )}
+                  onClick={() => setM15PriceMode('CANDLE')}
+                  title="Show Price Candle"
+                >
+                  <CandleIcon className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-6 w-6 text-slate-400 hover:text-slate-100',
+                    m15PriceMode === 'HIDE' && 'bg-rose-600/30 text-rose-300'
+                  )}
+                  onClick={() => setM15PriceMode('HIDE')}
+                  title="Hide Price Bar & Candle (Indicators Only)"
+                >
+                  <EyeOff className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="h-7 border border-slate-700 bg-slate-800/80 text-[11px] font-bold text-slate-200 hover:bg-slate-700"
+                  >
+                    <Sliders className="mr-1 h-3 w-3 text-amber-400" />
+                    EDT Configuration
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="border-slate-750 w-64 space-y-2 bg-[#121622] p-3 text-xs text-slate-200">
+                  <div className="border-b border-slate-800 pb-1 font-bold text-amber-400">
+                    M15 EDT Parameters
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span>Channel Width:</span>{' '}
+                    <span className="font-mono font-bold text-emerald-400">
+                      18.0 pips
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span>SSA Smoothing Period:</span>{' '}
+                    <span className="font-mono font-bold text-purple-400">
+                      48 bars
+                    </span>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Lower Left Overlay: Ask AI Avatar Button */}
+            <div className="absolute bottom-2.5 left-2.5 z-20">
               <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'h-6 w-6 text-slate-400 hover:text-slate-100',
-                  m15PriceMode === 'BAR' && 'bg-purple-600/30 text-purple-300'
-                )}
-                onClick={() => setM15PriceMode('BAR')}
-                title="Show Price Bar"
+                variant="outline"
+                size="sm"
+                className="h-7 gap-2 rounded-full border-amber-500/50 bg-[#0e0817]/95 px-3 text-[11px] font-bold text-amber-300 shadow-xl backdrop-blur-md hover:bg-amber-500/25"
+                onClick={() => {
+                  if (onAskAiFromChart) {
+                    onAskAiFromChart(
+                      'What is the M15 market structure & ZigZag confirmation for XAUUSD?'
+                    );
+                  }
+                }}
+                title="Click to ask AI about M15 chart situation"
               >
-                <BarChart2 className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'h-6 w-6 text-slate-400 hover:text-slate-100',
-                  m15PriceMode === 'CANDLE' &&
-                    'bg-purple-600/30 text-purple-300'
-                )}
-                onClick={() => setM15PriceMode('CANDLE')}
-                title="Show Price Candle"
-              >
-                <CandleIcon className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  'h-6 w-6 text-slate-400 hover:text-slate-100',
-                  m15PriceMode === 'HIDE' && 'bg-rose-600/30 text-rose-300'
-                )}
-                onClick={() => setM15PriceMode('HIDE')}
-                title="Hide Price Bar & Candle (Indicators Only)"
-              >
-                <EyeOff className="h-3.5 w-3.5" />
+                <Avatar className="h-4.5 w-4.5 border border-amber-400/80">
+                  <AvatarImage src="/DavinTrade_Logo.jpg" />
+                  <AvatarFallback>AI</AvatarFallback>
+                </Avatar>
+                <span>Ask AI about M15 Chart</span>
               </Button>
             </div>
 
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  size="sm"
-                  className="h-7 border border-slate-700 bg-slate-800/80 text-[11px] font-bold text-slate-200 hover:bg-slate-700"
-                >
-                  <Sliders className="mr-1 h-3 w-3 text-amber-400" />
-                  EDT Configuration
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="border-slate-750 w-64 space-y-2 bg-[#121622] p-3 text-xs text-slate-200">
-                <div className="border-b border-slate-800 pb-1 font-bold text-amber-400">
-                  M15 EDT Parameters
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span>Channel Width:</span>{' '}
-                  <span className="font-mono font-bold text-emerald-400">
-                    18.0 pips
-                  </span>
-                </div>
-                <div className="flex justify-between text-[11px]">
-                  <span>SSA Smoothing Period:</span>{' '}
-                  <span className="font-mono font-bold text-purple-400">
-                    48 bars
-                  </span>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <div ref={containerM15Ref} className="absolute inset-0" />
           </div>
-
-          {/* Lower Left Overlay: Ask AI Avatar Button (Positioned at lower left as requested!) */}
-          <div className="absolute bottom-2.5 left-2.5 z-20">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 gap-2 rounded-full border-amber-500/50 bg-[#0e0817]/95 px-3 text-[11px] font-bold text-amber-300 shadow-xl backdrop-blur-md hover:bg-amber-500/25"
-              onClick={() => {
-                if (onAskAiFromChart) {
-                  onAskAiFromChart(
-                    'What is the M15 market structure & ZigZag confirmation for XAUUSD?'
-                  );
-                }
-              }}
-              title="Click to ask AI about M15 chart situation"
-            >
-              <Avatar className="h-4.5 w-4.5 border border-amber-400/80">
-                <AvatarImage src="/DavinTrade_Logo.jpg" />
-                <AvatarFallback>AI</AvatarFallback>
-              </Avatar>
-              <span>Ask AI about M15 Chart</span>
-            </Button>
-          </div>
-
-          <div ref={containerM15Ref} className="absolute inset-0" />
-        </div>
-      </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }

@@ -15,12 +15,12 @@ import { ProUpgradeModal } from '@/components/ui/pro-upgrade-modal';
 import { PanelLeftOpen, PanelRightOpen } from 'lucide-react';
 import type { Symbol, Timeframe, Tier } from '@/lib/types';
 
-export default function Page() {
+export default function FreeTierPage() {
   const [symbol, setSymbol] = useState<Symbol>('XAUUSD');
   const [timeframe, setTimeframe] = useState<Timeframe>('M5');
 
-  // Active Tier (PRO Tier focused layout as specified)
-  const [tier, setTier] = useState<Tier>('PRO');
+  // FREE Tier Page Layout
+  const [tier, setTier] = useState<Tier>('FREE');
 
   // Active Sidebar Page ('Home' | 'Alerts')
   const [activePage, setActivePage] = useState<'Home' | 'Alerts'>('Home');
@@ -34,7 +34,7 @@ export default function Page() {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [upgradeFeatureName, setUpgradeFeatureName] = useState('');
 
-  // Predetermined Question state triggered from Chart Avatar Ask AI buttons (C3/C5)
+  // Predetermined Question state triggered from Chart Avatar Ask AI buttons
   const [predeterminedQuestion, setPredeterminedQuestion] = useState<
     string | null
   >(null);
@@ -47,7 +47,7 @@ export default function Page() {
   const handleAskAiFromChart = (question: string) => {
     setPredeterminedQuestion(question);
     if (isPanel1Collapsed) {
-      setIsPanel1Collapsed(false); // Auto-expand Chat panel if user clicks Ask AI on chart
+      setIsPanel1Collapsed(false);
     }
   };
 
@@ -108,20 +108,20 @@ export default function Page() {
                 onToggleCollapse={() =>
                   setIsSidebarCollapsed(!isSidebarCollapsed)
                 }
-                tier={tier}
+                tier="FREE"
                 onTierChange={setTier}
                 activePage={activePage}
                 onNavigate={setActivePage}
               />
             </ResizablePanel>
 
-            {/* Drag Handle 1: Between Part A (Sidebar) and Part B (Chat Panel) */}
+            {/* Drag Handle 1 */}
             <ResizableHandle
               withHandle
               className="border-x border-amber-500/30 bg-[#0c0f17] hover:bg-amber-500/60"
             />
 
-            {/* Part-B: Stack D AI Analyst Chat Panel (Left-Middle) */}
+            {/* Part-B: Stack D AI Analyst Chat Panel (FREE Tier Mode) */}
             {!isPanel1Collapsed && (
               <>
                 <ResizablePanel
@@ -133,7 +133,7 @@ export default function Page() {
                   className="h-full overflow-hidden"
                 >
                   <ChatPanel
-                    tier={tier}
+                    tier="FREE"
                     symbol={symbol}
                     timeframe={timeframe}
                     onSymbolChange={setSymbol}
@@ -151,7 +151,7 @@ export default function Page() {
                   />
                 </ResizablePanel>
 
-                {/* Drag Handle 2: Between Part B (Chat Panel) and Part C (Trading Chart) */}
+                {/* Drag Handle 2 */}
                 <ResizableHandle
                   withHandle
                   className="border-x border-amber-500/30 bg-[#0c0f17] hover:bg-amber-500/60"
@@ -159,7 +159,7 @@ export default function Page() {
               </>
             )}
 
-            {/* Part-C: Dual Stacked MTF Lightweight Charts (Middle - Auto Expands when A/B/D collapsed) */}
+            {/* Part-C: Dual Stacked MTF Lightweight Charts (FREE Tier Mode: No M5 EDT Overlay on M15) */}
             <ResizablePanel
               id="panel-c-charts"
               order={3}
@@ -168,7 +168,7 @@ export default function Page() {
               className="h-full overflow-hidden"
             >
               <TradingChart
-                tier={tier}
+                tier="FREE"
                 symbol={symbol}
                 timeframe={timeframe}
                 onSymbolChange={setSymbol}
@@ -178,10 +178,10 @@ export default function Page() {
               />
             </ResizablePanel>
 
-            {/* Part-D: Stack E Market Comments, Session Countdown, Gauges & Setup Card (Right) */}
+            {/* Part-D: Stack E Market Comments (FREE Tier Mode: Glassmorphism Blur Gate) */}
             {!isPanel3Collapsed && (
               <>
-                {/* Drag Handle 3: Between Part C (Trading Chart) and Part D (Comments Panel) */}
+                {/* Drag Handle 3 */}
                 <ResizableHandle
                   withHandle
                   className="border-x border-emerald-500/30 bg-[#0c0f17] hover:bg-emerald-500/60"
@@ -196,7 +196,7 @@ export default function Page() {
                   className="h-full overflow-hidden"
                 >
                   <MarketCommentsPanel
-                    tier={tier}
+                    tier="FREE"
                     onCollapsePanel={() => setIsPanel3Collapsed(true)}
                     onOpenUpgradeModal={handleOpenUpgradeModal}
                   />
@@ -212,7 +212,10 @@ export default function Page() {
         isOpen={isUpgradeModalOpen}
         onClose={() => setIsUpgradeModalOpen(false)}
         featureName={upgradeFeatureName}
-        onUpgradeSuccess={() => setTier('PRO')}
+        onUpgradeSuccess={() => {
+          setIsUpgradeModalOpen(false);
+          window.location.href = '/'; // Navigate to PRO Tier Page on upgrade
+        }}
       />
     </div>
   );

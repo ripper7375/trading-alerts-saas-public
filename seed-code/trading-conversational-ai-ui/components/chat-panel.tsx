@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   Zap,
   CornerDownLeft,
+  Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Message, Symbol, Timeframe, Tier } from '@/lib/types';
@@ -41,12 +42,17 @@ interface ChatPanelProps {
 }
 
 export const ANALYST_MODELS = [
-  { id: 'gemini-3-6-flash', name: 'Gemini 3.6 Flash', isDefault: true },
-  { id: 'claude-sonnet-5', name: 'Claude Sonnet 5' },
-  { id: 'gpt-5-6-terra', name: 'GPT 5.6 Terra' },
-  { id: 'glm-5-2', name: 'GLM-5.2' },
-  { id: 'kimi-k3', name: 'Kimi K3' },
-  { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
+  {
+    id: 'gemini-3-6-flash',
+    name: 'Gemini 3.6 Flash',
+    isDefault: true,
+    proOnly: false,
+  },
+  { id: 'claude-sonnet-5', name: 'Claude Sonnet 5', proOnly: true },
+  { id: 'gpt-5-6-terra', name: 'GPT 5.6 Terra', proOnly: true },
+  { id: 'glm-5-2', name: 'GLM-5.2', proOnly: true },
+  { id: 'kimi-k3', name: 'Kimi K3', proOnly: true },
+  { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash', proOnly: true },
 ];
 
 export default function ChatPanel({
@@ -69,6 +75,18 @@ export default function ChatPanel({
       timestamp: Date.now() - 300000,
       content: `Hello! I'm analyzing **${symbol}** on **${timeframe}**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).`,
     },
+    {
+      id: '2',
+      role: 'user',
+      timestamp: Date.now() - 240000,
+      content: `What is the current M5 SSA trend & EDT channel situation for XAUUSD?`,
+    },
+    {
+      id: '3',
+      role: 'assistant',
+      timestamp: Date.now() - 180000,
+      content: `Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.`,
+    },
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -80,7 +98,15 @@ export default function ChatPanel({
 
   // Handle predetermined questions triggered from the chart avatar button (C3/C5)
   useEffect(() => {
-    if (predeterminedQuestion && tier === 'PRO') {
+    if (predeterminedQuestion) {
+      if (tier === 'FREE') {
+        if (onOpenUpgradeModal) {
+          onOpenUpgradeModal('Interactive AI Analyst Chart Query');
+        }
+        if (onClearPredeterminedQuestion) onClearPredeterminedQuestion();
+        return;
+      }
+
       const userMsg: Message = {
         id: Date.now().toString(),
         role: 'user',
@@ -107,7 +133,14 @@ export default function ChatPanel({
   }, [predeterminedQuestion, tier]);
 
   const handleSendMessage = () => {
-    if (!input.trim() || tier === 'FREE') return;
+    if (!input.trim()) return;
+
+    if (tier === 'FREE') {
+      if (onOpenUpgradeModal) {
+        onOpenUpgradeModal('Interactive AI Analyst');
+      }
+      return;
+    }
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -133,12 +166,23 @@ export default function ChatPanel({
     }, 1200);
   };
 
+  const handleModelChange = (modelId: string) => {
+    const targetModel = ANALYST_MODELS.find((m) => m.id === modelId);
+    if (tier === 'FREE' && targetModel?.proOnly) {
+      if (onOpenUpgradeModal) {
+        onOpenUpgradeModal(`Multi-LLM Analyst (${targetModel.name})`);
+      }
+      return;
+    }
+    setSelectedModel(modelId);
+  };
+
   const activeModelObj = ANALYST_MODELS.find((m) => m.id === selectedModel);
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden border-r border-slate-800/80 bg-[#0b0d14] shadow-xl select-none">
       {/* B2: Panel Header — AI Chart Analyst */}
-      <div className="flex h-14 items-center justify-between border-b border-slate-800/80 bg-[#121622] px-3.5">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-800/80 bg-[#121622] px-3.5">
         <div className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400 shadow-xs ring-1 ring-amber-500/30">
             <Brain className="h-4 w-4" />
@@ -151,12 +195,8 @@ export default function ChatPanel({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <Select
-            value={selectedModel}
-            onValueChange={setSelectedModel}
-            disabled={tier === 'FREE'}
-          >
-            <SelectTrigger className="border-slate-750 h-7 w-[160px] bg-[#090b10] text-xs font-semibold text-slate-200 focus:ring-amber-500/30">
+          <Select value={selectedModel} onValueChange={handleModelChange}>
+            <SelectTrigger className="border-slate-750 h-7 w-[165px] bg-[#090b10] text-xs font-semibold text-slate-200 focus:ring-amber-500/30">
               <SelectValue placeholder="Select AI Model" />
             </SelectTrigger>
             <SelectContent className="border-slate-750 bg-[#121622]">
@@ -164,9 +204,14 @@ export default function ChatPanel({
                 <SelectItem
                   key={model.id}
                   value={model.id}
-                  className="text-xs focus:bg-amber-500/20 focus:text-amber-300"
+                  className="flex items-center justify-between text-xs focus:bg-amber-500/20 focus:text-amber-300"
                 >
-                  {model.name}
+                  <span>{model.name}</span>
+                  {tier === 'FREE' && model.proOnly && (
+                    <Badge className="ml-1.5 h-3.5 border-amber-500/40 bg-amber-500/20 font-mono text-[8px] text-amber-300">
+                      🔒 PRO
+                    </Badge>
+                  )}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -186,7 +231,29 @@ export default function ChatPanel({
         </div>
       </div>
 
-      {/* Messages Scroll Area */}
+      {/* FREE Tier Read-Only Banner */}
+      {tier === 'FREE' && (
+        <div className="flex shrink-0 items-center justify-between border-b border-amber-500/30 bg-[#121017] px-3.5 py-2 text-xs text-amber-300">
+          <div className="flex items-center gap-2">
+            <Info className="h-4 w-4 shrink-0 text-amber-400" />
+            <span className="text-[11px] font-semibold">
+              Read-Only Session History (FREE Tier) — Upgrade to PRO to resume
+              interactive AI Chart Analysis.
+            </span>
+          </div>
+          <Button
+            size="sm"
+            onClick={() =>
+              onOpenUpgradeModal && onOpenUpgradeModal('AI Chart Analyst')
+            }
+            className="h-6 bg-amber-500 px-2 text-[10px] font-extrabold text-slate-950 hover:bg-amber-400"
+          >
+            Upgrade
+          </Button>
+        </div>
+      )}
+
+      {/* Messages Scroll Area — Visible & Readable in both PRO and FREE tier */}
       <ScrollArea className="flex-1 p-3.5">
         <div className="mx-auto max-w-2xl space-y-4">
           {messages.map((message) => (
@@ -251,92 +318,80 @@ export default function ChatPanel({
         </div>
       </ScrollArea>
 
-      {/* B3: Relocated Monthly Token Quota Bar (Bottom right above Input Box B7) */}
-      {tier === 'PRO' && (
-        <div className="border-t border-slate-800/60 bg-[#0e1018] px-3.5 py-1.5 text-[11px]">
-          <div className="mb-1 flex items-center justify-between font-medium">
-            <span className="flex items-center gap-1 text-slate-300">
-              <Zap className="h-3 w-3 text-amber-400" />
-              Monthly Token Quota
-            </span>
-            <span className="font-mono text-[10px] font-bold text-amber-400">
-              {tokensUsed.toLocaleString()} / {monthlyQuota.toLocaleString()}
-            </span>
-          </div>
-          <Progress
-            value={(tokensUsed / monthlyQuota) * 100}
-            className="h-1.5 bg-slate-800"
-          />
+      {/* B3: Monthly Token Quota Bar */}
+      <div className="shrink-0 border-t border-slate-800/60 bg-[#0e1018] px-3.5 py-1.5 text-[11px]">
+        <div className="mb-1 flex items-center justify-between font-medium">
+          <span className="flex items-center gap-1 text-slate-300">
+            <Zap className="h-3 w-3 text-amber-400" />
+            Monthly Token Quota
+          </span>
+          <span className="font-mono text-[10px] font-bold text-amber-400">
+            {tokensUsed.toLocaleString()} /{' '}
+            {tier === 'PRO' ? monthlyQuota.toLocaleString() : '50,000'}
+          </span>
         </div>
-      )}
-
-      {/* B7: Larger Chat Box with Large Invitation Quote & Simple ENTER Icon */}
-      <div className="border-t border-slate-800/90 bg-[#0d0f17] p-3.5">
-        <div className="relative mx-auto max-w-2xl">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={tier === 'FREE'}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
-              }
-            }}
-            placeholder={
-              tier === 'PRO'
-                ? `Ask ${activeModelObj?.name.split(' ')[0]}...`
-                : 'AI Analyst Chat is locked in FREE tier.'
-            }
-            className="border-slate-750 min-h-[58px] w-full resize-none rounded-xl border bg-[#07090f] py-3.5 pr-12 pl-4 text-sm text-slate-100 shadow-inner placeholder:text-base placeholder:font-medium placeholder:text-slate-500 focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/30 focus:outline-none disabled:opacity-40"
-            rows={2}
-          />
-          <div className="absolute right-3 bottom-3.5 flex gap-1">
-            <Button
-              size="icon"
-              disabled={tier === 'FREE' || !input.trim()}
-              className="h-8 w-8 rounded-lg bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-30"
-              onClick={handleSendMessage}
-              title="Press ENTER to send"
-            >
-              <CornerDownLeft className="h-4 w-4 stroke-[2.5]" />
-            </Button>
-          </div>
-        </div>
+        <Progress
+          value={(tokensUsed / (tier === 'PRO' ? monthlyQuota : 50000)) * 100}
+          className="h-1.5 bg-slate-800"
+        />
       </div>
 
-      {/* FREE Tier Glassmorphism Blur Overlay Gate */}
-      {tier === 'FREE' && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#07080c]/85 p-6 text-center backdrop-blur-md">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-400 shadow-lg ring-1 shadow-amber-500/10 ring-amber-500/40">
-            <Lock className="h-6 w-6" />
+      {/* B7: Input Box — Interactive in PRO Tier vs Locked Read-Only Banner in FREE Tier */}
+      <div className="shrink-0 border-t border-slate-800/90 bg-[#0d0f17] p-3.5">
+        {tier === 'PRO' ? (
+          <div className="relative mx-auto max-w-2xl">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              placeholder={`Ask ${activeModelObj?.name.split(' ')[0]}...`}
+              className="border-slate-750 min-h-[58px] w-full resize-none rounded-xl border bg-[#07090f] py-3.5 pr-12 pl-4 text-sm text-slate-100 shadow-inner placeholder:text-base placeholder:font-medium placeholder:text-slate-500 focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/30 focus:outline-none"
+              rows={2}
+            />
+            <div className="absolute right-3 bottom-3.5 flex gap-1">
+              <Button
+                size="icon"
+                disabled={!input.trim()}
+                className="h-8 w-8 rounded-lg bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-30"
+                onClick={handleSendMessage}
+                title="Press ENTER to send"
+              >
+                <CornerDownLeft className="h-4 w-4 stroke-[2.5]" />
+              </Button>
+            </div>
           </div>
-          <Badge
-            variant="outline"
-            className="mb-2 border-amber-500/50 bg-amber-500/10 font-mono text-[10px] text-amber-400"
-          >
-            🔒 PRO Subscriber Feature
-          </Badge>
-          <h3 className="mb-1 text-base font-bold text-slate-100">
-            AI Chart Analyst
-          </h3>
-          <p className="mb-4 max-w-xs text-xs leading-relaxed text-slate-400">
-            AI Chart Analyst is exclusive to PRO subscribers. Upgrade to access
-            real-time Gemini 3.6 chart analysis and VANNA SQL quantitative
-            queries.
-          </p>
-          <Button
-            size="sm"
-            onClick={() =>
-              onOpenUpgradeModal && onOpenUpgradeModal('AI Chart Analyst')
-            }
-            className="bg-gradient-to-r from-amber-500 to-amber-600 font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
-          >
-            <Sparkles className="mr-1.5 h-3.5 w-3.5 fill-black" />
-            Upgrade to PRO
-          </Button>
-        </div>
-      )}
+        ) : (
+          <div className="mx-auto flex max-w-2xl flex-col items-center justify-between gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-center sm:flex-row sm:text-left">
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4 shrink-0 text-amber-400" />
+              <div>
+                <div className="text-xs font-bold text-slate-100">
+                  Read-Only History (FREE Tier)
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  Upgrade to PRO to ask new questions or continue this session.
+                </div>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() =>
+                onOpenUpgradeModal &&
+                onOpenUpgradeModal('Interactive AI Analyst')
+              }
+              className="shrink-0 bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
+            >
+              <Sparkles className="mr-1.5 h-3.5 w-3.5 fill-black" />
+              Upgrade to PRO
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
