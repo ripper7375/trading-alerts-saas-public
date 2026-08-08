@@ -57,9 +57,18 @@ export default function RootLayout({
                   d.classList.remove('dark', 'light');
                   d.classList.add(t);
                   d.style.colorScheme = t;
-                  // Also update cookie and localStorage for consistency
                   document.cookie = 'davintrade-theme=' + t + '; path=/; max-age=31536000; SameSite=Lax';
                   localStorage.setItem('davintrade-theme', t);
+
+                  var lc = document.cookie.match(/davintrade-locale=([^;]+)/);
+                  var ls = localStorage.getItem('davin_locale_preferences');
+                  var lang = 'en-GB';
+                  if (ls) {
+                    try { lang = JSON.parse(ls).language || lang; } catch (e) {}
+                  } else if (lc && lc[1]) {
+                    lang = lc[1];
+                  }
+                  d.lang = lang;
                 } catch (e) {}
               })();
             `,

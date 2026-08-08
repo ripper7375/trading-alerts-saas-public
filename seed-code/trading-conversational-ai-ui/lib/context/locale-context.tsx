@@ -9,6 +9,15 @@ import {
   CountryConfig,
 } from '@/lib/country-config';
 
+import thDict from '@/lib/i18n/dictionaries/th.json';
+import enGBDict from '@/lib/i18n/dictionaries/en-GB.json';
+
+const staticDictionaries: Record<string, Record<string, string>> = {
+  th: thDict,
+  'en-GB': enGBDict,
+  'en-US': enGBDict,
+};
+
 export interface LocalePreferences {
   countryCode: string;
   language: string;
@@ -42,9 +51,35 @@ const LocaleContext = createContext<LocaleContextType | null>(null);
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [preferences, setPreferences] =
-    useState<LocalePreferences>(defaultPreferences);
-  const [dictionary, setDictionary] = useState<Record<string, string>>({});
+  const [preferences, setPreferences] = useState<LocalePreferences>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('davin_locale_preferences');
+        const cookieMatch = document.cookie.match(/davintrade-locale=([^;]+)/);
+        if (saved) {
+          return { ...defaultPreferences, ...JSON.parse(saved) };
+        } else if (cookieMatch && cookieMatch[1]) {
+          const lang = cookieMatch[1];
+          const country = Object.values(SUPPORTED_COUNTRIES).find(
+            (c) => c.language === lang
+          );
+          if (country) {
+            return {
+              ...defaultPreferences,
+              countryCode: country.code,
+              language: country.language,
+            };
+          }
+        }
+      } catch {}
+    }
+    return defaultPreferences;
+  });
+
+  const [dictionary, setDictionary] = useState<Record<string, string>>(() => {
+    const lang = preferences.language || 'en-GB';
+    return staticDictionaries[lang] || staticDictionaries['en-GB'] || {};
+  });
 
   // 1. Detect Country from URL Prefix (e.g. /th/settings, /gb/alerts, /vn/pricing)
   useEffect(() => {
@@ -106,22 +141,19 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     detectCountryFromIP();
   }, [pathname]);
 
-  // Dynamically load language dictionary on-demand
+  // Dynamically load language dictionary on-demand (using static cache when available)
   useEffect(() => {
     const loadDictionary = async () => {
+      const lang = preferences.language || 'en-GB';
+      if (staticDictionaries[lang]) {
+        setDictionary(staticDictionaries[lang]);
+        return;
+      }
       try {
-        const lang = preferences.language || 'en-GB';
         const dict = await import(`@/lib/i18n/dictionaries/${lang}.json`);
         setDictionary(dict.default || {});
       } catch {
-        try {
-          const fallbackDict = await import(
-            `@/lib/i18n/dictionaries/en-GB.json`
-          );
-          setDictionary(fallbackDict.default || {});
-        } catch {
-          setDictionary({});
-        }
+        setDictionary(staticDictionaries['en-GB'] || {});
       }
     };
 
@@ -142,6 +174,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     setPreferences(updated);
     try {
       localStorage.setItem('davin_locale_preferences', JSON.stringify(updated));
+      document.cookie = `davintrade-locale=${updated.language}; path=/; max-age=31536000; SameSite=Lax`;
     } catch {}
   };
 
@@ -179,6 +212,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
           'davin_locale_preferences',
           JSON.stringify(updated)
         );
+        document.cookie = `davintrade-locale=${updated.language}; path=/; max-age=31536000; SameSite=Lax`;
       } catch {}
       return updated;
     });
