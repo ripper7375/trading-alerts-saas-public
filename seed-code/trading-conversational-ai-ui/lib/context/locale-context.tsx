@@ -1,40 +1,92 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { usePathname } from 'next/navigation';
+import { SUPPORTED_COUNTRIES, getCountryByCode } from '@/lib/country-config';
+import type { CountryConfig } from '@/lib/country-config';
 import {
-  SUPPORTED_COUNTRIES,
-  DEFAULT_COUNTRY,
-  getCountryByCode,
-  CountryConfig,
-} from '@/lib/country-config';
+  LOCALE_COOKIE,
+  LOCALE_STORAGE_KEY,
+  defaultPreferences,
+  localeCookieString,
+  preferencesForCountryPrefix,
+  preferencesFromCountry,
+  type LocalePreferences,
+} from '@/lib/i18n/locale-resolver';
 
 import thDict from '@/lib/i18n/dictionaries/th.json';
 import enGBDict from '@/lib/i18n/dictionaries/en-GB.json';
 
+/**
+ * Dictionaries bundled synchronously so the very first render — server AND
+ * client — already has the real translations. An async `import()` inside an
+ * effect would leave the first paint in English no matter how correct the
+ * resolved language was.
+ */
 const staticDictionaries: Record<string, Record<string, string>> = {
   th: thDict,
   'en-GB': enGBDict,
   'en-US': enGBDict,
 };
 
-export interface LocalePreferences {
-  countryCode: string;
-  language: string;
-  timezone: string;
-  dateFormat: 'MDY' | 'DMY' | 'YMD';
-  timeFormat: '12h' | '24h';
-  currency: string;
+function dictionaryFor(language: string): Record<string, string> {
+  return staticDictionaries[language] || staticDictionaries['en-GB'] || {};
 }
 
-export const defaultPreferences: LocalePreferences = {
-  countryCode: DEFAULT_COUNTRY.code,
-  language: DEFAULT_COUNTRY.language,
-  timezone: DEFAULT_COUNTRY.timezone,
-  dateFormat: DEFAULT_COUNTRY.dateFormat,
-  timeFormat: DEFAULT_COUNTRY.timeFormat,
-  currency: DEFAULT_COUNTRY.currency,
-};
+export type { LocalePreferences };
+export { defaultPreferences };
+
+function samePreferences(a: LocalePreferences, b: LocalePreferences): boolean {
+  return (
+    a.countryCode === b.countryCode &&
+    a.language === b.language &&
+    a.timezone === b.timezone &&
+    a.dateFormat === b.dateFormat &&
+    a.timeFormat === b.timeFormat &&
+    a.currency === b.currency
+  );
+}
+
+function readStoredPreferences(): LocalePreferences | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const saved = localStorage.getItem(LOCALE_STORAGE_KEY);
+    if (!saved) return null;
+    const parsed = JSON.parse(saved) as Partial<LocalePreferences>;
+    if (!parsed || !parsed.language) return null;
+    // A stored blob may predate a field being added, so fill gaps from the
+    // country config rather than leaking GB defaults into another locale.
+    const base = parsed.countryCode
+      ? preferencesFromCountry(getCountryByCode(parsed.countryCode))
+      : defaultPreferences;
+    return { ...base, ...parsed } as LocalePreferences;
+  } catch {
+    return null;
+  }
+}
+
+function readLocaleCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp(`${LOCALE_COOKIE}=([^;]+)`));
+  return match?.[1] ?? null;
+}
+
+function persistPreferences(preferences: LocalePreferences): void {
+  try {
+    localStorage.setItem(LOCALE_STORAGE_KEY, JSON.stringify(preferences));
+    document.cookie = localeCookieString(preferences.language);
+  } catch {
+    /* private mode / storage disabled — cookie-less operation still renders */
+  }
+}
 
 interface LocaleContextType extends LocalePreferences {
   countryConfig: CountryConfig;
@@ -51,275 +103,270 @@ const LocaleContext = createContext<LocaleContextType | null>(null);
 
 export function LocaleProvider({
   children,
-  initialLocale = 'en-GB',
+  initialPreferences,
+  initialLocale,
 }: {
   children: React.ReactNode;
+  /** Full preference set resolved on the server in `app/layout.tsx`. */
+  initialPreferences?: LocalePreferences;
+  /** @deprecated language-only entry point, kept for backwards compatibility. */
   initialLocale?: string;
 }) {
   const pathname = usePathname();
-  const [preferences, setPreferences] = useState<LocalePreferences>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('davin_locale_preferences');
-        const cookieMatch = document.cookie.match(/davintrade-locale=([^;]+)/);
-        if (saved) {
-          return { ...defaultPreferences, ...JSON.parse(saved) };
-        } else if (cookieMatch && cookieMatch[1]) {
-          const lang = cookieMatch[1];
-          const country = Object.values(SUPPORTED_COUNTRIES).find(
-            (c) => c.language === lang
-          );
-          if (country) {
-            return {
-              ...defaultPreferences,
-              countryCode: country.code,
-              language: country.language,
-            };
-          }
-        }
-      } catch {}
-    }
-    // Server-side (SSR): initialize with server cookie locale!
-    const country = Object.values(SUPPORTED_COUNTRIES).find(
-      (c) => c.language === initialLocale
-    );
-    if (country) {
-      return {
-        ...defaultPreferences,
-        countryCode: country.code,
-        language: country.language,
-      };
+
+  const serverPreferences = useMemo<LocalePreferences>(() => {
+    if (initialPreferences) return initialPreferences;
+    if (initialLocale) {
+      const match = Object.values(SUPPORTED_COUNTRIES).find(
+        (c) => c.language === initialLocale
+      );
+      if (match) return preferencesFromCountry(match);
     }
     return defaultPreferences;
-  });
+  }, [initialPreferences, initialLocale]);
 
-  const [dictionary, setDictionary] = useState<Record<string, string>>(() => {
-    const lang = preferences.language || initialLocale || 'en-GB';
-    return staticDictionaries[lang] || staticDictionaries['en-GB'] || {};
-  });
+  /**
+   * Seeded from the server's resolution ONLY — deliberately not from
+   * localStorage. Reading storage here made the client's first render disagree
+   * with the streamed HTML, so React hydrated over mismatched text and every
+   * label visibly flipped from English to Thai. Storage is reconciled after
+   * hydration instead (see the effect below), which in the normal case is a
+   * no-op because the cookie and storage are written together.
+   */
+  const [preferences, setPreferences] =
+    useState<LocalePreferences>(serverPreferences);
 
-  // 1. Detect Country from URL Prefix (e.g. /th/settings, /gb/alerts, /vn/pricing)
+  const [dictionary, setDictionary] = useState<Record<string, string>>(() =>
+    dictionaryFor(serverPreferences.language)
+  );
+
+  const geoLookupAttempted = useRef(false);
+
+  const applyPreferences = useCallback(
+    (next: LocalePreferences, options?: { persist?: boolean }) => {
+      setPreferences((prev) => (samePreferences(prev, next) ? prev : next));
+      if (options?.persist) persistPreferences(next);
+    },
+    []
+  );
+
+  // `<html lang>` is stamped by the server and by the inline script in
+  // `app/layout.tsx`, neither of which sees a later language change. Without
+  // this, switching language in Settings (or the storage reconciliation below)
+  // left the document advertising the previous language to screen readers and
+  // to the browser's hyphenation/font fallback.
   useEffect(() => {
-    if (!pathname) return;
-    const parts = pathname.split('/').filter(Boolean);
-    const firstSegment = parts[0]?.toLowerCase();
+    if (preferences.language) {
+      document.documentElement.lang = preferences.language;
+    }
+  }, [preferences.language]);
 
-    if (firstSegment && SUPPORTED_COUNTRIES[firstSegment]) {
-      const matched = SUPPORTED_COUNTRIES[firstSegment];
-      setPreferences((prev) => ({
-        ...prev,
-        countryCode: matched.code,
-        language: matched.language,
-        timezone: matched.timezone,
-        dateFormat: matched.dateFormat,
-        timeFormat: matched.timeFormat,
-        currency: matched.currency,
-      }));
+  // Keep the dictionary in lockstep with the language. Static dictionaries are
+  // applied synchronously; anything else falls back to English while it loads.
+  useEffect(() => {
+    const language = preferences.language || 'en-GB';
+    if (staticDictionaries[language]) {
+      setDictionary(staticDictionaries[language]);
       return;
     }
 
-    // 2. Fallback: Check localStorage for manual override
-    try {
-      const saved = localStorage.getItem('davin_locale_preferences');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setPreferences((prev) => ({ ...prev, ...parsed }));
-        return;
-      }
-    } catch {}
+    let cancelled = false;
+    import(`@/lib/i18n/dictionaries/${language}.json`)
+      .then((mod) => {
+        if (!cancelled) setDictionary(mod.default || {});
+      })
+      .catch(() => {
+        if (!cancelled) setDictionary(dictionaryFor('en-GB'));
+      });
 
-    // 3. Automatic IP-Based GeoIP Country & Language Auto-Detection
-    const detectCountryFromIP = async () => {
+    return () => {
+      cancelled = true;
+    };
+  }, [preferences.language]);
+
+  useEffect(() => {
+    if (!pathname) return;
+    const firstSegment = pathname.split('/').filter(Boolean)[0]?.toLowerCase();
+
+    // 1. Country prefix in the URL wins. On a full page load the server already
+    //    resolved this (via the middleware header) so `applyPreferences` bails
+    //    out as a no-op; this branch matters for client-side navigation between
+    //    prefixes, where the root layout does not re-run.
+    const fromUrl = preferencesForCountryPrefix(firstSegment);
+    if (fromUrl) {
+      applyPreferences(fromUrl, { persist: true });
+      return;
+    }
+
+    // 2. An explicit stored choice. Normally identical to what the server used,
+    //    so this is a no-op; it only bites when the cookie was cleared while
+    //    localStorage survived, and the inline script in `app/layout.tsx` has
+    //    already rewritten the cookie so the next load renders correctly.
+    const stored = readStoredPreferences();
+    if (stored) {
+      applyPreferences(stored);
+      return;
+    }
+
+    // 3. A cookie without storage is still an explicit choice the server
+    //    honoured — never let geo detection override it.
+    if (readLocaleCookie()) return;
+
+    // 4. First-ever visit with no preference at all: detect once, then persist
+    //    so every subsequent request is server-rendered in that language.
+    if (geoLookupAttempted.current) return;
+    geoLookupAttempted.current = true;
+
+    let cancelled = false;
+    (async () => {
       try {
         const res = await fetch('https://ipapi.co/json/', {
           cache: 'no-store',
         });
-        if (res.ok) {
-          const data = await res.json();
-          const detectedCode = data.country_code?.toLowerCase();
-          if (detectedCode && SUPPORTED_COUNTRIES[detectedCode]) {
-            const detected = SUPPORTED_COUNTRIES[detectedCode];
-            setPreferences((prev) => ({
-              ...prev,
-              countryCode: detected.code,
-              language: detected.language,
-              timezone: detected.timezone,
-              dateFormat: detected.dateFormat,
-              timeFormat: detected.timeFormat,
-              currency: detected.currency,
-            }));
-          }
+        if (!res.ok) return;
+        const data = await res.json();
+        const detected = preferencesForCountryPrefix(data.country_code);
+        if (detected && !cancelled) {
+          applyPreferences(detected, { persist: true });
         }
       } catch {
         // Fallback safely to UK English default
       }
+    })();
+
+    return () => {
+      cancelled = true;
     };
+  }, [pathname, applyPreferences]);
 
-    detectCountryFromIP();
-  }, [pathname]);
+  const setCountryCode = useCallback(
+    (code: string) => {
+      applyPreferences(preferencesFromCountry(getCountryByCode(code)), {
+        persist: true,
+      });
+    },
+    [applyPreferences]
+  );
 
-  // Dynamically load language dictionary on-demand (using static cache when available)
-  useEffect(() => {
-    const loadDictionary = async () => {
-      const lang = preferences.language || 'en-GB';
-      if (staticDictionaries[lang]) {
-        setDictionary(staticDictionaries[lang]);
-        return;
-      }
-      try {
-        const dict = await import(`@/lib/i18n/dictionaries/${lang}.json`);
-        setDictionary(dict.default || {});
-      } catch {
-        setDictionary(staticDictionaries['en-GB'] || {});
-      }
-    };
+  const updatePreferences = useCallback(
+    (newPrefs: Partial<LocalePreferences>) => {
+      setPreferences((prev) => {
+        let updated: LocalePreferences = { ...prev, ...newPrefs };
 
-    loadDictionary();
-  }, [preferences.language]);
-
-  const setCountryCode = (code: string) => {
-    const config = getCountryByCode(code);
-    const updated: LocalePreferences = {
-      countryCode: config.code,
-      language: config.language,
-      timezone: config.timezone,
-      dateFormat: config.dateFormat,
-      timeFormat: config.timeFormat,
-      currency: config.currency,
-    };
-
-    setPreferences(updated);
-    try {
-      localStorage.setItem('davin_locale_preferences', JSON.stringify(updated));
-      document.cookie = `davintrade-locale=${updated.language}; path=/; max-age=31536000; SameSite=Lax`;
-    } catch {}
-  };
-
-  const updatePreferences = (newPrefs: Partial<LocalePreferences>) => {
-    setPreferences((prev) => {
-      let updated = { ...prev, ...newPrefs };
-
-      // The header's Country & Region dropdown and this Settings > Language
-      // page must stay in sync (single source of truth) — when the language
-      // itself changes here and exactly one supported country uses that
-      // language, adopt that country's region defaults too so the header
-      // badge, currency, and timezone don't silently fall out of step.
-      // Ambiguous languages shared by multiple countries (e.g. en-US) or
-      // languages with no matching country (e.g. es, pt) are left alone —
-      // there is no single correct country to infer.
-      if (newPrefs.language && newPrefs.language !== prev.language) {
-        const matches = Object.values(SUPPORTED_COUNTRIES).filter(
-          (c) => c.language === newPrefs.language
-        );
-        if (matches.length === 1) {
-          const match = matches[0];
-          updated = {
-            ...updated,
-            countryCode: match.code,
-            timezone: match.timezone,
-            dateFormat: match.dateFormat,
-            timeFormat: match.timeFormat,
-            currency: match.currency,
-          };
+        // The header's Country & Region dropdown and this Settings > Language
+        // page must stay in sync (single source of truth) — when the language
+        // itself changes here and exactly one supported country uses that
+        // language, adopt that country's region defaults too so the header
+        // badge, currency, and timezone don't silently fall out of step.
+        // Ambiguous languages shared by multiple countries (e.g. en-US) or
+        // languages with no matching country (e.g. es, pt) are left alone —
+        // there is no single correct country to infer.
+        if (newPrefs.language && newPrefs.language !== prev.language) {
+          const matches = Object.values(SUPPORTED_COUNTRIES).filter(
+            (c) => c.language === newPrefs.language
+          );
+          if (matches.length === 1) {
+            updated = {
+              ...updated,
+              ...preferencesFromCountry(matches[0]),
+              ...newPrefs,
+            };
+          }
         }
-      }
 
+        persistPreferences(updated);
+        return samePreferences(prev, updated) ? prev : updated;
+      });
+    },
+    []
+  );
+
+  const t = useCallback(
+    (keyOrText: string, fallback?: string): string => {
+      if (!keyOrText) return '';
+      // Direct key lookup
+      if (dictionary[keyOrText]) return dictionary[keyOrText];
+      // Exact text string lookup
+      if (dictionary[keyOrText.trim()]) return dictionary[keyOrText.trim()];
+      // Case-insensitive / normalized lookup
+      const normalizedKey = keyOrText.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      if (dictionary[normalizedKey]) return dictionary[normalizedKey];
+
+      return fallback || keyOrText;
+    },
+    [dictionary]
+  );
+
+  const value = useMemo<LocaleContextType>(() => {
+    const formatTimestamp = (utc: number | string | Date): string => {
       try {
-        localStorage.setItem(
-          'davin_locale_preferences',
-          JSON.stringify(updated)
-        );
-        document.cookie = `davintrade-locale=${updated.language}; path=/; max-age=31536000; SameSite=Lax`;
-      } catch {}
-      return updated;
-    });
-  };
+        return new Intl.DateTimeFormat('en-GB', {
+          timeZone: preferences.timezone,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: preferences.timeFormat === '12h',
+        }).format(new Date(utc));
+      } catch {
+        return '--:--:--';
+      }
+    };
 
-  const formatTimestamp = (utc: number | string | Date): string => {
-    try {
-      const date = new Date(utc);
-      return new Intl.DateTimeFormat('en-GB', {
-        timeZone: preferences.timezone,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: preferences.timeFormat === '12h',
-      }).format(date);
-    } catch {
-      return '--:--:--';
-    }
-  };
+    const formatDate = (utc: number | string | Date): string => {
+      try {
+        const date = new Date(utc);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
 
-  const formatDate = (utc: number | string | Date): string => {
-    try {
-      const date = new Date(utc);
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
+        if (preferences.dateFormat === 'DMY') return `${day}/${month}/${year}`;
+        if (preferences.dateFormat === 'YMD') return `${year}-${month}-${day}`;
+        return `${month}/${day}/${year}`;
+      } catch {
+        return '--/--/----';
+      }
+    };
 
-      if (preferences.dateFormat === 'DMY') return `${day}/${month}/${year}`;
-      if (preferences.dateFormat === 'YMD') return `${year}-${month}-${day}`;
-      return `${month}/${day}/${year}`;
-    } catch {
-      return '--/--/----';
-    }
-  };
+    const formatCurrency = (amountInUSD: number): string => {
+      try {
+        const config = getCountryByCode(preferences.countryCode);
+        const convertedAmount = amountInUSD * (config.exchangeRate || 1.0);
+        return new Intl.NumberFormat(preferences.language || 'en-GB', {
+          style: 'currency',
+          currency: preferences.currency || 'GBP',
+          maximumFractionDigits: convertedAmount >= 1000 ? 0 : 2,
+        }).format(convertedAmount);
+      } catch {
+        return `${preferences.currency} ${amountInUSD.toFixed(2)}`;
+      }
+    };
 
-  const formatCurrency = (amountInUSD: number): string => {
-    try {
-      const config = getCountryByCode(preferences.countryCode);
-      const convertedAmount = amountInUSD * (config.exchangeRate || 1.0);
-      return new Intl.NumberFormat(preferences.language || 'en-GB', {
-        style: 'currency',
-        currency: preferences.currency || 'GBP',
-        maximumFractionDigits: convertedAmount >= 1000 ? 0 : 2,
-      }).format(convertedAmount);
-    } catch {
-      return `${preferences.currency} ${amountInUSD.toFixed(2)}`;
-    }
-  };
+    const formatRelativeTime = (minutesAgo: number): string => {
+      if (minutesAgo < 1) return t('time.just_now', 'เมื่อสักครู่');
+      if (minutesAgo < 60)
+        return `${minutesAgo} ${t('time.mins_ago', 'นาทีที่แล้ว')}`;
+      const hours = Math.floor(minutesAgo / 60);
+      if (hours < 24)
+        return `${hours} ${t('time.hours_ago', 'ชั่วโมงที่แล้ว')}`;
+      const days = Math.floor(hours / 24);
+      return `${days} ${t('time.days_ago', 'วันที่แล้ว')}`;
+    };
 
-  const t = (keyOrText: string, fallback?: string): string => {
-    if (!keyOrText) return '';
-    // Direct key lookup
-    if (dictionary[keyOrText]) return dictionary[keyOrText];
-    // Exact text string lookup
-    if (dictionary[keyOrText.trim()]) return dictionary[keyOrText.trim()];
-    // Case-insensitive / normalized lookup
-    const normalizedKey = keyOrText.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    if (dictionary[normalizedKey]) return dictionary[normalizedKey];
-
-    return fallback || keyOrText;
-  };
-
-  const formatRelativeTime = (minutesAgo: number): string => {
-    if (minutesAgo < 1) return t('time.just_now', 'เมื่อสักครู่');
-    if (minutesAgo < 60)
-      return `${minutesAgo} ${t('time.mins_ago', 'นาทีที่แล้ว')}`;
-    const hours = Math.floor(minutesAgo / 60);
-    if (hours < 24) return `${hours} ${t('time.hours_ago', 'ชั่วโมงที่แล้ว')}`;
-    const days = Math.floor(hours / 24);
-    return `${days} ${t('time.days_ago', 'วันที่แล้ว')}`;
-  };
-
-  const currentCountryConfig = getCountryByCode(preferences.countryCode);
+    return {
+      ...preferences,
+      countryConfig: getCountryByCode(preferences.countryCode),
+      setCountryCode,
+      setLocalePreferences: updatePreferences,
+      formatTimestamp,
+      formatDate,
+      formatCurrency,
+      formatRelativeTime,
+      t,
+    };
+  }, [preferences, t, setCountryCode, updatePreferences]);
 
   return (
-    <LocaleContext.Provider
-      value={{
-        ...preferences,
-        countryConfig: currentCountryConfig,
-        setCountryCode,
-        setLocalePreferences: updatePreferences,
-        formatTimestamp,
-        formatDate,
-        formatCurrency,
-        formatRelativeTime,
-        t,
-      }}
-    >
-      {children}
-    </LocaleContext.Provider>
+    <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>
   );
 }
 

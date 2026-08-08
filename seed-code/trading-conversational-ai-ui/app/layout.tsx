@@ -6,7 +6,13 @@ import { ThemeProvider } from './providers';
 import { ThemeSync } from '@/components/theme-sync';
 import ClientProviders from '@/components/providers/client-providers';
 
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import {
+  COUNTRY_HEADER,
+  LOCALE_COOKIE,
+  LOCALE_STORAGE_KEY,
+  resolvePreferences,
+} from '@/lib/i18n/locale-resolver';
 
 export const metadata: Metadata = {
   title: 'DavinTrade AI',
@@ -35,8 +41,17 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-  const initialLocale = cookieStore.get('davintrade-locale')?.value || 'en-GB';
+  const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
+
+  // Resolve the FULL preference set (language + timezone + date/time format +
+  // currency) on the server. Previously only `language` and `countryCode` were
+  // derived here, so a Thai user was server-rendered with GBP/Europe-London
+  // defaults and saw prices flip from "£1,365" to "฿1,365" after hydration.
+  const initialPreferences = resolvePreferences({
+    countryPrefix: headerStore.get(COUNTRY_HEADER),
+    cookieLanguage: cookieStore.get(LOCALE_COOKIE)?.value,
+  });
+  const initialLocale = initialPreferences.language;
 
   return (
     <html lang={initialLocale} suppressHydrationWarning>
@@ -65,15 +80,26 @@ export default async function RootLayout({
                   document.cookie = 'davintrade-theme=' + t + '; path=/; max-age=31536000; SameSite=Lax';
                   localStorage.setItem('davintrade-theme', t);
 
-                  var lc = document.cookie.match(/davintrade-locale=([^;]+)/);
-                  var ls = localStorage.getItem('davin_locale_preferences');
+                  // The server already resolved this render's language from the
+                  // URL prefix / cookie, so keep <html lang> matching the HTML
+                  // that was actually streamed instead of racing localStorage.
                   var lang = '${initialLocale}';
-                  if (ls) {
-                    try { lang = JSON.parse(ls).language || lang; } catch (e) {}
-                  } else if (lc && lc[1]) {
-                    lang = lc[1];
-                  }
                   d.lang = lang;
+
+                  // Self-heal a diverged cookie: if localStorage still holds an
+                  // explicit choice but the cookie was cleared or expired, the
+                  // server had no way to know and rendered the default. Write the
+                  // cookie back now so the NEXT request server-renders correctly.
+                  var lc = document.cookie.match(/${LOCALE_COOKIE}=([^;]+)/);
+                  var ls = localStorage.getItem('${LOCALE_STORAGE_KEY}');
+                  if (ls) {
+                    try {
+                      var saved = JSON.parse(ls).language;
+                      if (saved && (!lc || lc[1] !== saved)) {
+                        document.cookie = '${LOCALE_COOKIE}=' + saved + '; path=/; max-age=31536000; SameSite=Lax';
+                      }
+                    } catch (e) {}
+                  }
                 } catch (e) {}
               })();
             `,
@@ -90,7 +116,7 @@ export default async function RootLayout({
           <Suspense fallback={null}>
             <ThemeSync />
           </Suspense>
-          <ClientProviders initialLocale={initialLocale}>
+          <ClientProviders initialPreferences={initialPreferences}>
             {children}
           </ClientProviders>
         </ThemeProvider>

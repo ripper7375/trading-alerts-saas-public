@@ -2,15 +2,21 @@
 
 import React from 'react';
 import { LocaleProvider } from '@/lib/context/locale-context';
+import {
+  defaultPreferences,
+  type LocalePreferences,
+} from '@/lib/i18n/locale-resolver';
 
 export default function ClientProviders({
   children,
-  initialLocale = 'en-GB',
+  initialPreferences = defaultPreferences,
 }: {
   children: React.ReactNode;
-  initialLocale?: string;
+  initialPreferences?: LocalePreferences;
 }) {
   return (
-    <LocaleProvider initialLocale={initialLocale}>{children}</LocaleProvider>
+    <LocaleProvider initialPreferences={initialPreferences}>
+      {children}
+    </LocaleProvider>
   );
 }

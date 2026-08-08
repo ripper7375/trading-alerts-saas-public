@@ -391,7 +391,10 @@ export default function TradingChart({
   ];
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden border-x border-slate-800/80 bg-[#06070b] shadow-2xl select-none">
+    // `animate-in fade-in` crossfades the real chart over the ChartSkeleton it
+    // replaces. The two share an identical outer box, so this is a pure opacity
+    // transition with no layout shift.
+    <div className="animate-in fade-in relative flex h-full flex-col overflow-hidden border-x border-slate-800/80 bg-[#06070b] shadow-2xl duration-500 ease-out select-none">
       {/* C2: Top Header Toolbar */}
       <div className="flex h-14 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-800/90 bg-[#11141e] px-3.5 shadow-xs">
         <div className="flex items-center gap-2">
