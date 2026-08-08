@@ -13,8 +13,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Landmark, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function WiseRecipientForm() {
+  const { t } = useLocale();
   const [provider, setProvider] = useState<'wise' | 'rise'>('wise');
   const [bankAccount, setBankAccount] = useState('GB89 WEST 1234 5678 9012 34');
   const [wiseEmail, setWiseEmail] = useState('affiliate@davin-trade.com');
@@ -32,32 +34,40 @@ export default function WiseRecipientForm() {
         <div className="flex items-center gap-2">
           <Landmark className="h-5 w-5 text-amber-400" />
           <h2 className="text-sm font-extrabold text-slate-100">
-            Payout Account Configuration
+            {t('Payout Account Configuration', 'การตั้งค่าบัญชีการถอนเงิน')}
           </h2>
         </div>
         <Badge className="border-emerald-500/40 bg-emerald-500/15 font-mono text-[9px] text-emerald-300">
-          AUTO-DISBURSEMENT
+          {t('AUTO-DISBURSEMENT', 'การโอนเงินอัตโนมัติ')}
         </Badge>
       </div>
 
       <form onSubmit={handleSave} className="space-y-4">
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            Disbursement Provider
+            {t('Disbursement Provider', 'ผู้ให้บริการการโอนเงิน')}
           </Label>
           <Select
             value={provider}
             onValueChange={(val: any) => setProvider(val)}
           >
             <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs">
-              <SelectValue placeholder="Select provider" />
+              <SelectValue
+                placeholder={t('Select provider', 'เลือกผู้ให้บริการ')}
+              />
             </SelectTrigger>
             <SelectContent className="border-slate-750 bg-[#0f1420] text-xs">
               <SelectItem value="wise">
-                Wise Business (Direct Bank Transfer)
+                {t(
+                  'Wise Business (Direct Bank Transfer)',
+                  'Wise Business (โอนผ่านธนาคารโดยตรง)'
+                )}
               </SelectItem>
               <SelectItem value="rise">
-                RiseWorks (Crypto / SIWE Wallet Payout)
+                {t(
+                  'RiseWorks (Crypto / SIWE Wallet Payout)',
+                  'RiseWorks (การถอนเงินเข้ากระเป๋า คริปโท / SIWE)'
+                )}
               </SelectItem>
             </SelectContent>
           </Select>
@@ -67,7 +77,7 @@ export default function WiseRecipientForm() {
           <>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-300">
-                Wise Account Email
+                {t('Wise Account Email', 'อีเมลบัญชี Wise')}
               </Label>
               <Input
                 type="email"
@@ -78,7 +88,10 @@ export default function WiseRecipientForm() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-300">
-                Bank IBAN / Account Number
+                {t(
+                  'Bank IBAN / Account Number',
+                  'เลข IBAN / เลขที่บัญชีธนาคาร'
+                )}
               </Label>
               <Input
                 type="text"
@@ -91,7 +104,10 @@ export default function WiseRecipientForm() {
         ) : (
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-slate-300">
-              RiseWorks EVM Wallet Address
+              {t(
+                'RiseWorks EVM Wallet Address',
+                'ที่อยู่กระเป๋าเงิน RiseWorks EVM'
+              )}
             </Label>
             <Input
               type="text"
@@ -105,7 +121,9 @@ export default function WiseRecipientForm() {
           type="submit"
           className="h-9 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 hover:from-amber-400 hover:to-amber-500"
         >
-          {isSaved ? 'Payout Details Updated!' : 'Save Payout Details'}
+          {isSaved
+            ? t('Payout Details Updated!', 'อัปเดตรายละเอียดการถอนเงินแล้ว!')
+            : t('Save Payout Details', 'บันทึกรายละเอียดการถอนเงิน')}
         </Button>
       </form>
     </div>

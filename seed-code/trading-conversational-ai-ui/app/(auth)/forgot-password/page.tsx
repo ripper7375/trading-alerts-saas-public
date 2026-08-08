@@ -7,8 +7,10 @@ import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function ForgotPasswordPage() {
+  const { t } = useLocale();
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -31,10 +33,13 @@ export default function ForgotPasswordPage() {
             />
           </div>
           <h2 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
-            Reset Password
+            {t('Reset Password', 'รีเซ็ตรหัสผ่าน')}
           </h2>
           <p className="text-xs text-slate-400">
-            Enter your account email to receive reset instructions
+            {t(
+              'Enter your account email to receive reset instructions',
+              'ป้อนอีเมลบัญชีของคุณเพื่อรับคำแนะนำในการรีเซ็ต'
+            )}
           </p>
         </div>
 
@@ -44,26 +49,34 @@ export default function ForgotPasswordPage() {
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <h3 className="text-sm font-bold text-slate-100">
-              Check Your Email
+              {t('Check Your Email', 'ตรวจสอบอีเมลของคุณ')}
             </h3>
             <p className="text-xs text-slate-400">
-              We've sent a password reset link to{' '}
-              <strong className="text-slate-200">{email}</strong>. Please follow
-              the instructions in the email.
+              {t(
+                "We've sent a password reset link to",
+                'เราได้ส่งลิงก์รีเซ็ตรหัสผ่านไปยัง'
+              )}{' '}
+              <strong className="text-slate-200">{email}</strong>.{' '}
+              {t(
+                'Please follow the instructions in the email.',
+                'โปรดปฏิบัติตามคำแนะนำในอีเมล'
+              )}
             </p>
             <Button
               variant="outline"
               asChild
               className="border-slate-750 h-9 w-full bg-slate-800 text-xs text-slate-200"
             >
-              <Link href="/login">Return to Sign In</Link>
+              <Link href="/login">
+                {t('Return to Sign In', 'กลับสู่หน้าเข้าสู่ระบบ')}
+              </Link>
             </Button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-300">
-                Email Address
+                {t('Email Address', 'ที่อยู่อีเมล')}
               </Label>
               <div className="relative">
                 <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -82,7 +95,7 @@ export default function ForgotPasswordPage() {
               type="submit"
               className="h-10 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
             >
-              Send Reset Instructions
+              {t('Send Reset Instructions', 'ส่งคำแนะนำการรีเซ็ต')}
             </Button>
           </form>
         )}
@@ -92,7 +105,8 @@ export default function ForgotPasswordPage() {
             href="/login"
             className="inline-flex items-center text-xs font-semibold text-amber-400 hover:underline"
           >
-            <ArrowLeft className="mr-1 h-3.5 w-3.5" /> Back to Sign In
+            <ArrowLeft className="mr-1 h-3.5 w-3.5" />{' '}
+            {t('Back to Sign In', 'กลับสู่หน้าเข้าสู่ระบบ')}
           </Link>
         </div>
       </div>

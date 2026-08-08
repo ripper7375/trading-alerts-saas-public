@@ -70,7 +70,8 @@ export default function LoginForm() {
         </h2>
         <p className="text-xs text-slate-400">
           {t(
-            'Welcome back! Enter your credentials to access your trading workspace.'
+            'Welcome back! Enter your credentials to access your trading workspace.',
+            'ยินดีต้อนรับกลับ! ป้อนข้อมูลของคุณเพื่อเข้าสู่พื้นที่ทำงานการเทรด'
           )}
         </p>
       </div>
@@ -120,7 +121,7 @@ export default function LoginForm() {
       <form onSubmit={handleLogin} className="space-y-4">
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Email Address')}
+            {t('Email Address', 'ที่อยู่อีเมล')}
           </Label>
           <div className="relative">
             <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -138,13 +139,13 @@ export default function LoginForm() {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-semibold text-slate-300">
-              {t('Password')}
+              {t('Password', 'รหัสผ่าน')}
             </Label>
             <Link
               href="/forgot-password"
               className="text-[11px] font-semibold text-amber-400 hover:underline"
             >
-              {t('Forgot password?')}
+              {t('Forgot password?', 'ลืมรหัสผ่าน?')}
             </Link>
           </div>
           <div className="relative">
@@ -166,7 +167,7 @@ export default function LoginForm() {
               checked={rememberMe}
               onCheckedChange={(checked) => setRememberMe(!!checked)}
             />
-            <span>{t('Remember me')}</span>
+            <span>{t('Remember me', 'จดจำฉันไว้')}</span>
           </label>
           <Link
             href="/verify-2fa"
@@ -184,19 +185,19 @@ export default function LoginForm() {
         >
           {isLoading
             ? t('Authenticating...', 'กำลังตรวจสอบข้อมูล...')
-            : t('Sign In')}
+            : t('Sign In', 'เข้าสู่ระบบ')}
           {!isLoading && <ArrowRight className="ml-1.5 h-4 w-4" />}
         </Button>
       </form>
 
       {/* Footer Register Link */}
       <div className="border-t border-slate-800/80 pt-2 text-center text-xs text-slate-400">
-        {t("Don't have an account?")}{' '}
+        {t("Don't have an account?", 'ยังไม่มีบัญชีใช่ไหม?')}{' '}
         <Link
           href="/register"
           className="font-bold text-amber-400 hover:underline"
         >
-          {t('Sign up for FREE')}
+          {t('Sign up for FREE', 'สมัครใช้งานฟรี')}
         </Link>
       </div>
     </div>

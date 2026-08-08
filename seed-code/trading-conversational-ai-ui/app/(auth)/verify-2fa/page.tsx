@@ -8,9 +8,11 @@ import { ShieldCheck, ArrowLeft, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function Verify2faPage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [code, setCode] = useState('');
   const [useBackup, setUseBackup] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,19 +35,27 @@ export default function Verify2faPage() {
             <ShieldCheck className="h-6 w-6" />
           </div>
           <h2 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
-            Two-Factor Authentication
+            {t('Two-Factor Authentication', 'การยืนยันตัวตนสองปัจจัย')}
           </h2>
           <p className="text-xs text-slate-400">
             {useBackup
-              ? 'Enter one of your 8-digit emergency backup codes'
-              : 'Enter the 6-digit verification code from your authenticator app'}
+              ? t(
+                  'Enter one of your 8-digit emergency backup codes',
+                  'ป้อนรหัสสำรองฉุกเฉิน 8 หลักของคุณรหัสใดรหัสหนึ่ง'
+                )
+              : t(
+                  'Enter the 6-digit verification code from your authenticator app',
+                  'ป้อนรหัสยืนยัน 6 หลักจากแอปพลิเคชันยืนยันตัวตนของคุณ'
+                )}
           </p>
         </div>
 
         <form onSubmit={handleVerify} className="space-y-4">
           <div className="space-y-1.5 text-center">
             <Label className="text-xs font-semibold text-slate-300">
-              {useBackup ? 'Backup Code' : '6-Digit Security Code'}
+              {useBackup
+                ? t('Backup Code', 'รหัสสำรอง')
+                : t('6-Digit Security Code', 'รหัสความปลอดภัย 6 หลัก')}
             </Label>
             <Input
               type="text"
@@ -63,7 +73,9 @@ export default function Verify2faPage() {
             disabled={isLoading || !code.trim()}
             className="h-10 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
           >
-            {isLoading ? 'Verifying...' : 'Verify & Continue'}
+            {isLoading
+              ? t('Verifying...', 'กำลังตรวจสอบ...')
+              : t('Verify & Continue', 'ยืนยัน & ดำเนินการต่อ')}
           </Button>
         </form>
 
@@ -74,14 +86,17 @@ export default function Verify2faPage() {
             className="flex items-center gap-1 font-semibold text-amber-400 hover:underline"
           >
             <KeyRound className="h-3.5 w-3.5" />
-            {useBackup ? 'Use Authenticator App' : 'Use Backup Code'}
+            {useBackup
+              ? t('Use Authenticator App', 'ใช้แอป Authenticator')
+              : t('Use Backup Code', 'ใช้รหัสสำรอง')}
           </button>
 
           <Link
             href="/login"
             className="flex items-center gap-1 text-slate-400 hover:text-slate-200"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to Login
+            <ArrowLeft className="h-3.5 w-3.5" />{' '}
+            {t('Back to Login', 'กลับสู่หน้าเข้าสู่ระบบ')}
           </Link>
         </div>
       </div>

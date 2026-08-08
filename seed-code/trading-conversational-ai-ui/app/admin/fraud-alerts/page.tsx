@@ -4,46 +4,69 @@ import AppHeader from '@/components/layout/app-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ShieldAlert, AlertTriangle, CheckCircle2, Ban } from 'lucide-react';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function FraudAlertsPage() {
+  const { t } = useLocale();
+
   const fraudItems = [
     {
       id: 'FRAUD-101',
-      pattern: 'IP Multi-Account Velocity',
+      pattern: t(
+        'IP Multi-Account Velocity',
+        'การสร้างหลายบัญชีจาก IP เดียวอย่างรวดเร็ว'
+      ),
       riskScore: 92,
       user: 'free-test@trading-alerts.test',
       ip: '198.51.100.42',
-      details:
+      details: t(
         '15 trial accounts created in 5 minutes using temporary email domains.',
-      status: 'Action Required',
+        'สร้างบัญชีทดลอง 15 บัญชีใน 5 นาทีโดยใช้อีเมลชั่วคราว'
+      ),
+      status: t('Action Required', 'ต้องดำเนินการ'),
     },
     {
       id: 'FRAUD-102',
-      pattern: 'Affiliate Self-Referral',
+      pattern: t(
+        'Affiliate Self-Referral',
+        'การแนะนำตัวเองเพื่อเอาค่าคอมมิชชัน'
+      ),
       riskScore: 84,
       user: 'affiliate-test@trading-alerts.test',
       ip: '203.0.113.19',
-      details:
+      details: t(
         'Commission code used by account sharing identical payout bank details.',
-      status: 'Action Required',
+        'ใช้รหัสคอมมิชชันโดยบัญชีที่ใช้ข้อมูลธนาคารการถอนเงินซ้ำกัน'
+      ),
+      status: t('Action Required', 'ต้องดำเนินการ'),
     },
   ];
 
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] select-none">
       <AppHeader
-        title="Fraud Detection & Risk Inspection"
-        subtitle="Anomalous IP Login Patterns & Affiliate Code Abuse Monitoring"
+        title={t(
+          'Fraud Detection & Risk Inspection',
+          'การตรวจจับทุจริตและการตรวจสอบความเสี่ยง'
+        )}
+        subtitle={t(
+          'Anomalous IP Login Patterns & Affiliate Code Abuse Monitoring',
+          'การตรวจสอบรูปแบบ IP การเข้าสู่ระบบที่ผิดปกติและการใช้รหัสพันธมิตรในทางที่ผิด'
+        )}
       />
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 md:p-6">
         <div className="space-y-4 rounded-2xl border border-rose-500/40 bg-[#090c14] p-6 shadow-xl">
           <div className="flex items-center justify-between border-b border-rose-500/30 pb-3">
             <h2 className="flex items-center gap-2 text-sm font-extrabold text-rose-400">
-              <ShieldAlert className="h-5 w-5" /> Flagged Security Anomalies (
-              {fraudItems.length})
+              <ShieldAlert className="h-5 w-5" />{' '}
+              {t(
+                'Flagged Security Anomalies',
+                'รายการผิดปกติที่ถูกตั้งธงความปลอดภัย'
+              )}{' '}
+              ({fraudItems.length})
             </h2>
             <Badge className="border-rose-500/40 bg-rose-500/15 font-mono text-[9px] text-rose-300">
-              HIGH PRIORITY
+              {t('HIGH PRIORITY', 'ลำดับความสำคัญสูง')}
             </Badge>
           </div>
 
@@ -59,7 +82,8 @@ export default function FraudAlertsPage() {
                       variant="outline"
                       className="border-rose-500/40 bg-rose-500/10 font-mono text-[9px] text-rose-300"
                     >
-                      Risk Score: {item.riskScore}/100
+                      {t('Risk Score:', 'คะแนนความเสี่ยง:')} {item.riskScore}
+                      /100
                     </Badge>
                     <span className="text-xs font-bold text-slate-200">
                       {item.pattern}
@@ -72,7 +96,8 @@ export default function FraudAlertsPage() {
 
                 <p className="text-xs text-slate-300">{item.details}</p>
                 <div className="font-mono text-[11px] text-slate-400">
-                  User: {item.user} • Target IP: {item.ip}
+                  {t('User:', 'ผู้ใช้:')} {item.user} •{' '}
+                  {t('Target IP:', 'IP เป้าหมาย:')} {item.ip}
                 </div>
 
                 <div className="flex gap-2 pt-2">
@@ -80,14 +105,15 @@ export default function FraudAlertsPage() {
                     size="sm"
                     className="h-7 bg-rose-600 text-[10px] font-bold text-white hover:bg-rose-500"
                   >
-                    <Ban className="mr-1 h-3 w-3" /> Suspend Account & Block IP
+                    <Ban className="mr-1 h-3 w-3" />{' '}
+                    {t('Suspend Account & Block IP', 'ระงับบัญชี & บล็อก IP')}
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     className="border-slate-750 h-7 text-[10px] text-slate-300"
                   >
-                    Dismiss as False Positive
+                    {t('Dismiss as False Positive', 'ยกเลิก (สัญญาณหลอก)')}
                   </Button>
                 </div>
               </div>

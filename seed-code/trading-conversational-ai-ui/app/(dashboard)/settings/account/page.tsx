@@ -30,7 +30,8 @@ export default function AccountSettingsPage() {
           </h2>
           <p className="text-xs text-slate-400">
             {t(
-              'Export all your active alert rules, historical AI prompts, and billing logs in JSON format.'
+              'Export all your active alert rules, historical AI prompts, and billing logs in JSON format.',
+              'ส่งออกกฎแจ้งเตือนทั้งหมด ประวัติคำสั่ง AI และบันทึกการชำระเงินเป็นไฟล์ JSON'
             )}
           </p>
           <Button
@@ -57,7 +58,8 @@ export default function AccountSettingsPage() {
             <div className="space-y-3 text-xs text-slate-300">
               <p>
                 {t(
-                  'Initiating account deletion schedules your account for permanent erasure after a'
+                  'Initiating account deletion schedules your account for permanent erasure after a',
+                  'การเริ่มต้นลบบัญชีจะกำหนดเวลาให้บัญชีของคุณถูกลบอย่างถาวรหลังจาก'
                 )}{' '}
                 <strong className="text-amber-400">
                   {t('7-day grace period', 'ระยะเวลาผ่อนผัน 7 วัน')}
@@ -66,7 +68,8 @@ export default function AccountSettingsPage() {
               </p>
               <p className="text-slate-400">
                 {t(
-                  'During this period, you can log in anytime to cancel the deletion request.'
+                  'During this period, you can log in anytime to cancel the deletion request.',
+                  'ในระหว่างช่วงเวลานี้ คุณสามารถเข้าสู่ระบบเพื่อยกเลิกการร้องขอลบได้ตลอดเวลา'
                 )}
               </p>
 
@@ -90,13 +93,17 @@ export default function AccountSettingsPage() {
                 )}
               </div>
               <p className="text-slate-300">
-                {t('Your account is scheduled to be erased in')}{' '}
+                {t(
+                  'Your account is scheduled to be erased in',
+                  'บัญชีของคุณมีกำหนดจะถูกลบในอีก'
+                )}{' '}
                 <strong>
                   6 {t('days', 'วัน')}, 23 {t('hours', 'ชั่วโมง')}
                 </strong>
                 .{' '}
                 {t(
-                  'All active alert triggers will stop firing upon expiration.'
+                  'All active alert triggers will stop firing upon expiration.',
+                  'การทำงานของการแจ้งเตือนทั้งหมดจะหยุดทำงานทันทีเมื่อหมดเวลา'
                 )}
               </p>
               <Button

@@ -8,9 +8,11 @@ import { ShieldAlert, Lock, Mail, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const { t } = useLocale();
   const [email, setEmail] = useState('admin-test@trading-alerts.test');
   const [password, setPassword] = useState('AdminPassword123!');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,17 +35,20 @@ export default function AdminLoginPage() {
             <ShieldAlert className="h-6 w-6" />
           </div>
           <h2 className="bg-gradient-to-r from-rose-400 via-rose-200 to-amber-400 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
-            DavinTrade Admin Portal
+            {t('DavinTrade Admin Portal', 'พอร์ทัลผู้ดูแลระบบ DavinTrade')}
           </h2>
           <p className="text-xs text-slate-400">
-            Restricted System Control & Disbursement Oversight
+            {t(
+              'Restricted System Control & Disbursement Oversight',
+              'การควบคุมระบบและกำกับดูแลการจ่ายเงินเฉพาะเจ้าหน้าที่'
+            )}
           </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-slate-300">
-              Admin Email
+              {t('Admin Email', 'อีเมลผู้ดูแลระบบ')}
             </Label>
             <div className="relative">
               <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -59,7 +64,7 @@ export default function AdminLoginPage() {
 
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-slate-300">
-              Master Passcode
+              {t('Master Passcode', 'รหัสผ่านหลักผู้ดูแลระบบ')}
             </Label>
             <div className="relative">
               <Lock className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -79,19 +84,22 @@ export default function AdminLoginPage() {
             className="h-10 w-full bg-gradient-to-r from-rose-600 to-amber-600 text-xs font-extrabold text-white shadow-md shadow-rose-500/20 hover:from-rose-500 hover:to-amber-500"
           >
             {isLoading
-              ? 'Authenticating Admin...'
-              : 'Authenticate Master Admin'}
+              ? t('Authenticating Admin...', 'กำลังยืนยันตัวตนผู้ดูแลระบบ...')
+              : t(
+                  'Authenticate Master Admin',
+                  'ยืนยันตัวตนเข้าสู่ระบบผู้ดูแลหลัก'
+                )}
             {!isLoading && <ArrowRight className="ml-1.5 h-4 w-4" />}
           </Button>
         </form>
 
         <div className="border-t border-slate-800 pt-2 text-center text-xs text-slate-500">
-          Standard User?{' '}
+          {t('Standard User?', 'ผู้ใช้ทั่วไปใช่ไหม?')}{' '}
           <Link
             href="/login"
             className="font-semibold text-slate-300 hover:underline"
           >
-            Go to User Login
+            {t('Go to User Login', 'ไปที่หน้าเข้าสู่ระบบผู้ใช้')}
           </Link>
         </div>
       </div>

@@ -46,11 +46,12 @@ export default function RegisterForm() {
           />
         </div>
         <h2 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
-          {t('Create your DavinTrade account')}
+          {t('Create your DavinTrade account', 'สร้างบัญชี DavinTrade ของคุณ')}
         </h2>
         <p className="text-xs text-slate-400">
           {t(
-            'Start analyzing charts with AI and setting server-side price alerts.'
+            'Start analyzing charts with AI and setting server-side price alerts.',
+            'เริ่มต้นวิเคราะห์กราฟด้วย AI และตั้งค่าการแจ้งเตือนราคาฝั่งเซิร์ฟเวอร์'
           )}
         </p>
       </div>
@@ -108,7 +109,7 @@ export default function RegisterForm() {
       <form onSubmit={handleRegister} className="space-y-4">
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Full Name')}
+            {t('Full Name', 'ชื่อ-นามสกุล')}
           </Label>
           <div className="relative">
             <User className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -125,7 +126,7 @@ export default function RegisterForm() {
 
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Email Address')}
+            {t('Email Address', 'ที่อยู่อีเมล')}
           </Label>
           <div className="relative">
             <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -142,7 +143,7 @@ export default function RegisterForm() {
 
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Password')}
+            {t('Password', 'รหัสผ่าน')}
           </Label>
           <div className="relative">
             <Lock className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -172,12 +173,12 @@ export default function RegisterForm() {
       </form>
 
       <div className="border-t border-slate-800/80 pt-2 text-center text-xs text-slate-400">
-        {t('Already have an account?')}{' '}
+        {t('Already have an account?', 'มีบัญชีผู้ใช้อยู่แล้วใช่ไหม?')}{' '}
         <Link
           href="/login"
           className="font-bold text-amber-400 hover:underline"
         >
-          {t('Sign In')}
+          {t('Sign In', 'เข้าสู่ระบบ')}
         </Link>
       </div>
     </div>
