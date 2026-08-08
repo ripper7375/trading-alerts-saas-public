@@ -5,8 +5,12 @@ import { LocaleProvider } from '@/lib/context/locale-context';
 
 export default function ClientProviders({
   children,
+  initialLocale = 'en-GB',
 }: {
   children: React.ReactNode;
+  initialLocale?: string;
 }) {
-  return <LocaleProvider>{children}</LocaleProvider>;
+  return (
+    <LocaleProvider initialLocale={initialLocale}>{children}</LocaleProvider>
+  );
 }

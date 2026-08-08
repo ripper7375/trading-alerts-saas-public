@@ -49,7 +49,13 @@ interface LocaleContextType extends LocalePreferences {
 
 const LocaleContext = createContext<LocaleContextType | null>(null);
 
-export function LocaleProvider({ children }: { children: React.ReactNode }) {
+export function LocaleProvider({
+  children,
+  initialLocale = 'en-GB',
+}: {
+  children: React.ReactNode;
+  initialLocale?: string;
+}) {
   const pathname = usePathname();
   const [preferences, setPreferences] = useState<LocalePreferences>(() => {
     if (typeof window !== 'undefined') {
@@ -73,11 +79,22 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
         }
       } catch {}
     }
+    // Server-side (SSR): initialize with server cookie locale!
+    const country = Object.values(SUPPORTED_COUNTRIES).find(
+      (c) => c.language === initialLocale
+    );
+    if (country) {
+      return {
+        ...defaultPreferences,
+        countryCode: country.code,
+        language: country.language,
+      };
+    }
     return defaultPreferences;
   });
 
   const [dictionary, setDictionary] = useState<Record<string, string>>(() => {
-    const lang = preferences.language || 'en-GB';
+    const lang = preferences.language || initialLocale || 'en-GB';
     return staticDictionaries[lang] || staticDictionaries['en-GB'] || {};
   });
 

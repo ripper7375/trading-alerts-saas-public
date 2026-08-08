@@ -6,6 +6,8 @@ import { ThemeProvider } from './providers';
 import { ThemeSync } from '@/components/theme-sync';
 import ClientProviders from '@/components/providers/client-providers';
 
+import { cookies } from 'next/headers';
+
 export const metadata: Metadata = {
   title: 'DavinTrade AI',
   description: 'AI-powered trading analysis platform',
@@ -28,13 +30,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const initialLocale = cookieStore.get('davintrade-locale')?.value || 'en-GB';
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={initialLocale} suppressHydrationWarning>
       <head>
         <style
           dangerouslySetInnerHTML={{
@@ -62,7 +67,7 @@ export default function RootLayout({
 
                   var lc = document.cookie.match(/davintrade-locale=([^;]+)/);
                   var ls = localStorage.getItem('davin_locale_preferences');
-                  var lang = 'en-GB';
+                  var lang = '${initialLocale}';
                   if (ls) {
                     try { lang = JSON.parse(ls).language || lang; } catch (e) {}
                   } else if (lc && lc[1]) {
@@ -85,7 +90,9 @@ export default function RootLayout({
           <Suspense fallback={null}>
             <ThemeSync />
           </Suspense>
-          <ClientProviders>{children}</ClientProviders>
+          <ClientProviders initialLocale={initialLocale}>
+            {children}
+          </ClientProviders>
         </ThemeProvider>
       </body>
     </html>
