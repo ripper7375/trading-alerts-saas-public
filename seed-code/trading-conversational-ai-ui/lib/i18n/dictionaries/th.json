@@ -1,7 +1,6 @@
 {
   "breadcrumb.dashboard": "แดชบอร์ด",
   "breadcrumb.settings": "การตั้งค่า",
-
   "nav.dashboard": "แดชบอร์ดหลัก",
   "nav.ai_workspace": "พื้นที่วิเคราะห์กราฟ AI",
   "nav.alerts": "การแจ้งเตือน",
@@ -16,21 +15,18 @@
   "nav.admin": "ระบบควบคุมผู้ดูแล",
   "nav.sessions_header": "เซสชันการวิเคราะห์",
   "nav.png_download": "ดาวน์โหลดรูปภาพ PNG",
-
   "PNG Download": "ดาวน์โหลดรูปภาพ PNG",
   "Trader User": "ผู้ใช้งานการเทรด",
   "Pro Plan": "แพ็กเกจ PRO",
   "Free Plan": "แพ็กเกจ FREE",
   "Ask AI about M5 Chart": "ถาม AI เกี่ยวกับกราฟ M5",
   "Ask AI about M15 Chart": "ถาม AI เกี่ยวกับกราฟ M15",
-
   "Main Terminal Dashboard": "แดชบอร์ดเทอร์มินัลหลัก",
   "Real-Time XAUUSD Quantitative Overview & Alert Telemetry": "ภาพรวมเชิงปริมาณ XAUUSD และข้อมูลโทรมาตรการแจ้งเตือนเรียลไทม์",
   "PRO TIER ACTIVE": "ใช้งานแพ็กเกจ PRO อยู่",
   "Quantitative Trading & AI Analysis Terminal": "เทอร์มินัลการเทรดเชิงปริมาณและการวิเคราะห์ด้วย AI",
   "Your PRO account has 100 active alert slots enabled, real-time M5 on M15 equal-distance channel overlay, and quad-RAG AI multi-model queries.": "บัญชี PRO ของคุณเปิดใช้งานสล็อตแจ้งเตือน 100 กฎ เลเยอร์ช่อง EDT M5 บน M15 เรียลไทม์ และการสอบถาม AI หลายโมเดล Quad-RAG",
   "Launch AI Analyst Workspace": "เปิดใช้งานพื้นที่วิเคราะห์ AI",
-
   "Active Alert Rules": "กฎการแจ้งเตือนที่ใช้งานอยู่",
   "PRO allocation: 100 Max Rules": "โควต้า PRO: สูงสุด 100 กฎ",
   "+3 Today": "+3 วันนี้",
@@ -42,7 +38,6 @@
   "Market Volatility Index": "ดัชนีความผันผวนของตลาด",
   "XAUUSD Session Momentum": "โมเมนตัมเซสชัน XAUUSD",
   "High Volatility": "ความผันผวนสูง",
-
   "RECENT ALERT EXECUTIONS": "การประมวลผลการแจ้งเตือนล่าสุด",
   "View All Alerts": "ดูการแจ้งเตือนทั้งหมด",
   "Triggered": "ทำงานแล้ว",
@@ -53,7 +48,6 @@
   "Manage Security & 2FA": "จัดการความปลอดภัย & 2FA",
   "Multi-Timeframe Strategy Engine": "เครื่องมือกลยุทธ์หลายกรอบเวลา",
   "Engine 2 calculates live M5 Equal-Distance Centroid Channels overlaid directly onto the M15 chart for dual-perspective momentum tracking.": "เครื่องมือที่ 2 คำนวณช่อง Centroid EDT M5 เรียลไทม์ ซ้อนทับลงบนกราฟ M15 โดยตรงสำหรับการติดตามโมเมนตัมแบบสองมุมมอง",
-
   "Real-Time Alerts Manager": "ระบบจัดการการแจ้งเตือนเรียลไทม์",
   "Configure & Monitor Server-Side Price & Line Triggers": "กำหนดค่าและติดตามการแจ้งเตือนราคาและเส้นฝั่งเซิร์ฟเวอร์",
   "Active Alert Rules (2 / 100)": "กฎการแจ้งเตือนที่ใช้งานอยู่ (2 / 100)",
@@ -65,7 +59,6 @@
   "Triggers:": "ทำงานแล้ว:",
   "times": "ครั้ง",
   "Last:": "ล่าสุด:",
-
   "New Alert Rule Wizard": "เครื่องมือสร้างกฎการแจ้งเตือนใหม่",
   "Define Technical Channel & Line Breach Triggers": "กำหนดการแจ้งเตือนการทะลุเส้นและช่องทางเทคนิค",
   "Create New Alert Rule": "สร้างกฎการแจ้งเตือนใหม่",
@@ -80,7 +73,6 @@
   "In-App WebSocket Alert": "แจ้งเตือนในแอปผ่าน WebSocket",
   "Cancel": "ยกเลิก",
   "Save & Activate Alert": "บันทึกและเปิดใช้งานการแจ้งเตือน",
-
   "Flexible Pricing Built for Quantitative Traders": "แผนราคาที่ยืดหยุ่น สร้างขึ้นสำหรับเทรดเดอร์เชิงปริมาณ",
   "PRO TIER UNLOCKS ALL AI MODELS & REAL-TIME FEEDS": "แพ็กเกจ PRO ปลดล็อกโมเดล AI ทั้งหมดและฟีดเรียลไทม์",
   "Monthly Billing": "ชำระรายเดือน",
@@ -103,7 +95,6 @@
   "Unrestricted Live Market Comments WebSocket Stream": "ฟีดความคิดเห็นตลาดเรียลไทม์ผ่าน WebSocket แบบไม่จำกัด",
   "500,000 Monthly AI Token Quota": "โควต้าโทเค็น AI 500,000 โทเค็นต่อเดือน",
   "DETAILED TIER FEATURE COMPARISON MATRIX": "ตารางเปรียบเทียบคุณสมบัติแพ็กเกจอย่างละเอียด",
-
   "Secure Subscription Checkout": "ชำระเงินสมัครสมาชิกอย่างปลอดภัย",
   "Upgrade to DavinTrade PRO Tier Annual / Monthly Plan": "อัปเกรดเป็นแพ็กเกจ DavinTrade PRO รายปี / รายเดือน",
   "Select Payment Method": "เลือกวิธีการชำระเงิน",
@@ -123,7 +114,6 @@
   "Total Due Now": "ยอดรวมชำระทันที",
   "Cancel anytime from Settings": "ยกเลิกได้ตลอดเวลาจากการตั้งค่า",
   "Instant activation upon payment processing.": "เปิดใช้งานทันทีเมื่อการชำระเงินเสร็จสมบูรณ์",
-
   "Master Admin Operational Terminal": "เทอร์มินัลควบคุมการทำงานผู้ดูแลระบบหลัก",
   "Wise & Rise Batch Payout Execution + Fraud Anomaly Detection": "การถอนเงินแบบแบทช์ผ่าน Wise & Rise + การตรวจจับสิ่งผิดปกติทุจริต",
   "Batch Disbursements": "การถอนเงินแบบแบทช์",
@@ -143,7 +133,6 @@
   "Fraud & Anomaly Alerts": "การแจ้งเตือนทุจริต & ความผิดปกติ",
   "IP Velocity Violation": "การละเมิดความถี่ IP",
   "Inspect Fraud Detection Center": "ตรวจสอบศูนย์ตรวจจับทุจริต",
-
   "DavinTrade Partner Program": "โปรแกรมพันธมิตร DavinTrade",
   "30% Monthly Recurring Share on all PRO Tier referrals": "ส่วนแบ่งรายได้ 30% รายเดือนจากการแนะนำสมาชิก PRO",
   "Payout Settings": "ตั้งค่าการถอนเงิน",
@@ -158,7 +147,6 @@
   "Request Custom Code": "ร้องขอโค้ดส่วนลดพิเศษ",
   "Redemptions": "การใช้งานแล้ว",
   "Copy Link": "คัดลอกลิงก์",
-
   "Sign in to DavinTrade": "เข้าสู่ระบบ DavinTrade",
   "Welcome back! Enter your credentials to access your trading workspace.": "ยินดีต้อนรับกลับมา! กรอกข้อมูลประจำตัวของคุณเพื่อเข้าสู่พื้นที่การเทรด",
   "Email Address": "ที่อยู่อีเมล",
@@ -168,7 +156,6 @@
   "Sign In": "เข้าสู่ระบบ",
   "Don't have an account?": "ยังไม่มีบัญชีใช่หรือไม่?",
   "Sign up for FREE": "สมัครสมาชิก FREE",
-
   "Create your DavinTrade account": "สร้างบัญชี DavinTrade ของคุณ",
   "Start analyzing charts with AI and setting server-side price alerts.": "เริ่มต้นวิเคราะห์กราฟด้วย AI และตั้งค่าการแจ้งเตือนราคาฝั่งเซิร์ฟเวอร์",
   "Full Name": "ชื่อ-นามสกุล",
@@ -176,17 +163,14 @@
   "I agree to the Terms of Service and Privacy Policy": "ฉันยอมรับข้อตกลงการให้บริการและนโยบายความเป็นส่วนตัว",
   "Create Account": "สร้างบัญชีผู้ใช้",
   "Already have an account?": "มีบัญชีอยู่แล้วใช่หรือไม่?",
-
   "Reset your password": "รีเซ็ตรหัสผ่านของคุณ",
   "Enter your email address and we'll send you a password reset link.": "กรอกที่อยู่อีเมลของคุณ แล้วเราจะส่งลิงก์รีเซ็ตรหัสผ่านไปให้",
   "Send Reset Link": "ส่งลิงก์รีเซ็ตรหัสผ่าน",
   "Back to Login": "กลับสู่หน้าเข้าสู่ระบบ",
-
   "Two-Factor Authentication": "การยืนยันตัวตนสองขั้นตอน (2FA)",
   "Enter the 6-digit authentication code generated by your TOTP authenticator app.": "กรอกรหัสยืนยัน 6 หลักที่สร้างจากแอป Authenticator ของคุณ",
   "6-Digit Authentication Code": "รหัสยืนยันตัวตน 6 หลัก",
   "Verify Code & Sign In": "ยืนยันรหัส & เข้าสู่ระบบ",
-
   "Help Center & Technical Support": "ศูนย์ช่วยเหลือ & สนับสนุนทางเทคนิค",
   "Search documentation, read FAQs, or contact our support team": "ค้นหาเอกสาร อ่านคำถามที่พบบ่อย หรือติดต่อทีมสนับสนุนของเรา",
   "24/7 SUPPORT": "สนับสนุน 24/7",
@@ -199,7 +183,6 @@
   "Report a Bug": "รายงานปัญหาการใช้งาน",
   "Help us improve by reporting interface issues": "ช่วยเราปรับปรุงโดยการรายงานปัญหาอินเทอร์เฟซ",
   "Frequently Asked Questions (FAQ)": "คำถามที่พบบ่อย (FAQ)",
-
   "How do server-side price & line alerts work?": "ระบบแจ้งเตือนราคาและเส้นฝั่งเซิร์ฟเวอร์ทำงานอย่างไร?",
   "Alerts evaluate 24/7 on our server-side engine. PRO subscribers get 100 active alert rules evaluated every 500ms against live XAUUSD tick data. You can set threshold rules or draw custom lines on the chart canvas that fire push & email notifications upon price breach.": "ระบบแจ้งเตือนทำงาน 24/7 บนเซิร์ฟเวอร์ สมาชิก PRO ได้รับกฎแจ้งเตือน 100 กฎที่ประมวลผลทุก 500ms กับข้อมูลราคา XAUUSD เรียลไทม์ คุณสามารถตั้งกฎเกณฑ์หรือวาดเส้นบนกราฟเพื่อส่งการแจ้งเตือนล่วงหน้าเมื่อราคาข้ามเส้น",
   "What is the difference between FREE and PRO tiers?": "ข้อแตกต่างระหว่างแพ็กเกจ FREE และ PRO คืออะไร?",
@@ -208,7 +191,6 @@
   "You can manage or cancel your PRO subscription anytime under Settings > Billing. Your PRO privileges will remain active until the end of your paid billing cycle with no hidden cancellation fees.": "คุณสามารถจัดการหรือยกเลิกการสมัครสมาชิก PRO ได้ตลอดเวลาภายใต้ การตั้งค่า > การชำระเงิน สิทธิ์ PRO ของคุณจะยังคงใช้งานได้จนกว่าจะสิ้นสุดรอบบิลโดยไม่มีค่าธรรมเนียมแอบแฝง",
   "How does the 7-day account deletion grace period work?": "ระยะเวลาผ่อนผันการลบบัญชี 7 วันทำงานอย่างไร?",
   "When you request account deletion under Settings > Account, your account enters a 7-day grace period. You can log in anytime during these 7 days to cancel the deletion request and restore your settings.": "เมื่อคุณร้องขอลบบัญชีภายใต้ การตั้งค่า > บัญชี บัญชีของคุณจะเข้าสู่ระยะเวลาผ่อนผัน 7 วัน คุณสามารถเข้าสู่ระบบเมื่อใดก็ได้ภายใน 7 วันนี้เพื่อยกเลิกการร้องขอลบและกู้คืนการตั้งค่าของคุณ",
-
   "Submit Technical Support Ticket": "ส่งตั๋วสนับสนุนทางเทคนิค",
   "Issue Category": "หมวดหมู่ปัญหา",
   "Select topic": "เลือกหัวข้อ",
@@ -221,7 +203,6 @@
   "Submit Support Ticket": "ส่งตั๋วสนับสนุน",
   "Submitting Ticket...": "กำลังส่งตั๋ว...",
   "Ticket Submitted! Our support team will respond via email within 2 hours.": "ส่งตั๋วเรียบร้อยแล้ว! ทีมงานของเราจะตอบกลับทางอีเมลภายใน 2 ชั่วโมง",
-
   "settings.nav_title": "เมนูการตั้งค่า",
   "settings.nav.profile": "โปรไฟล์",
   "settings.nav.appearance": "กราฟและธีม",
@@ -232,16 +213,13 @@
   "settings.nav.help": "ช่วยเหลือ & สนับสนุน",
   "settings.nav.terms": "ข้อตกลง & กฎหมาย",
   "settings.nav.account": "บัญชี & การลบ",
-
   "header.search_placeholder": "ค้นหาสัญลักษณ์ (เช่น XAUUSD)...",
   "header.pro_tag": "⚡ สมาชิก PRO",
   "header.free_tag": "🔒 สมาชิก FREE",
-
   "chat.monthly_token_quota": "โควต้าโทเค็นประจำเดือน",
   "chat.ask_m5": "ถาม AI เกี่ยวกับกราฟ M5",
   "chat.ask_m15": "ถาม AI เกี่ยวกับกราฟ M15",
   "chat.input_placeholder": "ถาม Gemini หรือพิมพ์ข้อความ...",
-
   "comments.title": "ความคิดเห็นวิเคราะห์ตลาด",
   "comments.col_comment": "การแจ้งเตือน / เวลา / ความคิดเห็น",
   "comments.col_action": "การดำเนินการ",
@@ -252,18 +230,15 @@
   "comments.regression_r2": "ค่าความสัมพันธ์ Regression R²",
   "comments.edt_fitness": "ความฟิตของเส้น EDT",
   "comments.baseline_symmetry": "ความสมมาตรของเส้นแกนหลัก",
-
   "Double bottom wick rejection at lower M5 EDT boundary aligned with M15 SSA bullish trend bias.": "การปฏิเสธไส้เทียนแบบ Double Bottom ที่ขอบล่างของ EDT M5 สอดคล้องกับแนวโน้มขาขึ้นของ SSA M15",
   "Hello! I'm analyzing **XAUUSD** on **M5**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).": "สวัสดี! กำลังวิเคราะห์ **XAUUSD** บนกรอบเวลา **M5** โครงสร้างตลาดแสดงโมเมนตัมขาขึ้นที่ทดสอบแนว EDT ช่องล่าง ($2,634.50)",
   "What is the current M5 SSA trend & EDT channel situation for XAUUSD?": "แนวโน้ม M5 SSA และสถานการณ์ช่อง EDT ปัจจุบันของ XAUUSD เป็นอย่างไร?",
   "Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.": "การประเมินทางเทคนิค XAUUSD แบบเรียลไทม์:\n\n- **โครงสร้าง M5**: การปฏิเสธไส้เทียนแบบ Double Bottom ที่ขอบล่างของ EDT ($2,634.50)\n- **ความชัน SSA M15**: แนวโน้มขาขึ้นพร้อมการขยายตัวของเทียน Z-score\n- **แผนกลยุทธ์**: แนะนำเข้าซื้อ BUY LIMIT ที่ $2,634.50 เป้าหมาย $2,648.00",
-
   "chart.edt_config": "การตั้งค่า EDT",
   "chart.m15_ssa_edt": "กราฟ M15 SSA & EDT",
   "chart.m15_zigzag": "กราฟ M15 ZigZag",
   "chart.ms_on_m15": "แสดง MS บน M15",
   "chart.auto_refresh": "รีเฟรชอัตโนมัติ",
-
   "settings.language_title": "ภาษา เขตเวลา และรูปแบบภูมิภาค",
   "settings.language_subtitle": "กำหนดค่าความเป็นสากล เขตเวลาของนาฬิกา และรูปแบบวันที่",
   "form.display_language": "ภาษาที่แสดงผล",
@@ -275,7 +250,6 @@
   "form.formatted_example": "ตัวอย่างราคาที่แสดงผล:",
   "settings.save_btn": "บันทึกการตั้งค่าภูมิภาค",
   "settings.saved_btn": "บันทึกการตั้งค่าแล้ว!",
-
   "8.5% Used": "ใช้งานไปแล้ว 8.5%",
   "time.just_now": "เมื่อสักครู่",
   "time.mins_ago": "นาทีที่แล้ว",
@@ -295,7 +269,6 @@
   "M15 SSA Deviation": "ค่าความเบี่ยงเบน M15 SSA",
   "M15 Market Momentum": "โมเมนตัมตลาด M15",
   "GB London Session": "เซสชันลอนดอน GB",
-
   "LIVE": "สด",
   "BUY": "ซื้อ",
   "SELL": "ขาย",
@@ -366,9 +339,7 @@
   "Execute Batch Payout": "ดำเนินการจ่ายเงินแบบแบทช์",
   "User Directory Management": "การจัดการไดเรกทอรีผู้ใช้",
   "System Account Oversight, Role Assignment & Account Bans": "การกำกับดูแลบัญชีระบบ การกำหนดบทบาท & การระงับบัญชี",
-
   "Manage your DavinTrade account preferences, security & quantitative terminal configurations": "จัดการการตั้งค่าบัญชี DavinTrade ความปลอดภัย และการกำหนดค่าเทอร์มินัลเชิงปริมาณ",
-
   "Join Partner Program": "เข้าร่วมโปรแกรมพันธมิตร",
   "Earn 30% monthly recurring commission on every trader you refer": "รับค่าคอมมิชชัน 30% ต่อเดือนอย่างต่อเนื่องจากเทรดเดอร์ทุกคนที่คุณแนะนำ",
   "Partner Name / Channel": "ชื่อพันธมิตร / ช่องทาง",
@@ -379,16 +350,13 @@
   "Creating Partner Account...": "กำลังสร้างบัญชีพันธมิตร...",
   "Already registered?": "ลงทะเบียนแล้วใช่หรือไม่?",
   "Partner Dashboard": "แดชบอร์ดพันธมิตร",
-
   "Read-Only Session History (FREE Tier) — Upgrade to PRO to resume interactive AI Chart Analysis.": "ประวัติเซสชันแบบอ่านอย่างเดียว (แพ็กเกจ FREE) — อัปเกรดเป็น PRO เพื่อกลับมาใช้การวิเคราะห์กราฟด้วย AI แบบโต้ตอบ",
   "Read-Only History (FREE Tier)": "ประวัติแบบอ่านอย่างเดียว (แพ็กเกจ FREE)",
   "Upgrade to PRO to ask new questions or continue this session.": "อัปเกรดเป็น PRO เพื่อถามคำถามใหม่หรือใช้งานเซสชันนี้ต่อ",
   "Upgrade": "อัปเกรด",
   "Upgrade to PRO": "อัปเกรดเป็น PRO",
-
   "Live Feeds & Quality Metrics": "ฟีดเรียลไทม์และตัวชี้วัดคุณภาพ",
   "Live Market Comments, Session Countdowns, Gauges, and EDT Quality Metrics require a PRO subscription. Upgrade to unlock real-time WebSocket feeds for XAUUSD.": "ความคิดเห็นตลาดเรียลไทม์ การนับถอยหลังเซสชัน เกจวัด และตัวชี้วัดคุณภาพ EDT ต้องใช้การสมัครสมาชิก PRO อัปเกรดเพื่อปลดล็อกฟีด WebSocket เรียลไทม์สำหรับ XAUUSD",
-
   "Reset Password": "รีเซ็ตรหัสผ่าน",
   "Enter your account email to receive reset instructions": "ป้อนอีเมลบัญชีของคุณเพื่อรับคำแนะนำในการรีเซ็ต",
   "Check Your Email": "ตรวจสอบอีเมลของคุณ",
@@ -613,5 +581,51 @@
   "Stack E Live Market Comments": "ความคิดเห็นตลาดเรียลไทม์",
   "Real-time XAUUSD signal alerts & 4 progress quality metrics.": "การแจ้งเตือนสัญญาณ XAUUSD เรียลไทม์ & ตัวชี้วัดคุณภาพ 4 รายการ",
   "100 Active Price Alerts & 300 requests/hour API rate limit.": "100 กฎการแจ้งเตือนราคา & อัตราการใช้งาน API 300 คำขอ/ชั่วโมง",
-  "7-Day Free Trial": "ทดลองใช้งานฟรี 7 วัน"
+  "7-Day Free Trial": "ทดลองใช้งานฟรี 7 วัน",
+  "XAUUSD M5 / M15 Feed Live": "ฟีด XAUUSD M5 / M15 เรียลไทม์",
+  "UTC (Coordinated Universal Time)": "UTC (เวลาสากลเชิงพิกัด)",
+  "EST (New York Time)": "EST (เวลานิวยอร์ก)",
+  "GMT (London Time)": "GMT (เวลาลอนดอน)",
+  "3 Flagged": "ถูกตั้งค่าสถานะ 3 รายการ",
+  "Score 92/100": "คะแนน 92/100",
+  "User free-test@... created 15 accounts from same IP subnet.": "ผู้ใช้ free-test@... สร้างบัญชี 15 บัญชีจากซับเน็ต IP เดียวกัน",
+  "Collapse AI Analyst Panel": "ย่อแผงนักวิเคราะห์ AI",
+  "Press ENTER to send": "กด ENTER เพื่อส่ง",
+  "⚡ PRO Tier Page": "⚡ หน้าแพ็กเกจ PRO",
+  "🔒 FREE Tier Page": "🔒 หน้าแพ็กเกจ FREE",
+  "Account Options": "ตัวเลือกบัญชี",
+  "Profile Settings": "ตั้งค่าโปรไฟล์",
+  "Security & 2FA": "ความปลอดภัย & 2FA",
+  "Billing & Invoices": "การชำระเงิน & ใบเสร็จ",
+  "Log out": "ออกจากระบบ",
+  "Select Country & Region": "เลือกประเทศและภูมิภาค",
+  "Trader Account": "บัญชีผู้ใช้งานการเทรด",
+  "Collapse Right Panel": "ย่อแผงด้านขวา",
+  "Sydney": "ซิดนีย์",
+  "Tokyo": "โตเกียว",
+  "London": "ลอนดอน",
+  "New York": "นิวยอร์ก",
+  "Thailand": "ประเทศไทย",
+  "United Kingdom": "สหราชอาณาจักร",
+  "Vietnam": "เวียดนาม",
+  "India": "อินเดีย",
+  "Indonesia": "อินโดนีเซีย",
+  "Pakistan": "ปากีสถาน",
+  "Nigeria": "ไนจีเรีย",
+  "South Africa": "แอฟริกาใต้",
+  "Turkey": "ตุรกี",
+  "United States": "สหรัฐอเมริกา",
+  "Japan": "ญี่ปุ่น",
+  "UNLIMITED": "ไม่จำกัด",
+  "M5 SSA & EDT Channel Canvas": "พื้นที่กราฟ M5 SSA & ช่อง EDT",
+  "Show Price Bar": "แสดงแท่งราคา (Bar)",
+  "Show Price Candle": "แสดงแท่งเทียน (Candle)",
+  "Hide Price Bar & Candle (Indicators Only)": "ซ่อนแท่งราคาและแท่งเทียน (แสดงเฉพาะอินดิเคเตอร์)",
+  "Click to ask AI about M5 chart situation": "คลิกเพื่อถาม AI เกี่ยวกับสถานการณ์กราฟ M5",
+  "⚡ M5 EDT Overlaid": "⚡ ซ้อนทับ EDT M5",
+  "M15 EDT Parameters": "พารามิเตอร์ EDT M15",
+  "Click to ask AI about M15 chart situation": "คลิกเพื่อถาม AI เกี่ยวกับสถานการณ์กราฟ M15",
+  "Expand Sidebar": "ขยายแถบด้านข้าง",
+  "Collapse Sidebar": "ย่อแถบด้านข้าง",
+  "Eurozone": "ยูโรโซน"
 }

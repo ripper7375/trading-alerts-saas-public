@@ -214,7 +214,7 @@ export default function ChatPanel({
               size="icon"
               onClick={onCollapsePanel}
               className="h-7 w-7 text-slate-400 hover:bg-slate-800 hover:text-slate-100"
-              title="Collapse AI Analyst Panel"
+              title={t('Collapse AI Analyst Panel')}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -354,7 +354,7 @@ export default function ChatPanel({
                 disabled={!input.trim()}
                 className="h-8 w-8 rounded-lg bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 hover:bg-amber-400 disabled:opacity-30"
                 onClick={handleSendMessage}
-                title="Press ENTER to send"
+                title={t('Press ENTER to send')}
               >
                 <CornerDownLeft className="h-4 w-4 stroke-[2.5]" />
               </Button>

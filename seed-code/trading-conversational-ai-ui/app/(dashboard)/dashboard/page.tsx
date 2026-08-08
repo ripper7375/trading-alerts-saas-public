@@ -40,7 +40,7 @@ export default function DashboardPage() {
                   ⚡ {t('PRO TIER ACTIVE')}
                 </Badge>
                 <span className="font-mono text-[11px] text-slate-400">
-                  XAUUSD M5 / M15 Feed Live
+                  {t('XAUUSD M5 / M15 Feed Live')}
                 </span>
               </div>
               <h2 className="text-xl font-extrabold tracking-tight text-slate-100">

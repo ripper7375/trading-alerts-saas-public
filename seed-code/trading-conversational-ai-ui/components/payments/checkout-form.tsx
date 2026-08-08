@@ -141,17 +141,17 @@ export default function CheckoutForm() {
               <SelectValue placeholder={t('Select country', 'เลือกประเทศ')} />
             </SelectTrigger>
             <SelectContent className="border-slate-750 bg-[#0f1420] text-xs">
-              <SelectItem value="TH">🇹🇭 ประเทศไทย (Thailand)</SelectItem>
-              <SelectItem value="GB">🇬🇧 United Kingdom</SelectItem>
-              <SelectItem value="VN">🇻🇳 Vietnam</SelectItem>
-              <SelectItem value="IN">🇮🇳 India</SelectItem>
-              <SelectItem value="ID">🇮🇩 Indonesia</SelectItem>
-              <SelectItem value="PK">🇵🇰 Pakistan</SelectItem>
-              <SelectItem value="NG">🇳🇬 Nigeria</SelectItem>
-              <SelectItem value="ZA">🇿🇦 South Africa</SelectItem>
-              <SelectItem value="TR">🇹🇷 Turkey</SelectItem>
-              <SelectItem value="US">🇺🇸 United States</SelectItem>
-              <SelectItem value="JP">🇯🇵 Japan</SelectItem>
+              <SelectItem value="TH">🇹🇭 {t('Thailand')}</SelectItem>
+              <SelectItem value="GB">🇬🇧 {t('United Kingdom')}</SelectItem>
+              <SelectItem value="VN">🇻🇳 {t('Vietnam')}</SelectItem>
+              <SelectItem value="IN">🇮🇳 {t('India')}</SelectItem>
+              <SelectItem value="ID">🇮🇩 {t('Indonesia')}</SelectItem>
+              <SelectItem value="PK">🇵🇰 {t('Pakistan')}</SelectItem>
+              <SelectItem value="NG">🇳🇬 {t('Nigeria')}</SelectItem>
+              <SelectItem value="ZA">🇿🇦 {t('South Africa')}</SelectItem>
+              <SelectItem value="TR">🇹🇷 {t('Turkey')}</SelectItem>
+              <SelectItem value="US">🇺🇸 {t('United States')}</SelectItem>
+              <SelectItem value="JP">🇯🇵 {t('Japan')}</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -99,10 +99,14 @@ export default function ProfileSettingsPage() {
                   </SelectTrigger>
                   <SelectContent className="border-slate-750 bg-[#0f1420]">
                     <SelectItem value="UTC">
-                      UTC (Coordinated Universal Time)
+                      {t('UTC (Coordinated Universal Time)')}
                     </SelectItem>
-                    <SelectItem value="EST">EST (New York Time)</SelectItem>
-                    <SelectItem value="GMT">GMT (London Time)</SelectItem>
+                    <SelectItem value="EST">
+                      {t('EST (New York Time)')}
+                    </SelectItem>
+                    <SelectItem value="GMT">
+                      {t('GMT (London Time)')}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

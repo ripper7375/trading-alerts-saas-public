@@ -236,7 +236,7 @@ export default function TierComparison() {
                 </p>
               </div>
               <Badge className="border-amber-500/50 bg-amber-500/20 font-mono text-[10px] text-amber-300">
-                UNLIMITED
+                {t('UNLIMITED')}
               </Badge>
             </div>
 

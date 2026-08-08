@@ -69,7 +69,7 @@ export default function AdminDashboardPage() {
                     {t('Fraud & Anomaly Alerts')}
                   </h3>
                   <Badge className="border-rose-500/40 bg-rose-500/15 font-mono text-[9px] text-rose-300">
-                    3 Flagged
+                    {t('3 Flagged')}
                   </Badge>
                 </div>
 
@@ -78,12 +78,13 @@ export default function AdminDashboardPage() {
                     <div className="flex justify-between font-bold text-rose-300">
                       <span>{t('IP Velocity Violation')}</span>
                       <span className="font-mono text-[10px]">
-                        Score 92/100
+                        {t('Score 92/100')}
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-400">
-                      User free-test@... created 15 accounts from same IP
-                      subnet.
+                      {t(
+                        'User free-test@... created 15 accounts from same IP subnet.'
+                      )}
                     </p>
                   </div>
                 </div>

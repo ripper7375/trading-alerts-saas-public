@@ -416,7 +416,7 @@ export default function TradingChart({
                 🟢 XAUUSD,M5
               </Badge>
               <span className="rounded border border-blue-900/60 bg-[#080b12]/80 px-2 py-0.5 font-mono text-[10px] text-blue-300/80 backdrop-blur-xs">
-                M5 SSA & EDT Channel Canvas
+                {t('M5 SSA & EDT Channel Canvas')}
               </span>
             </div>
 
@@ -431,7 +431,7 @@ export default function TradingChart({
                     m5PriceMode === 'BAR' && 'bg-blue-600/30 text-blue-300'
                   )}
                   onClick={() => setM5PriceMode('BAR')}
-                  title="Show Price Bar"
+                  title={t('Show Price Bar')}
                 >
                   <BarChart2 className="h-3.5 w-3.5" />
                 </Button>
@@ -443,7 +443,7 @@ export default function TradingChart({
                     m5PriceMode === 'CANDLE' && 'bg-blue-600/30 text-blue-300'
                   )}
                   onClick={() => setM5PriceMode('CANDLE')}
-                  title="Show Price Candle"
+                  title={t('Show Price Candle')}
                 >
                   <CandleIcon className="h-3.5 w-3.5" />
                 </Button>
@@ -455,7 +455,7 @@ export default function TradingChart({
                     m5PriceMode === 'HIDE' && 'bg-rose-600/30 text-rose-300'
                   )}
                   onClick={() => setM5PriceMode('HIDE')}
-                  title="Hide Price Bar & Candle (Indicators Only)"
+                  title={t('Hide Price Bar & Candle (Indicators Only)')}
                 >
                   <EyeOff className="h-3.5 w-3.5" />
                 </Button>
@@ -506,7 +506,7 @@ export default function TradingChart({
                     );
                   }
                 }}
-                title="Click to ask AI about M5 chart situation"
+                title={t('Click to ask AI about M5 chart situation')}
               >
                 <Avatar className="h-4.5 w-4.5 border border-amber-400/80">
                   <AvatarImage src="/DavinTrade_Logo.jpg" />
@@ -566,7 +566,7 @@ export default function TradingChart({
                   variant="outline"
                   className="border-cyan-500/60 bg-cyan-950/80 font-mono text-[10px] text-cyan-300 shadow-xs backdrop-blur-md"
                 >
-                  ⚡ M5 EDT Overlaid
+                  {t('⚡ M5 EDT Overlaid')}
                 </Badge>
               )}
             </div>
@@ -582,7 +582,7 @@ export default function TradingChart({
                     m15PriceMode === 'BAR' && 'bg-purple-600/30 text-purple-300'
                   )}
                   onClick={() => setM15PriceMode('BAR')}
-                  title="Show Price Bar"
+                  title={t('Show Price Bar')}
                 >
                   <BarChart2 className="h-3.5 w-3.5" />
                 </Button>
@@ -595,7 +595,7 @@ export default function TradingChart({
                       'bg-purple-600/30 text-purple-300'
                   )}
                   onClick={() => setM15PriceMode('CANDLE')}
-                  title="Show Price Candle"
+                  title={t('Show Price Candle')}
                 >
                   <CandleIcon className="h-3.5 w-3.5" />
                 </Button>
@@ -607,7 +607,7 @@ export default function TradingChart({
                     m15PriceMode === 'HIDE' && 'bg-rose-600/30 text-rose-300'
                   )}
                   onClick={() => setM15PriceMode('HIDE')}
-                  title="Hide Price Bar & Candle (Indicators Only)"
+                  title={t('Hide Price Bar & Candle (Indicators Only)')}
                 >
                   <EyeOff className="h-3.5 w-3.5" />
                 </Button>
@@ -620,21 +620,21 @@ export default function TradingChart({
                     className="h-7 border border-slate-700 bg-slate-800/80 text-[11px] font-bold text-slate-200 hover:bg-slate-700"
                   >
                     <Sliders className="mr-1 h-3 w-3 text-amber-400" />
-                    EDT Configuration
+                    {t('EDT Configuration')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="border-slate-750 w-64 space-y-2 bg-[#121622] p-3 text-xs text-slate-200">
                   <div className="border-b border-slate-800 pb-1 font-bold text-amber-400">
-                    M15 EDT Parameters
+                    {t('M15 EDT Parameters')}
                   </div>
                   <div className="flex justify-between text-[11px]">
-                    <span>Channel Width:</span>{' '}
+                    <span>{t('Channel Width:')}</span>{' '}
                     <span className="font-mono font-bold text-emerald-400">
                       18.0 pips
                     </span>
                   </div>
                   <div className="flex justify-between text-[11px]">
-                    <span>SSA Smoothing Period:</span>{' '}
+                    <span>{t('SSA Smoothing Period:')}</span>{' '}
                     <span className="font-mono font-bold text-purple-400">
                       48 bars
                     </span>
@@ -656,7 +656,7 @@ export default function TradingChart({
                     );
                   }
                 }}
-                title="Click to ask AI about M15 chart situation"
+                title={t('Click to ask AI about M15 chart situation')}
               >
                 <Avatar className="h-4.5 w-4.5 border border-amber-400/80">
                   <AvatarImage src="/DavinTrade_Logo.jpg" />

@@ -143,7 +143,7 @@ export default function AppHeader({
               variant="ghost"
               size="sm"
               className="border-slate-750 h-7 gap-1.5 border bg-[#0c0f19] px-2 font-mono text-xs font-bold text-slate-200 hover:bg-slate-800"
-              title="Select Country & Region"
+              title={t('Select Country & Region')}
             >
               <span className="text-sm">{countryConfig?.flag || '🇬🇧'}</span>
               <span className="hidden font-sans text-[11px] font-bold text-amber-300 sm:inline">
@@ -154,7 +154,7 @@ export default function AppHeader({
           </DropdownMenuTrigger>
           <DropdownMenuContent className="border-slate-750 max-h-72 w-48 overflow-y-auto bg-[#0f1420] text-xs text-slate-200">
             <DropdownMenuLabel className="text-[10px] font-bold tracking-wider text-amber-400 uppercase">
-              Select Country & Region
+              {t('Select Country & Region')}
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-slate-800" />
             {Object.values(SUPPORTED_COUNTRIES).map((c) => (
@@ -169,7 +169,7 @@ export default function AppHeader({
               >
                 <div className="flex items-center gap-2">
                   <span className="text-base">{c.flag}</span>
-                  <span>{c.name}</span>
+                  <span>{t(c.name)}</span>
                 </div>
                 <span className="font-mono text-[10px] text-slate-400">
                   {c.symbol}
@@ -186,7 +186,7 @@ export default function AppHeader({
               className="h-7 bg-gradient-to-r from-amber-500 to-amber-600 px-2.5 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
             >
               <Sparkles className="mr-1 h-3.5 w-3.5 fill-black" />
-              Upgrade
+              {t('Upgrade')}
             </Button>
           </Link>
         )}
@@ -223,7 +223,7 @@ export default function AppHeader({
           </DropdownMenuTrigger>
           <DropdownMenuContent className="border-slate-750 w-52 bg-[#0f1420] text-xs text-slate-200">
             <DropdownMenuLabel className="font-bold text-amber-400">
-              Trader Account
+              {t('Trader Account')}
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-slate-800" />
             <DropdownMenuItem asChild>
@@ -231,8 +231,8 @@ export default function AppHeader({
                 href="/settings/profile"
                 className="flex cursor-pointer items-center"
               >
-                <User className="mr-2 h-3.5 w-3.5 text-slate-400" /> Profile
-                Settings
+                <User className="mr-2 h-3.5 w-3.5 text-slate-400" />{' '}
+                {t('Profile Settings')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
@@ -240,8 +240,8 @@ export default function AppHeader({
                 href="/settings/security"
                 className="flex cursor-pointer items-center"
               >
-                <Shield className="mr-2 h-3.5 w-3.5 text-slate-400" /> Security
-                & 2FA
+                <Shield className="mr-2 h-3.5 w-3.5 text-slate-400" />{' '}
+                {t('Security & 2FA')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
@@ -249,8 +249,8 @@ export default function AppHeader({
                 href="/settings/billing"
                 className="flex cursor-pointer items-center"
               >
-                <Settings className="mr-2 h-3.5 w-3.5 text-slate-400" /> Billing
-                & Invoices
+                <Settings className="mr-2 h-3.5 w-3.5 text-slate-400" />{' '}
+                {t('Billing & Invoices')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-slate-800" />
@@ -259,14 +259,14 @@ export default function AppHeader({
                 href="/affiliate/dashboard"
                 className="flex cursor-pointer items-center"
               >
-                <Share2 className="mr-2 h-3.5 w-3.5 text-slate-400" /> Affiliate
-                Dashboard
+                <Share2 className="mr-2 h-3.5 w-3.5 text-slate-400" />{' '}
+                {t('Affiliate Partner Dashboard')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/admin" className="flex cursor-pointer items-center">
                 <ShieldAlert className="mr-2 h-3.5 w-3.5 text-slate-400" />{' '}
-                Admin Control
+                {t('nav.admin', 'Admin Control')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-slate-800" />
@@ -275,7 +275,7 @@ export default function AppHeader({
                 href="/login"
                 className="flex cursor-pointer items-center text-rose-400"
               >
-                <LogOut className="mr-2 h-3.5 w-3.5" /> Log out
+                <LogOut className="mr-2 h-3.5 w-3.5" /> {t('Log out')}
               </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>

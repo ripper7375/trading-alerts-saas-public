@@ -175,7 +175,7 @@ export function ChatSidebar({
                       href="/"
                       className="flex cursor-pointer items-center justify-between font-bold text-amber-300 hover:bg-amber-500/20"
                     >
-                      <span>⚡ PRO Tier Page</span>
+                      <span>{t('⚡ PRO Tier Page')}</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
@@ -183,7 +183,7 @@ export function ChatSidebar({
                       href="/free"
                       className="flex cursor-pointer items-center justify-between font-bold text-slate-300 hover:bg-slate-800"
                     >
-                      <span>🔒 FREE Tier Page</span>
+                      <span>{t('🔒 FREE Tier Page')}</span>
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -200,7 +200,7 @@ export function ChatSidebar({
             'h-8 w-8 shrink-0 text-slate-400 hover:bg-slate-800/80 hover:text-slate-100',
             isCollapsed && 'mx-auto'
           )}
-          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          title={isCollapsed ? t('Expand Sidebar') : t('Collapse Sidebar')}
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -348,7 +348,7 @@ export function ChatSidebar({
               className="h-8 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
             >
               <Sparkles className="mr-1.5 h-3.5 w-3.5 fill-black" />
-              Upgrade to PRO
+              {t('Upgrade to PRO')}
             </Button>
           </Link>
         )}
@@ -422,22 +422,22 @@ export function ChatSidebar({
           </DropdownMenuTrigger>
           <DropdownMenuContent className="border-slate-750 w-48 bg-[#0f1420] text-xs text-slate-200">
             <DropdownMenuLabel className="font-bold text-amber-400">
-              Account Options
+              {t('Account Options')}
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-slate-800" />
             <DropdownMenuItem asChild>
               <Link href="/settings/profile" className="cursor-pointer">
-                Profile Settings
+                {t('Profile Settings')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/settings/security" className="cursor-pointer">
-                Security & 2FA
+                {t('Security & 2FA')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/settings/billing" className="cursor-pointer">
-                Billing & Invoices
+                {t('Billing & Invoices')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-slate-800" />
@@ -446,7 +446,7 @@ export function ChatSidebar({
                 href="/login"
                 className="flex cursor-pointer items-center text-rose-400"
               >
-                <LogOut className="mr-1.5 h-3.5 w-3.5" /> Log out
+                <LogOut className="mr-1.5 h-3.5 w-3.5" /> {t('Log out')}
               </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>

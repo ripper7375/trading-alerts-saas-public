@@ -279,7 +279,7 @@ export default function MarketCommentsPanel({
             size="icon"
             onClick={onCollapsePanel}
             className="h-7 w-7 text-slate-400 hover:bg-emerald-950/60 hover:text-slate-100"
-            title="Collapse Right Panel"
+            title={t('Collapse Right Panel')}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -330,10 +330,10 @@ export default function MarketCommentsPanel({
               <span>{t('GB London Session', 'เซสชันลอนดอน GB')}</span>
             </div>
             <div className="flex items-center gap-1 text-[11px] font-bold opacity-90">
-              <span title="Sydney">🇦🇺</span>
-              <span title="Tokyo">🇯🇵</span>
-              <span title="London">🇬🇧</span>
-              <span title="New York">🇺🇸</span>
+              <span title={t('Sydney')}>🇦🇺</span>
+              <span title={t('Tokyo')}>🇯🇵</span>
+              <span title={t('London')}>🇬🇧</span>
+              <span title={t('New York')}>🇺🇸</span>
               <HelpCircle className="ml-1 inline h-3.5 w-3.5 cursor-pointer text-slate-900" />
             </div>
           </div>
