@@ -111,7 +111,10 @@ export default function SettingsLayout({
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] select-none">
       <AppHeader
         title={`${t('breadcrumb.settings', 'Settings')}: ${activeTabLabel}`}
-        subtitle="Manage your DavinTrade account preferences, security & quantitative terminal configurations"
+        subtitle={t(
+          'Manage your DavinTrade account preferences, security & quantitative terminal configurations',
+          'จัดการการตั้งค่าบัญชี DavinTrade ความปลอดภัย และการกำหนดค่าเทอร์มินัลเชิงปริมาณ'
+        )}
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">

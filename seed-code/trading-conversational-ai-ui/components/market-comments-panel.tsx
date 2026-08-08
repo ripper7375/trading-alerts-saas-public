@@ -539,15 +539,19 @@ export default function MarketCommentsPanel({
             variant="outline"
             className="mb-2 border-amber-500/50 bg-amber-500/10 font-mono text-[10px] text-amber-400"
           >
-            🔒 PRO Subscriber Feature
+            🔒 {t('PRO Subscriber Feature', 'คุณสมบัติสมาชิก PRO')}
           </Badge>
           <h3 className="mb-1 text-base font-bold text-slate-100">
-            Live Feeds & Quality Metrics
+            {t(
+              'Live Feeds & Quality Metrics',
+              'ฟีดเรียลไทม์และตัวชี้วัดคุณภาพ'
+            )}
           </h3>
           <p className="mb-4 max-w-xs text-xs leading-relaxed text-slate-400">
-            Live Market Comments, Session Countdowns, Gauges, and EDT Quality
-            Metrics require a PRO subscription. Upgrade to unlock real-time
-            WebSocket feeds for XAUUSD.
+            {t(
+              'Live Market Comments, Session Countdowns, Gauges, and EDT Quality Metrics require a PRO subscription. Upgrade to unlock real-time WebSocket feeds for XAUUSD.',
+              'ความคิดเห็นตลาดเรียลไทม์ การนับถอยหลังเซสชัน เกจวัด และตัวชี้วัดคุณภาพ EDT ต้องใช้การสมัครสมาชิก PRO อัปเกรดเพื่อปลดล็อกฟีด WebSocket เรียลไทม์สำหรับ XAUUSD'
+            )}
           </p>
           <Button
             size="sm"
@@ -558,7 +562,7 @@ export default function MarketCommentsPanel({
             className="bg-gradient-to-r from-amber-500 to-amber-600 font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
           >
             <Sparkles className="mr-1.5 h-3.5 w-3.5 fill-black" />
-            Upgrade to PRO
+            {t('Upgrade to PRO', 'อัปเกรดเป็น PRO')}
           </Button>
         </div>
       )}

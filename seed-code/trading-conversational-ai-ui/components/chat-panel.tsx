@@ -228,8 +228,10 @@ export default function ChatPanel({
           <div className="flex items-center gap-2">
             <Info className="h-4 w-4 shrink-0 text-amber-400" />
             <span className="text-[11px] font-semibold">
-              Read-Only Session History (FREE Tier) — Upgrade to PRO to resume
-              interactive AI Chart Analysis.
+              {t(
+                'Read-Only Session History (FREE Tier) — Upgrade to PRO to resume interactive AI Chart Analysis.',
+                'ประวัติเซสชันแบบอ่านอย่างเดียว (แพ็กเกจ FREE) — อัปเกรดเป็น PRO เพื่อกลับมาใช้การวิเคราะห์กราฟด้วย AI แบบโต้ตอบ'
+              )}
             </span>
           </div>
           <Button
@@ -239,7 +241,7 @@ export default function ChatPanel({
             }
             className="h-6 bg-amber-500 px-2 text-[10px] font-extrabold text-slate-950 hover:bg-amber-400"
           >
-            Upgrade
+            {t('Upgrade', 'อัปเกรด')}
           </Button>
         </div>
       )}
@@ -364,10 +366,16 @@ export default function ChatPanel({
               <Lock className="h-4 w-4 shrink-0 text-amber-400" />
               <div>
                 <div className="text-xs font-bold text-slate-100">
-                  Read-Only History (FREE Tier)
+                  {t(
+                    'Read-Only History (FREE Tier)',
+                    'ประวัติแบบอ่านอย่างเดียว (แพ็กเกจ FREE)'
+                  )}
                 </div>
                 <div className="text-[11px] text-slate-400">
-                  Upgrade to PRO to ask new questions or continue this session.
+                  {t(
+                    'Upgrade to PRO to ask new questions or continue this session.',
+                    'อัปเกรดเป็น PRO เพื่อถามคำถามใหม่หรือใช้งานเซสชันนี้ต่อ'
+                  )}
                 </div>
               </div>
             </div>
@@ -380,7 +388,7 @@ export default function ChatPanel({
               className="shrink-0 bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
             >
               <Sparkles className="mr-1.5 h-3.5 w-3.5 fill-black" />
-              Upgrade to PRO
+              {t('Upgrade to PRO', 'อัปเกรดเป็น PRO')}
             </Button>
           </div>
         )}

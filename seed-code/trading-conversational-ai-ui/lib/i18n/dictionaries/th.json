@@ -365,5 +365,27 @@
   "Executing...": "กำลังดำเนินการ...",
   "Execute Batch Payout": "ดำเนินการจ่ายเงินแบบแบทช์",
   "User Directory Management": "การจัดการไดเรกทอรีผู้ใช้",
-  "System Account Oversight, Role Assignment & Account Bans": "การกำกับดูแลบัญชีระบบ การกำหนดบทบาท & การระงับบัญชี"
+  "System Account Oversight, Role Assignment & Account Bans": "การกำกับดูแลบัญชีระบบ การกำหนดบทบาท & การระงับบัญชี",
+
+  "Manage your DavinTrade account preferences, security & quantitative terminal configurations": "จัดการการตั้งค่าบัญชี DavinTrade ความปลอดภัย และการกำหนดค่าเทอร์มินัลเชิงปริมาณ",
+
+  "Join Partner Program": "เข้าร่วมโปรแกรมพันธมิตร",
+  "Earn 30% monthly recurring commission on every trader you refer": "รับค่าคอมมิชชัน 30% ต่อเดือนอย่างต่อเนื่องจากเทรดเดอร์ทุกคนที่คุณแนะนำ",
+  "Partner Name / Channel": "ชื่อพันธมิตร / ช่องทาง",
+  "e.g. Gold Traders Community": "เช่น ชุมชนเทรดเดอร์ทองคำ",
+  "Business Email": "อีเมลธุรกิจ",
+  "Channel Link / Website (Optional)": "ลิงก์ช่องทาง / เว็บไซต์ (ไม่บังคับ)",
+  "Apply for Partner Portal": "สมัครเข้าใช้พอร์ตัลพันธมิตร",
+  "Creating Partner Account...": "กำลังสร้างบัญชีพันธมิตร...",
+  "Already registered?": "ลงทะเบียนแล้วใช่หรือไม่?",
+  "Partner Dashboard": "แดชบอร์ดพันธมิตร",
+
+  "Read-Only Session History (FREE Tier) — Upgrade to PRO to resume interactive AI Chart Analysis.": "ประวัติเซสชันแบบอ่านอย่างเดียว (แพ็กเกจ FREE) — อัปเกรดเป็น PRO เพื่อกลับมาใช้การวิเคราะห์กราฟด้วย AI แบบโต้ตอบ",
+  "Read-Only History (FREE Tier)": "ประวัติแบบอ่านอย่างเดียว (แพ็กเกจ FREE)",
+  "Upgrade to PRO to ask new questions or continue this session.": "อัปเกรดเป็น PRO เพื่อถามคำถามใหม่หรือใช้งานเซสชันนี้ต่อ",
+  "Upgrade": "อัปเกรด",
+  "Upgrade to PRO": "อัปเกรดเป็น PRO",
+
+  "Live Feeds & Quality Metrics": "ฟีดเรียลไทม์และตัวชี้วัดคุณภาพ",
+  "Live Market Comments, Session Countdowns, Gauges, and EDT Quality Metrics require a PRO subscription. Upgrade to unlock real-time WebSocket feeds for XAUUSD.": "ความคิดเห็นตลาดเรียลไทม์ การนับถอยหลังเซสชัน เกจวัด และตัวชี้วัดคุณภาพ EDT ต้องใช้การสมัครสมาชิก PRO อัปเกรดเพื่อปลดล็อกฟีด WebSocket เรียลไทม์สำหรับ XAUUSD"
 }
