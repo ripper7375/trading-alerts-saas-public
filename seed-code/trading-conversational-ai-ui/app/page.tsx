@@ -7,11 +7,24 @@ import {
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
-import TradingChart from '@/components/trading-chart';
+import dynamic from 'next/dynamic';
+import { ChartSkeleton } from '@/components/ui/chart-skeleton';
+
+const TradingChart = dynamic(() => import('@/components/trading-chart'), {
+  ssr: false,
+  loading: () => <ChartSkeleton />,
+});
+
+const ProUpgradeModal = dynamic(
+  () =>
+    import('@/components/ui/pro-upgrade-modal').then(
+      (mod) => mod.ProUpgradeModal
+    ),
+  { ssr: false }
+);
 import ChatPanel from '@/components/chat-panel';
 import MarketCommentsPanel from '@/components/market-comments-panel';
 import { ChatSidebar } from '@/components/chat-sidebar';
-import { ProUpgradeModal } from '@/components/ui/pro-upgrade-modal';
 import { PanelLeftOpen, PanelRightOpen } from 'lucide-react';
 import type { Symbol, Timeframe, Tier } from '@/lib/types';
 

@@ -1,24 +1,10 @@
-'use client';
+import { PricingContent } from './_components/pricing-content';
 
-import AppHeader from '@/components/layout/app-header';
-import TierComparison from '@/components/pricing/tier-comparison';
-import { useLocale } from '@/lib/context/locale-context';
+export const metadata = {
+  title: 'Pricing & Plans | DavinTrade AI',
+  description: 'Compare FREE vs PRO Tier Capabilities',
+};
 
 export default function PricingPage() {
-  const { t } = useLocale();
-
-  return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] select-none">
-      <AppHeader
-        title={t('Tier Pricing & Plans', 'ราคาแพ็กเกจ & แผนสมาชิก')}
-        subtitle={t(
-          'Compare FREE vs PRO Tier Capabilities',
-          'เปรียบเทียบสิทธิ์การใช้งานแพ็กเกจ FREE และ PRO'
-        )}
-      />
-      <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
-        <TierComparison />
-      </main>
-    </div>
-  );
+  return <PricingContent />;
 }

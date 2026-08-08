@@ -351,7 +351,6 @@ export default function TradingChart({
       chartM15.remove();
     };
   }, [
-    isDark,
     m15ViewMode,
     isM5OnM15,
     m5PriceMode,
@@ -359,6 +358,28 @@ export default function TradingChart({
     tier,
     chartLocalization,
   ]);
+
+  // Reactive Incremental Theme Updates (0ms flash-free theme switching)
+  useEffect(() => {
+    if (!chartM5Ref.current || !chartM15Ref.current) return;
+    const bgM5 = isDark ? '#080b12' : '#ffffff';
+    const textM5 = isDark ? '#94a3b8' : '#334155';
+    const bgM15 = isDark ? '#0f0a17' : '#f8fafc';
+    const textM15 = isDark ? '#a78bfa' : '#475569';
+
+    chartM5Ref.current.applyOptions({
+      layout: {
+        background: { type: ColorType.Solid, color: bgM5 },
+        textColor: textM5,
+      },
+    });
+    chartM15Ref.current.applyOptions({
+      layout: {
+        background: { type: ColorType.Solid, color: bgM15 },
+        textColor: textM15,
+      },
+    });
+  }, [isDark]);
 
   // Drawing Tools Definition for left vertical strip
   const drawingTools = [
