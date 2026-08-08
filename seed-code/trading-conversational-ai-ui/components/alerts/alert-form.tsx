@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, ArrowLeft, Check, Sparkles } from 'lucide-react';
+import { Bell, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,9 +14,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function AlertForm() {
   const router = useRouter();
+  const { t } = useLocale();
   const [ruleName, setRuleName] = useState('');
   const [symbol, setSymbol] = useState('XAUUSD');
   const [timeframe, setTimeframe] = useState('M5');
@@ -45,10 +47,10 @@ export default function AlertForm() {
           </div>
           <div>
             <h2 className="text-sm font-extrabold text-slate-100">
-              Create New Alert Rule
+              {t('Create New Alert Rule')}
             </h2>
             <p className="text-[11px] text-slate-400">
-              Configure real-time price & line trigger conditions
+              {t('Configure real-time price & line trigger conditions')}
             </p>
           </div>
         </div>
@@ -57,7 +59,7 @@ export default function AlertForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            Rule Name
+            {t('Rule Name')}
           </Label>
           <Input
             required
@@ -71,11 +73,11 @@ export default function AlertForm() {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-slate-300">
-              Symbol
+              {t('Symbol')}
             </Label>
             <Select value={symbol} onValueChange={setSymbol}>
               <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs">
-                <SelectValue placeholder="Select symbol" />
+                <SelectValue placeholder={t('Select symbol')} />
               </SelectTrigger>
               <SelectContent className="border-slate-750 bg-[#0f1420]">
                 <SelectItem value="XAUUSD">XAUUSD (Gold)</SelectItem>
@@ -85,11 +87,11 @@ export default function AlertForm() {
 
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-slate-300">
-              Timeframe
+              {t('Timeframe')}
             </Label>
             <Select value={timeframe} onValueChange={setTimeframe}>
               <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs">
-                <SelectValue placeholder="Select timeframe" />
+                <SelectValue placeholder={t('Select timeframe')} />
               </SelectTrigger>
               <SelectContent className="border-slate-750 bg-[#0f1420]">
                 <SelectItem value="M5">M5 (5-Minute)</SelectItem>
@@ -101,15 +103,15 @@ export default function AlertForm() {
 
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            Condition Type
+            {t('Condition Type')}
           </Label>
           <Select value={alertType} onValueChange={setAlertType}>
             <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs">
-              <SelectValue placeholder="Select condition type" />
+              <SelectValue placeholder={t('Select condition type')} />
             </SelectTrigger>
             <SelectContent className="border-slate-750 bg-[#0f1420]">
               <SelectItem value="EDT Channel Breach">
-                EDT Equal-Distance Channel Breach
+                {t('EDT Equal-Distance Channel Breach')}
               </SelectItem>
               <SelectItem value="SSA Z-Score Rejection">
                 SSA Z-Score Rejection ($2.0+)
@@ -126,7 +128,7 @@ export default function AlertForm() {
 
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            Target Price Level ($)
+            {t('Target Price Level ($)')}
           </Label>
           <Input
             type="number"
@@ -140,7 +142,7 @@ export default function AlertForm() {
 
         <div className="space-y-2 border-t border-slate-800/80 pt-2">
           <Label className="text-xs font-semibold text-slate-300">
-            Notification Delivery Channels
+            {t('Notification Delivery Channels')}
           </Label>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-800 bg-[#06080e] p-2">
@@ -148,14 +150,14 @@ export default function AlertForm() {
                 checked={sendEmail}
                 onCheckedChange={(checked) => setSendEmail(!!checked)}
               />
-              <span>Email Notification</span>
+              <span>{t('Email Notification')}</span>
             </label>
             <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-800 bg-[#06080e] p-2">
               <Checkbox
                 checked={sendPush}
                 onCheckedChange={(checked) => setSendPush(!!checked)}
               />
-              <span>In-App WebSocket Alert</span>
+              <span>{t('In-App WebSocket Alert')}</span>
             </label>
           </div>
         </div>
@@ -167,7 +169,7 @@ export default function AlertForm() {
             onClick={() => router.push('/alerts')}
             className="text-xs text-slate-400 hover:text-slate-200"
           >
-            <ArrowLeft className="mr-1 h-3.5 w-3.5" /> Cancel
+            <ArrowLeft className="mr-1 h-3.5 w-3.5" /> {t('Cancel')}
           </Button>
 
           <Button
@@ -175,7 +177,7 @@ export default function AlertForm() {
             disabled={isLoading}
             className="bg-gradient-to-r from-amber-500 to-amber-600 px-6 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
           >
-            {isLoading ? 'Saving...' : 'Save & Activate Alert'}
+            {isLoading ? 'Saving...' : t('Save & Activate Alert')}
           </Button>
         </div>
       </form>

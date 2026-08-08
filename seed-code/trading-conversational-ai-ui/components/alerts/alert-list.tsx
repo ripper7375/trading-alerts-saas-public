@@ -2,22 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import {
-  Bell,
-  Plus,
-  Trash2,
-  Edit2,
-  CheckCircle2,
-  XCircle,
-  ArrowUpRight,
-  ArrowDownRight,
-  Filter,
-  Lock,
-} from 'lucide-react';
+import { Bell, Plus, Trash2, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { useLocale } from '@/lib/context/locale-context';
 
 interface AlertItem {
   id: string;
@@ -33,6 +23,8 @@ interface AlertItem {
 }
 
 export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
+  const { t } = useLocale();
+
   const [alerts, setAlerts] = useState<AlertItem[]>([
     {
       id: '1',
@@ -44,7 +36,7 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
       targetPrice: '$2,634.50',
       isActive: true,
       triggerCount: 4,
-      lastTriggered: '10 mins ago',
+      lastTriggered: t('10 mins ago'),
     },
     {
       id: '2',
@@ -56,7 +48,7 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
       targetPrice: '$2,648.00',
       isActive: true,
       triggerCount: 1,
-      lastTriggered: '2 hours ago',
+      lastTriggered: t('2 hours ago'),
     },
     {
       id: '3',
@@ -99,17 +91,18 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
           </div>
           <div>
             <h2 className="flex items-center gap-2 text-xs font-bold text-slate-100">
-              Active Alert Rules ({alerts.filter((a) => a.isActive).length} /{' '}
+              {t('Active Alert Rules')} (
+              {alerts.filter((a) => a.isActive).length} /{' '}
               {tier === 'PRO' ? '100' : '0'})
               <Badge
                 variant="outline"
                 className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300"
               >
-                {tier === 'PRO' ? 'PRO Unlimited' : 'FREE Locked'}
+                {tier === 'PRO' ? t('PRO Unlimited') : t('FREE Locked')}
               </Badge>
             </h2>
             <p className="text-[11px] text-slate-400">
-              Real-Time WebSocket & Server-Side Line Alert Triggers
+              {t('Real-Time WebSocket & Server-Side Line Alert Triggers')}
             </p>
           </div>
         </div>
@@ -120,7 +113,7 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
             <Input
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
-              placeholder="Filter rules..."
+              placeholder={t('Filter rules...')}
               className="border-slate-750 h-8 bg-[#06080e] pl-8 text-xs text-slate-200"
             />
           </div>
@@ -131,7 +124,7 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
               disabled={tier === 'FREE'}
               className="h-8 bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
             >
-              <Plus className="mr-1 h-3.5 w-3.5" /> New Alert Rule
+              <Plus className="mr-1 h-3.5 w-3.5" /> {t('+ New Alert Rule')}
             </Button>
           </Link>
         </div>
@@ -156,7 +149,7 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-slate-100">
-                      {alert.name}
+                      {t(alert.name)}
                     </span>
                     <Badge
                       variant="outline"
@@ -165,11 +158,11 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
                       {alert.symbol} • {alert.timeframe}
                     </Badge>
                     <Badge className="border-amber-500/30 bg-amber-500/10 font-mono text-[9px] text-amber-300">
-                      {alert.type}
+                      {t(alert.type)}
                     </Badge>
                   </div>
                   <div className="font-mono text-xs text-slate-400">
-                    Condition:{' '}
+                    {t('Condition:')}{' '}
                     <span className="font-bold text-amber-300">
                       {alert.condition}
                     </span>
@@ -180,14 +173,14 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
               <div className="flex w-full items-center justify-between gap-4 text-right sm:w-auto sm:justify-end">
                 <div className="text-right">
                   <div className="text-[10px] text-slate-400">
-                    Triggers:{' '}
+                    {t('Triggers:')}{' '}
                     <strong className="text-slate-200">
-                      {alert.triggerCount} times
+                      {alert.triggerCount} {t('times')}
                     </strong>
                   </div>
                   {alert.lastTriggered && (
                     <div className="font-mono text-[10px] text-slate-500">
-                      Last: {alert.lastTriggered}
+                      {t('Last:')} {alert.lastTriggered}
                     </div>
                   )}
                 </div>

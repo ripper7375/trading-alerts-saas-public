@@ -17,9 +17,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function LoginForm() {
   const router = useRouter();
+  const { t } = useLocale();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
@@ -63,19 +66,23 @@ export default function LoginForm() {
           />
         </div>
         <h2 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
-          Welcome to DavinTrade
+          {t('Sign in to DavinTrade', 'เข้าสู่ระบบ DavinTrade')}
         </h2>
         <p className="text-xs text-slate-400">
-          AI-Powered Quantitative Trading & Real-Time Alert Terminal
+          {t(
+            'Welcome back! Enter your credentials to access your trading workspace.'
+          )}
         </p>
       </div>
 
       {/* Preset Test Credentials Helper */}
       <div className="space-y-2 rounded-xl border border-slate-800 bg-[#070910] p-3 text-xs">
         <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
-          <span>⚡ Quick Test Credentials:</span>
+          <span>
+            ⚡ {t('Quick Test Credentials:', 'ข้อมูลทดสอบอย่างด่วน:')}
+          </span>
           <Badge className="border-amber-500/30 bg-amber-500/10 text-[9px] text-amber-400">
-            Click to Autofill
+            {t('Click to Autofill', 'คลิกเพื่อเติมข้อมูล')}
           </Badge>
         </div>
         <div className="grid grid-cols-2 gap-1.5 font-mono text-[10px]">
@@ -113,7 +120,7 @@ export default function LoginForm() {
       <form onSubmit={handleLogin} className="space-y-4">
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            Email Address
+            {t('Email Address')}
           </Label>
           <div className="relative">
             <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -131,13 +138,13 @@ export default function LoginForm() {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-semibold text-slate-300">
-              Password
+              {t('Password')}
             </Label>
             <Link
               href="/forgot-password"
               className="text-[11px] font-semibold text-amber-400 hover:underline"
             >
-              Forgot password?
+              {t('Forgot password?')}
             </Link>
           </div>
           <div className="relative">
@@ -159,13 +166,14 @@ export default function LoginForm() {
               checked={rememberMe}
               onCheckedChange={(checked) => setRememberMe(!!checked)}
             />
-            <span>Remember this device</span>
+            <span>{t('Remember me')}</span>
           </label>
           <Link
             href="/verify-2fa"
             className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-200"
           >
-            <ShieldCheck className="h-3.5 w-3.5 text-amber-400" /> Use 2FA
+            <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />{' '}
+            {t('Two-Factor Authentication', 'ใช้ 2FA')}
           </Link>
         </div>
 
@@ -174,19 +182,21 @@ export default function LoginForm() {
           disabled={isLoading}
           className="h-10 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
         >
-          {isLoading ? 'Authenticating...' : 'Sign In to Terminal'}
+          {isLoading
+            ? t('Authenticating...', 'กำลังตรวจสอบข้อมูล...')
+            : t('Sign In')}
           {!isLoading && <ArrowRight className="ml-1.5 h-4 w-4" />}
         </Button>
       </form>
 
       {/* Footer Register Link */}
       <div className="border-t border-slate-800/80 pt-2 text-center text-xs text-slate-400">
-        Don't have a DavinTrade account?{' '}
+        {t("Don't have an account?")}{' '}
         <Link
           href="/register"
           className="font-bold text-amber-400 hover:underline"
         >
-          Create Account
+          {t('Sign up for FREE')}
         </Link>
       </div>
     </div>

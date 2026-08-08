@@ -2,51 +2,53 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Check, X, Sparkles, Zap, Shield, ArrowRight } from 'lucide-react';
+import { Check, X, Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function TierComparison() {
+  const { t, formatCurrency } = useLocale();
   const [isAnnual, setIsAnnual] = useState(true);
 
   const features = [
-    { name: 'XAUUSD Real-Time M5/M15 Data Stream', free: true, pro: true },
+    { name: t('XAUUSD Real-Time M5/M15 Data Stream'), free: true, pro: true },
     {
-      name: 'AI Chart Analyst Quad-RAG Queries',
-      free: 'Gemini 3.6 Flash Only',
-      pro: 'All 6 Premium AI Models',
+      name: t('AI Chart Analyst Quad-RAG Queries'),
+      free: t('Gemini 3.6 Flash Only'),
+      pro: t('All 6 Premium AI Models'),
     },
     {
-      name: 'Interactive Prompt Input',
-      free: 'Disabled (Read-Only History)',
-      pro: 'Full Interactive Input',
+      name: t('Interactive Prompt Input'),
+      free: t('Disabled (Read-Only History)'),
+      pro: t('Full Interactive Input'),
     },
     {
-      name: 'Server-Side Price & Line Alert Rules',
-      free: '0 Active Alerts',
-      pro: '100 Active Alerts',
+      name: t('Server-Side Price & Line Alert Rules'),
+      free: t('0 Active Alerts'),
+      pro: t('100 Active Alerts'),
     },
     {
-      name: 'M5 Equal-Distance Centroid Channel Overlay',
-      free: 'Locked (🔒 PRO Only)',
-      pro: 'Full MTF Overlay',
+      name: t('M5 Equal-Distance Centroid Channel Overlay'),
+      free: t('MTF Equal-Distance Overlay Locked'),
+      pro: t('Full MTF Overlay'),
     },
     {
-      name: 'Live Market Comments & WebSocket Feed',
-      free: 'Glassmorphism Blur Gate',
-      pro: 'Unrestricted Feed',
+      name: t('Live Market Comments & WebSocket Feed'),
+      free: t('Glassmorphism Blur Gate'),
+      pro: t('Unrestricted Feed'),
     },
     {
-      name: 'Speedometer Gauges & Quality Metrics',
-      free: 'Locked',
-      pro: 'Full Access',
+      name: t('Speedometer Gauges & Quality Metrics'),
+      free: t('Locked'),
+      pro: t('Full Access'),
     },
     {
-      name: 'Monthly AI Token Allocation',
+      name: t('Monthly AI Token Allocation'),
       free: '50,000 Tokens',
       pro: '500,000 Tokens',
     },
-    { name: '24/7 Priority Support & VIP Discord', free: false, pro: true },
+    { name: t('24/7 Priority Support & VIP Discord'), free: false, pro: true },
   ];
 
   return (
@@ -54,10 +56,10 @@ export default function TierComparison() {
       {/* Billing Cycle Toggle */}
       <div className="flex flex-col items-center space-y-3 text-center">
         <Badge className="border-amber-500/40 bg-amber-500/10 px-3 py-1 font-mono text-xs text-amber-300">
-          ⚡ PRO TIER UNLOCKS ALL AI MODELS & REAL-TIME FEEDS
+          ⚡ {t('PRO TIER UNLOCKS ALL AI MODELS & REAL-TIME FEEDS')}
         </Badge>
         <h1 className="text-2xl font-extrabold tracking-tight text-slate-100 sm:text-3xl">
-          Flexible Pricing Built for Quantitative Traders
+          {t('Flexible Pricing Built for Quantitative Traders')}
         </h1>
 
         <div className="flex items-center gap-3 rounded-xl border border-slate-800 bg-[#0b0e17] p-1">
@@ -70,7 +72,7 @@ export default function TierComparison() {
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Monthly Billing
+            {t('Monthly Billing')}
           </button>
           <button
             type="button"
@@ -81,9 +83,9 @@ export default function TierComparison() {
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Annual Billing
+            {t('Annual Billing')}
             <span className="rounded bg-amber-300 px-1.5 py-0.5 text-[9px] font-extrabold text-slate-950 uppercase">
-              Save 20%
+              {t('SAVE 20%')}
             </span>
           </button>
         </div>
@@ -96,9 +98,11 @@ export default function TierComparison() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-slate-200">FREE Tier</h3>
+                <h3 className="text-lg font-bold text-slate-200">
+                  {t('FREE Tier')}
+                </h3>
                 <p className="text-xs text-slate-400">
-                  Basic market preview & past session viewer
+                  {t('Basic market preview & past session viewer')}
                 </p>
               </div>
               <Badge
@@ -111,9 +115,11 @@ export default function TierComparison() {
 
             <div className="flex items-baseline gap-1">
               <span className="font-mono text-3xl font-extrabold text-slate-100">
-                $0
+                {formatCurrency(0)}
               </span>
-              <span className="text-xs text-slate-400">/ forever</span>
+              <span className="text-xs text-slate-400">
+                / {t('forever', 'ตลอดไป')}
+              </span>
             </div>
 
             <Button
@@ -121,30 +127,30 @@ export default function TierComparison() {
               asChild
               className="border-slate-750 h-10 w-full bg-slate-800 text-xs font-bold text-slate-200"
             >
-              <Link href="/free">Access FREE Terminal</Link>
+              <Link href="/free">{t('Access FREE Terminal')}</Link>
             </Button>
           </div>
 
           <div className="space-y-3 border-t border-slate-800/80 pt-4">
             <h4 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
-              Plan Highlights:
+              {t('PLAN HIGHLIGHTS:')}
             </h4>
             <ul className="space-y-2 text-xs text-slate-400">
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-emerald-400" />{' '}
-                Real-Time M5/M15 XAUUSD Charts
+                {t('Real-Time M5/M15 XAUUSD Charts')}
               </li>
               <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 shrink-0 text-emerald-400" /> Gemini
-                3.6 Flash AI Model
+                <Check className="h-4 w-4 shrink-0 text-emerald-400" />{' '}
+                {t('Gemini 3.6 Flash AI Model')}
               </li>
               <li className="flex items-center gap-2 text-slate-500">
-                <X className="h-4 w-4 shrink-0 text-rose-500" /> 0 Active Alerts
-                (PRO Exclusive)
+                <X className="h-4 w-4 shrink-0 text-rose-500" />{' '}
+                {t('0 Active Alerts (PRO Exclusive)')}
               </li>
               <li className="flex items-center gap-2 text-slate-500">
-                <X className="h-4 w-4 shrink-0 text-rose-500" /> MTF
-                Equal-Distance Overlay Locked
+                <X className="h-4 w-4 shrink-0 text-rose-500" />{' '}
+                {t('MTF Equal-Distance Overlay Locked')}
               </li>
             </ul>
           </div>
@@ -153,17 +159,18 @@ export default function TierComparison() {
         {/* PRO Tier Card */}
         <div className="relative flex flex-col justify-between space-y-6 rounded-2xl border-2 border-amber-500/60 bg-gradient-to-b from-[#0e121e] to-[#080a10] p-6 shadow-2xl">
           <div className="absolute -top-3 right-6 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-3 py-0.5 text-[10px] font-extrabold tracking-wider text-slate-950 uppercase shadow-md">
-            MOST POPULAR FOR TRADERS
+            {t('MOST POPULAR FOR TRADERS')}
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="flex items-center gap-1.5 text-lg font-extrabold text-amber-300">
-                  <Sparkles className="h-4 w-4 text-amber-400" /> PRO Tier
+                  <Sparkles className="h-4 w-4 text-amber-400" />{' '}
+                  {t('PRO Tier', 'แพ็กเกจ PRO')}
                 </h3>
                 <p className="text-xs text-slate-300">
-                  Complete AI quantitative analyst & 100 alerts
+                  {t('Complete AI quantitative analyst & 100 alerts')}
                 </p>
               </div>
               <Badge className="border-amber-500/50 bg-amber-500/20 font-mono text-[10px] text-amber-300">
@@ -173,10 +180,11 @@ export default function TierComparison() {
 
             <div className="flex items-baseline gap-1">
               <span className="font-mono text-3xl font-extrabold text-amber-300">
-                {isAnnual ? '$39' : '$49'}
+                {formatCurrency(isAnnual ? 39 : 49)}
               </span>
               <span className="text-xs text-slate-400">
-                / month {isAnnual && '(billed annually)'}
+                / {t('month', 'เดือน')}{' '}
+                {isAnnual && t('(billed annually)', '(ชำระรายปี)')}
               </span>
             </div>
 
@@ -185,46 +193,47 @@ export default function TierComparison() {
               className="h-10 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/25 hover:from-amber-400 hover:to-amber-500"
             >
               <Link href="/checkout">
-                Upgrade to PRO Now <ArrowRight className="ml-1.5 h-4 w-4" />
+                {t('Upgrade to PRO Now')}{' '}
+                <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
           </div>
 
           <div className="space-y-3 border-t border-amber-500/30 pt-4">
             <h4 className="text-xs font-bold tracking-wider text-amber-300 uppercase">
-              Everything in FREE, plus:
+              {t('EVERYTHING IN FREE, PLUS:')}
             </h4>
             <ul className="space-y-2 text-xs text-slate-200">
               <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 shrink-0 text-amber-400" /> 100
-                Server-Side Price & Line Alert Rules
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 shrink-0 text-amber-400" /> All 6
-                Premium AI Models (Claude Sonnet 5, GPT 5.6, etc.)
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 shrink-0 text-amber-400" /> M5
-                Equal-Distance Centroid Overlay on M15 Chart
+                <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
+                {t('100 Server-Side Price & Line Alert Rules')}
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
-                Unrestricted Live Market Comments WebSocket Stream
+                {t('All 6 Premium AI Models (Claude Sonnet 5, GPT 5.6, etc.)')}
               </li>
               <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 shrink-0 text-amber-400" /> 500,000
-                Monthly AI Token Quota
+                <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
+                {t('M5 Equal-Distance Centroid Overlay on M15 Chart')}
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
+                {t('Unrestricted Live Market Comments WebSocket Stream')}
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
+                {t('500,000 Monthly AI Token Quota')}
               </li>
             </ul>
           </div>
         </div>
       </div>
 
-      {/* Exhaustive Feature Breakdown Table */}
+      {/* Feature Comparison Table */}
       <div className="overflow-hidden rounded-2xl border border-slate-800 bg-[#090c14] shadow-xl">
         <div className="border-b border-slate-800 bg-[#0d101a] p-4">
           <h3 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
-            Detailed Tier Feature Comparison Matrix
+            {t('DETAILED TIER FEATURE COMPARISON MATRIX')}
           </h3>
         </div>
         <div className="divide-y divide-slate-800/60">

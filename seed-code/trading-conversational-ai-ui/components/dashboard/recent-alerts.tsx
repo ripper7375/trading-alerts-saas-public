@@ -10,8 +10,11 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function RecentAlerts() {
+  const { t } = useLocale();
+
   const alerts = [
     {
       id: '1',
@@ -19,9 +22,9 @@ export default function RecentAlerts() {
       type: 'EDT Channel Breach',
       condition: 'Price > $2,648.50',
       timeframe: 'M5',
-      triggeredAt: '2 mins ago',
+      triggeredAt: t('2 mins ago'),
       direction: 'BUY',
-      status: 'Triggered',
+      status: t('Triggered'),
     },
     {
       id: '2',
@@ -29,9 +32,9 @@ export default function RecentAlerts() {
       type: 'SSA Z-Score Spike',
       condition: 'Z-Score > +2.5',
       timeframe: 'M15',
-      triggeredAt: '18 mins ago',
+      triggeredAt: t('18 mins ago'),
       direction: 'SELL',
-      status: 'Triggered',
+      status: t('Triggered'),
     },
     {
       id: '3',
@@ -39,9 +42,9 @@ export default function RecentAlerts() {
       type: 'Centroid Support Retest',
       condition: 'Price = $2,634.50',
       timeframe: 'M5',
-      triggeredAt: '45 mins ago',
+      triggeredAt: t('45 mins ago'),
       direction: 'BUY',
-      status: 'Active',
+      status: t('Active'),
     },
   ];
 
@@ -53,7 +56,7 @@ export default function RecentAlerts() {
             <Bell className="h-4 w-4" />
           </div>
           <h2 className="text-xs font-bold tracking-wider text-slate-100 uppercase">
-            Recent Alert Executions
+            {t('RECENT ALERT EXECUTIONS')}
           </h2>
         </div>
         <Link href="/alerts">
@@ -62,7 +65,7 @@ export default function RecentAlerts() {
             size="sm"
             className="h-7 text-xs font-semibold text-amber-400 hover:text-amber-300"
           >
-            View All Alerts
+            {t('View All Alerts')}
           </Button>
         </Link>
       </div>
@@ -102,7 +105,7 @@ export default function RecentAlerts() {
                   </Badge>
                 </div>
                 <div className="text-[11px] font-medium text-slate-400">
-                  {alert.type}: {alert.condition}
+                  {t(alert.type)}: {alert.condition}
                 </div>
               </div>
             </div>

@@ -2,41 +2,44 @@
 
 import { DollarSign, Users, Link2, TrendingUp } from 'lucide-react';
 import StatsCard from '@/components/dashboard/stats-card';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function AffiliateStats() {
+  const { t, formatCurrency, formatDate } = useLocale();
+
   return (
     <div className="grid grid-cols-1 gap-4 select-none sm:grid-cols-2 lg:grid-cols-4">
       <StatsCard
-        title="Total Commissions Earned"
-        value="$3,840.00"
-        change="+$680 this month"
+        title={t('Total Commissions Earned')}
+        value={formatCurrency(3840)}
+        change={`+${formatCurrency(680)} ${t('this month', 'เดือนนี้')}`}
         changeType="positive"
         icon={DollarSign}
         description="30% Recurring Share"
       />
       <StatsCard
-        title="Total Active Referrals"
-        value="48 Traders"
+        title={t('Total Active Referrals')}
+        value={`48 ${t('Traders', 'เทรดเดอร์')}`}
         change="82% PRO Conversion"
         changeType="positive"
         icon={Users}
         description="42 PRO / 6 FREE"
       />
       <StatsCard
-        title="Referral Link Clicks"
+        title={t('Referral Link Clicks')}
         value="1,240"
         change="3.8% Conv Rate"
         changeType="neutral"
         icon={Link2}
-        description="Unique Visitor Clicks"
+        description={t('Unique Visitor Clicks')}
       />
       <StatsCard
-        title="Next Payout (Wise/Rise)"
-        value="$680.00"
-        change="Aug 31, 2026"
+        title={t('Next Payout (Wise/Rise)')}
+        value={formatCurrency(680)}
+        change={formatDate('2026-08-31')}
         changeType="positive"
         icon={TrendingUp}
-        description="Auto-Distributed Batch"
+        description={t('Auto-Distributed Batch')}
       />
     </div>
   );

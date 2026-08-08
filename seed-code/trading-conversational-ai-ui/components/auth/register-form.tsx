@@ -8,9 +8,11 @@ import { Lock, Mail, User, ArrowRight, Sparkles, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function RegisterForm() {
   const router = useRouter();
+  const { t, formatCurrency } = useLocale();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,10 +46,12 @@ export default function RegisterForm() {
           />
         </div>
         <h2 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
-          Create Your DavinTrade Account
+          {t('Create your DavinTrade account')}
         </h2>
         <p className="text-xs text-slate-400">
-          Join thousands of traders using AI quantitative analysis & MTF alerts
+          {t(
+            'Start analyzing charts with AI and setting server-side price alerts.'
+          )}
         </p>
       </div>
 
@@ -64,7 +68,8 @@ export default function RegisterForm() {
         >
           <div className="flex w-full items-center justify-between text-xs font-bold">
             <span className="flex items-center gap-1">
-              <Sparkles className="h-3.5 w-3.5 text-amber-400" /> PRO Tier
+              <Sparkles className="h-3.5 w-3.5 text-amber-400" />{' '}
+              {t('PRO Tier', 'แพ็กเกจ PRO')}
             </span>
             {tier === 'PRO' && <Check className="h-3.5 w-3.5 text-amber-400" />}
           </div>
@@ -83,7 +88,7 @@ export default function RegisterForm() {
           }`}
         >
           <div className="flex w-full items-center justify-between text-xs font-bold">
-            <span>FREE Tier</span>
+            <span>{t('FREE Tier', 'แพ็กเกจ FREE')}</span>
             {tier === 'FREE' && (
               <Check className="h-3.5 w-3.5 text-slate-300" />
             )}
@@ -97,7 +102,7 @@ export default function RegisterForm() {
       <form onSubmit={handleRegister} className="space-y-4">
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            Full Name
+            {t('Full Name')}
           </Label>
           <div className="relative">
             <User className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -114,7 +119,7 @@ export default function RegisterForm() {
 
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            Email Address
+            {t('Email Address')}
           </Label>
           <div className="relative">
             <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -131,7 +136,7 @@ export default function RegisterForm() {
 
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            Password
+            {t('Password')}
           </Label>
           <div className="relative">
             <Lock className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -152,21 +157,21 @@ export default function RegisterForm() {
           className="h-10 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
         >
           {isLoading
-            ? 'Creating Account...'
+            ? t('Creating Account...', 'กำลังสร้างบัญชี...')
             : tier === 'PRO'
-              ? 'Proceed to Checkout ($49/mo)'
-              : 'Get Started Free'}
+              ? `${t('Proceed to Checkout', 'ไปที่หน้าชำระเงิน')} (${formatCurrency(49)}/${t('mo', 'เดือน')})`
+              : t('Get Started Free', 'เริ่มต้นใช้งานฟรี')}
           {!isLoading && <ArrowRight className="ml-1.5 h-4 w-4" />}
         </Button>
       </form>
 
       <div className="border-t border-slate-800/80 pt-2 text-center text-xs text-slate-400">
-        Already have an account?{' '}
+        {t('Already have an account?')}{' '}
         <Link
           href="/login"
           className="font-bold text-amber-400 hover:underline"
         >
-          Sign In
+          {t('Sign In')}
         </Link>
       </div>
     </div>

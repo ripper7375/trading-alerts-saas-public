@@ -18,13 +18,16 @@ import {
   ArrowRight,
   ShieldCheck,
 } from 'lucide-react';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function DashboardPage() {
+  const { t } = useLocale();
+
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] select-none">
       <AppHeader
-        title="Main Terminal Dashboard"
-        subtitle="Real-Time XAUUSD Quantitative Overview & Alert Telemetry"
+        title={t('Main Terminal Dashboard')}
+        subtitle={t('Real-Time XAUUSD Quantitative Overview & Alert Telemetry')}
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">
@@ -34,30 +37,27 @@ export default function DashboardPage() {
             <div className="max-w-xl space-y-1">
               <div className="flex items-center gap-2">
                 <Badge className="border-amber-500/50 bg-amber-500/20 font-mono text-[10px] text-amber-300">
-                  ⚡ PRO TIER ACTIVE
+                  ⚡ {t('PRO TIER ACTIVE')}
                 </Badge>
                 <span className="font-mono text-[11px] text-slate-400">
                   XAUUSD M5 / M15 Feed Live
                 </span>
               </div>
               <h2 className="text-xl font-extrabold tracking-tight text-slate-100">
-                Quantitative Trading & AI Analysis Terminal
+                {t('Quantitative Trading & AI Analysis Terminal')}
               </h2>
               <p className="text-xs leading-relaxed text-slate-400">
-                Your PRO account has{' '}
-                <strong className="text-amber-300">
-                  100 active alert slots
-                </strong>{' '}
-                enabled, real-time M5 on M15 equal-distance channel overlay, and
-                quad-RAG AI multi-model queries.
+                {t(
+                  'Your PRO account has 100 active alert slots enabled, real-time M5 on M15 equal-distance channel overlay, and quad-RAG AI multi-model queries.'
+                )}
               </p>
             </div>
 
             <div className="flex shrink-0 items-center gap-2">
               <Link href="/">
                 <Button className="h-9 bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500">
-                  <LineChart className="mr-1.5 h-4 w-4" /> Launch AI Analyst
-                  Workspace
+                  <LineChart className="mr-1.5 h-4 w-4" />{' '}
+                  {t('Launch AI Analyst Workspace')}
                 </Button>
               </Link>
             </div>
@@ -67,36 +67,36 @@ export default function DashboardPage() {
         {/* 4 Stat Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard
-            title="Active Alert Rules"
+            title={t('Active Alert Rules')}
             value="12 / 100"
-            change="+3 Today"
+            change={t('+3 Today')}
             changeType="positive"
             icon={Bell}
-            description="PRO allocation: 100 Max Rules"
+            description={t('PRO allocation: 100 Max Rules')}
           />
           <StatsCard
-            title="M5 EDT Channel Status"
-            value="Bullish Retest"
+            title={t('M5 EDT Channel Status')}
+            value={t('Bullish Retest')}
             change="Z-Score +1.8"
             changeType="positive"
             icon={Activity}
-            description="Support $2,634.50 Confirmed"
+            description={t('Support $2,634.50 Confirmed')}
           />
           <StatsCard
-            title="AI Monthly Token Quota"
+            title={t('AI Monthly Token Quota')}
             value="42,500 / 500,000"
-            change="8.5% Used"
+            change={t('8.5% Used')}
             changeType="neutral"
             icon={Brain}
-            description="Sub-500ms Quad-RAG Latency"
+            description={t('Sub-500ms Quad-RAG Latency')}
           />
           <StatsCard
-            title="Market Volatility Index"
+            title={t('Market Volatility Index')}
             value="24.5 ATR"
-            change="High Volatility"
+            change={t('High Volatility')}
             changeType="positive"
             icon={TrendingUp}
-            description="XAUUSD Session Momentum"
+            description={t('XAUUSD Session Momentum')}
           />
         </div>
 
@@ -111,7 +111,8 @@ export default function DashboardPage() {
               <CardContent className="space-y-3 p-4">
                 <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                   <h3 className="flex items-center gap-1.5 text-xs font-bold text-slate-200">
-                    <Zap className="h-4 w-4 text-amber-400" /> Quick Actions
+                    <Zap className="h-4 w-4 text-amber-400" />{' '}
+                    {t('Quick Actions')}
                   </h3>
                 </div>
 
@@ -121,7 +122,7 @@ export default function DashboardPage() {
                       variant="outline"
                       className="border-slate-750 w-full justify-between bg-[#06080f] text-xs text-slate-200 hover:bg-slate-800"
                     >
-                      <span>Create Price Alert</span>
+                      <span>{t('Create Price Alert')}</span>
                       <ArrowRight className="h-3.5 w-3.5 text-amber-400" />
                     </Button>
                   </Link>
@@ -131,7 +132,7 @@ export default function DashboardPage() {
                       variant="outline"
                       className="border-slate-750 w-full justify-between bg-[#06080f] text-xs text-slate-200 hover:bg-slate-800"
                     >
-                      <span>Ask AI Chart Analyst</span>
+                      <span>{t('Ask AI Chart Analyst')}</span>
                       <Brain className="h-3.5 w-3.5 text-amber-400" />
                     </Button>
                   </Link>
@@ -141,7 +142,7 @@ export default function DashboardPage() {
                       variant="outline"
                       className="border-slate-750 w-full justify-between bg-[#06080f] text-xs text-slate-200 hover:bg-slate-800"
                     >
-                      <span>Manage Security & 2FA</span>
+                      <span>{t('Manage Security & 2FA')}</span>
                       <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />
                     </Button>
                   </Link>
@@ -152,13 +153,13 @@ export default function DashboardPage() {
             <Card className="border-amber-500/30 bg-amber-500/5 text-slate-100 shadow-xl">
               <CardContent className="space-y-2 p-4">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
-                  <Sparkles className="h-4 w-4" /> Multi-Timeframe Strategy
-                  Engine
+                  <Sparkles className="h-4 w-4" />{' '}
+                  {t('Multi-Timeframe Strategy Engine')}
                 </div>
                 <p className="text-[11px] leading-relaxed text-slate-300">
-                  Engine 2 calculates live M5 Equal-Distance Centroid Channels
-                  overlaid directly onto the M15 chart for dual-perspective
-                  momentum tracking.
+                  {t(
+                    'Engine 2 calculates live M5 Equal-Distance Centroid Channels overlaid directly onto the M15 chart for dual-perspective momentum tracking.'
+                  )}
                 </p>
               </CardContent>
             </Card>

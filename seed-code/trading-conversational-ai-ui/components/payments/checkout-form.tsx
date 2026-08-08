@@ -2,11 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import {
   CreditCard,
   Globe,
-  Tag,
   Lock,
   ArrowRight,
   CheckCircle2,
@@ -23,11 +21,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function CheckoutForm() {
   const router = useRouter();
+  const { t, formatCurrency } = useLocale();
+
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'dlocal'>('card');
-  const [country, setCountry] = useState('US');
+  const [country, setCountry] = useState('TH');
   const [discountCode, setDiscountCode] = useState('');
   const [discountApplied, setDiscountApplied] = useState(false);
   const [cardNumber, setCardNumber] = useState('');
@@ -65,11 +66,11 @@ export default function CheckoutForm() {
         <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
           <div>
             <h2 className="flex items-center gap-2 text-base font-extrabold text-slate-100">
-              <Lock className="h-4 w-4 text-amber-400" /> Secure Subscription
-              Checkout
+              <Lock className="h-4 w-4 text-amber-400" />{' '}
+              {t('Secure Subscription Checkout')}
             </h2>
             <p className="text-[11px] text-slate-400">
-              Upgrade to DavinTrade PRO Tier Annual / Monthly Plan
+              {t('Upgrade to DavinTrade PRO Tier Annual / Monthly Plan')}
             </p>
           </div>
           <Badge className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300">
@@ -80,7 +81,7 @@ export default function CheckoutForm() {
         {/* Payment Method Selector */}
         <div className="space-y-2">
           <Label className="text-xs font-semibold text-slate-300">
-            Select Payment Method
+            {t('Select Payment Method')}
           </Label>
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -93,8 +94,8 @@ export default function CheckoutForm() {
               }`}
             >
               <div className="flex items-center gap-2 text-xs font-bold">
-                <CreditCard className="h-4 w-4 text-amber-400" /> Credit / Debit
-                Card
+                <CreditCard className="h-4 w-4 text-amber-400" />{' '}
+                {t('Credit / Debit Card')}
               </div>
               {paymentMethod === 'card' && (
                 <CheckCircle2 className="h-4 w-4 text-amber-400" />
@@ -111,8 +112,8 @@ export default function CheckoutForm() {
               }`}
             >
               <div className="flex items-center gap-2 text-xs font-bold">
-                <Globe className="h-4 w-4 text-amber-400" /> dLocal (LATAM /
-                APAC)
+                <Globe className="h-4 w-4 text-amber-400" />{' '}
+                {t('dLocal (LATAM / APAC)')}
               </div>
               {paymentMethod === 'dlocal' && (
                 <CheckCircle2 className="h-4 w-4 text-amber-400" />
@@ -124,20 +125,23 @@ export default function CheckoutForm() {
         {/* Billing Country Selector */}
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            Billing Country
+            {t('Billing Country')}
           </Label>
           <Select value={country} onValueChange={setCountry}>
             <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs">
-              <SelectValue placeholder="Select country" />
+              <SelectValue placeholder={t('Select country', 'เลือกประเทศ')} />
             </SelectTrigger>
             <SelectContent className="border-slate-750 bg-[#0f1420] text-xs">
-              <SelectItem value="US">🇺🇸 United States</SelectItem>
+              <SelectItem value="TH">🇹🇭 ประเทศไทย (Thailand)</SelectItem>
               <SelectItem value="GB">🇬🇧 United Kingdom</SelectItem>
-              <SelectItem value="BR">
-                🇧🇷 Brazil (dLocal Pix / Boleto)
-              </SelectItem>
-              <SelectItem value="MX">🇲🇽 Mexico (dLocal SPEI / OXXO)</SelectItem>
-              <SelectItem value="SG">🇸🇬 Singapore</SelectItem>
+              <SelectItem value="VN">🇻🇳 Vietnam</SelectItem>
+              <SelectItem value="IN">🇮🇳 India</SelectItem>
+              <SelectItem value="ID">🇮🇩 Indonesia</SelectItem>
+              <SelectItem value="PK">🇵🇰 Pakistan</SelectItem>
+              <SelectItem value="NG">🇳🇬 Nigeria</SelectItem>
+              <SelectItem value="ZA">🇿🇦 South Africa</SelectItem>
+              <SelectItem value="TR">🇹🇷 Turkey</SelectItem>
+              <SelectItem value="US">🇺🇸 United States</SelectItem>
               <SelectItem value="JP">🇯🇵 Japan</SelectItem>
             </SelectContent>
           </Select>
@@ -147,7 +151,7 @@ export default function CheckoutForm() {
         <form onSubmit={handleCheckout} className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-slate-300">
-              Card Number
+              {t('Card Number')}
             </Label>
             <Input
               type="text"
@@ -162,7 +166,7 @@ export default function CheckoutForm() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-300">
-                Expiration Date
+                {t('Expiration Date')}
               </Label>
               <Input
                 type="text"
@@ -176,7 +180,7 @@ export default function CheckoutForm() {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-300">
-                Security CVC
+                {t('Security CVC')}
               </Label>
               <Input
                 type="text"
@@ -192,7 +196,7 @@ export default function CheckoutForm() {
           {/* Discount Code Input */}
           <div className="space-y-1.5 border-t border-slate-800/80 pt-2">
             <Label className="text-xs font-semibold text-slate-300">
-              Promo / Discount Code
+              {t('Promo / Discount Code')}
             </Label>
             <div className="flex gap-2">
               <Input
@@ -208,12 +212,12 @@ export default function CheckoutForm() {
                 variant="outline"
                 className="border-slate-750 bg-slate-800 px-4 text-xs text-slate-200"
               >
-                Apply
+                {t('Apply')}
               </Button>
             </div>
             {discountApplied && (
               <p className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
-                <CheckCircle2 className="h-3 w-3" /> $10 Discount Applied Code:{' '}
+                <CheckCircle2 className="h-3 w-3" /> {t('Discount Applied')}:{' '}
                 {discountCode.toUpperCase()}
               </p>
             )}
@@ -225,8 +229,8 @@ export default function CheckoutForm() {
             className="h-11 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
           >
             {isLoading
-              ? 'Processing Payment...'
-              : `Complete Order & Unlock PRO ($${finalPrice.toFixed(2)}/mo)`}
+              ? t('Processing Payment...')
+              : `${t('Complete Order & Unlock PRO')} (${formatCurrency(finalPrice)})`}
             {!isLoading && <ArrowRight className="ml-1.5 h-4 w-4" />}
           </Button>
         </form>
@@ -236,41 +240,43 @@ export default function CheckoutForm() {
       <div className="space-y-4">
         <div className="space-y-4 rounded-2xl border border-amber-500/40 bg-gradient-to-b from-[#0e121e] to-[#080a10] p-5 shadow-2xl">
           <h3 className="border-b border-amber-500/30 pb-2 text-xs font-bold tracking-wider text-amber-300 uppercase">
-            Order Summary
+            {t('ORDER SUMMARY')}
           </h3>
 
           <div className="space-y-2 text-xs">
             <div className="flex justify-between font-medium text-slate-300">
-              <span>DavinTrade PRO Subscription</span>
-              <span className="font-mono">${basePrice.toFixed(2)}</span>
+              <span>{t('DavinTrade PRO Subscription')}</span>
+              <span className="font-mono">{formatCurrency(basePrice)}</span>
             </div>
 
             {discountApplied && (
               <div className="flex justify-between font-medium text-emerald-400">
-                <span>Promo Code Discount</span>
-                <span className="font-mono">-${discountAmount.toFixed(2)}</span>
+                <span>{t('Promo Code Discount', 'ส่วนลดโปรโมชัน')}</span>
+                <span className="font-mono">
+                  -{formatCurrency(discountAmount)}
+                </span>
               </div>
             )}
 
             <div className="flex justify-between text-[11px] text-slate-400">
-              <span>Billing Cycle</span>
-              <span>Monthly Recurring</span>
+              <span>{t('Billing Cycle')}</span>
+              <span>{t('Monthly Recurring')}</span>
             </div>
 
             <div className="flex justify-between border-t border-slate-800 pt-2 text-sm font-bold text-slate-100">
-              <span>Total Due Now</span>
+              <span>{t('Total Due Now')}</span>
               <span className="font-mono text-amber-300">
-                ${finalPrice.toFixed(2)}
+                {formatCurrency(finalPrice)}
               </span>
             </div>
           </div>
 
           <div className="space-y-1 pt-2 text-[10px] leading-relaxed text-slate-400">
             <p className="flex items-center gap-1">
-              <ShieldCheck className="h-3.5 w-3.5 text-amber-400" /> Cancel
-              anytime from Settings
+              <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />{' '}
+              {t('Cancel anytime from Settings')}
             </p>
-            <p>Instant activation upon payment processing.</p>
+            <p>{t('Instant activation upon payment processing.')}</p>
           </div>
         </div>
       </div>
