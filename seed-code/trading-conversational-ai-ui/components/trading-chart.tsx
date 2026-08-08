@@ -326,7 +326,7 @@ export default function TradingChart({
               onClick={() => setM15ViewMode('SSA_EDT')}
             >
               <Activity className="mr-1.5 h-3.5 w-3.5 text-indigo-400" />
-              M15 SSA & EDT Chart
+              {t('chart.m15_ssa_edt', 'M15 SSA & EDT Chart')}
             </Button>
 
             <Button
@@ -340,7 +340,7 @@ export default function TradingChart({
               onClick={() => setM15ViewMode('ZIGZAG')}
             >
               <Layers className="mr-1.5 h-3.5 w-3.5 text-purple-400" />
-              M15 ZigZag Chart
+              {t('chart.m15_zigzag', 'M15 ZigZag Chart')}
             </Button>
           </div>
         </div>
@@ -364,7 +364,7 @@ export default function TradingChart({
               htmlFor="m5-on-m15-toggle"
               className="flex cursor-pointer items-center gap-1.5 text-xs font-bold tracking-tight"
             >
-              <span>M5 on M15</span>
+              <span>{t('chart.ms_on_m15', 'M5 on M15')}</span>
               {tier === 'FREE' && (
                 <Lock className="inline h-3 w-3 text-amber-400" />
               )}
@@ -377,7 +377,7 @@ export default function TradingChart({
             className="border-slate-750 h-8 bg-[#090b10] text-xs font-medium hover:bg-slate-800"
           >
             <RefreshCw className="mr-1.5 h-3.5 w-3.5 text-emerald-400" />
-            Auto-Refresh
+            {t('chart.auto_refresh', 'Auto-Refresh')}
           </Button>
         </div>
       </div>

@@ -178,7 +178,7 @@ export default function ChatPanel({
           </div>
           <div>
             <h2 className="flex items-center gap-1.5 text-xs font-extrabold tracking-tight text-slate-100">
-              AI Chart Analyst
+              {t('AI Chart Analyst', 'นักวิเคราะห์กราฟ AI')}
             </h2>
           </div>
         </div>
@@ -186,7 +186,9 @@ export default function ChatPanel({
         <div className="flex items-center gap-1.5">
           <Select value={selectedModel} onValueChange={handleModelChange}>
             <SelectTrigger className="border-slate-750 h-7 w-[165px] bg-[#090b10] text-xs font-semibold text-slate-200 focus:ring-amber-500/30">
-              <SelectValue placeholder="Select AI Model" />
+              <SelectValue
+                placeholder={t('Select AI Model', 'เลือกโมเดล AI')}
+              />
             </SelectTrigger>
             <SelectContent className="border-slate-750 bg-[#121622]">
               {ANALYST_MODELS.map((model) => (

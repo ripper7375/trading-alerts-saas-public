@@ -325,7 +325,7 @@ export default function MarketCommentsPanel({
           <div className="mb-1.5 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-sm font-black">
               <span className="text-base">🇬🇧</span>
-              <span>London Session</span>
+              <span>{t('GB London Session', 'เซสชันลอนดอน GB')}</span>
             </div>
             <div className="flex items-center gap-1 text-[11px] font-bold opacity-90">
               <span title="Sydney">🇦🇺</span>
@@ -354,17 +354,17 @@ export default function MarketCommentsPanel({
       <div className="mx-3 shrink-0 rounded-xl border border-emerald-900/40 bg-[#0a0f0c] py-3 shadow-md">
         <div className="grid grid-cols-3 gap-2">
           <RenderGaugeDial
-            label="M15 EDT Stochastic"
+            label={t('M15 EDT Stochastic', 'M15 EDT สโตแคสติก')}
             value={85}
             color="#38bdf8"
           />
           <RenderGaugeDial
-            label="M15 SSA Deviation"
+            label={t('M15 SSA Deviation', 'ค่าความเบี่ยงเบน M15 SSA')}
             value={72}
             color="#38bdf8"
           />
           <RenderGaugeDial
-            label="M15 Market Momentum"
+            label={t('M15 Market Momentum', 'โมเมนตัมตลาด M15')}
             value={61}
             color="#38bdf8"
           />
@@ -410,14 +410,17 @@ export default function MarketCommentsPanel({
                   : 'border-rose-500 bg-rose-500/30 text-rose-200'
               )}
             >
-              {tradeSetup.direction} LIMIT @ ${tradeSetup.entryPrice.toFixed(2)}
+              {tradeSetup.direction === 'BUY'
+                ? t('BUY LIMIT', 'ซื้อแบบตั้งราคา')
+                : t('SELL LIMIT', 'ขายแบบตั้งราคา')}{' '}
+              @ ${tradeSetup.entryPrice.toFixed(2)}
             </Badge>
           </div>
 
           <div className="grid grid-cols-3 gap-2 rounded-lg border border-slate-800 bg-black/60 p-2.5 font-mono text-[11px]">
             <div>
               <div className="text-[9px] font-bold text-slate-400 uppercase">
-                Take Profit
+                {t('Take Profit', 'จุดทำกำไร')}
               </div>
               <div className="text-xs font-extrabold text-emerald-400">
                 ${tradeSetup.takeProfit.toFixed(2)}
@@ -425,7 +428,7 @@ export default function MarketCommentsPanel({
             </div>
             <div>
               <div className="text-[9px] font-bold text-slate-400 uppercase">
-                Stop Loss
+                {t('Stop Loss', 'จุดตัดขาดทุน')}
               </div>
               <div className="text-xs font-extrabold text-rose-400">
                 ${tradeSetup.stopLoss.toFixed(2)}
@@ -433,7 +436,7 @@ export default function MarketCommentsPanel({
             </div>
             <div>
               <div className="text-[9px] font-bold text-slate-400 uppercase">
-                Risk / Reward
+                {t('Risk / Reward', 'ความเสี่ยง / ผลตอบแทน')}
               </div>
               <div className="text-xs font-extrabold text-amber-400">
                 {tradeSetup.riskReward}
@@ -464,7 +467,7 @@ export default function MarketCommentsPanel({
                 {t('comments.bar_coverage', 'Bar Coverage')}
               </span>
               <span className="font-bold text-emerald-400">
-                Excellent {METRICS_DATA.barCoverage}%
+                {t('Excellent', 'ดีเยี่ยม')} {METRICS_DATA.barCoverage}%
               </span>
             </div>
             <Progress
@@ -480,7 +483,7 @@ export default function MarketCommentsPanel({
                 {t('comments.regression_r2', 'Regression R²')}
               </span>
               <span className="font-bold text-amber-400">
-                Fair {METRICS_DATA.regressionR2}%
+                {t('Fair', 'ปานกลาง')} {METRICS_DATA.regressionR2}%
               </span>
             </div>
             <Progress
@@ -496,7 +499,7 @@ export default function MarketCommentsPanel({
                 {t('comments.edt_fitness', 'EDT Fitness')}
               </span>
               <span className="font-bold text-rose-400">
-                Underfit {METRICS_DATA.edtFitness}%
+                {t('Underfit', 'ต่ำกว่าเกณฑ์')} {METRICS_DATA.edtFitness}%
               </span>
             </div>
             <Progress
@@ -509,10 +512,11 @@ export default function MarketCommentsPanel({
           <div className="space-y-1 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-1.5">
             <div className="flex justify-between text-[11px]">
               <span className="font-sans font-semibold text-slate-400">
-                Baseline Symmetry
+                {t('comments.baseline_symmetry', 'Baseline Symmetry')}
               </span>
               <span className="font-bold text-cyan-400">
-                {METRICS_DATA.symmetryBias} {METRICS_DATA.baselineSymmetry}%
+                {t(METRICS_DATA.symmetryBias, 'เอียงทาง LOEDT')}{' '}
+                {METRICS_DATA.baselineSymmetry}%
               </span>
             </div>
             <Progress
