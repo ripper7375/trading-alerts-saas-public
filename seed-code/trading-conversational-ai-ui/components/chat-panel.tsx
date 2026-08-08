@@ -62,7 +62,10 @@ export default function ChatPanel({
       id: '1',
       role: 'assistant',
       timestamp: Date.now() - 300000,
-      content: `Hello! I'm analyzing **${symbol}** on **${timeframe}**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).`,
+      content: t(
+        `Hello! I'm analyzing **${symbol}** on **${timeframe}**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).`,
+        `Hello! I'm analyzing **${symbol}** on **${timeframe}**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).`
+      ),
     },
     {
       id: '2',
@@ -74,7 +77,10 @@ export default function ChatPanel({
       id: '3',
       role: 'assistant',
       timestamp: Date.now() - 180000,
-      content: `Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.`,
+      content: t(
+        'Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.',
+        'การประเมินทางเทคนิค XAUUSD แบบเรียลไทม์:\n\n- **โครงสร้าง M5**: การปฏิเสธไส้เทียนแบบ Double Bottom ที่ขอบล่างของ EDT ($2,634.50)\n- **ความชัน SSA M15**: แนวโน้มขาขึ้นพร้อมการขยายตัวของเทียน Z-score\n- **แผนกลยุทธ์**: แนะนำเข้าซื้อ BUY LIMIT ที่ $2,634.50 เป้าหมาย $2,648.00'
+      ),
     },
   ]);
   const [input, setInput] = useState('');
@@ -112,7 +118,10 @@ export default function ChatPanel({
           id: (Date.now() + 1).toString(),
           role: 'assistant',
           timestamp: Date.now(),
-          content: `Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.`,
+          content: t(
+            'Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.',
+            'การประเมินทางเทคนิค XAUUSD แบบเรียลไทม์:\n\n- **โครงสร้าง M5**: การปฏิเสธไส้เทียนแบบ Double Bottom ที่ขอบล่างของ EDT ($2,634.50)\n- **ความชัน SSA M15**: แนวโน้มขาขึ้นพร้อมการขยายตัวของเทียน Z-score\n- **แผนกลยุทธ์**: แนะนำเข้าซื้อ BUY LIMIT ที่ $2,634.50 เป้าหมาย $2,648.00'
+          ),
         };
         setMessages((prev) => [...prev, aiResponse]);
       }, 1000);
