@@ -274,5 +274,25 @@
   "form.display_currency": "สกุลเงินที่แสดงผล (dLocal APAC/EMEA & UK)",
   "form.formatted_example": "ตัวอย่างราคาที่แสดงผล:",
   "settings.save_btn": "บันทึกการตั้งค่าภูมิภาค",
-  "settings.saved_btn": "บันทึกการตั้งค่าแล้ว!"
+  "settings.saved_btn": "บันทึกการตั้งค่าแล้ว!",
+
+  "8.5% Used": "ใช้งานไปแล้ว 8.5%",
+  "time.just_now": "เมื่อสักครู่",
+  "time.mins_ago": "นาทีที่แล้ว",
+  "time.hours_ago": "ชั่วโมงที่แล้ว",
+  "time.days_ago": "วันที่แล้ว",
+  "BUY LIMIT": "ซื้อแบบตั้งราคา",
+  "SELL LIMIT": "ขายแบบตั้งราคา",
+  "Take Profit": "จุดทำกำไร",
+  "Stop Loss": "จุดตัดขาดทุน",
+  "Risk / Reward": "ความเสี่ยง / ผลตอบแทน",
+  "Excellent": "ดีเยี่ยม",
+  "Fair": "ปานกลาง",
+  "Underfit": "ต่ำกว่าเกณฑ์",
+  "Baseline Symmetry": "ความสมมาตรของเส้นแกนหลัก",
+  "LOEDT Bias": "เอียงทาง LOEDT",
+  "M15 EDT Stochastic": "M15 EDT สโตแคสติก",
+  "M15 SSA Deviation": "ค่าความเบี่ยงเบน M15 SSA",
+  "M15 Market Momentum": "โมเมนตัมตลาด M15",
+  "GB London Session": "เซสชันลอนดอน GB"
 }

@@ -23,40 +23,43 @@ interface AlertItem {
 }
 
 export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
-  const { t } = useLocale();
+  const { t, formatRelativeTime } = useLocale();
 
   const [alerts, setAlerts] = useState<AlertItem[]>([
     {
       id: '1',
-      name: 'XAUUSD EDT Lower Boundary Breach',
+      name: t('XAUUSD EDT Lower Boundary Breach', 'การทะลุขอบล่าง XAUUSD EDT'),
       symbol: 'XAUUSD',
       timeframe: 'M5',
-      type: 'Channel Breach',
-      condition: 'Price < $2,634.50',
+      type: t('Channel Breach', 'การทะลุช่อง'),
+      condition: t('Price < $2,634.50', 'ราคา < $2,634.50'),
       targetPrice: '$2,634.50',
       isActive: true,
       triggerCount: 4,
-      lastTriggered: t('10 mins ago'),
+      lastTriggered: formatRelativeTime(10),
     },
     {
       id: '2',
-      name: 'M15 SSA Upper Resistance Alert',
+      name: t(
+        'M15 SSA Upper Resistance Alert',
+        'การแจ้งเตือนแนวต้านบน M15 SSA'
+      ),
       symbol: 'XAUUSD',
       timeframe: 'M15',
-      type: 'SSA Resistance',
-      condition: 'Price > $2,648.00',
+      type: t('SSA Resistance', 'แนวต้าน SSA'),
+      condition: t('Price > $2,648.00', 'ราคา > $2,648.00'),
       targetPrice: '$2,648.00',
       isActive: true,
       triggerCount: 1,
-      lastTriggered: t('2 hours ago'),
+      lastTriggered: formatRelativeTime(120),
     },
     {
       id: '3',
-      name: 'Centroid Momentum Flip',
+      name: t('Centroid Momentum Flip', 'การพลิกตัวโมเมนตัม Centroid'),
       symbol: 'XAUUSD',
       timeframe: 'M5',
-      type: 'Centroid Crossover',
-      condition: 'Slope > 0.45',
+      type: t('Centroid Crossover', 'การตัดกันของ Centroid'),
+      condition: t('Slope > 0.45', 'ความชัน > 0.45'),
       targetPrice: '0.45',
       isActive: false,
       triggerCount: 0,

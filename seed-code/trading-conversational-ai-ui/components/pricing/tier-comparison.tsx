@@ -12,43 +12,78 @@ export default function TierComparison() {
   const [isAnnual, setIsAnnual] = useState(true);
 
   const features = [
-    { name: t('XAUUSD Real-Time M5/M15 Data Stream'), free: true, pro: true },
     {
-      name: t('AI Chart Analyst Quad-RAG Queries'),
-      free: t('Gemini 3.6 Flash Only'),
-      pro: t('All 6 Premium AI Models'),
+      name: t(
+        'XAUUSD Real-Time M5/M15 Data Stream',
+        'สตรีมข้อมูล XAUUSD M5/M15 เรียลไทม์'
+      ),
+      free: true,
+      pro: true,
     },
     {
-      name: t('Interactive Prompt Input'),
-      free: t('Disabled (Read-Only History)'),
-      pro: t('Full Interactive Input'),
+      name: t(
+        'AI Chart Analyst Quad-RAG Queries',
+        'การสอบถาม AI Chart Analyst Quad-RAG'
+      ),
+      free: t('Gemini 3.6 Flash Only', 'เฉพาะ Gemini 3.6 Flash'),
+      pro: t('All 6 Premium AI Models', 'โมเดล AI พรีเมียม ทั้ง 6 โมเดล'),
     },
     {
-      name: t('Server-Side Price & Line Alert Rules'),
-      free: t('0 Active Alerts'),
-      pro: t('100 Active Alerts'),
+      name: t('Interactive Prompt Input', 'การป้อนคำถามแบบโต้ตอบ'),
+      free: t(
+        'Disabled (Read-Only History)',
+        'ปิดใช้งาน (ประวัติแบบอ่านอย่างเดียว)'
+      ),
+      pro: t('Full Interactive Input', 'การป้อนคำถามโต้ตอบเต็มรูปแบบ'),
     },
     {
-      name: t('M5 Equal-Distance Centroid Channel Overlay'),
-      free: t('MTF Equal-Distance Overlay Locked'),
-      pro: t('Full MTF Overlay'),
+      name: t(
+        'Server-Side Price & Line Alert Rules',
+        'กฎการแจ้งเตือนราคาและเส้นฝั่งเซิร์ฟเวอร์'
+      ),
+      free: t('0 Active Alerts', '0 กฎการแจ้งเตือน'),
+      pro: t('100 Active Alerts', '100 กฎการแจ้งเตือน'),
     },
     {
-      name: t('Live Market Comments & WebSocket Feed'),
-      free: t('Glassmorphism Blur Gate'),
-      pro: t('Unrestricted Feed'),
+      name: t(
+        'M5 Equal-Distance Centroid Channel Overlay',
+        'เลเยอร์ช่อง Centroid EDT M5'
+      ),
+      free: t(
+        'MTF Equal-Distance Overlay Locked',
+        'ลล็อกเลเยอร์ช่อง EDT หลายกรอบเวลา'
+      ),
+      pro: t('Full MTF Overlay', 'เลเยอร์ MTF เต็มรูปแบบ'),
     },
     {
-      name: t('Speedometer Gauges & Quality Metrics'),
-      free: t('Locked'),
-      pro: t('Full Access'),
+      name: t(
+        'Live Market Comments & WebSocket Feed',
+        'ฟีดความคิดเห็นตลาดเรียลไทม์ผ่าน WebSocket'
+      ),
+      free: t('Glassmorphism Blur Gate', 'จำกัดการเข้าถึง'),
+      pro: t('Unrestricted Feed', 'ฟีดไม่จำกัด'),
     },
     {
-      name: t('Monthly AI Token Allocation'),
-      free: '50,000 Tokens',
-      pro: '500,000 Tokens',
+      name: t(
+        'Speedometer Gauges & Quality Metrics',
+        'มาตรวัดและตัวชี้วัดคุณภาพ EDT'
+      ),
+      free: t('Locked', 'ล็อก'),
+      pro: t('Full Access', 'เข้าถึงได้ทั้งหมด'),
     },
-    { name: t('24/7 Priority Support & VIP Discord'), free: false, pro: true },
+    {
+      name: t('Monthly AI Token Allocation', 'โควต้าโทเค็น AI ประจำเดือน'),
+      free: `50,000 ${t('Tokens', 'โทเค็น')}`,
+      pro: `500,000 ${t('Tokens', 'โทเค็น')}`,
+    },
+    {
+      name: t(
+        '24/7 Priority Support & VIP Discord',
+        'บริการช่วยเหลือ VIP 24/7'
+      ),
+      free: false,
+      pro: true,
+    },
   ];
 
   return (

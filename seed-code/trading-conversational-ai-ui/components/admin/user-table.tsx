@@ -81,7 +81,8 @@ export default function UserTable() {
     <div className="space-y-4 overflow-hidden rounded-2xl border border-slate-800 bg-[#090c14] p-4 shadow-xl select-none">
       <div className="flex flex-col items-start justify-between gap-3 border-b border-slate-800 pb-3 sm:flex-row sm:items-center">
         <h3 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
-          {t('USER ACCOUNT DIRECTORY (4)')} ({users.length})
+          {t('USER ACCOUNT DIRECTORY (4)', 'รายชื่อบัญชีผู้ใช้ (4)')} (
+          {users.length})
         </h3>
 
         <div className="relative w-full sm:w-64">
@@ -89,7 +90,10 @@ export default function UserTable() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('Search users by email...')}
+            placeholder={t(
+              'Search users by email...',
+              'ค้นหาผู้ใช้ตามอีเมล...'
+            )}
             className="border-slate-750 h-8 bg-[#06080e] pl-8 text-xs text-slate-200"
           />
         </div>
@@ -119,14 +123,16 @@ export default function UserTable() {
                 </Badge>
               </div>
               <div className="font-mono text-[11px] text-slate-400">
-                {user.email} • {t('Joined')} {formatDate(user.joinedAt)}
+                {user.email} • {t('Joined', 'เข้าร่วมเมื่อ')}{' '}
+                {formatDate(user.joinedAt)}
               </div>
             </div>
 
             <div className="flex w-full items-center justify-between gap-4 text-right sm:w-auto sm:justify-end">
               <div className="text-right">
                 <span className="font-mono text-[10px] text-slate-400">
-                  {user.alertsCount} {t('Alerts Configured')}
+                  {user.alertsCount}{' '}
+                  {t('Alerts Configured', 'กฎการแจ้งเตือนที่ตั้งไว้')}
                 </span>
               </div>
 
@@ -146,7 +152,7 @@ export default function UserTable() {
                   <UserCheck className="mr-1 h-3 w-3" />
                 )}
                 {user.status === 'Active'
-                  ? t('Suspend')
+                  ? t('Suspend', 'ระงับการใช้งาน')
                   : t('Reactivate', 'ยกเลิกระงับ')}
               </Button>
             </div>

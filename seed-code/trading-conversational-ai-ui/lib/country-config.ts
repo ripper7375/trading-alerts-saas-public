@@ -8,6 +8,7 @@ export interface CountryConfig {
   timezone: string;
   dateFormat: 'DMY' | 'MDY' | 'YMD';
   timeFormat: '12h' | '24h';
+  exchangeRate: number;
 }
 
 export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
@@ -21,6 +22,7 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timezone: 'Europe/London',
     dateFormat: 'DMY',
     timeFormat: '24h',
+    exchangeRate: 0.78,
   },
   in: {
     code: 'IN',
@@ -32,6 +34,7 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timezone: 'Asia/Kolkata',
     dateFormat: 'DMY',
     timeFormat: '12h',
+    exchangeRate: 83.5,
   },
   ng: {
     code: 'NG',
@@ -43,6 +46,7 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timezone: 'Africa/Lagos',
     dateFormat: 'DMY',
     timeFormat: '24h',
+    exchangeRate: 1500,
   },
   pk: {
     code: 'PK',
@@ -54,6 +58,7 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timezone: 'Asia/Karachi',
     dateFormat: 'DMY',
     timeFormat: '12h',
+    exchangeRate: 278,
   },
   vn: {
     code: 'VN',
@@ -65,6 +70,7 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timezone: 'Asia/Ho_Chi_Minh',
     dateFormat: 'DMY',
     timeFormat: '24h',
+    exchangeRate: 25400,
   },
   id: {
     code: 'ID',
@@ -76,6 +82,7 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timezone: 'Asia/Jakarta',
     dateFormat: 'DMY',
     timeFormat: '24h',
+    exchangeRate: 15800,
   },
   th: {
     code: 'TH',
@@ -87,6 +94,7 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timezone: 'Asia/Bangkok',
     dateFormat: 'DMY',
     timeFormat: '24h',
+    exchangeRate: 35.0,
   },
   za: {
     code: 'ZA',
@@ -98,6 +106,7 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timezone: 'Africa/Johannesburg',
     dateFormat: 'DMY',
     timeFormat: '24h',
+    exchangeRate: 18.5,
   },
   tr: {
     code: 'TR',
@@ -109,6 +118,7 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timezone: 'Europe/Istanbul',
     dateFormat: 'DMY',
     timeFormat: '24h',
+    exchangeRate: 32.5,
   },
   us: {
     code: 'US',
@@ -120,6 +130,7 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timezone: 'America/New_York',
     dateFormat: 'MDY',
     timeFormat: '12h',
+    exchangeRate: 1.0,
   },
   eu: {
     code: 'EU',
@@ -131,6 +142,7 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timezone: 'Europe/Berlin',
     dateFormat: 'DMY',
     timeFormat: '24h',
+    exchangeRate: 0.92,
   },
   jp: {
     code: 'JP',
@@ -142,6 +154,7 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timezone: 'Asia/Tokyo',
     dateFormat: 'YMD',
     timeFormat: '24h',
+    exchangeRate: 155,
   },
 };
 

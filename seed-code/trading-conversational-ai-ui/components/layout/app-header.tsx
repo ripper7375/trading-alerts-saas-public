@@ -217,7 +217,7 @@ export default function AppHeader({
                 </AvatarFallback>
               </Avatar>
               <span className="hidden text-xs font-bold text-slate-200 sm:inline">
-                Trader User
+                {t('Trader User', 'ผู้ใช้งานการเทรด')}
               </span>
             </Button>
           </DropdownMenuTrigger>

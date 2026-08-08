@@ -33,7 +33,8 @@ interface LocaleContextType extends LocalePreferences {
   setLocalePreferences: (prefs: Partial<LocalePreferences>) => void;
   formatTimestamp: (utc: number | string | Date) => string;
   formatDate: (utc: number | string | Date) => string;
-  formatCurrency: (amount: number) => string;
+  formatCurrency: (amountInUSD: number) => string;
+  formatRelativeTime: (minutesAgo: number) => string;
   t: (keyOrText: string, fallback?: string) => string;
 }
 
@@ -187,15 +188,17 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const formatCurrency = (amount: number): string => {
+  const formatCurrency = (amountInUSD: number): string => {
     try {
+      const config = getCountryByCode(preferences.countryCode);
+      const convertedAmount = amountInUSD * (config.exchangeRate || 1.0);
       return new Intl.NumberFormat(preferences.language || 'en-GB', {
         style: 'currency',
         currency: preferences.currency || 'GBP',
-        maximumFractionDigits: 2,
-      }).format(amount);
+        maximumFractionDigits: convertedAmount >= 1000 ? 0 : 2,
+      }).format(convertedAmount);
     } catch {
-      return `${preferences.currency} ${amount.toFixed(2)}`;
+      return `${preferences.currency} ${amountInUSD.toFixed(2)}`;
     }
   };
 
@@ -212,6 +215,16 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     return fallback || keyOrText;
   };
 
+  const formatRelativeTime = (minutesAgo: number): string => {
+    if (minutesAgo < 1) return t('time.just_now', 'เมื่อสักครู่');
+    if (minutesAgo < 60)
+      return `${minutesAgo} ${t('time.mins_ago', 'นาทีที่แล้ว')}`;
+    const hours = Math.floor(minutesAgo / 60);
+    if (hours < 24) return `${hours} ${t('time.hours_ago', 'ชั่วโมงที่แล้ว')}`;
+    const days = Math.floor(hours / 24);
+    return `${days} ${t('time.days_ago', 'วันที่แล้ว')}`;
+  };
+
   const currentCountryConfig = getCountryByCode(preferences.countryCode);
 
   return (
@@ -224,6 +237,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
         formatTimestamp,
         formatDate,
         formatCurrency,
+        formatRelativeTime,
         t,
       }}
     >

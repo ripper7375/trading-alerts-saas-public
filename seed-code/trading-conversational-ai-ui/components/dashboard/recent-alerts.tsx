@@ -13,38 +13,38 @@ import Link from 'next/link';
 import { useLocale } from '@/lib/context/locale-context';
 
 export default function RecentAlerts() {
-  const { t } = useLocale();
+  const { t, formatRelativeTime } = useLocale();
 
   const alerts = [
     {
       id: '1',
       symbol: 'XAUUSD',
-      type: 'EDT Channel Breach',
-      condition: 'Price > $2,648.50',
+      type: t('EDT Channel Breach', 'การทะลุช่อง EDT'),
+      condition: t('Price > $2,648.50', 'ราคา > $2,648.50'),
       timeframe: 'M5',
-      triggeredAt: t('2 mins ago'),
+      triggeredAt: formatRelativeTime(2),
       direction: 'BUY',
-      status: t('Triggered'),
+      status: t('Triggered', 'ทำงานแล้ว'),
     },
     {
       id: '2',
       symbol: 'XAUUSD',
-      type: 'SSA Z-Score Spike',
+      type: t('SSA Z-Score Spike', 'การพุ่งขึ้นของ SSA Z-Score'),
       condition: 'Z-Score > +2.5',
       timeframe: 'M15',
-      triggeredAt: t('18 mins ago'),
+      triggeredAt: formatRelativeTime(18),
       direction: 'SELL',
-      status: t('Triggered'),
+      status: t('Triggered', 'ทำงานแล้ว'),
     },
     {
       id: '3',
       symbol: 'XAUUSD',
-      type: 'Centroid Support Retest',
-      condition: 'Price = $2,634.50',
+      type: t('Centroid Support Retest', 'การทดสอบแนวรับ Centroid'),
+      condition: t('Price = $2,634.50', 'ราคา = $2,634.50'),
       timeframe: 'M5',
-      triggeredAt: t('45 mins ago'),
+      triggeredAt: formatRelativeTime(45),
       direction: 'BUY',
-      status: t('Active'),
+      status: t('Active', 'เปิดใช้งานอยู่'),
     },
   ];
 
