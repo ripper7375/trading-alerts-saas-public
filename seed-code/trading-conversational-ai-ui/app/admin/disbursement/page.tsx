@@ -13,26 +13,40 @@ import {
 } from 'lucide-react';
 import { useLocale } from '@/lib/context/locale-context';
 
+interface PayoutBatch {
+  id: string;
+  provider: string;
+  totalAmount: number;
+  recipientsCount: number;
+  status: 'ready' | 'executed';
+  date?: string;
+}
+
+// Canonical (locale-independent) seed data — status is translated at render
+// time via t(), never baked into state, so switching locale re-translates
+// it instantly and the "is this batch executed?" checks stay reliable.
+const SEED_BATCHES: PayoutBatch[] = [
+  {
+    id: 'BATCH-2026-08A',
+    provider: 'Wise Business',
+    totalAmount: 14250.0,
+    recipientsCount: 18,
+    status: 'ready',
+  },
+  {
+    id: 'BATCH-2026-07B',
+    provider: 'RiseWorks Crypto',
+    totalAmount: 8400.0,
+    recipientsCount: 9,
+    status: 'executed',
+    date: 'Jul 31, 2026',
+  },
+];
+
 export default function AdminDisbursementPage() {
   const { t, formatCurrency } = useLocale();
   const [isExecuting, setIsExecuting] = useState(false);
-  const [batches, setBatches] = useState([
-    {
-      id: 'BATCH-2026-08A',
-      provider: 'Wise Business',
-      totalAmount: 14250.0,
-      recipientsCount: 18,
-      status: t('Ready for Payout', 'พร้อมสำหรับการสั่งจ่าย'),
-    },
-    {
-      id: 'BATCH-2026-07B',
-      provider: 'RiseWorks Crypto',
-      totalAmount: 8400.0,
-      recipientsCount: 9,
-      status: t('Executed', 'ดำเนินการจ่ายแล้ว'),
-      date: 'Jul 31, 2026',
-    },
-  ]);
+  const [batches, setBatches] = useState<PayoutBatch[]>(SEED_BATCHES);
 
   const handleExecuteBatch = (id: string) => {
     setIsExecuting(true);
@@ -40,13 +54,7 @@ export default function AdminDisbursementPage() {
       setIsExecuting(false);
       setBatches((prev) =>
         prev.map((b) =>
-          b.id === id
-            ? {
-                ...b,
-                status: t('Executed', 'ดำเนินการจ่ายแล้ว'),
-                date: 'Today',
-              }
-            : b
+          b.id === id ? { ...b, status: 'executed', date: 'Today' } : b
         )
       );
     }, 1200);
@@ -120,15 +128,17 @@ export default function AdminDisbursementPage() {
                 <div className="flex items-center gap-3">
                   <Badge
                     className={
-                      batch.status === t('Executed', 'ดำเนินการจ่ายแล้ว')
+                      batch.status === 'executed'
                         ? 'border-emerald-500/40 bg-emerald-500/15 font-mono text-[9px] text-emerald-300'
                         : 'border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300'
                     }
                   >
-                    {batch.status}
+                    {batch.status === 'executed'
+                      ? t('Executed', 'ดำเนินการจ่ายแล้ว')
+                      : t('Ready for Payout', 'พร้อมสำหรับการสั่งจ่าย')}
                   </Badge>
 
-                  {batch.status !== t('Executed', 'ดำเนินการจ่ายแล้ว') && (
+                  {batch.status !== 'executed' && (
                     <Button
                       size="sm"
                       disabled={isExecuting}

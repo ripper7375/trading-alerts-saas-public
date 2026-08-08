@@ -19,52 +19,53 @@ interface AlertItem {
   targetPrice: string;
   isActive: boolean;
   triggerCount: number;
-  lastTriggered?: string;
+  lastTriggeredMinutesAgo?: number;
 }
+
+// Canonical (English) source strings — translated at render time via t(),
+// never baked into state, so switching locale re-translates them instantly.
+const SEED_ALERTS: AlertItem[] = [
+  {
+    id: '1',
+    name: 'XAUUSD EDT Lower Boundary Breach',
+    symbol: 'XAUUSD',
+    timeframe: 'M5',
+    type: 'Channel Breach',
+    condition: 'Price < $2,634.50',
+    targetPrice: '$2,634.50',
+    isActive: true,
+    triggerCount: 4,
+    lastTriggeredMinutesAgo: 10,
+  },
+  {
+    id: '2',
+    name: 'M15 SSA Upper Resistance Alert',
+    symbol: 'XAUUSD',
+    timeframe: 'M15',
+    type: 'SSA Resistance',
+    condition: 'Price > $2,648.00',
+    targetPrice: '$2,648.00',
+    isActive: true,
+    triggerCount: 1,
+    lastTriggeredMinutesAgo: 120,
+  },
+  {
+    id: '3',
+    name: 'Centroid Momentum Flip',
+    symbol: 'XAUUSD',
+    timeframe: 'M5',
+    type: 'Centroid Crossover',
+    condition: 'Slope > 0.45',
+    targetPrice: '0.45',
+    isActive: false,
+    triggerCount: 0,
+  },
+];
 
 export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
   const { t, formatRelativeTime } = useLocale();
 
-  const [alerts, setAlerts] = useState<AlertItem[]>([
-    {
-      id: '1',
-      name: t('XAUUSD EDT Lower Boundary Breach', 'การทะลุขอบล่าง XAUUSD EDT'),
-      symbol: 'XAUUSD',
-      timeframe: 'M5',
-      type: t('Channel Breach', 'การทะลุช่อง'),
-      condition: t('Price < $2,634.50', 'ราคา < $2,634.50'),
-      targetPrice: '$2,634.50',
-      isActive: true,
-      triggerCount: 4,
-      lastTriggered: formatRelativeTime(10),
-    },
-    {
-      id: '2',
-      name: t(
-        'M15 SSA Upper Resistance Alert',
-        'การแจ้งเตือนแนวต้านบน M15 SSA'
-      ),
-      symbol: 'XAUUSD',
-      timeframe: 'M15',
-      type: t('SSA Resistance', 'แนวต้าน SSA'),
-      condition: t('Price > $2,648.00', 'ราคา > $2,648.00'),
-      targetPrice: '$2,648.00',
-      isActive: true,
-      triggerCount: 1,
-      lastTriggered: formatRelativeTime(120),
-    },
-    {
-      id: '3',
-      name: t('Centroid Momentum Flip', 'การพลิกตัวโมเมนตัม Centroid'),
-      symbol: 'XAUUSD',
-      timeframe: 'M5',
-      type: t('Centroid Crossover', 'การตัดกันของ Centroid'),
-      condition: t('Slope > 0.45', 'ความชัน > 0.45'),
-      targetPrice: '0.45',
-      isActive: false,
-      triggerCount: 0,
-    },
-  ]);
+  const [alerts, setAlerts] = useState<AlertItem[]>(SEED_ALERTS);
 
   const [filterQuery, setFilterQuery] = useState('');
 
@@ -78,11 +79,13 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
     setAlerts((prev) => prev.filter((a) => a.id !== id));
   };
 
-  const filteredAlerts = alerts.filter(
-    (a) =>
-      a.name.toLowerCase().includes(filterQuery.toLowerCase()) ||
-      a.condition.toLowerCase().includes(filterQuery.toLowerCase())
-  );
+  const filteredAlerts = alerts.filter((a) => {
+    const query = filterQuery.toLowerCase();
+    return (
+      t(a.name).toLowerCase().includes(query) ||
+      t(a.condition).toLowerCase().includes(query)
+    );
+  });
 
   return (
     <div className="space-y-4 select-none">
@@ -167,7 +170,7 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
                   <div className="font-mono text-xs text-slate-400">
                     {t('Condition:')}{' '}
                     <span className="font-bold text-amber-300">
-                      {alert.condition}
+                      {t(alert.condition)}
                     </span>
                   </div>
                 </div>
@@ -181,9 +184,10 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
                       {alert.triggerCount} {t('times')}
                     </strong>
                   </div>
-                  {alert.lastTriggered && (
+                  {alert.lastTriggeredMinutesAgo !== undefined && (
                     <div className="font-mono text-[10px] text-slate-500">
-                      {t('Last:')} {alert.lastTriggered}
+                      {t('Last:')}{' '}
+                      {formatRelativeTime(alert.lastTriggeredMinutesAgo)}
                     </div>
                   )}
                 </div>

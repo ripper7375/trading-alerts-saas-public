@@ -147,7 +147,33 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
 
   const updatePreferences = (newPrefs: Partial<LocalePreferences>) => {
     setPreferences((prev) => {
-      const updated = { ...prev, ...newPrefs };
+      let updated = { ...prev, ...newPrefs };
+
+      // The header's Country & Region dropdown and this Settings > Language
+      // page must stay in sync (single source of truth) — when the language
+      // itself changes here and exactly one supported country uses that
+      // language, adopt that country's region defaults too so the header
+      // badge, currency, and timezone don't silently fall out of step.
+      // Ambiguous languages shared by multiple countries (e.g. en-US) or
+      // languages with no matching country (e.g. es, pt) are left alone —
+      // there is no single correct country to infer.
+      if (newPrefs.language && newPrefs.language !== prev.language) {
+        const matches = Object.values(SUPPORTED_COUNTRIES).filter(
+          (c) => c.language === newPrefs.language
+        );
+        if (matches.length === 1) {
+          const match = matches[0];
+          updated = {
+            ...updated,
+            countryCode: match.code,
+            timezone: match.timezone,
+            dateFormat: match.dateFormat,
+            timeFormat: match.timeFormat,
+            currency: match.currency,
+          };
+        }
+      }
+
       try {
         localStorage.setItem(
           'davin_locale_preferences',
