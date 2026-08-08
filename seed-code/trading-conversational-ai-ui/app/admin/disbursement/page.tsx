@@ -11,23 +11,25 @@ import {
   Send,
   ArrowRight,
 } from 'lucide-react';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function AdminDisbursementPage() {
+  const { t, formatCurrency } = useLocale();
   const [isExecuting, setIsExecuting] = useState(false);
   const [batches, setBatches] = useState([
     {
       id: 'BATCH-2026-08A',
       provider: 'Wise Business',
-      totalAmount: '$14,250.00',
+      totalAmount: 14250.0,
       recipientsCount: 18,
-      status: 'Ready for Payout',
+      status: t('Ready for Payout', 'พร้อมสำหรับการสั่งจ่าย'),
     },
     {
       id: 'BATCH-2026-07B',
       provider: 'RiseWorks Crypto',
-      totalAmount: '$8,400.00',
+      totalAmount: 8400.0,
       recipientsCount: 9,
-      status: 'Executed',
+      status: t('Executed', 'ดำเนินการจ่ายแล้ว'),
       date: 'Jul 31, 2026',
     },
   ]);
@@ -38,7 +40,13 @@ export default function AdminDisbursementPage() {
       setIsExecuting(false);
       setBatches((prev) =>
         prev.map((b) =>
-          b.id === id ? { ...b, status: 'Executed', date: 'Today' } : b
+          b.id === id
+            ? {
+                ...b,
+                status: t('Executed', 'ดำเนินการจ่ายแล้ว'),
+                date: 'Today',
+              }
+            : b
         )
       );
     }, 1200);
@@ -47,19 +55,31 @@ export default function AdminDisbursementPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] select-none">
       <AppHeader
-        title="Wise & Rise Payout Disbursement"
-        subtitle="Automated Batch Commission Payout Execution & Audit Logs"
+        title={t(
+          'Wise & Rise Payout Disbursement',
+          'การจ่ายเงินค่าคอมมิชชัน Wise & Rise'
+        )}
+        subtitle={t(
+          'Automated Batch Commission Payout Execution & Audit Logs',
+          'การสั่งจ่ายเงินแบบแบทช์อัตโนมัติและบันทึกประวัติการตรวจสอบ'
+        )}
       />
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 p-4 md:p-6">
         <div className="space-y-4 rounded-2xl border border-slate-800 bg-[#090c14] p-6 shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
               <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-100">
-                <DollarSign className="h-4 w-4 text-emerald-400" /> Affiliate
-                Commission Payout Batches
+                <DollarSign className="h-4 w-4 text-emerald-400" />{' '}
+                {t(
+                  'Affiliate Commission Payout Batches',
+                  'ชุดแบทช์การจ่ายเงินค่าคอมมิชชันพันธมิตร'
+                )}
               </h2>
               <p className="text-[11px] text-slate-400">
-                Review aggregated monthly referral commissions before execution
+                {t(
+                  'Review aggregated monthly referral commissions before execution',
+                  'ตรวจสอบค่าคอมมิชชันการแนะนำประจำเดือนที่รวบรวมไว้ก่อนดำเนินการจ่ายเงิน'
+                )}
               </p>
             </div>
             <Button
@@ -67,7 +87,8 @@ export default function AdminDisbursementPage() {
               variant="outline"
               className="border-slate-750 h-8 text-xs text-slate-300"
             >
-              <RefreshCw className="mr-1 h-3.5 w-3.5" /> Sync Wise/Rise Balances
+              <RefreshCw className="mr-1 h-3.5 w-3.5" />{' '}
+              {t('Sync Wise/Rise Balances', 'ซิงค์ยอดคงเหลือ Wise/Rise')}
             </Button>
           </div>
 
@@ -87,9 +108,11 @@ export default function AdminDisbursementPage() {
                     </Badge>
                   </div>
                   <div className="text-[11px] text-slate-400">
-                    {batch.recipientsCount} Eligible Affiliates • Total Payout:{' '}
+                    {batch.recipientsCount}{' '}
+                    {t('Eligible Affiliates', 'พันธมิตรที่มีสิทธิ์')} •{' '}
+                    {t('Total Payout:', 'ยอดจ่ายรวม:')}{' '}
                     <strong className="font-mono text-amber-300">
-                      {batch.totalAmount}
+                      {formatCurrency(batch.totalAmount)}
                     </strong>
                   </div>
                 </div>
@@ -97,7 +120,7 @@ export default function AdminDisbursementPage() {
                 <div className="flex items-center gap-3">
                   <Badge
                     className={
-                      batch.status === 'Executed'
+                      batch.status === t('Executed', 'ดำเนินการจ่ายแล้ว')
                         ? 'border-emerald-500/40 bg-emerald-500/15 font-mono text-[9px] text-emerald-300'
                         : 'border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300'
                     }
@@ -105,7 +128,7 @@ export default function AdminDisbursementPage() {
                     {batch.status}
                   </Badge>
 
-                  {batch.status !== 'Executed' && (
+                  {batch.status !== t('Executed', 'ดำเนินการจ่ายแล้ว') && (
                     <Button
                       size="sm"
                       disabled={isExecuting}
@@ -113,7 +136,12 @@ export default function AdminDisbursementPage() {
                       className="h-8 bg-gradient-to-r from-emerald-500 to-emerald-600 text-xs font-extrabold text-slate-950 hover:from-emerald-400 hover:to-emerald-500"
                     >
                       <Send className="mr-1 h-3.5 w-3.5" />
-                      {isExecuting ? 'Executing...' : 'Execute Batch Payout'}
+                      {isExecuting
+                        ? t('Executing...', 'กำลังดำเนินการ...')
+                        : t(
+                            'Execute Batch Payout',
+                            'ดำเนินการจ่ายเงินแบบแบทช์'
+                          )}
                     </Button>
                   )}
                 </div>

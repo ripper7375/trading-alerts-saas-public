@@ -2,13 +2,19 @@
 
 import AppHeader from '@/components/layout/app-header';
 import UserTable from '@/components/admin/user-table';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function AdminUsersPage() {
+  const { t } = useLocale();
+
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] select-none">
       <AppHeader
-        title="User Directory Management"
-        subtitle="System Account Oversight, Role Assignment & Account Bans"
+        title={t('User Directory Management', 'การจัดการไดเรกทอรีผู้ใช้')}
+        subtitle={t(
+          'System Account Oversight, Role Assignment & Account Bans',
+          'การกำกับดูแลบัญชีระบบ การกำหนดบทบาท & การระงับบัญชี'
+        )}
       />
       <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
         <UserTable />

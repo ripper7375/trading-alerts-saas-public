@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, Zap, Sparkles, Lock, ShieldAlert } from 'lucide-react';
 import { PRO_MONTHLY_PRICE } from '@/lib/tier-config';
+import { useLocale } from '@/lib/context/locale-context';
 
 interface ProUpgradeModalProps {
   isOpen: boolean;
@@ -26,6 +27,8 @@ export function ProUpgradeModal({
   featureName = 'Part 24 Engine 2: MTF Overlay (M5 on M15)',
   onUpgradeSuccess,
 }: ProUpgradeModalProps) {
+  const { t, formatCurrency } = useLocale();
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-card/95 border-amber-500/30 backdrop-blur-xl sm:max-w-[480px]">
@@ -39,17 +42,18 @@ export function ProUpgradeModal({
                 variant="outline"
                 className="border-amber-500/40 bg-amber-500/10 font-mono text-[10px] text-amber-400 uppercase"
               >
-                PRO Subscriber Feature
+                {t('PRO Subscriber Feature', 'คุณสมบัติสมาชิก PRO')}
               </Badge>
               <DialogTitle className="text-foreground text-xl font-bold tracking-tight">
-                Unlock {featureName}
+                {t('Unlock', 'ปลดล็อก')} {t(featureName, featureName)}
               </DialogTitle>
             </div>
           </div>
           <DialogDescription className="text-muted-foreground text-xs leading-relaxed">
-            Upgrade your account to unlock advanced multi-timeframe analytics,
-            AI Analyst vision, real-time market comment feeds, and empirical
-            wave channel overlays for XAUUSD.
+            {t(
+              'Upgrade your account to unlock advanced multi-timeframe analytics, AI Analyst vision, real-time market comment feeds, and empirical wave channel overlays for XAUUSD.',
+              'อัปเกรดบัญชีของคุณเพื่อปลดล็อกการวิเคราะห์หลายกรอบเวลาขั้นสูง การวิเคราะห์ด้วย AI Analyst สตรีมความคิดเห็นตลาดเรียลไทม์ และเลเยอร์ช่องทางคลื่นสำหรับ XAUUSD'
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -57,29 +61,49 @@ export function ProUpgradeModal({
           <div className="text-foreground flex items-center gap-2 font-medium">
             <Check className="h-4 w-4 shrink-0 text-emerald-400" />
             <span>
-              <strong>Part 24 Engine 2 MTF Overlay</strong>: Overlays M5 EDT
-              equal-distance channels onto M15 chart.
+              <strong>
+                {t('Part 24 Engine 2 MTF Overlay', 'เลเยอร์ MTF Engine 2')}
+              </strong>
+              :{' '}
+              {t(
+                'Overlays M5 EDT equal-distance channels onto M15 chart.',
+                'แสดงเลเยอร์ช่อง EDT M5 ซ้อนทับลงบนกราฟ M15'
+              )}
             </span>
           </div>
           <div className="text-foreground flex items-center gap-2 font-medium">
             <Check className="h-4 w-4 shrink-0 text-emerald-400" />
             <span>
-              <strong>Stack D Multimodal AI Analyst</strong>: Real-time Gemini
-              3.6 & Claude 5 chart vision analysis.
+              <strong>
+                {t('Stack D Multimodal AI Analyst', 'AI Analyst แบบมัลติโมดอล')}
+              </strong>
+              :{' '}
+              {t(
+                'Real-time Gemini 3.6 & Claude 5 chart vision analysis.',
+                'การวิเคราะห์ภาพกราฟด้วย AI Gemini 3.6 & Claude 5 แบบเรียลไทม์'
+              )}
             </span>
           </div>
           <div className="text-foreground flex items-center gap-2 font-medium">
             <Check className="h-4 w-4 shrink-0 text-emerald-400" />
             <span>
-              <strong>Stack E Live Market Comments</strong>: Real-time XAUUSD
-              signal alerts & 4 progress quality metrics.
+              <strong>
+                {t('Stack E Live Market Comments', 'ความคิดเห็นตลาดเรียลไทม์')}
+              </strong>
+              :{' '}
+              {t(
+                'Real-time XAUUSD signal alerts & 4 progress quality metrics.',
+                'การแจ้งเตือนสัญญาณ XAUUSD เรียลไทม์ & ตัวชี้วัดคุณภาพ 4 รายการ'
+              )}
             </span>
           </div>
           <div className="text-foreground flex items-center gap-2 font-medium">
             <Check className="h-4 w-4 shrink-0 text-emerald-400" />
             <span>
-              <strong>100 Active Price Alerts</strong> & 300 requests/hour API
-              rate limit limit.
+              {t(
+                '100 Active Price Alerts & 300 requests/hour API rate limit.',
+                '100 กฎการแจ้งเตือนราคา & อัตราการใช้งาน API 300 คำขอ/ชั่วโมง'
+              )}
             </span>
           </div>
         </div>
@@ -87,12 +111,12 @@ export function ProUpgradeModal({
         <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between sm:space-x-0">
           <div className="flex flex-col">
             <span className="text-muted-foreground text-xs">
-              7-Day Free Trial
+              {t('7-Day Free Trial', 'ทดลองใช้งานฟรี 7 วัน')}
             </span>
             <span className="text-lg font-extrabold text-amber-400">
-              ${PRO_MONTHLY_PRICE}{' '}
+              {formatCurrency(PRO_MONTHLY_PRICE)}{' '}
               <span className="text-muted-foreground text-xs font-normal">
-                / month
+                / {t('month', 'เดือน')}
               </span>
             </span>
           </div>
@@ -103,7 +127,7 @@ export function ProUpgradeModal({
               onClick={onClose}
               className="text-xs"
             >
-              Cancel
+              {t('Cancel', 'ยกเลิก')}
             </Button>
             <Button
               size="sm"
@@ -114,7 +138,7 @@ export function ProUpgradeModal({
               }}
             >
               <Sparkles className="mr-1.5 h-3.5 w-3.5 fill-black" />
-              Upgrade to PRO
+              {t('Upgrade to PRO', 'อัปเกรดเป็น PRO')}
             </Button>
           </div>
         </DialogFooter>

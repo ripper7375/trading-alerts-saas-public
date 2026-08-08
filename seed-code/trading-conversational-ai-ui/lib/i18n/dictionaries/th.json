@@ -349,5 +349,21 @@
   "SSA Z-Score Rejection ($2.0+)": "การปฏิเสธ SSA Z-Score ($2.0+)",
   "Price Threshold Crossing": "การตัดผ่านขอบเขตราคา",
   "Custom Drawing Tool Line Breach": "การทะลุเส้นเครื่องมือวาดภาพ custom",
-  "Tokens": "โทเค็น"
+  "Tokens": "โทเค็น",
+  "PRO Subscriber Feature": "คุณสมบัติสมาชิก PRO",
+  "Show AI Analyst": "แสดง AI Analyst",
+  "Show Comments": "แสดงความคิดเห็น",
+  "Wise & Rise Payout Disbursement": "การจ่ายเงินค่าคอมมิชชัน Wise & Rise",
+  "Automated Batch Commission Payout Execution & Audit Logs": "การสั่งจ่ายเงินแบบแบทช์อัตโนมัติและบันทึกประวัติการตรวจสอบ",
+  "Affiliate Commission Payout Batches": "ชุดแบทช์การจ่ายเงินค่าคอมมิชชันพันธมิตร",
+  "Review aggregated monthly referral commissions before execution": "ตรวจสอบค่าคอมมิชชันการแนะนำประจำเดือนที่รวบรวมไว้ก่อนดำเนินการจ่ายเงิน",
+  "Sync Wise/Rise Balances": "ซิงค์ยอดคงเหลือ Wise/Rise",
+  "Ready for Payout": "พร้อมสำหรับการสั่งจ่าย",
+  "Executed": "ดำเนินการจ่ายแล้ว",
+  "Eligible Affiliates": "พันธมิตรที่มีสิทธิ์",
+  "Total Payout:": "ยอดจ่ายรวม:",
+  "Executing...": "กำลังดำเนินการ...",
+  "Execute Batch Payout": "ดำเนินการจ่ายเงินแบบแบทช์",
+  "User Directory Management": "การจัดการไดเรกทอรีผู้ใช้",
+  "System Account Oversight, Role Assignment & Account Bans": "การกำกับดูแลบัญชีระบบ การกำหนดบทบาท & การระงับบัญชี"
 }
