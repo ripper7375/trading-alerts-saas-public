@@ -233,3 +233,6 @@ storybook-static
 # Railway specific
 railway.json
 railway.toml
+
+# Claude Code launcher configs
+.claude/
