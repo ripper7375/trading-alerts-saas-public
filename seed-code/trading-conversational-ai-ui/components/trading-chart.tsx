@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   createChart,
   type IChartApi,
   type ISeriesApi,
+  type Time,
   ColorType,
   CrosshairMode,
+  TickMarkType,
   CandlestickSeries,
   LineSeries,
   BarSeries,
@@ -67,7 +69,7 @@ export default function TradingChart({
   onOpenUpgradeModal,
   onAskAiFromChart,
 }: TradingChartProps) {
-  const { t } = useLocale();
+  const { t, language, timezone, timeFormat, formatDate } = useLocale();
   const containerM5Ref = useRef<HTMLDivElement>(null);
   const containerM15Ref = useRef<HTMLDivElement>(null);
   const chartM5Ref = useRef<IChartApi | null>(null);
@@ -103,6 +105,50 @@ export default function TradingChart({
       });
     }
   }, []);
+
+  // Chart time-axis/crosshair localization — lightweight-charts defaults to
+  // navigator.language for date/time formatting, which silently ignores the
+  // app's own selected language/timezone/time-format. Drive it from the same
+  // preferences (via formatDate) the rest of the app uses instead, so the
+  // crosshair label and axis tick marks always match the active locale.
+  const chartLocalization = useMemo(() => {
+    const toMs = (time: Time): number => {
+      if (typeof time === 'number') return time * 1000;
+      if (typeof time === 'string') return new Date(time).getTime();
+      return new Date(time.year, time.month - 1, time.day).getTime();
+    };
+
+    const formatTimeOfDay = (ms: number): string => {
+      try {
+        return new Intl.DateTimeFormat('en-GB', {
+          timeZone: timezone,
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: timeFormat === '12h',
+        }).format(new Date(ms));
+      } catch {
+        return '--:--';
+      }
+    };
+
+    return {
+      locale: language,
+      timeFormatter: (time: Time) => {
+        const ms = toMs(time);
+        return `${formatDate(ms)} ${formatTimeOfDay(ms)}`;
+      },
+      tickMarkFormatter: (time: Time, tickMarkType: TickMarkType) => {
+        const ms = toMs(time);
+        if (
+          tickMarkType === TickMarkType.Time ||
+          tickMarkType === TickMarkType.TimeWithSeconds
+        ) {
+          return formatTimeOfDay(ms);
+        }
+        return formatDate(ms);
+      },
+    };
+  }, [language, timezone, timeFormat, formatDate]);
 
   // ResizeObserver for dynamic container drag resizing
   useEffect(() => {
@@ -154,6 +200,11 @@ export default function TradingChart({
         borderColor: '#1e293b',
         timeVisible: true,
         secondsVisible: false,
+        tickMarkFormatter: chartLocalization.tickMarkFormatter,
+      },
+      localization: {
+        locale: chartLocalization.locale,
+        timeFormatter: chartLocalization.timeFormatter,
       },
       width: containerM5Ref.current.clientWidth,
       height: containerM5Ref.current.clientHeight,
@@ -219,6 +270,11 @@ export default function TradingChart({
         borderColor: '#1e293b',
         timeVisible: true,
         secondsVisible: false,
+        tickMarkFormatter: chartLocalization.tickMarkFormatter,
+      },
+      localization: {
+        locale: chartLocalization.locale,
+        timeFormatter: chartLocalization.timeFormatter,
       },
       width: containerM15Ref.current.clientWidth,
       height: containerM15Ref.current.clientHeight,
@@ -294,7 +350,15 @@ export default function TradingChart({
       chartM5.remove();
       chartM15.remove();
     };
-  }, [isDark, m15ViewMode, isM5OnM15, m5PriceMode, m15PriceMode, tier]);
+  }, [
+    isDark,
+    m15ViewMode,
+    isM5OnM15,
+    m5PriceMode,
+    m15PriceMode,
+    tier,
+    chartLocalization,
+  ]);
 
   // Drawing Tools Definition for left vertical strip
   const drawingTools = [
