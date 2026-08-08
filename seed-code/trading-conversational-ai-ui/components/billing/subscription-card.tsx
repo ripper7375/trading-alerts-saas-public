@@ -15,21 +15,21 @@ export default function SubscriptionCard() {
       date: formatDate('2026-08-01'),
       amount: formatCurrency(49),
       status: t('Paid', 'ชำระแล้ว'),
-      method: 'Visa ending in 8892',
+      method: t('Visa ending in 8892', 'Visa ลงท้ายด้วย 8892'),
     },
     {
       id: 'INV-2026-007',
       date: formatDate('2026-07-01'),
       amount: formatCurrency(49),
       status: t('Paid', 'ชำระแล้ว'),
-      method: 'Visa ending in 8892',
+      method: t('Visa ending in 8892', 'Visa ลงท้ายด้วย 8892'),
     },
     {
       id: 'INV-2026-006',
       date: formatDate('2026-06-01'),
       amount: formatCurrency(49),
       status: t('Paid', 'ชำระแล้ว'),
-      method: 'Visa ending in 8892',
+      method: t('Visa ending in 8892', 'Visa ลงท้ายด้วย 8892'),
     },
   ];
 
@@ -89,7 +89,7 @@ export default function SubscriptionCard() {
               {t('Monthly AI Token Quota', 'โควต้าโทเค็นประจำเดือน')}
             </span>
             <div className="font-mono text-base font-extrabold text-slate-100">
-              500,000 Tokens
+              500,000 {t('Tokens', 'โทเค็น')}
             </div>
           </div>
         </div>

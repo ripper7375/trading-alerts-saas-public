@@ -107,7 +107,18 @@ export default function UserTable() {
           >
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-100">{user.name}</span>
+                <span className="font-bold text-slate-100">
+                  {t(
+                    user.name,
+                    user.name === 'PRO Test User'
+                      ? 'ผู้ใช้ทดสอบ PRO'
+                      : user.name === 'FREE Test User'
+                        ? 'ผู้ใช้ทดสอบ FREE'
+                        : user.name === 'Admin Master'
+                          ? 'ผู้ดูแลระบบหลัก'
+                          : 'พันธมิตรผู้แนะนำ'
+                  )}
+                </span>
                 <Badge
                   className={
                     user.role === 'PRO'

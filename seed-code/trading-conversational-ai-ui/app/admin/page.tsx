@@ -18,7 +18,8 @@ export default function AdminDashboardPage() {
       <AppHeader
         title={t('Admin Platform Control', 'ระบบควบคุมผู้ดูแล')}
         subtitle={t(
-          'Master System Telemetry, Fraud Warnings & Batch Disbursements'
+          'Master System Telemetry, Fraud Warnings & Batch Disbursements',
+          'โทรมาตรระบบหลัก คำเตือนทุจริต และการถอนเงินแบบแบทช์'
         )}
       />
 

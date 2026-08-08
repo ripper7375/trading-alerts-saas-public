@@ -167,14 +167,14 @@ export default function LanguageSettingsPage() {
         {/* Display Language Selection */}
         <div className="max-w-md space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            Display Language
+            {t('Display Language', 'ภาษาที่แสดงผล')}
           </Label>
           <Select
             value={language}
             onValueChange={(val) => setLocalePreferences({ language: val })}
           >
             <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs text-slate-100">
-              <SelectValue placeholder="Select language" />
+              <SelectValue placeholder={t('Select language', 'เลือกภาษา')} />
             </SelectTrigger>
             <SelectContent className="border-slate-750 bg-[#0f1420] text-xs">
               {languages.map((lang) => (
@@ -191,14 +191,17 @@ export default function LanguageSettingsPage() {
         {/* Session Timezone Selection */}
         <div className="max-w-md space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            Session Timezone (Live Market Clock)
+            {t(
+              'Session Timezone (Live Market Clock)',
+              'เขตเวลาตลาด (นาฬิกาเรียลไทม์)'
+            )}
           </Label>
           <Select
             value={timezone}
             onValueChange={(val) => setLocalePreferences({ timezone: val })}
           >
             <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs text-slate-100">
-              <SelectValue placeholder="Select timezone" />
+              <SelectValue placeholder={t('Select timezone', 'เลือกเขตเวลา')} />
             </SelectTrigger>
             <SelectContent className="border-slate-750 bg-[#0f1420] text-xs">
               {timezones.map((tz) => (
@@ -209,7 +212,9 @@ export default function LanguageSettingsPage() {
             </SelectContent>
           </Select>
           <div className="mt-2 flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-2.5 font-mono text-[11px] text-slate-400">
-            <span>Current Terminal Session Clock:</span>
+            <span>
+              {t('Current Terminal Session Clock:', 'นาฬิกาเซสชันปัจจุบัน:')}
+            </span>
             <span className="font-bold text-amber-300">
               {formatTimestamp(new Date())}
             </span>
@@ -222,23 +227,32 @@ export default function LanguageSettingsPage() {
         <div className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label className="text-xs font-semibold text-slate-300">
-              Date Format
+              {t('Date Format', 'รูปแบบวันที่')}
             </Label>
             <div className="space-y-2 text-xs">
               {[
                 {
                   value: 'DMY' as const,
-                  label: 'DD/MM/YYYY (UK / International)',
+                  label: t(
+                    'DD/MM/YYYY (UK / International)',
+                    'วัน/เดือน/ปี (สากล/สหราชอาณาจักร)'
+                  ),
                   example: formatDate(new Date()),
                 },
                 {
                   value: 'MDY' as const,
-                  label: 'MM/DD/YYYY (US Standard)',
+                  label: t(
+                    'MM/DD/YYYY (US Standard)',
+                    'เดือน/วัน/ปี (มาตรฐานสหรัฐฯ)'
+                  ),
                   example: '08/07/2026',
                 },
                 {
                   value: 'YMD' as const,
-                  label: 'YYYY-MM-DD (ISO Standard)',
+                  label: t(
+                    'YYYY-MM-DD (ISO Standard)',
+                    'ปี-เดือน-วัน (มาตรฐาน ISO)'
+                  ),
                   example: '2026-08-07',
                 },
               ].map((f) => (
@@ -263,17 +277,23 @@ export default function LanguageSettingsPage() {
 
           <div className="space-y-2">
             <Label className="text-xs font-semibold text-slate-300">
-              Time Format
+              {t('Time Format', 'รูปแบบเวลา')}
             </Label>
             <div className="space-y-2 text-xs">
               {[
                 {
                   value: '24h' as const,
-                  label: '24-Hour Military Format (22:04:36)',
+                  label: t(
+                    '24-Hour Military Format (22:04:36)',
+                    'รูปแบบ 24 ชั่วโมง (22:04:36)'
+                  ),
                 },
                 {
                   value: '12h' as const,
-                  label: '12-Hour AM/PM Format (10:04:36 PM)',
+                  label: t(
+                    '12-Hour AM/PM Format (10:04:36 PM)',
+                    'รูปแบบ 12 ชั่วโมง AM/PM (10:04:36 PM)'
+                  ),
                 },
               ].map((tf) => (
                 <label
@@ -301,14 +321,19 @@ export default function LanguageSettingsPage() {
         {/* Display Currency (Supporting dLocal 8 + UK + Global) */}
         <div className="max-w-md space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            Display Currency (dLocal APAC/EMEA & UK)
+            {t(
+              'Display Currency (dLocal APAC/EMEA & UK)',
+              'สกุลเงินที่แสดงผล (dLocal APAC/EMEA & UK)'
+            )}
           </Label>
           <Select
             value={currency}
             onValueChange={(val) => setLocalePreferences({ currency: val })}
           >
             <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs text-slate-100">
-              <SelectValue placeholder="Select currency" />
+              <SelectValue
+                placeholder={t('Select currency', 'เลือกสกุลเงิน')}
+              />
             </SelectTrigger>
             <SelectContent className="border-slate-750 bg-[#0f1420] text-xs">
               {currencies.map((curr) => (
@@ -321,7 +346,9 @@ export default function LanguageSettingsPage() {
 
           <div className="mt-2 space-y-1 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs">
             <div className="flex justify-between font-medium text-slate-300">
-              <span>Formatted Price Example:</span>
+              <span>
+                {t('Formatted Price Example:', 'ตัวอย่างราคาที่แสดงผล:')}
+              </span>
               <strong className="font-mono text-sm text-amber-300">
                 {formatCurrency(
                   currencies.find((c) => c.code === currency)?.example || 1000

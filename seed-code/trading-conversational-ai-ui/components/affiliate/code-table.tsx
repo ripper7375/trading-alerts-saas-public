@@ -13,14 +13,14 @@ export default function CodeTable() {
   const codes = [
     {
       code: 'PRO20',
-      discount: '20% Off First Month',
+      discount: t('20% Off First Month', 'ลด 20% เดือนแรก'),
       redemptions: 34,
       status: 'Active',
       link: 'https://davintrade.app/register?ref=PRO20',
     },
     {
       code: 'DAVIN10',
-      discount: '$10 Off Annual Plan',
+      discount: t('$10 Off Annual Plan', 'ส่วนลด ฿350 แผนรายปี'),
       redemptions: 14,
       status: 'Active',
       link: 'https://davintrade.app/register?ref=DAVIN10',

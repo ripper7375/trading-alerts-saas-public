@@ -33,8 +33,11 @@ export default function ProfileSettingsPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] select-none">
       <AppHeader
-        title={t('Account Profile Settings')}
-        subtitle={t('Manage Personal Preferences & Trading Experience Level')}
+        title={t('Account Profile Settings', 'การตั้งค่าโปรไฟล์บัญชี')}
+        subtitle={t(
+          'Manage Personal Preferences & Trading Experience Level',
+          'จัดการความชอบส่วนตัวและระดับประสบการณ์การเทรด'
+        )}
       />
       <main className="mx-auto w-full max-w-3xl flex-1 p-4 md:p-6">
         <div className="space-y-6 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
@@ -47,7 +50,7 @@ export default function ProfileSettingsPage() {
             </Avatar>
             <div>
               <h2 className="text-base font-extrabold text-slate-100">
-                {t(name)}
+                {t(name, 'ผู้ใช้งานการเทรด')}
               </h2>
               <p className="text-xs text-slate-400">{email}</p>
               <Button
@@ -55,7 +58,7 @@ export default function ProfileSettingsPage() {
                 size="sm"
                 className="mt-2 h-6 border-slate-700 bg-slate-800 text-[10px]"
               >
-                {t('Change Avatar')}
+                {t('Change Avatar', 'เปลี่ยนรูปโปรไฟล์')}
               </Button>
             </div>
           </div>
@@ -63,7 +66,7 @@ export default function ProfileSettingsPage() {
           <form onSubmit={handleSave} className="space-y-4">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-300">
-                {t('Display Name')}
+                {t('Display Name', 'ชื่อที่แสดง')}
               </Label>
               <Input
                 value={name}
@@ -74,7 +77,7 @@ export default function ProfileSettingsPage() {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-300">
-                {t('Primary Email')}
+                {t('Primary Email', 'อีเมลหลัก')}
               </Label>
               <Input
                 value={email}
@@ -86,11 +89,13 @@ export default function ProfileSettingsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-300">
-                  {t('Timezone')}
+                  {t('Timezone', 'เขตเวลา')}
                 </Label>
                 <Select value={timezone} onValueChange={setTimezone}>
                   <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs">
-                    <SelectValue placeholder={t('Select timezone')} />
+                    <SelectValue
+                      placeholder={t('Select timezone', 'เลือกเขตเวลา')}
+                    />
                   </SelectTrigger>
                   <SelectContent className="border-slate-750 bg-[#0f1420]">
                     <SelectItem value="UTC">
@@ -104,21 +109,23 @@ export default function ProfileSettingsPage() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-slate-300">
-                  {t('Trading Experience')}
+                  {t('Trading Experience', 'ประสบการณ์การเทรด')}
                 </Label>
                 <Select value={experience} onValueChange={setExperience}>
                   <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs">
-                    <SelectValue placeholder={t('Select level')} />
+                    <SelectValue
+                      placeholder={t('Select level', 'เลือกระดับ')}
+                    />
                   </SelectTrigger>
                   <SelectContent className="border-slate-750 bg-[#0f1420]">
                     <SelectItem value="Beginner">
-                      {t('Beginner Trader')}
+                      {t('Beginner Trader', 'เทรดเดอร์มือใหม่')}
                     </SelectItem>
                     <SelectItem value="Intermediate Trader">
-                      {t('Intermediate Trader')}
+                      {t('Intermediate Trader', 'เทรดเดอร์ระดับปานกลาง')}
                     </SelectItem>
                     <SelectItem value="Quantitative Professional">
-                      {t('Quantitative Professional')}
+                      {t('Quantitative Professional', 'มืออาชีพด้านเชิงปริมาณ')}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -131,7 +138,9 @@ export default function ProfileSettingsPage() {
                 className="h-9 bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 hover:from-amber-400 hover:to-amber-500"
               >
                 <Save className="mr-1.5 h-4 w-4" />
-                {isSaved ? t('Changes Saved!') : t('Save Profile Changes')}
+                {isSaved
+                  ? t('Changes Saved!', 'บันทึกการเปลี่ยนแปลงแล้ว!')
+                  : t('Save Profile Changes', 'บันทึกการเปลี่ยนแปลงโปรไฟล์')}
               </Button>
             </div>
           </form>

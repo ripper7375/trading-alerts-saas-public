@@ -16,7 +16,8 @@ export default function AffiliateDashboardPage() {
       <AppHeader
         title={t('Affiliate Partner Dashboard', 'แดชบอร์ดพันธมิตร')}
         subtitle={t(
-          'Track Referral Commissions, Conversion Analytics & Wise/Rise Payouts'
+          'Track Referral Commissions, Conversion Analytics & Wise/Rise Payouts',
+          'ติดตามค่าคอมมิชชันการแนะนำ วิเคราะห์การเปลี่ยนเป็นสมาชิก & การจ่ายเงิน Wise/Rise'
         )}
       />
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">

@@ -15,7 +15,7 @@ export default function AffiliateStats() {
         change={`+${formatCurrency(680)} ${t('this month', 'เดือนนี้')}`}
         changeType="positive"
         icon={DollarSign}
-        description="30% Recurring Share"
+        description={t('30% Recurring Share', 'ส่วนแบ่งรายได้ต่อเนื่อง 30%')}
       />
       <StatsCard
         title={t('Total Active Referrals')}

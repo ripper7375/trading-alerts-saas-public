@@ -468,21 +468,23 @@ export default function TradingChart({
                     className="h-7 border border-slate-700 bg-slate-800/80 text-[11px] font-bold text-slate-200 hover:bg-slate-700"
                   >
                     <Sliders className="mr-1 h-3 w-3 text-amber-400" />
-                    EDT Configuration
+                    {t('EDT Configuration', 'การตั้งค่า EDT')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="border-slate-750 w-64 space-y-2 bg-[#121622] p-3 text-xs text-slate-200">
                   <div className="border-b border-slate-800 pb-1 font-bold text-amber-400">
-                    M5 EDT Parameters
+                    {t('M5 EDT Parameters', 'พารามิเตอร์ M5 EDT')}
                   </div>
                   <div className="flex justify-between text-[11px]">
-                    <span>Channel Width:</span>{' '}
+                    <span>{t('Channel Width:', 'ความกว้างช่อง:')}</span>{' '}
                     <span className="font-mono font-bold text-emerald-400">
                       12.0 pips
                     </span>
                   </div>
                   <div className="flex justify-between text-[11px]">
-                    <span>SSA Smoothing Period:</span>{' '}
+                    <span>
+                      {t('SSA Smoothing Period:', 'ระยะเวลาการเกลี่ย SSA:')}
+                    </span>{' '}
                     <span className="font-mono font-bold text-blue-400">
                       24 bars
                     </span>
@@ -555,8 +557,8 @@ export default function TradingChart({
 
               <span className="rounded border border-purple-900/60 bg-[#0f0a17]/80 px-2 py-0.5 font-mono text-[10px] text-purple-300/80 backdrop-blur-xs">
                 {m15ViewMode === 'SSA_EDT'
-                  ? 'M15 SSA & EDT Channel'
-                  : 'M15 ZigZag Polyline'}
+                  ? t('M15 SSA & EDT Channel', 'ช่อง M15 SSA & EDT')
+                  : t('M15 ZigZag Polyline', 'เส้นหลายเหลี่ยม M15 ZigZag')}
               </span>
 
               {isM5OnM15 && tier === 'PRO' && (

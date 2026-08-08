@@ -93,7 +93,7 @@ export default function LoginForm() {
             }
             className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/5 p-1.5 text-amber-300 transition-colors hover:bg-amber-500/15"
           >
-            <span>PRO User</span>
+            <span>{t('PRO User', 'ผู้ใช้ PRO')}</span>
             <CheckCircle2 className="h-3 w-3" />
           </button>
           <button
@@ -103,7 +103,7 @@ export default function LoginForm() {
             }
             className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/60 p-1.5 text-slate-300 transition-colors hover:bg-slate-800"
           >
-            <span>FREE User</span>
+            <span>{t('FREE User', 'ผู้ใช้ FREE')}</span>
             <CheckCircle2 className="h-3 w-3" />
           </button>
         </div>

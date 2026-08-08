@@ -74,23 +74,27 @@ export default function AppearanceSettingsPage() {
           <div>
             <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-100">
               <Palette className="h-4 w-4 text-amber-400" />{' '}
-              {t('Terminal Appearance & Chart Color Scheme')}
+              {t(
+                'Terminal Appearance & Chart Color Scheme',
+                'รูปลักษณ์เทอร์มินัลและโทนสีกราฟ'
+              )}
             </h2>
             <p className="text-[11px] text-slate-400">
               {t(
-                'Customise dark trading themes, accent highlights, and candlestick styles'
+                'Customise dark trading themes, accent highlights, and candlestick styles',
+                'ปรับแต่งธีมการเทรดแบบมืด โทนสีไฮไลต์ และสไตล์แท่งเทียน'
               )}
             </p>
           </div>
           <Badge className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300">
-            {t('LIVE PREVIEW')}
+            {t('LIVE PREVIEW', 'แสดงตัวอย่างสด')}
           </Badge>
         </div>
 
         {/* Theme Selection */}
         <div className="space-y-3">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Theme Mode')}
+            {t('Theme Mode', 'โหมดธีม')}
           </Label>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {themeOptions.map((option) => {
@@ -111,12 +115,26 @@ export default function AppearanceSettingsPage() {
                   <div className="flex w-full items-center justify-between text-xs font-bold">
                     <span className="flex items-center gap-2">
                       <Icon className="h-4 w-4 text-amber-400" />{' '}
-                      {t(option.label)}
+                      {t(
+                        option.label,
+                        option.label === 'Dark Trading Terminal'
+                          ? 'เทอร์มินัลการเทรดแบบมืด'
+                          : option.label === 'Light Clean Mode'
+                            ? 'โหมดสว่างสะอาดตา'
+                            : 'ซิงค์ตามระบบ'
+                      )}
                     </span>
                     {isSelected && <Check className="h-4 w-4 text-amber-400" />}
                   </div>
                   <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
-                    {t(option.description)}
+                    {t(
+                      option.description,
+                      option.label === 'Dark Trading Terminal'
+                        ? 'ธีมสีเข้มความคมชัดสูง เหมาะสำหรับการเทรดระยะยาว'
+                        : option.label === 'Light Clean Mode'
+                          ? 'อินเทอร์เฟซสว่างมองเห็นชัดเจนสำหรับการวิเคราะห์ในเวลากลางวัน'
+                          : 'ปรับตามการตั้งค่าธีมของระบบปฏิบัติการโดยอัตโนมัติ'
+                    )}
                   </p>
                 </button>
               );
@@ -129,7 +147,7 @@ export default function AppearanceSettingsPage() {
         {/* Accent Color Scheme */}
         <div className="space-y-3">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Accent Color Scheme')}
+            {t('Accent Color Scheme', 'โทนสีไฮไลต์')}
           </Label>
           <div className="flex items-center gap-3">
             {accentOptions.map((opt) => (
@@ -147,7 +165,18 @@ export default function AppearanceSettingsPage() {
                 <span
                   className={cn('h-3.5 w-3.5 rounded-full', opt.colorClass)}
                 />
-                <span>{t(opt.label)}</span>
+                <span>
+                  {t(
+                    opt.label,
+                    opt.name === 'amber'
+                      ? 'ทองแอมเบอร์'
+                      : opt.name === 'emerald'
+                        ? 'เขียวมรกต'
+                        : opt.name === 'blue'
+                          ? 'น้ำเงินไพลิน'
+                          : 'ม่วงอเมทิสต์'
+                  )}
+                </span>
               </button>
             ))}
           </div>
@@ -158,13 +187,16 @@ export default function AppearanceSettingsPage() {
         {/* Chart Preferences */}
         <div className="space-y-4">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Chart Candlestick & Grid Customization')}
+            {t(
+              'Chart Candlestick & Grid Customization',
+              'การปรับแต่งแท่งเทียนและเส้นตารางกราฟ'
+            )}
           </Label>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
               <span className="text-xs font-medium text-slate-300">
-                {t('Bullish Up Candle')}
+                {t('Bullish Up Candle', 'แท่งเทียนขาขึ้น (Bullish)')}
               </span>
               <div className="flex items-center gap-2">
                 <input
@@ -181,7 +213,7 @@ export default function AppearanceSettingsPage() {
 
             <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
               <span className="text-xs font-medium text-slate-300">
-                {t('Bearish Down Candle')}
+                {t('Bearish Down Candle', 'แท่งเทียนขาลง (Bearish)')}
               </span>
               <div className="flex items-center gap-2">
                 <input
@@ -199,7 +231,9 @@ export default function AppearanceSettingsPage() {
 
           <div className="space-y-2 rounded-xl border border-slate-800 bg-[#06080e] p-3">
             <div className="flex justify-between text-xs font-semibold">
-              <span className="text-slate-300">{t('Chart Grid Opacity')}</span>
+              <span className="text-slate-300">
+                {t('Chart Grid Opacity', 'ความโปร่งแสงของเส้นตารางกราฟ')}
+              </span>
               <span className="font-mono text-amber-300">{gridOpacity}%</span>
             </div>
             <input
@@ -218,7 +252,9 @@ export default function AppearanceSettingsPage() {
             onClick={handleSave}
             className="h-9 bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 hover:from-amber-400 hover:to-amber-500"
           >
-            {isSaved ? t('Preferences Saved!') : t('Apply Appearance Settings')}
+            {isSaved
+              ? t('Preferences Saved!', 'บันทึกการตั้งค่าแล้ว!')
+              : t('Apply Appearance Settings', 'ปรับใช้การตั้งค่ารูปลักษณ์')}
           </Button>
         </div>
       </div>

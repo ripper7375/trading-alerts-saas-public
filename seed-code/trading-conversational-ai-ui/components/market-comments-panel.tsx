@@ -181,13 +181,15 @@ export default function MarketCommentsPanel({
       case 'SELL':
         return (
           <Badge className="shrink-0 border-rose-500/50 bg-rose-500/20 px-1.5 py-0 font-mono text-[9px] text-rose-300 shadow-xs">
-            <TrendingDown className="mr-0.5 inline h-2.5 w-2.5" /> SELL
+            <TrendingDown className="mr-0.5 inline h-2.5 w-2.5" />{' '}
+            {t('SELL', 'ขาย')}
           </Badge>
         );
       default:
         return (
           <Badge className="shrink-0 border-slate-500/50 bg-slate-500/20 px-1.5 py-0 font-mono text-[9px] text-slate-300 shadow-xs">
-            <Minus className="mr-0.5 inline h-2.5 w-2.5" /> NEUTRAL
+            <Minus className="mr-0.5 inline h-2.5 w-2.5" />{' '}
+            {t('NEUTRAL', 'เป็นกลาง')}
           </Badge>
         );
     }
@@ -264,7 +266,7 @@ export default function MarketCommentsPanel({
               {tier === 'PRO' && (
                 <span className="flex items-center gap-1.5 font-mono text-xs font-bold text-emerald-400">
                   <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400" />
-                  LIVE
+                  {t('LIVE', 'สด')}
                 </span>
               )}
             </h2>

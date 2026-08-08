@@ -74,7 +74,10 @@ export default function RegisterForm() {
             {tier === 'PRO' && <Check className="h-3.5 w-3.5 text-amber-400" />}
           </div>
           <span className="mt-1 text-[10px] text-slate-400">
-            Full AI Models + 100 Alerts + MTF Overlay
+            {t(
+              'Full AI Models + 100 Alerts + MTF Overlay',
+              'โมเดล AI ทั้งหมด + 100 การแจ้งเตือน + เลเยอร์ MTF'
+            )}
           </span>
         </button>
 
@@ -94,7 +97,10 @@ export default function RegisterForm() {
             )}
           </div>
           <span className="mt-1 text-[10px] text-slate-400">
-            Basic Gemini Flash + Read-Only History
+            {t(
+              'Basic Gemini Flash + Read-Only History',
+              'Gemini Flash พื้นฐาน + ประวัติอ่านอย่างเดียว'
+            )}
           </span>
         </button>
       </div>
