@@ -24,6 +24,7 @@ import {
 
 import thDict from '@/lib/i18n/dictionaries/th.json';
 import enGBDict from '@/lib/i18n/dictionaries/en-GB.json';
+import enUSDict from '@/lib/i18n/dictionaries/en-US.json';
 
 /**
  * Dictionaries bundled synchronously so the very first render — server AND
@@ -34,7 +35,7 @@ import enGBDict from '@/lib/i18n/dictionaries/en-GB.json';
 const staticDictionaries: Record<string, Record<string, string>> = {
   th: thDict,
   'en-GB': enGBDict,
-  'en-US': enGBDict,
+  'en-US': enUSDict,
 };
 
 function dictionaryFor(language: string): Record<string, string> {

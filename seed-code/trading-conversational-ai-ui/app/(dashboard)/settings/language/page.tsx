@@ -155,7 +155,7 @@ export default function LanguageSettingsPage() {
             <p className="text-[11px] text-slate-400">
               {t(
                 'settings.language_subtitle',
-                'Configure internationalisation, session clock timezones, and date formats'
+                'Configure internationalization, session clock timezones, and date formats'
               )}
             </p>
           </div>
