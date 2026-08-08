@@ -233,6 +233,7 @@
   "Double bottom wick rejection at lower M5 EDT boundary aligned with M15 SSA bullish trend bias.": "Rechazo con mecha en doble suelo en el límite inferior del EDT M5, alineado con el sesgo alcista del SSA M15.",
   "Hello! I'm analyzing **XAUUSD** on **M5**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).": "¡Hola! Estoy analizando **XAUUSD** en **M5**. La estructura del mercado muestra un retesteo alcista del momento en la línea inferior del canal EDT ($2,634.50).",
   "What is the current M5 SSA trend & EDT channel situation for XAUUSD?": "¿Cuál es la tendencia actual del SSA M5 y la situación del canal EDT para XAUUSD?",
+  "What is the M15 market structure & ZigZag confirmation for XAUUSD?": "¿Cuál es la estructura de mercado M15 y la confirmación ZigZag actual para XAUUSD?",
   "Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.": "Evaluación técnica de XAUUSD en tiempo real:\n\n- **Estructura M5**: Rechazo con mecha en doble suelo en el límite inferior del canal EDT ($2,634.50).\n- **Pendiente del SSA M15**: Tendencia alcista alineada con la expansión de velas por puntuación Z.\n- **Acción táctica**: Entrada BUY LIMIT favorable en $2,634.50 con objetivo en $2,648.00.",
   "chart.edt_config": "Configuración EDT",
   "chart.m15_ssa_edt": "Gráfico SSA y EDT M15",

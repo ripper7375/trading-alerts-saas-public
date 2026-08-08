@@ -233,6 +233,7 @@
   "Double bottom wick rejection at lower M5 EDT boundary aligned with M15 SSA bullish trend bias.": "M5 EDT alt sınırında çift dip fitil reddi, M15 SSA yükseliş trend eğilimiyle uyumlu.",
   "Hello! I'm analyzing **XAUUSD** on **M5**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).": "Merhaba! **XAUUSD** paritesini **M5** zaman diliminde analiz ediyorum. Piyasa yapısı, alt EDT kanal çizgisinde ($2,634.50) yükseliş yönlü bir momentum yeniden testi gösteriyor.",
   "What is the current M5 SSA trend & EDT channel situation for XAUUSD?": "XAUUSD için güncel M5 SSA trendi ve EDT kanal durumu nedir?",
+  "What is the M15 market structure & ZigZag confirmation for XAUUSD?": "XAUUSD için M15 piyasa yapısı ve ZigZag onayı nedir?",
   "Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.": "Gerçek Zamanlı XAUUSD Teknik Değerlendirmesi:\n\n- **M5 Yapısı**: Alt EDT kanal sınırında çift dip fitil reddi ($2,634.50).\n- **M15 SSA Eğimi**: Z-skoru mum genişlemesiyle uyumlu yükseliş trendi.\n- **Taktiksel Aksiyon**: $2,634.50 seviyesinden $2,648.00 hedefli BUY LIMIT girişi uygun.",
   "chart.edt_config": "EDT Yapılandırması",
   "chart.m15_ssa_edt": "M15 SSA ve EDT Grafiği",

@@ -233,6 +233,7 @@
   "Double bottom wick rejection at lower M5 EDT boundary aligned with M15 SSA bullish trend bias.": "M5 EDT下限でのダブルボトムのヒゲによる反発。M15 SSAの上昇トレンドバイアスと整合しています。",
   "Hello! I'm analyzing **XAUUSD** on **M5**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).": "こんにちは。**M5**足で**XAUUSD**を分析しています。市場構造は、EDTチャネル下限（$2,634.50）での上昇モメンタムのリテストを示しています。",
   "What is the current M5 SSA trend & EDT channel situation for XAUUSD?": "現在のXAUUSDのM5 SSAトレンドとEDTチャネルの状況はどうなっていますか？",
+  "What is the M15 market structure & ZigZag confirmation for XAUUSD?": "XAUUSDのM15市場構造とジグザグ確認はどうなっていますか？",
   "Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.": "XAUUSDリアルタイムテクニカル評価:\n\n- **M5構造**: EDTチャネル下限（$2,634.50）でのダブルボトムのヒゲによる反発。\n- **M15 SSAの傾き**: Zスコアによるローソク足の拡大を伴う上昇トレンド。\n- **戦術的判断**: $2,634.50でのBUY LIMITエントリーが有利、目標は$2,648.00。",
   "chart.edt_config": "EDT設定",
   "chart.m15_ssa_edt": "M15 SSA・EDTチャート",
