@@ -1,0 +1,359 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { Check, X, Sparkles, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useLocale } from '@/lib/context/locale-context';
+
+export default function TierComparison() {
+  const { t, formatCurrency } = useLocale();
+  const [isAnnual, setIsAnnual] = useState(true);
+
+  const features = [
+    {
+      name: t(
+        'XAUUSD Real-Time M5/M15 Data Stream',
+        'สตรีมข้อมูล XAUUSD M5/M15 เรียลไทม์'
+      ),
+      free: true,
+      pro: true,
+    },
+    {
+      name: t(
+        'AI Chart Analyst Quad-RAG Queries',
+        'การสอบถาม AI Chart Analyst Quad-RAG'
+      ),
+      free: t('Gemini 3.6 Flash Only', 'เฉพาะ Gemini 3.6 Flash'),
+      pro: t('All 6 Premium AI Models', 'โมเดล AI พรีเมียม ทั้ง 6 โมเดล'),
+    },
+    {
+      name: t('Interactive Prompt Input', 'การป้อนคำถามแบบโต้ตอบ'),
+      free: t(
+        'Disabled (Read-Only History)',
+        'ปิดใช้งาน (ประวัติแบบอ่านอย่างเดียว)'
+      ),
+      pro: t('Full Interactive Input', 'การป้อนคำถามโต้ตอบเต็มรูปแบบ'),
+    },
+    {
+      name: t(
+        'Server-Side Price & Line Alert Rules',
+        'กฎการแจ้งเตือนราคาและเส้นฝั่งเซิร์ฟเวอร์'
+      ),
+      free: t('0 Active Alerts', '0 กฎการแจ้งเตือน'),
+      pro: t('100 Active Alerts', '100 กฎการแจ้งเตือน'),
+    },
+    {
+      name: t(
+        'M5 Equal-Distance Centroid Channel Overlay',
+        'เลเยอร์ช่อง Centroid EDT M5'
+      ),
+      free: t(
+        'MTF Equal-Distance Overlay Locked',
+        'ลล็อกเลเยอร์ช่อง EDT หลายกรอบเวลา'
+      ),
+      pro: t('Full MTF Overlay', 'เลเยอร์ MTF เต็มรูปแบบ'),
+    },
+    {
+      name: t(
+        'Live Market Comments & WebSocket Feed',
+        'ฟีดความคิดเห็นตลาดเรียลไทม์ผ่าน WebSocket'
+      ),
+      free: t('Glassmorphism Blur Gate', 'จำกัดการเข้าถึง'),
+      pro: t('Unrestricted Feed', 'ฟีดไม่จำกัด'),
+    },
+    {
+      name: t(
+        'Speedometer Gauges & Quality Metrics',
+        'มาตรวัดและตัวชี้วัดคุณภาพ EDT'
+      ),
+      free: t('Locked', 'ล็อก'),
+      pro: t('Full Access', 'เข้าถึงได้ทั้งหมด'),
+    },
+    {
+      name: t('Monthly AI Token Allocation', 'โควต้าโทเค็น AI ประจำเดือน'),
+      free: `50,000 ${t('Tokens', 'โทเค็น')}`,
+      pro: `500,000 ${t('Tokens', 'โทเค็น')}`,
+    },
+    {
+      name: t(
+        '24/7 Priority Support & VIP Discord',
+        'บริการช่วยเหลือ VIP 24/7'
+      ),
+      free: false,
+      pro: true,
+    },
+  ];
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-8 select-none">
+      {/* Billing Cycle Toggle */}
+      <div className="flex flex-col items-center space-y-3 text-center">
+        <Badge className="border-amber-500/40 bg-amber-500/10 px-3 py-1 font-mono text-xs text-amber-300">
+          ⚡{' '}
+          {t(
+            'PRO TIER UNLOCKS ALL AI MODELS & REAL-TIME FEEDS',
+            'แพ็กเกจ PRO ปลดล็อกโมเดล AI ทั้งหมด & สตรีมข้อมูลเรียลไทม์'
+          )}
+        </Badge>
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-100 sm:text-3xl">
+          {t(
+            'Flexible Pricing Built for Quantitative Traders',
+            'ราคาแพ็กเกจยืดหยุ่น สร้างขึ้นสำหรับเทรดเดอร์เชิงปริมาณ'
+          )}
+        </h1>
+
+        <div className="flex items-center gap-3 rounded-xl border border-slate-800 bg-[#0b0e17] p-1">
+          <button
+            type="button"
+            onClick={() => setIsAnnual(false)}
+            className={`rounded-lg px-4 py-1.5 text-xs font-bold transition-all ${
+              !isAnnual
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {t('Monthly Billing', 'ชำระรายเดือน')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsAnnual(true)}
+            className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-bold transition-all ${
+              isAnnual
+                ? 'bg-amber-500 text-slate-950 shadow-md'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {t('Annual Billing', 'ชำระรายปี')}
+            <span className="rounded bg-amber-300 px-1.5 py-0.5 text-[9px] font-extrabold text-slate-950 uppercase">
+              {t('SAVE 20%', 'ประหยัด 20%')}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Pricing Cards Grid */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {/* FREE Tier Card */}
+        <div className="flex flex-col justify-between space-y-6 rounded-2xl border border-slate-800 bg-[#090c14] p-6 shadow-xl">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-200">
+                  {t('FREE Tier', 'แพ็กเกจ FREE')}
+                </h3>
+                <p className="text-xs text-slate-400">
+                  {t(
+                    'Basic market preview & past session viewer',
+                    'ดูตัวอย่างตลาดพื้นฐาน & ประวัติเซสชันย้อนหลัง'
+                  )}
+                </p>
+              </div>
+              <Badge
+                variant="outline"
+                className="border-slate-700 bg-slate-800 font-mono text-slate-300"
+              >
+                FREE
+              </Badge>
+            </div>
+
+            <div className="flex items-baseline gap-1">
+              <span className="font-mono text-3xl font-extrabold text-slate-100">
+                {formatCurrency(0)}
+              </span>
+              <span className="text-xs text-slate-400">
+                / {t('forever', 'ตลอดไป')}
+              </span>
+            </div>
+
+            <Button
+              variant="outline"
+              asChild
+              className="border-slate-750 h-10 w-full bg-slate-800 text-xs font-bold text-slate-200"
+            >
+              <Link href="/free">
+                {t('Access FREE Terminal', 'เข้าใช้งานเทอร์มินัล FREE')}
+              </Link>
+            </Button>
+          </div>
+
+          <div className="space-y-3 border-t border-slate-800/80 pt-4">
+            <h4 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
+              {t('PLAN HIGHLIGHTS:', 'จุดเด่นของแผน:')}
+            </h4>
+            <ul className="space-y-2 text-xs text-slate-400">
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-emerald-400" />{' '}
+                {t(
+                  'Real-Time M5/M15 XAUUSD Charts',
+                  'กราฟ XAUUSD M5/M15 เรียลไทม์'
+                )}
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-emerald-400" />{' '}
+                {t('Gemini 3.6 Flash AI Model', 'โมเดล AI Gemini 3.6 Flash')}
+              </li>
+              <li className="flex items-center gap-2 text-slate-500">
+                <X className="h-4 w-4 shrink-0 text-rose-500" />{' '}
+                {t(
+                  '0 Active Alerts (PRO Exclusive)',
+                  '0 กฎแจ้งเตือน (สิทธิ์เฉพาะ PRO)'
+                )}
+              </li>
+              <li className="flex items-center gap-2 text-slate-500">
+                <X className="h-4 w-4 shrink-0 text-rose-500" />{' '}
+                {t(
+                  'MTF Equal-Distance Overlay Locked',
+                  'ล็อกเลเยอร์ช่อง EDT หลายกรอบเวลา'
+                )}
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* PRO Tier Card */}
+        <div className="relative flex flex-col justify-between space-y-6 rounded-2xl border-2 border-amber-500/60 bg-gradient-to-b from-[#0e121e] to-[#080a10] p-6 shadow-2xl">
+          <div className="absolute -top-3 right-6 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-3 py-0.5 text-[10px] font-extrabold tracking-wider text-slate-950 uppercase shadow-md">
+            {t(
+              'MOST POPULAR FOR TRADERS',
+              'ได้รับความนิยมสูงสุดสำหรับเทรดเดอร์'
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="flex items-center gap-1.5 text-lg font-extrabold text-amber-300">
+                  <Sparkles className="h-4 w-4 text-amber-400" />{' '}
+                  {t('PRO Tier', 'แพ็กเกจ PRO')}
+                </h3>
+                <p className="text-xs text-slate-300">
+                  {t(
+                    'Complete AI quantitative analyst & 100 alerts',
+                    'นักวิเคราะห์ AI เชิงปริมาณครบวงจร & 100 กฎแจ้งเตือน'
+                  )}
+                </p>
+              </div>
+              <Badge className="border-amber-500/50 bg-amber-500/20 font-mono text-[10px] text-amber-300">
+                {t('UNLIMITED')}
+              </Badge>
+            </div>
+
+            <div className="flex items-baseline gap-1">
+              <span className="font-mono text-3xl font-extrabold text-amber-300">
+                {formatCurrency(isAnnual ? 39 : 49)}
+              </span>
+              <span className="text-xs text-slate-400">
+                / {t('month', 'เดือน')}{' '}
+                {isAnnual && t('(billed annually)', '(ชำระรายปี)')}
+              </span>
+            </div>
+
+            <Button
+              asChild
+              className="h-10 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/25 hover:from-amber-400 hover:to-amber-500"
+            >
+              <Link href="/checkout">
+                {t('Upgrade to PRO Now', 'อัปเกรดเป็น PRO ตอนนี้')}{' '}
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="space-y-3 border-t border-amber-500/30 pt-4">
+            <h4 className="text-xs font-bold tracking-wider text-amber-300 uppercase">
+              {t(
+                'EVERYTHING IN FREE, PLUS:',
+                'ทุกอย่างในแพ็กเกจ FREE และเพิ่มเติม:'
+              )}
+            </h4>
+            <ul className="space-y-2 text-xs text-slate-200">
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
+                {t(
+                  '100 Server-Side Price & Line Alert Rules',
+                  '100 กฎการแจ้งเตือนราคาและเส้นฝั่งเซิร์ฟเวอร์'
+                )}
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
+                {t(
+                  'All 6 Premium AI Models (Claude Sonnet 5, GPT 5.6, etc.)',
+                  'โมเดล AI พรีเมียม ทั้ง 6 โมเดล (Claude Sonnet 5, GPT 5.6 ฯลฯ)'
+                )}
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
+                {t(
+                  'M5 Equal-Distance Centroid Overlay on M15 Chart',
+                  'เลเยอร์ Centroid EDT M5 บนกราฟ M15'
+                )}
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
+                {t(
+                  'Unrestricted Live Market Comments WebSocket Stream',
+                  'สตรีมความคิดเห็นตลาดเรียลไทม์ผ่าน WebSocket แบบไม่จำกัด'
+                )}
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
+                {t(
+                  '500,000 Monthly AI Token Quota',
+                  'โควต้าโทเค็น AI ประจำเดือน 500,000 โทเค็น'
+                )}
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Feature Comparison Table */}
+      <div className="overflow-hidden rounded-2xl border border-slate-800 bg-[#090c14] shadow-xl">
+        <div className="border-b border-slate-800 bg-[#0d101a] p-4">
+          <h3 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
+            {t(
+              'DETAILED TIER FEATURE COMPARISON MATRIX',
+              'ตารางเปรียบเทียบคุณสมบัติของแต่ละแพ็กเกจโดยละเอียด'
+            )}
+          </h3>
+        </div>
+        <div className="divide-y divide-slate-800/60">
+          {features.map((item, idx) => (
+            <div
+              key={idx}
+              className="grid grid-cols-3 items-center p-3.5 text-xs"
+            >
+              <span className="col-span-1 font-medium text-slate-300">
+                {item.name}
+              </span>
+              <span className="text-center font-mono text-slate-400">
+                {typeof item.free === 'boolean' ? (
+                  item.free ? (
+                    <Check className="mx-auto h-4 w-4 text-emerald-400" />
+                  ) : (
+                    <X className="mx-auto h-4 w-4 text-rose-500" />
+                  )
+                ) : (
+                  item.free
+                )}
+              </span>
+              <span className="text-center font-mono font-bold text-amber-300">
+                {typeof item.pro === 'boolean' ? (
+                  item.pro ? (
+                    <Check className="mx-auto h-4 w-4 text-amber-400" />
+                  ) : (
+                    <X className="mx-auto h-4 w-4 text-rose-500" />
+                  )
+                ) : (
+                  item.pro
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

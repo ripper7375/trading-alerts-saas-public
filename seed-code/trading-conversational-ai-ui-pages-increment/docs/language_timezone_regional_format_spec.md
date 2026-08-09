@@ -9,17 +9,16 @@
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                        DAVINTRADE HYBRID i18n STACK DIVISION                           │
-│  STATUS: CLIENT-SIDE 100% COMPLETE & DEPLOYED TO VERCEL (https://davintrade.app)       │
 ├───────────────────────────────────────────┬────────────────────────────────────────────┤
-│ SERVER-SIDE (Claude Code)                 │ CLIENT-SIDE (Antigravity & Claude Code)    │
+│ SERVER-SIDE (Claude Code)                 │ CLIENT-SIDE (Antigravity)                  │
 │ Location: Main Repo (`app/api/`, `prisma/`) │ Location: UI Repo (`seed-code/`)          │
-│ • Database Models (`UserPreference`)      │ • `LocaleProvider` React 19 Context [DONE] │
-│ • REST APIs (`GET/PUT /api/user/pref`)    │ • Dynamic Country URL Routing [DONE]       │
-│ • IP-Based GeoIP Server Header Parsing    │ • Automatic IP-Based GeoIP Auto-Detect[DONE]│
-│ • AI Prompt Language Injection Middleware │ • 629-Key Union Auto-Lookup Engine [DONE]  │
+│ • Database Models (`UserPreference`)      │ • `LocaleProvider` React 19 Context        │
+│ • REST APIs (`GET/PUT /api/user/pref`)    │ • Dynamic Country URL Routing (`middleware`)│
+│ • IP-Based GeoIP Server Header Parsing    │ • Automatic IP-Based GeoIP Auto-Detection  │
+│ • AI Prompt Language Injection Middleware │ • `<T>` Centralized Auto-Lookup Engine     │
 │ • dLocal & Stripe Multi-Currency Handlers │ • Dynamic UTC Timestamp & Date Formatters  │
 │ • Part 05 Dual Auth Middleware Sync       │ • Dedicated UK English (`en-GB`) + `en-US` │
-│ • Server Validation & Security            │ • 12-Country Native Dictionaries [DONE]    │
+│ • Server Validation & Security            │ • dLocal 8 Emerging Market Currencies      │
 └───────────────────────────────────────────┴────────────────────────────────────────────┘
 ```
 
@@ -27,23 +26,21 @@
 
 ## 1. ⚡ Frontend Architecture & Centralized Propagation
 
-The Client-Side UI utilizes a 3-tier hybrid architecture ensuring 100% complete language propagation across all 31 pages, components, overlays, charts, and AI outputs:
+The Client-Side UI utilizes a 3-tier hybrid architecture to ensure 100% complete language propagation across all pages, components, overlays, charts, and AI outputs:
 
 1. **Dynamic Country URL Prefix Routing (`middleware.ts`)**:
-   - Implements Next.js Proxy/Middleware rewrite for all 12 supported country routes (`/gb/`, `/in/`, `/ng/`, `/pk/`, `/vn/`, `/id/`, `/th/`, `/za/`, `/tr/`, `/us/`, `/eu/`, `/jp/`).
+   - Implements Next.js Proxy/Middleware rewrite for all 372 country-prefixed route combinations in `page-inventories.xlsx` (e.g. `/th/settings/help`, `/gb/alerts`, `/vn/pricing`, `/in/dashboard`).
    - Preserves browser address bar URLs while activating that country's language, timezone, currency, and date format automatically.
 
-2. **Dual-Location Configuration Synchronization**:
-   - **Location A**: Language Settings Page (`app/(dashboard)/settings/language/page.tsx`).
-   - **Location B**: Header Top-Right Country Dropdown & User Account Menu (`components/layout/app-header.tsx`).
-   - Both locations interface with the exact same single source of truth ([`LocaleProvider`](file:///d:/SaaS%20Project/trading-alerts-saas-public/seed-code/trading-conversational-ai-ui/lib/context/locale-context.tsx)).
-   - Selecting a country in the top-right header dropdown instantly updates the settings page, clock, currency formatter, localized country names (`t(c.name)`), and active dictionary in real-time with zero state conflict.
+2. **Automatic IP-Based GeoIP Location & Language Auto-Detection**:
+   - For unauthenticated users entering without a country prefix, the system auto-detects their country via IP address (GeoIP).
+   - Thai users (`TH`) auto-load in Thai/THB/Asia/Bangkok; Vietnamese users (`VN`) in Vietnamese/VND/Asia/Ho_Chi_Minh; UK users (`GB`) in UK English/GBP/Europe/London.
 
-3. **629-Key Union Dictionary Catalogue & On-Demand Code Splitting**:
-   - All 12 country dictionaries ([`lib/i18n/dictionaries/`](file:///d:/SaaS%20Project/trading-alerts-saas-public/seed-code/trading-conversational-ai-ui/lib/i18n/dictionaries/)) share a unified 629-key translation catalogue across 559 distinct call sites with **0 fallback leaks**, **0 raw-key leaks**, and **0 Thai leaks**.
-   - Dictionaries are loaded asynchronously on-demand via Next.js dynamic `import()`. Visiting `/jp/` only downloads `ja.json` (~15 KB), preserving optimal main bundle size.
+3. **Method 1: Centralized `<T>` Component & Text-Based Auto-Lookup**:
+   - Developers can wrap UI text in `<T>Ask AI about M5 Chart</T>` or call `t('PNG Download')`.
+   - The engine automatically resolves text strings dynamically against lazy-loaded dictionaries (`en-GB.json`, `th.json`, `vi.json`, `es.json`, etc.) with **0kB** external dependency bloat.
 
-4. **AI System Prompt Language Injection**:
+4. **Method 2: AI System Prompt Language Injection**:
    - Dynamic LLM outputs (Gemini 3.6 Flash, Claude Sonnet 5, DeepSeek V4 market commentary, trade setup rationales) are generated in the active language by injecting `userPreference.language` into the system prompt at the backend layer.
 
 ---
