@@ -62,10 +62,7 @@ export default function ChatPanel({
       id: '1',
       role: 'assistant',
       timestamp: Date.now() - 300000,
-      content: t(
-        `Hello! I'm analyzing **${symbol}** on **${timeframe}**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).`,
-        `Hello! I'm analyzing **${symbol}** on **${timeframe}**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).`
-      ),
+      content: `Hello! I'm analyzing **${symbol}** on **${timeframe}**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).`,
     },
     {
       id: '2',
@@ -77,10 +74,8 @@ export default function ChatPanel({
       id: '3',
       role: 'assistant',
       timestamp: Date.now() - 180000,
-      content: t(
+      content:
         'Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.',
-        'การประเมินทางเทคนิค XAUUSD แบบเรียลไทม์:\n\n- **โครงสร้าง M5**: การปฏิเสธไส้เทียนแบบ Double Bottom ที่ขอบล่างของ EDT ($2,634.50)\n- **ความชัน SSA M15**: แนวโน้มขาขึ้นพร้อมการขยายตัวของเทียน Z-score\n- **แผนกลยุทธ์**: แนะนำเข้าซื้อ BUY LIMIT ที่ $2,634.50 เป้าหมาย $2,648.00'
-      ),
     },
   ]);
   const [input, setInput] = useState('');
@@ -90,6 +85,40 @@ export default function ChatPanel({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Re-resolve the two static seed messages' translated text whenever the
+  // dictionary changes. A `useState` initializer only runs once at mount, and
+  // for any locale not synchronously bundled in locale-context.tsx (i.e.
+  // every language except th/en-GB/en-US), the dictionary at that instant is
+  // still the en-GB fallback — the real dictionary loads moments later via an
+  // async import, but by then this content would already be frozen. Syncing
+  // it here instead means it always reflects the dictionary that's actually
+  // active, on mount and on any later language switch.
+  useEffect(() => {
+    setMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id === '1') {
+          return {
+            ...msg,
+            content: t(
+              `Hello! I'm analyzing **${symbol}** on **${timeframe}**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).`,
+              `Hello! I'm analyzing **${symbol}** on **${timeframe}**. Market structure shows a bullish momentum retest at the lower EDT channel line ($2,634.50).`
+            ),
+          };
+        }
+        if (msg.id === '3') {
+          return {
+            ...msg,
+            content: t(
+              'Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.',
+              'การประเมินทางเทคนิค XAUUSD แบบเรียลไทม์:\n\n- **โครงสร้าง M5**: การปฏิเสธไส้เทียนแบบ Double Bottom ที่ขอบล่างของ EDT ($2,634.50)\n- **ความชัน SSA M15**: แนวโน้มขาขึ้นพร้อมการขยายตัวของเทียน Z-score\n- **แผนกลยุทธ์**: แนะนำเข้าซื้อ BUY LIMIT ที่ $2,634.50 เป้าหมาย $2,648.00'
+            ),
+          };
+        }
+        return msg;
+      })
+    );
+  }, [t, symbol, timeframe]);
 
   // Handle predetermined questions triggered from the chart avatar button (C3/C5)
   useEffect(() => {
