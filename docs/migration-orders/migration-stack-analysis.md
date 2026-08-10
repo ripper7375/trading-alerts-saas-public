@@ -3123,5 +3123,39 @@ Wires the 3 orphan `/api/tier/*` endpoints into a real UI consumer and builds th
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-10 (Session 6-3, Alerts & Charts)
+<details>
+<summary><strong>2026-08-10 — Session 6-4 (Notifications, UI-BUILD)</strong></summary>
+
+Builds the missing `/notifications` page — the bell's own "View all" link (Session 4B-9/4B-17) had
+pointed at it since it existed, always 404ing. Zero flags, zero backend changes; all 5
+`/api/notifications/*` routes were already live.
+
+- **New:** `app/(dashboard)/notifications/page.tsx` (server component — `getSession()`/redirect,
+  mounts the previously-orphaned `NotificationList`); `__tests__/pages/notifications/notifications-page.test.tsx`
+  (8 tests, first-ever coverage for `NotificationList`, following `edit.test.tsx`'s own
+  async-server-component-page pattern).
+- **Modified:** `components/notifications/notification-list.tsx` (wired `useRealtimeSocket`,
+  mirroring `notification-bell.tsx`'s own established pattern — re-fetch on push, don't merge the
+  payload directly; added an `aria-live="polite"` screen-reader announcement for realtime pushes,
+  serving the order's own explicit A11y Standards rule); `middleware.ts` (added
+  `/notifications/:path*` to the matcher — found missing while live-verifying Step 3; every other
+  `(dashboard)` route already had this edge-level defense-in-depth, mirroring exactly how
+  `/admin/:path*` was added at Session 6-2).
+- **Found, not a security hole:** the page-level `getSession()` guard already redirected correctly
+  before the middleware fix (proven via live dev-server logs) — the gap was a missing earlier
+  layer, not an actual bypass.
+- **Regression:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` — same
+  3 pre-existing warnings, 0 new; `test:ci` 134/134 suites, 2217/2217 tests (was 133/133,
+  2209/2209 — +1 suite/+8 tests, exactly this session's own new file, zero regressions elsewhere).
+- **Not done:** live manual click-through of the bell → `/notifications` flow under a real
+  authenticated session — carries forward the same gap as every Phase 6 session since 6-1b
+  (Waiting-on #117, `CredentialsProvider` removed at Session 4B-21). Partial substitute: confirmed
+  the route compiles and runs cleanly under the real Next.js/Turbopack dev server, with the full
+  unauthenticated redirect chain (including the middleware fix) proven live via server logs.
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-10 (Session 6-4, Notifications)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

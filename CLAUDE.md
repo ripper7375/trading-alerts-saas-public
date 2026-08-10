@@ -26,7 +26,80 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 6-3 (Alerts & Charts, UI-BUILD variant, dial HIGH for the edit-form UI/flow,
+- **Current:** Session 6-4 (Notifications, UI-BUILD variant, dial HIGH for list/filter/realtime
+  UX, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-10, same day as Session 6-3.
+  **Builds the missing `/notifications` page — the bell icon's own "View all" link (Session
+  4B-9/4B-17) had pointed at it since it first existed, always 404ing.** No cross-stack PORT, no
+  flags, no new backend endpoints — all 5 real, live `/api/notifications/*` routes already
+  existed.
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again**: committed `HEAD`
+  had the order at `Status: PRE-DRAFT`, with `notification-list.tsx`'s orphan-component status
+  explicitly left as an open question ("not read in full this session... needs a real decision");
+  the working copy was a full uncommitted rewrite to `Status: APPROVED`, asserting that same
+  question already resolved ("has been read in full... battle-tested... verified clean") with no
+  visible DRAFT-stage commit trail. Reported in full before proceeding; Davin confirmed live it
+  was his own authentic authorization, and explicitly reconfirmed the mounting decision and the
+  realtime-mirroring approach before execution began.
+  **Independently re-verified the substance of the uncommitted claim before trusting it, not just
+  the provenance**: read all 668 lines of `notification-list.tsx` directly — the "clean, ready to
+  mount" assertion held up on its own merits (status tabs, type filters, pagination, optimistic
+  mark-read/mark-all-read/delete-with-undo), with one pre-existing, self-documented quirk noted but
+  not touched (the delete "Undo" button recreates a new notification server-side rather than
+  restoring the exact original — the component's own comment already flags this as best-effort).
+  **Built (4 Ordered Steps, one commit each, plus one small follow-on commit for an own-initiative
+  a11y addition):** Step 1 — `app/(dashboard)/notifications/page.tsx` (server component,
+  `getSession()`/redirect-to-`/login`, mirrors `alerts/[id]/edit/page.tsx`'s own established
+  pattern, mounts `NotificationList` with no tier gate per the order's own explicit rule). Step 2 —
+  wired `useRealtimeSocket({ onNotification })` into `notification-list.tsx`, mirroring
+  `notification-bell.tsx`'s own exact wiring (re-fetch on push, never merge the pushed payload
+  directly, keeping list/pagination/unreadCount single-sourced from the server). Step 3 — verified
+  the bell's `/notifications` link (already correct, no code change needed there) via the real
+  dev server: `GET /notifications → 307 → GET /login → 200`, zero errors. **Own addition beyond
+  Step 2's literal text, serving the variant's own explicit A11y Standards rule** ("screen reader
+  announcements for new notifications"): added a visually-hidden `aria-live="polite"` region
+  announcing each realtime-pushed notification's title, covered by its own dedicated test. Step 4
+  — `__tests__/pages/notifications/notifications-page.test.tsx` (8 tests, first-ever coverage for
+  `NotificationList`, mirroring `edit.test.tsx`'s own async-server-component-page pattern).
+  **A real gap found and fixed while live-verifying Step 3, not in the order's own literal
+  scope:** `middleware.ts`'s matcher covered every other `(dashboard)` route (`/dashboard`,
+  `/alerts`, `/charts`, `/settings`, `/admin`) but not `/notifications` — the page-level
+  `getSession()` guard already redirected correctly on its own (proven via live logs before the
+  fix, so never an actual security hole), just missing the same earlier, edge-level
+  defense-in-depth every sibling route already has. Added `/notifications/:path*` to the matcher,
+  mirroring exactly how `/admin/:path*` was added at Session 6-2 for the identical reason —
+  re-verified live post-fix via the redirect now carrying a `callbackUrl` param, proof the
+  edge-level check fires first.
+  **A real test-mock bug found and fixed while writing Step 4's suite, not an app bug:** the
+  `next/navigation` `useRouter()` mock initially returned a fresh object literal per call —
+  `fetchNotifications`'s `useCallback` has `router` in its dependency array, so the unstable mock
+  reference produced a genuine re-fetch storm in the test (33 spurious `fetch` calls from one tab
+  click), purely because Next's real `useRouter()` is memoized/stable and the mock wasn't. Fixed
+  by returning a single stable object. Flagged for the Advisor: `edit.test.tsx` uses the same
+  unstable-mock shape and would hit the identical bug class if that component's own effects ever
+  grew a `router`-dependent `useCallback`.
+  **Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
+  — same 3 pre-existing warnings tracked since Session 6-1, 0 new; `test:ci` **134/134 suites,
+  2217/2217 tests** (was 133/133, 2209/2209 — +1 suite/+8 tests, exactly this session's own new
+  file, zero regressions elsewhere). Live-verified against the real Next.js/Turbopack dev server:
+  the full unauthenticated redirect chain (including the middleware fix), zero console/server
+  errors, clean compile.
+  **Not done this session, disclosed rather than silently skipped, same standing gap as every
+  Phase 6 session since 6-1b:** the live manual click-through of the bell → `/notifications` flow
+  against a real authenticated session — no test credentials were available in this environment
+  (Waiting-on #117, `CredentialsProvider` removed at Session 4B-21).
+  **No flag, no cutover-table row** — same-stack UI work, no flag existed to touch or retire;
+  `migration-cutover-table.md` unchanged.
+  **Artifacts updated:** `6-4-notifications.migration-order.md` (Status → CONFIRMED, executed;
+  Entry criteria all checked; Done-when all checked; Deviations filled in full — 7 entries),
+  `migration-stack-analysis.md` (new Session 6-4 entry, 2 new files + 2 modified), this file
+  (session-history hygiene: Session 6-2's own full text moved to `_(superseded-by-above)_`,
+  matching this file's own rotation rule — the larger pre-existing backlog flagged at Waiting-on
+  #102 is unchanged, still needs its own dedicated cleanup session). New
+  `6-5-settings-user.migration-order.md` PRE-DRAFTed (UI-BUILD variant, account-deletion
+  confirm/cancel pages) per this order's own Next-session handoff — **not fast-path eligible**,
+  flags a real human-in-the-loop UX decision (does the confirm page require an explicit second
+  click before firing the deletion `POST`?) that needs Davin's call before DRAFT can finalize.
+- **Previous:** Session 6-3 (Alerts & Charts, UI-BUILD variant, dial HIGH for the edit-form UI/flow,
   LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-10, same day as Session 6-2.
   **The 3 orphan `/api/tier/*` endpoints now have a real UI consumer, and `/alerts/[id]/edit` exists
   for the first time.**
@@ -106,9 +179,10 @@ PRE-DRAFT`, citing `phase-6-frontend-gap-matrix.md` (Session 6-1's own re-verifi
   #102 is unchanged, still needs its own dedicated cleanup session). New
   `6-4-notifications.migration-order.md` PRE-DRAFTed (UI-BUILD variant) per this order's own
   Next-session handoff.
-- **Previous:** Session 6-2 (IA + Design System + Shared Shells, UI-BUILD variant, dial HIGH for
-  layout/nav, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-10, same day as
-  Session 6-1b. **`DECISION-LOG.md` F62 is now RESOLVED and EXECUTED — all 23 admin pages live
+- _(superseded-by-above, retained for context)_ Session 6-2 (IA + Design System + Shared Shells,
+  UI-BUILD variant, dial HIGH for layout/nav, LOW for data), CONFIRMED, executed, CLOSED
+  SUCCESSFUL 2026-08-10, same day as Session 6-1b. **`DECISION-LOG.md` F62 is now RESOLVED and
+  EXECUTED — all 23 admin pages live
   under one guarded tree for the first time in this migration.**
   **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again**: committed `HEAD`
   had the order at `Status: PRE-DRAFT`; the working copy was a full uncommitted rewrite to
@@ -4090,16 +4164,23 @@ Slice-3-RETIRE session, and the now-active `4A-W_` series.
   and CLOSED SUCCESSFUL** (see Current above) — the 3 orphan `/api/tier/*` endpoints now have a
   real UI consumer (`AlertForm`, previously orphaned with zero live callers, self-fetches all 3),
   and `/alerts/[id]/edit` exists for the first time. Waiting-on #117 carries forward again, per
-  Davin's own explicit instruction this session. **Session 6-4** (notifications) is now the literal
-  next session — PRE-DRAFTed at 6-3's close, builds the `/notifications` page the bell already
-  links to. Two named Phase 4 exceptions run as their own independent tracks and do NOT block Phase
-  6: `DECISION-LOG.md` F49 (dLocal `payment_method_flow`, needs its own fix session) and F60
+  Davin's own explicit instruction this session. **Session 6-4 is now ALSO CONFIRMED, executed,
+  and CLOSED SUCCESSFUL** (see Current above) — the `/notifications` page exists for the first
+  time, the bell's "View all" link resolves cleanly, and a real `middleware.ts` matcher gap
+  (missing `/notifications/:path*`) was found and fixed live. Waiting-on #117 carries forward yet
+  again, same standing gap. **Session 6-5** (settings/user — account-deletion confirm/cancel
+  pages) is now the literal next session — PRE-DRAFTed at 6-4's close, **not fast-path eligible**:
+  it carries forward a real human-in-the-loop UX decision (does the confirm page need an explicit
+  second click before firing the deletion `POST`, or does landing on a pre-validated link
+  suffice?) that needs Davin's own call before DRAFT can finalize. Two named Phase 4 exceptions run
+  as their own independent tracks and do NOT block Phase 6: `DECISION-LOG.md` F49 (dLocal
+  `payment_method_flow`, needs its own fix session) and F60
   (`4a-13-stripe-webhook-cutover.migration-order.md`, PRE-DRAFTed).
   **Phase 6 is now 12 sessions, in this order:** 6-1 (gap matrix, audit only — done) → 6-1b
   (mock-data hotfix, PORT/low dial — done) → 6-2 (IA + design system + shared shells; F62
   resolved/executed — done) → 6-3 (alerts/charts; 3 orphan tier endpoints wired, edit route built —
-  done) → **6-4** (notifications, next; builds the `/notifications` page the bell already links
-  to) → 6-5 (settings/user; account-deletion confirm/cancel pages) → 6-6 (admin) → 6-7 (affiliate)
+  done) → 6-4 (notifications; `/notifications` page built, bell link resolved — done) → **6-5**
+  (settings/user, next; account-deletion confirm/cancel pages) → 6-6 (admin) → 6-7 (affiliate)
   → 6-8 (payments/checkout; resolves F61) → **6-10** (NEW — public/marketing surface; blocked on
   F63) → **6-11** (NEW — admin system operations) → **6-12** (a11y + responsive + phase exit; was
   6-9). **Session number 6-9 is retired — do not reuse it.**
@@ -4108,7 +4189,9 @@ Slice-3-RETIRE session, and the now-active `4A-W_` series.
   6-11 and 6-12 are defined in the playbook and the v9 handbook, and each gets its own order
   PRE-DRAFTed by the Executor at the close of the session before it — they were deliberately NOT
   drafted ahead. 6-3's own order was PRE-DRAFTed at 6-2's close per the same rule (a domain-build
-  session following a just-closed one); 6-4's own order was PRE-DRAFTed at 6-3's close the same way.
+  session following a just-closed one); 6-4's own order was PRE-DRAFTed at 6-3's close the same
+  way; 6-5's own order was PRE-DRAFTed at 6-4's close the same way, but flagged NOT fast-path
+  eligible given the unresolved UX decision above.
 - **Waiting on (Phase 6, added 2026-08-10 by the UI gap analysis):** **(106, NEW)** `DECISION-LOG.md`
   **F61** — `GET /api/geo/detect` is called by `app/(marketing)/pricing/page.tsx:155` and
   `components/payments/CountrySelector.tsx:69` but `app/api/geo/` does not exist; every pricing-page

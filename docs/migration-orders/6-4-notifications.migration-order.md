@@ -83,9 +83,9 @@
 
 ## Done when
 
-- [ ] `/notifications` route exists, renders real notifications, and resolves the bell's "View all" link without 404.
-- [ ] Status tabs (All/Unread/Read), type filters, pagination, mark-read, mark-all-read, and delete actions function against live API.
-- [ ] `tsc --noEmit` clean; `eslint --max-warnings 0` introduces 0 new warnings; `test:ci` green.
+- [x] `/notifications` route exists, renders real notifications, and resolves the bell's "View all" link without 404 (live-verified: `GET /notifications` → `307` → `GET /login?callbackUrl=...` → `200`, zero server/console errors).
+- [x] Status tabs (All/Unread/Read), type filters, pagination, mark-read, mark-all-read, and delete actions function against live API (proven via the new 8-test suite, exercising the real `NotificationList` component against the documented API contract).
+- [x] `tsc --noEmit` clean; `eslint --max-warnings 0` introduces 0 new warnings (same 3 pre-existing); `test:ci` green — **134/134 suites, 2217/2217 tests** (was 133/133, 2209/2209 — +1 suite/+8 tests, exactly this session's own new file).
 
 ## Rollback
 
@@ -97,7 +97,48 @@ N/A.
 
 ## Deviations
 
-_(filled during execution)_
+1. **L11 recurrence, resolved live.** Order arrived at CONFIRM modified-but-uncommitted
+   (`PRE-DRAFT → APPROVED`, no DRAFT-stage commit trail; the `notification-list.tsx` orphan
+   question the PRE-DRAFT explicitly left open was silently asserted-resolved in the rewrite).
+   Reported in full before proceeding; Davin confirmed live it was his own authentic edit and
+   explicitly reconfirmed the `notification-list.tsx` mounting decision and the realtime-mirroring
+   approach before execution began.
+2. **Independently re-verified `notification-list.tsx` rather than trusting the order's own
+   assertion.** Read all 668 lines directly at CONFIRM (not on the order's word) — confirmed it
+   genuinely is clean, well-typed, and ready to mount, with one pre-existing, self-documented
+   quirk noted but not touched: the delete "Undo" button recreates a new notification server-side
+   rather than restoring the exact original (own code comment already flags this as best-effort).
+3. **Real gap found and fixed while live-verifying Step 3, not in the order's own literal scope:**
+   `middleware.ts`'s matcher covered every other `(dashboard)` route (`/dashboard`, `/alerts`,
+   `/charts`, `/settings`, `/admin`) but not `/notifications` — the page-level `getSession()` guard
+   still redirected correctly (proven via live dev-server logs before the fix), so this was never a
+   security hole, just a missing edge-level defense-in-depth layer every sibling route already has.
+   Added `/notifications/:path*` to the matcher, mirroring exactly how `/admin/:path*` was added at
+   Session 6-2 for the identical reason. Re-verified live post-fix: the redirect now carries a
+   `callbackUrl` query param (`GET /login?callbackUrl=%2Fnotifications`), proof the edge-level
+   middleware check — not just the page's own `redirect('/login')` — is now the one firing first.
+4. **Own addition beyond Step 2's literal text, serving the variant's own explicit A11y Standards
+   rule** ("screen reader announcements for new notifications"): added a visually-hidden
+   `aria-live="polite"` region to `notification-list.tsx`, announcing each realtime-pushed
+   notification's title. Covered by its own dedicated test case, not added silently.
+5. **A real test-mock bug found and fixed while writing Step 4's suite, not an app bug:** the
+   `next/navigation` `useRouter()` mock initially returned a fresh object literal per call —
+   `fetchNotifications`'s `useCallback` has `router` in its dependency array, so an unstable mock
+   reference produced a genuine re-fetch storm in the test (33 spurious `fetch` calls from one tab
+   click) purely because Next's real `useRouter()` is memoized/stable and the mock wasn't. Fixed by
+   returning a single stable object. Worth the Advisor's attention: this exact mock shape
+   (`() => ({ push: mockPush, ... })`) is also used in `edit.test.tsx` and would hit the same class
+   of bug if that component's own effects ever grew a `router`-dependent `useCallback`.
+6. **No flag, no cutover-table row** — same-stack UI work, no flag existed to touch or retire;
+   `migration-cutover-table.md` unchanged.
+7. **Not done, disclosed rather than silently skipped, same standing gap as every Phase 6 session
+   since 6-1b (Waiting-on #117, `CredentialsProvider` removed at Session 4B-21):** a live,
+   authenticated click-through of the bell's "View all" link and the full `/notifications` page —
+   no test credentials were available in this environment. Substitute verification performed
+   instead: the real dev server compiles `/notifications` cleanly, the unauthenticated redirect
+   chain is proven end-to-end via live server logs (including the middleware fix from Deviation 3),
+   and all interactive behaviors (tabs, filters, mark-read, mark-all-read, delete, realtime refresh,
+   the new a11y announcement) are proven via the 8-test suite against the real component.
 
 ## Known wrinkles / do-not-touch
 
