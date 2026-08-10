@@ -614,7 +614,7 @@ export default function RegisterForm(): JSX.Element {
             </Link>
             <span className="text-muted-foreground">—</span>
             <Link
-              href="/affiliate/join"
+              href="/affiliate/register"
               className="text-xs text-primary hover:underline"
             >
               Don&apos;t have a referral code? Join our Affiliate Program

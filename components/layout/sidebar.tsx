@@ -4,8 +4,6 @@ import {
   LayoutDashboard,
   Bell,
   LineChart,
-  BarChart3,
-  Zap,
   Settings,
   HelpCircle,
   Lock,
@@ -51,22 +49,6 @@ const navigationItems: NavItem[] = [
     tier: 'FREE',
     description: 'Manage your alerts',
     testId: 'nav-alerts',
-  },
-  {
-    name: 'Analytics',
-    href: '/analytics',
-    icon: BarChart3,
-    tier: 'PRO',
-    description: 'Advanced analytics',
-    testId: 'nav-analytics',
-  },
-  {
-    name: 'Custom Indicators',
-    href: '/indicators',
-    icon: Zap,
-    tier: 'PRO',
-    description: 'Custom indicators',
-    testId: 'nav-indicators',
   },
 ];
 
@@ -117,7 +99,7 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
   };
 
   return (
-    <div className="flex h-full flex-col border-r bg-white dark:bg-gray-800 dark:border-gray-700">
+    <div className="flex h-full flex-col border-r bg-white dark:border-gray-700 dark:bg-gray-800">
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
         <div className="mb-4">
@@ -141,7 +123,7 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
                 active
                   ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
                   : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700',
-                !accessible && 'opacity-60 cursor-pointer'
+                !accessible && 'cursor-pointer opacity-60'
               )}
             >
               <Icon
@@ -160,7 +142,7 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
                   <Lock className="h-3.5 w-3.5 text-gray-400" />
                   <Badge
                     variant="secondary"
-                    className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300"
+                    className="bg-amber-100 px-1.5 py-0 text-[10px] text-amber-700 dark:bg-amber-900 dark:text-amber-300"
                   >
                     PRO
                   </Badge>
@@ -174,13 +156,13 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
       {/* Upgrade prompt for FREE users */}
       {userTier === 'FREE' && (
         <div className="mx-3 mb-4 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 p-4 text-white">
-          <p className="text-sm font-semibold mb-1">Upgrade to PRO</p>
-          <p className="text-xs opacity-90 mb-3">
+          <p className="mb-1 text-sm font-semibold">Upgrade to PRO</p>
+          <p className="mb-3 text-xs opacity-90">
             Get 100 alerts, line alerts & multi-timeframe view
           </p>
           <Link
             href="/settings/billing"
-            className="block w-full rounded-md bg-white/20 hover:bg-white/30 transition-colors text-center py-1.5 text-xs font-medium"
+            className="block w-full rounded-md bg-white/20 py-1.5 text-center text-xs font-medium transition-colors hover:bg-white/30"
           >
             Upgrade Now
           </Link>
@@ -188,7 +170,7 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
       )}
 
       {/* Bottom navigation */}
-      <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-4 space-y-1">
+      <div className="space-y-1 border-t border-gray-200 px-3 py-4 dark:border-gray-700">
         {bottomNavItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);

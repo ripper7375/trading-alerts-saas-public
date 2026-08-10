@@ -4,8 +4,6 @@ import {
   LayoutDashboard,
   Bell,
   LineChart,
-  BarChart3,
-  Zap,
   Settings,
   HelpCircle,
   Lock,
@@ -52,20 +50,6 @@ const navigationItems: NavItem[] = [
     icon: Bell,
     tier: 'FREE',
     testId: 'mobile-nav-alerts',
-  },
-  {
-    name: 'Analytics',
-    href: '/analytics',
-    icon: BarChart3,
-    tier: 'PRO',
-    testId: 'mobile-nav-analytics',
-  },
-  {
-    name: 'Custom Indicators',
-    href: '/indicators',
-    icon: Zap,
-    tier: 'PRO',
-    testId: 'mobile-nav-indicators',
   },
 ];
 
@@ -134,14 +118,14 @@ export function MobileNav({
             <span className="text-2xl" role="img" aria-label="Trading Alerts">
               📊
             </span>
-            <span className="font-bold text-lg">Trading Alerts</span>
+            <span className="text-lg font-bold">Trading Alerts</span>
           </SheetTitle>
         </SheetHeader>
 
         <div className="flex h-[calc(100%-73px)] flex-col">
           {/* Main Navigation */}
           <nav className="flex-1 space-y-1 px-3 py-4">
-            <p className="px-3 mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
               Main Menu
             </p>
 
@@ -180,7 +164,7 @@ export function MobileNav({
                       <Lock className="h-3.5 w-3.5 text-gray-400" />
                       <Badge
                         variant="secondary"
-                        className="text-[10px] px-1.5 py-0 bg-amber-100 text-amber-700"
+                        className="bg-amber-100 px-1.5 py-0 text-[10px] text-amber-700"
                       >
                         PRO
                       </Badge>
@@ -194,14 +178,14 @@ export function MobileNav({
           {/* Upgrade prompt for FREE users */}
           {userTier === 'FREE' && (
             <div className="mx-3 mb-4 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 p-4 text-white">
-              <p className="text-sm font-semibold mb-1">Upgrade to PRO</p>
-              <p className="text-xs opacity-90 mb-3">
+              <p className="mb-1 text-sm font-semibold">Upgrade to PRO</p>
+              <p className="mb-3 text-xs opacity-90">
                 Get 100 alerts, line alerts & multi-timeframe view
               </p>
               <Link
                 href="/settings/billing"
                 onClick={handleNavClick}
-                className="block w-full rounded-md bg-white/20 hover:bg-white/30 transition-colors text-center py-1.5 text-xs font-medium"
+                className="block w-full rounded-md bg-white/20 py-1.5 text-center text-xs font-medium transition-colors hover:bg-white/30"
               >
                 Upgrade Now
               </Link>
@@ -209,7 +193,7 @@ export function MobileNav({
           )}
 
           {/* Bottom Navigation */}
-          <div className="border-t px-3 py-4 space-y-1">
+          <div className="space-y-1 border-t px-3 py-4">
             {bottomNavItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
