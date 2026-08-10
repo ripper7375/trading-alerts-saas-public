@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 
 import { Badge } from '@/components/ui/badge';
 import { authOptions } from '@/lib/auth/auth-options';
+import { getDefaultProvider } from '@/lib/disbursement/constants';
 import { cn } from '@/lib/utils';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -51,15 +52,9 @@ const disbursementNavItems: NavItem[] = [
     href: '/admin/disbursement/transactions',
   },
   {
-    id: 'accounts',
-    icon: '🔗',
-    label: 'RiseWorks Accounts',
-    href: '/admin/disbursement/accounts',
-  },
-  {
     id: 'recipients',
     icon: '🏦',
-    label: 'Wise Recipients',
+    label: 'Payout Accounts',
     href: '/admin/disbursement/recipients',
   },
   {
@@ -110,6 +105,7 @@ export default async function DisbursementLayout({
   }
 
   const userName = session.user.name || session.user.email || 'Admin';
+  const activeProvider = getDefaultProvider();
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -119,7 +115,7 @@ export default async function DisbursementLayout({
           <div className="flex items-center gap-3 sm:gap-4">
             <h1 className="text-lg font-bold sm:text-xl">Disbursement Admin</h1>
             <Badge className="bg-green-600 px-2 py-0.5 text-xs text-white hover:bg-green-600">
-              RiseWorks
+              {activeProvider}
             </Badge>
           </div>
           <div className="flex items-center gap-3 sm:gap-4">
@@ -166,7 +162,13 @@ export default async function DisbursementLayout({
             </p>
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-              <span className="text-sm text-gray-300">RiseWorks (USDC)</span>
+              <span className="text-sm text-gray-300">
+                {activeProvider === 'WISE'
+                  ? 'Wise'
+                  : activeProvider === 'RISE'
+                    ? 'RiseWorks (USDC)'
+                    : 'MOCK (testing)'}
+              </span>
             </div>
           </div>
 

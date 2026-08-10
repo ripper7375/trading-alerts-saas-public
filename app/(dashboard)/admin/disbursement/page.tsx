@@ -122,16 +122,16 @@ export default function DisbursementDashboardPage(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" />
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-green-500" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-400 mb-4">{error}</p>
+      <div className="py-8 text-center">
+        <p className="mb-4 text-red-400">{error}</p>
         <Button
           onClick={() => window.location.reload()}
           className="bg-green-600 hover:bg-green-700"
@@ -145,12 +145,12 @@ export default function DisbursementDashboardPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-white sm:text-3xl">
             Disbursement Overview
           </h1>
-          <p className="text-gray-400 mt-1">
+          <p className="mt-1 text-gray-400">
             RiseWorks payment system dashboard
           </p>
         </div>
@@ -170,7 +170,7 @@ export default function DisbursementDashboardPage(): React.ReactElement {
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-white flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-white">
                 System Health
                 {health.healthy ? (
                   <Badge className="bg-green-600">Healthy</Badge>
@@ -178,7 +178,7 @@ export default function DisbursementDashboardPage(): React.ReactElement {
                   <Badge className="bg-red-600">Unhealthy</Badge>
                 )}
               </CardTitle>
-              <span className="text-gray-400 text-sm">
+              <span className="text-sm text-gray-400">
                 {new Date(health.timestamp).toLocaleTimeString()}
               </span>
             </div>
@@ -187,13 +187,13 @@ export default function DisbursementDashboardPage(): React.ReactElement {
             <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <span
-                  className={`w-2 h-2 rounded-full ${health.checks.database ? 'bg-green-500' : 'bg-red-500'}`}
+                  className={`h-2 w-2 rounded-full ${health.checks.database ? 'bg-green-500' : 'bg-red-500'}`}
                 />
                 <span className="text-gray-300">Database</span>
               </div>
               <div className="flex items-center gap-2">
                 <span
-                  className={`w-2 h-2 rounded-full ${health.checks.provider ? 'bg-green-500' : 'bg-red-500'}`}
+                  className={`h-2 w-2 rounded-full ${health.checks.provider ? 'bg-green-500' : 'bg-red-500'}`}
                 />
                 <span className="text-gray-300">Provider</span>
               </div>
@@ -215,7 +215,7 @@ export default function DisbursementDashboardPage(): React.ReactElement {
             {health.warnings.length > 0 && (
               <div className="mt-3 space-y-1">
                 {health.warnings.map((warning, i) => (
-                  <p key={i} className="text-yellow-400 text-sm">
+                  <p key={i} className="text-sm text-yellow-400">
                     ⚠️ {warning}
                   </p>
                 ))}
@@ -226,62 +226,62 @@ export default function DisbursementDashboardPage(): React.ReactElement {
       )}
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
         {/* Total Paid */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader className="pb-2">
             <CardDescription className="text-gray-400">
               Total Paid (All Time)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl sm:text-4xl font-bold text-green-400">
+            <div className="text-3xl font-bold text-green-400 sm:text-4xl">
               {formatCurrency(summary?.amounts.totalPaid ?? 0)}
             </div>
-            <p className="text-gray-400 text-sm mt-1">
+            <p className="mt-1 text-sm text-gray-400">
               {summary?.transactions.completed ?? 0} transactions
             </p>
           </CardContent>
         </Card>
 
         {/* Pending Payout */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader className="pb-2">
             <CardDescription className="text-gray-400">
               Pending Payout
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl sm:text-4xl font-bold text-yellow-400">
+            <div className="text-3xl font-bold text-yellow-400 sm:text-4xl">
               {formatCurrency(
                 payableSummary?.totalPendingAmount ??
                   summary?.amounts.totalPending ??
                   0
               )}
             </div>
-            <p className="text-gray-400 text-sm mt-1">
+            <p className="mt-1 text-sm text-gray-400">
               {payableSummary?.readyForPayout ?? 0} affiliates ready
             </p>
           </CardContent>
         </Card>
 
         {/* Batches */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400 flex items-center gap-2">
+            <CardDescription className="flex items-center gap-2 text-gray-400">
               Payment Batches
               {summary && (
-                <Badge className="bg-blue-600 text-white text-xs">
+                <Badge className="bg-blue-600 text-xs text-white">
                   {summary.batches.successRate.toFixed(1)}% success
                 </Badge>
               )}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl sm:text-4xl font-bold text-white">
+            <div className="text-3xl font-bold text-white sm:text-4xl">
               {summary?.batches.total ?? 0}
             </div>
-            <p className="text-gray-400 text-sm mt-1">
+            <p className="mt-1 text-sm text-gray-400">
               {summary?.batches.completed ?? 0} completed,{' '}
               {summary?.batches.pending ?? 0} pending
             </p>
@@ -289,22 +289,22 @@ export default function DisbursementDashboardPage(): React.ReactElement {
         </Card>
 
         {/* Transactions */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400 flex items-center gap-2">
+            <CardDescription className="flex items-center gap-2 text-gray-400">
               Transactions
               {summary && summary.transactions.failed > 0 && (
-                <Badge className="bg-red-600 text-white text-xs">
+                <Badge className="bg-red-600 text-xs text-white">
                   {summary.transactions.failed} failed
                 </Badge>
               )}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl sm:text-4xl font-bold text-white">
+            <div className="text-3xl font-bold text-white sm:text-4xl">
               {summary?.transactions.total ?? 0}
             </div>
-            <p className="text-green-400 text-sm mt-1">
+            <p className="mt-1 text-sm text-green-400">
               {summary?.transactions.successRate.toFixed(1) ?? 0}% success rate
             </p>
           </CardContent>
@@ -312,9 +312,9 @@ export default function DisbursementDashboardPage(): React.ReactElement {
       </div>
 
       {/* Quick Actions & Statistics */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Quick Actions */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader>
             <CardTitle className="text-white">Quick Actions</CardTitle>
             <CardDescription className="text-gray-400">
@@ -324,33 +324,33 @@ export default function DisbursementDashboardPage(): React.ReactElement {
           <CardContent className="space-y-2">
             <Link
               href="/admin/disbursement/affiliates"
-              className="block w-full text-left px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+              className="block w-full rounded-lg bg-gray-700 px-4 py-3 text-left text-white transition-colors hover:bg-gray-600"
             >
               👥 View Payable Affiliates
             </Link>
             <Link
               href="/admin/disbursement/batches"
-              className="block w-full text-left px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+              className="block w-full rounded-lg bg-gray-700 px-4 py-3 text-left text-white transition-colors hover:bg-gray-600"
             >
               📦 Manage Payment Batches
             </Link>
             <Link
               href="/admin/disbursement/transactions?status=FAILED"
-              className="block w-full text-left px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+              className="block w-full rounded-lg bg-gray-700 px-4 py-3 text-left text-white transition-colors hover:bg-gray-600"
             >
               🚨 View Failed Transactions
             </Link>
             <Link
-              href="/admin/disbursement/accounts"
-              className="block w-full text-left px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+              href="/admin/disbursement/recipients"
+              className="block w-full rounded-lg bg-gray-700 px-4 py-3 text-left text-white transition-colors hover:bg-gray-600"
             >
-              🔗 Manage RiseWorks Accounts
+              🏦 Manage Payout Accounts
             </Link>
           </CardContent>
         </Card>
 
         {/* Batch Success Rate */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader>
             <CardTitle className="text-white">Batch Performance</CardTitle>
             <CardDescription className="text-gray-400">
@@ -358,20 +358,20 @@ export default function DisbursementDashboardPage(): React.ReactElement {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-5xl font-bold text-green-400 mb-4">
+            <div className="mb-4 text-5xl font-bold text-green-400">
               {summary?.batches.successRate.toFixed(1) ?? 0}%
             </div>
             <div className="space-y-3">
               <div>
-                <div className="flex justify-between text-sm mb-1">
+                <div className="mb-1 flex justify-between text-sm">
                   <span className="text-gray-400">Completed</span>
                   <span className="text-white">
                     {summary?.batches.completed ?? 0}
                   </span>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-2">
+                <div className="h-2 w-full rounded-full bg-gray-700">
                   <div
-                    className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                    className="h-2 rounded-full bg-green-500 transition-all duration-500"
                     style={{
                       width: summary?.batches.total
                         ? `${(summary.batches.completed / summary.batches.total) * 100}%`
@@ -381,15 +381,15 @@ export default function DisbursementDashboardPage(): React.ReactElement {
                 </div>
               </div>
               <div>
-                <div className="flex justify-between text-sm mb-1">
+                <div className="mb-1 flex justify-between text-sm">
                   <span className="text-gray-400">Pending</span>
                   <span className="text-white">
                     {summary?.batches.pending ?? 0}
                   </span>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-2">
+                <div className="h-2 w-full rounded-full bg-gray-700">
                   <div
-                    className="bg-yellow-500 h-2 rounded-full transition-all duration-500"
+                    className="h-2 rounded-full bg-yellow-500 transition-all duration-500"
                     style={{
                       width: summary?.batches.total
                         ? `${(summary.batches.pending / summary.batches.total) * 100}%`
@@ -403,7 +403,7 @@ export default function DisbursementDashboardPage(): React.ReactElement {
         </Card>
 
         {/* Affiliates Ready */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader>
             <CardTitle className="text-white">Affiliates Ready</CardTitle>
             <CardDescription className="text-gray-400">
@@ -411,10 +411,10 @@ export default function DisbursementDashboardPage(): React.ReactElement {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-5xl font-bold text-blue-400 mb-4">
+            <div className="mb-4 text-5xl font-bold text-blue-400">
               {payableSummary?.readyForPayout ?? 0}
             </div>
-            <p className="text-gray-400 mb-4">
+            <p className="mb-4 text-gray-400">
               Total affiliates: {payableSummary?.totalAffiliates ?? 0}
             </p>
             {payableSummary && payableSummary.readyForPayout > 0 && (
@@ -429,18 +429,18 @@ export default function DisbursementDashboardPage(): React.ReactElement {
       </div>
 
       {/* Info Card */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="border-gray-700 bg-gray-800">
         <CardHeader>
           <CardTitle className="text-white">
             About RiseWorks Disbursement
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-gray-300 space-y-2">
+        <CardContent className="space-y-2 text-gray-300">
           <p>
             This system handles affiliate commission payouts using RiseWorks
             blockchain infrastructure (USDC).
           </p>
-          <ul className="list-disc list-inside space-y-1 text-sm text-gray-400">
+          <ul className="list-inside list-disc space-y-1 text-sm text-gray-400">
             <li>Commissions are aggregated from approved affiliate sales</li>
             <li>
               Payment batches group multiple payouts for efficient processing
