@@ -253,19 +253,19 @@ export default function MarketCommentsPanel({
   };
 
   return (
-    <div className="bg-card text-card-foreground relative flex h-full flex-col space-y-3.5 overflow-y-auto border-l border-slate-200 p-0.5 shadow-2xl select-none dark:border-emerald-950/70 dark:bg-[#080d0a]">
+    <div className="relative flex h-full flex-col space-y-3.5 overflow-y-auto border-l border-emerald-950/70 bg-[#080d0a] p-0.5 shadow-2xl select-none">
       {/* D2: Panel Header — Market Comments : LIVE (Larger Font Size) */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-slate-100 px-4 dark:border-emerald-900/40 dark:bg-[#101713]">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-emerald-900/40 bg-[#101713] px-4">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 shadow-xs ring-1 ring-emerald-500/30 dark:text-emerald-400">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400 shadow-xs ring-1 ring-emerald-500/30">
             <Activity className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="flex items-center gap-2 text-base font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+            <h2 className="flex items-center gap-2 text-base font-extrabold tracking-tight text-slate-100">
               {t('comments.title', 'Market Comments')} :
               {tier === 'PRO' && (
-                <span className="flex items-center gap-1.5 font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                  <span className="h-2 w-2 animate-ping rounded-full bg-emerald-500" />
+                <span className="flex items-center gap-1.5 font-mono text-xs font-bold text-emerald-400">
+                  <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400" />
                   {t('LIVE', 'สด')}
                 </span>
               )}

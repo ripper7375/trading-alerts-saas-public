@@ -207,15 +207,15 @@ export default function ChatPanel({
   const activeModelObj = ANALYST_MODELS.find((m) => m.id === selectedModel);
 
   return (
-    <div className="bg-card text-card-foreground relative flex h-full flex-col overflow-hidden border-r border-slate-200 shadow-xl select-none dark:border-slate-800/80 dark:bg-[#0b0d14]">
+    <div className="relative flex h-full flex-col overflow-hidden border-r border-slate-800/80 bg-[#0b0d14] shadow-xl select-none">
       {/* B2: Panel Header — AI Chart Analyst */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-slate-100 px-3.5 dark:border-slate-800/80 dark:bg-[#121622]">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-800/80 bg-[#121622] px-3.5">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--primary)]/15 text-[var(--primary)] shadow-xs ring-1 ring-[var(--primary)]/30">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400 shadow-xs ring-1 ring-amber-500/30">
             <Brain className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="flex items-center gap-1.5 text-xs font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+            <h2 className="flex items-center gap-1.5 text-xs font-extrabold tracking-tight text-slate-100">
               {t('AI Chart Analyst', 'นักวิเคราะห์กราฟ AI')}
             </h2>
           </div>

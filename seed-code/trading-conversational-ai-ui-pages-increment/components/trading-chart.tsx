@@ -421,9 +421,9 @@ export default function TradingChart({
     // `animate-in fade-in` crossfades the real chart over the ChartSkeleton it
     // replaces. The two share an identical outer box, so this is a pure opacity
     // transition with no layout shift.
-    <div className="animate-in fade-in bg-background text-foreground relative flex h-full flex-col overflow-hidden border-x border-slate-200 shadow-2xl duration-500 ease-out select-none dark:border-slate-800/80 dark:bg-[#06070b]">
+    <div className="animate-in fade-in relative flex h-full flex-col overflow-hidden border-x border-slate-800/80 bg-[#06070b] shadow-2xl duration-500 ease-out select-none">
       {/* C2: Top Header Toolbar */}
-      <div className="flex h-14 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-100 px-3.5 shadow-xs dark:border-slate-800/90 dark:bg-[#11141e]">
+      <div className="flex h-14 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-800/90 bg-[#11141e] px-3.5 shadow-xs">
         <div className="flex items-center gap-2">
           <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs font-bold text-amber-400 shadow-xs">
             XAUUSD
