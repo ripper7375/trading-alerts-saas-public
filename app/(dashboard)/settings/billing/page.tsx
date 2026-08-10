@@ -1,16 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import {
-  CreditCard,
-  Download,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-  ArrowUpRight,
-} from 'lucide-react';
+import { CreditCard, CheckCircle, Loader2, ArrowUpRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { InvoiceList } from '@/components/billing/invoice-list';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { TIER_CONFIG, type Tier } from '@/types/tier';
 
@@ -35,77 +29,198 @@ import { TIER_CONFIG, type Tier } from '@/types/tier';
  * Billing Settings Page
  *
  * Features:
- * - Current subscription card (FREE/PRO)
- * - Upgrade/Cancel buttons
+ * - Current subscription card (FREE/PRO), driven by GET /api/subscription
+ * - Trial-status banner, driven by the same endpoint's `trial` field
+ * - Upgrade/Cancel actions (cancel wired to POST /api/subscription/cancel)
  * - Payment method display
- * - Invoice history table
- * - Usage statistics (alerts, API calls)
+ * - Invoice history table, driven by GET /api/invoices (via `InvoiceList`)
+ * - Usage statistics (alerts, from GET /api/alerts)
  * - Affiliate discount display
  */
 
-interface InvoiceRecord {
+interface Invoice {
   id: string;
   date: string;
-  description: string;
   amount: number;
-  status: 'paid' | 'pending' | 'failed';
-  hasDiscount: boolean;
+  status: 'paid' | 'open' | 'failed';
+  description: string;
+  invoicePdfUrl: string | null;
+}
+
+interface SubscriptionData {
+  tier: 'FREE' | 'PRO';
+  status: string;
+  subscription: {
+    id: string;
+    status: string;
+    provider: 'STRIPE' | 'DLOCAL' | null;
+    planType: string | null;
+    currentPeriodEnd: string | null;
+    expiresAt: string | null;
+    cancelAtPeriodEnd: boolean;
+    trialEnd: string | null;
+    paymentMethod: {
+      brand: string;
+      last4: string;
+      expiryMonth: number;
+      expiryYear: number;
+    } | null;
+    dLocalPaymentMethod: string | null;
+    dLocalCountry: string | null;
+  } | null;
+  trial: {
+    status: 'NOT_STARTED' | 'ACTIVE' | 'EXPIRED' | 'CONVERTED' | 'CANCELLED';
+    convertedAt: string | null;
+    cancelledAt: string | null;
+    hasUsedFreeTrial: boolean;
+  };
 }
 
 interface UsageStats {
   alerts: { current: number; max: number };
-  apiCalls: { current: number; max: number };
 }
-
-// Mock invoice data
-const mockInvoices: InvoiceRecord[] = [
-  {
-    id: 'INV-001',
-    date: 'Dec 15, 2024',
-    description: 'Pro Plan - Monthly',
-    amount: 29.0,
-    status: 'paid',
-    hasDiscount: false,
-  },
-  {
-    id: 'INV-002',
-    date: 'Nov 15, 2024',
-    description: 'Pro Plan - Monthly',
-    amount: 29.0,
-    status: 'paid',
-    hasDiscount: false,
-  },
-  {
-    id: 'INV-003',
-    date: 'Oct 15, 2024',
-    description: 'Pro Plan - Monthly',
-    amount: 29.0,
-    status: 'paid',
-    hasDiscount: false,
-  },
-];
 
 export default function BillingSettingsPage(): React.ReactElement {
   const { data: session } = useSession();
-  const [isLoading, setIsLoading] = useState(true);
-  const [invoices] = useState<InvoiceRecord[]>(mockInvoices);
-  const [cancellationReason, setCancellationReason] = useState('');
 
-  const userTier = (session?.user?.tier || 'FREE') as Tier;
+  const [subscriptionData, setSubscriptionData] =
+    useState<SubscriptionData | null>(null);
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(
+    null
+  );
+
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(true);
+  const [invoicesError, setInvoicesError] = useState<string | null>(null);
+
+  const [usageStats, setUsageStats] = useState<UsageStats>({
+    alerts: { current: 0, max: 100 },
+  });
+  const [usageError, setUsageError] = useState<string | null>(null);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [cancellationReason, setCancellationReason] = useState('');
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
+  const userTier = (subscriptionData?.tier ??
+    session?.user?.tier ??
+    'FREE') as Tier;
   const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;
   const { regularPrice } = useAffiliateConfig();
 
-  // Mock usage data - in real app, fetch from API
-  const [usageStats] = useState<UsageStats>({
-    alerts: { current: 3, max: tierConfig.maxAlerts },
-    apiCalls: { current: 42, max: 60 },
-  });
+  const fetchSubscription = useCallback(async (): Promise<void> => {
+    try {
+      const response = await fetch('/api/subscription');
+      if (!response.ok) {
+        throw new Error('Failed to fetch subscription');
+      }
+      const data: SubscriptionData = await response.json();
+      setSubscriptionData(data);
+      setSubscriptionError(null);
+    } catch (error) {
+      setSubscriptionError(
+        error instanceof Error ? error.message : 'Failed to fetch subscription'
+      );
+    }
+  }, []);
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+    async function fetchInvoices(): Promise<void> {
+      try {
+        const response = await fetch('/api/invoices');
+        if (!response.ok) {
+          throw new Error('Failed to fetch invoices');
+        }
+        const data = await response.json();
+        setInvoices(
+          data.invoices.map(
+            (invoice: {
+              id: string;
+              date: string;
+              amount: number;
+              status: 'paid' | 'open' | 'failed';
+              description: string;
+              invoicePdfUrl: string | null;
+            }) => ({
+              id: invoice.id,
+              date: invoice.date,
+              amount: invoice.amount,
+              status: invoice.status,
+              description: invoice.description,
+              invoicePdfUrl: invoice.invoicePdfUrl,
+            })
+          )
+        );
+        setInvoicesError(null);
+      } catch (error) {
+        setInvoicesError(
+          error instanceof Error ? error.message : 'Failed to fetch invoices'
+        );
+      } finally {
+        setInvoicesLoading(false);
+      }
+    }
+
+    async function fetchAlertUsage(): Promise<void> {
+      try {
+        const response = await fetch('/api/alerts');
+        if (!response.ok) {
+          throw new Error('Failed to fetch alert usage');
+        }
+        const data = await response.json();
+        setUsageStats({
+          alerts: {
+            current: Array.isArray(data.alerts) ? data.alerts.length : 0,
+            max: 100,
+          },
+        });
+        setUsageError(null);
+      } catch (error) {
+        setUsageError(
+          error instanceof Error ? error.message : 'Failed to fetch alert usage'
+        );
+      }
+    }
+
+    async function loadAll(): Promise<void> {
+      await Promise.all([
+        fetchSubscription(),
+        fetchInvoices(),
+        fetchAlertUsage(),
+      ]);
+      setIsLoading(false);
+    }
+
+    void loadAll();
+  }, [fetchSubscription]);
+
+  const handleConfirmCancellation = async (): Promise<void> => {
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      const response = await fetch('/api/subscription/cancel', {
+        method: 'POST',
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          data.message || data.error || 'Failed to cancel subscription'
+        );
+      }
+      setCancelDialogOpen(false);
+      setCancellationReason('');
+      // Reflect the FREE downgrade without a page reload.
+      await fetchSubscription();
+    } catch (error) {
+      setCancelError(
+        error instanceof Error ? error.message : 'Failed to cancel subscription'
+      );
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -115,11 +230,47 @@ export default function BillingSettingsPage(): React.ReactElement {
     );
   }
 
+  const trial = subscriptionData?.trial;
+  const subscription = subscriptionData?.subscription ?? null;
+
   return (
     <div className="animate-fade-in">
       <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white">
         Billing & Subscription
       </h2>
+
+      {subscriptionError && (
+        <div className="border-destructive/50 bg-destructive/10 mb-6 rounded-lg border p-4 text-sm text-destructive">
+          {subscriptionError}
+        </div>
+      )}
+
+      {/* Trial Status Banner */}
+      {trial && trial.status === 'ACTIVE' && subscription?.trialEnd && (
+        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-900/20">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            <strong>Free Trial Active:</strong> ends{' '}
+            {new Date(subscription.trialEnd).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </p>
+        </div>
+      )}
+      {trial && trial.status === 'CANCELLED' && trial.cancelledAt && (
+        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            Your free trial was cancelled on{' '}
+            {new Date(trial.cancelledAt).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+            .
+          </p>
+        </div>
+      )}
 
       {/* Current Plan Card */}
       <Card
@@ -196,7 +347,15 @@ export default function BillingSettingsPage(): React.ReactElement {
           ) : (
             <div className="flex gap-3">
               <Button variant="outline">Manage Subscription</Button>
-              <AlertDialog>
+              <AlertDialog
+                open={cancelDialogOpen}
+                onOpenChange={(open) => {
+                  setCancelDialogOpen(open);
+                  if (!open) {
+                    setCancelError(null);
+                  }
+                }}
+              >
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="ghost"
@@ -236,11 +395,23 @@ export default function BillingSettingsPage(): React.ReactElement {
                       <option value="switching">Switching to competitor</option>
                       <option value="other">Other</option>
                     </select>
+                    {cancelError && (
+                      <p className="mt-3 text-sm text-red-600">{cancelError}</p>
+                    )}
                   </div>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-                    <AlertDialogAction className="bg-red-600 hover:bg-red-700">
-                      Confirm Cancellation
+                    <AlertDialogCancel disabled={cancelling}>
+                      Keep Subscription
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-red-600 hover:bg-red-700"
+                      disabled={cancelling}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        void handleConfirmCancellation();
+                      }}
+                    >
+                      {cancelling ? 'Cancelling...' : 'Confirm Cancellation'}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -248,16 +419,20 @@ export default function BillingSettingsPage(): React.ReactElement {
             </div>
           )}
 
-          {userTier === 'PRO' && (
+          {userTier === 'PRO' && subscription?.currentPeriodEnd && (
             <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-              Next billing date: January 15, 2025
+              Next billing date:{' '}
+              {new Date(subscription.currentPeriodEnd).toLocaleDateString(
+                'en-US',
+                { year: 'numeric', month: 'long', day: 'numeric' }
+              )}
             </p>
           )}
         </CardContent>
       </Card>
 
       {/* Payment Method */}
-      {userTier === 'PRO' && (
+      {userTier === 'PRO' && subscription && (
         <>
           <section className="mb-8">
             <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
@@ -266,20 +441,44 @@ export default function BillingSettingsPage(): React.ReactElement {
             </h3>
             <Card>
               <CardContent className="flex flex-col items-start justify-between gap-4 p-4 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-8 w-12 items-center justify-center rounded bg-gray-100 dark:bg-gray-700">
-                    <CreditCard className="h-6 w-6 text-gray-600 dark:text-gray-400" />
-                  </div>
+                {subscription.provider === 'DLOCAL' ? (
                   <div>
                     <p className="font-semibold text-gray-900 dark:text-white">
-                      Visa ending in ****4242
+                      Paid via dLocal
+                      {subscription.dLocalPaymentMethod
+                        ? ` (${subscription.dLocalPaymentMethod})`
+                        : ''}
                     </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Expires: 12/2026
-                    </p>
+                    {subscription.dLocalCountry && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Country: {subscription.dLocalCountry}
+                      </p>
+                    )}
                   </div>
-                </div>
-                <Button variant="outline">Update Card</Button>
+                ) : subscription.paymentMethod ? (
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-8 w-12 items-center justify-center rounded bg-gray-100 dark:bg-gray-700">
+                      <CreditCard className="h-6 w-6 text-gray-600 dark:text-gray-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 dark:text-white">
+                        {subscription.paymentMethod.brand
+                          .charAt(0)
+                          .toUpperCase() +
+                          subscription.paymentMethod.brand.slice(1)}{' '}
+                        ending in ****{subscription.paymentMethod.last4}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Expires: {subscription.paymentMethod.expiryMonth}/
+                        {subscription.paymentMethod.expiryYear}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    No payment method on file.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </section>
@@ -293,41 +492,28 @@ export default function BillingSettingsPage(): React.ReactElement {
         <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
           Usage This Month
         </h3>
-        <div className="space-y-4">
-          {/* Alerts */}
-          <div>
-            <div className="mb-2 flex justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Active Alerts
-              </span>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {usageStats.alerts.current}/{usageStats.alerts.max}
-              </span>
+        {usageError ? (
+          <p className="text-sm text-red-600">{usageError}</p>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <div className="mb-2 flex justify-between">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Active Alerts
+                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {usageStats.alerts.current}/{usageStats.alerts.max}
+                </span>
+              </div>
+              <Progress
+                value={
+                  (usageStats.alerts.current / usageStats.alerts.max) * 100
+                }
+                className="h-2"
+              />
             </div>
-            <Progress
-              value={(usageStats.alerts.current / usageStats.alerts.max) * 100}
-              className="h-2"
-            />
           </div>
-
-          {/* API Calls */}
-          <div>
-            <div className="mb-2 flex justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                API Calls (this hour)
-              </span>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {usageStats.apiCalls.current}/{usageStats.apiCalls.max}
-              </span>
-            </div>
-            <Progress
-              value={
-                (usageStats.apiCalls.current / usageStats.apiCalls.max) * 100
-              }
-              className="h-2"
-            />
-          </div>
-        </div>
+        )}
       </section>
 
       <Separator className="my-8" />
@@ -338,76 +524,19 @@ export default function BillingSettingsPage(): React.ReactElement {
           <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
             Invoice History
           </h3>
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">
-                        Date
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">
-                        Description
-                      </th>
-                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 dark:text-gray-400">
-                        Amount
-                      </th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-400">
-                        Status
-                      </th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 dark:text-gray-400">
-                        Invoice
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {invoices.map((invoice) => (
-                      <tr
-                        key={invoice.id}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                      >
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                          {invoice.date}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                          {invoice.description}
-                        </td>
-                        <td className="px-4 py-3 text-right text-sm font-semibold text-gray-900 dark:text-white">
-                          ${invoice.amount.toFixed(2)}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <Badge
-                            className={
-                              invoice.status === 'paid'
-                                ? 'bg-green-100 text-green-800'
-                                : invoice.status === 'pending'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                            }
-                          >
-                            {invoice.status === 'paid' && (
-                              <CheckCircle className="mr-1 h-3 w-3" />
-                            )}
-                            {invoice.status === 'failed' && (
-                              <AlertCircle className="mr-1 h-3 w-3" />
-                            )}
-                            {invoice.status.charAt(0).toUpperCase() +
-                              invoice.status.slice(1)}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <Button variant="ghost" size="sm">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          {invoicesError ? (
+            <Card>
+              <CardContent className="p-6 text-center text-sm text-red-600">
+                {invoicesError}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <InvoiceList invoices={invoices} isLoading={invoicesLoading} />
+              </CardContent>
+            </Card>
+          )}
         </section>
       )}
 
@@ -421,8 +550,8 @@ export default function BillingSettingsPage(): React.ReactElement {
                 <h3 className="mb-2 text-xl font-bold">Unlock More with PRO</h3>
                 <p className="mb-4 text-white/90">
                   Get 100 price alerts, drawing engine line alerts,
-                  multi-timeframe visualization, and priority support for just
-                  ${regularPrice}/month.
+                  multi-timeframe visualization, and priority support for just $
+                  {regularPrice}/month.
                 </p>
                 <Link href="/pricing">
                   <Button className="bg-white font-semibold text-blue-600 hover:bg-white/90">

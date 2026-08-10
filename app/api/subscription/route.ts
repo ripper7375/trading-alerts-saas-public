@@ -46,6 +46,14 @@ interface SubscriptionResponse {
     dLocalPaymentMethod: string | null;
     dLocalCountry: string | null;
   } | null;
+  // NEW (Session 6-1b): trial state, read from the User model. Additive
+  // only — every existing consumer of this response is unaffected.
+  trial: {
+    status: string;
+    convertedAt: string | null;
+    cancelledAt: string | null;
+    hasUsedFreeTrial: boolean;
+  };
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -111,12 +119,20 @@ export async function GET(): Promise<
       where: { userId },
     });
 
+    const trial = {
+      status: user.trialStatus,
+      convertedAt: user.trialConvertedAt?.toISOString() || null,
+      cancelledAt: user.trialCancelledAt?.toISOString() || null,
+      hasUsedFreeTrial: user.hasUsedFreeTrial,
+    };
+
     // If no subscription or FREE tier, return basic response
     if (!userSubscription || user.tier === 'FREE') {
       return NextResponse.json({
         tier: user.tier,
         status: 'none',
         subscription: null,
+        trial,
       });
     }
 
@@ -181,6 +197,7 @@ export async function GET(): Promise<
         dLocalPaymentMethod: userSubscription.dLocalPaymentMethod,
         dLocalCountry: userSubscription.dLocalCountry,
       },
+      trial,
     };
 
     return NextResponse.json(response);
