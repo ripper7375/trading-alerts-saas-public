@@ -1372,3 +1372,29 @@ specific occurrence.
   target service's own conventions before wiring a route, not by trusting a cross-service citation —
   the order had already hedged this exact spot ("verify exact line at build time"), which is why it
   got checked instead of assumed.
+- Recurrence (Session 6-2, 2026-08-10): on the SAME order, between its own PRE-DRAFT and its own
+  later APPROVED rewrite — a narrower window than every prior occurrence (which all drifted from
+  an external design doc/schema; this one drifted from its own earlier draft). The PRE-DRAFT's
+  explicit scope carve-out ("`/terms`/`/privacy` are F63/6-10-owned, leave untouched") was
+  silently dropped from Step 3's rewritten action text; separately, Step 4's actionable list named
+  only 6 of the 8 dead footer links the SAME document's own Context section cited for A1-18,
+  dropping `/affiliate` and `/disclaimer`. Both caught by cross-checking the order's own Context
+  prose against its own Ordered Steps before executing either step, not by trusting the steps as
+  a complete restatement of the Context — corrected live by Davin at CONFIRM. Rule extension: the
+  drift this lesson describes isn't limited to an order aging against external ground truth; a
+  single rewrite pass within one drafting session can just as easily drop scope its OWN earlier
+  section already established. Cross-check a rewritten order's Steps against its own Context/User
+  Review sections, not just against outside sources.
+- Recurrence (Session 6-5, 2026-08-11): a genuinely new sub-shape — the order's own Context text
+  conflated two different, both real, both-live deadlines into one blanket instruction ("all UI
+  copy must state 7 days"). `AccountDeletionRequest.expiresAt` really is a 7-day window (REQUEST→
+  CONFIRM link expiry); `deletion-confirm/route.ts`'s own live response is a SEPARATE, real 24-hour
+  window (CONFIRM→execution) — the order's own cited source, `DECISION-LOG.md` F21, was itself
+  misquoted in the process (F21's actual register title is "24h Account-Deletion GDPR gap," the
+  opposite of what the order claimed it established). Caught by reading the two source files
+  directly (both routes' own code, not just the order's paraphrase) before writing any UI copy —
+  corrected live by Davin, splitting the copy by which deadline actually applies to which UI state.
+  Rule extension: a single order instruction that reads as one fact can actually be conflating two
+  genuinely different facts from two different code paths — verify the instruction's own premise
+  (is this really ONE number, or two being treated as one?) against the code, not just whether the
+  cited number itself is correct.

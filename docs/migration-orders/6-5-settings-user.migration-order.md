@@ -166,7 +166,7 @@ APPROVED`, with 4 concrete Ordered Steps and the human-in-the-loop question reso
    container). `middleware.ts`'s allow-list is unaffected and still the necessary edge-level half.
    Confirmed live, unauthenticated: both new pages 200 OK with correct content;
    `/settings/account` and `/settings/security` both still correctly redirect to
-   `/login?callbackUrl=...`, unaffected.
+   `/login?callbackUrl=...`, unaffected. Harvested as `LESSONS-LEARNED.md` **L60**.
 5. **Own addition beyond the order's literal file list, found reading `deletion-request/route.ts`
    in full:** its `confirmationUrl`/`cancelUrl` construction pointed at `/account/confirm-deletion`
    and `/account/cancel-deletion` — neither this session's real page paths nor any path that ever

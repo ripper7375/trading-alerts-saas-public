@@ -4,12 +4,13 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 59 (L1–L59) — a consolidation pass is overdue and
+**Hard cap ~40 active lessons.** Currently at 60 (L1–L60) — a consolidation pass is overdue and
 now more overdue than at last count; the next session that isn't itself time-constrained should
 do it before adding more. Candidates promoted and preamble archived 2026-08-03; L11's own
 9-recurrence narrative collapsed to a single count line same day (Session 4B-19), L27's own
-4-recurrence narrative collapsed the same way Session 6-2 (2026-08-10), both per this file's own
-hygiene rule, detail moved to `LESSONS-ARCHIVE.md`. Full history in `LESSONS-ARCHIVE.md`.
+6-recurrence narrative collapsed the same way Session 6-5 (2026-08-11, after Session 6-2's own
+2026-08-10 recurrence was left un-collapsed inline), both per this file's own hygiene rule, detail
+moved to `LESSONS-ARCHIVE.md`. Full history in `LESSONS-ARCHIVE.md`.
 
 ---
 
@@ -239,22 +240,11 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
 - Root cause: order text is written once, at PRE-DRAFT/DRAFT time, from a snapshot of the ground truth; the ground truth (design docs, schema, other lessons) keeps evolving underneath it (here: a same-repo dated correction, a frozen invariant table paraphrased instead of copied, and schema enum values never cross-checked against the prose). A PORT-variant order's own "Low creativity dial" instruction ("follow the design doc, not this order's own prose") is necessary but not sufficient — nothing forces a re-read of the cited sections before typing the implementation.
 - Rule: for any order whose own text states "ground truth is §X, not this order's prose" (every PORT variant), actually re-read §X (and the live schema/enum values any described mutation touches) immediately before writing each file that implements it — do not implement from the order's paraphrase and only spot-check ground truth when something looks odd. A schema-invalid value (`'FAILED'` here) would be caught by `tsc`; a schema-valid-but-wrong value or an incomplete state table would not be, and would ship as a silent money-correctness bug.
 - Source: Session 4A-W5 (2026-07-26) · Status: ACTIVE
-- Recurrence count: 4 further times through Session 4A-11, each individually documented (full
+- Recurrence count: 6 further times through Session 6-5, each individually documented (full
   per-session detail moved to `LESSONS-ARCHIVE.md` per this file's own "5+ recurrences → single
-  count line" hygiene rule) — Sessions 4A-W6, 4A-8, 4A-9, 4A-11.
-- Recurrence (Session 6-2, 2026-08-10): on the SAME order, between its own PRE-DRAFT and its own
-  later APPROVED rewrite — a narrower window than every prior occurrence (which all drifted from
-  an external design doc/schema; this one drifted from its own earlier draft). The PRE-DRAFT's
-  explicit scope carve-out ("`/terms`/`/privacy` are F63/6-10-owned, leave untouched") was
-  silently dropped from Step 3's rewritten action text; separately, Step 4's actionable list named
-  only 6 of the 8 dead footer links the SAME document's own Context section cited for A1-18,
-  dropping `/affiliate` and `/disclaimer`. Both caught by cross-checking the order's own Context
-  prose against its own Ordered Steps before executing either step, not by trusting the steps as
-  a complete restatement of the Context — corrected live by Davin at CONFIRM. Rule extension: the
-  drift this lesson describes isn't limited to an order aging against external ground truth; a
-  single rewrite pass within one drafting session can just as easily drop scope its OWN earlier
-  section already established. Cross-check a rewritten order's Steps against its own Context/User
-  Review sections, not just against outside sources.
+  count line" hygiene rule) — Sessions 4A-W6, 4A-8, 4A-9, 4A-11, 6-2 (drift within a single order's
+  own PRE-DRAFT→APPROVED rewrite, not against an external doc), 6-5 (a single order instruction
+  conflating two genuinely different, both-live facts into one blanket claim).
 
 ### L28 — "Existing tests" cited as a parity oracle may not exist; verify the file is there before trusting it as a safety net
 
@@ -687,3 +677,10 @@ dist/main` (the plain `npm start` script) instead of the `start:worker` script n
 - Root cause: an unstable mock for a value the real implementation guarantees stable (`useRouter()`, `useSession()`, any context-backed hook) can manufacture an infinite-ish render loop in ANY component that puts that value in a `useCallback`/`useEffect`/`useMemo` dependency array — the bug is invisible by reading the component's own source, since the real app never exhibits it.
 - Rule: when mocking `next/navigation`'s `useRouter` (or any hook Next/React itself memoizes), return a SINGLE stable object created once outside the mock factory (`const mockRouter = { push: mockPush }; jest.mock(..., () => ({ useRouter: () => mockRouter }))`), never a fresh literal per call. Before trusting a component test with unexpectedly high fetch/render counts, check whether any mocked hook's return value is memoized in the mock the way it is in production.
 - Source: Session 6-4 (2026-08-10) — `edit.test.tsx` uses the same unstable-per-call mock shape and would hit the identical bug if that component's own effects ever grow a `router`-dependent `useCallback`; worth a follow-up check when that file is next touched. · Status: ACTIVE
+
+### L60 — `middleware.ts`'s matcher and `app/(dashboard)/layout.tsx`'s own `getServerSession`+`redirect` are two INDEPENDENT auth gates; bypassing one alone does not make a page public
+
+- Symptom: built two new pages meant to be reachable without a session (a public, token-based email-link flow) at `app/(dashboard)/settings/account/delete/{confirm,cancel}/page.tsx`, and added an exact-pathname allow-list to `middleware.ts` for both paths. Live, unauthenticated browser verification still showed both pages redirecting to `/login` — the middleware fix alone did nothing to stop the redirect.
+- Root cause: `app/(dashboard)/layout.tsx` performs its own server-side `getServerSession()`+`redirect('/login')` on every page it wraps, entirely independent of `middleware.ts` — it exists specifically as defense-in-depth (per its own doc comment) and does not consult the middleware's decision at all. Any page file physically placed inside that route group inherits this gate regardless of URL, matcher, or an edge-level allow-list.
+- Rule: to make a page genuinely public while it lives at a URL prefix an auth-gated route group's layout would otherwise wrap, the page file must be moved OUT of that route group entirely (a sibling route group with no auth-gated `layout.tsx` — Next.js route groups are transparent to the URL, so the path is unaffected) — a middleware allow-list is necessary but never sufficient on its own for a route group with its own server-side auth check in `layout.tsx`. Verify with a real unauthenticated browser request after ANY change meant to make a page public, not just a code read of `middleware.ts` — the two gates fail independently and a fix to one can look complete while the other still blocks everything.
+- Source: Session 6-5 (2026-08-11) · Status: ACTIVE

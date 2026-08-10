@@ -101,7 +101,12 @@
   **Artifacts updated:** `6-5-settings-user.migration-order.md` (Status → CONFIRMED, executed,
   CLOSED SUCCESSFUL; Entry criteria all checked; Done-when all checked; Deviations filled in full
   — 8 entries), `migration-stack-analysis.md` (new Session 6-5 entry, 4 new files + 3 modified),
-  this file (session-history hygiene: Session 6-3's own full text marked
+  `LESSONS-LEARNED.md` (new **L60** — `middleware.ts`'s matcher and `app/(dashboard)/layout.tsx`'s
+  own `getServerSession`+`redirect` are two independent auth gates, bypassing one alone doesn't
+  make a page public; L27's own recurrence narrative collapsed to a single count line — now at 6
+  through this session, including Session 6-2's own occurrence which had been left un-collapsed
+  inline since 2026-08-10 — full detail moved to `LESSONS-ARCHIVE.md`, matching L11's own
+  precedent), this file (session-history hygiene: Session 6-3's own full text marked
   `_(superseded-by-above)_`, matching this file's own rotation rule — the larger pre-existing
   backlog flagged at Waiting-on #102 is unchanged, still needs its own dedicated cleanup session).
   New `6-6-admin.migration-order.md` PRE-DRAFTed per this order's own Next-session handoff.
