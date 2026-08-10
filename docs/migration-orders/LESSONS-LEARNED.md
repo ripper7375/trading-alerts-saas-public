@@ -4,13 +4,14 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 60 (L1–L60) — a consolidation pass is overdue and
+**Hard cap ~40 active lessons.** Currently at 61 (L1–L61) — a consolidation pass is overdue and
 now more overdue than at last count; the next session that isn't itself time-constrained should
 do it before adding more. Candidates promoted and preamble archived 2026-08-03; L11's own
 9-recurrence narrative collapsed to a single count line same day (Session 4B-19), L27's own
-6-recurrence narrative collapsed the same way Session 6-5 (2026-08-11, after Session 6-2's own
-2026-08-10 recurrence was left un-collapsed inline), both per this file's own hygiene rule, detail
-moved to `LESSONS-ARCHIVE.md`. Full history in `LESSONS-ARCHIVE.md`.
+7-recurrence narrative collapsed the same way Session 6-5 (2026-08-11, after Session 6-2's own
+2026-08-10 recurrence was left un-collapsed inline; recurred again same day at Session 6-6), both
+per this file's own hygiene rule, detail moved to `LESSONS-ARCHIVE.md`. Full history in
+`LESSONS-ARCHIVE.md`.
 
 ---
 
@@ -686,3 +687,10 @@ dist/main` (the plain `npm start` script) instead of the `start:worker` script n
 - Root cause: `app/(dashboard)/layout.tsx` performs its own server-side `getServerSession()`+`redirect('/login')` on every page it wraps, entirely independent of `middleware.ts` — it exists specifically as defense-in-depth (per its own doc comment) and does not consult the middleware's decision at all. Any page file physically placed inside that route group inherits this gate regardless of URL, matcher, or an edge-level allow-list.
 - Rule: to make a page genuinely public while it lives at a URL prefix an auth-gated route group's layout would otherwise wrap, the page file must be moved OUT of that route group entirely (a sibling route group with no auth-gated `layout.tsx` — Next.js route groups are transparent to the URL, so the path is unaffected) — a middleware allow-list is necessary but never sufficient on its own for a route group with its own server-side auth check in `layout.tsx`. Verify with a real unauthenticated browser request after ANY change meant to make a page public, not just a code read of `middleware.ts` — the two gates fail independently and a fix to one can look complete while the other still blocks everything.
 - Source: Session 6-5 (2026-08-11) · Status: ACTIVE
+
+### L61 — Duplicated business logic between the monolith and a microservice can silently drift out of sync; fixing one copy doesn't propagate to the other
+
+- Symptom: money-service's `disbursement.constants.ts`/`provider-factory.ts` gained `WISE` support at Session 4A-W6/4A-W7 (2026-07-27); the monolith's separate, hand-maintained copy at `lib/disbursement/constants.ts`/`providers/provider-factory.ts` never did — `isProviderAvailable('WISE')` always returned `false` there, undetected across ~2 weeks and many intervening sessions, only surfaced when Session 6-6's admin config UI needed to read it from the monolith side.
+- Root cause: this migration has, in several places, two independently maintained copies of the same business logic (one in the monolith, one in a microservice) rather than one shared source — nothing enforces the two staying in sync, and a session that fixes one side has no natural trigger to check whether a sibling copy exists and needs the identical fix.
+- Rule: whenever a session ports or duplicates logic between the monolith and a microservice (provider factories, config constants, status enums, etc.), grep for a sibling copy of the SAME logic in the other codebase before assuming a one-sided fix is complete — and when building anything on one side that reads such logic, don't assume the other side's already-fixed state has propagated; verify the copy you're actually touching directly.
+- Source: Session 6-6 (2026-08-11) · Status: ACTIVE
