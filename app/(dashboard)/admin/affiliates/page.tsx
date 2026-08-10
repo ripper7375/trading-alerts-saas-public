@@ -121,7 +121,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">
           Affiliate Management
@@ -132,31 +132,31 @@ export default function AdminAffiliatesPage(): React.ReactElement {
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="mb-8 grid grid-cols-4 gap-4">
         <Link
           href="/admin/affiliates/reports/profit-loss"
-          className="bg-blue-50 p-4 rounded-lg hover:bg-blue-100 transition-colors"
+          className="rounded-lg bg-blue-50 p-4 transition-colors hover:bg-blue-100"
         >
           <h3 className="font-semibold text-blue-800">P&L Report</h3>
           <p className="text-sm text-blue-600">Revenue & margins</p>
         </Link>
         <Link
           href="/admin/affiliates/reports/sales-performance"
-          className="bg-green-50 p-4 rounded-lg hover:bg-green-100 transition-colors"
+          className="rounded-lg bg-green-50 p-4 transition-colors hover:bg-green-100"
         >
           <h3 className="font-semibold text-green-800">Sales Performance</h3>
           <p className="text-sm text-green-600">Top affiliates</p>
         </Link>
         <Link
           href="/admin/affiliates/reports/commission-owings"
-          className="bg-yellow-50 p-4 rounded-lg hover:bg-yellow-100 transition-colors"
+          className="rounded-lg bg-yellow-50 p-4 transition-colors hover:bg-yellow-100"
         >
           <h3 className="font-semibold text-yellow-800">Commission Owings</h3>
           <p className="text-sm text-yellow-600">Pending payouts</p>
         </Link>
         <Link
           href="/admin/affiliates/reports/code-inventory"
-          className="bg-purple-50 p-4 rounded-lg hover:bg-purple-100 transition-colors"
+          className="rounded-lg bg-purple-50 p-4 transition-colors hover:bg-purple-100"
         >
           <h3 className="font-semibold text-purple-800">Code Inventory</h3>
           <p className="text-sm text-purple-600">Distribution stats</p>
@@ -164,10 +164,10 @@ export default function AdminAffiliatesPage(): React.ReactElement {
       </div>
 
       {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
+      <div className="mb-6 rounded-lg bg-white p-4 shadow">
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
               Status
             </label>
             <select
@@ -175,7 +175,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
               onChange={(e) =>
                 setFilters({ ...filters, status: e.target.value })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Statuses</option>
               <option value="ACTIVE">Active</option>
@@ -186,7 +186,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
               Country
             </label>
             <input
@@ -196,7 +196,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
                 setFilters({ ...filters, country: e.target.value })
               }
               placeholder="US, UK, etc."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -213,43 +213,43 @@ export default function AdminAffiliatesPage(): React.ReactElement {
 
       {/* Error State */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+        <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       )}
 
       {/* Table */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        <div className="py-12 text-center">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
           <p className="mt-4 text-gray-600">Loading affiliates...</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="overflow-hidden rounded-lg bg-white shadow">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                   Name / Email
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                   Country
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                   Codes
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                   Earnings
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200 bg-white">
               {affiliates.length === 0 ? (
                 <tr>
                   <td
@@ -262,7 +262,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
               ) : (
                 affiliates.map((affiliate) => (
                   <tr key={affiliate.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="whitespace-nowrap px-6 py-4">
                       <div>
                         <div className="font-medium text-gray-900">
                           {affiliate.fullName}
@@ -272,24 +272,24 @@ export default function AdminAffiliatesPage(): React.ReactElement {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                    <td className="whitespace-nowrap px-6 py-4 text-gray-700">
                       {affiliate.country}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="whitespace-nowrap px-6 py-4">
                       <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(affiliate.status)}`}
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusBadgeClass(affiliate.status)}`}
                       >
                         {affiliate.status.replace('_', ' ')}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                    <td className="whitespace-nowrap px-6 py-4 text-gray-700">
                       {affiliate.totalCodesUsed} /{' '}
                       {affiliate.totalCodesDistributed}
-                      <span className="text-gray-400 ml-1">
+                      <span className="ml-1 text-gray-400">
                         ({affiliate.affiliateCodes.length} active)
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="whitespace-nowrap px-6 py-4">
                       <div className="text-gray-900">
                         {formatCurrency(affiliate.totalEarnings)}
                       </div>
@@ -297,10 +297,10 @@ export default function AdminAffiliatesPage(): React.ReactElement {
                         {formatCurrency(affiliate.pendingCommissions)} pending
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="whitespace-nowrap px-6 py-4">
                       <Link
                         href={`/admin/affiliates/${affiliate.id}`}
-                        className="text-blue-600 hover:text-blue-800 font-medium"
+                        className="font-medium text-blue-600 hover:text-blue-800"
                       >
                         View Details
                       </Link>
@@ -313,7 +313,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-200">
+            <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-3">
               <div className="text-sm text-gray-700">
                 Showing page {pagination.page} of {pagination.totalPages} (
                 {pagination.total} total)
@@ -327,7 +327,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
                     }))
                   }
                   disabled={pagination.page === 1}
-                  className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                  className="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Previous
                 </button>
@@ -339,7 +339,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
                     }))
                   }
                   disabled={pagination.page === pagination.totalPages}
-                  className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                  className="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Next
                 </button>

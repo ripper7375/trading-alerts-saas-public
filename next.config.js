@@ -162,12 +162,15 @@ const nextConfig = {
   // Redirects for old routes or marketing (optional)
   async redirects() {
     return [
-      // Example: Redirect old pricing page to new one
-      // {
-      //   source: '/pricing-old',
-      //   destination: '/pricing',
-      //   permanent: true,
-      // },
+      // Session 6-2 (DECISION-LOG.md F62): app/admin/* merged into
+      // app/(dashboard)/admin/*, retiring the standalone admin login page.
+      // Every admin signs in through the standard /login flow now; the
+      // (dashboard)/admin/layout.tsx role check still gates the panel.
+      {
+        source: '/admin/login',
+        destination: '/login',
+        permanent: true,
+      },
     ];
   },
 

@@ -97,12 +97,12 @@ export default function ProfitLossReportPage(): React.ReactElement {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Header */}
       <div className="mb-8">
         <Link
           href="/admin/affiliates"
-          className="text-blue-600 hover:text-blue-800 text-sm"
+          className="text-sm text-blue-600 hover:text-blue-800"
         >
           &larr; Back to Affiliates
         </Link>
@@ -114,7 +114,7 @@ export default function ProfitLossReportPage(): React.ReactElement {
 
       {/* Period Selector */}
       <div className="mb-6">
-        <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden">
+        <div className="inline-flex overflow-hidden rounded-lg border border-gray-300">
           {(['3months', '6months', '1year'] as const).map((p) => (
             <button
               key={p}
@@ -137,28 +137,28 @@ export default function ProfitLossReportPage(): React.ReactElement {
 
       {/* Error State */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+        <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       )}
 
       {/* Loading State */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        <div className="py-12 text-center">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
           <p className="mt-4 text-gray-600">Loading report...</p>
         </div>
       ) : report ? (
         <>
           {/* Period Info */}
-          <div className="bg-gray-50 px-4 py-3 rounded-lg mb-6 text-sm text-gray-600">
+          <div className="mb-6 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
             Report period: {formatDate(report.period.start)} -{' '}
             {formatDate(report.period.end)}
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-4 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow">
+          <div className="mb-8 grid grid-cols-4 gap-6">
+            <div className="rounded-lg bg-white p-6 shadow">
               <h3 className="text-sm font-medium text-gray-500">
                 Gross Revenue
               </h3>
@@ -169,7 +169,7 @@ export default function ProfitLossReportPage(): React.ReactElement {
                 {report.volume.totalSales} sales
               </p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
+            <div className="rounded-lg bg-white p-6 shadow">
               <h3 className="text-sm font-medium text-gray-500">Net Revenue</h3>
               <p className="mt-2 text-3xl font-bold text-blue-600">
                 {formatCurrency(report.revenue.netRevenue)}
@@ -178,7 +178,7 @@ export default function ProfitLossReportPage(): React.ReactElement {
                 After {report.revenue.discountPercent}% discounts
               </p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
+            <div className="rounded-lg bg-white p-6 shadow">
               <h3 className="text-sm font-medium text-gray-500">
                 Total Commissions
               </h3>
@@ -189,7 +189,7 @@ export default function ProfitLossReportPage(): React.ReactElement {
                 {report.costs.commissionPercent}% commission rate
               </p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
+            <div className="rounded-lg bg-white p-6 shadow">
               <h3 className="text-sm font-medium text-gray-500">Net Profit</h3>
               <p className="mt-2 text-3xl font-bold text-green-600">
                 {formatCurrency(report.profit.netProfit)}
@@ -203,8 +203,8 @@ export default function ProfitLossReportPage(): React.ReactElement {
           {/* Detailed Breakdown */}
           <div className="grid grid-cols-2 gap-6">
             {/* Revenue Breakdown */}
-            <div className="bg-white rounded-lg shadow">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="rounded-lg bg-white shadow">
+              <div className="border-b border-gray-200 px-6 py-4">
                 <h2 className="text-lg font-semibold">Revenue Breakdown</h2>
               </div>
               <div className="p-6">
@@ -224,9 +224,9 @@ export default function ProfitLossReportPage(): React.ReactElement {
                       -{formatCurrency(report.revenue.discounts)}
                     </dd>
                   </div>
-                  <div className="flex justify-between pt-4 border-t border-gray-200">
+                  <div className="flex justify-between border-t border-gray-200 pt-4">
                     <dt className="font-semibold">Net Revenue</dt>
-                    <dd className="font-bold text-lg">
+                    <dd className="text-lg font-bold">
                       {formatCurrency(report.revenue.netRevenue)}
                     </dd>
                   </div>
@@ -239,8 +239,8 @@ export default function ProfitLossReportPage(): React.ReactElement {
             </div>
 
             {/* Commission Breakdown */}
-            <div className="bg-white rounded-lg shadow">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="rounded-lg bg-white shadow">
+              <div className="border-b border-gray-200 px-6 py-4">
                 <h2 className="text-lg font-semibold">Commission Breakdown</h2>
               </div>
               <div className="p-6">
@@ -265,9 +265,9 @@ export default function ProfitLossReportPage(): React.ReactElement {
                       {formatCurrency(report.costs.pendingCommissions)}
                     </dd>
                   </div>
-                  <div className="flex justify-between pt-4 border-t border-gray-200">
+                  <div className="flex justify-between border-t border-gray-200 pt-4">
                     <dt className="font-semibold">Total Commissions</dt>
-                    <dd className="font-bold text-lg">
+                    <dd className="text-lg font-bold">
                       {formatCurrency(report.costs.totalCommissions)}
                     </dd>
                   </div>
@@ -281,8 +281,8 @@ export default function ProfitLossReportPage(): React.ReactElement {
           </div>
 
           {/* Profit Summary */}
-          <div className="mt-6 bg-green-50 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-green-800 mb-4">
+          <div className="mt-6 rounded-lg bg-green-50 p-6">
+            <h2 className="mb-4 text-lg font-semibold text-green-800">
               Profit Summary
             </h2>
             <div className="grid grid-cols-3 gap-6">

@@ -231,9 +231,9 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        <div className="py-12 text-center">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
           <p className="mt-4 text-gray-600">Loading affiliate details...</p>
         </div>
       </div>
@@ -242,8 +242,8 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
 
   if (error || !affiliate) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error || 'Affiliate not found'}
         </div>
         <Link
@@ -257,16 +257,16 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Header */}
       <div className="mb-8">
         <Link
           href="/admin/affiliates"
-          className="text-blue-600 hover:text-blue-800 text-sm"
+          className="text-sm text-blue-600 hover:text-blue-800"
         >
           &larr; Back to Affiliates
         </Link>
-        <div className="mt-4 flex justify-between items-start">
+        <div className="mt-4 flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
               {affiliate.fullName}
@@ -279,14 +279,14 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                 <button
                   onClick={() => setShowDistributeModal(true)}
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   Distribute Codes
                 </button>
                 <button
                   onClick={handleSuspend}
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                  className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50"
                 >
                   Suspend
                 </button>
@@ -296,7 +296,7 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
               <button
                 onClick={handleReactivate}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                className="rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
               >
                 Reactivate
               </button>
@@ -306,15 +306,15 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
       </div>
 
       {/* Profile Info */}
-      <div className="grid grid-cols-2 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-4">Profile Information</h2>
+      <div className="mb-8 grid grid-cols-2 gap-6">
+        <div className="rounded-lg bg-white p-6 shadow">
+          <h2 className="mb-4 text-lg font-semibold">Profile Information</h2>
           <dl className="space-y-3">
             <div className="flex justify-between">
               <dt className="text-gray-600">Status</dt>
               <dd>
                 <span
-                  className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(affiliate.status)}`}
+                  className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusBadgeClass(affiliate.status)}`}
                 >
                   {affiliate.status.replace('_', ' ')}
                 </span>
@@ -339,9 +339,9 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
               <dd className="font-medium">{formatDate(affiliate.createdAt)}</dd>
             </div>
             {affiliate.suspensionReason && (
-              <div className="pt-3 border-t border-gray-200">
-                <dt className="text-red-600 text-sm">Suspension Reason:</dt>
-                <dd className="text-red-800 font-medium">
+              <div className="border-t border-gray-200 pt-3">
+                <dt className="text-sm text-red-600">Suspension Reason:</dt>
+                <dd className="font-medium text-red-800">
                   {affiliate.suspensionReason}
                 </dd>
               </div>
@@ -349,12 +349,12 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
           </dl>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold mb-4">Earnings Summary</h2>
+        <div className="rounded-lg bg-white p-6 shadow">
+          <h2 className="mb-4 text-lg font-semibold">Earnings Summary</h2>
           <dl className="space-y-3">
             <div className="flex justify-between">
               <dt className="text-gray-600">Total Earnings</dt>
-              <dd className="font-medium text-lg">
+              <dd className="text-lg font-medium">
                 {formatCurrency(affiliate.totalEarnings)}
               </dd>
             </div>
@@ -370,7 +370,7 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                 {formatCurrency(affiliate.paidCommissions)}
               </dd>
             </div>
-            <div className="flex justify-between pt-3 border-t border-gray-200">
+            <div className="flex justify-between border-t border-gray-200 pt-3">
               <dt className="text-gray-600">Codes Distributed</dt>
               <dd className="font-medium">{affiliate.totalCodesDistributed}</dd>
             </div>
@@ -396,8 +396,8 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
       </div>
 
       {/* Affiliate Codes */}
-      <div className="bg-white rounded-lg shadow mb-8">
-        <div className="px-6 py-4 border-b border-gray-200">
+      <div className="mb-8 rounded-lg bg-white shadow">
+        <div className="border-b border-gray-200 px-6 py-4">
           <h2 className="text-lg font-semibold">
             Affiliate Codes ({affiliate.affiliateCodes.length})
           </h2>
@@ -406,27 +406,27 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                   Code
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                   Reason
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                   Distributed
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                   Expires
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                   Used
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200 bg-white">
               {affiliate.affiliateCodes.length === 0 ? (
                 <tr>
                   <td
@@ -442,7 +442,7 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                     <td className="px-6 py-4 font-mono text-sm">{code.code}</td>
                     <td className="px-6 py-4">
                       <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(code.status)}`}
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusBadgeClass(code.status)}`}
                       >
                         {code.status}
                       </span>
@@ -468,29 +468,29 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
       </div>
 
       {/* Recent Commissions */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
+      <div className="rounded-lg bg-white shadow">
+        <div className="border-b border-gray-200 px-6 py-4">
           <h2 className="text-lg font-semibold">Recent Commissions</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                   Amount
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                   Earned
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                   Paid
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-200 bg-white">
               {affiliate.commissions.length === 0 ? (
                 <tr>
                   <td
@@ -508,7 +508,7 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(commission.status)}`}
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusBadgeClass(commission.status)}`}
                       >
                         {commission.status}
                       </span>
@@ -529,14 +529,14 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
 
       {/* Distribute Modal */}
       {showDistributeModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="w-full max-w-md rounded-lg bg-white p-6">
+            <h3 className="mb-4 text-lg font-semibold">
               Distribute Bonus Codes
             </h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700">
                   Number of Codes
                 </label>
                 <input
@@ -545,11 +545,11 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                   max={50}
                   value={distributeCount}
                   onChange={(e) => setDistributeCount(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700">
                   Reason
                 </label>
                 <input
@@ -557,7 +557,7 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                   value={distributeReason}
                   onChange={(e) => setDistributeReason(e.target.value)}
                   placeholder="e.g., Performance bonus"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2"
                 />
               </div>
             </div>
@@ -571,7 +571,7 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
               <button
                 onClick={handleDistributeCodes}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
               >
                 {actionLoading ? 'Distributing...' : 'Distribute'}
               </button>

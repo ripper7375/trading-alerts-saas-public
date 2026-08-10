@@ -137,12 +137,12 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Header */}
       <div className="mb-8">
         <Link
           href="/admin/affiliates"
-          className="text-blue-600 hover:text-blue-800 text-sm"
+          className="text-sm text-blue-600 hover:text-blue-800"
         >
           &larr; Back to Affiliates
         </Link>
@@ -156,28 +156,28 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
 
       {/* Error State */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+        <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       )}
 
       {/* Loading State */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        <div className="py-12 text-center">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
           <p className="mt-4 text-gray-600">Loading report...</p>
         </div>
       ) : report ? (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-4 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow">
+          <div className="mb-8 grid grid-cols-4 gap-6">
+            <div className="rounded-lg bg-white p-6 shadow">
               <h3 className="text-sm font-medium text-gray-500">Total Owed</h3>
               <p className="mt-2 text-3xl font-bold text-orange-600">
                 {formatCurrency(report.summary.totalOwed)}
               </p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
+            <div className="rounded-lg bg-white p-6 shadow">
               <h3 className="text-sm font-medium text-gray-500">
                 Affiliates Owed
               </h3>
@@ -185,7 +185,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                 {report.summary.totalAffiliatesOwed}
               </p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
+            <div className="rounded-lg bg-white p-6 shadow">
               <h3 className="text-sm font-medium text-gray-500">
                 Ready for Payout
               </h3>
@@ -196,7 +196,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                 ≥ {formatCurrency(report.summary.minimumPayoutThreshold)}
               </p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
+            <div className="rounded-lg bg-white p-6 shadow">
               <h3 className="text-sm font-medium text-gray-500">
                 Min Payout Threshold
               </h3>
@@ -207,8 +207,8 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
           </div>
 
           {/* Affiliates Table */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
+          <div className="rounded-lg bg-white shadow">
+            <div className="border-b border-gray-200 px-6 py-4">
               <h2 className="text-lg font-semibold">
                 Affiliates with Pending Commissions
               </h2>
@@ -217,33 +217,33 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Affiliate
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Country
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Payment Method
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Pending Balance
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Pending Count
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Oldest Pending
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 bg-white">
                   {report.affiliates.length === 0 ? (
                     <tr>
                       <td
@@ -285,11 +285,11 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                         </td>
                         <td className="px-6 py-4">
                           {affiliate.readyForPayout ? (
-                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                            <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
                               Ready
                             </span>
                           ) : (
-                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                            <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
                               Below Min
                             </span>
                           )}
@@ -298,7 +298,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                           <div className="flex space-x-2">
                             <Link
                               href={`/admin/affiliates/${affiliate.id}`}
-                              className="text-blue-600 hover:text-blue-800 text-sm"
+                              className="text-sm text-blue-600 hover:text-blue-800"
                             >
                               View
                             </Link>
@@ -311,7 +311,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                                   )
                                 }
                                 disabled={actionLoading === affiliate.id}
-                                className="text-green-600 hover:text-green-800 text-sm font-medium disabled:opacity-50"
+                                className="text-sm font-medium text-green-600 hover:text-green-800 disabled:opacity-50"
                               >
                                 {actionLoading === affiliate.id
                                   ? 'Processing...'
@@ -329,7 +329,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
 
             {/* Pagination */}
             {report.pagination.totalPages > 1 && (
-              <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-t border-gray-200">
+              <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-3">
                 <div className="text-sm text-gray-700">
                   Page {report.pagination.page} of{' '}
                   {report.pagination.totalPages} ({report.pagination.total}{' '}
@@ -339,7 +339,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                   <button
                     onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page === 1}
-                    className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50"
+                    className="rounded-md border border-gray-300 px-3 py-1 disabled:opacity-50"
                   >
                     Previous
                   </button>
@@ -348,7 +348,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                       setPage(Math.min(report.pagination.totalPages, page + 1))
                     }
                     disabled={page === report.pagination.totalPages}
-                    className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50"
+                    className="rounded-md border border-gray-300 px-3 py-1 disabled:opacity-50"
                   >
                     Next
                   </button>

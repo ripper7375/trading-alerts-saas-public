@@ -45,22 +45,24 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-// Deliberately excludes /admin: app/(dashboard)/admin/* shares this same
-// URL prefix with a SEPARATE, non-route-group tree (app/admin/login,
-// app/admin/affiliates, app/admin/settings) that has its own bespoke,
-// already-logged-out-reachable login page (app/admin/login/page.tsx, still
-// next-auth/react's signIn() under the hood, but no page-level guard above
-// it). Matching /admin/:path* here would have redirected logged-out admins
-// away from their own login page before they could ever reach it — found
-// at build time, not assumed; excluded rather than special-cased, since
-// (dashboard)/admin/* already has its own working getServerSession guard
-// via app/(dashboard)/layout.tsx regardless of whether middleware also
-// covers it.
+// /admin was excluded here until Session 6-2 (DECISION-LOG.md F62): a
+// separate, non-route-group tree (app/admin/login, app/admin/affiliates,
+// app/admin/settings) shared this URL prefix and had its own bespoke,
+// already-logged-out-reachable login page — matching /admin/:path* here
+// would have redirected logged-out admins away from their own login page
+// before they could ever reach it. That tree is gone now: all 23 admin
+// pages live under app/(dashboard)/admin/* (one shell, one
+// getServerSession + role guard via app/(dashboard)/admin/layout.tsx),
+// and /admin/login redirects to the standard /login flow
+// (next.config.js). /admin/:path* is covered below as the same earlier,
+// edge-level defense-in-depth every other authenticated route already
+// gets — the layout guard stays the authoritative backstop either way.
 export const config = {
   matcher: [
     '/dashboard/:path*',
     '/alerts/:path*',
     '/charts/:path*',
     '/settings/:path*',
+    '/admin/:path*',
   ],
 };

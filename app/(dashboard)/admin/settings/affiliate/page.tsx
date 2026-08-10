@@ -136,12 +136,12 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
   const exampleCommission = exampleNetPrice * (commissionPercent / 100);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="mx-auto max-w-4xl px-4 py-8">
       {/* Header */}
       <div className="mb-8">
         <Link
           href="/admin/affiliates"
-          className="text-blue-600 hover:text-blue-800 text-sm"
+          className="text-sm text-blue-600 hover:text-blue-800"
         >
           &larr; Back to Affiliates
         </Link>
@@ -156,27 +156,27 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
 
       {/* Error/Success Messages */}
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       )}
       {success && (
-        <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+        <div className="mb-6 rounded border border-green-200 bg-green-50 px-4 py-3 text-green-700">
           {success}
         </div>
       )}
 
       {/* Loading State */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        <div className="py-12 text-center">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
           <p className="mt-4 text-gray-600">Loading settings...</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           {/* Settings Form */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+          <div className="rounded-lg bg-white p-6 shadow-md">
+            <h2 className="mb-6 text-lg font-semibold text-gray-900">
               Configuration
             </h2>
 
@@ -185,7 +185,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
               <div>
                 <label
                   htmlFor="discountPercent"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="mb-1 block text-sm font-medium text-gray-700"
                 >
                   Customer Discount (%)
                 </label>
@@ -199,7 +199,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                   onChange={(e) =>
                     setDiscountPercent(parseFloat(e.target.value))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   Discount given to customers using affiliate codes
@@ -216,7 +216,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
               <div>
                 <label
                   htmlFor="commissionPercent"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="mb-1 block text-sm font-medium text-gray-700"
                 >
                   Affiliate Commission (%)
                 </label>
@@ -230,7 +230,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                   onChange={(e) =>
                     setCommissionPercent(parseFloat(e.target.value))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   Commission percentage on net revenue (after discount)
@@ -247,7 +247,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
               <div>
                 <label
                   htmlFor="codesPerMonth"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="mb-1 block text-sm font-medium text-gray-700"
                 >
                   Codes Per Month
                 </label>
@@ -260,7 +260,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                   onChange={(e) =>
                     setCodesPerMonth(parseInt(e.target.value, 10))
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   Number of codes distributed to each affiliate monthly
@@ -271,7 +271,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
               <div>
                 <label
                   htmlFor="basePrice"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="mb-1 block text-sm font-medium text-gray-700"
                 >
                   Monthly Subscription Price ($)
                 </label>
@@ -282,7 +282,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                   step="0.01"
                   value={basePrice}
                   onChange={(e) => setBasePrice(parseFloat(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   Regular monthly subscription price before discount
@@ -293,7 +293,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
               <div>
                 <label
                   htmlFor="threeDayPrice"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="mb-1 block text-sm font-medium text-gray-700"
                 >
                   3-Day Trial Price ($)
                 </label>
@@ -304,7 +304,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                   step="0.01"
                   value={threeDayPrice}
                   onChange={(e) => setThreeDayPrice(parseFloat(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   3-day trial plan price in USD (dLocal countries only)
@@ -315,7 +315,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
               <div>
                 <label
                   htmlFor="reason"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="mb-1 block text-sm font-medium text-gray-700"
                 >
                   Reason for Change (Optional)
                 </label>
@@ -325,7 +325,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder="e.g., Holiday promotion, Market adjustment"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   This will be recorded in the audit history
@@ -336,7 +336,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
               <button
                 type="submit"
                 disabled={saving}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
@@ -346,8 +346,8 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
           {/* Preview Panel */}
           <div>
             {/* Example Calculation */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="mb-6 rounded-lg bg-white p-6 shadow-md">
+              <h2 className="mb-4 text-lg font-semibold text-gray-900">
                 Example Calculation
               </h2>
 
@@ -374,7 +374,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                     ${exampleCommission.toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between text-blue-600 border-t border-gray-200 pt-2">
+                <div className="flex justify-between border-t border-gray-200 pt-2 text-blue-600">
                   <span>Company Revenue:</span>
                   <span className="font-semibold">
                     ${(exampleNetPrice - exampleCommission).toFixed(2)}
@@ -384,11 +384,11 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
             </div>
 
             {/* Important Notes */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <h3 className="font-semibold text-yellow-800 mb-2">
+            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+              <h3 className="mb-2 font-semibold text-yellow-800">
                 Important Notes
               </h3>
-              <ul className="text-sm text-yellow-700 space-y-2">
+              <ul className="space-y-2 text-sm text-yellow-700">
                 <li>
                   Changes take effect immediately for new code distributions
                 </li>

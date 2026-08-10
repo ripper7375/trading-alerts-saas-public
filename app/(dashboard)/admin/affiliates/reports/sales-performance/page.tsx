@@ -95,12 +95,12 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Header */}
       <div className="mb-8">
         <Link
           href="/admin/affiliates"
-          className="text-blue-600 hover:text-blue-800 text-sm"
+          className="text-sm text-blue-600 hover:text-blue-800"
         >
           &larr; Back to Affiliates
         </Link>
@@ -114,7 +114,7 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
 
       {/* Period Selector */}
       <div className="mb-6">
-        <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden">
+        <div className="inline-flex overflow-hidden rounded-lg border border-gray-300">
           {(['3months', '6months', '1year'] as const).map((p) => (
             <button
               key={p}
@@ -137,28 +137,28 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
 
       {/* Error State */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+        <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       )}
 
       {/* Loading State */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        <div className="py-12 text-center">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
           <p className="mt-4 text-gray-600">Loading report...</p>
         </div>
       ) : report ? (
         <>
           {/* Period Info */}
-          <div className="bg-gray-50 px-4 py-3 rounded-lg mb-6 text-sm text-gray-600">
+          <div className="mb-6 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
             Report period: {formatDate(report.period.start)} -{' '}
             {formatDate(report.period.end)}
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-4 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-lg shadow">
+          <div className="mb-8 grid grid-cols-4 gap-6">
+            <div className="rounded-lg bg-white p-6 shadow">
               <h3 className="text-sm font-medium text-gray-500">
                 Active Affiliates
               </h3>
@@ -166,7 +166,7 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
                 {report.summary.totalAffiliates}
               </p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
+            <div className="rounded-lg bg-white p-6 shadow">
               <h3 className="text-sm font-medium text-gray-500">
                 Total Conversions
               </h3>
@@ -174,7 +174,7 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
                 {report.summary.totalConversions}
               </p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
+            <div className="rounded-lg bg-white p-6 shadow">
               <h3 className="text-sm font-medium text-gray-500">
                 Total Commissions
               </h3>
@@ -182,7 +182,7 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
                 {formatCurrency(report.summary.totalCommissionsEarned)}
               </p>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
+            <div className="rounded-lg bg-white p-6 shadow">
               <h3 className="text-sm font-medium text-gray-500">
                 Avg per Affiliate
               </h3>
@@ -194,41 +194,41 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
           </div>
 
           {/* Top Performers Table */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
+          <div className="rounded-lg bg-white shadow">
+            <div className="border-b border-gray-200 px-6 py-4">
               <h2 className="text-lg font-semibold">Top Performers</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Rank
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Affiliate
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Country
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Conversions
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Codes Used / Distributed
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Conversion Rate
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Commissions
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 bg-white">
                   {report.topPerformers.length === 0 ? (
                     <tr>
                       <td
@@ -243,7 +243,7 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
                       <tr key={performer.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <span
-                            className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${
+                            className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${
                               index === 0
                                 ? 'bg-yellow-100 text-yellow-800'
                                 : index === 1
@@ -280,9 +280,9 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center">
-                            <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                            <div className="mr-2 h-2 w-16 rounded-full bg-gray-200">
                               <div
-                                className="bg-green-500 h-2 rounded-full"
+                                className="h-2 rounded-full bg-green-500"
                                 style={{
                                   width: `${Math.min(performer.metrics.conversionRate, 100)}%`,
                                 }}

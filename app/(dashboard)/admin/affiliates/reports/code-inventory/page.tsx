@@ -95,12 +95,12 @@ export default function CodeInventoryReportPage(): React.ReactElement {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Header */}
       <div className="mb-8">
         <Link
           href="/admin/affiliates"
-          className="text-blue-600 hover:text-blue-800 text-sm"
+          className="text-sm text-blue-600 hover:text-blue-800"
         >
           &larr; Back to Affiliates
         </Link>
@@ -114,7 +114,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
 
       {/* Period Selector */}
       <div className="mb-6">
-        <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden">
+        <div className="inline-flex overflow-hidden rounded-lg border border-gray-300">
           {(['3months', '6months', '1year'] as const).map((p) => (
             <button
               key={p}
@@ -137,15 +137,15 @@ export default function CodeInventoryReportPage(): React.ReactElement {
 
       {/* Error State */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+        <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       )}
 
       {/* Loading State */}
       {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+        <div className="py-12 text-center">
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
           <p className="mt-4 text-gray-600">Loading report...</p>
         </div>
       ) : report ? (
@@ -155,9 +155,9 @@ export default function CodeInventoryReportPage(): React.ReactElement {
             report.alerts.lowActiveCodesWarning) && (
             <div className="mb-6 space-y-2">
               {report.alerts.expiringIn7Days > 0 && (
-                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded flex items-center">
+                <div className="flex items-center rounded border border-yellow-200 bg-yellow-50 px-4 py-3 text-yellow-800">
                   <svg
-                    className="w-5 h-5 mr-2"
+                    className="mr-2 h-5 w-5"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -174,9 +174,9 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                 </div>
               )}
               {report.alerts.lowActiveCodesWarning && (
-                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded flex items-center">
+                <div className="flex items-center rounded border border-red-200 bg-red-50 px-4 py-3 text-red-800">
                   <svg
-                    className="w-5 h-5 mr-2"
+                    className="mr-2 h-5 w-5"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -196,16 +196,16 @@ export default function CodeInventoryReportPage(): React.ReactElement {
           )}
 
           {/* Period Info */}
-          <div className="bg-gray-50 px-4 py-3 rounded-lg mb-6 text-sm text-gray-600">
+          <div className="mb-6 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
             Report period: {formatDate(report.period.start)} -{' '}
             {formatDate(report.period.end)}
           </div>
 
           {/* All Time Stats */}
           <div className="mb-8">
-            <h2 className="text-lg font-semibold mb-4">All Time Statistics</h2>
+            <h2 className="mb-4 text-lg font-semibold">All Time Statistics</h2>
             <div className="grid grid-cols-5 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow">
+              <div className="rounded-lg bg-white p-6 shadow">
                 <h3 className="text-sm font-medium text-gray-500">
                   Total Codes
                 </h3>
@@ -213,25 +213,25 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                   {report.allTime.totalCodes.toLocaleString()}
                 </p>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow">
+              <div className="rounded-lg bg-white p-6 shadow">
                 <h3 className="text-sm font-medium text-gray-500">Active</h3>
                 <p className="mt-2 text-3xl font-bold text-green-600">
                   {report.allTime.byStatus.active.toLocaleString()}
                 </p>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow">
+              <div className="rounded-lg bg-white p-6 shadow">
                 <h3 className="text-sm font-medium text-gray-500">Used</h3>
                 <p className="mt-2 text-3xl font-bold text-blue-600">
                   {report.allTime.byStatus.used.toLocaleString()}
                 </p>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow">
+              <div className="rounded-lg bg-white p-6 shadow">
                 <h3 className="text-sm font-medium text-gray-500">Expired</h3>
                 <p className="mt-2 text-3xl font-bold text-gray-600">
                   {report.allTime.byStatus.expired.toLocaleString()}
                 </p>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow">
+              <div className="rounded-lg bg-white p-6 shadow">
                 <h3 className="text-sm font-medium text-gray-500">
                   Conversion Rate
                 </h3>
@@ -244,7 +244,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
 
           {/* Period Metrics */}
           <div className="mb-8">
-            <h2 className="text-lg font-semibold mb-4">
+            <h2 className="mb-4 text-lg font-semibold">
               Period Metrics (
               {period === '3months'
                 ? '3 Months'
@@ -254,7 +254,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
               )
             </h2>
             <div className="grid grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-lg shadow">
+              <div className="rounded-lg bg-white p-6 shadow">
                 <h3 className="text-sm font-medium text-gray-500">
                   Distributed
                 </h3>
@@ -262,19 +262,19 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                   {report.periodMetrics.distributed.toLocaleString()}
                 </p>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow">
+              <div className="rounded-lg bg-white p-6 shadow">
                 <h3 className="text-sm font-medium text-gray-500">Used</h3>
                 <p className="mt-2 text-3xl font-bold text-green-600">
                   {report.periodMetrics.used.toLocaleString()}
                 </p>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow">
+              <div className="rounded-lg bg-white p-6 shadow">
                 <h3 className="text-sm font-medium text-gray-500">Expired</h3>
                 <p className="mt-2 text-3xl font-bold text-orange-600">
                   {report.periodMetrics.expired.toLocaleString()}
                 </p>
               </div>
-              <div className="bg-white p-6 rounded-lg shadow">
+              <div className="rounded-lg bg-white p-6 shadow">
                 <h3 className="text-sm font-medium text-gray-500">
                   Period Conversion
                 </h3>
@@ -288,22 +288,22 @@ export default function CodeInventoryReportPage(): React.ReactElement {
           {/* Distribution Breakdown */}
           <div className="grid grid-cols-2 gap-6">
             {/* By Status */}
-            <div className="bg-white rounded-lg shadow">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="rounded-lg bg-white shadow">
+              <div className="border-b border-gray-200 px-6 py-4">
                 <h2 className="text-lg font-semibold">Codes by Status</h2>
               </div>
               <div className="p-6">
                 <div className="space-y-4">
                   <div>
-                    <div className="flex justify-between text-sm mb-1">
+                    <div className="mb-1 flex justify-between text-sm">
                       <span className="text-gray-600">Active</span>
                       <span className="font-medium">
                         {report.allTime.byStatus.active.toLocaleString()}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="h-3 w-full rounded-full bg-gray-200">
                       <div
-                        className="bg-green-500 h-3 rounded-full"
+                        className="h-3 rounded-full bg-green-500"
                         style={{
                           width: `${(report.allTime.byStatus.active / report.allTime.totalCodes) * 100}%`,
                         }}
@@ -311,15 +311,15 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                     </div>
                   </div>
                   <div>
-                    <div className="flex justify-between text-sm mb-1">
+                    <div className="mb-1 flex justify-between text-sm">
                       <span className="text-gray-600">Used</span>
                       <span className="font-medium">
                         {report.allTime.byStatus.used.toLocaleString()}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="h-3 w-full rounded-full bg-gray-200">
                       <div
-                        className="bg-blue-500 h-3 rounded-full"
+                        className="h-3 rounded-full bg-blue-500"
                         style={{
                           width: `${(report.allTime.byStatus.used / report.allTime.totalCodes) * 100}%`,
                         }}
@@ -327,15 +327,15 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                     </div>
                   </div>
                   <div>
-                    <div className="flex justify-between text-sm mb-1">
+                    <div className="mb-1 flex justify-between text-sm">
                       <span className="text-gray-600">Expired</span>
                       <span className="font-medium">
                         {report.allTime.byStatus.expired.toLocaleString()}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="h-3 w-full rounded-full bg-gray-200">
                       <div
-                        className="bg-gray-500 h-3 rounded-full"
+                        className="h-3 rounded-full bg-gray-500"
                         style={{
                           width: `${(report.allTime.byStatus.expired / report.allTime.totalCodes) * 100}%`,
                         }}
@@ -343,15 +343,15 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                     </div>
                   </div>
                   <div>
-                    <div className="flex justify-between text-sm mb-1">
+                    <div className="mb-1 flex justify-between text-sm">
                       <span className="text-gray-600">Cancelled</span>
                       <span className="font-medium">
                         {report.allTime.byStatus.cancelled.toLocaleString()}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="h-3 w-full rounded-full bg-gray-200">
                       <div
-                        className="bg-red-500 h-3 rounded-full"
+                        className="h-3 rounded-full bg-red-500"
                         style={{
                           width: `${(report.allTime.byStatus.cancelled / report.allTime.totalCodes) * 100}%`,
                         }}
@@ -363,8 +363,8 @@ export default function CodeInventoryReportPage(): React.ReactElement {
             </div>
 
             {/* By Distribution Reason */}
-            <div className="bg-white rounded-lg shadow">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="rounded-lg bg-white shadow">
+              <div className="border-b border-gray-200 px-6 py-4">
                 <h2 className="text-lg font-semibold">
                   Codes by Distribution Reason
                 </h2>
@@ -372,7 +372,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
               <div className="p-6">
                 <div className="space-y-4">
                   <div>
-                    <div className="flex justify-between text-sm mb-1">
+                    <div className="mb-1 flex justify-between text-sm">
                       <span className="text-gray-600">
                         Initial Distribution
                       </span>
@@ -380,9 +380,9 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                         {report.allTime.byReason.initial.toLocaleString()}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="h-3 w-full rounded-full bg-gray-200">
                       <div
-                        className="bg-blue-500 h-3 rounded-full"
+                        className="h-3 rounded-full bg-blue-500"
                         style={{
                           width: `${(report.allTime.byReason.initial / report.allTime.totalCodes) * 100}%`,
                         }}
@@ -390,7 +390,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                     </div>
                   </div>
                   <div>
-                    <div className="flex justify-between text-sm mb-1">
+                    <div className="mb-1 flex justify-between text-sm">
                       <span className="text-gray-600">
                         Monthly Distribution
                       </span>
@@ -398,9 +398,9 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                         {report.allTime.byReason.monthly.toLocaleString()}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="h-3 w-full rounded-full bg-gray-200">
                       <div
-                        className="bg-green-500 h-3 rounded-full"
+                        className="h-3 rounded-full bg-green-500"
                         style={{
                           width: `${(report.allTime.byReason.monthly / report.allTime.totalCodes) * 100}%`,
                         }}
@@ -408,15 +408,15 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                     </div>
                   </div>
                   <div>
-                    <div className="flex justify-between text-sm mb-1">
+                    <div className="mb-1 flex justify-between text-sm">
                       <span className="text-gray-600">Admin Bonus</span>
                       <span className="font-medium">
                         {report.allTime.byReason.adminBonus.toLocaleString()}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="h-3 w-full rounded-full bg-gray-200">
                       <div
-                        className="bg-purple-500 h-3 rounded-full"
+                        className="h-3 rounded-full bg-purple-500"
                         style={{
                           width: `${(report.allTime.byReason.adminBonus / report.allTime.totalCodes) * 100}%`,
                         }}
