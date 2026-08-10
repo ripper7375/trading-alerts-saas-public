@@ -64,5 +64,6 @@ export const config = {
     '/charts/:path*',
     '/settings/:path*',
     '/admin/:path*',
+    '/notifications/:path*',
   ],
 };
