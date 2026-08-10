@@ -4,11 +4,12 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 57 (L1–L57) — a consolidation pass is overdue and
+**Hard cap ~40 active lessons.** Currently at 58 (L1–L58) — a consolidation pass is overdue and
 now more overdue than at last count; the next session that isn't itself time-constrained should
 do it before adding more. Candidates promoted and preamble archived 2026-08-03; L11's own
-9-recurrence narrative collapsed to a single count line same day (Session 4B-19) per this file's
-own hygiene rule, detail moved to `LESSONS-ARCHIVE.md`. Full history in `LESSONS-ARCHIVE.md`.
+9-recurrence narrative collapsed to a single count line same day (Session 4B-19), L27's own
+4-recurrence narrative collapsed the same way Session 6-2 (2026-08-10), both per this file's own
+hygiene rule, detail moved to `LESSONS-ARCHIVE.md`. Full history in `LESSONS-ARCHIVE.md`.
 
 ---
 
@@ -233,54 +234,22 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
 - Root cause: order text is written once, at PRE-DRAFT/DRAFT time, from a snapshot of the ground truth; the ground truth (design docs, schema, other lessons) keeps evolving underneath it (here: a same-repo dated correction, a frozen invariant table paraphrased instead of copied, and schema enum values never cross-checked against the prose). A PORT-variant order's own "Low creativity dial" instruction ("follow the design doc, not this order's own prose") is necessary but not sufficient — nothing forces a re-read of the cited sections before typing the implementation.
 - Rule: for any order whose own text states "ground truth is §X, not this order's prose" (every PORT variant), actually re-read §X (and the live schema/enum values any described mutation touches) immediately before writing each file that implements it — do not implement from the order's paraphrase and only spot-check ground truth when something looks odd. A schema-invalid value (`'FAILED'` here) would be caught by `tsc`; a schema-valid-but-wrong value or an incomplete state table would not be, and would ship as a silent money-correctness bug.
 - Source: Session 4A-W5 (2026-07-26) · Status: ACTIVE
-- Recurrence (Session 4A-W6): five more mismatches in a single order — a wrong SLA default (24h vs.
-  design's 72h), an invented interface shape in File 1's own prose (design §3.3's real
-  `FundableProvider` has completely different members), a quote-direction example that predated and
-  was superseded by a LATER binding decision (F38) recorded in a different document
-  (`DECISION-LOG.md`) than the one the order cited, an undercounted REST endpoint surface (3 vs. the
-  frozen OpenAPI's real 7), and two file-location disagreements with design §8's own module-layout
-  table. The F38 case is new: ground truth itself can be split across documents that disagree with
-  each other by DATE, not just an order paraphrasing one document imperfectly — the more recently
-  dated source (here, `DECISION-LOG.md`) wins, but only re-reading BOTH and checking dates catches
-  it. A sixth surfaced at session close, at Davin's explicit request: design §10's own testing
-  strategy named an unhappy-path scenario (`bounced_back` → `funds_refunded`, recipient →
-  `INVALID`) for this exact session that neither the order's File 8 test list nor its Done-when
-  carried forward — building the test against it late also surfaced that the "recipient →
-  `INVALID`" half was never actually implemented in code at all (see this order's own Deviations).
-- Recurrence (Session 4A-8): a new shape of the same class, at the file-existence/module-ownership
-  level rather than a descriptive detail. Two separate instances in one order: (1) the DRAFT's own
-  Step 1 named `money-service/src/stripe/stripe-checkout.controller.ts` and
-  `money-service/src/dlocal/dlocal-payment.controller.ts` — neither exists; the real audited gaps
-  (4A-W4's own citations) are monolith Next.js routes, since money-service has no write endpoints
-  until 4A-9. (2) Step 2's file list named only `money-service/prisma/schema.prisma` for the new
-  `OutboxEvent` model, omitting that a genuinely-new money-service-owned table still needs the
-  monolith-side mirror + real migration (L1: money-service has no migration authority of its own)
-  — the exact two-schema process 4A-W2 already established, just not cited here. Both were caught
-  by cross-checking the order's own cited ground truth (`migration-cutover-table.md`'s Slice 4
-  row; L1 itself) rather than trusting the file list as accurate, before writing any code against
-  it — re-scoped live (Step 1, before CONFIRM) or escalated live (Step 2's production migration,
-  mid-session) rather than silently building against nonexistent files.
-
-- Recurrence (Session 4A-9): the most severe form yet — an order omitted an entire dependency
-  FILE from its SOURCE list, not just a detail within a cited file. File 4/10's SOURCE named only
-  `app/api/webhooks/stripe/route.ts` (a thin dispatcher); ALL real business logic (tier upgrade,
-  subscription upsert, affiliate commission crediting, 5 email triggers) lives in
-  `lib/stripe/webhook-handlers.ts` (592 lines), never mentioned anywhere in the order. File 6/10
-  had the same shape at smaller scale: `app/api/payments/dlocal/create/route.ts` directly imports
-  `lib/dlocal/currency-converter.service.ts` and `payment-methods.service.ts`, neither cited. Both
-  found by actually reading the SOURCE file's own import statements before writing any target
-  code, not by trusting the order's file list as complete. Rule extension: for any PORT order
-  targeting a Next.js API route, read the route's own imports first — thin route handlers commonly
-  delegate real logic to sibling `lib/` files an order's file-count summary can silently omit.
-- Recurrence (Session 4A-11): smaller-scale, on a NEW-glue file rather than a PORT — the order's own
-  File 3 text cited `POST /v1/outbox/events` and a `wise-webhook.controller.ts` convention reference,
-  assuming money-service's global `/v1` prefix applies to operation-service too. Reading
-  `operation-service/src/main.ts` (no `setGlobalPrefix`) and every existing controller there showed
-  it has no `/v1` prefix at all; separately, the cited convention itself actually lives in a sibling
-  `queue/wise-webhook.processor.ts` file, not the controller named. Both caught by reading the real
-  target service's own conventions before wiring a route, not by trusting a cross-service citation —
-  the order had already hedged this exact spot ("verify exact line at build time"), which is why it
-  got checked instead of assumed.
+- Recurrence count: 4 further times through Session 4A-11, each individually documented (full
+  per-session detail moved to `LESSONS-ARCHIVE.md` per this file's own "5+ recurrences → single
+  count line" hygiene rule) — Sessions 4A-W6, 4A-8, 4A-9, 4A-11.
+- Recurrence (Session 6-2, 2026-08-10): on the SAME order, between its own PRE-DRAFT and its own
+  later APPROVED rewrite — a narrower window than every prior occurrence (which all drifted from
+  an external design doc/schema; this one drifted from its own earlier draft). The PRE-DRAFT's
+  explicit scope carve-out ("`/terms`/`/privacy` are F63/6-10-owned, leave untouched") was
+  silently dropped from Step 3's rewritten action text; separately, Step 4's actionable list named
+  only 6 of the 8 dead footer links the SAME document's own Context section cited for A1-18,
+  dropping `/affiliate` and `/disclaimer`. Both caught by cross-checking the order's own Context
+  prose against its own Ordered Steps before executing either step, not by trusting the steps as
+  a complete restatement of the Context — corrected live by Davin at CONFIRM. Rule extension: the
+  drift this lesson describes isn't limited to an order aging against external ground truth; a
+  single rewrite pass within one drafting session can just as easily drop scope its OWN earlier
+  section already established. Cross-check a rewritten order's Steps against its own Context/User
+  Review sections, not just against outside sources.
 
 ### L28 — "Existing tests" cited as a parity oracle may not exist; verify the file is there before trusting it as a safety net
 
@@ -699,3 +668,10 @@ dist/main` (the plain `npm start` script) instead of the `start:worker` script n
 - Root cause: a component that's never been mounted anywhere has never had its interaction logic exercised against a real backend call, no matter how complete its code looks or how confidently an order describes it as "already built." Its own file existing and type-checking proves nothing about whether its own internal assumptions (here: that Undo can meaningfully cancel an in-flight or completed async action) are actually correct.
 - Rule: before wiring a real, consequential action (money, auth, destructive writes) into any component an order describes as "already built, just mount it," read that component's own implementation in full — not just its prop signature — and trace what each of its interactive paths actually does end-to-end. A found defect in a shared, never-fixed-by-this-session component is a real finding to disclose and route around (keep the existing, working flow; register a flag for a future fix), not something to silently wire in or silently patch as a drive-by.
 - Source: Session 6-1b (2026-08-10), `DECISION-LOG.md` F64 · Status: ACTIVE
+
+### L58 — A backgrounded `npm run build` and a live `next dev` server share `node_modules/.prisma`; running both at once produces transient, misleading "module not found" errors that look like a real regression
+
+- Symptom: mid-session, with `next dev` already serving requests, a backgrounded `npm run build` was kicked off to verify the whole app compiles. The live dev server's own logs immediately started showing `Module not found: Can't resolve '.prisma/non-market-client'` on unrelated routes (`/api/config/affiliate`, NextAuth) — looked exactly like a code regression from that session's own file moves.
+- Root cause: this repo's `prebuild` script (`rimraf .next tsconfig.tsbuildinfo node_modules/.prisma && npm run prisma:generate:...`) deletes and regenerates the Prisma clients as its first step. A `next dev` server reading from `node_modules/.prisma` mid-request during that window sees the directory momentarily empty/mid-rewrite and throws — a pure timing artifact of two processes sharing one `node_modules`, not a code defect.
+- Rule: never run `npm run build` (or anything invoking the `prebuild` script) while a `next dev` server from the same checkout is live. If a build-time and a dev-time check are both needed in one session, run them sequentially — stop the dev server first, or run the build in an isolated checkout/worktree. If this error appears while both are running concurrently, confirm the cause via `node_modules/.prisma`'s presence/timestamp and the build's own exit code before treating it as a regression.
+- Source: Session 6-2 (2026-08-10) · Status: ACTIVE

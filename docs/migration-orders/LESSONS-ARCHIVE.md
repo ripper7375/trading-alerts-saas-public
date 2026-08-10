@@ -1314,3 +1314,61 @@ preserved here, verbatim, for anyone who needs the detail behind a specific occu
   further recurrences almost certainly happened in Sessions 4B-4 through 4B-18d per their own
   CLAUDE.md close-out notes, but were never individually appended to this list - not
   reconstructed retroactively here.)
+
+## L27 recurrence history (moved from LESSONS-LEARNED.md, Session 6-2, 2026-08-10)
+
+LESSONS-LEARNED.md's L27 ("An order's own file-by-file prose can drift from the SAME session's
+cited ground truth, silently and more than once") had accumulated 4 individually-narrated
+"Recurrence (Session ...)" bullets on top of its own original Symptom - well past that file's own
+"5+ recurrences into a single count line" hygiene rule. Collapsed to a count line in the active
+file; the full narrative is preserved here, verbatim, for anyone who needs the detail behind a
+specific occurrence.
+
+- Recurrence (Session 4A-W6): five more mismatches in a single order — a wrong SLA default (24h vs.
+  design's 72h), an invented interface shape in File 1's own prose (design §3.3's real
+  `FundableProvider` has completely different members), a quote-direction example that predated and
+  was superseded by a LATER binding decision (F38) recorded in a different document
+  (`DECISION-LOG.md`) than the one the order cited, an undercounted REST endpoint surface (3 vs. the
+  frozen OpenAPI's real 7), and two file-location disagreements with design §8's own module-layout
+  table. The F38 case is new: ground truth itself can be split across documents that disagree with
+  each other by DATE, not just an order paraphrasing one document imperfectly — the more recently
+  dated source (here, `DECISION-LOG.md`) wins, but only re-reading BOTH and checking dates catches
+  it. A sixth surfaced at session close, at Davin's explicit request: design §10's own testing
+  strategy named an unhappy-path scenario (`bounced_back` → `funds_refunded`, recipient →
+  `INVALID`) for this exact session that neither the order's File 8 test list nor its Done-when
+  carried forward — building the test against it late also surfaced that the "recipient →
+  `INVALID`" half was never actually implemented in code at all (see this order's own Deviations).
+- Recurrence (Session 4A-8): a new shape of the same class, at the file-existence/module-ownership
+  level rather than a descriptive detail. Two separate instances in one order: (1) the DRAFT's own
+  Step 1 named `money-service/src/stripe/stripe-checkout.controller.ts` and
+  `money-service/src/dlocal/dlocal-payment.controller.ts` — neither exists; the real audited gaps
+  (4A-W4's own citations) are monolith Next.js routes, since money-service has no write endpoints
+  until 4A-9. (2) Step 2's file list named only `money-service/prisma/schema.prisma` for the new
+  `OutboxEvent` model, omitting that a genuinely-new money-service-owned table still needs the
+  monolith-side mirror + real migration (L1: money-service has no migration authority of its own)
+  — the exact two-schema process 4A-W2 already established, just not cited here. Both were caught
+  by cross-checking the order's own cited ground truth (`migration-cutover-table.md`'s Slice 4
+  row; L1 itself) rather than trusting the file list as accurate, before writing any code against
+  it — re-scoped live (Step 1, before CONFIRM) or escalated live (Step 2's production migration,
+  mid-session) rather than silently building against nonexistent files.
+
+- Recurrence (Session 4A-9): the most severe form yet — an order omitted an entire dependency
+  FILE from its SOURCE list, not just a detail within a cited file. File 4/10's SOURCE named only
+  `app/api/webhooks/stripe/route.ts` (a thin dispatcher); ALL real business logic (tier upgrade,
+  subscription upsert, affiliate commission crediting, 5 email triggers) lives in
+  `lib/stripe/webhook-handlers.ts` (592 lines), never mentioned anywhere in the order. File 6/10
+  had the same shape at smaller scale: `app/api/payments/dlocal/create/route.ts` directly imports
+  `lib/dlocal/currency-converter.service.ts` and `payment-methods.service.ts`, neither cited. Both
+  found by actually reading the SOURCE file's own import statements before writing any target
+  code, not by trusting the order's file list as complete. Rule extension: for any PORT order
+  targeting a Next.js API route, read the route's own imports first — thin route handlers commonly
+  delegate real logic to sibling `lib/` files an order's file-count summary can silently omit.
+- Recurrence (Session 4A-11): smaller-scale, on a NEW-glue file rather than a PORT — the order's own
+  File 3 text cited `POST /v1/outbox/events` and a `wise-webhook.controller.ts` convention reference,
+  assuming money-service's global `/v1` prefix applies to operation-service too. Reading
+  `operation-service/src/main.ts` (no `setGlobalPrefix`) and every existing controller there showed
+  it has no `/v1` prefix at all; separately, the cited convention itself actually lives in a sibling
+  `queue/wise-webhook.processor.ts` file, not the controller named. Both caught by reading the real
+  target service's own conventions before wiring a route, not by trusting a cross-service citation —
+  the order had already hedged this exact spot ("verify exact line at build time"), which is why it
+  got checked instead of assumed.

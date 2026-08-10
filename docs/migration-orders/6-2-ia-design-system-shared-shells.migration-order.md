@@ -240,7 +240,20 @@ regenerated the Prisma clients while `next dev` was serving requests, producing 
 "Module not found: .prisma/non-market-client" errors in the dev server's logs. Confirmed this was
 the cause (not a Step 5 regression) by checking `node_modules/.prisma` still existed correctly
 post-build and that `next build` itself finished clean. Stopped the dev preview rather than
-chase a self-inflicted race.
+chase a self-inflicted race. Harvested as `LESSONS-LEARNED.md` **L58** (correcting this order's
+own earlier close-out draft, which had said "no new lesson" before this collision was weighed
+against the file's own harvest criteria a second time at wrap-up).
+
+**Deviation 12 (wrap-up, lesson-file hygiene):** on reflection at wrap-up, Deviation 11's own
+finding (Session 6-2 becoming L58) meets `LESSONS-LEARNED.md`'s own harvest bar (cost real
+diagnostic time, is a repeatable environment gotcha) and should have been recorded as a lesson at
+first close rather than dismissed. Also used the opportunity to apply the file's own "5+
+recurrences → single count line" rule to L27 (this order's own Step 3/Step 4 scope-drop, found at
+CONFIRM, is itself L27's 6th documented recurrence) — its 4 existing multi-paragraph recurrence
+notes were past that threshold already; collapsed to a count line, full narrative moved to
+`LESSONS-ARCHIVE.md`, matching the precedent L11 set at Session 4B-19. The file's own ~40-entry
+cap (now at 58) is unaffected by either change — a full consolidation pass stays flagged in the
+file's own header as a separate, dedicated task for a session that isn't itself time-constrained.
 
 ## Known wrinkles / do-not-touch
 

@@ -114,9 +114,11 @@ admin/login/page.tsx` deleted; replaced with a permanent `next.config.js` redire
   new files + 6 modified + 7 moved + 2 deleted), this file (session-history hygiene: Session 6-1's
   own full text moved to `history/sessions-archive.md`, matching this file's own rotation rule —
   the larger pre-existing backlog flagged at Waiting-on #102 is unchanged, still needs its own
-  dedicated cleanup session). No new `LESSONS-LEARNED.md` entry — nothing this session cost >30
-  min to diagnose, recurred, or reached CI/production; the L11 recurrence and the Step 3/4
-  scope-drop are both already-documented pattern classes, not new failure shapes. New
+  dedicated cleanup session), `LESSONS-LEARNED.md` (new **L58** — running a backgrounded `npm run
+  build` while `next dev` is live races `prebuild`'s own `rimraf node_modules/.prisma`, producing
+  transient "module not found" errors that look like a regression but aren't; L27's own
+  4-recurrence narrative collapsed to a count line + this session's fresh finding, full detail
+  moved to `LESSONS-ARCHIVE.md`, matching L11's own precedent). New
   `6-3-alerts-charts.migration-order.md` PRE-DRAFTed (UI-BUILD variant) per the order's own
   Next-session handoff — **not fast-path eligible**, needs a full Advisor DRAFT before CONFIRM.
 - **Previous:** Session 6-1b (Mock-Data Hotfix, PORT variant, low dial), CONFIRMED, executed,
