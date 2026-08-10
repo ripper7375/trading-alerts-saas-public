@@ -26,7 +26,100 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 6-1b (Mock-Data Hotfix, PORT variant, low dial), CONFIRMED, executed,
+- **Current:** Session 6-2 (IA + Design System + Shared Shells, UI-BUILD variant, dial HIGH for
+  layout/nav, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-10, same day as
+  Session 6-1b. **`DECISION-LOG.md` F62 is now RESOLVED and EXECUTED — all 23 admin pages live
+  under one guarded tree for the first time in this migration.**
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again**: committed `HEAD`
+  had the order at `Status: PRE-DRAFT`; the working copy was a full uncommitted rewrite to
+  `Status: APPROVED` (source citation swapped from `phase-6-frontend-gap-matrix.md`, Session 6-1's
+  own re-verified output, to the less-authoritative `docs/files-completion-list/
+ui-page-gap-analysis.md`; F62's three PRE-DRAFT options collapsed to a single "Recommendation").
+  Reported to Davin in full before treating any of it as trustworthy; he confirmed live it was his
+  own authentic authorization.
+  **F62's own Entry Criterion 2 ("resolved") was independently found FAILING against the tracked
+  record** — `DECISION-LOG.md`'s register and full entry both still read `Status: OPEN` at CONFIRM
+  time; the order's own "Recommendation (Option a)" callout was not itself a resolution. Davin
+  formally approved Option (a) live at CONFIRM — merge `app/admin/*` into
+  `app/(dashboard)/admin/*`, retire `app/admin/login` with a plain redirect to `/login` (no
+  role-aware handling preserved) — `DECISION-LOG.md` updated to RESOLVED before Step 5 executed.
+  **Two real scope-boundary gaps found in the order's own rewritten Step 3/Step 4 text, both
+  corrected by Davin live before execution:** the PRE-DRAFT's explicit carve-out that 2 of C-3's
+  14 dead links (`/terms`, `/privacy`) are F63/6-10-owned had been silently dropped from the
+  rewrite (a third, `/notifications` — Session 6-4's own bell-link target — was never carved out
+  in any draft); and Step 4's actionable list only named 6 of the 8 dead footer links the order's
+  own Context section cited for A1-18, silently dropping `/affiliate` and `/disclaimer`. All
+  corrected live before any code was written.
+  **Independently re-verified every cited matrix row against live code before touching anything**
+  (F62's 15+8=23 page count, the admin nav's real 4-link array, the settings grid's real 4-of-9
+  links, sidebar/mobile-nav's exact dead-link lines, the footer's real 10 dead links, C-3's full
+  14-item list) — zero drift found beyond the two gaps above. Baseline re-measured exact match to
+  the order's own citation: `tsc --noEmit` clean; `eslint --max-warnings 0` — same 3 pre-existing
+  warnings; `test:ci` 133/133 suites, 2206/2206 tests.
+  **Built (5 Ordered Steps, one commit each):** Step 1 — `app/not-found.tsx` +
+  `app/global-error.tsx` (B1-1/B1-2, Next.js previously fell back to generic defaults for both;
+  `global-error.tsx` mirrors `app/error.tsx`'s existing visual language and defines its own
+  `<html>`/`<body>` since it replaces the root layout entirely when active). Step 2 — `/settings`
+  grid completion (A1-4b): 5 new subpage cards (`account`/`security`/`help`/`language`/`terms`)
+  added to the existing 4, all 9 real subpages now reachable. Step 3 — dead nav-link removal
+  (A1-12/C-3): `/analytics`/`/indicators` removed from `sidebar.tsx`/`mobile-nav.tsx`;
+  `register-form.tsx`'s `/affiliate/join` CTA repointed to the real `/affiliate/register` route;
+  `/terms`/`/privacy`/`/notifications` deliberately left untouched per the carve-outs above.
+  Step 4 — marketing footer pruning (A1-18, now including `/affiliate`/`/disclaimer` per Davin's
+  live correction): the Company and Resources columns removed entirely (zero valid destinations
+  remained in either after pruning); grid narrowed 4→2 columns to match.
+  **Step 5 (F62/A1-3b, the one genuinely hard-to-undo piece, its own commit):** 7 real pages moved
+  via `git mv` from `app/admin/*` into `app/(dashboard)/admin/*` (`affiliates`, `affiliates/[id]`,
+  `affiliates/reports/{4 report pages}`, `settings/affiliate`) — URLs unchanged throughout, since
+  `(dashboard)` is a route group stripped from the path, so zero internal hrefs needed updating
+  (confirmed zero relative imports across all 8 moved/retired files before moving anything). `app/
+admin/login/page.tsx` deleted; replaced with a permanent `next.config.js` redirect
+  (`/admin/login → /login`) per Davin's explicit direction. Admin nav expanded from 4 to all 8
+  sections (Dashboard/Users/Fraud Alerts/API Usage/System Errors/Affiliates & Reports/
+  Disbursements/Affiliate Settings), matching the existing plain-emoji `AdminNavItem` style rather
+  than introducing icon components. `middleware.ts`'s `/admin` exclusion (previously needed to
+  avoid redirecting logged-out admins away from the now-deleted standalone login page) removed —
+  `/admin/:path*` added to the matcher as the same edge-level defense-in-depth every other
+  authenticated route already gets, with the layout guard staying authoritative either way.
+  `__tests__/app/admin-login.test.tsx` retired (no equivalent page left to test).
+  **Full verification:** `test:ci` **132/132 suites, 2202/2202 tests** (was 133/133, 2206/2206 —
+  the -1 suite/-4 tests is exactly the retired admin-login test, zero regressions elsewhere); `tsc
+--noEmit` clean throughout; `eslint app components lib hooks --max-warnings 0` — same 3
+  pre-existing warnings, 0 new; a full `next build` re-run at session close completed clean (exit
+  0, zero compile/type errors) across every route including the moved admin tree and both new
+  boundary pages.
+  **Live verification, partial, disclosed rather than silently skipped:** the Browser pane
+  initially failed to render frames (a session-environment gap, not a code issue) — worked on
+  retry. Confirmed live before treating anything as done: the new 404 page renders correctly with
+  all 3 actions for a genuinely unmatched route; `/admin/login` correctly lands on the existing
+  `/login` page (no crash, confirming the redirect/middleware interaction is safe); `/pricing`
+  (exercising the pruned marketing footer's sibling markup) renders fully. **Did not reach a real
+  authenticated admin/settings session** — no test credentials were available in this environment;
+  carries forward the exact same gap Session 6-1b already flagged (Waiting-on #117,
+  `CredentialsProvider` removed at Session 4B-21) — still needs Davin's own browser session to
+  close for real.
+  **A transient environment collision, disclosed, not a regression:** mid-verification, a
+  backgrounded `npm run build` (whose own `prebuild` script wipes and regenerates
+  `node_modules/.prisma`) collided with the still-running `next dev` preview, producing transient
+  "module not found" errors in the dev server's own logs — confirmed as a self-inflicted race (not
+  caused by Step 5's file moves) before it cost any real diagnostic time; the dev preview was
+  stopped rather than chased further, since the subsequent clean `next build` was the stronger
+  signal anyway.
+  **No flag, no cutover-table row** — same-stack IA/navigation work, no flag existed to touch or
+  retire; `migration-cutover-table.md` unchanged.
+  **Artifacts updated:** `6-2-ia-design-system-shared-shells.migration-order.md` (Status →
+  CONFIRMED, executed; Entry criteria all checked; Done-when checked except the live-manual-check
+  item marked explicitly partial; Deviations filled in full — 11 entries), `DECISION-LOG.md` (F62
+  → RESOLVED with full decision entry), `migration-stack-analysis.md` (new Session 6-2 entry, 2
+  new files + 6 modified + 7 moved + 2 deleted), this file (session-history hygiene: Session 6-1's
+  own full text moved to `history/sessions-archive.md`, matching this file's own rotation rule —
+  the larger pre-existing backlog flagged at Waiting-on #102 is unchanged, still needs its own
+  dedicated cleanup session). No new `LESSONS-LEARNED.md` entry — nothing this session cost >30
+  min to diagnose, recurred, or reached CI/production; the L11 recurrence and the Step 3/4
+  scope-drop are both already-documented pattern classes, not new failure shapes. New
+  `6-3-alerts-charts.migration-order.md` PRE-DRAFTed (UI-BUILD variant) per the order's own
+  Next-session handoff — **not fast-path eligible**, needs a full Advisor DRAFT before CONFIRM.
+- **Previous:** Session 6-1b (Mock-Data Hotfix, PORT variant, low dial), CONFIRMED, executed,
   CLOSED (partial — live manual check not done, see below) 2026-08-10, same day as Session 6-1.
   **All 3 fabricated-data pages plus the 1 fabricated field Session 6-1 identified (A1-1/A1-2/
   A1-3/A1-4) are now genuinely wired to real endpoints — zero mock data remains anywhere in the
@@ -111,83 +204,6 @@ cancel` directly into this component would mean a user who clicks Cancel then Un
   Advisor DRAFT before CONFIRM. The live-manual-check carry-forward (Waiting-on #117) and
   `DECISION-LOG.md` F64 both folded into 6-2's own Next-session handoff rather than spawning a
   separate session for either.
-- **Previous:** Session 6-1 (Frontend Gap Matrix & Endpoint Mapping, F11, CONTRACT variant),
-  CONFIRMED and executed 2026-08-10 — **CLOSED with F11 still OPEN. This is a deliberate,
-  disclosed partial close, not a silent shortfall:** the order's own Rollback clause says the
-  matrix "stays uncommitted rather than shipping half-triaged" if Davin's row-by-row triage is
-  incomplete — it is (the Triage column is empty throughout) — and Davin explicitly instructed
-  committing and pushing this session's work anyway, a recorded deviation from that default, not
-  a silent override either way.
-  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again**: the order file's
-  only committed version was the original PRE-DRAFT (`Status: PRE-DRAFT`, `Variant: AUDIT`,
-  2026-07-23, commit `702da51b`) — the working copy was a full rewrite (191 lines changed) to
-  `Status: APPROVED`, `Variant: CONTRACT`, with zero DRAFT-stage commit trail. The same
-  uncommitted batch also touched `CLAUDE.md`, `DECISION-LOG.md` (F61/F62/F63 pre-registered),
-  `migration-cutover-table.md` and both the implementation plan and session playbook (Phase 6
-  restructured 9→12 sessions) — all internally consistent with each other. Reported to Davin in
-  full before treating any of it as trustworthy; he confirmed live it was his own authentic edit
-  via the Antigravity Advisor, made 2026-08-10.
-  **Step 1 (independently re-verify the census, don't adopt on trust) executed for real:**
-  re-enumerated `app/**/page.tsx` (57 files, confirmed), `app/api/**/route.ts` (122 endpoints,
-  confirmed), and re-checked the two pre-computed input artifacts
-  (`docs/files-completion-list/ui-page-gap-analysis.md` + `ui-page-gap-register.xlsx`, produced
-  out-of-band 2026-08-10) against live code — every headline finding plus ~40 of the ~54
-  itemized Section A/C rows were independently re-derived via direct file/grep inspection, not
-  one substantively wrong. Confirmed exactly, at file:line precision: 56 real routes (not 54;
-  rows 18/18-5 are one dynamic route; 3 unregistered Admin detail pages exist in code); the 3
-  fabricated-data pages (`/settings/billing` zero `fetch(` in 439 lines, `/admin/fraud-alerts/[id]`
-  `MOCK_ALERT`, `/admin` mock activity feed); the admin-tree split (15 pages under
-  `app/(dashboard)/admin/*` + 8 under `app/admin/*` = 23, `app/admin/layout.tsx` confirmed
-  absent — `DECISION-LOG.md` F62); `middleware.ts`'s matcher confirmed to cover only
-  `/dashboard`, `/alerts`, `/charts`, `/settings` (F62-adjacent); all 14 dead internal links
-  individually checked and confirmed missing; `app/not-found.tsx` confirmed absent.
-  **Two corrections and one genuine addition found, all recorded in the produced matrix's own
-  "Corrections found this session" section:** a trivial off-by-one citation (`mockInvoices` at
-  line 61, not "60-61"); an imprecise nav-link claim on the duplicate affiliate payment pages
-  (A1-16 — the layout links to the Profile parent page and to the new payout-settings page, not
-  directly to the legacy page by that literal path; the substantive finding is unchanged); and a
-  real scope-narrowing find the source artifact missed entirely — `lib/geo/detect-country.ts`
-  already implements the exact `detectCountry(headers)`/`detectCountryFromIP(ip)` logic F61
-  needs, 100%-line-covered by its own test, with **zero importers anywhere** — F61's real fix is
-  a thin route wrapper around already-working code, not new detection logic. Six rows were not
-  independently re-verified beyond the source artifact (flagged explicitly in the matrix, not
-  silently marked "yes"); four Section B rows don't fit the order's own Step 3 session-assignment
-  table cleanly (flagged with a recommendation rather than forced in, per the order's own Rule).
-  **Regression baseline re-measured, not carried from the order's stale figures:** `tsc --noEmit`
-  clean; `test:ci` **129/129 suites, 2191/2191 tests** (exact match to the order's own cited
-  current baseline — genuinely re-confirmed, not assumed). **`eslint app components lib hooks
---max-warnings 0` is NOT clean** — 3 warnings (0 errors), `@next/next/no-location-assign-
-relative-destination` on two pre-existing files neither touched this session or by this audit:
-  `components/layout/header.tsx` (lines 85, 89 — Session 4B-21's own deliberate full-navigation
-  logout fix, commit `160b4935`) and `app/(dashboard)/admin/disbursement/batches/[batchId]/
-page.tsx` (line 236, predates the migration entirely, commit `b14e4a98`, Dec 2025). Root cause:
-  `eslint-config-next` is now `16.3.0`, newer than what was installed when 4B-21 last scope-
-  checked `header.tsx` alone and got clean — the rule is new or newly enforced since then, not a
-  regression either audit introduced. Recorded honestly per `LESSONS-LEARNED.md` L20's own
-  discipline rather than repeating "clean"; not fixed here (Rule 1: "No building... not one
-  bugfix" — this is a documentation-only session, and the two flagged files are unrelated to its
-  scope).
-  **Steps 2-4 executed:** `docs/migration-orders/phase-6-frontend-gap-matrix.md` produced (Step 2) — every row carries an ID, ownership, backing evidence, a re-verification status, and a
-  proposed target session (Step 3); F61/F62/F63 (already drafted uncommitted from the 2026-08-10
-  prep pass) finalized and committed as genuinely OPEN, owner Davin, with due sessions (Step 4).
-  **Step 5 (obtain Davin's triage) did NOT happen this session** — assigning `build` /
-  `internal-only` / `out-of-scope` to each row is Davin's own product judgment, explicitly not
-  the Executor's to infer (order Rule 3), and was not requested or provided in this session.
-  **F11 therefore stays OPEN** — this is the actual, load-bearing remaining gap, not a
-  documentation-completeness issue; the matrix is real and accurate, but nobody has yet decided
-  which of its ~54 rows get built.
-  **Artifacts updated:** `6-1-gap-matrix-f11.migration-order.md` (Status → CONFIRMED, executed;
-  Deviations filled in full), `docs/migration-orders/phase-6-frontend-gap-matrix.md` (new),
-  `DECISION-LOG.md` (F11 status updated to reflect matrix-delivered/triage-pending; F61 entry
-  extended with the `lib/geo/detect-country.ts` finding), `migration-stack-analysis.md` (new
-  entry for the matrix artifact), `LESSONS-LEARNED.md` (new lesson on scoped-vs-full lint checks;
-  L11 recurrence note), this file (session-history hygiene rotation: Session 4B-21's full text
-  moved to `history/sessions-archive.md`, a short pointer left in place — the larger pre-existing
-  rotation backlog from 4B-20 onward, already flagged at Waiting-on #102, is unchanged and still
-  needs its own dedicated cleanup session). New
-  `6-1b-mock-data-hotfix.migration-order.md` PRE-DRAFTed (PORT variant, low dial) per the order's
-  own Next-session handoff — scoped exactly to A1-1/A1-2/A1-3(mock half)/A1-4(count half), no
-  redesign, no new components, no layout changes.
 - **Previous:** _(superseded-by-above, retained for context)_ Session 4B-21 (Auth Cutover & UI
   Rewire, PORT/UI-BUILD hybrid), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-04 — full text
   moved to
@@ -4063,32 +4079,35 @@ close, a separate track — Davin to decide ordering against Slice 4 (4A-8), the
 Slice-3-RETIRE session, and the now-active `4A-W_` series.
 - **Next session (Phase 6 track — THE literal next session overall as of 2026-08-10):**
   **Session 6-1** is CONFIRMED, executed, and CLOSED — **with `DECISION-LOG.md` F11 still
-  OPEN** (see Previous above: the gap matrix is real and re-verified, but Davin's row-by-row
-  triage was not obtained that session — that is F11's actual remaining content, not a
+  OPEN** (see historical block above: the gap matrix is real and re-verified, but Davin's
+  row-by-row triage was not obtained that session — that is F11's actual remaining content, not a
   documentation gap). `docs/migration-orders/phase-6-frontend-gap-matrix.md` is the produced
-  artifact; F61/F62/F63 are committed OPEN. **Session 6-1b is now ALSO CONFIRMED, executed, and
-  CLOSED** (see Current above) — all 3 fabricated-data pages + the 1 fabricated field are wired to
-  real endpoints; F64 (new) and the deferred live-manual-check are the only carry-forwards, both
-  folded into 6-2's own briefing rather than a separate session. **Session 6-2**
-  (IA + design system + shared shells) is the literal next session — no order file drafted for it
-  yet (per chain-length-one, only 6-1 got a full order; 6-2 needs its own full Advisor DRAFT given
-  F62's "structurally hard to undo" framing). Two named Phase 4 exceptions run as their own
-  independent tracks and do NOT block Phase 6: `DECISION-LOG.md` F49 (dLocal `payment_method_flow`,
-  needs its own fix session) and F60 (`4a-13-stripe-webhook-cutover.migration-order.md`,
-  PRE-DRAFTed).
+  artifact; F61/F63 are still committed OPEN (F62 RESOLVED at 6-2, see below). **Session 6-1b is
+  now ALSO CONFIRMED, executed, and CLOSED** (see Previous above) — all 3 fabricated-data pages +
+  the 1 fabricated field are wired to real endpoints; F64 (new) carries forward, non-blocking.
+  **Session 6-2 is now ALSO CONFIRMED, executed, and CLOSED SUCCESSFUL** (see Current above) — F62
+  RESOLVED and EXECUTED (all 23 admin pages consolidated under `app/(dashboard)/admin/*`);
+  `app/not-found.tsx`/`app/global-error.tsx` live; `/settings` grid, dead nav links, and the
+  marketing footer all fixed. The deferred live-manual-check (Waiting-on #117) carries forward
+  again, still needing Davin's own browser session. **Session 6-3** (alerts/charts) is now the
+  literal next session — PRE-DRAFTed at 6-2's close, needs a full Advisor DRAFT before CONFIRM
+  (not fast-path eligible). Two named Phase 4 exceptions run as their own independent tracks and
+  do NOT block Phase 6: `DECISION-LOG.md` F49 (dLocal `payment_method_flow`, needs its own fix
+  session) and F60 (`4a-13-stripe-webhook-cutover.migration-order.md`, PRE-DRAFTed).
   **Phase 6 is now 12 sessions, in this order:** 6-1 (gap matrix, audit only — done) → 6-1b
-  (mock-data hotfix, PORT/low dial — done) → **6-2** (IA + design system + shared shells; resolves
-  F62; adds `app/not-found.tsx`; kills the dead `/analytics` + `/indicators` nav links, next) →
-  6-3 (alerts/charts) → 6-4 (notifications; builds the
+  (mock-data hotfix, PORT/low dial — done) → 6-2 (IA + design system + shared shells; F62
+  resolved/executed — done) → **6-3** (alerts/charts, next) → 6-4 (notifications; builds the
   `/notifications` page the bell already links to) → 6-5 (settings/user; account-deletion
   confirm/cancel pages) → 6-6 (admin) → 6-7 (affiliate) → 6-8 (payments/checkout; resolves F61) →
   **6-10** (NEW — public/marketing surface; blocked on F63) → **6-11** (NEW — admin system
   operations) → **6-12** (a11y + responsive + phase exit; was 6-9). **Session number 6-9 is
   retired — do not reuse it.**
-  **Per the chain-length-one rule (`00-SKELETON-AND-RULES.md` §1.5), only 6-1 has an order file.**
-  6-1b, 6-10, 6-11 and 6-12 are defined in the playbook and the v9 handbook, and each gets its
-  own order PRE-DRAFTed by the Executor at the close of the session before it — they were
-  deliberately NOT drafted ahead.
+  **Per the chain-length-one rule (`00-SKELETON-AND-RULES.md` §1.5), 6-1 and 6-2 both got full
+  order files** (6-2's own F62 scope made it not fast-path eligible, same reasoning). 6-1b, 6-10,
+  6-11 and 6-12 are defined in the playbook and the v9 handbook, and each gets its own order
+  PRE-DRAFTed by the Executor at the close of the session before it — they were deliberately NOT
+  drafted ahead. 6-3's own order was PRE-DRAFTed at 6-2's close per the same rule (a domain-build
+  session following a just-closed one).
 - **Waiting on (Phase 6, added 2026-08-10 by the UI gap analysis):** **(106, NEW)** `DECISION-LOG.md`
   **F61** — `GET /api/geo/detect` is called by `app/(marketing)/pricing/page.tsx:155` and
   `components/payments/CountrySelector.tsx:69` but `app/api/geo/` does not exist; every pricing-page
@@ -4273,7 +4292,12 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   shim kept indefinitely; `CredentialsProvider`/2FA/registration/sessions cut to
   operation-service via the `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED` flag (default off, cutover is
   Session 4B-21) ·
-  F11–F12, F64 OPEN (register: plan §11 · resolutions: `docs/migration-orders/DECISION-LOG.md`)
+  **F62 fully RESOLVED and EXECUTED (Session 6-2, Davin)** — Option (a): `app/admin/*` merged
+  into `app/(dashboard)/admin/*`, `app/admin/login` retired with a permanent redirect to
+  `/login`; all 23 admin pages now share one `getServerSession` + role guard and one 8-section
+  nav ·
+  F11–F12, F49, F50, F61, F63, F64 OPEN (register: plan §11 · resolutions:
+  `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents
 

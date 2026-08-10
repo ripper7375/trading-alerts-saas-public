@@ -7,6 +7,86 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+_(superseded-by-above, retained for context)_ Session 6-1 (Frontend Gap Matrix & Endpoint Mapping, F11, CONTRACT variant),
+CONFIRMED and executed 2026-08-10 — **CLOSED with F11 still OPEN. This is a deliberate,
+disclosed partial close, not a silent shortfall:** the order's own Rollback clause says the
+matrix "stays uncommitted rather than shipping half-triaged" if Davin's row-by-row triage is
+incomplete — it is (the Triage column is empty throughout) — and Davin explicitly instructed
+committing and pushing this session's work anyway, a recorded deviation from that default, not
+a silent override either way.
+**CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again**: the order file's
+only committed version was the original PRE-DRAFT (`Status: PRE-DRAFT`, `Variant: AUDIT`,
+2026-07-23, commit `702da51b`) — the working copy was a full rewrite (191 lines changed) to
+`Status: APPROVED`, `Variant: CONTRACT`, with zero DRAFT-stage commit trail. The same
+uncommitted batch also touched `CLAUDE.md`, `DECISION-LOG.md` (F61/F62/F63 pre-registered),
+`migration-cutover-table.md` and both the implementation plan and session playbook (Phase 6
+restructured 9→12 sessions) — all internally consistent with each other. Reported to Davin in
+full before treating any of it as trustworthy; he confirmed live it was his own authentic edit
+via the Antigravity Advisor, made 2026-08-10.
+**Step 1 (independently re-verify the census, don't adopt on trust) executed for real:**
+re-enumerated `app/**/page.tsx` (57 files, confirmed), `app/api/**/route.ts` (122 endpoints,
+confirmed), and re-checked the two pre-computed input artifacts
+(`docs/files-completion-list/ui-page-gap-analysis.md` + `ui-page-gap-register.xlsx`, produced
+out-of-band 2026-08-10) against live code — every headline finding plus ~40 of the ~54
+itemized Section A/C rows were independently re-derived via direct file/grep inspection, not
+one substantively wrong. Confirmed exactly, at file:line precision: 56 real routes (not 54;
+rows 18/18-5 are one dynamic route; 3 unregistered Admin detail pages exist in code); the 3
+fabricated-data pages (`/settings/billing` zero `fetch(` in 439 lines, `/admin/fraud-alerts/[id]`
+`MOCK_ALERT`, `/admin` mock activity feed); the admin-tree split (15 pages under
+`app/(dashboard)/admin/*` + 8 under `app/admin/*` = 23, `app/admin/layout.tsx` confirmed
+absent — `DECISION-LOG.md` F62); `middleware.ts`'s matcher confirmed to cover only
+`/dashboard`, `/alerts`, `/charts`, `/settings` (F62-adjacent); all 14 dead internal links
+individually checked and confirmed missing; `app/not-found.tsx` confirmed absent.
+**Two corrections and one genuine addition found, all recorded in the produced matrix's own
+"Corrections found this session" section:** a trivial off-by-one citation (`mockInvoices` at
+line 61, not "60-61"); an imprecise nav-link claim on the duplicate affiliate payment pages
+(A1-16 — the layout links to the Profile parent page and to the new payout-settings page, not
+directly to the legacy page by that literal path; the substantive finding is unchanged); and a
+real scope-narrowing find the source artifact missed entirely — `lib/geo/detect-country.ts`
+already implements the exact `detectCountry(headers)`/`detectCountryFromIP(ip)` logic F61
+needs, 100%-line-covered by its own test, with **zero importers anywhere** — F61's real fix is
+a thin route wrapper around already-working code, not new detection logic. Six rows were not
+independently re-verified beyond the source artifact (flagged explicitly in the matrix, not
+silently marked "yes"); four Section B rows don't fit the order's own Step 3 session-assignment
+table cleanly (flagged with a recommendation rather than forced in, per the order's own Rule).
+**Regression baseline re-measured, not carried from the order's stale figures:** `tsc --noEmit`
+clean; `test:ci` **129/129 suites, 2191/2191 tests** (exact match to the order's own cited
+current baseline — genuinely re-confirmed, not assumed). **`eslint app components lib hooks
+--max-warnings 0` is NOT clean** — 3 warnings (0 errors), `@next/next/no-location-assign-
+relative-destination` on two pre-existing files neither touched this session or by this audit:
+`components/layout/header.tsx` (lines 85, 89 — Session 4B-21's own deliberate full-navigation
+logout fix, commit `160b4935`) and `app/(dashboard)/admin/disbursement/batches/[batchId]/
+page.tsx` (line 236, predates the migration entirely, commit `b14e4a98`, Dec 2025). Root cause:
+`eslint-config-next` is now `16.3.0`, newer than what was installed when 4B-21 last scope-
+checked `header.tsx` alone and got clean — the rule is new or newly enforced since then, not a
+regression either audit introduced. Recorded honestly per `LESSONS-LEARNED.md` L20's own
+discipline rather than repeating "clean"; not fixed here (Rule 1: "No building... not one
+bugfix" — this is a documentation-only session, and the two flagged files are unrelated to its
+scope).
+**Steps 2-4 executed:** `docs/migration-orders/phase-6-frontend-gap-matrix.md` produced (Step 2) — every row carries an ID, ownership, backing evidence, a re-verification status, and a
+proposed target session (Step 3); F61/F62/F63 (already drafted uncommitted from the 2026-08-10
+prep pass) finalized and committed as genuinely OPEN, owner Davin, with due sessions (Step 4).
+**Step 5 (obtain Davin's triage) did NOT happen this session** — assigning `build` /
+`internal-only` / `out-of-scope` to each row is Davin's own product judgment, explicitly not
+the Executor's to infer (order Rule 3), and was not requested or provided in this session.
+**F11 therefore stays OPEN** — this is the actual, load-bearing remaining gap, not a
+documentation-completeness issue; the matrix is real and accurate, but nobody has yet decided
+which of its ~54 rows get built.
+**Artifacts updated:** `6-1-gap-matrix-f11.migration-order.md` (Status → CONFIRMED, executed;
+Deviations filled in full), `docs/migration-orders/phase-6-frontend-gap-matrix.md` (new),
+`DECISION-LOG.md` (F11 status updated to reflect matrix-delivered/triage-pending; F61 entry
+extended with the `lib/geo/detect-country.ts` finding), `migration-stack-analysis.md` (new
+entry for the matrix artifact), `LESSONS-LEARNED.md` (new lesson on scoped-vs-full lint checks;
+L11 recurrence note), this file (session-history hygiene rotation: Session 4B-21's full text
+moved to `history/sessions-archive.md`, a short pointer left in place — the larger pre-existing
+rotation backlog from 4B-20 onward, already flagged at Waiting-on #102, is unchanged and still
+needs its own dedicated cleanup session). New
+`6-1b-mock-data-hotfix.migration-order.md` PRE-DRAFTed (PORT variant, low dial) per the order's
+own Next-session handoff — scoped exactly to A1-1/A1-2/A1-3(mock half)/A1-4(count half), no
+redesign, no new components, no layout changes.
+
+---
+
 _(superseded-by-above, retained for context)_ Session 4B-22 (Phase 4 Exit Review, VERIFY-RETIRE/AUDIT variant), CONFIRMED and
 executed 2026-08-04 — **CLOSED: Phase 4 is CLOSED-WITH-NAMED-EXCEPTIONS, not cleanly closed.**
 CONFIRM re-verified Session 4B-21's own close (git log `2105d1fd`, order file's own `Status:
