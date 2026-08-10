@@ -6,17 +6,23 @@ import {
   defaultPreferences,
   type LocalePreferences,
 } from '@/lib/i18n/locale-resolver';
+import { AppearanceProvider } from '@/components/providers/appearance-provider';
+import { AppearanceSettings } from '@/lib/appearance/types';
 
 export default function ClientProviders({
   children,
   initialPreferences = defaultPreferences,
+  initialAppearance,
 }: {
   children: React.ReactNode;
   initialPreferences?: LocalePreferences;
+  initialAppearance?: AppearanceSettings;
 }) {
   return (
     <LocaleProvider initialPreferences={initialPreferences}>
-      {children}
+      <AppearanceProvider initialSettings={initialAppearance}>
+        {children}
+      </AppearanceProvider>
     </LocaleProvider>
   );
 }

@@ -7,6 +7,7 @@ import { ThemeSync } from '@/components/theme-sync';
 import ClientProviders from '@/components/providers/client-providers';
 
 import { defaultPreferences } from '@/lib/i18n/locale-resolver';
+import { getServerAppearance } from '@/lib/appearance/server-appearance';
 
 export const metadata: Metadata = {
   title: 'DavinTrade AI',
@@ -30,13 +31,26 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const initialAppearance = await getServerAppearance();
+
   return (
-    <html lang="en-GB" suppressHydrationWarning>
+    <html
+      lang="en-GB"
+      suppressHydrationWarning
+      data-accent={initialAppearance.accent}
+      style={{
+        ['--chart-candle-up' as string]: initialAppearance.chartUpColor,
+        ['--chart-candle-down' as string]: initialAppearance.chartDownColor,
+        ['--chart-grid-opacity' as string]: (
+          initialAppearance.gridOpacity / 100
+        ).toString(),
+      }}
+    >
       <head>
         <style
           dangerouslySetInnerHTML={{
@@ -54,7 +68,7 @@ export default function RootLayout({
                 try {
                   var u = new URLSearchParams(window.location.search);
                   var c = document.cookie.match(/davintrade-theme=([^;]+)/);
-                  var t = u.get('theme') || (c && c[1]) || localStorage.getItem('davintrade-theme') || 'dark';
+                  var t = u.get('theme') || (c && c[1]) || localStorage.getItem('davintrade-theme') || '${initialAppearance.theme}';
                   var d = document.documentElement;
                   d.classList.remove('dark', 'light');
                   d.classList.add(t);
@@ -71,14 +85,17 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme={initialAppearance.theme}
           storageKey="davintrade-theme"
           disableTransitionOnChange
         >
           <Suspense fallback={null}>
             <ThemeSync />
           </Suspense>
-          <ClientProviders initialPreferences={defaultPreferences}>
+          <ClientProviders
+            initialPreferences={defaultPreferences}
+            initialAppearance={initialAppearance}
+          >
             {children}
           </ClientProviders>
         </ThemeProvider>

@@ -47,6 +47,7 @@ import { cn } from '@/lib/utils';
 import type { Symbol, Timeframe, Tier } from '@/lib/types';
 import { useLocale } from '@/lib/context/locale-context';
 import type { M15ViewMode } from '@/lib/types';
+import { useChartAppearance } from '@/components/providers/appearance-provider';
 
 interface TradingChartProps {
   tier?: Tier;
@@ -70,6 +71,8 @@ export default function TradingChart({
   onAskAiFromChart,
 }: TradingChartProps) {
   const { t, language, timezone, timeFormat, formatDate } = useLocale();
+  const { chartUpColor, chartDownColor, gridOpacity, gridOpacityDecimal } =
+    useChartAppearance();
   const containerM5Ref = useRef<HTMLDivElement>(null);
   const containerM15Ref = useRef<HTMLDivElement>(null);
   const chartM5Ref = useRef<IChartApi | null>(null);
@@ -177,7 +180,7 @@ export default function TradingChart({
     setIsM5OnM15(checked);
   };
 
-  // Initialize Charts (No Grid Overlay as requested!)
+  // Initialize Charts with dynamic appearance tokens
   useEffect(() => {
     if (!containerM5Ref.current || !containerM15Ref.current) return;
 
@@ -191,13 +194,23 @@ export default function TradingChart({
         textColor: textM5,
       },
       grid: {
-        vertLines: { visible: false },
-        horzLines: { visible: false },
+        vertLines: {
+          visible: gridOpacity > 0,
+          color: isDark
+            ? `rgba(148, 163, 184, ${gridOpacityDecimal})`
+            : `rgba(203, 213, 225, ${gridOpacityDecimal})`,
+        },
+        horzLines: {
+          visible: gridOpacity > 0,
+          color: isDark
+            ? `rgba(148, 163, 184, ${gridOpacityDecimal})`
+            : `rgba(203, 213, 225, ${gridOpacityDecimal})`,
+        },
       },
       crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderColor: '#1e293b' },
+      rightPriceScale: { borderColor: isDark ? '#1e293b' : '#cbd5e1' },
       timeScale: {
-        borderColor: '#1e293b',
+        borderColor: isDark ? '#1e293b' : '#cbd5e1',
         timeVisible: true,
         secondsVisible: false,
         tickMarkFormatter: chartLocalization.tickMarkFormatter,
@@ -215,17 +228,17 @@ export default function TradingChart({
 
     if (m5PriceMode === 'CANDLE') {
       const candlestickM5 = chartM5.addSeries(CandlestickSeries, {
-        upColor: '#22c55e',
-        downColor: '#ef4444',
+        upColor: chartUpColor,
+        downColor: chartDownColor,
         borderVisible: false,
-        wickUpColor: '#22c55e',
-        wickDownColor: '#ef4444',
+        wickUpColor: chartUpColor,
+        wickDownColor: chartDownColor,
       });
       candlestickM5.setData(dataM5);
     } else if (m5PriceMode === 'BAR') {
       const barM5 = chartM5.addSeries(BarSeries, {
-        upColor: '#22c55e',
-        downColor: '#ef4444',
+        upColor: chartUpColor,
+        downColor: chartDownColor,
       });
       barM5.setData(dataM5);
     }
@@ -261,13 +274,23 @@ export default function TradingChart({
         textColor: textM15,
       },
       grid: {
-        vertLines: { visible: false },
-        horzLines: { visible: false },
+        vertLines: {
+          visible: gridOpacity > 0,
+          color: isDark
+            ? `rgba(167, 139, 250, ${gridOpacityDecimal})`
+            : `rgba(203, 213, 225, ${gridOpacityDecimal})`,
+        },
+        horzLines: {
+          visible: gridOpacity > 0,
+          color: isDark
+            ? `rgba(167, 139, 250, ${gridOpacityDecimal})`
+            : `rgba(203, 213, 225, ${gridOpacityDecimal})`,
+        },
       },
       crosshair: { mode: CrosshairMode.Normal },
-      rightPriceScale: { borderColor: '#1e293b' },
+      rightPriceScale: { borderColor: isDark ? '#1e293b' : '#cbd5e1' },
       timeScale: {
-        borderColor: '#1e293b',
+        borderColor: isDark ? '#1e293b' : '#cbd5e1',
         timeVisible: true,
         secondsVisible: false,
         tickMarkFormatter: chartLocalization.tickMarkFormatter,
@@ -285,17 +308,17 @@ export default function TradingChart({
 
     if (m15PriceMode === 'CANDLE') {
       const candlestickM15 = chartM15.addSeries(CandlestickSeries, {
-        upColor: '#22c55e',
-        downColor: '#ef4444',
+        upColor: chartUpColor,
+        downColor: chartDownColor,
         borderVisible: false,
-        wickUpColor: '#22c55e',
-        wickDownColor: '#ef4444',
+        wickUpColor: chartUpColor,
+        wickDownColor: chartDownColor,
       });
       candlestickM15.setData(dataM15);
     } else if (m15PriceMode === 'BAR') {
       const barM15 = chartM15.addSeries(BarSeries, {
-        upColor: '#22c55e',
-        downColor: '#ef4444',
+        upColor: chartUpColor,
+        downColor: chartDownColor,
       });
       barM15.setData(dataM15);
     }
@@ -357,6 +380,10 @@ export default function TradingChart({
     m15PriceMode,
     tier,
     chartLocalization,
+    chartUpColor,
+    chartDownColor,
+    gridOpacity,
+    gridOpacityDecimal,
   ]);
 
   // Reactive Incremental Theme Updates (0ms flash-free theme switching)
