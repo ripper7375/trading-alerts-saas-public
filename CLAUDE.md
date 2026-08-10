@@ -100,9 +100,17 @@ cancel` directly into this component would mean a user who clicks Cancel then Un
   route widened + 4 new test files), this file (session-history hygiene: Session 4B-22's own full
   text moved to `history/sessions-archive.md`, matching this file's own rotation rule — the larger
   pre-existing backlog from 4B-21 onward, already flagged at Waiting-on #102, is unchanged and
-  still needs its own dedicated cleanup session). No new order PRE-DRAFTed for a follow-up — the
-  live-manual-check carry-forward and F64 are both folded into **Session 6-2**'s own briefing
-  (already PRE-DRAFTed at Session 6-1's close) rather than spawning a separate session for either.
+  still needs its own dedicated cleanup session), `LESSONS-LEARNED.md` (new **L57** — read an
+  "already-built-but-unused" component's real implementation, not just its prop signature, before
+  wiring a real action into it; harvested from the `subscription-card.tsx` finding). New
+  `6-2-ia-design-system-shared-shells.migration-order.md` PRE-DRAFTed (UI-BUILD variant, adapted,
+  no flags) — scoped from the gap matrix's own "→ 6-2" rows (F62 admin-tree consolidation,
+  `/settings` grid completion, dead nav-link removal, `not-found.tsx`/`global-error.tsx`,
+  marketing-footer nav). **Not fast-path eligible** — F62's own resolution (Davin's decision, 3
+  options presented, none chosen by this PRE-DRAFT) is a hard entry criterion; needs a full
+  Advisor DRAFT before CONFIRM. The live-manual-check carry-forward (Waiting-on #117) and
+  `DECISION-LOG.md` F64 both folded into 6-2's own Next-session handoff rather than spawning a
+  separate session for either.
 - **Previous:** Session 6-1 (Frontend Gap Matrix & Endpoint Mapping, F11, CONTRACT variant),
   CONFIRMED and executed 2026-08-10 — **CLOSED with F11 still OPEN. This is a deliberate,
   disclosed partial close, not a silent shortfall:** the order's own Rollback clause says the

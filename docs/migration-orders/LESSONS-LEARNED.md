@@ -4,7 +4,7 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 56 (L1–L56) — a consolidation pass is overdue and
+**Hard cap ~40 active lessons.** Currently at 57 (L1–L57) — a consolidation pass is overdue and
 now more overdue than at last count; the next session that isn't itself time-constrained should
 do it before adding more. Candidates promoted and preamble archived 2026-08-03; L11's own
 9-recurrence narrative collapsed to a single count line same day (Session 4B-19) per this file's
@@ -692,3 +692,10 @@ dist/main` (the plain `npm start` script) instead of the `start:worker` script n
 - Root cause: `eslint-config-next` moved from whatever shipped at 4B-21's close to `16.3.0` in between — a dependency bump enabled/tightened a rule for files nobody edited. A file-scoped check only proves that ONE file was clean against THAT session's installed ruleset, not that the repo's real green bar (L20) stays clean going forward.
 - Rule: when an order's entry criteria cite "`eslint --max-warnings 0` clean" as a prior baseline, always re-run the FULL scope (`app components lib hooks`) at CONFIRM, never trust a narrower single-file check from a past session as still valid — record the real current result even if it's worse than what's cited, per L20's own "record the real number" discipline. A regression found this way is not necessarily this session's fault; trace it to a dependency version change before assuming new code broke it.
 - Source: Session 6-1 (2026-08-10) · Status: ACTIVE
+
+### L57 — An "already-built-but-unused" component can carry a latent bug that's never been exercised in production; read its real implementation before wiring a real action into it, not just its prop signature
+
+- Symptom: Session 6-1b's order named `components/billing/subscription-card.tsx` as ready to mount for `/settings/billing`'s real cancel action. Reading its implementation (not just its exported props) before wiring found a real bug: its optimistic-cancel "Undo" button only clears local React state — it never calls a reactivation API — while the real `onCancel()` has already been `await`ed and resolved by the time Undo is clickable. Wiring the real cancel endpoint into it as-is would have meant a user who clicks Cancel then Undo within its 5s window sees "still PRO" while the subscription was, in fact, already cancelled.
+- Root cause: a component that's never been mounted anywhere has never had its interaction logic exercised against a real backend call, no matter how complete its code looks or how confidently an order describes it as "already built." Its own file existing and type-checking proves nothing about whether its own internal assumptions (here: that Undo can meaningfully cancel an in-flight or completed async action) are actually correct.
+- Rule: before wiring a real, consequential action (money, auth, destructive writes) into any component an order describes as "already built, just mount it," read that component's own implementation in full — not just its prop signature — and trace what each of its interactive paths actually does end-to-end. A found defect in a shared, never-fixed-by-this-session component is a real finding to disclose and route around (keep the existing, working flow; register a flag for a future fix), not something to silently wire in or silently patch as a drive-by.
+- Source: Session 6-1b (2026-08-10), `DECISION-LOG.md` F64 · Status: ACTIVE
