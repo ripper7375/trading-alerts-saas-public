@@ -60,6 +60,19 @@ export default function CodeInventoryReportPage(): React.ReactElement {
     '3months'
   );
 
+  // Cancel-code widget state. There is no per-code listing endpoint or UI
+  // anywhere in this codebase (this report only shows aggregate counts by
+  // status/reason, never individual code rows) -- `POST
+  // /api/admin/codes/[code]/cancel` operates on one code at a time via its
+  // own code string, so the cancel action is a standalone lookup form rather
+  // than a per-row button (Session 6-6 deviation, see order Deviations).
+  const [cancelCodeInput, setCancelCodeInput] = useState('');
+  const [cancelReason, setCancelReason] = useState('');
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [cancelSuccess, setCancelSuccess] = useState<string | null>(null);
+
   const fetchReport = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError(null);
@@ -85,6 +98,44 @@ export default function CodeInventoryReportPage(): React.ReactElement {
   useEffect(() => {
     fetchReport();
   }, [fetchReport]);
+
+  const handleConfirmCancel = async (): Promise<void> => {
+    const code = cancelCodeInput.trim();
+    if (!code) return;
+
+    setIsCancelling(true);
+    setCancelError(null);
+    setCancelSuccess(null);
+
+    try {
+      const response = await fetch(
+        `/api/admin/codes/${encodeURIComponent(code)}/cancel`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            cancelReason.trim() ? { reason: cancelReason.trim() } : {}
+          ),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to cancel code');
+      }
+
+      setCancelSuccess(`Code ${data.code.code} cancelled successfully.`);
+      setCancelCodeInput('');
+      setCancelReason('');
+      setShowCancelConfirm(false);
+      void fetchReport();
+    } catch (err) {
+      setCancelError(err instanceof Error ? err.message : 'Failed to cancel');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const formatDate = (date: string): string => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -134,6 +185,101 @@ export default function CodeInventoryReportPage(): React.ReactElement {
           ))}
         </div>
       </div>
+
+      {/* Cancel a Code */}
+      <div className="mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow">
+        <h2 className="mb-2 text-sm font-semibold text-gray-900">
+          Cancel a Code
+        </h2>
+        <p className="mb-3 text-xs text-gray-500">
+          Enter an active affiliate code to cancel it. Already-used or
+          already-cancelled codes cannot be cancelled.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            type="text"
+            value={cancelCodeInput}
+            onChange={(e) => setCancelCodeInput(e.target.value.toUpperCase())}
+            placeholder="CODE123"
+            aria-label="Code to cancel"
+            className="flex-1 rounded border border-gray-300 px-3 py-2 font-mono text-sm uppercase focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <button
+            type="button"
+            onClick={() => setShowCancelConfirm(true)}
+            disabled={!cancelCodeInput.trim()}
+            className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Cancel Code
+          </button>
+        </div>
+        {cancelError && (
+          <p className="mt-2 text-sm text-red-600">{cancelError}</p>
+        )}
+        {cancelSuccess && (
+          <p className="mt-2 text-sm text-green-600">{cancelSuccess}</p>
+        )}
+      </div>
+
+      {/* Cancel Confirmation Dialog */}
+      {showCancelConfirm && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cancel-code-dialog-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setShowCancelConfirm(false);
+          }}
+        >
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h3
+              id="cancel-code-dialog-title"
+              className="text-lg font-semibold text-gray-900"
+            >
+              Cancel code {cancelCodeInput}?
+            </h3>
+            <p className="mt-2 text-sm text-gray-600">
+              This immediately marks the code as CANCELLED and it can no longer
+              be redeemed. This cannot be undone from this page.
+            </p>
+            <div className="mt-4">
+              <label
+                htmlFor="cancel-reason"
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
+                Reason (optional)
+              </label>
+              <input
+                id="cancel-reason"
+                type="text"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="e.g. Duplicate distribution"
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={isCancelling}
+                className="rounded border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Keep Code
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmCancel()}
+                disabled={isCancelling}
+                className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {isCancelling ? 'Cancelling...' : 'Confirm Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Error State */}
       {error && (
