@@ -243,7 +243,7 @@ export function AppearanceForm() {
               )}
             >
               <RotateCcw className="h-3 w-3 text-amber-400" />
-              {t('Reset Defaults', 'รีเซ็ตค่าเริ่มต้น')}
+              {t('Reset Defaults')}
             </Button>
           </div>
 
