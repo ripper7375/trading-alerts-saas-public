@@ -22,7 +22,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOptimisticMutation } from '@/hooks/use-optimistic-mutation';
-import { useRealtimeSocket } from '@/hooks/use-realtime-socket';
+import {
+  useRealtimeSocket,
+  type RealtimeNotification,
+} from '@/hooks/use-realtime-socket';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -87,6 +90,10 @@ export function NotificationList(): React.JSX.Element {
   const [showUndo, setShowUndo] = useState(false);
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Screen-reader announcement for a realtime-pushed notification (A11y
+  // Standards rule: "screen reader announcements for new notifications").
+  const [liveAnnouncement, setLiveAnnouncement] = useState('');
+
   const PAGE_SIZE = 20;
 
   // Fetch notifications from API
@@ -145,7 +152,8 @@ export function NotificationList(): React.JSX.Element {
   // into state directly, so the list/pagination/unreadCount stay single-sourced
   // from the server's own filtering, pagination, and read-state logic.
   useRealtimeSocket({
-    onNotification: () => {
+    onNotification: (notification: RealtimeNotification) => {
+      setLiveAnnouncement(`New notification: ${notification.title}`);
       fetchNotifications();
     },
   });
@@ -436,6 +444,10 @@ export function NotificationList(): React.JSX.Element {
 
   return (
     <Card className="w-full">
+      {/* Screen-reader-only live region, not the visible list itself */}
+      <div aria-live="polite" role="status" className="sr-only">
+        {liveAnnouncement}
+      </div>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div>
           <CardTitle className="text-2xl font-bold">Notifications</CardTitle>
