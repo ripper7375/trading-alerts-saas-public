@@ -55,7 +55,7 @@ Phase 2  non_market_data Prisma schema    (6)
 Phase 3  Hybrid JWT authentication        (2)
 Phase 4  NestJS backend transliteration   (5)   ← the long middle; strangler cutover
 Phase 5  Next.js 16 upgrade               (4)   ← may run in PARALLEL with Phase 4
-Phase 6  Frontend redesign                (3)
+Phase 6  Frontend redesign                (3)   ← 12 sessions (6-1, 6-1b, 6-2…6-8, 6-10…6-12)
 Phase 7  API client rewrite               (1)   ← LAST, per the deferral flags
 Phase 8  Decommission & final verification
 
@@ -525,16 +525,37 @@ v16 idioms — Server Components by default, streaming, server actions where app
 
 ### Steps
 
-6.1 **Gap analysis (the redesign backlog is not enumerated anywhere — build it first).** - 🚩 FLAG: The user states frontend "features and functionalities are in shortage to
-support backend stacks" but no document read for this plan enumerates WHICH features are
-missing. Claude Code must generate the gap matrix mechanically: for every operation-
-service and money-service endpoint in the Phase 0/4 OpenAPI specs, find the frontend
-surface that consumes it (page/component/hook). Endpoints with no consumer, or consumers
-that expose only a subset of the endpoint's capability, form the redesign backlog.
-Candidate known gaps to seed the audit: MTF overlay controls vs. `backend-stack-c`
-multi-timeframe pipeline; V8 PRO market-data channel (variant selection) UI; admin
-surfaces for disbursement batch lifecycle; affiliate report views vs. the report
-endpoints; realtime notification UX vs. the Phase-5 delivery spec.
+6.1 **Gap analysis (the redesign backlog is not enumerated anywhere — build it first).**
+
+~~🚩 FLAG: The user states frontend "features and functionalities are in shortage to support
+backend stacks" but no document read for this plan enumerates WHICH features are missing.~~
+**AMENDED 2026-08-10 — the flag is discharged; the enumeration now exists.** A full sweep of
+`app/**/page.tsx` (57 files), `app/api/**/route.ts` (122 endpoints), both NestJS services'
+controllers, all 21 OpenAPI specs, all 33 Prisma models, and every internal `href` produced:
+
+- `docs/files-completion-list/ui-page-gap-analysis.md` — the report (4 user-type workflows;
+  Section A code-backed gaps: 18 MODIFY + 12 NEW; Section B UX gaps: 22 NEW; Section C
+  structural findings).
+- `docs/files-completion-list/ui-page-gap-register.xlsx` — 90-row page register, 32 orphaned
+  endpoints/models, 14 dead internal links.
+
+Session 6-1's job is therefore re-scoped from _performing_ the census to **independently
+re-verifying it against live code, extending it, assigning each row a target session, and
+obtaining Davin's triage** (build / internal-only / out-of-scope). The mechanical method is
+unchanged and still binding: an endpoint counts as a gap when it has no UI consumer, or a
+consumer that exposes only a subset of its capability. `lib/api/index.ts` does not count as a
+consumer (known-broken by design until Phase 7).
+
+The seed list originally proposed here has been superseded by the real findings. The five
+candidate gaps it named resolved as: MTF overlay — **already built and correctly PRO-gated**;
+V8 variant selection UI — **built** (`/api/market-data/channel` consumed via `useMtfOverlay`);
+disbursement batch lifecycle — **built**, but the provider config still offers MOCK/RISE with no
+WISE option; affiliate report views — 4 of 5 admin report endpoints have pages,
+`reports/code-flows` has none, and the affiliate's own `code-inventory` endpoint has no page;
+realtime notification UX — the bell exists but links to `/notifications`, **which does not
+exist**. Three further classes were found that this plan never anticipated: pages rendering
+**fabricated data in production**, a **missing route** (`/api/geo/detect`) that two components
+already call, and **no 404 page** alongside 14 dead internal links.
 6.2 **Information architecture pass:** reconcile the three parallel shells (`app/(dashboard)`,
 `app/admin`, `app/affiliate`) — shared layout primitives, nav, and role-gated entry from
 the unified JWT claims (role/tier now in the token, not a session lookup).
@@ -549,11 +570,43 @@ notifications → settings/user → admin → affiliate → payments), each behi
 flags used in Phase 4 cutovers.
 6.6 A11y + responsive audit on changed surfaces; update `__tests__/components/*`.
 
+> **Note on numbering below.** Steps `6.7a`–`6.7c` are _plan steps_, not session numbers. They
+> are lettered deliberately: a step numbered "6.9" would collide with the retired **session**
+> number 6-9. Their owning sessions are named explicitly in each step.
+
+**6.7a (added 2026-08-10) Mock-data hotfix — owned by Session 6-1b; runs immediately after 6.1,
+before any redesign.**
+Three pages ship fabricated data to real users today: `/settings/billing` (mock invoice array,
+mock usage stats, a cancel dialog wired to nothing — while `GET /api/invoices`,
+`GET /api/subscription` and `POST /api/subscription/cancel` all exist unconsumed),
+`/admin/fraud-alerts/[id]` (`MOCK_ALERT` — an admin makes fraud decisions on invented data), and
+`/admin` (fabricated activity feed). Removing fabricated data is a correctness fix, not a
+redesign, and must not wait on the redesign queue. PORT variant, low dial: bind the real
+endpoints, change nothing visual.
+
+**6.7b (added 2026-08-10) Public / marketing surface — owned by Session 6-10.**
+`app/(marketing)/layout.tsx` links to 10
+non-existent pages and `components/auth/register-form.tsx`'s consent checkbox links to `/terms`
+and `/privacy`, which exist only behind auth. The app also has **no `app/not-found.tsx`**, so
+every dead link renders an unstyled framework default. `/disclaimer` is compliance-relevant for
+a trading product — gated on F63 (legal copy ownership).
+
+**6.7c (added 2026-08-10) Admin system operations — owned by Session 6-11.**
+Four backend capabilities have zero UI:
+the 5 MT5 terminal admin endpoints (`part-06-flask_mt5_openapi.yaml`), the 8 cron endpoints
+(no run history or failure visibility), `OutboxEvent` (live in production, unobservable), and
+`SystemConfigHistory` (no audit view). The `flask-api` outage found at Session 4B-18d was
+invisible in-product — this is the session that fixes that class of blindness.
+
 ### Exit criteria
 
 - Gap matrix fully triaged: every backend endpoint either consumed by UI, explicitly marked
   internal-only, or ticketed as out-of-scope.
 - All redesigned surfaces live behind completed flags; component tests green.
+- **No page renders hardcoded or mock data in place of a live endpoint.**
+- **Zero dead internal links; `app/not-found.tsx` exists.**
+- **F61, F62, F63 resolved** (`/api/geo/detect`; admin IA consolidation; public legal copy).
+- `app/test-api/page.tsx` deleted.
 
 ---
 
@@ -615,27 +668,30 @@ architecture diagrams, close the Decision Log.
 
 ## 11. Decision Log & Flag Register (Claude Code: resolve each before/at its phase)
 
-| #   | Phase   | Flag                                                                                                                                                               | Resolution required                                                                                                                                                                                                                                                                                   |
-| --- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| F1  | 0.2     | OpenAPI coverage incomplete (only parts 02/03/04/07/15 exist)                                                                                                      | Generate specs from live route handlers; PUBLIC endpoints only                                                                                                                                                                                                                                        |
-| F2  | 0.6     | Exact versions `next@16.2.10`, NestJS `11.1.28` unverified (post-cutoff)                                                                                           | Verify on npm; pin nearest stable; align all Nest services                                                                                                                                                                                                                                            |
-| F3  | 1.1     | Current host of the monolith's shared Postgres unknown                                                                                                             | Inspect live `DATABASE_URL`/Railway; add relocation sub-step only if needed                                                                                                                                                                                                                           |
-| F4  | 2.1     | Model census may exceed the doc's list (RAG dual-memory, history tables)                                                                                           | Enumerate live schema; assign every model explicitly                                                                                                                                                                                                                                                  |
-| F5  | 2.1     | Prisma file-layout strategy (2 schema files vs pg schemas vs 1 file) unmandated                                                                                    | Default: two schema files/two clients; validate Prisma ergonomics                                                                                                                                                                                                                                     |
-| F6  | 3       | OpenAuth vs NextAuth-bridge vs hand-rolled `@nestjs/jwt`; missing reference docs (`auth-migration-{recommendation,strategy}.md`, `auth-implementation-roadmap.md`) | Locate/read the 3 docs; recommended: bridge first, replace later                                                                                                                                                                                                                                      |
-| F7  | 3       | HS256 shared secret vs JWKS/RS256 + rotation timing                                                                                                                | Decide at second-verifier moment; plan rotation either way                                                                                                                                                                                                                                            |
-| F8  | 4B      | Websocket/realtime delivery architecture (socket adapter, BullMQ scaling) not digested                                                                             | Read `PHASE-5-DELIVERY-AND-REALTIME-SPEC.md` + `SCALING-BULLMQ-AND-SOCKET-ADAPTER.md` before porting                                                                                                                                                                                                  |
-| F9  | 4       | `@trading-alerts/types` packaging mechanics unspecified                                                                                                            | Choose workspace/registry approach compatible with Vercel+Railway builds                                                                                                                                                                                                                              |
-| F10 | 5.2     | Next.js 16 breaking-change list unknown to plan author                                                                                                             | Fetch official 15→16 upgrade guide at implementation time                                                                                                                                                                                                                                             |
-| F11 | 6.1     | Frontend feature-gap backlog not enumerated anywhere                                                                                                               | Build gap matrix mechanically from OpenAPI specs vs UI consumers                                                                                                                                                                                                                                      |
-| F12 | general | Sizing: money blueprint says ~7–9 weeks for its Phase 1 alone; whole-plan duration not estimated here                                                              | Estimate per phase after F1–F5 resolve; treat any dates as provisional                                                                                                                                                                                                                                |
-| F13 | CC-B    | Tracing/observability backend not chosen (needs Railway+Vercel-friendly OpenTelemetry sink)                                                                        | Evaluate current options (e.g. Grafana Cloud, Axiom, Sentry) at implementation time; pick one, wire OTel SDK in both Nest services + Next.js                                                                                                                                                          |
-| F14 | CC-C    | Money→core tier-update path: direct internal call vs transactional outbox                                                                                          | Recommended: outbox (event row written in same DB tx, relayed via BullMQ) — verify against blueprint slice 5 mechanics before building                                                                                                                                                                |
-| F15 | CC-E    | Redis topology: one shared Railway Redis vs per-service instances                                                                                                  | Default: one instance, per-service key prefixes + separate BullMQ queue namespaces; split only on measured contention                                                                                                                                                                                 |
-| F16 | CC-D    | Public URL scheme + API versioning (`api.<domain>/v1` vs per-service subdomains) unspecified in any source doc                                                     | Decide before first Phase 4 cutover — the OpenAPI spec and frontend env vars must encode it once, not twice                                                                                                                                                                                           |
-| F17 | CC-A    | Staging data strategy (seeded synthetic vs anonymized production subset)                                                                                           | Decide before slice 1 shadow-runs; money data must never be copied to staging unmasked                                                                                                                                                                                                                |
-| F18 | CC-G    | RPO/RTO targets never stated for this SaaS                                                                                                                         | Owner decision (Davin): set targets, then verify Railway backup cadence + restore rehearsal meets them                                                                                                                                                                                                |
-| F19 | 2.0     | Prisma upgrade to **7.8.0** crosses two majors (5→6→7); breaking-change list post-cutoff for plan author                                                           | Verify 7.8.0 on npm (F2-style); read official Prisma 6 & 7 upgrade guides; audit client output/ESM, removed previewFeatures, PgBouncer/`directUrl` semantics, `$use`→client extensions, Decimal/JSON typings in money code, Node minimums; re-verify pooler (1.4) and F5 layout choice under Prisma 7 |
+| #   | Phase   | Flag                                                                                                                                                                                                                  | Resolution required                                                                                                                                                                                                                                                                                   |
+| --- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1  | 0.2     | OpenAPI coverage incomplete (only parts 02/03/04/07/15 exist)                                                                                                                                                         | Generate specs from live route handlers; PUBLIC endpoints only                                                                                                                                                                                                                                        |
+| F2  | 0.6     | Exact versions `next@16.2.10`, NestJS `11.1.28` unverified (post-cutoff)                                                                                                                                              | Verify on npm; pin nearest stable; align all Nest services                                                                                                                                                                                                                                            |
+| F3  | 1.1     | Current host of the monolith's shared Postgres unknown                                                                                                                                                                | Inspect live `DATABASE_URL`/Railway; add relocation sub-step only if needed                                                                                                                                                                                                                           |
+| F4  | 2.1     | Model census may exceed the doc's list (RAG dual-memory, history tables)                                                                                                                                              | Enumerate live schema; assign every model explicitly                                                                                                                                                                                                                                                  |
+| F5  | 2.1     | Prisma file-layout strategy (2 schema files vs pg schemas vs 1 file) unmandated                                                                                                                                       | Default: two schema files/two clients; validate Prisma ergonomics                                                                                                                                                                                                                                     |
+| F6  | 3       | OpenAuth vs NextAuth-bridge vs hand-rolled `@nestjs/jwt`; missing reference docs (`auth-migration-{recommendation,strategy}.md`, `auth-implementation-roadmap.md`)                                                    | Locate/read the 3 docs; recommended: bridge first, replace later                                                                                                                                                                                                                                      |
+| F7  | 3       | HS256 shared secret vs JWKS/RS256 + rotation timing                                                                                                                                                                   | Decide at second-verifier moment; plan rotation either way                                                                                                                                                                                                                                            |
+| F8  | 4B      | Websocket/realtime delivery architecture (socket adapter, BullMQ scaling) not digested                                                                                                                                | Read `PHASE-5-DELIVERY-AND-REALTIME-SPEC.md` + `SCALING-BULLMQ-AND-SOCKET-ADAPTER.md` before porting                                                                                                                                                                                                  |
+| F9  | 4       | `@trading-alerts/types` packaging mechanics unspecified                                                                                                                                                               | Choose workspace/registry approach compatible with Vercel+Railway builds                                                                                                                                                                                                                              |
+| F10 | 5.2     | Next.js 16 breaking-change list unknown to plan author                                                                                                                                                                | Fetch official 15→16 upgrade guide at implementation time                                                                                                                                                                                                                                             |
+| F11 | 6.1     | Frontend feature-gap backlog not enumerated anywhere — **enumeration delivered 2026-08-10** (`docs/files-completion-list/ui-page-gap-analysis.md` + `ui-page-gap-register.xlsx`); flag now awaits Davin's triage only | Session 6-1 re-verifies the census against live code, assigns each row a target session, and obtains the build / internal-only / out-of-scope triage                                                                                                                                                  |
+| F61 | 6.8     | `GET /api/geo/detect` is called by `app/(marketing)/pricing/page.tsx:155` and `components/payments/CountrySelector.tsx:69` but **the route does not exist** — 404 on every pricing load                               | Build the route, or delete both call sites and fall back to manual country selection. Affects checkout conversion. Owner: Davin. Due 6-8                                                                                                                                                              |
+| F62 | 6.2     | Admin IA split across two incompatible trees: `app/(dashboard)/admin/*` (15 pages, guarded, has nav) and `app/admin/*` (8 pages, **no `layout.tsx` at all**). 19 of 23 admin pages unreachable from the admin nav     | Merge into one tree with one shell/guard/nav, or keep two and cross-link. Structurally hard to undo — decide before any admin surface is rebuilt. Owner: Davin. Due 6-2                                                                                                                               |
+| F63 | 6.8     | Public legal pages (`/terms`, `/privacy`, `/disclaimer`) do not exist; the registration consent checkbox links to two of them. `/disclaimer` is compliance-relevant for a trading product                             | Davin supplies real legal copy, or 6-10 ships reviewed placeholders. Blocks Session 6-10. Owner: Davin                                                                                                                                                                                                |
+| F12 | general | Sizing: money blueprint says ~7–9 weeks for its Phase 1 alone; whole-plan duration not estimated here                                                                                                                 | Estimate per phase after F1–F5 resolve; treat any dates as provisional                                                                                                                                                                                                                                |
+| F13 | CC-B    | Tracing/observability backend not chosen (needs Railway+Vercel-friendly OpenTelemetry sink)                                                                                                                           | Evaluate current options (e.g. Grafana Cloud, Axiom, Sentry) at implementation time; pick one, wire OTel SDK in both Nest services + Next.js                                                                                                                                                          |
+| F14 | CC-C    | Money→core tier-update path: direct internal call vs transactional outbox                                                                                                                                             | Recommended: outbox (event row written in same DB tx, relayed via BullMQ) — verify against blueprint slice 5 mechanics before building                                                                                                                                                                |
+| F15 | CC-E    | Redis topology: one shared Railway Redis vs per-service instances                                                                                                                                                     | Default: one instance, per-service key prefixes + separate BullMQ queue namespaces; split only on measured contention                                                                                                                                                                                 |
+| F16 | CC-D    | Public URL scheme + API versioning (`api.<domain>/v1` vs per-service subdomains) unspecified in any source doc                                                                                                        | Decide before first Phase 4 cutover — the OpenAPI spec and frontend env vars must encode it once, not twice                                                                                                                                                                                           |
+| F17 | CC-A    | Staging data strategy (seeded synthetic vs anonymized production subset)                                                                                                                                              | Decide before slice 1 shadow-runs; money data must never be copied to staging unmasked                                                                                                                                                                                                                |
+| F18 | CC-G    | RPO/RTO targets never stated for this SaaS                                                                                                                                                                            | Owner decision (Davin): set targets, then verify Railway backup cadence + restore rehearsal meets them                                                                                                                                                                                                |
+| F19 | 2.0     | Prisma upgrade to **7.8.0** crosses two majors (5→6→7); breaking-change list post-cutoff for plan author                                                                                                              | Verify 7.8.0 on npm (F2-style); read official Prisma 6 & 7 upgrade guides; audit client output/ESM, removed previewFeatures, PgBouncer/`directUrl` semantics, `$use`→client extensions, Decimal/JSON typings in money code, Node minimums; re-verify pooler (1.4) and F5 layout choice under Prisma 7 |
 
 ---
 

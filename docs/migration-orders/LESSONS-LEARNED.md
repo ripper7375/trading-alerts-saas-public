@@ -4,7 +4,7 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 55 (L1–L55) — a consolidation pass is overdue and
+**Hard cap ~40 active lessons.** Currently at 56 (L1–L56) — a consolidation pass is overdue and
 now more overdue than at last count; the next session that isn't itself time-constrained should
 do it before adding more. Candidates promoted and preamble archived 2026-08-03; L11's own
 9-recurrence narrative collapsed to a single count line same day (Session 4B-19) per this file's
@@ -90,6 +90,10 @@ own hygiene rule, detail moved to `LESSONS-ARCHIVE.md`. Full history in `LESSONS
   the order-authoring pipeline itself should change (e.g. every status-field edit going through a
   reviewable commit) rather than relying on CONFIRM-time detection every single session, and this
   session is a concrete argument that the stakes of skipping that fix keep rising, not falling.
+  Recurred again at Session 6-1 (2026-08-10) — benign: order + 5 supporting artifacts (`CLAUDE.md`,
+  `DECISION-LOG.md`, cutover table, plan, playbook) rewritten in one internally consistent batch,
+  no DRAFT-stage commit; confirmed live by Davin as his own authentic edit before treating any of
+  it as trustworthy.
 
 ### L12 — A catch block checking `error.message` for a marker the source only ever sets on `error.code` is dead code
 
@@ -681,3 +685,10 @@ dist/main` (the plain `npm start` script) instead of the `start:worker` script n
 - Root cause: the file's own hygiene rule says "after resolving a flag, move its full resolution entry to the archive" — but when a batch of flags (F48-F52) was archived together, the still-OPEN ones (F49, F50) went with them, dropping out of the one place ("register table + OPEN entries") a future session is told to check.
 - Rule: when moving a resolved flag's full entry to `history/decisions-archive.md`, first re-verify every flag in that batch is actually RESOLVED — if any are still OPEN, they (and their register-table row) MUST stay in `DECISION-LOG.md`'s main body, archive entry or not.
 - Source: Session 4B-22 (2026-08-04) · Status: ACTIVE
+
+### L56 — A single-file-scoped `eslint --max-warnings 0` check at one session's close does not prove the FULL `validate:lint` scope stays clean later; dependency bumps between sessions can newly-flag files nobody touched
+
+- Symptom: Session 4B-21 checked `eslint components/layout/header.tsx --max-warnings 0` (its own touched file) and got clean. Re-running the FULL scope (`eslint app components lib hooks --max-warnings 0`) at Session 6-1 found 3 warnings — `@next/next/no-location-assign-relative-destination` on that SAME `header.tsx` (unchanged since 4B-21) plus one pre-existing file from Dec 2025. Neither file was touched between the two checks.
+- Root cause: `eslint-config-next` moved from whatever shipped at 4B-21's close to `16.3.0` in between — a dependency bump enabled/tightened a rule for files nobody edited. A file-scoped check only proves that ONE file was clean against THAT session's installed ruleset, not that the repo's real green bar (L20) stays clean going forward.
+- Rule: when an order's entry criteria cite "`eslint --max-warnings 0` clean" as a prior baseline, always re-run the FULL scope (`app components lib hooks`) at CONFIRM, never trust a narrower single-file check from a past session as still valid — record the real current result even if it's worse than what's cited, per L20's own "record the real number" discipline. A regression found this way is not necessarily this session's fault; trace it to a dependency version change before assuming new code broke it.
+- Source: Session 6-1 (2026-08-10) · Status: ACTIVE

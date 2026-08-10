@@ -365,23 +365,56 @@ Phase 4 is repetitive by design. Two session _templates_ repeat per slice:
 
 ---
 
-## Phase 6 — Frontend redesign (~9 sessions)
+## Phase 6 — Frontend redesign (12 sessions)
+
+> **Revised 2026-08-10.** Phase 6 was ~9 sessions (6-1…6-9). A full UI gap analysis completed
+> out-of-band found three classes of work with no session that owned them, so Phase 6 is now
+> **12 sessions**: a mock-data hotfix (**6-1b**) inserted after the gap matrix, plus a
+> public/marketing surface session (**6-10**) and an admin system-operations session (**6-11**).
+> The a11y/phase-exit session, previously 6-9, is renumbered **6-12** so it stays genuinely last.
+> **Session number 6-9 is retired — do not reuse it** (same convention as the SUPERSEDED 4A-7).
+>
+> **Input evidence for the whole phase:**
+> `docs/files-completion-list/ui-page-gap-analysis.md` (report) and
+> `docs/files-completion-list/ui-page-gap-register.xlsx` (90-row register, 32 orphaned
+> endpoints, 14 dead links). Both are **input, not truth** — Session 6-1 re-verifies every row
+> against live code before anything is built on them.
 
 ### Session 6-1 — Gap matrix (F11)
 
-- **Tasks:** Mechanically map every operation/money endpoint to its UI consumer; produce the
-  gap matrix; triage with you into: build / internal-only / out-of-scope.
-- **Done when:** matrix committed with your triage decisions.
+- **Tasks:** Re-verify the pre-computed census against live code (do not adopt it on trust);
+  produce `phase-6-frontend-gap-matrix.md`; assign every row a target session; triage with you
+  into build / internal-only / out-of-scope. Register F61 (`/api/geo/detect`), F62 (admin IA
+  consolidation), F63 (public legal content ownership).
+- **Done when:** matrix committed with your triage on every row; F11 resolved.
 - **You provide:** product judgment — which gaps matter (this is your session as much as
   Claude Code's).
+- **Builds nothing** — including the three pages currently rendering fabricated data.
+
+### Session 6-1b — Mock-data hotfix (PORT, low dial) 🆕
+
+Three pages are live in production rendering fabricated data. This session removes that, and
+nothing else — no redesign, no new components, no layout changes. The redesign sessions (6-5,
+6-6) then work on pages that are already truthful.
+
+- **Tasks:** `/settings/billing` — wire `GET /api/invoices`, `GET /api/subscription`,
+  `POST /api/subscription/cancel`, mount the already-built `invoice-list.tsx` /
+  `subscription-card.tsx`, surface trial state. `/admin/fraud-alerts/[id]` — wire
+  `GET /api/admin/fraud-alerts/[id]`, delete `MOCK_ALERT`. `/admin` — real activity feed.
+  `/settings` — real alert count.
+- **Done when:** zero `mock`/hardcoded data constants remain on those four pages; component
+  tests added; tests green.
+- **Not in scope:** visual redesign, new pages, the `TrialStatus` write path.
 
 ### Session 6-2 — IA + design system prep
 
 - **Tasks:** Reconcile the three shells (dashboard/admin/affiliate): shared layout
   primitives, nav, role-gating from JWT claims. Extend `components/ui/*` for backlog needs.
   Codify CC-C timeout/retry/fallback policy in interim typed fetch wrappers (OpenAPI-generated
-  types).
-- **Done when:** shared shell renders all three areas on staging; wrappers in place.
+  types). **Resolve F62** (one admin tree vs. two). Add `app/not-found.tsx` and
+  `app/global-error.tsx`. Kill the dead nav entries (`/analytics`, `/indicators`).
+- **Done when:** shared shell renders all three areas on staging; wrappers in place; no dead
+  link remains in `components/layout/*`.
 
 ### Sessions 6-3…6-8 — Surface rebuilds (one per session)
 
@@ -389,13 +422,49 @@ Order: alerts/charts (incl. MTF + V8 variant UI) → notifications UX → settin
 affiliate → payments. Each session: build behind flag → component tests green → staging
 review by you → flip.
 
-- **Done when (each):** surface live behind completed flag; `__tests__/components/*` updated.
+Each session also closes its own slice of the gap matrix:
 
-### Session 6-9 — A11y + responsive audit (phase exit)
+| Session | Surface             | Gap-matrix rows it must close                                                                                                                 |
+| ------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 6-3     | alerts + charts     | tier endpoints wired (`/api/tier/*`, 3 orphans); alert edit route                                                                             |
+| 6-4     | notifications       | `/notifications` page (bell already links to it)                                                                                              |
+| 6-5     | settings / user     | account-deletion confirm + cancel pages; security activity log; deletion-pending banner                                                       |
+| 6-6     | admin               | WISE provider option; RiseWorks accounts page disposition; per-code cancel; user detail; code-flows report; per-affiliate disbursement report |
+| 6-7     | affiliate portal    | affiliate code inventory; payout/transfer status; duplicate payment-setup page retired                                                        |
+| 6-8     | payments / checkout | **F61** resolved; payment return page; upgrade-success page; Stripe discount validation                                                       |
 
-- **Tasks:** Audit changed surfaces; fix; final gap-matrix sweep (every endpoint consumed,
-  internal-only, or ticketed).
-- **Done when:** Phase 6 exit criteria met.
+- **Done when (each):** surface live behind completed flag; `__tests__/components/*` updated;
+  its gap-matrix rows marked closed.
+
+### Session 6-10 — Public / marketing surface 🆕
+
+The marketing header and footer link to 10 pages that do not exist, and the registration
+consent checkbox links to `/terms` and `/privacy` — which exist only behind auth.
+
+- **Tasks:** Build the public surface: `/about`, `/docs`, `/blog`, `/changelog`, `/careers`,
+  `/disclaimer`, public `/terms`, public `/privacy`, public `/help`, `/affiliate` landing,
+  `/affiliate/join` (or redirect), `/status`. Onboarding `/welcome`.
+- **Blocked on F63** — legal copy ownership. `/disclaimer` is compliance-relevant for a trading
+  product and must not ship as lorem ipsum.
+- **Done when:** zero dead links from `app/(marketing)/layout.tsx` and
+  `components/auth/register-form.tsx`; all pages live.
+
+### Session 6-11 — Admin system operations 🆕
+
+- **Tasks:** `/admin/system/terminals` (the 5 MT5 admin endpoints in
+  `part-06-flask_mt5_openapi.yaml` have zero UI), `/admin/system/jobs` (8 cron endpoints, no run
+  history), `/admin/system/outbox` (`OutboxEvent` monitoring), `/admin/system/config-history`
+  (`SystemConfigHistory` has zero UI).
+- **Done when:** each surface live behind flag; component tests green.
+- **Note:** operationally significant — the `flask-api` outage found at Session 4B-18d was
+  invisible in-product.
+
+### Session 6-12 — A11y + responsive audit (phase exit)
+
+- **Tasks:** Audit changed surfaces; fix; final gap-matrix sweep (every row closed,
+  internal-only, or ticketed). Delete `app/test-api/page.tsx`.
+- **Done when:** Phase 6 exit criteria met; gap matrix has no untriaged or open-and-unticketed
+  row.
 
 ---
 

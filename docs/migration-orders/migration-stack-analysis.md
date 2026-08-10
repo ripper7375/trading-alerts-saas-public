@@ -2960,5 +2960,61 @@ sides; `eslint app components lib hooks --max-warnings 0` clean (0 errors, 0 war
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-03 (Session 4B-20, Auth Cutover BUILD & UI Rewire)
+<details>
+<summary><strong>2026-08-10 — Phase 6 UI gap analysis (out-of-band, pre-Session 6-1)</strong></summary>
+
+Not a code-changing session — a full read-only census producing the input evidence for Session
+6-1 (F11). Zero files under `app/`, `components/`, `lib/`, `hooks/`, `operation-service/` or
+`money-service/` were created, modified or deleted.
+
+- **New:** `docs/files-completion-list/ui-page-gap-analysis.md` — the gap report: complete
+  operating workflows for all 4 user types (Admin / Affiliate / PRO / FREE); Section A
+  code-backed gaps (18 existing pages to MODIFY, 12 NEW pages, 3 to RETIRE); Section B
+  UX/completeness gaps (22 NEW pages); Section C structural findings.
+- **New:** `docs/files-completion-list/ui-page-gap-register.xlsx` — 4 sheets: Summary,
+  Page Register (90 rows: EXISTING / MODIFY / NEW / RETIRE / UNREGISTERED, with
+  Admin/Affiliate/PRO/FREE/Public columns and priority P1–P4), Orphaned Endpoints (32 rows),
+  Dead Links (14 rows with file:line references).
+- **Method:** enumerated `app/**/page.tsx` (57 files), `app/api/**/route.ts` (122 endpoints),
+  `operation-service` + `money-service` NestJS controllers, all 21 OpenAPI specs in
+  `docs/open-api-documents/`, all 33 Prisma models, and every internal `href` in `app/` +
+  `components/`. Every "no UI consumer" and "mock data" claim re-verified by a second pass at
+  file:line before publication.
+- **Register reconciliation:** `docs/files-completion-list/ui-pages.xlsx` lists 54 pages; the
+  real baseline is **56 distinct routes**. Rows 18 and 18-5 are the same dynamic route
+  (`/charts/[symbol]/[timeframe]`), and three Admin detail pages exist in code but were never
+  registered: `/admin/affiliates/[id]`, `/admin/fraud-alerts/[id]`,
+  `/admin/disbursement/batches/[batchId]`.
+- **Consequence for the migration:** `DECISION-LOG.md` F11 enumeration discharged (triage still
+  OPEN, due 6-1); F61/F62/F63 registered OPEN; Phase 6 grew from ~9 to 12 sessions in the
+  playbook and plan §8 (6-1b, 6-10, 6-11 added; phase exit renumbered 6-9 → 6-12).
+
+</details>
+
+---
+
+<details>
+<summary><strong>2026-08-10 — Session 6-1 (Frontend Gap Matrix & Endpoint Mapping, F11)</strong></summary>
+
+Documentation-only session — no code changed. Independently re-verified the 2026-08-10 UI gap
+analysis (above) against live code (headline findings + ~40 of ~54 itemized rows, all held
+except two trivial corrections and one useful addition — see `phase-6-frontend-gap-matrix.md`'s
+own "Corrections found this session") and produced the actual gap matrix artifact.
+
+- **New:** `docs/migration-orders/phase-6-frontend-gap-matrix.md` — every Section A1/A2/B1/B2/C
+  row from the source gap analysis, re-verified, assigned a target session (6-1b…6-12), with a
+  Triage column awaiting Davin (F11 stays OPEN pending it).
+- **Regression baseline re-measured:** `tsc --noEmit` clean; `test:ci` 129/129 suites, 2191/2191
+  tests. `eslint app components lib hooks --max-warnings 0` found NOT clean (3 pre-existing
+  warnings, unrelated files, `eslint-config-next` version drift since Session 4B-21 — see
+  `LESSONS-LEARNED.md`).
+- **Consequence:** `DECISION-LOG.md` F11 stays OPEN (matrix delivered, triage pending); F61's
+  entry extended with the `lib/geo/detect-country.ts` finding. `6-1b-mock-data-hotfix.migration-
+order.md` PRE-DRAFTed (PORT, low dial).
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-10 (Session 6-1, Frontend Gap Matrix)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
