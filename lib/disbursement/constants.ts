@@ -22,7 +22,11 @@ export const RISE_AMOUNT_FACTOR = 1_000_000;
 export const DEFAULT_CURRENCY = 'USD';
 
 // Supported providers
-export const SUPPORTED_PROVIDERS: DisbursementProvider[] = ['RISE', 'MOCK'];
+export const SUPPORTED_PROVIDERS: DisbursementProvider[] = [
+  'RISE',
+  'MOCK',
+  'WISE',
+];
 
 /**
  * Get the default payment provider from environment
@@ -31,6 +35,9 @@ export function getDefaultProvider(): DisbursementProvider {
   const envProvider = process.env['DISBURSEMENT_PROVIDER'];
   if (envProvider === 'RISE') {
     return 'RISE';
+  }
+  if (envProvider === 'WISE') {
+    return 'WISE';
   }
   return 'MOCK';
 }

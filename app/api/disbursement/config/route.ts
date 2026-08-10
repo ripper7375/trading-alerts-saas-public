@@ -24,6 +24,7 @@ interface DisbursementConfiguration {
     default: string;
     available: string[];
     riseEnabled: boolean;
+    wiseEnabled: boolean;
   };
   enabled: boolean;
   minimumPayout: number;
@@ -56,10 +57,13 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     const config: DisbursementConfiguration = {
       provider: {
         default: getDefaultProvider(),
-        available: ['MOCK', isProviderAvailable('RISE') ? 'RISE' : null].filter(
-          Boolean
-        ) as string[],
+        available: [
+          'MOCK',
+          isProviderAvailable('RISE') ? 'RISE' : null,
+          isProviderAvailable('WISE') ? 'WISE' : null,
+        ].filter(Boolean) as string[],
         riseEnabled: isProviderAvailable('RISE'),
+        wiseEnabled: isProviderAvailable('WISE'),
       },
       enabled: process.env['DISBURSEMENT_ENABLED'] !== 'false',
       minimumPayout: MINIMUM_PAYOUT_USD,

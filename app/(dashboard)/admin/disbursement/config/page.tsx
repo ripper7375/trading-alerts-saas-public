@@ -19,12 +19,29 @@ import type { DisbursementProvider } from '@/types/disbursement';
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 interface DisbursementConfig {
-  provider: DisbursementProvider;
+  provider: {
+    default: DisbursementProvider;
+    available: DisbursementProvider[];
+    riseEnabled: boolean;
+    wiseEnabled: boolean;
+  };
   enabled: boolean;
   minimumPayout: number;
   batchSize: number;
-  environment: 'production' | 'staging';
+  environment: string;
 }
+
+const PROVIDER_BADGE_CLASS: Record<DisbursementProvider, string> = {
+  MOCK: 'bg-gray-600',
+  RISE: 'bg-green-600',
+  WISE: 'bg-blue-600',
+};
+
+const PROVIDER_LABEL: Record<DisbursementProvider, string> = {
+  MOCK: 'MOCK (Testing)',
+  RISE: 'RISE (RiseWorks — archived)',
+  WISE: 'WISE (Wise)',
+};
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONFIGURATION PAGE
@@ -36,12 +53,21 @@ interface DisbursementConfig {
  * Features:
  * - View current configuration
  * - Update configuration settings
- * - Provider selection (MOCK/RISE)
+ * - Provider selection (MOCK/RISE/WISE)
  * - Minimum payout and batch size settings
  *
  * Data fetching:
  * - Fetches from /api/disbursement/config
  * - Updates via PATCH /api/disbursement/config
+ *
+ * The active provider is read-only in practice: it is driven by the
+ * `DISBURSEMENT_PROVIDER` environment variable on whichever service actually
+ * executes batches (money-service, for WISE — see Session 4A-W7). The Save
+ * button below persists `enabled`/`minimumPayout`/`batchSize` only; changing
+ * the provider selection and saving does NOT switch the live provider, since
+ * `PATCH /api/disbursement/config` is a logging placeholder (no database-
+ * backed configuration exists yet). The badge below the provider display
+ * makes this explicit rather than implying a live switch happened.
  */
 export default function ConfigurationPage(): React.ReactElement {
   const [config, setConfig] = useState<DisbursementConfig | null>(null);
@@ -87,7 +113,11 @@ export default function ConfigurationPage(): React.ReactElement {
       const response = await fetch('/api/disbursement/config', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editConfig),
+        body: JSON.stringify({
+          enabled: editConfig.enabled,
+          minimumPayout: editConfig.minimumPayout,
+          batchSize: editConfig.batchSize,
+        }),
       });
 
       if (!response.ok) {
@@ -95,11 +125,11 @@ export default function ConfigurationPage(): React.ReactElement {
         throw new Error(data.error || 'Failed to update configuration');
       }
 
-      const data = await response.json();
-      setConfig(data.config);
-      setEditConfig(data.config);
-      setSuccessMessage('Configuration updated successfully');
+      setSuccessMessage(
+        'Settings noted. Provider is env-var-driven and unaffected by this form — see the notice below.'
+      );
       setIsEditing(false);
+      await fetchConfig();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save');
     } finally {
@@ -115,8 +145,8 @@ export default function ConfigurationPage(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" />
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-green-500" />
       </div>
     );
   }
@@ -124,12 +154,12 @@ export default function ConfigurationPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-white sm:text-3xl">
             Configuration
           </h1>
-          <p className="text-gray-400 mt-1">Disbursement system settings</p>
+          <p className="mt-1 text-gray-400">Disbursement system settings</p>
         </div>
         <div className="flex gap-2">
           {!isEditing ? (
@@ -162,7 +192,7 @@ export default function ConfigurationPage(): React.ReactElement {
 
       {/* Messages */}
       {error && (
-        <Card className="bg-red-900/50 border-red-600">
+        <Card className="border-red-600 bg-red-900/50">
           <CardContent className="py-4">
             <p className="text-red-300">{error}</p>
           </CardContent>
@@ -170,7 +200,7 @@ export default function ConfigurationPage(): React.ReactElement {
       )}
 
       {successMessage && (
-        <Card className="bg-green-900/50 border-green-600">
+        <Card className="border-green-600 bg-green-900/50">
           <CardContent className="py-4">
             <p className="text-green-300">{successMessage}</p>
           </CardContent>
@@ -179,25 +209,24 @@ export default function ConfigurationPage(): React.ReactElement {
 
       {/* Current Configuration Display */}
       {!isEditing && config && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-gray-800 border-gray-700">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="border-gray-700 bg-gray-800">
             <CardHeader className="pb-2">
               <CardDescription className="text-gray-400">
                 Provider
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Badge
-                className={
-                  config.provider === 'RISE' ? 'bg-green-600' : 'bg-gray-600'
-                }
-              >
-                {config.provider}
+            <CardContent className="space-y-2">
+              <Badge className={PROVIDER_BADGE_CLASS[config.provider.default]}>
+                {config.provider.default}
               </Badge>
+              <p className="text-xs text-gray-500">
+                Configured via <code>DISBURSEMENT_PROVIDER</code> env var
+              </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="border-gray-700 bg-gray-800">
             <CardHeader className="pb-2">
               <CardDescription className="text-gray-400">
                 Status
@@ -210,7 +239,7 @@ export default function ConfigurationPage(): React.ReactElement {
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="border-gray-700 bg-gray-800">
             <CardHeader className="pb-2">
               <CardDescription className="text-gray-400">
                 Minimum Payout
@@ -223,7 +252,7 @@ export default function ConfigurationPage(): React.ReactElement {
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="border-gray-700 bg-gray-800">
             <CardHeader className="pb-2">
               <CardDescription className="text-gray-400">
                 Batch Size
@@ -240,7 +269,7 @@ export default function ConfigurationPage(): React.ReactElement {
 
       {/* Edit Form */}
       {isEditing && editConfig && (
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader>
             <CardTitle className="text-white">Edit Configuration</CardTitle>
             <CardDescription className="text-gray-400">
@@ -250,55 +279,65 @@ export default function ConfigurationPage(): React.ReactElement {
           <CardContent className="space-y-6">
             {/* Provider Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-300">
                 Payment Provider
               </label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="provider"
-                    value="MOCK"
-                    checked={editConfig.provider === 'MOCK'}
-                    onChange={(e) =>
-                      setEditConfig({
-                        ...editConfig,
-                        provider: e.target.value as DisbursementProvider,
-                      })
-                    }
-                    className="text-green-600"
-                  />
-                  <span className="text-white">MOCK (Testing)</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="provider"
-                    value="RISE"
-                    checked={editConfig.provider === 'RISE'}
-                    onChange={(e) =>
-                      setEditConfig({
-                        ...editConfig,
-                        provider: e.target.value as DisbursementProvider,
-                      })
-                    }
-                    className="text-green-600"
-                  />
-                  <span className="text-white">RISE (RiseWorks)</span>
-                </label>
+              <div className="flex flex-wrap gap-4">
+                {(['MOCK', 'RISE', 'WISE'] as const).map((provider) => {
+                  const isAvailable =
+                    editConfig.provider.available.includes(provider);
+                  return (
+                    <label
+                      key={provider}
+                      className={`flex items-center gap-2 ${
+                        isAvailable
+                          ? 'cursor-pointer'
+                          : 'cursor-not-allowed opacity-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="provider"
+                        value={provider}
+                        disabled={!isAvailable}
+                        checked={editConfig.provider.default === provider}
+                        onChange={(e) =>
+                          setEditConfig({
+                            ...editConfig,
+                            provider: {
+                              ...editConfig.provider,
+                              default: e.target.value as DisbursementProvider,
+                            },
+                          })
+                        }
+                        className="text-green-600"
+                      />
+                      <span className="text-white">
+                        {PROVIDER_LABEL[provider]}
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
-              <p className="text-gray-500 text-xs mt-1">
-                MOCK provider simulates payments for testing. RISE uses
-                RiseWorks blockchain.
-              </p>
+              <div className="mt-2 rounded-lg border border-blue-600/50 bg-blue-900/30 p-3">
+                <p className="text-xs text-blue-300">
+                  <strong>
+                    Configured via <code>DISBURSEMENT_PROVIDER</code> env var.
+                  </strong>{' '}
+                  This selection is informational — Save does not change the
+                  live provider. The active provider is set by the environment
+                  variable on the service that executes batches (money-service
+                  for WISE) and takes effect on redeploy.
+                </p>
+              </div>
             </div>
 
             {/* Enabled Toggle */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-300">
                 Disbursement Status
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex cursor-pointer items-center gap-2">
                 <input
                   type="checkbox"
                   checked={editConfig.enabled}
@@ -309,14 +348,14 @@ export default function ConfigurationPage(): React.ReactElement {
                 />
                 <span className="text-white">Enable disbursements</span>
               </label>
-              <p className="text-gray-500 text-xs mt-1">
+              <p className="mt-1 text-xs text-gray-500">
                 When disabled, no new batches can be created or executed.
               </p>
             </div>
 
             {/* Minimum Payout */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-300">
                 Minimum Payout (USD)
               </label>
               <input
@@ -330,16 +369,16 @@ export default function ConfigurationPage(): React.ReactElement {
                     minimumPayout: parseFloat(e.target.value) || 0,
                   })
                 }
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
               />
-              <p className="text-gray-500 text-xs mt-1">
+              <p className="mt-1 text-xs text-gray-500">
                 Affiliates must have at least this amount to receive a payout.
               </p>
             </div>
 
             {/* Batch Size */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-300">
                 Maximum Batch Size
               </label>
               <input
@@ -353,34 +392,10 @@ export default function ConfigurationPage(): React.ReactElement {
                     batchSize: parseInt(e.target.value) || 100,
                   })
                 }
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
               />
-              <p className="text-gray-500 text-xs mt-1">
+              <p className="mt-1 text-xs text-gray-500">
                 Maximum number of payments per batch (1-500).
-              </p>
-            </div>
-
-            {/* Environment */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Environment
-              </label>
-              <select
-                value={editConfig.environment}
-                onChange={(e) =>
-                  setEditConfig({
-                    ...editConfig,
-                    environment: e.target.value as 'production' | 'staging',
-                  })
-                }
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <option value="staging">Staging</option>
-                <option value="production">Production</option>
-              </select>
-              <p className="text-gray-500 text-xs mt-1">
-                Production environment processes real payments. Use staging for
-                testing.
               </p>
             </div>
           </CardContent>
@@ -388,27 +403,31 @@ export default function ConfigurationPage(): React.ReactElement {
       )}
 
       {/* Configuration Info */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="border-gray-700 bg-gray-800">
         <CardHeader>
           <CardTitle className="text-white">Configuration Guide</CardTitle>
         </CardHeader>
-        <CardContent className="text-gray-300 space-y-3">
+        <CardContent className="space-y-3 text-gray-300">
           <div>
-            <h4 className="font-medium text-white mb-1">Payment Provider</h4>
-            <ul className="list-disc list-inside text-sm text-gray-400 space-y-1">
+            <h4 className="mb-1 font-medium text-white">Payment Provider</h4>
+            <ul className="list-inside list-disc space-y-1 text-sm text-gray-400">
               <li>
                 <strong>MOCK:</strong> Simulates payments instantly. Use for
                 development and testing.
               </li>
               <li>
-                <strong>RISE:</strong> RiseWorks blockchain provider. Sends USDC
-                to affiliates.
+                <strong>RISE:</strong> RiseWorks blockchain provider. Archived
+                (Session 4A-W1) — no longer live.
+              </li>
+              <li>
+                <strong>WISE:</strong> Wise payout provider. Live in production
+                since Session 4A-W7; batches execute through money-service.
               </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-medium text-white mb-1">Minimum Payout</h4>
+            <h4 className="mb-1 font-medium text-white">Minimum Payout</h4>
             <p className="text-sm text-gray-400">
               The minimum commission balance required before an affiliate
               becomes eligible for payout. This helps reduce transaction fees
@@ -417,18 +436,20 @@ export default function ConfigurationPage(): React.ReactElement {
           </div>
 
           <div>
-            <h4 className="font-medium text-white mb-1">Batch Size</h4>
+            <h4 className="mb-1 font-medium text-white">Batch Size</h4>
             <p className="text-sm text-gray-400">
               Maximum number of payments to include in a single batch. Larger
               batches are more efficient but take longer to process.
             </p>
           </div>
 
-          <div className="bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-3">
-            <p className="text-yellow-400 text-sm">
-              <strong>Warning:</strong> Changing the provider to RISE in
-              production will trigger real blockchain transactions. Ensure all
-              RiseWorks API credentials are properly configured.
+          <div className="rounded-lg border border-yellow-600/50 bg-yellow-900/30 p-3">
+            <p className="text-sm text-yellow-400">
+              <strong>Note:</strong> The provider field above reflects the
+              current <code>DISBURSEMENT_PROVIDER</code> environment variable
+              and cannot be changed from this page. Real WISE payouts move real
+              money — provider changes must go through a deliberate
+              environment-variable update and redeploy, not this form.
             </p>
           </div>
         </CardContent>

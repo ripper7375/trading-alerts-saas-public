@@ -55,6 +55,16 @@ export function createPaymentProvider(
         'RISE provider is not yet implemented. Use MOCK provider for development or wait for Phase C implementation.'
       );
 
+    case 'WISE':
+      // WisePaymentProvider is implemented in money-service (Part 19.5), not
+      // in this monolith factory — it requires DI-constructed collaborators
+      // this factory has no context to build. Real disbursement batch
+      // execution for WISE runs in money-service; this branch exists only so
+      // an accidental monolith-side call fails with a clear message.
+      throw new Error(
+        'WISE provider is implemented in money-service, not in the monolith. This factory cannot construct it directly.'
+      );
+
     default:
       // This should never happen due to isValidProvider check, but TypeScript likes exhaustive checks
       throw new Error(`Unknown payment provider: ${provider}`);
@@ -76,8 +86,14 @@ export function isProviderAvailable(provider: DisbursementProvider): boolean {
     case 'MOCK':
       return true;
     case 'RISE':
-      // Will return true after Phase C implementation
+      // Archived (Part 19.5, F42) — rows retained, provider deactivated
       return false;
+    case 'WISE':
+      // Implemented in money-service (Part 19.5); the monolith factory has no
+      // constructible instance (see createPaymentProvider below), but the
+      // provider itself is live — this flag mirrors money-service's own
+      // provider-factory.ts semantics for admin-facing availability checks.
+      return true;
     default:
       return false;
   }
@@ -95,6 +111,10 @@ export function getAvailableProviders(): DisbursementProvider[] {
 
   if (isProviderAvailable('RISE')) {
     providers.push('RISE');
+  }
+
+  if (isProviderAvailable('WISE')) {
+    providers.push('WISE');
   }
 
   return providers;
