@@ -17,9 +17,17 @@ import {
 /**
  * Account deletion confirmation landing page — the destination for the
  * confirm link sent in a deletion request email. Deliberately reachable
- * without a session (middleware.ts carries an exact-pathname allow-list for
- * this route): the user may be on a different device, logged out, or have
- * an expired session by the time they click the link.
+ * without a session: the user may be on a different device, logged out, or
+ * have an expired session by the time they click the link.
+ *
+ * URL is /settings/account/delete/confirm (route groups are transparent to
+ * the URL), but the FILE lives outside app/(dashboard)/ on purpose — that
+ * group's own layout.tsx does a server-side `getServerSession` + `redirect`
+ * on every page it wraps, which would send a logged-out visitor to /login
+ * before this page ever rendered, regardless of middleware.ts's own
+ * exact-pathname allow-list for this route (which only stops the earlier,
+ * edge-level redirect — the layout-level one is a separate check). Both
+ * layers had to be addressed for this page to actually be public.
  *
  * Human-in-the-loop gate: `POST /api/user/account/deletion-confirm` is
  * never fired on page load — only after an explicit click, so an email

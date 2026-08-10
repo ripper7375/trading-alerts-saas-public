@@ -17,8 +17,11 @@ import {
 /**
  * Account deletion cancellation landing page — the destination for the
  * cancel link sent in a deletion request/confirmation email. Deliberately
- * reachable without a session (middleware.ts carries an exact-pathname
- * allow-list for this route).
+ * reachable without a session. Lives outside app/(dashboard)/ for the same
+ * reason as the confirm page's own module comment explains: that route
+ * group's layout.tsx redirects logged-out visitors on its own, separately
+ * from middleware.ts's exact-pathname allow-list — both had to be
+ * addressed, not just the middleware layer.
  *
  * `deletion-cancel` is dual-mode by design (its own route handler):
  * a token in the URL identifies the request directly; with no token, the
