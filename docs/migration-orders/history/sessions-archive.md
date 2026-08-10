@@ -7,6 +7,94 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+_(superseded-by-above, retained for context)_ Session 6-1b (Mock-Data Hotfix, PORT variant, low dial), CONFIRMED, executed,
+CLOSED (partial — live manual check not done, see below) 2026-08-10, same day as Session 6-1.
+**All 3 fabricated-data pages plus the 1 fabricated field Session 6-1 identified (A1-1/A1-2/
+A1-3/A1-4) are now genuinely wired to real endpoints — zero mock data remains anywhere in the
+4 target files.**
+**CONFIRM re-verified all 4 backing endpoints live before touching any code:** 3 of 4 matched
+the order's own cited shape exactly (`GET /api/invoices`, `POST /api/subscription/cancel`,
+`GET /api/admin/fraud-alerts/[id]`, `GET /api/alerts`). Found two real, execution-blocking gaps
+the order's own entry criteria hadn't caught (`LESSONS-LEARNED.md` L27 class — the cited shape
+was accurate as far as it went, but insufficient for what the file's own Port steps needed):
+(1) `GET /api/subscription`'s response never carried `User.trialStatus`/`trialConvertedAt`/
+`trialCancelledAt`/`hasUsedFreeTrial` — confirmed by a repo-wide grep that NO existing GET
+endpoint exposes them anywhere — yet File 1's own Port step 1 requires driving a trial banner
+from exactly those fields; (2) the real `FraudAlert.notes` is a singular `String?`, not the
+mock's `string[]`, and `riskScore`/`paymentAttempts`/`previousAlerts`/`userAgent` don't exist
+on the schema at all — a straight rewire of File 2 would throw at runtime. Reported both before
+writing any code; Davin's live resolution: widen `GET /api/subscription`'s response additively
+(small, non-breaking — no existing consumer exists to break, confirmed via grep), and adapt
+File 2 to the real fields rather than fabricate the missing ones.
+Monolith baseline re-measured at CONFIRM, zero drift from Session 6-1's own close: `tsc
+--noEmit` clean; `eslint --max-warnings 0` — same 3 pre-existing warnings, 0 new; `test:ci`
+129/129 suites, 2191/2191 tests; `git rev-parse HEAD` == `origin/main` (L38 check, no push gap).
+**Built (4 files, one commit each, dependency order — read-only wiring first, the one
+destructive action last):** File 4 (`/settings` alert count) — real `GET /api/alerts` count
+replaces the hardcoded `alerts: 3`, with a real "Unable to load" state on fetch failure. File 3
+(`/admin` activity feed) — the mock generator replaced with the 5 most recent real `FraudAlert`
+rows via `GET /api/admin/fraud-alerts`, panel relabeled "Recent Fraud Alerts"; found mid-build
+that the route's own `querySchema` enforces `pageSize >= 10` (the order's own suggested
+`pageSize=5` would have 400'd), fetched the minimum allowed and trimmed to 5 client-side. File 2
+(`/admin/fraud-alerts/[id]`) — `MOCK_ALERT` replaced with a real fetch, explicit 404/403
+handling, status-transition actions (Dismiss/Mark Reviewed/Block User) call the real `PATCH`
+and only update local state from the server's confirmed response, never optimistically. File 1
+(`/settings/billing`, last) — `mockInvoices` and the hardcoded usage stats fully removed;
+subscription/invoices/alert-usage all fetched from their real endpoints in parallel;
+`components/billing/invoice-list.tsx` mounted for the real invoice table; the cancel dialog's
+confirm action calls the real `POST /api/subscription/cancel` and re-fetches `/api/subscription`
+on success to reflect the FREE downgrade without a page reload.
+**A third gap found mid-build, not anticipated at CONFIRM:** reading `components/billing/
+subscription-card.tsx` (the order's other named "already-built-but-unused" component) before
+mounting it surfaced a real, pre-existing bug — its optimistic-cancel "Undo" button only clears
+local UI state and never calls a reactivation API, while the real cancel call has already been
+awaited and resolved by the time Undo is even clickable. Wiring the real `POST /api/subscription/
+cancel` directly into this component would mean a user who clicks Cancel then Undo within its 5s
+window sees "still PRO" while the subscription was, in fact, already cancelled server-side — a
+real, money-adjacent, misleading-state bug. Fixing `subscription-card.tsx` itself was judged out
+of this session's own scope (not one of the 4 target files; a drive-by fix to a shared component
+is exactly the scope creep `EXECUTOR-PROTOCOL.md` §2 prohibits) — kept the existing hand-rolled
+Card + `AlertDialog` cancel-confirmation flow instead (rewired to live data), which correctly
+satisfies File 1's own Invariant ("must not regress the existing dialog's confirmation copy").
+Registered `DECISION-LOG.md` **F64** (new, OPEN) for a future session to fix or retire it.
+**Closed a real L28-class gap:** none of the 4 target pages had any test coverage before this
+session (`__tests__/pages/settings/` and `__tests__/pages/admin/` didn't even exist) — built all
+4 new test files (15 tests total), each proving real-data render, the relevant empty/error
+state, and — for Files 1/2 — both the success and failure paths of their real write action.
+**Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
+— same 3 pre-existing warnings, 0 new; `test:ci` **133/133 suites, 2206/2206 tests** (was
+129/129, 2191/2191 — +4 suites/+15 tests, exactly matching this session's own new files, zero
+regressions elsewhere).
+**Not done this session, disclosed rather than silently skipped:** the order's own "Live manual
+check of all 4 pages against real account data" done-when item. Session 4B-21 (F56) removed
+`CredentialsProvider` from `lib/auth/auth-options.ts` — local email/password sign-in through the
+standard NextAuth UI no longer exists; a real check now needs either a live OAuth account or the
+auth-bridge with seeded operation-service credentials, neither set up in this session. Minting a
+session token to bypass the UI was judged the wrong substitute for a page whose whole point is
+"does this look right to a real logged-in user" — carried forward, not fabricated.
+**No flag, no cutover-table row** — this session is deliberately flagless per its own header
+(correctness fix, not a cutover); `migration-cutover-table.md` unchanged.
+**Artifacts updated:** `6-1b-mock-data-hotfix.migration-order.md` (Status → CONFIRMED, executed,
+CLOSED partial; Entry criteria all checked; Deviations filled in full — 3 entries; Slice-level
+verification checked except the live-manual-check item, disclosed as not done), `DECISION-LOG.md`
+(new **F64**, OPEN), `migration-stack-analysis.md` (new Session 6-1b entry, 4 files modified + 1
+route widened + 4 new test files), this file (session-history hygiene: Session 4B-22's own full
+text moved to `history/sessions-archive.md`, matching this file's own rotation rule — the larger
+pre-existing backlog from 4B-21 onward, already flagged at Waiting-on #102, is unchanged and
+still needs its own dedicated cleanup session), `LESSONS-LEARNED.md` (new **L57** — read an
+"already-built-but-unused" component's real implementation, not just its prop signature, before
+wiring a real action into it; harvested from the `subscription-card.tsx` finding). New
+`6-2-ia-design-system-shared-shells.migration-order.md` PRE-DRAFTed (UI-BUILD variant, adapted,
+no flags) — scoped from the gap matrix's own "→ 6-2" rows (F62 admin-tree consolidation,
+`/settings` grid completion, dead nav-link removal, `not-found.tsx`/`global-error.tsx`,
+marketing-footer nav). **Not fast-path eligible** — F62's own resolution (Davin's decision, 3
+options presented, none chosen by this PRE-DRAFT) is a hard entry criterion; needs a full
+Advisor DRAFT before CONFIRM. The live-manual-check carry-forward (Waiting-on #117) and
+`DECISION-LOG.md` F64 both folded into 6-2's own Next-session handoff rather than spawning a
+separate session for either.
+
+---
+
 _(superseded-by-above, retained for context)_ Session 6-1 (Frontend Gap Matrix & Endpoint Mapping, F11, CONTRACT variant),
 CONFIRMED and executed 2026-08-10 — **CLOSED with F11 still OPEN. This is a deliberate,
 disclosed partial close, not a silent shortfall:** the order's own Rollback clause says the

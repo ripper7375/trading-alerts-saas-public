@@ -3086,5 +3086,42 @@ page.tsx` → their `app/(dashboard)/admin/*` equivalents.
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-10 (Session 6-2, IA + Design System + Shared Shells)
+<details>
+<summary><strong>2026-08-10 — Session 6-3 (Alerts & Charts, UI-BUILD)</strong></summary>
+
+Wires the 3 orphan `/api/tier/*` endpoints into a real UI consumer and builds the missing
+`/alerts/[id]/edit` route (A1-11/A2-4). Zero flags, zero backend changes.
+
+- **New:** `app/(dashboard)/alerts/[id]/edit/page.tsx` (server component — session/tier gate,
+  direct Prisma read matching `/alerts/page.tsx`'s own convention, `notFound()` for both a
+  missing alert and a wrong-owner alert); `app/(dashboard)/alerts/[id]/edit/edit-alert-client.tsx`
+  (client wrapper, `PATCH /api/alerts/[id]`); `__tests__/pages/alerts/edit.test.tsx` (7 tests,
+  first-ever test in this repo covering an async Server Component page directly).
+- **Modified:** `components/alerts/alert-form.tsx` (redesigned to self-fetch
+  `GET /api/tier/symbols` + `/combinations` for available symbols/timeframes and
+  `GET /api/tier/check/[symbol]` for real-time access validation, replacing its own now-removed
+  `availableSymbols`/`availableTimeframes` props — the component had zero live callers before this
+  session, so this was a safe, non-breaking redesign; also locks the condition-type selector in
+  edit mode, matching the real `updateAlertSchema`'s own `isActive`/`name`/`targetValue`-only
+  contract); `app/(dashboard)/alerts/alerts-client.tsx` (Edit button added per alert card, linking
+  to `/alerts/${id}/edit`).
+- **Found, not fixed (out of scope):** `AlertForm` was completely orphaned before this session —
+  `/alerts/new` uses a separate, hand-rolled `create-alert-client.tsx` with its own duplicated
+  form fields, never `AlertForm`. Left `create-alert-client.tsx` untouched (out of this order's
+  own Surface).
+- **Regression:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` — same
+  3 pre-existing warnings (Session 6-1's own L56 finding), 0 new; `test:ci` 133/133 suites,
+  2209/2209 tests (was 132/132, 2202/2202 — +1 suite/+7 tests, exactly this session's own new
+  file, zero regressions elsewhere).
+- **Not done:** live manual check of the create + edit alert flows under a real authenticated
+  session — carries forward the same gap as Sessions 6-1b/6-2 (Waiting-on #117,
+  `CredentialsProvider` removed at Session 4B-21). Partial substitute: confirmed the new route
+  compiles and runs cleanly under the real Next.js/Turbopack dev server (unauthenticated request
+  correctly redirected to `/login?callbackUrl=...`).
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-10 (Session 6-3, Alerts & Charts)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

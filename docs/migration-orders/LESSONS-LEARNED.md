@@ -95,6 +95,11 @@ hygiene rule, detail moved to `LESSONS-ARCHIVE.md`. Full history in `LESSONS-ARC
   `DECISION-LOG.md`, cutover table, plan, playbook) rewritten in one internally consistent batch,
   no DRAFT-stage commit; confirmed live by Davin as his own authentic edit before treating any of
   it as trustworthy.
+  Recurred again at Session 6-3 (2026-08-10) — this time with real body-content drift, not just
+  header metadata: citation source swapped to a less-authoritative doc, an explicit "needs a
+  design decision" open question silently resolved with no visible rationale, and a carried-forward
+  Done-when item dropped. Confirmed live by Davin as authentic; he also resolved the design
+  question directly and explicitly reinstated the dropped item rather than letting it stay lost.
 
 ### L12 — A catch block checking `error.message` for a marker the source only ever sets on `error.code` is dead code
 

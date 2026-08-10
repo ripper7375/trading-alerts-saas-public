@@ -26,7 +26,87 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 6-2 (IA + Design System + Shared Shells, UI-BUILD variant, dial HIGH for
+- **Current:** Session 6-3 (Alerts & Charts, UI-BUILD variant, dial HIGH for the edit-form UI/flow,
+  LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-10, same day as Session 6-2.
+  **The 3 orphan `/api/tier/*` endpoints now have a real UI consumer, and `/alerts/[id]/edit` exists
+  for the first time.**
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again, this time with real
+  body-content drift, not just header metadata**: committed `HEAD` had the order at `Status:
+PRE-DRAFT`, citing `phase-6-frontend-gap-matrix.md` (Session 6-1's own re-verified output); the
+  working copy was a full uncommitted rewrite to `Status: APPROVED`, citing the less-authoritative
+  `docs/files-completion-list/ui-page-gap-analysis.md`, with the PRE-DRAFT's own explicit "tier-
+  endpoint UX is not yet decided... needs a design decision" NOTE silently replaced by asserted
+  specifics, and the PRE-DRAFT's own carried-forward "live manual check" Done-when item dropped
+  entirely. Reported in full before proceeding; Davin confirmed live it was his own authentic
+  authorization, resolved the tier-endpoint UX question directly (wire all 3 endpoints as specified
+  — V8's single-symbol architecture means this "cleanly wires the endpoints without needing
+  redundant multi-symbol modals" rather than shipping dead code), and explicitly reinstated the
+  dropped Waiting-on #117 carry-forward rather than letting it stay lost.
+  **Independently re-verified A1-11/A2-4 against live code before writing anything:** the three
+  tier-endpoint line counts the rewrite cited (138/165/144) were off by +1 each — real counts are
+  137/164/144, matching the original PRE-DRAFT's own numbers exactly. More consequentially: found
+  `components/alerts/alert-form.tsx`'s `AlertForm` component is **completely orphaned** — zero live
+  callers anywhere in `app/`/`components/` (`/alerts/new` uses a separate, hand-rolled
+  `create-alert-client.tsx` with its own duplicated form fields, never `AlertForm`). The order's own
+  "Form Component Reuse" NOTE held true for the component's prop signature (`isEditing`/
+  `initialData` are real, wired-through props) but understated that this session is its first real
+  usage anywhere, not a retrofit of an already-consumed component — per `LESSONS-LEARNED.md` L57's
+  own precedent, read the full implementation before trusting it as ready to wire in.
+  **Built (4 Ordered Steps, one commit each):** Step 1 — `alert-form.tsx` redesigned to self-fetch
+  `GET /api/tier/symbols` + `GET /api/tier/combinations` on mount (replacing its own now-removed
+  `availableSymbols`/`availableTimeframes` required props — safe since it had zero existing callers
+  to break) and `GET /api/tier/check/[symbol]` on symbol change for a real-time access-denial
+  banner; falls back to the same `lib/tier-config.ts` constants the endpoints themselves read from
+  if a fetch fails. Own addition beyond the order's literal text: locks the condition-type selector
+  in edit mode (`fieldset disabled={isEditing}`), matching the existing symbol/timeframe lock —
+  the real `updateAlertSchema` only accepts `isActive`/`name`/`targetValue`, so leaving condition
+  type editable would let a user pick a new condition in the UI while Zod silently strips it and the
+  backend keeps evaluating the original, a real Data-Contract-dial-LOW violation the order's own
+  Rules section explicitly warns against. Step 2 — new `app/(dashboard)/alerts/[id]/edit/page.tsx`
+  (server component, session/tier gate, **direct Prisma read** mirroring `/alerts/page.tsx`'s and
+  `/alerts/new/page.tsx`'s own established convention rather than a self-referential fetch to
+  `GET /api/alerts/[id]`) + `edit-alert-client.tsx` (client wrapper, `PATCH /api/alerts/[id]`,
+  sending only `name`/`targetValue` — the entirety of what the real endpoint accepts). Own security
+  choice, not explicit in the order: a non-existent alert ID and an alert owned by a different user
+  both call `notFound()` (reusing Session 6-2's own `app/not-found.tsx`) — the response never
+  distinguishes "doesn't exist" from "not yours," so a caller can't enumerate other users' alert IDs.
+  Step 3 — Edit button added to each alert card in `alerts-client.tsx`, linking to
+  `/alerts/${id}/edit`. Step 4 — first-of-its-kind test infrastructure: no existing test file in
+  this repo tests an async Server Component page directly (grepped, found none) — built
+  `__tests__/pages/alerts/edit.test.tsx` by calling `EditAlertPage()` directly and awaiting its
+  resolved JSX before `render()`, with `next/navigation`'s `redirect`/`notFound` mocked to throw
+  (matching their real behavior) so the page's control flow halts correctly and the test can assert
+  which one fired. 7 new tests, all green.
+  **A genuine, deliberate design note, not a guess:** `GET /api/tier/check/[symbol]`'s "invalid
+  symbol selection displays tier warning banner" has no reachable trigger for any real user today —
+  confirmed via `lib/tier-config.ts` (`SYMBOLS = ['XAUUSD']`, `PRO_EXCLUSIVE_SYMBOLS = []`) and
+  `GET /api/tier/combinations`'s own doc comment ("No tier gating... chart access is no longer a
+  tier differentiator"). Wired in exactly as Davin confirmed anyway — genuine, forward-compatible
+  defensive code for a future second symbol, not dead code shipped by mistake.
+  **Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
+  — same 3 pre-existing warnings tracked since Session 6-1 (L56), 0 new; `test:ci` **133/133
+  suites, 2209/2209 tests** (was 132/132, 2202/2202 — +1 suite/+7 tests, exactly this session's own
+  new file, zero regressions elsewhere). Started the real Next.js/Turbopack dev server and confirmed
+  `/alerts/[id]/edit` compiles and runs cleanly outside `tsc` — an unauthenticated request correctly
+  redirected to `/login?callbackUrl=%2Falerts%2F...%2Fedit`, proving the route's build and auth gate
+  both work end-to-end.
+  **Not done this session, disclosed rather than silently skipped, per Davin's own explicit
+  instruction to carry it forward again:** the live manual check of the create + edit alert flows
+  against a real logged-in session — same standing gap as every Phase 6 session since 6-1b
+  (Waiting-on #117, `CredentialsProvider` removed at Session 4B-21).
+  **No flag, no cutover-table row** — same-stack UI work, no flag existed to touch or retire;
+  `migration-cutover-table.md` unchanged.
+  **Artifacts updated:** `6-3-alerts-charts.migration-order.md` (Status → CONFIRMED, executed;
+  Entry criteria all checked; Done-when checked except the live-manual-check item marked explicitly
+  partial; Deviations filled in full — 8 entries), `migration-stack-analysis.md` (new Session 6-3
+  entry, 3 new files + 2 modified), `LESSONS-LEARNED.md` (L11 recurrence note — the first occurrence
+  of this pattern with real body-content drift, not just header metadata), this file
+  (session-history hygiene: Session 6-1b's own full text moved to `history/sessions-archive.md`,
+  matching this file's own rotation rule — the larger pre-existing backlog flagged at Waiting-on
+  #102 is unchanged, still needs its own dedicated cleanup session). New
+  `6-4-notifications.migration-order.md` PRE-DRAFTed (UI-BUILD variant) per this order's own
+  Next-session handoff.
+- **Previous:** Session 6-2 (IA + Design System + Shared Shells, UI-BUILD variant, dial HIGH for
   layout/nav, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-10, same day as
   Session 6-1b. **`DECISION-LOG.md` F62 is now RESOLVED and EXECUTED — all 23 admin pages live
   under one guarded tree for the first time in this migration.**
@@ -121,91 +201,6 @@ admin/login/page.tsx` deleted; replaced with a permanent `next.config.js` redire
   moved to `LESSONS-ARCHIVE.md`, matching L11's own precedent). New
   `6-3-alerts-charts.migration-order.md` PRE-DRAFTed (UI-BUILD variant) per the order's own
   Next-session handoff — **not fast-path eligible**, needs a full Advisor DRAFT before CONFIRM.
-- **Previous:** Session 6-1b (Mock-Data Hotfix, PORT variant, low dial), CONFIRMED, executed,
-  CLOSED (partial — live manual check not done, see below) 2026-08-10, same day as Session 6-1.
-  **All 3 fabricated-data pages plus the 1 fabricated field Session 6-1 identified (A1-1/A1-2/
-  A1-3/A1-4) are now genuinely wired to real endpoints — zero mock data remains anywhere in the
-  4 target files.**
-  **CONFIRM re-verified all 4 backing endpoints live before touching any code:** 3 of 4 matched
-  the order's own cited shape exactly (`GET /api/invoices`, `POST /api/subscription/cancel`,
-  `GET /api/admin/fraud-alerts/[id]`, `GET /api/alerts`). Found two real, execution-blocking gaps
-  the order's own entry criteria hadn't caught (`LESSONS-LEARNED.md` L27 class — the cited shape
-  was accurate as far as it went, but insufficient for what the file's own Port steps needed):
-  (1) `GET /api/subscription`'s response never carried `User.trialStatus`/`trialConvertedAt`/
-  `trialCancelledAt`/`hasUsedFreeTrial` — confirmed by a repo-wide grep that NO existing GET
-  endpoint exposes them anywhere — yet File 1's own Port step 1 requires driving a trial banner
-  from exactly those fields; (2) the real `FraudAlert.notes` is a singular `String?`, not the
-  mock's `string[]`, and `riskScore`/`paymentAttempts`/`previousAlerts`/`userAgent` don't exist
-  on the schema at all — a straight rewire of File 2 would throw at runtime. Reported both before
-  writing any code; Davin's live resolution: widen `GET /api/subscription`'s response additively
-  (small, non-breaking — no existing consumer exists to break, confirmed via grep), and adapt
-  File 2 to the real fields rather than fabricate the missing ones.
-  Monolith baseline re-measured at CONFIRM, zero drift from Session 6-1's own close: `tsc
---noEmit` clean; `eslint --max-warnings 0` — same 3 pre-existing warnings, 0 new; `test:ci`
-  129/129 suites, 2191/2191 tests; `git rev-parse HEAD` == `origin/main` (L38 check, no push gap).
-  **Built (4 files, one commit each, dependency order — read-only wiring first, the one
-  destructive action last):** File 4 (`/settings` alert count) — real `GET /api/alerts` count
-  replaces the hardcoded `alerts: 3`, with a real "Unable to load" state on fetch failure. File 3
-  (`/admin` activity feed) — the mock generator replaced with the 5 most recent real `FraudAlert`
-  rows via `GET /api/admin/fraud-alerts`, panel relabeled "Recent Fraud Alerts"; found mid-build
-  that the route's own `querySchema` enforces `pageSize >= 10` (the order's own suggested
-  `pageSize=5` would have 400'd), fetched the minimum allowed and trimmed to 5 client-side. File 2
-  (`/admin/fraud-alerts/[id]`) — `MOCK_ALERT` replaced with a real fetch, explicit 404/403
-  handling, status-transition actions (Dismiss/Mark Reviewed/Block User) call the real `PATCH`
-  and only update local state from the server's confirmed response, never optimistically. File 1
-  (`/settings/billing`, last) — `mockInvoices` and the hardcoded usage stats fully removed;
-  subscription/invoices/alert-usage all fetched from their real endpoints in parallel;
-  `components/billing/invoice-list.tsx` mounted for the real invoice table; the cancel dialog's
-  confirm action calls the real `POST /api/subscription/cancel` and re-fetches `/api/subscription`
-  on success to reflect the FREE downgrade without a page reload.
-  **A third gap found mid-build, not anticipated at CONFIRM:** reading `components/billing/
-subscription-card.tsx` (the order's other named "already-built-but-unused" component) before
-  mounting it surfaced a real, pre-existing bug — its optimistic-cancel "Undo" button only clears
-  local UI state and never calls a reactivation API, while the real cancel call has already been
-  awaited and resolved by the time Undo is even clickable. Wiring the real `POST /api/subscription/
-cancel` directly into this component would mean a user who clicks Cancel then Undo within its 5s
-  window sees "still PRO" while the subscription was, in fact, already cancelled server-side — a
-  real, money-adjacent, misleading-state bug. Fixing `subscription-card.tsx` itself was judged out
-  of this session's own scope (not one of the 4 target files; a drive-by fix to a shared component
-  is exactly the scope creep `EXECUTOR-PROTOCOL.md` §2 prohibits) — kept the existing hand-rolled
-  Card + `AlertDialog` cancel-confirmation flow instead (rewired to live data), which correctly
-  satisfies File 1's own Invariant ("must not regress the existing dialog's confirmation copy").
-  Registered `DECISION-LOG.md` **F64** (new, OPEN) for a future session to fix or retire it.
-  **Closed a real L28-class gap:** none of the 4 target pages had any test coverage before this
-  session (`__tests__/pages/settings/` and `__tests__/pages/admin/` didn't even exist) — built all
-  4 new test files (15 tests total), each proving real-data render, the relevant empty/error
-  state, and — for Files 1/2 — both the success and failure paths of their real write action.
-  **Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
-  — same 3 pre-existing warnings, 0 new; `test:ci` **133/133 suites, 2206/2206 tests** (was
-  129/129, 2191/2191 — +4 suites/+15 tests, exactly matching this session's own new files, zero
-  regressions elsewhere).
-  **Not done this session, disclosed rather than silently skipped:** the order's own "Live manual
-  check of all 4 pages against real account data" done-when item. Session 4B-21 (F56) removed
-  `CredentialsProvider` from `lib/auth/auth-options.ts` — local email/password sign-in through the
-  standard NextAuth UI no longer exists; a real check now needs either a live OAuth account or the
-  auth-bridge with seeded operation-service credentials, neither set up in this session. Minting a
-  session token to bypass the UI was judged the wrong substitute for a page whose whole point is
-  "does this look right to a real logged-in user" — carried forward, not fabricated.
-  **No flag, no cutover-table row** — this session is deliberately flagless per its own header
-  (correctness fix, not a cutover); `migration-cutover-table.md` unchanged.
-  **Artifacts updated:** `6-1b-mock-data-hotfix.migration-order.md` (Status → CONFIRMED, executed,
-  CLOSED partial; Entry criteria all checked; Deviations filled in full — 3 entries; Slice-level
-  verification checked except the live-manual-check item, disclosed as not done), `DECISION-LOG.md`
-  (new **F64**, OPEN), `migration-stack-analysis.md` (new Session 6-1b entry, 4 files modified + 1
-  route widened + 4 new test files), this file (session-history hygiene: Session 4B-22's own full
-  text moved to `history/sessions-archive.md`, matching this file's own rotation rule — the larger
-  pre-existing backlog from 4B-21 onward, already flagged at Waiting-on #102, is unchanged and
-  still needs its own dedicated cleanup session), `LESSONS-LEARNED.md` (new **L57** — read an
-  "already-built-but-unused" component's real implementation, not just its prop signature, before
-  wiring a real action into it; harvested from the `subscription-card.tsx` finding). New
-  `6-2-ia-design-system-shared-shells.migration-order.md` PRE-DRAFTed (UI-BUILD variant, adapted,
-  no flags) — scoped from the gap matrix's own "→ 6-2" rows (F62 admin-tree consolidation,
-  `/settings` grid completion, dead nav-link removal, `not-found.tsx`/`global-error.tsx`,
-  marketing-footer nav). **Not fast-path eligible** — F62's own resolution (Davin's decision, 3
-  options presented, none chosen by this PRE-DRAFT) is a hard entry criterion; needs a full
-  Advisor DRAFT before CONFIRM. The live-manual-check carry-forward (Waiting-on #117) and
-  `DECISION-LOG.md` F64 both folded into 6-2's own Next-session handoff rather than spawning a
-  separate session for either.
 - **Previous:** _(superseded-by-above, retained for context)_ Session 4B-21 (Auth Cutover & UI
   Rewire, PORT/UI-BUILD hybrid), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-04 — full text
   moved to
@@ -4091,25 +4086,29 @@ Slice-3-RETIRE session, and the now-active `4A-W_` series.
   RESOLVED and EXECUTED (all 23 admin pages consolidated under `app/(dashboard)/admin/*`);
   `app/not-found.tsx`/`app/global-error.tsx` live; `/settings` grid, dead nav links, and the
   marketing footer all fixed. The deferred live-manual-check (Waiting-on #117) carries forward
-  again, still needing Davin's own browser session. **Session 6-3** (alerts/charts) is now the
-  literal next session — PRE-DRAFTed at 6-2's close, needs a full Advisor DRAFT before CONFIRM
-  (not fast-path eligible). Two named Phase 4 exceptions run as their own independent tracks and
-  do NOT block Phase 6: `DECISION-LOG.md` F49 (dLocal `payment_method_flow`, needs its own fix
-  session) and F60 (`4a-13-stripe-webhook-cutover.migration-order.md`, PRE-DRAFTed).
+  again, still needing Davin's own browser session. **Session 6-3 is now ALSO CONFIRMED, executed,
+  and CLOSED SUCCESSFUL** (see Current above) — the 3 orphan `/api/tier/*` endpoints now have a
+  real UI consumer (`AlertForm`, previously orphaned with zero live callers, self-fetches all 3),
+  and `/alerts/[id]/edit` exists for the first time. Waiting-on #117 carries forward again, per
+  Davin's own explicit instruction this session. **Session 6-4** (notifications) is now the literal
+  next session — PRE-DRAFTed at 6-3's close, builds the `/notifications` page the bell already
+  links to. Two named Phase 4 exceptions run as their own independent tracks and do NOT block Phase
+  6: `DECISION-LOG.md` F49 (dLocal `payment_method_flow`, needs its own fix session) and F60
+  (`4a-13-stripe-webhook-cutover.migration-order.md`, PRE-DRAFTed).
   **Phase 6 is now 12 sessions, in this order:** 6-1 (gap matrix, audit only — done) → 6-1b
   (mock-data hotfix, PORT/low dial — done) → 6-2 (IA + design system + shared shells; F62
-  resolved/executed — done) → **6-3** (alerts/charts, next) → 6-4 (notifications; builds the
-  `/notifications` page the bell already links to) → 6-5 (settings/user; account-deletion
-  confirm/cancel pages) → 6-6 (admin) → 6-7 (affiliate) → 6-8 (payments/checkout; resolves F61) →
-  **6-10** (NEW — public/marketing surface; blocked on F63) → **6-11** (NEW — admin system
-  operations) → **6-12** (a11y + responsive + phase exit; was 6-9). **Session number 6-9 is
-  retired — do not reuse it.**
+  resolved/executed — done) → 6-3 (alerts/charts; 3 orphan tier endpoints wired, edit route built —
+  done) → **6-4** (notifications, next; builds the `/notifications` page the bell already links
+  to) → 6-5 (settings/user; account-deletion confirm/cancel pages) → 6-6 (admin) → 6-7 (affiliate)
+  → 6-8 (payments/checkout; resolves F61) → **6-10** (NEW — public/marketing surface; blocked on
+  F63) → **6-11** (NEW — admin system operations) → **6-12** (a11y + responsive + phase exit; was
+  6-9). **Session number 6-9 is retired — do not reuse it.**
   **Per the chain-length-one rule (`00-SKELETON-AND-RULES.md` §1.5), 6-1 and 6-2 both got full
   order files** (6-2's own F62 scope made it not fast-path eligible, same reasoning). 6-1b, 6-10,
   6-11 and 6-12 are defined in the playbook and the v9 handbook, and each gets its own order
   PRE-DRAFTed by the Executor at the close of the session before it — they were deliberately NOT
   drafted ahead. 6-3's own order was PRE-DRAFTed at 6-2's close per the same rule (a domain-build
-  session following a just-closed one).
+  session following a just-closed one); 6-4's own order was PRE-DRAFTed at 6-3's close the same way.
 - **Waiting on (Phase 6, added 2026-08-10 by the UI gap analysis):** **(106, NEW)** `DECISION-LOG.md`
   **F61** — `GET /api/geo/detect` is called by `app/(marketing)/pricing/page.tsx:155` and
   `components/payments/CountrySelector.tsx:69` but `app/api/geo/` does not exist; every pricing-page
