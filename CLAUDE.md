@@ -74,9 +74,9 @@
   `fetchNotifications`'s `useCallback` has `router` in its dependency array, so the unstable mock
   reference produced a genuine re-fetch storm in the test (33 spurious `fetch` calls from one tab
   click), purely because Next's real `useRouter()` is memoized/stable and the mock wasn't. Fixed
-  by returning a single stable object. Flagged for the Advisor: `edit.test.tsx` uses the same
-  unstable-mock shape and would hit the identical bug class if that component's own effects ever
-  grew a `router`-dependent `useCallback`.
+  by returning a single stable object. Harvested as `LESSONS-LEARNED.md` **L59**. Flagged for the
+  Advisor there: `edit.test.tsx` uses the same unstable-mock shape and would hit the identical bug
+  class if that component's own effects ever grew a `router`-dependent `useCallback`.
   **Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
   — same 3 pre-existing warnings tracked since Session 6-1, 0 new; `test:ci` **134/134 suites,
   2217/2217 tests** (was 133/133, 2209/2209 — +1 suite/+8 tests, exactly this session's own new
@@ -91,7 +91,11 @@
   `migration-cutover-table.md` unchanged.
   **Artifacts updated:** `6-4-notifications.migration-order.md` (Status → CONFIRMED, executed;
   Entry criteria all checked; Done-when all checked; Deviations filled in full — 7 entries),
-  `migration-stack-analysis.md` (new Session 6-4 entry, 2 new files + 2 modified), this file
+  `migration-stack-analysis.md` (new Session 6-4 entry, 2 new files + 2 modified),
+  `LESSONS-LEARNED.md` (new **L59** — unstable `useRouter()` test mocks can manufacture a
+  re-fetch storm in any component that puts `router` in a memoized hook's deps; header count
+  bumped to 59 — the ≥40 consolidation overdue-flag from Waiting-on's own note stands unchanged,
+  not addressed this session), this file
   (session-history hygiene: Session 6-2's own full text moved to `_(superseded-by-above)_`,
   matching this file's own rotation rule — the larger pre-existing backlog flagged at Waiting-on
   #102 is unchanged, still needs its own dedicated cleanup session). New

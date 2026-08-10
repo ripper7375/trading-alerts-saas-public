@@ -4,7 +4,7 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 58 (L1–L58) — a consolidation pass is overdue and
+**Hard cap ~40 active lessons.** Currently at 59 (L1–L59) — a consolidation pass is overdue and
 now more overdue than at last count; the next session that isn't itself time-constrained should
 do it before adding more. Candidates promoted and preamble archived 2026-08-03; L11's own
 9-recurrence narrative collapsed to a single count line same day (Session 4B-19), L27's own
@@ -680,3 +680,10 @@ dist/main` (the plain `npm start` script) instead of the `start:worker` script n
 - Root cause: this repo's `prebuild` script (`rimraf .next tsconfig.tsbuildinfo node_modules/.prisma && npm run prisma:generate:...`) deletes and regenerates the Prisma clients as its first step. A `next dev` server reading from `node_modules/.prisma` mid-request during that window sees the directory momentarily empty/mid-rewrite and throws — a pure timing artifact of two processes sharing one `node_modules`, not a code defect.
 - Rule: never run `npm run build` (or anything invoking the `prebuild` script) while a `next dev` server from the same checkout is live. If a build-time and a dev-time check are both needed in one session, run them sequentially — stop the dev server first, or run the build in an isolated checkout/worktree. If this error appears while both are running concurrently, confirm the cause via `node_modules/.prisma`'s presence/timestamp and the build's own exit code before treating it as a regression.
 - Source: Session 6-2 (2026-08-10) · Status: ACTIVE
+
+### L59 — A `next/navigation` `useRouter()` test mock must return a stable object reference, not a fresh literal per call, whenever the component under test puts `router` in a memoized hook's dependency array
+
+- Symptom: `notification-list.tsx`'s `fetchNotifications` is a `useCallback` with `router` in its dependency array (needed to redirect on a 401). The test's `jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))` returned a NEW object literal on every call — since Next's real `useRouter()` is memoized/stable across renders but the mock wasn't, every re-render produced a new `router` reference, which recomputed `fetchNotifications`, which re-fired its own mount-effect, which re-rendered — a genuine re-fetch storm inside the test (33 spurious `fetch` calls from one simulated tab click) that has nothing to do with the app's real behavior.
+- Root cause: an unstable mock for a value the real implementation guarantees stable (`useRouter()`, `useSession()`, any context-backed hook) can manufacture an infinite-ish render loop in ANY component that puts that value in a `useCallback`/`useEffect`/`useMemo` dependency array — the bug is invisible by reading the component's own source, since the real app never exhibits it.
+- Rule: when mocking `next/navigation`'s `useRouter` (or any hook Next/React itself memoizes), return a SINGLE stable object created once outside the mock factory (`const mockRouter = { push: mockPush }; jest.mock(..., () => ({ useRouter: () => mockRouter }))`), never a fresh literal per call. Before trusting a component test with unexpectedly high fetch/render counts, check whether any mocked hook's return value is memoized in the mock the way it is in production.
+- Source: Session 6-4 (2026-08-10) — `edit.test.tsx` uses the same unstable-per-call mock shape and would hit the identical bug if that component's own effects ever grow a `router`-dependent `useCallback`; worth a follow-up check when that file is next touched. · Status: ACTIVE
