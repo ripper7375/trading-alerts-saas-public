@@ -71,7 +71,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F59  | Phase 4 exit criterion 3 ("NextAuth fully retired; JWT auth is the only auth system") literally conflicts with F56's own indefinite OAuth-on-NextAuth retention                                                                                                                                                                           | RESOLVED — Session 4B-22 (Davin, via Antigravity Advisor approval): amend criterion 3's own wording, do not silently mark it checked                                                                                                                                                                                         |
 | F60  | Stripe webhook migration (part of the plan's own Slice 4 scope, "`Write APIs + Stripe webhook`") was never executed — money-service has a fully-built, dormant `StripeWebhookController`; Stripe's dashboard was never repointed, no flag exists                                                                                          | OPEN — found Session 4B-22 (Phase 4 exit review), needs its own scoped cutover session                                                                                                                                                                                                                                       |
 | F61  | `GET /api/geo/detect` is called by `app/(marketing)/pricing/page.tsx:155` and `components/payments/CountrySelector.tsx:69` but the route does not exist anywhere in `app/api/` — a 404 on every pricing-page load                                                                                                                         | OPEN — owner Davin, due Session 6-8 (registered by the 2026-08-10 UI gap analysis)                                                                                                                                                                                                                                           |
-| F62  | Admin information architecture is split across two incompatible trees — `app/(dashboard)/admin/*` (15 pages, `getServerSession` guard, 4-entry nav) and `app/admin/*` (8 pages, **no `layout.tsx` at all**); 19 of 23 admin pages are unreachable from the admin nav                                                                      | OPEN — owner Davin, due Session 6-2 (structurally hard to undo; decide before any admin surface is rebuilt)                                                                                                                                                                                                                  |
+| F62  | Admin information architecture is split across two incompatible trees — `app/(dashboard)/admin/*` (15 pages, `getServerSession` guard, 4-entry nav) and `app/admin/*` (8 pages, **no `layout.tsx` at all**); 19 of 23 admin pages are unreachable from the admin nav                                                                      | RESOLVED — Session 6-2 (Davin): Option (a) — merge `app/admin/*` into `app/(dashboard)/admin/*`, retire `app/admin/login` with a redirect to `/login`                                                                                                                                                                        |
 | F63  | Public legal pages (`/terms`, `/privacy`, `/disclaimer`) do not exist; the registration consent checkbox links to two of them, and `/disclaimer` is compliance-relevant for a trading product                                                                                                                                             | OPEN — owner Davin, blocks Session 6-10 (does Davin supply real copy, or does 6-10 ship reviewed placeholders?)                                                                                                                                                                                                              |
 | F64  | `components/billing/subscription-card.tsx`'s optimistic-cancel "Undo" button never calls a reactivation API — it only clears local state after the real `onCancel()` has already resolved, so a user who clicks Cancel then Undo within its 5s window sees "still PRO" while the subscription was, in fact, already cancelled server-side | OPEN — found Session 6-1b (reading the component before wiring it, not by triggering the bug live); owner Davin — fix the undo flow or retire the component if it stays unused; not blocking, component still unmounted                                                                                                      |
 
@@ -466,8 +466,8 @@ the matrix is empty and this is the actual remaining blocker, not documentation 
 
 ## F62 — Admin information architecture is split across two incompatible trees
 
-- Status: OPEN
-- Session: registered 2026-08-10 (UI gap analysis); due Session 6-2 · Owner: Davin
+- Status: RESOLVED
+- Session: registered 2026-08-10 (UI gap analysis); resolved Session 6-2 (2026-08-10) · Owner: Davin
 - Question: merge `app/admin/*` into `app/(dashboard)/admin/*` (one shell, one guard, one nav),
   or keep both trees and only cross-link them?
 - Evidence: `app/(dashboard)/admin/*` holds 15 pages under the `(dashboard)` layout with a
@@ -477,8 +477,17 @@ the matrix is empty and this is the actual remaining blocker, not documentation 
   links between them: 19 of the 23 admin pages can only be reached by typing the URL.
   `middleware.ts` deliberately excludes `/admin` (documented in the file) because `app/admin/login`
   would otherwise be unreachable to a logged-out admin.
-- Why it needs Davin: consolidating changes URLs, the auth entry point and the admin login flow —
-  hard to undo once admin surfaces are rebuilt on top of it. Must be decided **before** 6-6.
+- Why it needed Davin: consolidating changes URLs, the auth entry point and the admin login flow —
+  hard to undo once admin surfaces are rebuilt on top of it. Decided **before** 6-6, at Session 6-2's
+  own CONFIRM.
+- Decision (Davin, live, Session 6-2 CONFIRM): **Option (a)** — merge all 8 `app/admin/*` pages
+  into `app/(dashboard)/admin/*`; retire `app/admin/login` with a plain redirect to the existing
+  `/login` page (no role-aware redirect preserved — an admin who signs in via `/login` lands on
+  `/dashboard` and reaches `/admin` the same way any admin does today, guarded correctly by
+  `app/(dashboard)/admin/layout.tsx`'s existing `getServerSession()` + role check either way).
+  Unifies all 23 admin pages under one guard, one nav, one styling system.
+- Executed: Session 6-2 (2026-08-10). See that order's own Deviations for the file-move list and
+  the `middleware.ts`/test-retirement consequences.
 
 ---
 
