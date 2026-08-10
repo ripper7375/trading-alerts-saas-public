@@ -332,7 +332,7 @@ export function AlertsClient({
     return (
       <Card
         key={alert.id}
-        className={`border-l-4 mb-4 hover:shadow-lg transition-shadow ${
+        className={`mb-4 border-l-4 transition-shadow hover:shadow-lg ${
           alert.status === 'active'
             ? 'border-l-green-500'
             : alert.status === 'paused'
@@ -344,12 +344,12 @@ export function AlertsClient({
       >
         <CardContent className="p-6">
           {/* Card Header */}
-          <div className="flex justify-between items-start mb-4">
+          <div className="mb-4 flex items-start justify-between">
             <div>
               <h3 className="text-lg font-bold text-gray-900">
                 {alert.name || `${alert.symbol} Alert`}
               </h3>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="mt-1 flex items-center gap-2">
                 <Badge variant="secondary">{alert.symbol}</Badge>
                 <span className="text-sm text-gray-500">{alert.timeframe}</span>
               </div>
@@ -359,7 +359,7 @@ export function AlertsClient({
 
           {/* Condition Info */}
           <div className="mb-4">
-            <p className="text-sm text-gray-600 mb-1">{conditionDisplay}</p>
+            <p className="mb-1 text-sm text-gray-600">{conditionDisplay}</p>
             <p className="text-2xl font-bold text-gray-900">
               $
               {targetValue.toLocaleString('en-US', {
@@ -370,7 +370,7 @@ export function AlertsClient({
 
           {/* Triggered Info */}
           {alert.status === 'triggered' && alert.lastTriggered && (
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+            <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 p-3">
               <p className="text-sm text-gray-700">
                 Triggered:{' '}
                 {new Date(alert.lastTriggered).toLocaleDateString('en-US', {
@@ -388,7 +388,7 @@ export function AlertsClient({
           )}
 
           {/* Card Footer */}
-          <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-gray-200">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 pt-4">
             <span className="text-xs text-gray-500">
               Created {new Date(alert.createdAt).toLocaleDateString()}
             </span>
@@ -396,7 +396,7 @@ export function AlertsClient({
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => handleViewChart(alert.symbol, alert.timeframe)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-600 text-white hover:bg-blue-700"
                 size="sm"
               >
                 View Chart
@@ -415,18 +415,29 @@ export function AlertsClient({
               {alert.status === 'paused' && (
                 <Button
                   onClick={() => handleTogglePause(alert.id)}
-                  className="bg-green-600 hover:bg-green-700 text-white"
+                  className="bg-green-600 text-white hover:bg-green-700"
                   size="sm"
                 >
                   Resume
                 </Button>
               )}
 
+              <Link href={`/alerts/${alert.id}/edit`}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  aria-label={`Edit ${alert.name || `${alert.symbol} Alert`}`}
+                >
+                  Edit
+                </Button>
+              </Link>
+
               <Button
                 onClick={() => openDeleteModal(alert)}
                 variant="outline"
                 size="sm"
-                className="text-red-600 hover:text-red-700 hover:border-red-500"
+                className="text-red-600 hover:border-red-500 hover:text-red-700"
+                aria-label={`Delete ${alert.name || `${alert.symbol} Alert`}`}
               >
                 Delete
               </Button>
@@ -439,19 +450,19 @@ export function AlertsClient({
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="mx-auto max-w-7xl">
         {/* Page Header */}
         <div className="mb-4">
-          <div className="text-sm text-gray-500 mb-4">
+          <div className="mb-4 text-sm text-gray-500">
             Dashboard &gt; Alerts
           </div>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Alerts</h1>
+              <h1 className="mb-2 text-3xl font-bold">Alerts</h1>
               <p className="text-gray-600">Manage your price alerts</p>
             </div>
             <Link href="/alerts/new">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold">
+              <Button className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700">
                 + Create New Alert
               </Button>
             </Link>
@@ -459,21 +470,21 @@ export function AlertsClient({
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
           {/* Active Alerts Card */}
           <Card className="border-l-4 border-l-green-500 shadow-md">
             <CardContent className="p-6">
-              <div className="text-sm uppercase font-semibold text-gray-600 mb-2">
+              <div className="mb-2 text-sm font-semibold uppercase text-gray-600">
                 Active
               </div>
-              <div className="text-4xl font-bold text-green-600 mb-1">
+              <div className="mb-1 text-4xl font-bold text-green-600">
                 {counts.active}/{limit}
               </div>
               <div className="text-sm text-gray-500">alerts watching</div>
               {userTier === 'FREE' && counts.active >= limit && (
                 <Link
                   href="/pricing"
-                  className="text-blue-600 text-sm underline mt-2 block"
+                  className="mt-2 block text-sm text-blue-600 underline"
                 >
                   Upgrade for more alerts
                 </Link>
@@ -484,10 +495,10 @@ export function AlertsClient({
           {/* Paused Alerts Card */}
           <Card className="border-l-4 border-l-gray-300 shadow-md">
             <CardContent className="p-6">
-              <div className="text-sm uppercase font-semibold text-gray-600 mb-2">
+              <div className="mb-2 text-sm font-semibold uppercase text-gray-600">
                 Paused
               </div>
-              <div className="text-4xl font-bold text-gray-600 mb-1">
+              <div className="mb-1 text-4xl font-bold text-gray-600">
                 {counts.paused}
               </div>
               <div className="text-sm text-gray-500">temporarily inactive</div>
@@ -497,10 +508,10 @@ export function AlertsClient({
           {/* Triggered Alerts Card */}
           <Card className="border-l-4 border-l-orange-500 shadow-md">
             <CardContent className="p-6">
-              <div className="text-sm uppercase font-semibold text-gray-600 mb-2">
+              <div className="mb-2 text-sm font-semibold uppercase text-gray-600">
                 Triggered
               </div>
-              <div className="text-4xl font-bold text-orange-600 mb-1">
+              <div className="mb-1 text-4xl font-bold text-orange-600">
                 {counts.triggered}
               </div>
               <div className="text-sm text-gray-500">recently triggered</div>
@@ -509,8 +520,8 @@ export function AlertsClient({
         </div>
 
         {/* Filters & Tabs */}
-        <div className="bg-white rounded-xl shadow-md p-4 mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="mb-8 rounded-xl bg-white p-4 shadow-md">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             {/* Tabs */}
             <div className="flex gap-2">
               {['active', 'paused', 'triggered', 'all'].map((tab) => (
@@ -520,7 +531,7 @@ export function AlertsClient({
                   onClick={() => setActiveTab(tab)}
                   className={
                     activeTab === tab
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
                       : ''
                   }
                 >
@@ -531,7 +542,7 @@ export function AlertsClient({
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Select value={symbolFilter} onValueChange={setSymbolFilter}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="All Symbols" />
@@ -551,7 +562,7 @@ export function AlertsClient({
                 placeholder="Search alerts..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-[200px] border-2 rounded-lg"
+                className="w-[200px] rounded-lg border-2"
               />
             </div>
           </div>
@@ -559,7 +570,7 @@ export function AlertsClient({
 
         {/* Undo Delete Banner */}
         {showUndo && deletedAlert && (
-          <div className="mb-4 flex items-center justify-between bg-gray-800 text-white px-4 py-3 rounded-lg animate-in slide-in-from-top-2">
+          <div className="animate-in slide-in-from-top-2 mb-4 flex items-center justify-between rounded-lg bg-gray-800 px-4 py-3 text-white">
             <span className="text-sm">
               Alert &quot;{deletedAlert.name || `${deletedAlert.symbol} Alert`}
               &quot; deleted
@@ -568,9 +579,9 @@ export function AlertsClient({
               variant="ghost"
               size="sm"
               onClick={handleUndoDelete}
-              className="text-white hover:text-white hover:bg-gray-700"
+              className="text-white hover:bg-gray-700 hover:text-white"
             >
-              <Undo2 className="h-4 w-4 mr-2" />
+              <Undo2 className="mr-2 h-4 w-4" />
               Undo
             </Button>
           </div>
@@ -579,21 +590,21 @@ export function AlertsClient({
         {/* Alerts List */}
         <div>
           {filteredAlerts.length === 0 ? (
-            <Card className="bg-gray-50 border-2 border-dashed border-gray-300">
+            <Card className="border-2 border-dashed border-gray-300 bg-gray-50">
               <CardContent className="p-16 text-center">
-                <h3 className="text-2xl text-gray-500 mb-2">
+                <h3 className="mb-2 text-2xl text-gray-500">
                   {activeTab === 'all'
                     ? 'No alerts yet'
                     : `No ${activeTab} alerts`}
                 </h3>
-                <p className="text-gray-400 mb-6">
+                <p className="mb-6 text-gray-400">
                   {activeTab === 'all'
                     ? 'Create your first alert to get notified about price movements'
                     : `You don't have any ${activeTab} alerts`}
                 </p>
                 {activeTab === 'all' && (
                   <Link href="/alerts/new">
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg">
+                    <Button className="bg-blue-600 px-8 py-4 text-lg text-white hover:bg-blue-700">
                       + Create Your First Alert
                     </Button>
                   </Link>
@@ -613,7 +624,7 @@ export function AlertsClient({
             <DialogTitle className="text-xl font-bold text-red-600">
               Delete Alert?
             </DialogTitle>
-            <DialogDescription className="text-gray-700 pt-4">
+            <DialogDescription className="pt-4 text-gray-700">
               Are you sure you want to delete the alert &quot;
               {alertToDelete?.name || `${alertToDelete?.symbol} Alert`}&quot;?
               This action cannot be undone.
@@ -632,7 +643,7 @@ export function AlertsClient({
             </Button>
             <Button
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 text-white hover:bg-red-700"
               disabled={isDeleting}
             >
               {isDeleting ? 'Deleting...' : 'Delete Alert'}
