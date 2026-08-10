@@ -37,12 +37,24 @@ interface AdminMetrics {
   };
 }
 
-interface RecentActivity {
+interface RecentFraudAlert {
   id: string;
-  type: 'signup' | 'upgrade' | 'downgrade' | 'alert_created' | 'error';
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  pattern: string;
   description: string;
-  timestamp: string;
-  userEmail?: string;
+  createdAt: string;
+  userEmail: string | null;
+}
+
+interface FraudAlertsListResponse {
+  alerts: Array<{
+    id: string;
+    severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    pattern: string;
+    description: string;
+    createdAt: string;
+    userEmail: string | null;
+  }>;
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -64,7 +76,8 @@ interface RecentActivity {
  */
 export default function AdminDashboardPage(): React.ReactElement {
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [recentAlerts, setRecentAlerts] = useState<RecentFraudAlert[]>([]);
+  const [activityError, setActivityError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,31 +91,6 @@ export default function AdminDashboardPage(): React.ReactElement {
         }
         const data = await response.json();
         setMetrics(data);
-
-        // Generate mock recent activity for now
-        // In production, this would come from a separate endpoint
-        setRecentActivity([
-          {
-            id: '1',
-            type: 'signup',
-            description: 'New user registered',
-            timestamp: new Date().toISOString(),
-            userEmail: 'user@example.com',
-          },
-          {
-            id: '2',
-            type: 'upgrade',
-            description: 'User upgraded to PRO',
-            timestamp: new Date(Date.now() - 3600000).toISOString(),
-            userEmail: 'pro@example.com',
-          },
-          {
-            id: '3',
-            type: 'alert_created',
-            description: 'New alert created',
-            timestamp: new Date(Date.now() - 7200000).toISOString(),
-          },
-        ]);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
@@ -110,21 +98,43 @@ export default function AdminDashboardPage(): React.ReactElement {
       }
     }
 
+    async function fetchRecentFraudAlerts(): Promise<void> {
+      try {
+        // pageSize has a hard minimum of 10 (route's own querySchema) — fetch
+        // the smallest allowed page and show the 5 most recent here.
+        const response = await fetch(
+          '/api/admin/fraud-alerts?page=1&pageSize=10'
+        );
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to fetch fraud alerts');
+        }
+        const data: FraudAlertsListResponse = await response.json();
+        setRecentAlerts(data.alerts.slice(0, 5));
+        setActivityError(null);
+      } catch (err) {
+        setActivityError(
+          err instanceof Error ? err.message : 'Failed to load recent activity'
+        );
+      }
+    }
+
     void fetchMetrics();
+    void fetchRecentFraudAlerts();
   }, []);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500" />
       </div>
     );
   }
 
   if (error || !metrics) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-400 mb-4">{error || 'Failed to load metrics'}</p>
+      <div className="py-8 text-center">
+        <p className="mb-4 text-red-400">{error || 'Failed to load metrics'}</p>
         <Button
           onClick={() => window.location.reload()}
           className="bg-blue-600 hover:bg-blue-700"
@@ -139,75 +149,75 @@ export default function AdminDashboardPage(): React.ReactElement {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white">Dashboard</h1>
-        <p className="text-gray-400 mt-1">System overview and key metrics</p>
+        <h1 className="text-2xl font-bold text-white sm:text-3xl">Dashboard</h1>
+        <p className="mt-1 text-gray-400">System overview and key metrics</p>
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
         {/* Total Users */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader className="pb-2">
             <CardDescription className="text-gray-400">
               Total Users
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl sm:text-4xl font-bold text-white">
+            <div className="text-3xl font-bold text-white sm:text-4xl">
               {metrics.overview.totalUsers.toLocaleString()}
             </div>
-            <p className="text-green-400 text-sm mt-1">
+            <p className="mt-1 text-sm text-green-400">
               +{metrics.growth.newUsersThisMonth} this month
             </p>
           </CardContent>
         </Card>
 
         {/* FREE Users */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400 flex items-center gap-2">
+            <CardDescription className="flex items-center gap-2 text-gray-400">
               FREE Users
-              <Badge className="bg-gray-600 hover:bg-gray-600 text-white text-xs">
+              <Badge className="bg-gray-600 text-xs text-white hover:bg-gray-600">
                 {metrics.overview.freePercentage.toFixed(1)}%
               </Badge>
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl sm:text-4xl font-bold text-white">
+            <div className="text-3xl font-bold text-white sm:text-4xl">
               {metrics.overview.freeUsers.toLocaleString()}
             </div>
           </CardContent>
         </Card>
 
         {/* PRO Users */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400 flex items-center gap-2">
+            <CardDescription className="flex items-center gap-2 text-gray-400">
               PRO Users
-              <Badge className="bg-blue-600 hover:bg-blue-600 text-white text-xs">
+              <Badge className="bg-blue-600 text-xs text-white hover:bg-blue-600">
                 {metrics.overview.proPercentage.toFixed(1)}%
               </Badge>
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl sm:text-4xl font-bold text-blue-400">
+            <div className="text-3xl font-bold text-blue-400 sm:text-4xl">
               {metrics.overview.proUsers.toLocaleString()}
             </div>
           </CardContent>
         </Card>
 
         {/* MRR */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader className="pb-2">
             <CardDescription className="text-gray-400">
               Monthly Recurring Revenue
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl sm:text-4xl font-bold text-green-400">
+            <div className="text-3xl font-bold text-green-400 sm:text-4xl">
               {formatCurrency(metrics.revenue.mrr)}
             </div>
-            <p className="text-gray-400 text-sm mt-1">
+            <p className="mt-1 text-sm text-gray-400">
               ARR: {formatCurrency(metrics.revenue.arr)}
             </p>
           </CardContent>
@@ -215,9 +225,9 @@ export default function AdminDashboardPage(): React.ReactElement {
       </div>
 
       {/* Secondary Metrics */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Conversion Rate */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader>
             <CardTitle className="text-white">Conversion Rate</CardTitle>
             <CardDescription className="text-gray-400">
@@ -225,10 +235,10 @@ export default function AdminDashboardPage(): React.ReactElement {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl sm:text-5xl font-bold text-blue-400">
+            <div className="text-4xl font-bold text-blue-400 sm:text-5xl">
               {metrics.revenue.conversionRate.toFixed(1)}%
             </div>
-            <p className="text-gray-400 text-sm mt-2">
+            <p className="mt-2 text-sm text-gray-400">
               {metrics.overview.proUsers} PRO out of{' '}
               {metrics.overview.totalUsers} total users
             </p>
@@ -236,7 +246,7 @@ export default function AdminDashboardPage(): React.ReactElement {
         </Card>
 
         {/* Tier Distribution */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader>
             <CardTitle className="text-white">Tier Distribution</CardTitle>
             <CardDescription className="text-gray-400">
@@ -247,15 +257,15 @@ export default function AdminDashboardPage(): React.ReactElement {
             <div className="space-y-3">
               {/* FREE Bar */}
               <div>
-                <div className="flex justify-between text-sm mb-1">
+                <div className="mb-1 flex justify-between text-sm">
                   <span className="text-gray-400">FREE</span>
                   <span className="text-white">
                     {metrics.overview.freePercentage.toFixed(1)}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-3">
+                <div className="h-3 w-full rounded-full bg-gray-700">
                   <div
-                    className="bg-gray-500 h-3 rounded-full transition-all duration-500"
+                    className="h-3 rounded-full bg-gray-500 transition-all duration-500"
                     style={{ width: `${metrics.overview.freePercentage}%` }}
                   />
                 </div>
@@ -263,15 +273,15 @@ export default function AdminDashboardPage(): React.ReactElement {
 
               {/* PRO Bar */}
               <div>
-                <div className="flex justify-between text-sm mb-1">
+                <div className="mb-1 flex justify-between text-sm">
                   <span className="text-gray-400">PRO</span>
                   <span className="text-white">
                     {metrics.overview.proPercentage.toFixed(1)}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-3">
+                <div className="h-3 w-full rounded-full bg-gray-700">
                   <div
-                    className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+                    className="h-3 rounded-full bg-blue-600 transition-all duration-500"
                     style={{ width: `${metrics.overview.proPercentage}%` }}
                   />
                 </div>
@@ -281,7 +291,7 @@ export default function AdminDashboardPage(): React.ReactElement {
         </Card>
 
         {/* Quick Actions */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-gray-700 bg-gray-800">
           <CardHeader>
             <CardTitle className="text-white">Quick Actions</CardTitle>
             <CardDescription className="text-gray-400">
@@ -291,19 +301,19 @@ export default function AdminDashboardPage(): React.ReactElement {
           <CardContent className="space-y-2">
             <a
               href="/admin/errors"
-              className="block w-full text-left px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+              className="block w-full rounded-lg bg-gray-700 px-4 py-3 text-left text-white transition-colors hover:bg-gray-600"
             >
               🚨 View Latest Errors
             </a>
             <a
               href="/admin/users?tier=PRO"
-              className="block w-full text-left px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+              className="block w-full rounded-lg bg-gray-700 px-4 py-3 text-left text-white transition-colors hover:bg-gray-600"
             >
               👥 View PRO Users
             </a>
             <a
               href="/admin/api-usage"
-              className="block w-full text-left px-4 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-white transition-colors"
+              className="block w-full rounded-lg bg-gray-700 px-4 py-3 text-left text-white transition-colors hover:bg-gray-600"
             >
               📊 API Usage Stats
             </a>
@@ -311,43 +321,45 @@ export default function AdminDashboardPage(): React.ReactElement {
         </Card>
       </div>
 
-      {/* Recent Activity */}
-      <Card className="bg-gray-800 border-gray-700">
+      {/* Recent Fraud Alerts */}
+      <Card className="border-gray-700 bg-gray-800">
         <CardHeader>
-          <CardTitle className="text-white">Recent Activity</CardTitle>
+          <CardTitle className="text-white">Recent Fraud Alerts</CardTitle>
           <CardDescription className="text-gray-400">
-            Latest system events
+            Latest fraud alerts across all users
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {recentActivity.length === 0 ? (
-            <p className="text-gray-400 text-center py-4">No recent activity</p>
+          {activityError ? (
+            <p className="py-4 text-center text-red-400">{activityError}</p>
+          ) : recentAlerts.length === 0 ? (
+            <p className="py-4 text-center text-gray-400">
+              No recent fraud alerts
+            </p>
           ) : (
             <div className="space-y-3">
-              {recentActivity.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-center gap-4 p-3 bg-gray-700/50 rounded-lg"
+              {recentAlerts.map((alert) => (
+                <a
+                  key={alert.id}
+                  href={`/admin/fraud-alerts/${alert.id}`}
+                  className="flex items-center gap-4 rounded-lg bg-gray-700/50 p-3 transition-colors hover:bg-gray-700"
                 >
                   <span className="text-xl">
-                    {activity.type === 'signup' && '👤'}
-                    {activity.type === 'upgrade' && '⬆️'}
-                    {activity.type === 'downgrade' && '⬇️'}
-                    {activity.type === 'alert_created' && '🔔'}
-                    {activity.type === 'error' && '🚨'}
+                    {alert.severity === 'CRITICAL' && '🚨'}
+                    {alert.severity === 'HIGH' && '⚠️'}
+                    {alert.severity === 'MEDIUM' && '🔶'}
+                    {alert.severity === 'LOW' && '🔔'}
                   </span>
                   <div className="flex-1">
-                    <p className="text-white text-sm">{activity.description}</p>
-                    {activity.userEmail && (
-                      <p className="text-gray-400 text-xs">
-                        {activity.userEmail}
-                      </p>
+                    <p className="text-sm text-white">{alert.description}</p>
+                    {alert.userEmail && (
+                      <p className="text-xs text-gray-400">{alert.userEmail}</p>
                     )}
                   </div>
-                  <span className="text-gray-500 text-xs">
-                    {new Date(activity.timestamp).toLocaleTimeString()}
+                  <span className="text-xs text-gray-500">
+                    {new Date(alert.createdAt).toLocaleTimeString()}
                   </span>
-                </div>
+                </a>
               ))}
             </div>
           )}
