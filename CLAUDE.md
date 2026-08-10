@@ -26,7 +26,101 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 6-5 (Settings/User, UI-BUILD variant, dial HIGH for the confirm/cancel flow
+- **Current:** Session 6-6 (Admin, UI-BUILD variant, dial HIGH for new UI, LOW for data),
+  CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as Session 6-5. **Closes the 6
+  ADMIN-surface gap-matrix rows assigned to it (A1-5, A1-6, A1-14, A1-17/A2-10, A2-5, A2-7).** No
+  flags touched.
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again, with real
+  body-content drift**: the order arrived modified-but-uncommitted, `PRE-DRAFT → APPROVED`, with
+  both of the committed PRE-DRAFT's own explicit "User Review Required" open product questions
+  (RiseWorks-accounts disposition, admin user-detail-page scope) silently resolved, and a new
+  "Money Service Batch Lifecycle Vocabulary" mandate added — which turned out to be **factually
+  wrong** (see below). No DRAFT-stage commit trail. Reported in full before proceeding; Davin
+  confirmed live it was his own authentic authorization and resolved all open questions directly
+  in the same message.
+  **The order's own batch-vocabulary mandate (`DRAFTING`/`PENDING_APPROVAL`/`APPROVED`/
+  `PROCESSING`/`COMPLETED`/`CANCELLED`) does not exist anywhere in this codebase** — checked both
+  Prisma schemas (must mirror per L1) and grepped the whole repo: real `PaymentBatchStatus` is
+  `PENDING, QUEUED, PROCESSING, COMPLETED, FAILED, CANCELLED`; real `WiseBatchGroupStatus` is
+  `NEW, COMPLETED, AWAITING_MANUAL_FUNDING, FUNDED, MARKED_FOR_CANCELLATION, PROCESSING_CANCEL,
+  CANCELLED`; `DRAFTING`/`PENDING_APPROVAL` appear zero times repo-wide. Davin corrected this live
+  to "use the real Prisma enums" before execution.
+  **Two of the order's own 6 target rows (A2-5 `code-flows`, A2-7 `disbursement/affiliates/
+[affiliateId]`) don't exist at all**, contrary to the order's "wire"/"audit" phrasing (implying
+  small edits to existing pages) — both real backing API routes already existed and were live;
+  built both pages new, consuming those routes as-is with the real enum vocabulary.
+  **A1-6's disposition changed from "rebuild" to "redirect + consolidate"**, found before
+  building: `app/(dashboard)/admin/disbursement/recipients/page.tsx` already existed (Session
+  4A-W3b) and already rendered live Wise recipients — the order never mentioned it. Davin's
+  resolution: `accounts/page.tsx` now redirects to `recipients/page.tsx`, which gained a
+  Wise-Recipients/RiseWorks-Historical tab switcher (RiseWorks stays archived, F42, read-only, no
+  create/sync actions) — avoiding a duplicate build. The redundant "RiseWorks Accounts" nav entry
+  was removed; the provider badge/widget now reads `getDefaultProvider()` instead of a hardcoded
+  "RiseWorks" string.
+  **A1-14's literal "each active promo code row" wasn't buildable** — `code-inventory/page.tsx`
+  only ever showed aggregate counts, never individual code rows, and no per-code listing endpoint
+  exists anywhere in this codebase. Built as a standalone code-lookup-and-cancel form instead
+  (type a code, confirm, fires the real `POST /api/admin/codes/[code]/cancel`).
+  **A1-5 needed two narrow, necessary backend fixes beyond "add a UI option"**, approved as
+  exceptions to the order's own "no backend changes" framing: `lib/disbursement/constants.ts`/
+  `provider-factory.ts` had never been synced with WISE support (only money-service's own copy
+  had — an L31/L32-class gap), so `isProviderAvailable('WISE')` always returned `false`; fixed
+  additively, mirroring money-service's exact semantics. `GET /api/disbursement/config`'s
+  `available` list never included WISE either — fixed. Also fixed, found while touching this
+  exact code path: a genuine pre-existing bug where the frontend's `DisbursementConfig` type
+  treated `config.provider` as a flat string, but the real API returns a nested `{default,
+available, riseEnabled}` object — rendering `{config.provider}` directly would have thrown a
+  React child-type error the first time this page was actually loaded with real data (invisible
+  until now — no live browser testing has been possible since Session 4B-21, Waiting-on #117).
+  `PATCH /api/disbursement/config` stays its existing no-op placeholder; the page now shows an
+  explicit "Configured via `DISBURSEMENT_PROVIDER` env var" notice instead of implying Save
+  switches the live provider.
+  **Built (6 Ordered Steps, one commit each, plus 1 own-initiative test fix commit):** Step 1 —
+  WISE provider option + the 2 backend fixes above. Step 2 — accounts→recipients redirect +
+  RiseWorks historical tab + nav cleanup. Step 3 — code-inventory cancel-a-code widget with
+  confirmation dialog. Step 4 — `app/(dashboard)/admin/users/[id]/page.tsx` (new, server
+  component, direct Prisma reads mirroring the `alerts/[id]/edit` precedent — 5 sections: Profile
+  & Account, Subscription & Billing, Security & 2FA, Fraud Alerts, Affiliate & Code Info;
+  `Subscription`/`UserSession`/`FraudAlert`/`AffiliateProfile` are all plain scalar FKs on `User`,
+  no declared Prisma relation, so each queried separately; "last login" mirrors `GET
+/api/admin/users`'s own established heuristic). Step 5 — `code-flows/page.tsx` (new) +
+  `disbursement/affiliates/[affiliateId]/page.tsx` (new, consumes the already-live `GET
+/api/disbursement/affiliates/[affiliateId]`, badges with the real enum values) + "View"/"View
+  Details" links so both new pages are reachable. Step 6 — 2 new test files (11 tests):
+  `user-detail.test.tsx` (5-section rendering, "not an affiliate" state, `notFound()`),
+  `code-cancel.test.tsx` (confirm/cancel dialog flow + WISE radio-selection state).
+  **One legitimate, expected test break found only by the full `test:ci` run, not the scoped
+  checks:** `__tests__/lib/disbursement/constants.test.ts` hard-coded `SUPPORTED_PROVIDERS` to
+  `['RISE', 'MOCK']` — Step 1's WISE addition correctly changed the real array; updated the
+  assertion with an explanatory comment, per `LESSONS-LEARNED.md` L3.
+  **A new, unexplained lint warning appeared that this session did not cause:** `admin/page.tsx:
+308` (`@next/next/no-html-link-for-pages` on a bare `<a href="/admin/users?tier=PRO">`) —
+  confirmed via `git status`/`git diff` the file has zero changes in this session's history; the
+  scoped baseline went from 3 warnings (pre-session) to 4 (post-session), with this file the only
+  new entry. Not chased further (unclear root cause, genuinely untouched file); flagged in
+  Waiting-on.
+  **Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
+  — 4 warnings (2× `header.tsx`, 1× `batches/[batchId]/page.tsx`, both tracked since Session 6-1;
+  1× `admin/page.tsx:308`, new but unrelated per above), 0 introduced by this session's own
+  edits; `test:ci` **138/138 suites, 2238/2238 tests** (was 136/136, 2230/2230 — +2 suites/+8
+  tests, exactly this session's own 2 new test files, zero regressions elsewhere). Live-verified
+  against the real Next.js/Turbopack dev server: all 5 new/modified routes (`config`, `accounts`
+  redirect, `code-flows`, `users/[id]`, `disbursement/affiliates/[id]`) compile cleanly and
+  correctly redirect to `/login?callbackUrl=...` when unauthenticated, zero server errors — same
+  standing gap as every Phase 6 session since 6-1b, no deep authenticated click-through possible
+  in this environment (Waiting-on #117).
+  **No flag, no cutover-table row** — same-stack UI work, no flag existed to touch or retire;
+  `migration-cutover-table.md` unchanged.
+  **Artifacts updated:** `6-6-admin.migration-order.md` (Status → CONFIRMED, executed, CLOSED
+  SUCCESSFUL; Entry criteria all checked; Done-when all checked; Deviations filled in full — 8
+  entries), this file (session-history hygiene: Session 6-4's own full text moved to
+  `history/sessions-archive.md`, matching this file's own rotation rule — the larger pre-existing
+  backlog flagged at Waiting-on #102 is unchanged, still needs its own dedicated cleanup
+  session). New `6-7-affiliate.migration-order.md` PRE-DRAFTed (UI-BUILD variant, commissions
+  real-data wiring + payment-setup consolidation) per this order's own Next-session handoff —
+  **not fast-path eligible**, flags 2 real product/scope decisions (payment-setup consolidation,
+  B2-19/B2-20 scope) that need Davin's call before DRAFT can finalize.
+- **Previous:** Session 6-5 (Settings/User, UI-BUILD variant, dial HIGH for the confirm/cancel flow
   UX, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11. **Builds the missing
   account-deletion confirm/cancel pages — all 3 `app/api/user/account/deletion-*` routes were
   already live (Session 4B-11) but zero pages existed anywhere for a user to land on after
@@ -110,83 +204,6 @@
   `_(superseded-by-above)_`, matching this file's own rotation rule — the larger pre-existing
   backlog flagged at Waiting-on #102 is unchanged, still needs its own dedicated cleanup session).
   New `6-6-admin.migration-order.md` PRE-DRAFTed per this order's own Next-session handoff.
-- **Previous:** Session 6-4 (Notifications, UI-BUILD variant, dial HIGH for list/filter/realtime
-  UX, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-10, same day as Session 6-3.
-  **Builds the missing `/notifications` page — the bell icon's own "View all" link (Session
-  4B-9/4B-17) had pointed at it since it first existed, always 404ing.** No cross-stack PORT, no
-  flags, no new backend endpoints — all 5 real, live `/api/notifications/*` routes already
-  existed.
-  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again**: committed `HEAD`
-  had the order at `Status: PRE-DRAFT`, with `notification-list.tsx`'s orphan-component status
-  explicitly left as an open question ("not read in full this session... needs a real decision");
-  the working copy was a full uncommitted rewrite to `Status: APPROVED`, asserting that same
-  question already resolved ("has been read in full... battle-tested... verified clean") with no
-  visible DRAFT-stage commit trail. Reported in full before proceeding; Davin confirmed live it
-  was his own authentic authorization, and explicitly reconfirmed the mounting decision and the
-  realtime-mirroring approach before execution began.
-  **Independently re-verified the substance of the uncommitted claim before trusting it, not just
-  the provenance**: read all 668 lines of `notification-list.tsx` directly — the "clean, ready to
-  mount" assertion held up on its own merits (status tabs, type filters, pagination, optimistic
-  mark-read/mark-all-read/delete-with-undo), with one pre-existing, self-documented quirk noted but
-  not touched (the delete "Undo" button recreates a new notification server-side rather than
-  restoring the exact original — the component's own comment already flags this as best-effort).
-  **Built (4 Ordered Steps, one commit each, plus one small follow-on commit for an own-initiative
-  a11y addition):** Step 1 — `app/(dashboard)/notifications/page.tsx` (server component,
-  `getSession()`/redirect-to-`/login`, mirrors `alerts/[id]/edit/page.tsx`'s own established
-  pattern, mounts `NotificationList` with no tier gate per the order's own explicit rule). Step 2 —
-  wired `useRealtimeSocket({ onNotification })` into `notification-list.tsx`, mirroring
-  `notification-bell.tsx`'s own exact wiring (re-fetch on push, never merge the pushed payload
-  directly, keeping list/pagination/unreadCount single-sourced from the server). Step 3 — verified
-  the bell's `/notifications` link (already correct, no code change needed there) via the real
-  dev server: `GET /notifications → 307 → GET /login → 200`, zero errors. **Own addition beyond
-  Step 2's literal text, serving the variant's own explicit A11y Standards rule** ("screen reader
-  announcements for new notifications"): added a visually-hidden `aria-live="polite"` region
-  announcing each realtime-pushed notification's title, covered by its own dedicated test. Step 4
-  — `__tests__/pages/notifications/notifications-page.test.tsx` (8 tests, first-ever coverage for
-  `NotificationList`, mirroring `edit.test.tsx`'s own async-server-component-page pattern).
-  **A real gap found and fixed while live-verifying Step 3, not in the order's own literal
-  scope:** `middleware.ts`'s matcher covered every other `(dashboard)` route (`/dashboard`,
-  `/alerts`, `/charts`, `/settings`, `/admin`) but not `/notifications` — the page-level
-  `getSession()` guard already redirected correctly on its own (proven via live logs before the
-  fix, so never an actual security hole), just missing the same earlier, edge-level
-  defense-in-depth every sibling route already has. Added `/notifications/:path*` to the matcher,
-  mirroring exactly how `/admin/:path*` was added at Session 6-2 for the identical reason —
-  re-verified live post-fix via the redirect now carrying a `callbackUrl` param, proof the
-  edge-level check fires first.
-  **A real test-mock bug found and fixed while writing Step 4's suite, not an app bug:** the
-  `next/navigation` `useRouter()` mock initially returned a fresh object literal per call —
-  `fetchNotifications`'s `useCallback` has `router` in its dependency array, so the unstable mock
-  reference produced a genuine re-fetch storm in the test (33 spurious `fetch` calls from one tab
-  click), purely because Next's real `useRouter()` is memoized/stable and the mock wasn't. Fixed
-  by returning a single stable object. Harvested as `LESSONS-LEARNED.md` **L59**. Flagged for the
-  Advisor there: `edit.test.tsx` uses the same unstable-mock shape and would hit the identical bug
-  class if that component's own effects ever grew a `router`-dependent `useCallback`.
-  **Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
-  — same 3 pre-existing warnings tracked since Session 6-1, 0 new; `test:ci` **134/134 suites,
-  2217/2217 tests** (was 133/133, 2209/2209 — +1 suite/+8 tests, exactly this session's own new
-  file, zero regressions elsewhere). Live-verified against the real Next.js/Turbopack dev server:
-  the full unauthenticated redirect chain (including the middleware fix), zero console/server
-  errors, clean compile.
-  **Not done this session, disclosed rather than silently skipped, same standing gap as every
-  Phase 6 session since 6-1b:** the live manual click-through of the bell → `/notifications` flow
-  against a real authenticated session — no test credentials were available in this environment
-  (Waiting-on #117, `CredentialsProvider` removed at Session 4B-21).
-  **No flag, no cutover-table row** — same-stack UI work, no flag existed to touch or retire;
-  `migration-cutover-table.md` unchanged.
-  **Artifacts updated:** `6-4-notifications.migration-order.md` (Status → CONFIRMED, executed;
-  Entry criteria all checked; Done-when all checked; Deviations filled in full — 7 entries),
-  `migration-stack-analysis.md` (new Session 6-4 entry, 2 new files + 2 modified),
-  `LESSONS-LEARNED.md` (new **L59** — unstable `useRouter()` test mocks can manufacture a
-  re-fetch storm in any component that puts `router` in a memoized hook's deps; header count
-  bumped to 59 — the ≥40 consolidation overdue-flag from Waiting-on's own note stands unchanged,
-  not addressed this session), this file
-  (session-history hygiene: Session 6-2's own full text moved to `_(superseded-by-above)_`,
-  matching this file's own rotation rule — the larger pre-existing backlog flagged at Waiting-on
-  #102 is unchanged, still needs its own dedicated cleanup session). New
-  `6-5-settings-user.migration-order.md` PRE-DRAFTed (UI-BUILD variant, account-deletion
-  confirm/cancel pages) per this order's own Next-session handoff — **not fast-path eligible**,
-  flags a real human-in-the-loop UX decision (does the confirm page require an explicit second
-  click before firing the deletion `POST`?) that needs Davin's call before DRAFT can finalize.
 - _(superseded-by-above, retained for context)_ Session 6-3 (Alerts & Charts, UI-BUILD variant, dial HIGH for the edit-form UI/flow,
   LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-10, same day as Session 6-2.
   **The 3 orphan `/api/tier/*` endpoints now have a real UI consumer, and `/alerts/[id]/edit` exists
@@ -4262,27 +4279,42 @@ Slice-3-RETIRE session, and the now-active `4A-W_` series.
   corrected, the dummy 2FA toggle was replaced with a link to the real implementation, and a
   two-layer auth-gate bug (middleware AND the `(dashboard)` layout, not just the former) was
   found via live verification and fixed. Waiting-on #117 carries forward yet again, same standing
-  gap. **The literal next session is now 6-6** (Admin — WISE provider option, RiseWorks
-  disposition, per-code cancel, user detail), PRE-DRAFTed at 6-5's close. Two named Phase 4
-  exceptions run as their own independent tracks and do NOT block Phase 6: `DECISION-LOG.md` F49
-  (dLocal `payment_method_flow`, needs its own fix session) and F60
-  (`4a-13-stripe-webhook-cutover.migration-order.md`, PRE-DRAFTed).
-  **Phase 6 is now 12 sessions, in this order:** 6-1 (gap matrix, audit only — done) → 6-1b
-  (mock-data hotfix, PORT/low dial — done) → 6-2 (IA + design system + shared shells; F62
-  resolved/executed — done) → 6-3 (alerts/charts; 3 orphan tier endpoints wired, edit route built —
-  done) → 6-4 (notifications; `/notifications` page built, bell link resolved — done) → 6-5
-  (settings/user; account-deletion confirm/cancel pages built — done) → **6-6** (admin, next) →
-  6-7 (affiliate) → 6-8 (payments/checkout; resolves F61) → **6-10** (NEW — public/marketing
-  surface; blocked on F63) → **6-11** (NEW — admin system operations) → **6-12** (a11y +
-  responsive + phase exit; was 6-9). **Session number 6-9 is retired — do not reuse it.**
-  **Per the chain-length-one rule (`00-SKELETON-AND-RULES.md` §1.5), 6-1 and 6-2 both got full
-  order files** (6-2's own F62 scope made it not fast-path eligible, same reasoning). 6-1b, 6-10,
-  6-11 and 6-12 are defined in the playbook and the v9 handbook, and each gets its own order
-  PRE-DRAFTed by the Executor at the close of the session before it — they were deliberately NOT
-  drafted ahead. 6-3's own order was PRE-DRAFTed at 6-2's close per the same rule (a domain-build
-  session following a just-closed one); 6-4's own order was PRE-DRAFTed at 6-3's close the same
-  way; 6-5's own order was PRE-DRAFTed at 6-4's close the same way; 6-6's own order was PRE-DRAFTed
-  at 6-5's close the same way.
+  gap. **Session 6-6 is now ALSO CONFIRMED, executed, and CLOSED SUCCESSFUL** (see Current above)
+  — `WISE` provider option added to admin disbursement config (plus 2 narrow backend fixes found
+  along the way); `/admin/disbursement/accounts` now redirects to the already-existing
+  `recipients` page (consolidated rather than duplicated) with a RiseWorks-historical tab;
+  `POST /api/admin/codes/[code]/cancel` and `GET /api/admin/affiliates/reports/code-flows` both
+  have real UI consumers for the first time; `/admin/users/[id]` and `/admin/disbursement/
+affiliates/[affiliateId]` were both built new (the order assumed both already existed); a
+  fabricated batch-status vocabulary in the order's own text was caught and corrected to the real
+  Prisma enum values before any code was written. Waiting-on #117 carries forward yet again, same
+  standing gap; a new, unexplained (and unrelated to this session's own edits) lint warning was
+  found and flagged, not fixed. **The literal next session is now 6-7**
+  (`6-7-affiliate.migration-order.md`, PRE-DRAFTed at 6-6's close) — commissions real-data wiring
+  - payment-setup consolidation, **not fast-path eligible**, carries 2 real product/scope
+    decisions (payment-setup consolidation, B2-19/B2-20 scope) forward as explicit User Review
+    items needing Davin's call before DRAFT can finalize. Two named Phase 4 exceptions run as their
+    own independent tracks and do NOT block Phase 6: `DECISION-LOG.md` F49 (dLocal
+    `payment_method_flow`, needs its own fix session) and F60
+    (`4a-13-stripe-webhook-cutover.migration-order.md`, PRE-DRAFTed).
+    **Phase 6 is now 12 sessions, in this order:** 6-1 (gap matrix, audit only — done) → 6-1b
+    (mock-data hotfix, PORT/low dial — done) → 6-2 (IA + design system + shared shells; F62
+    resolved/executed — done) → 6-3 (alerts/charts; 3 orphan tier endpoints wired, edit route built —
+    done) → 6-4 (notifications; `/notifications` page built, bell link resolved — done) → 6-5
+    (settings/user; account-deletion confirm/cancel pages built — done) → 6-6 (admin; WISE provider
+    option, accounts→recipients consolidation, user detail page, code-flows/affiliate-detail pages
+    built — done) → **6-7** (affiliate, next) → 6-8 (payments/checkout; resolves F61) → **6-10**
+    (NEW — public/marketing surface; blocked on F63) → **6-11** (NEW — admin system operations) →
+    **6-12** (a11y + responsive + phase exit; was 6-9). **Session number 6-9 is retired — do not
+    reuse it.**
+    **Per the chain-length-one rule (`00-SKELETON-AND-RULES.md` §1.5), 6-1 and 6-2 both got full
+    order files** (6-2's own F62 scope made it not fast-path eligible, same reasoning). 6-1b, 6-10,
+    6-11 and 6-12 are defined in the playbook and the v9 handbook, and each gets its own order
+    PRE-DRAFTed by the Executor at the close of the session before it — they were deliberately NOT
+    drafted ahead. 6-3's own order was PRE-DRAFTed at 6-2's close per the same rule (a domain-build
+    session following a just-closed one); 6-4's own order was PRE-DRAFTed at 6-3's close the same
+    way; 6-5's own order was PRE-DRAFTed at 6-4's close the same way; 6-6's own order was PRE-DRAFTed
+    at 6-5's close the same way; 6-7's own order was PRE-DRAFTed at 6-6's close the same way.
 - **Waiting on (Phase 6, added 2026-08-10 by the UI gap analysis):** **(106, NEW)** `DECISION-LOG.md`
   **F61** — `GET /api/geo/detect` is called by `app/(marketing)/pricing/page.tsx:155` and
   `components/payments/CountrySelector.tsx:69` but `app/api/geo/` does not exist; every pricing-page
@@ -4355,6 +4387,17 @@ destination`) on `components/layout/header.tsx` (lines 85, 89) and
   URL is only logged, never emailed. Not fixed this session (a genuine `operation-service` file,
   out of a UI-BUILD session's stated "no backend service changes" scope) — needs fixing alongside
   whichever future session actually wires up real deletion-email sending.
+  **(120, NEW — Session 6-6, 2026-08-11)** `app/(dashboard)/admin/page.tsx:308`
+  (`@next/next/no-html-link-for-pages` on a bare `<a href="/admin/users?tier=PRO">`) appeared as a
+  4th `eslint app components lib hooks --max-warnings 0` warning partway through this session,
+  where the scoped baseline had shown exactly 3 (items #113/L: `header.tsx` ×2,
+  `disbursement/batches/[batchId]/page.tsx` ×1) at the START of this same session. Confirmed via
+  `git status`/`git diff` that `admin/page.tsx` has zero changes anywhere in this session's own
+  history — not caused by any edit made this session. Root cause not chased (possibly an eslint
+  cache/state artifact tied to `next dev`/`next build` runs between checks, not confirmed). Worth
+  a fresh baseline check at the next session's own CONFIRM to see if it's still there, and a small
+  dedicated fix (swap the `<a>` for `<Link>`) whenever a session next touches that file for other
+  reasons.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,

@@ -240,11 +240,13 @@ main` and let Railway's auto-deploy trigger — confirmed working twice this ses
 - Root cause: order text is written once, at PRE-DRAFT/DRAFT time, from a snapshot of the ground truth; the ground truth (design docs, schema, other lessons) keeps evolving underneath it (here: a same-repo dated correction, a frozen invariant table paraphrased instead of copied, and schema enum values never cross-checked against the prose). A PORT-variant order's own "Low creativity dial" instruction ("follow the design doc, not this order's own prose") is necessary but not sufficient — nothing forces a re-read of the cited sections before typing the implementation.
 - Rule: for any order whose own text states "ground truth is §X, not this order's prose" (every PORT variant), actually re-read §X (and the live schema/enum values any described mutation touches) immediately before writing each file that implements it — do not implement from the order's paraphrase and only spot-check ground truth when something looks odd. A schema-invalid value (`'FAILED'` here) would be caught by `tsc`; a schema-valid-but-wrong value or an incomplete state table would not be, and would ship as a silent money-correctness bug.
 - Source: Session 4A-W5 (2026-07-26) · Status: ACTIVE
-- Recurrence count: 6 further times through Session 6-5, each individually documented (full
+- Recurrence count: 7 further times through Session 6-6, each individually documented (full
   per-session detail moved to `LESSONS-ARCHIVE.md` per this file's own "5+ recurrences → single
   count line" hygiene rule) — Sessions 4A-W6, 4A-8, 4A-9, 4A-11, 6-2 (drift within a single order's
   own PRE-DRAFT→APPROVED rewrite, not against an external doc), 6-5 (a single order instruction
-  conflating two genuinely different, both-live facts into one blanket claim).
+  conflating two genuinely different, both-live facts into one blanket claim), 6-6 (a fabricated
+  batch-status vocabulary with zero matches anywhere in either Prisma schema, plus 2 of 6 target
+  pages described as needing a small "wire"/"audit" edit that didn't exist at all).
 
 ### L28 — "Existing tests" cited as a parity oracle may not exist; verify the file is there before trusting it as a safety net
 

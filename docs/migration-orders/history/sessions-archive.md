@@ -7,6 +7,84 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+_(superseded-by-above, retained for context)_ Session 6-4 (Notifications, UI-BUILD variant, dial HIGH for list/filter/realtime
+UX, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-10, same day as Session 6-3.
+**Builds the missing `/notifications` page — the bell icon's own "View all" link (Session
+4B-9/4B-17) had pointed at it since it first existed, always 404ing.** No cross-stack PORT, no
+flags, no new backend endpoints — all 5 real, live `/api/notifications/*` routes already
+existed.
+**CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again**: committed `HEAD`
+had the order at `Status: PRE-DRAFT`, with `notification-list.tsx`'s orphan-component status
+explicitly left as an open question ("not read in full this session... needs a real decision");
+the working copy was a full uncommitted rewrite to `Status: APPROVED`, asserting that same
+question already resolved ("has been read in full... battle-tested... verified clean") with no
+visible DRAFT-stage commit trail. Reported in full before proceeding; Davin confirmed live it
+was his own authentic authorization, and explicitly reconfirmed the mounting decision and the
+realtime-mirroring approach before execution began.
+**Independently re-verified the substance of the uncommitted claim before trusting it, not just
+the provenance**: read all 668 lines of `notification-list.tsx` directly — the "clean, ready to
+mount" assertion held up on its own merits (status tabs, type filters, pagination, optimistic
+mark-read/mark-all-read/delete-with-undo), with one pre-existing, self-documented quirk noted but
+not touched (the delete "Undo" button recreates a new notification server-side rather than
+restoring the exact original — the component's own comment already flags this as best-effort).
+**Built (4 Ordered Steps, one commit each, plus one small follow-on commit for an own-initiative
+a11y addition):** Step 1 — `app/(dashboard)/notifications/page.tsx` (server component,
+`getSession()`/redirect-to-`/login`, mirrors `alerts/[id]/edit/page.tsx`'s own established
+pattern, mounts `NotificationList` with no tier gate per the order's own explicit rule). Step 2 —
+wired `useRealtimeSocket({ onNotification })` into `notification-list.tsx`, mirroring
+`notification-bell.tsx`'s own exact wiring (re-fetch on push, never merge the pushed payload
+directly, keeping list/pagination/unreadCount single-sourced from the server). Step 3 — verified
+the bell's `/notifications` link (already correct, no code change needed there) via the real
+dev server: `GET /notifications → 307 → GET /login → 200`, zero errors. **Own addition beyond
+Step 2's literal text, serving the variant's own explicit A11y Standards rule** ("screen reader
+announcements for new notifications"): added a visually-hidden `aria-live="polite"` region
+announcing each realtime-pushed notification's title, covered by its own dedicated test. Step 4
+— `__tests__/pages/notifications/notifications-page.test.tsx` (8 tests, first-ever coverage for
+`NotificationList`, mirroring `edit.test.tsx`'s own async-server-component-page pattern).
+**A real gap found and fixed while live-verifying Step 3, not in the order's own literal
+scope:** `middleware.ts`'s matcher covered every other `(dashboard)` route (`/dashboard`,
+`/alerts`, `/charts`, `/settings`, `/admin`) but not `/notifications` — the page-level
+`getSession()` guard already redirected correctly on its own (proven via live logs before the
+fix, so never an actual security hole), just missing the same earlier, edge-level
+defense-in-depth every sibling route already has. Added `/notifications/:path*` to the matcher,
+mirroring exactly how `/admin/:path*` was added at Session 6-2 for the identical reason —
+re-verified live post-fix via the redirect now carrying a `callbackUrl` param, proof the
+edge-level check fires first.
+**A real test-mock bug found and fixed while writing Step 4's suite, not an app bug:** the
+`next/navigation` `useRouter()` mock initially returned a fresh object literal per call —
+`fetchNotifications`'s `useCallback` has `router` in its dependency array, so the unstable mock
+reference produced a genuine re-fetch storm in the test (33 spurious `fetch` calls from one tab
+click), purely because Next's real `useRouter()` is memoized/stable and the mock wasn't. Fixed
+by returning a single stable object. Harvested as `LESSONS-LEARNED.md` **L59**. Flagged for the
+Advisor there: `edit.test.tsx` uses the same unstable-mock shape and would hit the identical bug
+class if that component's own effects ever grew a `router`-dependent `useCallback`.
+**Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
+— same 3 pre-existing warnings tracked since Session 6-1, 0 new; `test:ci` **134/134 suites,
+2217/2217 tests** (was 133/133, 2209/2209 — +1 suite/+8 tests, exactly this session's own new
+file, zero regressions elsewhere). Live-verified against the real Next.js/Turbopack dev server:
+the full unauthenticated redirect chain (including the middleware fix), zero console/server
+errors, clean compile.
+**Not done this session, disclosed rather than silently skipped, same standing gap as every
+Phase 6 session since 6-1b:** the live manual click-through of the bell → `/notifications` flow
+against a real authenticated session — no test credentials were available in this environment
+(Waiting-on #117, `CredentialsProvider` removed at Session 4B-21).
+**No flag, no cutover-table row** — same-stack UI work, no flag existed to touch or retire;
+`migration-cutover-table.md` unchanged.
+**Artifacts updated:** `6-4-notifications.migration-order.md` (Status → CONFIRMED, executed;
+Entry criteria all checked; Done-when all checked; Deviations filled in full — 7 entries),
+`migration-stack-analysis.md` (new Session 6-4 entry, 2 new files + 2 modified),
+`LESSONS-LEARNED.md` (new **L59** — unstable `useRouter()` test mocks can manufacture a
+re-fetch storm in any component that puts `router` in a memoized hook's deps; header count
+bumped to 59 — the ≥40 consolidation overdue-flag from Waiting-on's own note stands unchanged,
+not addressed this session), this file
+(session-history hygiene: Session 6-2's own full text moved to `_(superseded-by-above)_`,
+matching this file's own rotation rule — the larger pre-existing backlog flagged at Waiting-on
+#102 is unchanged, still needs its own dedicated cleanup session). New
+`6-5-settings-user.migration-order.md` PRE-DRAFTed (UI-BUILD variant, account-deletion
+confirm/cancel pages) per this order's own Next-session handoff — **not fast-path eligible**,
+flags a real human-in-the-loop UX decision (does the confirm page require an explicit second
+click before firing the deletion `POST`?) that needs Davin's call before DRAFT can finalize.
+
 _(superseded-by-above, retained for context)_ Session 6-1b (Mock-Data Hotfix, PORT variant, low dial), CONFIRMED, executed,
 CLOSED (partial — live manual check not done, see below) 2026-08-10, same day as Session 6-1.
 **All 3 fabricated-data pages plus the 1 fabricated field Session 6-1 identified (A1-1/A1-2/

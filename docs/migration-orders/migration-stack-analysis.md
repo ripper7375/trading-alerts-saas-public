@@ -3209,5 +3209,56 @@ clicking an email link. Zero flags, zero backend service changes.
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-11 (Session 6-5, Settings/User)
+<details>
+<summary><strong>2026-08-11 — Session 6-6 (Admin, UI-BUILD)</strong></summary>
+
+Closes the 6 ADMIN-surface gap-matrix rows (A1-5, A1-6, A1-14, A1-17/A2-10, A2-5, A2-7). Zero flags
+touched.
+
+- **New:** `app/(dashboard)/admin/users/[id]/page.tsx` (server component, direct Prisma reads, 5
+  sections — Profile & Account, Subscription & Billing, Security & 2FA, Fraud Alerts, Affiliate &
+  Code Info); `app/(dashboard)/admin/affiliates/reports/code-flows/page.tsx` (the order assumed
+  this existed and only needed wiring — it didn't exist at all); `app/(dashboard)/admin/
+disbursement/affiliates/[affiliateId]/page.tsx` (same gap — only a flat list page existed at the
+  parent route); 3 new test files, `__tests__/pages/admin/user-detail.test.tsx` (3 tests),
+  `__tests__/pages/admin/code-cancel.test.tsx` (5 tests).
+- **Modified:** `lib/disbursement/constants.ts`/`providers/provider-factory.ts` (added `WISE` to
+  `SUPPORTED_PROVIDERS`/`getDefaultProvider`/`isProviderAvailable` — money-service's own copy had
+  this since Session 4A-W6/W7, the monolith's copy was never synced); `app/api/disbursement/
+config/route.ts` (added `WISE` to the `available` list); `app/(dashboard)/admin/disbursement/
+config/page.tsx` (WISE radio option; fixed a pre-existing bug where `config.provider` was
+  typed/rendered as a flat string when the real API returns a nested object); `app/(dashboard)/
+admin/disbursement/accounts/page.tsx` (rewritten to `redirect()` to `recipients/page.tsx`, not
+  rebuilt — the target page already existed, Session 4A-W3b); `app/(dashboard)/admin/disbursement/
+recipients/page.tsx` (gained a Wise-Recipients/RiseWorks-Historical tab switcher);
+  `app/(dashboard)/admin/disbursement/layout.tsx` (removed the now-redundant "RiseWorks Accounts"
+  nav entry, provider badge/widget now read `getDefaultProvider()`); `app/(dashboard)/admin/
+disbursement/page.tsx` (Quick Actions link repointed to `recipients`); `app/(dashboard)/admin/
+affiliates/reports/code-inventory/page.tsx` (added a standalone cancel-a-code widget + confirmation
+  dialog — no per-code listing UI/API exists anywhere, so this isn't a per-row action);
+  `app/(dashboard)/admin/users/page.tsx` (added a "View Details" link per row); `app/(dashboard)/
+admin/disbursement/affiliates/page.tsx` (added "View"/"View" links to the new detail page);
+  `__tests__/lib/disbursement/constants.test.ts` (updated a pre-existing assertion for the new
+  `SUPPORTED_PROVIDERS` array).
+- **A factually wrong batch-status vocabulary in the order's own text, caught before any code was
+  written:** the order mandated `DRAFTING`/`PENDING_APPROVAL`/`APPROVED`/`PROCESSING`/`COMPLETED`/
+  `CANCELLED` — none of `DRAFTING`/`PENDING_APPROVAL` exist anywhere in either Prisma schema. Real
+  `PaymentBatchStatus` is `PENDING, QUEUED, PROCESSING, COMPLETED, FAILED, CANCELLED`; real
+  `WiseBatchGroupStatus` is `NEW, COMPLETED, AWAITING_MANUAL_FUNDING, FUNDED,
+MARKED_FOR_CANCELLATION, PROCESSING_CANCEL, CANCELLED`. Davin corrected this live before execution.
+- **Regression:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` — 4
+  warnings (3 pre-existing since Session 6-1, 1 new-but-unrelated to this session's own edits — see
+  Waiting-on #120), 0 introduced by this session's own edits; `test:ci` **138/138 suites, 2238/2238
+  tests** (was 136/136, 2230/2230 — +2 suites/+8 tests, exactly this session's own new files, zero
+  regressions elsewhere).
+- **Not done:** live authenticated click-through of any of the 5 new/modified admin routes — same
+  standing gap as every Phase 6 session since 6-1b (Waiting-on #117); all 5 verified instead via a
+  live dev server's unauthenticated redirect chain (clean compile, zero server errors, correct
+  `callbackUrl`).
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-11 (Session 6-6, Admin)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
