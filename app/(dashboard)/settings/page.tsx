@@ -30,31 +30,56 @@ export default function SettingsPage(): React.ReactElement {
   const [usageData, setUsageData] = useState<UsageData>({
     alerts: 0,
   });
+  const [error, setError] = useState<string | null>(null);
 
   const tier = (session?.user?.tier || 'FREE') as Tier;
   const { regularPrice } = useAffiliateConfig();
 
   useEffect(() => {
-    // Simulate fetching usage data
-    const timer = setTimeout(() => {
-      setUsageData({
-        alerts: 3, // Mock data - would come from API
-      });
-      setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+
+    async function fetchAlertCount(): Promise<void> {
+      try {
+        const response = await fetch('/api/alerts');
+        if (!response.ok) {
+          throw new Error('Failed to fetch alert count');
+        }
+        const data = await response.json();
+        if (!cancelled) {
+          setUsageData({
+            alerts: Array.isArray(data.alerts) ? data.alerts.length : 0,
+          });
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : 'Failed to fetch alert count'
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void fetchAlertCount();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="flex min-h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="animate-fade-in space-y-6">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
         Your Plan
       </h2>
@@ -68,9 +93,9 @@ export default function SettingsPage(): React.ReactElement {
         }`}
       >
         <CardContent className="p-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="mb-2 flex items-center gap-3">
                 <Badge
                   className={
                     tier === 'PRO'
@@ -85,7 +110,7 @@ export default function SettingsPage(): React.ReactElement {
               <div className="text-2xl font-bold text-gray-900 dark:text-white">
                 {tier} Plan
               </div>
-              <div className="text-gray-600 dark:text-gray-400 mt-1">
+              <div className="mt-1 text-gray-600 dark:text-gray-400">
                 {tier === 'FREE' ? 'Free Forever' : `$${regularPrice}/month`}
               </div>
             </div>
@@ -94,7 +119,7 @@ export default function SettingsPage(): React.ReactElement {
               <Link href="/pricing">
                 <Button className="bg-blue-600 hover:bg-blue-700">
                   Upgrade to Pro
-                  <ArrowUpRight className="w-4 h-4 ml-2" />
+                  <ArrowUpRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
             )}
@@ -102,14 +127,14 @@ export default function SettingsPage(): React.ReactElement {
 
           {/* Current Usage with CORRECT limits */}
           <div className="mt-6 space-y-3">
-            <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between border-b border-gray-100 py-2 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Symbol</span>
               <span className="font-medium text-gray-900 dark:text-white">
                 XAUUSD (Gold)
               </span>
             </div>
 
-            <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between border-b border-gray-100 py-2 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">
                 Timeframes
               </span>
@@ -118,16 +143,18 @@ export default function SettingsPage(): React.ReactElement {
               </span>
             </div>
 
-            <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between border-b border-gray-100 py-2 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">Alerts</span>
               <span className="font-medium text-gray-900 dark:text-white">
                 {tier === 'FREE'
                   ? 'PRO feature'
-                  : `${usageData.alerts} / 100`}
+                  : error
+                    ? 'Unable to load'
+                    : `${usageData.alerts} / 100`}
               </span>
             </div>
 
-            <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between border-b border-gray-100 py-2 dark:border-gray-700">
               <span className="text-gray-700 dark:text-gray-300">
                 Indicators
               </span>
@@ -136,7 +163,7 @@ export default function SettingsPage(): React.ReactElement {
               </span>
             </div>
 
-            <div className="flex justify-between items-center py-2">
+            <div className="flex items-center justify-between py-2">
               <span className="text-gray-700 dark:text-gray-300">
                 API Rate Limit
               </span>
@@ -148,11 +175,11 @@ export default function SettingsPage(): React.ReactElement {
 
           {/* Upgrade Prompt for FREE users */}
           {tier === 'FREE' && (
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-              <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+            <div className="mt-6 rounded-lg bg-blue-50 p-4 dark:bg-blue-900/30">
+              <h3 className="mb-2 font-semibold text-blue-900 dark:text-blue-100">
                 Unlock More with Pro
               </h3>
-              <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+              <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-200">
                 <li className="flex items-center gap-2">
                   <span className="text-green-600">✓</span>
                   100 price alerts on XAUUSD M5/M15
@@ -184,8 +211,8 @@ export default function SettingsPage(): React.ReactElement {
 
           {/* PRO tier info */}
           {tier === 'PRO' && (
-            <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/30 rounded-lg">
-              <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">
+            <div className="mt-6 rounded-lg bg-green-50 p-4 dark:bg-green-900/30">
+              <h3 className="mb-2 font-semibold text-green-900 dark:text-green-100">
                 You have Pro Access
               </h3>
               <p className="text-sm text-green-800 dark:text-green-200">
@@ -206,9 +233,9 @@ export default function SettingsPage(): React.ReactElement {
       </Card>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Link href="/settings/profile">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
             <CardContent className="p-4">
               <h3 className="font-semibold text-gray-900 dark:text-white">
                 Profile Settings
@@ -221,7 +248,7 @@ export default function SettingsPage(): React.ReactElement {
         </Link>
 
         <Link href="/settings/billing">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
             <CardContent className="p-4">
               <h3 className="font-semibold text-gray-900 dark:text-white">
                 Billing & Invoices
@@ -234,7 +261,7 @@ export default function SettingsPage(): React.ReactElement {
         </Link>
 
         <Link href="/settings/appearance">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
             <CardContent className="p-4">
               <h3 className="font-semibold text-gray-900 dark:text-white">
                 Appearance
@@ -247,7 +274,7 @@ export default function SettingsPage(): React.ReactElement {
         </Link>
 
         <Link href="/settings/privacy">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
             <CardContent className="p-4">
               <h3 className="font-semibold text-gray-900 dark:text-white">
                 Privacy & Security

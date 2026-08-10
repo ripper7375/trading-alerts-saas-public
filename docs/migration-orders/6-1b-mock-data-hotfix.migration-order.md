@@ -3,17 +3,17 @@
 > For a session that **wires already-existing UI to already-existing endpoints** (not a
 > cross-stack PORT — everything here is monolith-internal, no NestJS service involved). Adapted
 > from `TEMPLATE-PORT.md` with the dial at **Low**: bind the real data, change nothing else. No
-> redesign, no new components beyond what's already built-and-unused, no layout changes — those
-> are 6-2 (IA), 6-5 (settings/user), 6-6 (admin) and 6-11 (admin system ops)'s job, on pages that
-> are truthful by the time they run.
+> redesign, no new components beyond what's already built-and-unused (`invoice-list.tsx`,
+> `subscription-card.tsx`), no layout changes — those are 6-2 (IA), 6-5 (settings/user), 6-6 (admin)
+> and 6-11 (admin system ops)'s job, on pages that are truthful by the time they run.
 
 **Session:** 6-1b · **Phase:** Phase 6 (Frontend Redesign) · **Variant:** PORT (monolith-internal,
-low dial) · **Status:** PRE-DRAFT · **Generated:** 2026-08-10 (at Session 6-1 close) ·
+low dial) · **Status:** CONFIRMED · **Generated:** 2026-08-10 ·
 **Flags touched:** none · **Estimated time:** ~2-3h
 **Target service:** monolith-internal (Next.js route handlers + React Server/Client Components
 already in `app/`) · **Contract:** none (no OpenAPI surface changes; every endpoint used here
-already exists and is already documented in `docs/migration-orders/phase-6-frontend-gap-matrix.md`
-rows A1-1, A1-2, A1-3, A1-4)
+already exists and is documented in `docs/files-completion-list/ui-page-gap-analysis.md` rows
+A1-1, A1-2, A1-3, A1-4)
 
 ---
 
@@ -37,45 +37,37 @@ This is a genuine, disclosed, non-hypothetical production correctness gap — ev
 `/settings/billing` today sees invoice/usage numbers that are not theirs, and every admin viewing
 `/admin/fraud-alerts/[id]` is making a decision against data that isn't the real alert.
 
+## User Review Required
+
+> [!IMPORTANT]
+> **No Rollback Flag / No Cutover Table Row:** Session 6-1b is deliberately flagless. Binding UI pages to the endpoints they were designed to consume is a correctness fix, not a cutover. There is no legacy implementation to fall back to, only fabricated mock data. Rollback is `git revert`.
+
+> [!IMPORTANT]
+> **Money Display Safety (`EXECUTOR-PROTOCOL.md` §7 & Plan §8):** `/settings/billing` displays monetary amounts. The Executor MUST NOT compute, convert, or format monetary amounts client-side — display only what the microservice/endpoint returns.
+
+> [!NOTE]
+> **Unproven Endpoint Response Shapes:** The backing endpoints (`GET /api/invoices`, `GET /api/subscription`, `POST /api/subscription/cancel`, `GET /api/admin/fraud-alerts/[id]`) have had zero UI consumers to date. The Executor MUST verify their runtime response shapes at CONFIRM before binding.
+
+> [!NOTE]
+> **Trial Fields Read vs Write Scope:** `TrialStatus` enum + 4 `User` trial fields (`trialStatus`, `trialConvertedAt`, `trialCancelledAt`, `hasUsedFreeTrial`) exist in the schema and endpoints. Reading and displaying trial state on `/settings/billing` is in scope for this session; any write path/flow for trial initiation or cancellation is out of scope.
+
 ## Entry criteria
 
-- [ ] Session 6-1 CONFIRMED, executed, closed (2026-08-10) — done, see `CLAUDE.md` Current entry
-      and `6-1-gap-matrix-f11.migration-order.md`.
-- [ ] The four target rows (A1-1, A1-2, A1-3, A1-4) hold in `phase-6-frontend-gap-matrix.md` as
-      verified — re-confirm at this session's own CONFIRM, don't assume Session 6-1's re-check is
-      still current if any commit has landed on these 4 files since.
-- [ ] The four backing endpoints below still return the shapes cited (re-verify at CONFIRM, per
-      `LESSONS-LEARNED.md` L27 — order text can drift from its own cited ground truth):
-  - `GET /api/invoices` → `{ invoices: InvoiceItem[], hasMore: boolean }`, `InvoiceItem = { id,
-date, amount, currency, status: 'paid'|'open'|'failed', description, invoicePdfUrl,
-    provider: 'STRIPE'|'DLOCAL', planType }` (`app/api/invoices/route.ts`).
-  - `GET /api/subscription` → `{ tier: 'FREE'|'PRO', status, subscription: { id, status,
-provider, planType, currentPeriodEnd, expiresAt, cancelAtPeriodEnd, trialEnd, paymentMethod,
-dLocalPaymentMethod, dLocalCountry } | null }` (`app/api/subscription/route.ts`).
-  - `POST /api/subscription/cancel` → cancels the live Stripe (or forwards to money-service per
-    `shouldUseMoneyServiceForStripeWrite()`) subscription and downgrades to FREE
-    (`app/api/subscription/cancel/route.ts`).
-  - `GET /api/admin/fraud-alerts/[id]` → the real `FraudAlert` row (404 if missing, 403 if
-    non-admin); `PATCH` (implicit via the file's `updateSchema`) accepts
-    `{ status: 'PENDING'|'REVIEWED'|'DISMISSED'|'BLOCKED', resolution?, notes? }`
-    (`app/api/admin/fraud-alerts/[id]/route.ts`).
-  - `GET /api/alerts` — already live, used elsewhere in the app; confirm response includes a
-    countable list for the FREE/PRO alert-count card.
-- [ ] `tsc --noEmit` / `eslint app components lib hooks --max-warnings 0` baseline confirmed at
-      CONFIRM (Session 6-1's own measurement: types clean, lint has 3 pre-existing, unrelated
-      warnings — see that session's Deviations; this session does not need to fix them, but
-      should not introduce new ones).
-- [ ] Davin APPROVED (fast-path eligible per `EXECUTOR-PROTOCOL.md` §4? **No** — this is a
-      Standard-Loop PORT session with real user-facing behavior change on 4 pages, not a
-      VERIFY-RETIRE; needs Advisor DRAFT review + Davin APPROVED before CONFIRM, same as any
-      other PORT session).
+- [x] Session 6-1 CONFIRMED, executed, closed (2026-08-10 — see `CLAUDE.md` Current entry).
+- [x] The four target rows (A1-1, A1-2, A1-3, A1-4) hold in `docs/files-completion-list/ui-page-gap-analysis.md` as verified — re-confirmed at this session's own CONFIRM directly against live code, zero drift.
+- [x] The four backing endpoints below still return the shapes cited (re-verified at CONFIRM per `LESSONS-LEARNED.md` L27) — all 4 held exactly, **plus two execution-time adaptation gaps found and resolved by Davin's live direction before starting** (see Deviations):
+  - `GET /api/invoices` → `{ invoices: InvoiceItem[], hasMore: boolean }` (`app/api/invoices/route.ts`). ✅ exact.
+  - `GET /api/subscription` → `{ tier: 'FREE'|'PRO', status, subscription: { id, status, provider, planType, currentPeriodEnd, expiresAt, cancelAtPeriodEnd, trialEnd, paymentMethod, dLocalPaymentMethod, dLocalCountry } | null }` (`app/api/subscription/route.ts`). ✅ exact as cited — but does NOT carry `User.trialStatus`/`trialConvertedAt`/`trialCancelledAt`/`hasUsedFreeTrial`, which File 1's own Port step 1 needs. Davin's live call: widen the response additively (Deviation 1).
+  - `POST /api/subscription/cancel` → cancels Stripe/dLocal subscription and downgrades to FREE (`app/api/subscription/cancel/route.ts`). ✅ exact.
+  - `GET /api/admin/fraud-alerts/[id]` → real `FraudAlert` row (404 if missing, 403 if non-admin); `PATCH` accepts `{ status: 'PENDING'|'REVIEWED'|'DISMISSED'|'BLOCKED', resolution?, notes? }` (`app/api/admin/fraud-alerts/[id]/route.ts`). ✅ exact — but the real `FraudAlert.notes` is `String?` (singular), not the mock's `string[]`, and `riskScore`/`paymentAttempts`/`previousAlerts`/`userAgent` don't exist on the schema at all. Davin's live call: adapt to real fields, drop mock-only fields (Deviation 2).
+  - `GET /api/alerts` → countable list for FREE/PRO alert-count display on `/settings`. ✅ exact.
+- [x] Monolith baseline re-measured at CONFIRM: `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` — 3 pre-existing warnings (0 errors), same 2 files Session 6-1 already recorded, 0 new; `test:ci` 129/129 suites, 2191/2191 tests — exact match to Session 6-1's baseline, zero drift. `git rev-parse HEAD` == `origin/main` (L38 check, no push gap).
+- [x] Davin APPROVED — confirmed live in chat that the working copy's `APPROVED` status is his own authentic edit (`LESSONS-LEARNED.md` L11 check).
 
 ## Integration points
 
-- **In:** real session (`getServerSession`), the 4 endpoints above (all already monolith-native
-  or already flag-forwarded — no new transport code).
-- **Out:** nothing new — no new routes, no new Prisma queries beyond what the 4 endpoints already
-  run.
+- **In:** real session (`getServerSession`), the 4 endpoints above (all monolith-native or flag-forwarded).
+- **Out:** nothing new — no new routes, no new Prisma queries beyond what the 4 endpoints already run.
 - **Owns:** no new tables, no new flags, no new queues.
 
 ## File Port Order
@@ -84,151 +76,83 @@ _(dependency order: read-only wiring first, the one destructive action — cance
 
 ### File 1/4 — `/settings/billing`
 
-- **SOURCE:** `app/(dashboard)/settings/billing/page.tsx` (439 lines, currently 100% mock) →
-  **TARGET:** same file, rewired.
-- **Kind:** port + adapt — replace `mockInvoices`/hardcoded usage stats with real `fetch` calls;
-  mount the two already-built-but-unused components (`components/billing/invoice-list.tsx`,
-  `components/billing/subscription-card.tsx`) instead of hand-rolled markup where they cover the
-  same UI, per the source gap analysis's own recommendation.
+- **SOURCE:** `app/(dashboard)/settings/billing/page.tsx` (439 lines, 100% mock) → **TARGET:** same file, rewired.
+- **Kind:** port + adapt — replace `mockInvoices`/hardcoded usage stats with real `fetch` calls; mount the two already-built-but-unused components ([`components/billing/invoice-list.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/components/billing/invoice-list.tsx), [`components/billing/subscription-card.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/components/billing/subscription-card.tsx)) instead of hand-rolled markup where they cover the same UI.
 - **Port steps:**
-  1. `GET /api/subscription` on mount → drive tier badge, provider, `currentPeriodEnd`/
-     `expiresAt`, payment method card, and a real trial-status banner from
-     `User.trialStatus`/`trialConvertedAt`/`trialCancelledAt`/`hasUsedFreeTrial` (confirm these
-     fields are present on the response first — if not, that's a real API gap, escalate rather
-     than fabricate a second mock).
+  1. `GET /api/subscription` on mount → drive tier badge, provider, `currentPeriodEnd`/`expiresAt`, payment method card, and trial-status banner from `User.trialStatus`/`trialConvertedAt`/`trialCancelledAt`/`hasUsedFreeTrial`.
   2. `GET /api/invoices` → real invoice table via `invoice-list.tsx`.
-  3. Cancel dialog's confirm action → `POST /api/subscription/cancel`; on success, re-fetch
-     `/api/subscription` (don't assume the response shape — re-read it) and reflect the FREE
-     downgrade in the UI without a full page reload.
-  4. Remove `mockInvoices` and the two mock-data comments entirely — no fallback-to-mock-on-error
-     path; a real fetch failure should show a real error state, not silently show fake data.
-- **Invariants:** page must still render correctly for a FREE user with no subscription/invoices
-  (empty states, not mock-filled ones); must not regress the existing dialog's confirmation copy
-  (only its wiring changes).
-- **Parity proof:** new component test(s) for the page (none exist today — this is the parity
-  oracle to build, not assume, per `LESSONS-LEARNED.md` L28) covering: real data render, empty
-  state, cancel-success flow, cancel-failure flow.
+  3. Cancel dialog's confirm action → `POST /api/subscription/cancel`; on success, re-fetch `/api/subscription` and reflect the FREE downgrade without a page reload.
+  4. Remove `mockInvoices` and mock comments entirely — no fallback-to-mock-on-error path. Real fetch failures show a real UI error state.
+- **Invariants:** page must render correctly for a FREE user with no subscription/invoices (empty states); preserve dialog confirmation copy.
+- **Parity proof:** component test(s) for the page covering real data render, empty state, cancel-success flow, cancel-failure flow (`__tests__/pages/settings/billing.test.tsx`).
 - **Commit:** `fix(6-1b): wire /settings/billing to real invoices/subscription endpoints`
 
 ### File 2/4 — `/admin/fraud-alerts/[id]`
 
 - **SOURCE:** `app/(dashboard)/admin/fraud-alerts/[id]/page.tsx` → **TARGET:** same file, rewired.
-- **Kind:** port + adapt — replace `MOCK_ALERT`/`setAlert(MOCK_ALERT)` with a real
-  `fetch('/api/admin/fraud-alerts/' + id)`; add the status-transition action using the real
-  `FraudAlertStatus` enum (`PENDING`/`REVIEWED`/`DISMISSED`/`BLOCKED`) against the route's own
-  `updateSchema`.
+- **Kind:** port + adapt — replace `MOCK_ALERT`/`setAlert(MOCK_ALERT)` with real `fetch('/api/admin/fraud-alerts/' + id)`; wire status transitions (`PENDING`/`REVIEWED`/`DISMISSED`/`BLOCKED`) against the route's `updateSchema`.
 - **Port steps:**
-  1. Replace the mock fetch with a real one; handle 404 (alert not found) and 403 (non-admin,
-     though the layout guard should already prevent reaching this page) explicitly.
-  2. Wire the status-transition control to a `PATCH`/`POST` call matching the route's real
-     `updateSchema` shape (`status`, optional `resolution`, optional `notes`) — read the route
-     file's actual HTTP method for the update handler before wiring (not assumed from the GET
-     handler shown in this order).
-  3. Link out to the flagged user's own record and `LoginHistory`/`SecurityAlert` rows **only if**
-     an existing route already exposes them cheaply (e.g. `/admin/users` list, filtered) — do
-     NOT build new endpoints or a new user-detail page here; that's A2-10, session 6-6. If no
-     cheap link exists, leave this out of scope rather than improvising a new surface.
-- **Invariants:** admin actions here are real, consequential (blocking a user) — no optimistic
-  UI update without a confirmed server response; a failed status update must show a real error,
-  not silently revert.
-- **Parity proof:** new component test(s) covering real-data render, 404 case, and the
-  status-transition success/failure paths.
+  1. Replace mock fetch with real fetch; handle 404 (alert not found) and 403 explicitly.
+  2. Wire status-transition control to `PATCH` call matching route's `updateSchema` (`status`, `resolution`, `notes`).
+  3. Link out to flagged user record only if an existing route exposes it cheaply — DO NOT build new endpoints or new detail pages (deferred to session 6-6).
+- **Invariants:** admin actions are real/consequential — no optimistic UI update without confirmed server response; failed status update shows a real error.
+- **Parity proof:** component test(s) covering real-data render, 404 case, and status-transition success/failure paths (`__tests__/pages/admin/fraud-alerts-detail.test.tsx`).
 - **Commit:** `fix(6-1b): wire /admin/fraud-alerts/[id] to the real endpoint`
 
 ### File 3/4 — `/admin` Executive Dashboard (mock activity feed only)
 
-- **SOURCE:** `app/(dashboard)/admin/page.tsx` (mock activity generated at line ~82; the rest of
-  the page already calls the real `/api/admin/analytics`) → **TARGET:** same file, activity
-  section only.
-- **Kind:** port + adapt, deliberately conservative — this is the one row where "the real
-  endpoint" doesn't exist as a single call. **Do not build a new aggregation endpoint or a new
-  `SystemConfigHistory`/`DisbursementAuditLog` reader here** — that is 6-11's job
-  (`/admin/system/config-history`, `/admin/system/outbox`, matrix rows B2-16/B2-17). The
-  low-dial fix for THIS session: replace the generated mock list with the most recent real
-  `LoginHistory` and `FraudAlert` rows already queryable via existing admin endpoints
-  (`GET /api/admin/fraud-alerts` list endpoint already exists; check whether an existing
-  admin endpoint already exposes recent `LoginHistory` before adding a new query — if none does
-  cheaply, show ONLY the real `FraudAlert` feed and label the panel accurately, rather than
-  half-fabricating a combined feed).
+- **SOURCE:** `app/(dashboard)/admin/page.tsx` (mock activity at line ~82) → **TARGET:** same file, activity section only.
+- **Kind:** port + adapt — replace generated mock list with recent real `FraudAlert` rows queryable via `GET /api/admin/fraud-alerts`.
 - **Port steps:**
-  1. Read `GET /api/admin/fraud-alerts` (list) and confirm its response shape and whether it
-     supports a small `?limit=` for a "recent activity" panel.
-  2. Replace `// Generate mock recent activity for now` and its output with the real recent
-     items from that call, formatted the same way the mock did (same visual shape, real data).
-  3. If no cheap "recent activity" data source exists beyond fraud alerts, the panel's heading
-     should say "Recent Fraud Alerts" (accurate) rather than "Recent Activity" (implying a
-     broader feed the page doesn't actually have) — do not oversell what's shown.
-- **Invariants:** the rest of the page (the `/api/admin/analytics`-backed stats) is untouched.
-- **Parity proof:** extend the page's existing test coverage (check first whether one exists) to
-  assert the panel renders real fetched data, not the removed mock generator.
+  1. Read `GET /api/admin/fraud-alerts` list endpoint and confirm response shape.
+  2. Replace `// Generate mock recent activity for now` generator with real recent fraud-alert items.
+  3. Update panel heading to "Recent Fraud Alerts" (accurate label; do not build a broader aggregation feed — deferred to 6-11).
+- **Invariants:** rest of `/admin` page (`/api/admin/analytics`-backed stats) stays untouched.
+- **Parity proof:** extend page test coverage to assert panel renders real fetched fraud-alert data, not mock generator (`__tests__/pages/admin/dashboard.test.tsx`).
 - **Commit:** `fix(6-1b): replace admin dashboard mock activity feed with real fraud-alert data`
 
 ### File 4/4 — `/settings` Overview (alert count only)
 
-- **SOURCE:** `app/(dashboard)/settings/page.tsx` (`alerts: 3, // Mock data` at line 41) →
-  **TARGET:** same file, one field.
-- **Kind:** pure port — replace the hardcoded count with a real `GET /api/alerts` count.
-- **Port steps:** fetch `/api/alerts` (or reuse a count already fetched elsewhere on this page,
-  if any) and set the real length; remove the mock comment and literal.
-- **Invariants:** none beyond correctness — this is the smallest, lowest-risk file in the order.
-- **Parity proof:** extend/add a test asserting the count reflects `/api/alerts`'s real response
-  length, not a literal `3`.
+- **SOURCE:** `app/(dashboard)/settings/page.tsx` (`alerts: 3, // Mock data` at line 41) → **TARGET:** same file, one field.
+- **Kind:** pure port — replace hardcoded count with real `GET /api/alerts` count.
+- **Port steps:** fetch `/api/alerts` (or reuse count from existing fetch on page) and set real length; remove mock comment and literal.
+- **Invariants:** rest of settings overview untouched.
+- **Parity proof:** extend/add test asserting count reflects `/api/alerts` real response length (`__tests__/pages/settings/overview.test.tsx`).
 - **Commit:** `fix(6-1b): show real alert count on /settings overview`
 
 ## Rules specific to this variant
 
-- **No redesign, no new components beyond what's already built-and-unused
-  (`invoice-list.tsx`, `subscription-card.tsx`), no layout/nav changes.** The settings grid's
-  missing links (`account`/`security`/`help`/`language`/`terms`) and the admin nav's missing
-  cross-links are 6-2's job, not this session's — do not touch either grid/nav here even though
-  you'll be looking directly at both files.
-- Every one of the 4 files must have real error states on fetch failure — no "fall back to mock"
-  path anywhere, ever, for any of the 4.
-- File 3's own scope is deliberately the narrowest of the four — read it twice before writing
-  code; the temptation to "just also wire in `SystemConfigHistory`" is exactly the scope creep
-  `EXECUTOR-PROTOCOL.md` §2 prohibits (that's 6-11's job).
-- If any of the 4 endpoints' real response shape doesn't match what's cited in Entry criteria,
-  that's a genuine finding — stop and record it in Deviations before adapting the page to a
-  guessed shape.
+- **No redesign, no new components beyond what's already built-and-unused (`invoice-list.tsx`, `subscription-card.tsx`), no layout/nav changes.** Missing links in settings grid and admin nav cross-links belong to 6-2 — do not touch.
+- Every one of the 4 files must have real error states on fetch failure — no fallback-to-mock path anywhere.
+- File 3 scope is strictly fraud-alert activity — do not wire `SystemConfigHistory` or outbox events (deferred to 6-11).
+- If any endpoint response shape differs from Entry criteria, record it in Deviations before adapting.
 
 ## Slice-level verification (done when)
 
-- [ ] All 4 files wired to real endpoints; zero mock data/comments remain in any of the 4.
-- [ ] New/extended component tests for all 4 files pass; `tsc --noEmit` clean; `eslint app
-    components lib hooks --max-warnings 0` introduces no NEW warnings (the 3 pre-existing ones
-      from Session 6-1 are not this session's to fix, but also must not silently multiply).
-- [ ] `test:ci` full suite green, count recorded (not assumed from Session 6-1's 2191).
-- [ ] Live manual check (Davin or Executor, real session) of all 4 pages against real account
-      data — same "first authenticated call is the first real test" discipline as
-      `LESSONS-LEARNED.md` L18, since 3 of these 4 pages have apparently never been exercised
-      against real data before.
+- [ ] All 4 files rewired to real endpoints; zero mock data/comments remain.
+- [ ] New/extended component tests for all 4 files pass; `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` introduces 0 new warnings.
+- [ ] `test:ci` full suite green, count recorded at CONFIRM.
+- [ ] Live manual check of all 4 pages against real account data in production/staging.
 
 ## Cutover & rollback
 
-Not applicable — no flag, no new service, no shadow-run. This is a direct, same-stack bugfix;
-rollback is a plain `git revert` of the relevant file's commit if a live issue appears.
+Not applicable — no flag, no cutover row. Same-stack bugfix; rollback is `git revert`.
 
 ## Retire
 
-Not applicable — nothing is being ported OUT of the monolith; the mock data/components being
-removed were never real production logic, just placeholders.
+Not applicable — no monolith logic retired; removed placeholders were never real production logic.
 
 ## Deviations
 
-_(filled during execution)_
+1. **`GET /api/subscription` response widened additively** — File 1's own Port step 1 requires driving the trial-status banner from `User.trialStatus`/`trialConvertedAt`/`trialCancelledAt`/`hasUsedFreeTrial`, but the CONFIRM-verified live response shape didn't carry any of the four. Neither field is exposed by any other existing GET endpoint either (repo-wide grep, zero hits). Davin's live call: add the 4 fields to `SubscriptionResponse.subscription` additively (new optional-shaped fields, no existing field renamed/removed) — not a new route, not a breaking change to any existing consumer, consistent with the order's own "Contract: none (no OpenAPI surface changes)" framing under the reading that a new route is what "surface change" means here, not an additive field. Recorded as an in-scope adaptation of File 1's own dependency, not scope creep.
+2. **`/admin/fraud-alerts/[id]` adapted to the real `FraudAlert` schema, not the mock's invented shape** — the mock UI's `FraudAlertDetail` type has `notes: string[]`, `userAgent`, `paymentAttempts`, `previousAlerts`, `riskScore`, none of which exist on the real Prisma model or the route's response (real `notes` is a singular `String?`). Davin's live call: adapt the page to the real fields (`notes` rendered as a single note/reason line, `ipAddress` kept, `deviceFingerprint`/`additionalData` available if useful) and drop the four mock-only fields (Risk Score card, User Agent line, Payment Attempts/Previous Alerts counts) rather than fabricate them. This is a real behavior change from the mock's visual shape, disclosed here rather than silently trimmed.
 
 ## Known wrinkles / do-not-touch
 
-- `lib/api/index.ts` stays untouched (known-broken by design until Phase 7,
-  `EXECUTOR-PROTOCOL.md` §5) — none of these 4 files should route through it.
-- `frontend/` mirror tree is out of scope per `EXECUTOR-PROTOCOL.md` §5.
-- `DECISION-LOG.md` **F21** (GDPR account-deletion product decision) and **F50**
-  (`COMMISSION_CREDITED` wrong recipient) are unrelated open flags that do not gate this session.
+- `lib/api/index.ts` stays untouched (`EXECUTOR-PROTOCOL.md` §5).
+- `frontend/` mirror tree is out of scope (`EXECUTOR-PROTOCOL.md` §5).
+- `DECISION-LOG.md` **F21** (GDPR account deletion) and **F50** (`COMMISSION_CREDITED` wrong recipient) are open but do not gate this session.
 
 ## Next-session handoff
 
-Session **6-2** (IA + design system + shared shells) is next in the Phase 6 order — resolves F62
-(admin tree consolidation), adds `app/not-found.tsx`, removes the `/analytics`/`/indicators` dead
-nav links, and completes the `/settings` grid (the 5 missing subpage links this session
-deliberately did not touch). Needs a full Advisor DRAFT given F62's own "structurally hard to
-undo" framing — not fast-path eligible.
+Session **6-2** (IA + design system + shared shells) is next in Phase 6 — resolves F62 (admin tree consolidation), adds `app/not-found.tsx`, removes `/analytics`/`/indicators` dead nav links, and completes `/settings` grid links. Requires a full Advisor DRAFT (F62 structural impact).
