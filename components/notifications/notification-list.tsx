@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOptimisticMutation } from '@/hooks/use-optimistic-mutation';
+import { useRealtimeSocket } from '@/hooks/use-realtime-socket';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -138,6 +139,16 @@ export function NotificationList(): React.JSX.Element {
   useEffect(() => {
     setPage(1);
   }, [statusFilter, typeFilter]);
+
+  // Live list update (F8, Session 4B-17/4B-18) — mirrors notification-bell.tsx's
+  // own wiring exactly: re-fetch on push rather than merging the pushed payload
+  // into state directly, so the list/pagination/unreadCount stay single-sourced
+  // from the server's own filtering, pagination, and read-state logic.
+  useRealtimeSocket({
+    onNotification: () => {
+      fetchNotifications();
+    },
+  });
 
   // Clear undo timeout on unmount
   useEffect(() => {
@@ -440,13 +451,13 @@ export function NotificationList(): React.JSX.Element {
             disabled={isLoading}
           >
             <RefreshCw
-              className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`}
+              className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
             />
             Refresh
           </Button>
           {unreadCount > 0 && (
             <Button variant="outline" size="sm" onClick={handleMarkAllAsRead}>
-              <Check className="h-4 w-4 mr-2" />
+              <Check className="mr-2 h-4 w-4" />
               Mark all as read
             </Button>
           )}
@@ -468,7 +479,7 @@ export function NotificationList(): React.JSX.Element {
         </Tabs>
 
         {/* Type Filter */}
-        <div className="flex gap-2 mb-4 flex-wrap">
+        <div className="mb-4 flex flex-wrap gap-2">
           <Button
             variant={typeFilter === undefined ? 'default' : 'outline'}
             size="sm"
@@ -492,15 +503,15 @@ export function NotificationList(): React.JSX.Element {
 
         {/* Undo Delete Banner */}
         {showUndo && deletedNotification && (
-          <div className="mb-4 flex items-center justify-between bg-gray-800 text-white px-4 py-3 rounded-lg animate-in slide-in-from-top-2">
+          <div className="animate-in slide-in-from-top-2 mb-4 flex items-center justify-between rounded-lg bg-gray-800 px-4 py-3 text-white">
             <span className="text-sm">Notification deleted</span>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleUndoDelete}
-              className="text-white hover:text-white hover:bg-gray-700"
+              className="text-white hover:bg-gray-700 hover:text-white"
             >
-              <Undo2 className="h-4 w-4 mr-2" />
+              <Undo2 className="mr-2 h-4 w-4" />
               Undo
             </Button>
           </div>
@@ -509,15 +520,15 @@ export function NotificationList(): React.JSX.Element {
         {/* Notifications List */}
         {isLoading ? (
           <div className="py-12 text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
-            <p className="text-sm text-gray-500 mt-2">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-400" />
+            <p className="mt-2 text-sm text-gray-500">
               Loading notifications...
             </p>
           </div>
         ) : error ? (
           <div className="py-12 text-center">
-            <AlertTriangle className="h-8 w-8 mx-auto text-red-400" />
-            <p className="text-sm text-red-500 mt-2">{error}</p>
+            <AlertTriangle className="mx-auto h-8 w-8 text-red-400" />
+            <p className="mt-2 text-sm text-red-500">{error}</p>
             <Button
               variant="outline"
               size="sm"
@@ -531,17 +542,17 @@ export function NotificationList(): React.JSX.Element {
           typeFilter === 'ALERT' && !isPro ? (
             /* V8: alert notifications are PRO-only */
             <div className="py-12 text-center">
-              <Bell className="h-12 w-12 mx-auto text-gray-300" />
-              <p className="text-lg text-gray-700 font-semibold mt-4">
+              <Bell className="mx-auto h-12 w-12 text-gray-300" />
+              <p className="mt-4 text-lg font-semibold text-gray-700">
                 Alert notifications are a PRO feature
               </p>
-              <p className="text-sm text-gray-500 mt-1 mb-4">
+              <p className="mb-4 mt-1 text-sm text-gray-500">
                 Upgrade to create up to 100 price alerts on XAUUSD M5/M15 and
                 get notified when they trigger.
               </p>
               <Button
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-blue-600 text-white hover:bg-blue-700"
                 onClick={() => router.push('/pricing')}
               >
                 Upgrade to PRO
@@ -549,8 +560,8 @@ export function NotificationList(): React.JSX.Element {
             </div>
           ) : (
             <div className="py-12 text-center">
-              <Bell className="h-12 w-12 mx-auto text-gray-300" />
-              <p className="text-lg text-gray-500 mt-4">No notifications</p>
+              <Bell className="mx-auto h-12 w-12 text-gray-300" />
+              <p className="mt-4 text-lg text-gray-500">No notifications</p>
               <p className="text-sm text-gray-400">
                 {statusFilter === 'unread'
                   ? 'All caught up!'
@@ -564,15 +575,15 @@ export function NotificationList(): React.JSX.Element {
               <div
                 key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
-                className={`flex items-start gap-4 p-4 rounded-lg border cursor-pointer transition-colors ${
+                className={`flex cursor-pointer items-start gap-4 rounded-lg border p-4 transition-colors ${
                   !notification.read
-                    ? 'bg-blue-50/50 border-blue-200 hover:bg-blue-100/50'
+                    ? 'border-blue-200 bg-blue-50/50 hover:bg-blue-100/50'
                     : 'bg-white hover:bg-gray-50'
                 } ${notification.priority === 'HIGH' ? 'border-l-4 border-l-red-500' : ''}`}
               >
                 {/* Icon */}
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getNotificationIconBg(
+                  className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${getNotificationIconBg(
                     notification
                   )}`}
                 >
@@ -580,16 +591,16 @@ export function NotificationList(): React.JSX.Element {
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <h4 className="font-semibold text-gray-900">
                         {!notification.read && (
-                          <span className="text-blue-500 mr-1">•</span>
+                          <span className="mr-1 text-blue-500">•</span>
                         )}
                         {notification.title}
                       </h4>
-                      <p className="text-gray-600 text-sm mt-1">
+                      <p className="mt-1 text-sm text-gray-600">
                         {notification.body}
                       </p>
                     </div>
@@ -609,15 +620,15 @@ export function NotificationList(): React.JSX.Element {
                   </div>
 
                   {/* Metadata */}
-                  <div className="flex gap-2 text-xs text-gray-500 mt-2 flex-wrap items-center">
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                     <span>{formatDate(notification.createdAt)}</span>
-                    <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                    <span className="bg-gray-100 px-2 py-0.5 rounded">
+                    <span className="h-1 w-1 rounded-full bg-gray-300" />
+                    <span className="rounded bg-gray-100 px-2 py-0.5">
                       {notification.type.charAt(0) +
                         notification.type.slice(1).toLowerCase()}
                     </span>
                     {notification.priority === 'HIGH' && (
-                      <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded font-semibold">
+                      <span className="rounded bg-red-100 px-2 py-0.5 font-semibold text-red-600">
                         HIGH PRIORITY
                       </span>
                     )}
@@ -633,7 +644,7 @@ export function NotificationList(): React.JSX.Element {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6 pt-4 border-t">
+          <div className="mt-6 flex items-center justify-between border-t pt-4">
             <p className="text-sm text-gray-500">
               Page {page} of {totalPages} ({total} total)
             </p>
@@ -644,7 +655,7 @@ export function NotificationList(): React.JSX.Element {
                 disabled={page === 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
-                <ChevronLeft className="h-4 w-4 mr-1" />
+                <ChevronLeft className="mr-1 h-4 w-4" />
                 Previous
               </Button>
               <Button
@@ -654,7 +665,7 @@ export function NotificationList(): React.JSX.Element {
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               >
                 Next
-                <ChevronRight className="h-4 w-4 ml-1" />
+                <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             </div>
           </div>
