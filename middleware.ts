@@ -25,6 +25,7 @@ import { SESSION_COOKIE_NAME } from '@/lib/operation-service/cookies';
 // renders. Every other /settings/* route stays gated exactly as before.
 const PUBLIC_SETTINGS_PATHS = new Set<string>([
   '/settings/account/delete/confirm',
+  '/settings/account/delete/cancel',
 ]);
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
