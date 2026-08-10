@@ -3155,7 +3155,59 @@ pointed at it since it existed, always 404ing. Zero flags, zero backend changes;
 
 </details>
 
+<details>
+<summary><strong>2026-08-11 — Session 6-5 (Settings/User, UI-BUILD)</strong></summary>
+
+Builds the missing account-deletion confirm/cancel pages — all 3 `app/api/user/account/deletion-*`
+routes were already live (Session 4B-11) but zero pages existed for a user to land on after
+clicking an email link. Zero flags, zero backend service changes.
+
+- **New:** `app/(public)/settings/account/delete/confirm/page.tsx` (human-in-the-loop gate — never
+  auto-fires `deletion-confirm`); `app/(public)/settings/account/delete/cancel/page.tsx`
+  (auto-fires on mount, token-or-session dual mode); `app/(dashboard)/settings/account/account-settings-client.tsx`
+  (client half of the account-settings restructure, see Modified); 2 new test files,
+  `__tests__/pages/settings/account-deletion.test.tsx` (7 tests) and
+  `__tests__/pages/settings/account-settings-page.test.tsx` (6 tests).
+- **Modified:** `app/(dashboard)/settings/account/page.tsx` (rewritten from a `'use client'` page
+  into a server component — `getSession()` + a direct `prisma.accountDeletionRequest.findFirst`
+  read, mirroring the `alerts/[id]/edit` precedent, since none of the 3 real routes exposes a
+  side-effect-free status check; passes the result to the new client component); `middleware.ts`
+  (exact-pathname allow-list for the 2 new public paths — Davin's live choice among 3 options,
+  since the deletion-confirm/cancel APIs are deliberately unauthenticated/optional-auth);
+  `app/api/user/account/deletion-request/route.ts` (fixed its own dormant `confirmationUrl`/
+  `cancelUrl` construction, which pointed at paths that never existed — currently inert since
+  email sending is still a TODO, but would have 404'd every deletion email once wired up).
+- **A two-layer auth-gate bug found only by live browser verification, fixed same-session:** the
+  middleware allow-list alone wasn't sufficient — `app/(dashboard)/layout.tsx` does its own
+  server-side `getServerSession()`+`redirect` on every page it wraps, independent of middleware,
+  and the new pages initially lived inside that route group. Relocated both pages to a new
+  `app/(public)/` route group (route groups are transparent to the URL, so the URLs themselves are
+  unchanged); confirmed live, unauthenticated: both pages 200 OK with correct content,
+  `/settings/account` and `/settings/security` both still correctly redirect to `/login`.
+- **A fabricated-UI finding, same class as Session 6-1b's own scope:** `settings/account/page.tsx`'s
+  "Two-Factor Authentication" section was a dummy `useState` toggle, zero calls to any
+  `/api/user/2fa/*` endpoint. The real, fully-wired implementation already exists at
+  `settings/security/page.tsx` (gap-matrix row A1-9) — replaced the dummy widget with a "Manage
+  2FA" link rather than duplicating that page's logic.
+- **Grace-period correction:** the order's own Context text conflated two genuinely different, both
+  real deadlines — the 7-day `AccountDeletionRequest.expiresAt` link-expiry window (REQUEST→CONFIRM)
+  and the 24-hour execution window (`deletion-confirm/route.ts`'s own live response,
+  CONFIRM→execution). Split correctly: pre-confirm/pending-banner copy states 7 days; post-confirm/
+  CONFIRMED-banner copy states 24 hours, noting cancellation is still possible during it.
+- **Regression:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` — same 3
+  pre-existing warnings, 0 new; `test:ci` **136/136 suites, 2230/2230 tests** (was 134/134,
+  2217/2217 — +2 suites/+13 tests, exactly this session's own new files, zero regressions
+  elsewhere).
+- **Not done:** deep interactive click-through of the real 2FA flows on `settings/security` under a
+  real authenticated session — same standing gap as every Phase 6 session since 6-1b (Waiting-on
+  #117). `operation-service/src/users/users.service.ts`'s own `requestDeletion()` has the identical
+  stale URL-construction bug the monolith route was fixed for this session — left for whichever
+  future session wires up real deletion-email sending (a backend-service change, out of this
+  UI-BUILD session's scope).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-10 (Session 6-4, Notifications)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-11 (Session 6-5, Settings/User)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
