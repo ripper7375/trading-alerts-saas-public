@@ -10,7 +10,7 @@ export default function MarketingLayout({
   return (
     <div className="flex min-h-screen flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
@@ -33,7 +33,7 @@ export default function MarketingLayout({
           </Link>
 
           {/* Navigation */}
-          <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+          <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
             <Link
               href="/#features"
               className="text-muted-foreground transition-colors hover:text-foreground"
@@ -58,13 +58,13 @@ export default function MarketingLayout({
           <div className="flex items-center space-x-4">
             <Link
               href="/login"
-              className="hidden sm:inline-flex text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
             >
               Sign In
             </Link>
             <Link
               href="/register"
-              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              className="hover:bg-primary/90 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
             >
               Get Started
             </Link>
@@ -76,31 +76,16 @@ export default function MarketingLayout({
       <main className="flex-1">{children}</main>
 
       {/* Footer */}
-      <footer className="border-t bg-muted/50">
+      <footer className="bg-muted/50 border-t">
         <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            {/* Company */}
-            <div>
-              <h3 className="mb-4 text-sm font-semibold">Company</h3>
-              <ul className="space-y-3 text-sm text-muted-foreground">
-                <li>
-                  <Link href="/about" className="hover:text-foreground">
-                    About
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/blog" className="hover:text-foreground">
-                    Blog
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/careers" className="hover:text-foreground">
-                    Careers
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
+          {/*
+            A1-18/C-3 (Session 6-2): the Company and Resources columns were
+            pruned entirely -- every link they held (/about, /blog,
+            /careers, /docs, /help, /affiliate) pointed at a page that
+            doesn't exist yet. Do not add placeholder destinations here;
+            that's Session 6-10's job once those pages are actually built.
+          */}
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
             {/* Product */}
             <div>
               <h3 className="mb-4 text-sm font-semibold">Product</h3>
@@ -113,33 +98,6 @@ export default function MarketingLayout({
                 <li>
                   <Link href="/pricing" className="hover:text-foreground">
                     Pricing
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/changelog" className="hover:text-foreground">
-                    Changelog
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Resources */}
-            <div>
-              <h3 className="mb-4 text-sm font-semibold">Resources</h3>
-              <ul className="space-y-3 text-sm text-muted-foreground">
-                <li>
-                  <Link href="/docs" className="hover:text-foreground">
-                    Documentation
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/help" className="hover:text-foreground">
-                    Help Center
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/affiliate" className="hover:text-foreground">
-                    Affiliate Program
                   </Link>
                 </li>
               </ul>
@@ -157,11 +115,6 @@ export default function MarketingLayout({
                 <li>
                   <Link href="/terms" className="hover:text-foreground">
                     Terms of Service
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/disclaimer" className="hover:text-foreground">
-                    Risk Disclaimer
                   </Link>
                 </li>
               </ul>
