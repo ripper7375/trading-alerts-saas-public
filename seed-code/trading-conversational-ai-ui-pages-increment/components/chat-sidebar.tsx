@@ -127,9 +127,14 @@ export function ChatSidebar({
   ];
 
   return (
-    <aside className="relative z-20 flex h-full w-full flex-col overflow-hidden border-r border-slate-800/80 bg-[#06070a] shadow-2xl select-none">
-      {/* Brand & Tier Selector Dropdown */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-800/80 bg-[#090b11] px-3.5">
+    <aside
+      className={cn(
+        'bg-sidebar text-sidebar-foreground relative flex flex-col border-r border-slate-200 shadow-2xl transition-all duration-300 select-none dark:border-slate-800/80 dark:bg-[#090b11]',
+        isCollapsed ? 'w-14' : 'w-56'
+      )}
+    >
+      {/* Header — Brand Logo & Collapse Switcher */}
+      <div className="bg-sidebar flex h-14 shrink-0 items-center justify-between border-b border-slate-200 px-3.5 dark:border-slate-800/80 dark:bg-[#07090e]">
         {!isCollapsed && (
           <div className="flex min-w-0 flex-col justify-center">
             <div className="flex items-center gap-2 truncate text-base font-bold tracking-tight">

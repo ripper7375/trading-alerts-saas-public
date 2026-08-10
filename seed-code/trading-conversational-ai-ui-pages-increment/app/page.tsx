@@ -65,11 +65,11 @@ export default function Page() {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#06070a] select-none">
+    <div className="bg-background text-foreground flex h-screen w-full overflow-hidden select-none">
       <div className="flex h-screen flex-1 flex-col overflow-hidden">
         {/* Top Control Bar when Chat Panel B or Comments Panel D are collapsed */}
         {(isPanel1Collapsed || isPanel3Collapsed) && (
-          <div className="z-30 flex h-8 shrink-0 items-center justify-between border-b border-slate-800 bg-[#0c0f17] px-3 text-xs">
+          <div className="border-border bg-card z-30 flex h-8 shrink-0 items-center justify-between border-b px-3 text-xs">
             <div className="flex items-center gap-2">
               {isPanel1Collapsed && (
                 <Button

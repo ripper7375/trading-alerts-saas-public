@@ -48,7 +48,7 @@ export default function AppHeader({
   const currentTier = pathname.startsWith('/free') ? 'FREE' : tier;
 
   return (
-    <header className="z-20 flex h-14 w-full shrink-0 items-center justify-between border-b border-slate-800/80 bg-[#090b11] px-4 shadow-sm select-none">
+    <header className="z-20 flex h-14 w-full shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm select-none dark:border-slate-800/80 dark:bg-[#090b11]">
       {/* Left: Brand Logo & Current Section Title */}
       <div className="flex items-center gap-3">
         <Link href="/dashboard" className="flex items-center gap-2">
@@ -60,28 +60,28 @@ export default function AppHeader({
               className="object-cover"
             />
           </div>
-          <span className="hidden bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-sm font-extrabold tracking-tight text-transparent sm:inline">
+          <span className="hidden bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 bg-clip-text text-sm font-extrabold tracking-tight text-transparent sm:inline">
             DavinTrade
           </span>
         </Link>
 
-        <ChevronRight className="hidden h-4 w-4 text-slate-600 sm:inline" />
+        <ChevronRight className="hidden h-4 w-4 text-slate-400 sm:inline dark:text-slate-600" />
 
         <div className="flex flex-col">
-          <h1 className="flex items-center gap-2 text-xs font-bold text-slate-100">
+          <h1 className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100">
             {title || 'Dashboard'}
             <Badge
               className={
                 currentTier === 'PRO'
-                  ? 'border-amber-500/40 bg-amber-500/20 px-1.5 py-0 font-mono text-[9px] text-amber-300'
-                  : 'border-slate-700 bg-slate-800 px-1.5 py-0 font-mono text-[9px] text-slate-400'
+                  ? 'border-amber-500/40 bg-amber-500/20 px-1.5 py-0 font-mono text-[9px] text-amber-700 dark:text-amber-300'
+                  : 'border-slate-300 bg-slate-100 px-1.5 py-0 font-mono text-[9px] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
               }
             >
               {currentTier === 'PRO' ? '⚡ PRO' : '🔒 FREE'}
             </Badge>
           </h1>
           {subtitle && (
-            <p className="hidden truncate text-[10px] text-slate-400 md:inline">
+            <p className="hidden truncate text-[10px] text-slate-500 md:inline dark:text-slate-400">
               {subtitle}
             </p>
           )}
@@ -89,7 +89,7 @@ export default function AppHeader({
       </div>
 
       {/* Middle: Quick Action Tabs */}
-      <div className="hidden items-center gap-1 rounded-xl border border-slate-800 bg-[#05060a] p-1 md:flex">
+      <div className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1 md:flex dark:border-slate-800 dark:bg-[#05060a]">
         <Link href="/dashboard">
           <Button
             variant="ghost"

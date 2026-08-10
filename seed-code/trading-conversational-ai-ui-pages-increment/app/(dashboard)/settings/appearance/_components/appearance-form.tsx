@@ -104,32 +104,32 @@ export function AppearanceForm() {
 
   return (
     <div className="animate-fade-in space-y-6 select-none">
-      <div className="space-y-6 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
+      <div className="bg-card text-card-foreground space-y-6 rounded-2xl border border-slate-200 p-6 shadow-xl dark:border-slate-800/80 dark:bg-[#090c14]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-slate-800">
           <div>
-            <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-100">
-              <Palette className="h-4 w-4 text-amber-400" />{' '}
+            <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-900 dark:text-slate-100">
+              <Palette className="h-4 w-4 text-amber-500 dark:text-amber-400" />{' '}
               {t(
                 'Terminal Appearance & Chart Color Scheme',
                 'รูปลักษณ์เทอร์มินัลและโทนสีกราฟ'
               )}
             </h2>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {t(
                 'Customise dark trading themes, accent highlights, and candlestick styles',
                 'ปรับแต่งธีมการเทรดแบบมืด โทนสีไฮไลต์ และสไตล์แท่งเทียน'
               )}
             </p>
           </div>
-          <Badge className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300">
+          <Badge className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-700 dark:text-amber-300">
             {t('LIVE PREVIEW', 'แสดงตัวอย่างสด')}
           </Badge>
         </div>
 
         {/* Theme Selection */}
         <div className="space-y-3">
-          <Label className="text-xs font-semibold text-slate-300">
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             {t('Theme Mode', 'โหมดธีม')}
           </Label>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -144,8 +144,8 @@ export function AppearanceForm() {
                   className={cn(
                     'flex cursor-pointer flex-col items-start rounded-xl border p-4 text-left transition-all',
                     isSelected
-                      ? 'border-amber-500/60 bg-amber-500/10 text-amber-300 shadow-md ring-1 ring-amber-500/30'
-                      : 'border-slate-800 bg-[#06080e] text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                      ? 'border-amber-500/60 bg-amber-500/10 text-amber-800 shadow-md ring-1 ring-amber-500/30 dark:text-amber-300'
+                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-400 dark:hover:border-slate-700 dark:hover:text-slate-200'
                   )}
                 >
                   <div className="flex w-full items-center justify-between text-xs font-bold">
