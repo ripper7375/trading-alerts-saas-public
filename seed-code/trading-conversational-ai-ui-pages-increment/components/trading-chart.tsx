@@ -434,13 +434,14 @@ export default function TradingChart({
               variant={m15ViewMode === 'SSA_EDT' ? 'secondary' : 'ghost'}
               size="sm"
               className={cn(
-                'h-7 px-3 text-xs font-semibold transition-all',
-                m15ViewMode === 'SSA_EDT' &&
-                  'border border-indigo-500/50 bg-indigo-600/30 font-bold text-indigo-300 shadow-sm shadow-indigo-500/20'
+                'h-7 px-3 text-xs font-semibold text-slate-200 transition-all hover:bg-slate-800/60 hover:text-slate-100',
+                m15ViewMode === 'SSA_EDT'
+                  ? 'border border-[var(--primary)]/50 bg-[var(--primary)]/20 font-bold text-[var(--primary)] shadow-[var(--primary)]/20 shadow-sm'
+                  : 'text-slate-300'
               )}
               onClick={() => setM15ViewMode('SSA_EDT')}
             >
-              <Activity className="mr-1.5 h-3.5 w-3.5 text-indigo-400" />
+              <Activity className="mr-1.5 h-3.5 w-3.5 text-[var(--primary)]" />
               {t('chart.m15_ssa_edt', 'M15 SSA & EDT Chart')}
             </Button>
 
@@ -448,9 +449,10 @@ export default function TradingChart({
               variant={m15ViewMode === 'ZIGZAG' ? 'secondary' : 'ghost'}
               size="sm"
               className={cn(
-                'h-7 px-3 text-xs font-semibold transition-all',
-                m15ViewMode === 'ZIGZAG' &&
-                  'border border-purple-500/50 bg-purple-600/30 font-bold text-purple-300 shadow-sm shadow-purple-500/20'
+                'h-7 px-3 text-xs font-semibold text-slate-200 transition-all hover:bg-slate-800/60 hover:text-slate-100',
+                m15ViewMode === 'ZIGZAG'
+                  ? 'border border-purple-500/50 bg-purple-600/30 font-bold text-purple-300 shadow-sm shadow-purple-500/20'
+                  : 'text-slate-300'
               )}
               onClick={() => setM15ViewMode('ZIGZAG')}
             >
@@ -466,7 +468,7 @@ export default function TradingChart({
               'flex items-center gap-2 rounded-lg border px-3 py-1 text-xs shadow-xs transition-all',
               isM5OnM15 && tier === 'PRO'
                 ? 'border-cyan-500/60 bg-cyan-500/15 text-cyan-200 shadow-cyan-500/10'
-                : 'border-slate-800 bg-[#090b10] text-slate-400'
+                : 'border-slate-800 bg-[#090b10] text-slate-300'
             )}
           >
             <Switch
@@ -477,7 +479,7 @@ export default function TradingChart({
             />
             <label
               htmlFor="m5-on-m15-toggle"
-              className="flex cursor-pointer items-center gap-1.5 text-xs font-bold tracking-tight"
+              className="flex cursor-pointer items-center gap-1.5 text-xs font-bold tracking-tight text-slate-200"
             >
               <span>{t('chart.ms_on_m15', 'M5 on M15')}</span>
               {tier === 'FREE' && (
@@ -489,7 +491,7 @@ export default function TradingChart({
           <Button
             variant="outline"
             size="sm"
-            className="border-slate-750 h-8 bg-[#090b10] text-xs font-medium hover:bg-slate-800"
+            className="border-slate-750 h-8 bg-[#090b10] text-xs font-medium text-slate-200 hover:bg-slate-800 hover:text-slate-100"
           >
             <RefreshCw className="mr-1.5 h-3.5 w-3.5 text-emerald-400" />
             {t('chart.auto_refresh', 'Auto-Refresh')}

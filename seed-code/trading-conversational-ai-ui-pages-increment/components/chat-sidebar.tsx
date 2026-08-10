@@ -318,7 +318,7 @@ export function ChatSidebar({
                     'h-8 justify-start rounded-lg text-xs font-medium transition-all',
                     isCollapsed && 'justify-center px-0',
                     isActive
-                      ? 'border border-amber-500/50 bg-amber-500/15 font-bold text-amber-300 shadow-xs shadow-amber-500/10'
+                      ? 'border border-[var(--primary)]/50 bg-[var(--primary)]/15 font-bold text-[var(--primary)] shadow-[var(--primary)]/10 shadow-xs'
                       : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100'
                   )}
                 >
@@ -326,7 +326,9 @@ export function ChatSidebar({
                     className={cn(
                       'h-3.5 w-3.5 shrink-0 transition-colors',
                       !isCollapsed && 'mr-2',
-                      isActive ? 'text-amber-400' : 'text-amber-400/60'
+                      isActive
+                        ? 'text-[var(--primary)]'
+                        : 'text-[var(--primary)]/60'
                     )}
                   />
                   {!isCollapsed && (
@@ -358,13 +360,13 @@ export function ChatSidebar({
           size="sm"
           onClick={handleDownloadPng}
           className={cn(
-            'h-auto w-full flex-col justify-center rounded-xl border-amber-500/30 bg-amber-500/5 py-2 text-center shadow-xs transition-all hover:border-amber-500/60 hover:bg-amber-500/15',
+            'h-auto w-full flex-col justify-center rounded-xl border-[var(--primary)]/30 bg-[var(--primary)]/5 py-2 text-center shadow-xs transition-all hover:border-[var(--primary)]/60 hover:bg-[var(--primary)]/15',
             isCollapsed && 'p-2'
           )}
         >
           {!isCollapsed ? (
             <div className="flex min-w-0 flex-col items-center">
-              <span className="flex items-center gap-1.5 truncate text-xs font-bold text-amber-400">
+              <span className="flex items-center gap-1.5 truncate text-xs font-bold text-[var(--primary)]">
                 <Download className="h-3.5 w-3.5 shrink-0" />
                 {t('PNG Download')}
               </span>
@@ -376,7 +378,7 @@ export function ChatSidebar({
               </span>
             </div>
           ) : (
-            <Download className="h-4 w-4 shrink-0 text-amber-400" />
+            <Download className="h-4 w-4 shrink-0 text-[var(--primary)]" />
           )}
         </Button>
       </div>
