@@ -102,9 +102,10 @@ reports/{code-inventory,commission-owings,profit-loss,sales-performance}`, `sett
       own "structurally hard to undo" framing and this session's real blast radius (touches the
       admin auth/nav surface every admin page depends on).
 
-## Ordered steps (dependency order — foundational, low-risk pieces first; the F62-gated admin
+## Ordered steps
 
-tree consolidation last, since it's the one genuinely hard-to-undo piece)
+_(dependency order — foundational, low-risk pieces first; the F62-gated admin tree consolidation
+last, since it's the one genuinely hard-to-undo piece)_
 
 1. **`app/not-found.tsx` + `app/global-error.tsx`** (B1-1, B1-2) — standard Next.js 16 App
    Router files, no dependency on anything else this session touches. Match the existing design
