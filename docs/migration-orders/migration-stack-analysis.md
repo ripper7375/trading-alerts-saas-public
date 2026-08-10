@@ -3048,5 +3048,43 @@ and re-confirmed by Session 6-1. Monolith-internal only, zero flags, zero new ro
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-10 (Session 6-1b, Mock-Data Hotfix)
+<details>
+<summary><strong>2026-08-10 — Session 6-2 (IA + Design System + Shared Shells, UI-BUILD)</strong></summary>
+
+F62 resolved and executed (Davin, Option a — merge `app/admin/*` into `app/(dashboard)/admin/*`).
+Five ordered steps, one commit each, zero flags, zero backend changes.
+
+- **New:** `app/not-found.tsx`, `app/global-error.tsx` (B1-1/B1-2 — Next.js previously fell back to
+  generic defaults for both).
+- **Modified:** `app/(dashboard)/settings/page.tsx` (grid now links all 9 real subpages, was 4);
+  `components/layout/sidebar.tsx` + `mobile-nav.tsx` (`/analytics`/`/indicators` dead links
+  removed); `components/auth/register-form.tsx` (`/affiliate/join` → real `/affiliate/register`);
+  `app/(marketing)/layout.tsx` (footer pruned from 4 columns/11 links to 2 columns/4 links —
+  Company and Resources columns removed entirely, zero valid destinations remained in either);
+  `next.config.js` (new permanent redirect, `/admin/login` → `/login`); `middleware.ts`
+  (`/admin/:path*` added to the matcher, no longer excluded now the standalone login page is
+  gone); `app/(dashboard)/admin/layout.tsx` (nav expanded 4 → 8 sections).
+- **Moved (`git mv`, URLs unchanged):** `app/admin/affiliates/page.tsx`,
+  `app/admin/affiliates/[id]/page.tsx`, `app/admin/affiliates/reports/{code-inventory,
+commission-owings,profit-loss,sales-performance}/page.tsx`, `app/admin/settings/affiliate/
+page.tsx` → their `app/(dashboard)/admin/*` equivalents.
+- **Deleted:** `app/admin/login/page.tsx` (replaced by the `next.config.js` redirect);
+  `app/admin/` (now empty); `__tests__/app/admin-login.test.tsx` (no equivalent page left to
+  test).
+- **Deliberately untouched (carve-outs, Davin live at CONFIRM):** `/terms`, `/privacy` (owned by
+  `DECISION-LOG.md` F63 / Session 6-10); `/notifications` (owned by Session 6-4, the bell's own
+  link).
+- **Regression:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` — same
+  3 pre-existing warnings, 0 new; `test:ci` 132/132 suites, 2202/2202 tests (was 133/133,
+  2206/2206 — the -1 suite/-4 tests is exactly the retired admin-login test, zero regressions
+  elsewhere); `next build` re-verified clean at session close.
+- **Not done:** live browser click-through of the consolidated admin nav and full settings grid
+  under a real authenticated session — carries forward the same gap as Session 6-1b's own
+  (Waiting-on #117, `CredentialsProvider` removed at Session 4B-21).
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-10 (Session 6-2, IA + Design System + Shared Shells)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

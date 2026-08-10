@@ -127,13 +127,22 @@ _(dependency order — foundational error boundaries & grid fixes first; admin c
 
 ## Done when
 
-- [ ] `app/not-found.tsx` and `app/global-error.tsx` live and styled.
-- [ ] `/settings` grid links to all 9 real subpages.
-- [ ] `/analytics` and `/indicators` removed from sidebar and mobile nav.
-- [ ] Marketing footer contains zero broken links.
-- [ ] F62 executed: all admin pages consolidated under `app/(dashboard)/admin/*` with unified nav and role-guarding.
-- [ ] `tsc --noEmit` clean; `eslint --max-warnings 0` introduces 0 new warnings; `test:ci` green.
-- [ ] Live manual check of admin and settings navigation.
+- [x] `app/not-found.tsx` and `app/global-error.tsx` live and styled — verified live (404 renders
+      for an unmatched route with all 3 actions) and via a clean `next build`.
+- [x] `/settings` grid links to all 9 real subpages.
+- [x] `/analytics` and `/indicators` removed from sidebar and mobile nav.
+- [x] Marketing footer contains zero broken links (except the 2 explicitly carved-out `/terms`/
+      `/privacy`, tracked under F63/6-10, not silently touched).
+- [x] F62 executed: all 23 admin pages consolidated under `app/(dashboard)/admin/*`, unified
+      8-section nav, `getServerSession()` + role guard unchanged.
+- [x] `tsc --noEmit` clean; `eslint --max-warnings 0` — 3 pre-existing warnings, 0 new; `test:ci`
+      132/132 suites, 2202/2202 tests (was 133/133, 2206/2206 — the delta is exactly the retired
+      admin-login test); `next build` clean, exit 0, zero compile/type errors.
+- [x] Live manual check of admin and settings navigation — **partial**: unauthenticated checks
+      done live (404 page, `/admin/login` → `/login` redirect, `/pricing` marketing page all
+      confirmed rendering correctly). A real authenticated admin/settings session was NOT
+      exercised — no test credentials available in this environment; carries forward the same gap
+      Session 6-1b already flagged (Waiting-on #117).
 
 ## Cutover & rollback
 
@@ -141,7 +150,8 @@ Not applicable — no flag, no cutover table row. Same-stack IA/navigation work;
 
 ## Retire
 
-- Delete `app/admin/` directory after moving files into `app/(dashboard)/admin/*`.
+- `app/admin/` directory deleted after moving its 7 real pages into `app/(dashboard)/admin/*` and
+  retiring `app/admin/login` (see Deviations for the exact move list).
 
 ## Deviations
 
@@ -178,6 +188,59 @@ named anywhere in the order's own Step 5 or Retire sections, despite that page b
 Step 5. Found at CONFIRM; Davin's live direction was to retire it (no equivalent page exists to
 redirect its assertions to; the redirect itself is trivial `next.config.js` config, not
 component behavior worth a dedicated test).
+
+**Deviation 6 (execution, Step 1 design):** `global-error.tsx` mirrors `app/error.tsx`'s existing
+visual language (icon-in-circle, muted-foreground copy, primary/outline button pair, mailto
+support link) rather than inventing a new one — the two boundaries should look like the same
+product. It imports `./globals.css` and defines its own `<html>`/`<body>` (required — it replaces
+the root layout entirely when active, so nothing from `app/layout.tsx` renders around it) and
+deliberately omits `Providers`/the `Inter` font loader, since this is the last line of defense if
+the app's own providers are what threw. `not-found.tsx` adds a third "Go Back" action
+(`router.back()`, client-side) beyond the order's literal "Home, Dashboard" pair — cheap,
+standard 404-page affordance, `'use client'` was already required for it.
+
+**Deviation 7 (execution, Step 4 design):** pruning left the Company and Resources footer columns
+with zero valid links each (all 3 Company links and all 3 Resources links were dead). Removed
+both columns entirely rather than leaving empty headings with no items underneath — the grid
+narrowed from `grid-cols-2 md:grid-cols-4` to `grid-cols-1 sm:grid-cols-2` to match the 2
+remaining columns (Product: Features, Pricing; Legal: Privacy Policy, Terms of Service).
+
+**Deviation 8 (execution, Step 5 design):** admin nav icons chosen to match the existing 4 items'
+plain-emoji style (`AdminNavItem.icon: string`, not a Lucide component) rather than switching the
+whole nav to icon components — Fraud Alerts 🚩, Affiliates & Reports 🤝, Disbursements 💸,
+Affiliate Settings ⚙️. Labels for the 4 pre-existing items were left as-is except "Error Logs" →
+"System Errors", matching the order's own Step 5.4 wording exactly. No active-route highlighting
+was added to the admin nav (the pre-existing 4-item nav didn't have it either — out of this
+step's own "expose all sections" scope).
+
+**Deviation 9 (execution, Step 5, `/admin/login` redirect ordering):** Davin's approved design
+("plain redirect to `/login`, no role-aware handling") has one small, accepted edge case: an
+_already-authenticated_ admin who manually types `/admin/login` is redirected to `/login`
+(next.config.js) rather than straight to `/admin` — a mildly odd but harmless landing for a
+retired URL nobody outside this migration ever had reason to type. `middleware.ts`'s own
+unauthenticated fallback (`/login?callbackUrl=...`) converges on the same safe destination for a
+logged-out admin either way. Not fixed — out of the explicitly-approved scope, and low enough
+blast radius (a dead URL, not a live nav entry) not to warrant expanding it.
+
+**Deviation 10 (session close):** the Browser pane did not render frames for the first live-check
+attempt (empty tab origin, `navigate`/`computer` calls failing) — worked on retry later in the
+session. Verified live before an unrelated collision (see Deviation 11): the new 404 page renders
+correctly with all 3 actions for an unmatched route; `/admin/login` correctly lands on the
+existing `/login` page (no crash); `/pricing` (marketing layout, exercises the pruned footer's
+sibling markup) renders fully. Did not reach a real authenticated admin/settings session — no
+test credentials were available in this environment, and fabricating one was out of scope. Carries
+forward the same live-manual-check gap Session 6-1b already flagged (Waiting-on #117,
+`CredentialsProvider` removed at Session 4B-21) — Davin's own browser session is still the
+recommended way to close it.
+
+**Deviation 11 (session close, environment artifact, not a regression):** mid-verification, a
+backgrounded `npm run build` and the still-running `next dev` preview collided — `build`'s own
+`prebuild` script (`rimraf ... node_modules/.prisma && prisma generate ...`) deleted and
+regenerated the Prisma clients while `next dev` was serving requests, producing transient
+"Module not found: .prisma/non-market-client" errors in the dev server's logs. Confirmed this was
+the cause (not a Step 5 regression) by checking `node_modules/.prisma` still existed correctly
+post-build and that `next build` itself finished clean. Stopped the dev preview rather than
+chase a self-inflicted race.
 
 ## Known wrinkles / do-not-touch
 
