@@ -16,7 +16,22 @@ import { SESSION_COOKIE_NAME } from '@/lib/operation-service/cookies';
 // same check the layout already performs (defense in depth / faster
 // redirect), and gives the new token path something to be gated by.
 
+// Session 6-5: exact-pathname allow-list, not a broader prefix carve-out —
+// deletion-confirm/deletion-cancel are deliberately unauthenticated/optional-
+// auth API routes (public, token-based email-link flow, zero session
+// required per their own route handlers), so the pages that call them must
+// stay reachable even when the /settings/:path* matcher below would
+// otherwise redirect a logged-out visitor to /login before the page ever
+// renders. Every other /settings/* route stays gated exactly as before.
+const PUBLIC_SETTINGS_PATHS = new Set<string>([
+  '/settings/account/delete/confirm',
+]);
+
 export async function middleware(request: NextRequest): Promise<NextResponse> {
+  if (PUBLIC_SETTINGS_PATHS.has(request.nextUrl.pathname)) {
+    return NextResponse.next();
+  }
+
   try {
     const token = await getToken({
       req: request,

@@ -85,8 +85,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // In production, send confirmation email
     const baseUrl = process.env['NEXTAUTH_URL'] || 'http://localhost:3000';
-    const confirmationUrl = `${baseUrl}/account/confirm-deletion?token=${token}`;
-    const cancelUrl = `${baseUrl}/account/cancel-deletion?token=${token}`;
+    // Session 6-5: these paths must match the real confirm/cancel pages
+    // (app/(dashboard)/settings/account/delete/{confirm,cancel}) — email
+    // sending is still a TODO below, so this had zero live effect until now,
+    // but would have 404'd every deletion email once sending is wired up.
+    const confirmationUrl = `${baseUrl}/settings/account/delete/confirm?token=${token}`;
+    const cancelUrl = `${baseUrl}/settings/account/delete/cancel?token=${token}`;
 
     console.log('[AccountDeletion] Request created:', {
       userId: session.user.id,
