@@ -3,7 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { Loader2, ArrowUpRight } from 'lucide-react';
+import {
+  Loader2,
+  ArrowUpRight,
+  UserCircle,
+  ShieldCheck,
+  HelpCircle,
+  Languages,
+  FileText,
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -282,6 +290,86 @@ export default function SettingsPage(): React.ReactElement {
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 Manage privacy settings and security options
               </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/settings/account">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <CardContent className="flex items-start gap-3 p-4">
+              <UserCircle className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" />
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">
+                  Account Settings
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Manage your account details and sign-in methods
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/settings/security">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <CardContent className="flex items-start gap-3 p-4">
+              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" />
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">
+                  Security Settings
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Two-factor authentication and active sessions
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/settings/help">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <CardContent className="flex items-start gap-3 p-4">
+              <HelpCircle className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" />
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">
+                  Help & Support
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Get help, contact support, or browse FAQs
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/settings/language">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <CardContent className="flex items-start gap-3 p-4">
+              <Languages className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" />
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">
+                  Language & Region
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Choose your preferred display language
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/settings/terms">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <CardContent className="flex items-start gap-3 p-4">
+              <FileText className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" />
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white">
+                  Terms of Service
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Review the terms governing your use of this platform
+                </p>
+              </div>
             </CardContent>
           </Card>
         </Link>
