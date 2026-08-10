@@ -8,7 +8,7 @@ html[data-accent="amber"], :root {
   --primary: #f59e0b;
   --primary-foreground: #000000;
   --accent: #f59e0b;
-  --accent-foreground: #000000;
+  --accent-foreground: #ffffff;
   --accent-rgb: 245, 158, 11;
   --ring: #f59e0b;
 }
@@ -17,7 +17,7 @@ html[data-accent="emerald"] {
   --primary: #10b981;
   --primary-foreground: #000000;
   --accent: #10b981;
-  --accent-foreground: #000000;
+  --accent-foreground: #ffffff;
   --accent-rgb: 16, 185, 129;
   --ring: #10b981;
 }
@@ -39,6 +39,7 @@ html[data-accent="purple"], html[data-accent="amethyst"] {
   --accent-rgb: 139, 92, 246;
   --ring: #8b5cf6;
 }
+
 
 :root {
   /* Core Colors */

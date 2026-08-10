@@ -615,7 +615,7 @@ export default function TradingChart({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 gap-2 rounded-full border-amber-500/50 bg-[#090d16]/95 px-3 text-[11px] font-bold text-amber-300 shadow-xl backdrop-blur-md hover:bg-amber-500/25"
+                className="h-7 gap-2 rounded-full border-amber-500/50 bg-[#090d16]/95 px-3 text-[11px] font-bold text-amber-300 shadow-xl backdrop-blur-md transition-all hover:border-amber-400 hover:bg-amber-500/30 hover:text-amber-200"
                 onClick={() => {
                   if (onAskAiFromChart) {
                     onAskAiFromChart(
@@ -765,7 +765,7 @@ export default function TradingChart({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 gap-2 rounded-full border-amber-500/50 bg-[#0e0817]/95 px-3 text-[11px] font-bold text-amber-300 shadow-xl backdrop-blur-md hover:bg-amber-500/25"
+                className="h-7 gap-2 rounded-full border-amber-500/50 bg-[#0e0817]/95 px-3 text-[11px] font-bold text-amber-300 shadow-xl backdrop-blur-md transition-all hover:border-amber-400 hover:bg-amber-500/30 hover:text-amber-200"
                 onClick={() => {
                   if (onAskAiFromChart) {
                     onAskAiFromChart(
