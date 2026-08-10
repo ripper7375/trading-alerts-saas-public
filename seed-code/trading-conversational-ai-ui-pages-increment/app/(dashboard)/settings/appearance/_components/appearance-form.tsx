@@ -1,7 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Sun, Moon, Monitor, Check, Palette, Loader2 } from 'lucide-react';
+import {
+  Sun,
+  Moon,
+  Monitor,
+  Check,
+  Palette,
+  Loader2,
+  RotateCcw,
+} from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -10,7 +18,11 @@ import { cn } from '@/lib/utils';
 import { useLocale } from '@/lib/context/locale-context';
 import { useTheme } from 'next-themes';
 import { useAppearance } from '@/components/providers/appearance-provider';
-import { ThemeMode, AccentScheme } from '@/lib/appearance/types';
+import {
+  ThemeMode,
+  AccentScheme,
+  DEFAULT_APPEARANCE_SETTINGS,
+} from '@/lib/appearance/types';
 
 interface ThemeOption {
   value: ThemeMode;
@@ -72,6 +84,14 @@ export function AppearanceForm() {
   const handleThemeChange = (newTheme: ThemeMode) => {
     updateSettings({ theme: newTheme });
     setTheme(newTheme);
+  };
+
+  const handleResetChartDefaults = () => {
+    updateSettings({
+      chartUpColor: DEFAULT_APPEARANCE_SETTINGS.chartUpColor,
+      chartDownColor: DEFAULT_APPEARANCE_SETTINGS.chartDownColor,
+      gridOpacity: DEFAULT_APPEARANCE_SETTINGS.gridOpacity,
+    });
   };
 
   const handleSave = async () => {
@@ -205,12 +225,27 @@ export function AppearanceForm() {
 
         {/* Chart Preferences */}
         <div className="space-y-4">
-          <Label className="text-xs font-semibold text-slate-300">
-            {t(
-              'Chart Candlestick & Grid Customization',
-              'การปรับแต่งแท่งเทียนและเส้นตารางกราฟ'
-            )}
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-semibold text-slate-300">
+              {t(
+                'Chart Candlestick & Grid Customization',
+                'การปรับแต่งแท่งเทียนและเส้นตารางกราฟ'
+              )}
+            </Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleResetChartDefaults}
+              className="h-7 gap-1.5 border-slate-700 bg-slate-800/80 px-2.5 text-[11px] font-bold text-slate-300 transition-all hover:border-amber-500/50 hover:bg-amber-500/10 hover:text-amber-300"
+              title={t(
+                'Reset chart candlestick colors and grid opacity to defaults'
+              )}
+            >
+              <RotateCcw className="h-3 w-3 text-amber-400" />
+              {t('Reset Defaults', 'รีเซ็ตค่าเริ่มต้น')}
+            </Button>
+          </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
