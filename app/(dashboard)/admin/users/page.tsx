@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -146,18 +147,18 @@ export default function UsersPage(): React.ReactElement {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white">
+        <h1 className="text-2xl font-bold text-white sm:text-3xl">
           User Management
         </h1>
-        <p className="text-gray-400 mt-1">
+        <p className="mt-1 text-gray-400">
           View and manage all registered users
         </p>
       </div>
 
       {/* Filters */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="border-gray-700 bg-gray-800">
         <CardContent className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
             {/* Search */}
             <div className="flex-1">
               <Input
@@ -166,16 +167,16 @@ export default function UsersPage(): React.ReactElement {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setSearch(e.target.value)
                 }
-                className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
+                className="border-gray-600 bg-gray-700 text-white placeholder:text-gray-400"
               />
             </div>
 
             {/* Tier Filter */}
             <Select value={tierFilter} onValueChange={handleTierChange}>
-              <SelectTrigger className="w-full sm:w-[140px] bg-gray-700 border-gray-600 text-white">
+              <SelectTrigger className="w-full border-gray-600 bg-gray-700 text-white sm:w-[140px]">
                 <SelectValue placeholder="Tier" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-700 border-gray-600">
+              <SelectContent className="border-gray-600 bg-gray-700">
                 <SelectItem value="ALL">All Tiers</SelectItem>
                 <SelectItem value="FREE">FREE</SelectItem>
                 <SelectItem value="PRO">PRO</SelectItem>
@@ -184,10 +185,10 @@ export default function UsersPage(): React.ReactElement {
 
             {/* Sort By */}
             <Select value={sortBy} onValueChange={handleSortChange}>
-              <SelectTrigger className="w-full sm:w-[160px] bg-gray-700 border-gray-600 text-white">
+              <SelectTrigger className="w-full border-gray-600 bg-gray-700 text-white sm:w-[160px]">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-700 border-gray-600">
+              <SelectContent className="border-gray-600 bg-gray-700">
                 <SelectItem value="createdAt">Created Date</SelectItem>
                 <SelectItem value="name">Name</SelectItem>
                 <SelectItem value="tier">Tier</SelectItem>
@@ -198,7 +199,7 @@ export default function UsersPage(): React.ReactElement {
             <Button
               variant="outline"
               onClick={handleSortOrderToggle}
-              className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+              className="border-gray-600 bg-gray-700 text-white hover:bg-gray-600"
             >
               {sortOrder === 'desc' ? '↓ Desc' : '↑ Asc'}
             </Button>
@@ -217,7 +218,7 @@ export default function UsersPage(): React.ReactElement {
       </div>
 
       {/* Users Table */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="border-gray-700 bg-gray-800">
         <CardHeader>
           <CardTitle className="text-white">Users</CardTitle>
           <CardDescription className="text-gray-400">
@@ -227,11 +228,11 @@ export default function UsersPage(): React.ReactElement {
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500" />
             </div>
           ) : error ? (
-            <div className="text-center py-8">
-              <p className="text-red-400 mb-4">{error}</p>
+            <div className="py-8 text-center">
+              <p className="mb-4 text-red-400">{error}</p>
               <Button
                 onClick={() => void fetchUsers()}
                 className="bg-blue-600 hover:bg-blue-700"
@@ -240,29 +241,32 @@ export default function UsersPage(): React.ReactElement {
               </Button>
             </div>
           ) : users.length === 0 ? (
-            <p className="text-gray-400 text-center py-8">No users found</p>
+            <p className="py-8 text-center text-gray-400">No users found</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-gray-400">
                       Name
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-gray-400">
                       Email
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-gray-400">
                       Tier
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium hidden md:table-cell">
+                    <th className="hidden px-4 py-3 text-left font-medium text-gray-400 md:table-cell">
                       Created
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium hidden lg:table-cell">
+                    <th className="hidden px-4 py-3 text-left font-medium text-gray-400 lg:table-cell">
                       Alerts
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium hidden lg:table-cell">
+                    <th className="hidden px-4 py-3 text-left font-medium text-gray-400 lg:table-cell">
                       Status
+                    </th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-400">
+                      Actions
                     </th>
                   </tr>
                 </thead>
@@ -270,52 +274,60 @@ export default function UsersPage(): React.ReactElement {
                   {users.map((user) => (
                     <tr
                       key={user.id}
-                      className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors"
+                      className="border-b border-gray-700/50 transition-colors hover:bg-gray-700/30"
                     >
-                      <td className="py-3 px-4">
+                      <td className="px-4 py-3">
                         <span className="text-white">
                           {user.name || 'No name'}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className="text-gray-300 text-sm">
+                      <td className="px-4 py-3">
+                        <span className="text-sm text-gray-300">
                           {user.email}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="px-4 py-3">
                         <Badge
                           className={
                             user.tier === 'PRO'
-                              ? 'bg-blue-600 hover:bg-blue-600 text-white'
-                              : 'bg-gray-600 hover:bg-gray-600 text-white'
+                              ? 'bg-blue-600 text-white hover:bg-blue-600'
+                              : 'bg-gray-600 text-white hover:bg-gray-600'
                           }
                         >
                           {user.tier}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4 hidden md:table-cell">
-                        <span className="text-gray-400 text-sm">
+                      <td className="hidden px-4 py-3 md:table-cell">
+                        <span className="text-sm text-gray-400">
                           {formatDate(user.createdAt)}
                         </span>
                       </td>
-                      <td className="py-3 px-4 hidden lg:table-cell">
-                        <span className="text-gray-300 text-sm">
+                      <td className="hidden px-4 py-3 lg:table-cell">
+                        <span className="text-sm text-gray-300">
                           {user.alertCount}
                         </span>
                       </td>
-                      <td className="py-3 px-4 hidden lg:table-cell">
+                      <td className="hidden px-4 py-3 lg:table-cell">
                         <div className="flex items-center gap-2">
                           <span
-                            className={`w-2 h-2 rounded-full ${
+                            className={`h-2 w-2 rounded-full ${
                               user.status === 'active'
                                 ? 'bg-green-500'
                                 : 'bg-red-500'
                             }`}
                           />
-                          <span className="text-gray-400 text-sm capitalize">
+                          <span className="text-sm capitalize text-gray-400">
                             {user.status}
                           </span>
                         </div>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          href={`/admin/users/${user.id}`}
+                          className="text-sm text-blue-400 transition-colors hover:text-blue-300"
+                        >
+                          View Details
+                        </Link>
                       </td>
                     </tr>
                   ))}
@@ -333,7 +345,7 @@ export default function UsersPage(): React.ReactElement {
             variant="outline"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600 disabled:opacity-50"
+            className="border-gray-600 bg-gray-700 text-white hover:bg-gray-600 disabled:opacity-50"
           >
             Previous
           </Button>
@@ -357,8 +369,8 @@ export default function UsersPage(): React.ReactElement {
                   onClick={() => setPage(pageNum)}
                   className={
                     page === pageNum
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-gray-700 border-gray-600 text-white hover:bg-gray-600'
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'border-gray-600 bg-gray-700 text-white hover:bg-gray-600'
                   }
                   size="sm"
                 >
@@ -372,7 +384,7 @@ export default function UsersPage(): React.ReactElement {
             variant="outline"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600 disabled:opacity-50"
+            className="border-gray-600 bg-gray-700 text-white hover:bg-gray-600 disabled:opacity-50"
           >
             Next
           </Button>
