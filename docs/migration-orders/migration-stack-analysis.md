@@ -3016,5 +3016,37 @@ order.md` PRE-DRAFTed (PORT, low dial).
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-10 (Session 6-1, Frontend Gap Matrix)
+<details>
+<summary><strong>2026-08-10 — Session 6-1b (Mock-Data Hotfix, PORT, low dial)</strong></summary>
+
+Fixed all 3 fabricated-data pages plus 1 fabricated field found by the 2026-08-10 UI gap analysis
+and re-confirmed by Session 6-1. Monolith-internal only, zero flags, zero new routes.
+
+- **Modified (4 pages + 1 route, 4 commits):** `app/(dashboard)/settings/billing/page.tsx`
+  (`mockInvoices`/hardcoded usage stats removed; wired to `GET /api/invoices`,
+  `GET /api/subscription`, `POST /api/subscription/cancel`, `GET /api/alerts`; mounts
+  `components/billing/invoice-list.tsx`); `app/api/subscription/route.ts` (additive `trial` field
+  — `trialStatus`/`trialConvertedAt`/`trialCancelledAt`/`hasUsedFreeTrial` — so the billing page
+  has a real data source for its trial banner); `app/(dashboard)/admin/fraud-alerts/[id]/page.tsx`
+  (`MOCK_ALERT` removed; wired to the real `FraudAlert` schema, dropping 4 mock-only fields that
+  don't exist on the model — `riskScore`/`paymentAttempts`/`previousAlerts`/`userAgent`); `app/
+(dashboard)/admin/page.tsx` (mock activity generator removed; panel now shows the 5 most recent
+  real `FraudAlert` rows via `GET /api/admin/fraud-alerts`, relabeled "Recent Fraud Alerts");
+  `app/(dashboard)/settings/page.tsx` (hardcoded `alerts: 3` replaced with a real
+  `GET /api/alerts` count).
+- **New:** 4 test files under the newly-created `__tests__/pages/{settings,admin}/` — 15 tests
+  total, first-ever test coverage for all 4 pages.
+- **Not mounted, deliberately:** `components/billing/subscription-card.tsx` — a real, pre-existing
+  undo-doesn't-reactivate bug found while reading it before wiring (`DECISION-LOG.md` F64, new,
+  OPEN); the existing hand-rolled cancel-confirmation dialog was kept instead.
+- **Regression:** `tsc --noEmit` clean; `eslint --max-warnings 0` — same 3 pre-existing warnings,
+  0 new; `test:ci` 133/133 suites, 2206/2206 tests (was 129/129, 2191/2191 — +4 suites/+15 tests).
+- **Not done:** live manual check of all 4 pages against a real logged-in session — blocked by
+  Session 4B-21's removal of `CredentialsProvider`; carried forward.
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-10 (Session 6-1b, Mock-Data Hotfix)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

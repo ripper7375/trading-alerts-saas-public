@@ -8,7 +8,8 @@
 > and 6-11 (admin system ops)'s job, on pages that are truthful by the time they run.
 
 **Session:** 6-1b · **Phase:** Phase 6 (Frontend Redesign) · **Variant:** PORT (monolith-internal,
-low dial) · **Status:** CONFIRMED · **Generated:** 2026-08-10 ·
+low dial) · **Status:** CONFIRMED, executed, CLOSED (partial: live manual check not done — see
+Slice-level verification) · **Generated:** 2026-08-10 ·
 **Flags touched:** none · **Estimated time:** ~2-3h
 **Target service:** monolith-internal (Next.js route handlers + React Server/Client Components
 already in `app/`) · **Contract:** none (no OpenAPI surface changes; every endpoint used here
@@ -129,10 +130,24 @@ _(dependency order: read-only wiring first, the one destructive action — cance
 
 ## Slice-level verification (done when)
 
-- [ ] All 4 files rewired to real endpoints; zero mock data/comments remain.
-- [ ] New/extended component tests for all 4 files pass; `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` introduces 0 new warnings.
-- [ ] `test:ci` full suite green, count recorded at CONFIRM.
-- [ ] Live manual check of all 4 pages against real account data in production/staging.
+- [x] All 4 files rewired to real endpoints; zero mock data/comments remain. `mockInvoices`,
+      `MOCK_ALERT`, the mock-activity generator, and the hardcoded `alerts: 3` are all deleted.
+- [x] New component tests for all 4 files pass (15 tests total: 4 + 4 + 4 + 3); `tsc --noEmit`
+      clean; `eslint app components lib hooks --max-warnings 0` — same 3 pre-existing warnings
+      as Session 6-1's own baseline (`header.tsx:85,89`, `disbursement/batches/[batchId]/
+page.tsx:236`), 0 new.
+- [x] `test:ci` full suite green: **133/133 suites, 2206/2206 tests** (was 129/129, 2191/2191 at
+      CONFIRM — +4 suites/+15 tests, exactly matching this session's own new test files, zero
+      regressions elsewhere).
+- [ ] **Live manual check of all 4 pages against real account data — NOT done this session,
+      disclosed rather than silently skipped.** `lib/auth/auth-options.ts` no longer has
+      `CredentialsProvider` (Session 4B-21, F56) — local email/password sign-in through the
+      standard NextAuth UI is gone; login now requires either a real OAuth provider or the
+      auth-bridge (`NEXT_PUBLIC_AUTH_BRIDGE_ENABLED`) talking to a reachable operation-service
+      with matching seeded credentials, neither of which this session set up. Minting a session
+      token to bypass the UI was judged the wrong substitute for a page whose whole point is
+      "does this look right to a real logged-in user," unlike a pure API schema check. Carried
+      forward — see Next-session handoff.
 
 ## Cutover & rollback
 
@@ -157,3 +172,10 @@ Not applicable — no monolith logic retired; removed placeholders were never re
 ## Next-session handoff
 
 Session **6-2** (IA + design system + shared shells) is next in Phase 6 — resolves F62 (admin tree consolidation), adds `app/not-found.tsx`, removes `/analytics`/`/indicators` dead nav links, and completes `/settings` grid links. Requires a full Advisor DRAFT (F62 structural impact).
+
+Carried forward, not 6-2's own scope but worth a note in its briefing: the live manual check of
+these 4 pages (above) is still owed — easiest to fold into whichever future session first has a
+reason to run the app with a real logged-in session (a live OAuth account, or the auth-bridge with
+seeded operation-service credentials). `DECISION-LOG.md` **F64** (new, OPEN) — the pre-existing
+`subscription-card.tsx` undo-doesn't-reactivate bug found this session — needs its own decision
+(fix vs retire) before that component is ever mounted anywhere.

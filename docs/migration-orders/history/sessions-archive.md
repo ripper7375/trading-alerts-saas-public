@@ -7,6 +7,155 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+_(superseded-by-above, retained for context)_ Session 4B-22 (Phase 4 Exit Review, VERIFY-RETIRE/AUDIT variant), CONFIRMED and
+executed 2026-08-04 — **CLOSED: Phase 4 is CLOSED-WITH-NAMED-EXCEPTIONS, not cleanly closed.**
+CONFIRM re-verified Session 4B-21's own close (git log `2105d1fd`, order file's own `Status:
+CONFIRMED, executed, CLOSED SUCCESSFUL`, `DECISION-LOG.md` F56/F57/F58 all RESOLVED) — zero drift,
+matches this file's own prior framing exactly.
+**Criterion 1 ("143 BACKEND files retired") → MET WITH NOTED EXCEPTION.** The "143 BACKEND
+files" figure (`migration-stack-analysis.md`'s own appendix: 72 CORE + 71 BUSINESS FUNCTION) is
+a `lib/*` service-layer census, not an `app/api/**` route census — re-read the plan's own §6 text
+closely this session and confirmed this distinction (route files are separately tracked under
+exit criterion 2). Every domain module the plan's own 4A/4B sequencing named has been built and
+cut over (4A: 8 crons, dLocal+Wise webhooks, read APIs, write APIs [3/4 groups; dLocal blocked on
+F49], tier-update outbox; 4B: alert-engine, shared infra, alerts/drawings/notifications/tier/
+user-2FA-sessions/market-data-proxy, realtime, auth, email rendering). **But the literal claim
+"143 files retired FROM the monolith" does not hold**: the large majority of CC-F-frozen
+monolith-side `lib/*` files (tier-config.ts, tier-validation.ts, disbursement/_, dlocal/_,
+stripe/_, affiliate/_, drawing/schema.ts, etc.) remain present by deliberate, repeatedly-
+documented design — every cutover session's own close-out explicitly says "deleting those copies
+was explicitly not this session's job," deferring real file deletion to a dedicated future RETIRE
+pass that has never been scheduled. This is a known, accepted, intentional gap (not a surprise),
+but the criterion's own wording doesn't hold as literally true today. A genuine §5.6-style 30-day
+stability window has also never been formally measured for any slice (live smoke tests have stood
+in throughout, per the F44/F51 precedent) — worth naming, not blocking.
+**Found and fixed this session, not new gaps but stale documentation:** `migration-stack-
+analysis.md`'s CORE section still listed `railway-worker.json` and `lib/websocket/server.ts` as
+present — both were actually deleted at Session 4B-17. Its BUSINESS FUNCTION section still listed
+`emails/*` (5 files) and `lib/email/templates/affiliate/*` (5 files) as present — all 10 were
+actually deleted at Session 4B-19. All 4 backfilled this session (Waiting-on #35/#93 CLOSED for
+these specific entries — the broader "never independently re-audited every one of 143 files"
+caveat still stands, a full reconciliation was judged disproportionate to this audit's own scope).
+**Criterion 2 ("`app/api/**`reduced to only routes that intentionally remain") → MET WITH NOTED
+EXCEPTION.** Fresh census of all 122`route.ts`files (full bucket breakdown in
+`migration-stack-analysis.md`'s new "Session 4B-22" section): 1 genuinely deleted
+(`auth/register`, 4B-21); ~34 flag-gated dual-implementation (old+new coexist behind a
+`MIGRATE**` flag or client-side ternary); 8 are the bridge's own new-side routes (no flag needed
+in the route itself); 6 are dead/orphaned code found this session (`auth/token-2fa-_`, zero UI
+consumers, superseded by the different, already-live `/api/user/2fa/_` cutover — harmless, not
+fixed, AUDIT variant); 7 orphaned by Slice 1's cutover (`cron/\*`, `vercel.json`'s crons array is
+empty since 4A-3); 1 orphaned by an external dashboard repoint (`webhooks/dlocal`, 4A-5); 1
+intentionally archived per F42 (`webhooks/riseworks`); 2 permanent intentional exceptions
+matching the plan's own criterion-2 example (`auth/[...nextauth]`per F56,`realtime/token`per
+4B-17's own design); ~64 were never part of Phase 4's own defined scope at all (most of
+`disbursement/**`/`admin/**`beyond what got named,`affiliate/{auth,profile}/**`,
+`candles/[symbol]`, `checkout/validate-code`, `config/affiliate`, `invoices`, ancillary
+`payments/dlocal/\*`, `subscription`GET,`test/seed`— cross-checked against the plan's own
+explicit 4A 5-slice/4B domain-module lists, confirmed these were simply never targeted).
+**One real, unambiguous, previously-undiscovered gap found against the plan's own literal
+scope, not fixed this session (AUDIT variant, reported to Davin):**`app/api/webhooks/
+stripe/route.ts`is still 100% monolith-native. The plan's own §6 text explicitly scopes Slice 4
+as "Write APIs **+ Stripe webhook\*\*" — money-service has had a fully-built, deployed
+`StripeWebhookController`/`StripeWebhookService`since Session 4A-9 (2026-07-27), sitting
+completely dormant for the ~8 days since; Stripe's dashboard webhook subscription was never
+repointed and no`MIGRATE**`flag exists for it anywhere. Registered as`DECISION-LOG.md` **F60** (OPEN) — needs its own dedicated cutover session (verify the controller still matches
+Stripe's real event shape after this much drift, repoint the dashboard URL mirroring the dLocal
+precedent, prove it live with Davin present). Does not block declaring Phase 4
+CLOSED-WITH-NAMED-EXCEPTIONS now.
+**Criterion 3 ("NextAuth fully retired") → the F56 conflict, presented and resolved, not
+silently amended.** Read the plan's own §6 text directly: criterion 3, as literally worded, is
+false — F56 (Session 4B-20, Davin) keeps OAuth on NextAuth indefinitely. Per this order's own
+Rules ("Davin's call to resolve, not the Executor's"), this was presented rather than silently
+fixed — and since the order arrived APPROVED with the reconciled wording already agreed (Davin,
+via Antigravity Advisor, 2026-08-04), applied that exact wording to the plan doc's own §6 (struck
+the old text, added the amendment inline) and recorded it as`DECISION-LOG.md`**F59** (RESOLVED)
+rather than treating the Advisor-level agreement as license to skip recording it here too.
+**DECISION-LOG.md OPEN-flag review (Entry Criteria/Checklist step 5):** F21 (GDPR account-
+deletion, needs Davin's product decision) and F47 (Wise non-USD quote bug, needs its own PORT
+session) are real OPEN flags but are NOT Phase-4-exit-specific — both would exist identically
+regardless of which phase boundary we're at, and neither blocks this declaration. F49 (dLocal
+`payment_method_flow` gap, blocks Slice 4 Group B) and F50 (`COMMISSION_CREDITED`wrong
+recipient, Slice 5, deliberately non-blocking by design) ARE Phase-4-slice-specific and are
+named as the two concrete "partial cutover" exceptions under criterion 1. **Register-table
+hygiene gap found and fixed:** F48-F52 had been archived to`history/decisions-archive.md` (2 RESOLVED, F49/F50 still OPEN) without ever being added to`DECISION-LOG.md`'s own register
+table — against that file's own hygiene rule (OPEN flags stay in the main body). Backfilled all
+5 register rows this session.
+**Waiting-on backlog review:** the vast majority of the ~105-item backlog is either already
+RESOLVED-but-not-pruned, or genuinely carries forward regardless of the Phase 4 boundary (secret
+rotations owed, `market_data_v6`/`flask-api`ingestion questions,`LESSONS-ARCHIVE.md`encoding
+corruption, this file's own session-history rotation backlog #102 — none of these are "Phase 4
+transliteration didn't finish" gaps, they're general repo/ops hygiene that would be exactly as
+open under any phase label). The genuinely Phase-4-scoped open monitoring items (#38 dLocal
+webhook completion path never proven live, #40 Slice 3 first authenticated request never
+directly observed, #78 Slice 5 first real event delivery still pending) all carry forward
+unchanged — none are new, none are blocking, all were already honestly recorded as open
+monitoring items by their own originating sessions.
+**Phase 6 status checked, not assumed:**`6-1-gap-matrix-f11.migration-order.md`is still
+genuinely`Status: PRE-DRAFT`, untouched since Session 5-4 (2026-07-23, `git log`shows zero
+commits since) — dormant the entire time Phase 4B ran its course. Its own Entry Criteria cite a
+test count (2082) that's now stale (this session's own re-run: 2191) — whoever picks it up next
+should refresh its entry criteria before treating it as ready, not just flip its status.
+**UPDATE 2026-08-10 (Advisor-side planning action, NOT a migration session — no code changed,
+no flag flipped, phase/session unchanged):** the stale-entry-criteria warning above has been
+acted on and Phase 6 has been restructured. A full out-of-band UI gap analysis was produced
+(`docs/files-completion-list/ui-page-gap-analysis.md` +`ui-page-gap-register.xlsx`), which
+discharges the _enumeration_ half of `DECISION-LOG.md`F11 — the triage half stays OPEN and is
+still Session 6-1's whole purpose.`6-1-gap-matrix-f11.migration-order.md`is now
+`Status: APPROVED`(Advisor-upgraded 2026-08-10, **Davin APPROVED same day** — ready for the
+Executor to CONFIRM): its entry criteria were refreshed
+(2082 → re-measure, last known 2191), and it is re-scoped from _performing_ the census to
+**independently re-verifying it, extending it, assigning target sessions, and obtaining Davin's
+triage.** It still builds nothing. **Phase 6 grew from ~9 to 12 sessions** — new **6-1b**
+(mock-data hotfix, PORT), **6-10** (public/marketing surface), **6-11** (admin system
+operations); the a11y/phase-exit session is renumbered **6-9 → 6-12** and **session number 6-9
+is retired, do not reuse it** (same convention as the SUPERSEDED 4A-7). Three new flags
+registered OPEN, all owner Davin: **F61** (`GET /api/geo/detect`is called by 2 components but
+the route does not exist — 404 on every pricing load, due 6-8), **F62** (admin IA split across
+two incompatible trees, 19 of 23 admin pages unreachable from the nav — due 6-2, structurally
+hard to undo), **F63** (public legal pages`/terms`/`/privacy`/`/disclaimer` don't exist though
+the signup consent checkbox links to two of them — blocks 6-10, compliance-relevant).
+Playbook, plan §8, plan §11 flag register, cutover-table conventions and
+`migration-stack-analysis.md`all updated to match; handbook`migration-process-handbook-
+antigravity-v9.xlsx` supersedes v8. **The three fabricated-data pages found by the analysis
+(`/settings/billing`, `/admin/fraud-alerts/[id]`, `/admin`) were deliberately NOT fixed** —
+6-1 audits, 6-1b fixes; a drive-by fix would have been exactly the scope creep
+`EXECUTOR-PROTOCOL.md` §2 prohibits.
+**Regression baseline (Checklist step 6), independently re-run this session, not assumed
+green from memory:** monolith`tsc --noEmit`clean,`eslint app components lib hooks
+--max-warnings 0`clean (0 errors/warnings),`test:ci`129/129 suites, 2191/2191 tests.
+`operation-service` `tsc --noEmit`clean, 42/42 suites, 385/385 tests.`money-service` `tsc
+--noEmit`clean, 62/62 suites, 522/522 tests (one flaky SIGTERM-timing failure on the first
+concurrent run —`prisma.shutdown.spec.ts`, matching L25's own documented timing sensitivity —
+reproduced clean both in isolation and on a second full-suite run with no other suite competing
+for CPU; not a real regression). Zero regressions anywhere — matches or exceeds every prior
+session's own baseline.
+**Verdict: Phase 4 is CLOSED-WITH-NAMED-EXCEPTIONS.** Every domain slice the plan itself named
+has been built; nearly all have been cut over; the two real open items (F49/dLocal, F60/Stripe
+webhook) are each scoped, owned, and have their own path to a dedicated follow-up session — this
+is a genuine, bounded, honestly-reported partial completion, not a silently-waved-through green
+checkmark. **Phase 5 stays closed (Session 5-4, 2026-07-23, unaffected).** Phase 6's own Session
+6-1 is the next real session on the plan's own dependency chain — PRE-DRAFT, needs its entry
+criteria refreshed (stale test count) before Advisor DRAFT/Davin APPROVED, per the note above.
+**Artifacts updated:** `4b-22-phase-4-exit-review.migration-order.md`(Status → CONFIRMED,
+executed, CLOSED; Done-when all checked with the exceptions named; Deviations filled in full —
+10 entries),`DECISION-LOG.md`(F59 new/RESOLVED, F60 new/OPEN, register-table backfill for
+F48-F52),`monolith-to-microservices-migration-implementation-plan.md`(§6 criterion 3 amended
+per F59),`migration-stack-analysis.md`(4 stale entries backfilled, new Session 4B-22
+route-census section),`migration-cutover-table.md`(Slice 4 row annotated with the F60
+finding),`LESSONS-LEARNED.md`(new **L54** — the 143-files-is-a-lib-census-not-a-route-census
+distinction; new **L55\** — archiving a batch of flags can silently carry still-OPEN ones out of
+the main register table too; L11 recurrence tally updated), this file. New`4a-13-stripe-webhook-cutover.migration-order.md`PRE-DRAFTed
+(VERIFY-RETIRE/CUTOVER block) per this order's own explicit Rule ("a genuine gap requiring code
+changes gets its own dedicated follow-up session, not a same-session fix") — closes
+`DECISION-LOG.md`F60, mirrors the dLocal/4A-5 dashboard-repoint precedent exactly, does not
+rebuild anything (money-service's receiving side is already fully built and deployed). Otherwise
+points at the already-existing, needs-refresh`6-1-gap-matrix-f11.migration-order.md` — the
+order's own "no further PRE-DRAFT beyond 4B-22 is implied" instruction was about the *normal\*
+happy-path handoff (Phase 6), not a bar on drafting a follow-up for a genuine gap this same audit
+found, which its own Rules section separately requires.
+
+---
+
 _(superseded-by-above, retained for context)_ Session 4B-21 (Auth Cutover & UI Rewire, PORT/UI-BUILD hybrid), CONFIRMED, executed,
 **CLOSED SUCCESSFUL 2026-08-04.** Step 1 (UI swap) done and fully verified;
 Step 2 (local smoke test) executed and returned RED per the order's own explicit rule.
