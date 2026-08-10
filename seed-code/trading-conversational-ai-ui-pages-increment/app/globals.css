@@ -3,6 +3,43 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Dynamic Accent Color Tokens */
+html[data-accent="amber"], :root {
+  --primary: #f59e0b;
+  --primary-foreground: #000000;
+  --accent: #f59e0b;
+  --accent-foreground: #000000;
+  --accent-rgb: 245, 158, 11;
+  --ring: #f59e0b;
+}
+
+html[data-accent="emerald"] {
+  --primary: #10b981;
+  --primary-foreground: #000000;
+  --accent: #10b981;
+  --accent-foreground: #000000;
+  --accent-rgb: 16, 185, 129;
+  --ring: #10b981;
+}
+
+html[data-accent="blue"], html[data-accent="sapphire"] {
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --accent: #3b82f6;
+  --accent-foreground: #ffffff;
+  --accent-rgb: 59, 130, 246;
+  --ring: #3b82f6;
+}
+
+html[data-accent="purple"], html[data-accent="amethyst"] {
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --accent: #8b5cf6;
+  --accent-foreground: #ffffff;
+  --accent-rgb: 139, 92, 246;
+  --ring: #8b5cf6;
+}
+
 :root {
   /* Core Colors */
   --background: oklch(1 0 0);
@@ -15,33 +52,24 @@
   --popover-foreground: oklch(0.145 0 0);
   
   /* Brand Colors */
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
   
   /* UI Elements */
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.87 0 0);
   --radius: 0.625rem;
 
   /* Sidebar */
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.87 0 0);
 }
+
 
 .dark {
   /* Dark Mode Overrides */

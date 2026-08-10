@@ -96,7 +96,7 @@ export default function AppHeader({
             size="sm"
             className={`h-7 px-3 text-xs font-medium ${
               pathname === '/dashboard'
-                ? 'bg-slate-800 font-bold text-amber-300'
+                ? 'bg-slate-800 font-bold text-[var(--primary)]'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -110,11 +110,11 @@ export default function AppHeader({
             size="sm"
             className={`h-7 px-3 text-xs font-medium ${
               pathname === '/' || pathname === '/free'
-                ? 'border border-amber-500/30 bg-amber-500/20 font-bold text-amber-300'
+                ? 'border border-[var(--primary)]/30 bg-[var(--primary)]/20 font-bold text-[var(--primary)]'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <LineChart className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
+            <LineChart className="mr-1.5 h-3.5 w-3.5 text-[var(--primary)]" />
             {t('nav.ai_workspace', 'AI Analyst Workspace')}
           </Button>
         </Link>
@@ -124,7 +124,7 @@ export default function AppHeader({
             size="sm"
             className={`h-7 px-3 text-xs font-medium ${
               pathname.startsWith('/alerts')
-                ? 'bg-slate-800 font-bold text-amber-300'
+                ? 'bg-slate-800 font-bold text-[var(--primary)]'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >

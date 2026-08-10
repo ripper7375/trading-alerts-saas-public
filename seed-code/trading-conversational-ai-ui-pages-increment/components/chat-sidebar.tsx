@@ -225,7 +225,7 @@ export function ChatSidebar({
                   'h-9 justify-start rounded-xl text-xs font-semibold transition-all',
                   isCollapsed && 'justify-center px-0',
                   isActive
-                    ? 'border border-amber-500/40 bg-amber-500/15 font-bold text-amber-400 shadow-md shadow-amber-500/10'
+                    ? 'border border-[var(--primary)]/40 bg-[var(--primary)]/15 font-bold text-[var(--primary)] shadow-[var(--primary)]/10 shadow-md'
                     : 'text-slate-300 hover:bg-slate-800/60 hover:text-slate-100'
                 )}
               >
@@ -234,7 +234,7 @@ export function ChatSidebar({
                     className={cn(
                       'h-4 w-4 shrink-0',
                       !isCollapsed && 'mr-2.5',
-                      isActive && 'text-amber-400'
+                      isActive && 'text-[var(--primary)]'
                     )}
                   />
                   {!isCollapsed && (
@@ -245,7 +245,7 @@ export function ChatSidebar({
                           className={cn(
                             'h-4 shrink-0 px-1.5 font-mono text-[9px]',
                             item.isProGated
-                              ? 'gap-0.5 border-amber-500/50 bg-amber-500/10 text-amber-400'
+                              ? 'gap-0.5 border-[var(--primary)]/50 bg-[var(--primary)]/10 text-[var(--primary)]'
                               : 'border-rose-500/40 bg-rose-500/20 text-rose-300'
                           )}
                         >
@@ -283,7 +283,7 @@ export function ChatSidebar({
                     'h-8.5 justify-start rounded-xl text-xs font-medium transition-all',
                     isCollapsed && 'justify-center px-0',
                     isActive
-                      ? 'border border-amber-500/30 bg-amber-500/10 font-bold text-amber-300'
+                      ? 'border border-[var(--primary)]/30 bg-[var(--primary)]/10 font-bold text-[var(--primary)]'
                       : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100'
                   )}
                 >
