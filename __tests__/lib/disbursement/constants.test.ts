@@ -43,8 +43,11 @@ describe('Disbursement Constants', () => {
       expect(DEFAULT_CURRENCY).toBe('USD');
     });
 
-    it('should have RISE and MOCK as supported providers', () => {
-      expect(SUPPORTED_PROVIDERS).toEqual(['RISE', 'MOCK']);
+    it('should have RISE, MOCK, and WISE as supported providers', () => {
+      // WISE added Session 6-6, mirroring money-service's own
+      // SUPPORTED_PROVIDERS (already included WISE since Session 4A-W6/W7) --
+      // the monolith's copy had never been synced.
+      expect(SUPPORTED_PROVIDERS).toEqual(['RISE', 'MOCK', 'WISE']);
     });
   });
 
