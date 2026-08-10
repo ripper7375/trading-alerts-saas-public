@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
   SelectContent,
@@ -13,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import type { Tier } from '@/lib/tier-config';
+import { SYMBOLS, TIMEFRAMES, type Tier } from '@/lib/tier-config';
 
 /**
  * Condition type options
@@ -50,11 +51,34 @@ export interface AlertFormData {
 }
 
 /**
+ * Shape of GET /api/tier/symbols
+ */
+interface TierSymbolsResponse {
+  success: boolean;
+  symbols: string[];
+}
+
+/**
+ * Shape of GET /api/tier/combinations
+ */
+interface TierCombinationsResponse {
+  success: boolean;
+  timeframes: Array<{ value: string; label: string; proOnly: boolean }>;
+}
+
+/**
+ * Shape of GET /api/tier/check/[symbol]
+ */
+interface TierCheckResponse {
+  success: boolean;
+  allowed: boolean;
+  reason?: string;
+}
+
+/**
  * Props for AlertForm component
  */
 interface AlertFormProps {
-  availableSymbols: string[];
-  availableTimeframes: string[];
   userTier: Tier;
   currentCount: number;
   limit: number;
@@ -68,11 +92,13 @@ interface AlertFormProps {
  * AlertForm Component
  *
  * Reusable form component for creating and editing price alerts.
- * Includes tier-filtered symbol/timeframe selectors.
+ * Symbol/timeframe options and per-symbol access are driven live from
+ * `GET /api/tier/symbols`, `GET /api/tier/combinations`, and
+ * `GET /api/tier/check/[symbol]` (Session 6-3, A1-11) rather than a
+ * hardcoded list — falls back to the same `lib/tier-config.ts` constants
+ * those endpoints themselves read from if a fetch fails.
  */
 export function AlertForm({
-  availableSymbols,
-  availableTimeframes,
   userTier,
   currentCount,
   limit,
@@ -98,9 +124,99 @@ export function AlertForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Tier-endpoint-driven data (A1-11): available symbols/timeframes
+  const [availableSymbols, setAvailableSymbols] = useState<string[]>([]);
+  const [availableTimeframes, setAvailableTimeframes] = useState<string[]>([]);
+  const [tierDataLoading, setTierDataLoading] = useState(true);
+  const [tierDataError, setTierDataError] = useState<string | null>(null);
+
+  // Real-time symbol access validation (GET /api/tier/check/[symbol])
+  const [symbolCheck, setSymbolCheck] = useState<TierCheckResponse | null>(
+    null
+  );
+
+  // Fetch available symbols + timeframes from the live tier endpoints
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadTierData(): Promise<void> {
+      try {
+        const [symbolsRes, combosRes] = await Promise.all([
+          fetch('/api/tier/symbols'),
+          fetch('/api/tier/combinations'),
+        ]);
+        const symbolsBody: TierSymbolsResponse = await symbolsRes.json();
+        const combosBody: TierCombinationsResponse = await combosRes.json();
+
+        if (cancelled) return;
+
+        if (symbolsRes.ok && symbolsBody.success) {
+          setAvailableSymbols(symbolsBody.symbols);
+        } else {
+          setAvailableSymbols([...SYMBOLS]);
+        }
+
+        if (combosRes.ok && combosBody.success) {
+          setAvailableTimeframes(combosBody.timeframes.map((tf) => tf.value));
+        } else {
+          setAvailableTimeframes([...TIMEFRAMES]);
+        }
+      } catch {
+        if (cancelled) return;
+        // Defensive fallback: these are the same constants the endpoints
+        // themselves read from, not invented data.
+        setAvailableSymbols([...SYMBOLS]);
+        setAvailableTimeframes([...TIMEFRAMES]);
+        setTierDataError(
+          'Could not load the latest symbol list — showing defaults.'
+        );
+      } finally {
+        if (!cancelled) setTierDataLoading(false);
+      }
+    }
+
+    void loadTierData();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Real-time tier access validation whenever the chosen symbol changes
+  useEffect(() => {
+    if (!symbol) {
+      setSymbolCheck(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function checkAccess(): Promise<void> {
+      try {
+        const res = await fetch(
+          `/api/tier/check/${encodeURIComponent(symbol)}`
+        );
+        const body: TierCheckResponse = await res.json();
+        if (cancelled) return;
+        if (res.ok && body.success) {
+          setSymbolCheck(body);
+        } else {
+          setSymbolCheck(null);
+        }
+      } catch {
+        if (!cancelled) setSymbolCheck(null);
+      }
+    }
+
+    void checkAccess();
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol]);
+
   // Progress percentage
   const progressPercent = (currentCount / limit) * 100;
   const canCreate = currentCount < limit || isEditing;
+  const symbolDenied = symbolCheck !== null && symbolCheck.allowed === false;
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
@@ -118,6 +234,10 @@ export function AlertForm({
     }
     if (!targetValue || parseFloat(targetValue) <= 0) {
       setError('Please enter a valid target price');
+      return;
+    }
+    if (symbolDenied) {
+      setError(symbolCheck?.reason || 'This symbol is not accessible');
       return;
     }
 
@@ -147,13 +267,13 @@ export function AlertForm({
         {/* Alert Limit Progress */}
         {!isEditing && (
           <div
-            className={`mb-6 p-4 rounded-lg border ${
+            className={`mb-6 rounded-lg border p-4 ${
               progressPercent >= 80
                 ? 'border-yellow-300 bg-yellow-50'
                 : 'border-gray-200 bg-gray-50'
             }`}
           >
-            <div className="flex justify-between items-center mb-2">
+            <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">
                 Alert Usage: {currentCount}/{limit}
               </span>
@@ -161,96 +281,154 @@ export function AlertForm({
             </div>
             <Progress value={progressPercent} className="h-2" />
             {!canCreate && (
-              <p className="text-sm text-red-600 mt-2">
+              <p className="mt-2 text-sm text-red-600">
                 You have reached your alert limit. Upgrade to PRO for more.
               </p>
             )}
           </div>
         )}
 
+        {isEditing && (
+          <p className="mb-6 text-sm text-gray-500">
+            Symbol, timeframe, and condition type can&apos;t be changed after
+            creation — delete and recreate the alert instead.
+          </p>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            <div
+              role="alert"
+              className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700"
+            >
               {error}
+            </div>
+          )}
+
+          {/* Tier data load warning (non-blocking, defensive fallback in use) */}
+          {tierDataError && (
+            <div
+              role="status"
+              className="rounded border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800"
+            >
+              {tierDataError}
+            </div>
+          )}
+
+          {/* Symbol access denied banner (GET /api/tier/check/[symbol]) */}
+          {symbolDenied && (
+            <div
+              role="alert"
+              className="rounded border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800"
+            >
+              {symbolCheck?.reason ||
+                'This symbol is not accessible on your tier.'}
             </div>
           )}
 
           {/* Symbol Selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="alert-symbol"
+              className="mb-2 block text-sm font-medium text-gray-700"
+            >
               Symbol <span className="text-red-500">*</span>
             </label>
-            <Select
-              value={symbol}
-              onValueChange={setSymbol}
-              disabled={isEditing}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a symbol" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableSymbols.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-gray-500 mt-1">
-              {availableSymbols.length} symbols available on {userTier} tier
+            {tierDataLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={symbol}
+                onValueChange={setSymbol}
+                disabled={isEditing}
+              >
+                <SelectTrigger id="alert-symbol" aria-label="Symbol">
+                  <SelectValue placeholder="Select a symbol" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSymbols.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <p className="mt-1 text-xs text-gray-500">
+              {availableSymbols.length} symbol
+              {availableSymbols.length === 1 ? '' : 's'} available on {userTier}{' '}
+              tier
             </p>
           </div>
 
           {/* Timeframe Selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="alert-timeframe"
+              className="mb-2 block text-sm font-medium text-gray-700"
+            >
               Timeframe <span className="text-red-500">*</span>
             </label>
-            <Select
-              value={timeframe}
-              onValueChange={setTimeframe}
-              disabled={isEditing}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a timeframe" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableTimeframes.map((tf) => (
-                  <SelectItem key={tf} value={tf}>
-                    {tf}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {tierDataLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={timeframe}
+                onValueChange={setTimeframe}
+                disabled={isEditing}
+              >
+                <SelectTrigger id="alert-timeframe" aria-label="Timeframe">
+                  <SelectValue placeholder="Select a timeframe" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTimeframes.map((tf) => (
+                    <SelectItem key={tf} value={tf}>
+                      {tf}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           {/* Condition Type */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <fieldset disabled={isEditing}>
+            <legend className="mb-2 block text-sm font-medium text-gray-700">
               Condition Type <span className="text-red-500">*</span>
-            </label>
+            </legend>
             <div className="space-y-2">
               {CONDITION_TYPES.map((type) => (
                 <div
                   key={type.value}
-                  className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                  className={`rounded-lg border-2 p-4 transition-all ${
+                    isEditing
+                      ? 'cursor-not-allowed opacity-60'
+                      : 'cursor-pointer'
+                  } ${
                     conditionType === type.value
                       ? 'border-blue-600 bg-blue-50'
                       : 'border-gray-200 hover:border-blue-300'
                   }`}
-                  onClick={() => setConditionType(type.value)}
+                  onClick={() => !isEditing && setConditionType(type.value)}
                 >
                   <div className="flex items-center">
                     <input
                       type="radio"
                       name="conditionType"
+                      id={`condition-${type.value}`}
                       value={type.value}
                       checked={conditionType === type.value}
                       onChange={() => setConditionType(type.value)}
+                      disabled={isEditing}
                       className="h-4 w-4 text-blue-600"
                     />
-                    <span className="ml-2 font-medium">{type.label}</span>
+                    <label
+                      htmlFor={`condition-${type.value}`}
+                      className="ml-2 font-medium"
+                    >
+                      {type.label}
+                    </label>
                   </div>
                   <p className="ml-6 text-sm text-gray-500">
                     {type.description}
@@ -258,11 +436,14 @@ export function AlertForm({
                 </div>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           {/* Target Value */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="alert-target-value"
+              className="mb-2 block text-sm font-medium text-gray-700"
+            >
               Target Price <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -270,6 +451,7 @@ export function AlertForm({
                 $
               </span>
               <Input
+                id="alert-target-value"
                 type="number"
                 step="0.01"
                 min="0"
@@ -280,7 +462,7 @@ export function AlertForm({
               />
             </div>
             {conditionType === 'price_equals' && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="mt-1 text-xs text-gray-500">
                 Alert will trigger when price is within 0.5% of target
               </p>
             )}
@@ -288,10 +470,14 @@ export function AlertForm({
 
           {/* Alert Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="alert-name"
+              className="mb-2 block text-sm font-medium text-gray-700"
+            >
               Alert Name <span className="text-gray-400">(optional)</span>
             </label>
             <Input
+              id="alert-name"
               type="text"
               value={alertName}
               onChange={(e) => setAlertName(e.target.value)}
@@ -305,7 +491,7 @@ export function AlertForm({
           </div>
 
           {/* Submit Buttons */}
-          <div className="flex gap-4 pt-4 border-t">
+          <div className="flex gap-4 border-t pt-4">
             <Button
               type="button"
               variant="outline"
@@ -317,8 +503,8 @@ export function AlertForm({
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-              disabled={isSubmitting || !canCreate}
+              className="flex-1 bg-blue-600 text-white hover:bg-blue-700"
+              disabled={isSubmitting || !canCreate || tierDataLoading}
             >
               {isSubmitting
                 ? 'Saving...'
