@@ -92,7 +92,7 @@ export class StripeCheckoutController {
       const baseUrl =
         this.configService.get<string>('NEXTAUTH_URL') ??
         'http://localhost:3000';
-      const successUrl = `${baseUrl}/dashboard?upgrade=success`;
+      const successUrl = `${baseUrl}/upgrade/success?upgrade=success`;
       const cancelUrl = `${baseUrl}/pricing?upgrade=cancelled`;
 
       const idempotencyKey = this.stripeService.buildCheckoutIdempotencyKey(

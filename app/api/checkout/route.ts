@@ -144,7 +144,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Build success and cancel URLs
     const baseUrl = process.env['NEXTAUTH_URL'] || 'http://localhost:3000';
-    const successUrl = `${baseUrl}/dashboard?upgrade=success`;
+    const successUrl = `${baseUrl}/upgrade/success?upgrade=success`;
     const cancelUrl = `${baseUrl}/pricing?upgrade=cancelled`;
 
     // Create Stripe Checkout session
