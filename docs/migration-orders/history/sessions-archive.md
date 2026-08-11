@@ -7,6 +7,97 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+_(superseded-by-above, retained for context)_ Session 6-7 (Affiliate, UI-BUILD variant, dial HIGH for consolidated payment-setup
+& report UI, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as
+Session 6-6. **Closes the 6 AFFILIATE-surface gap-matrix rows assigned to it (A1-15, A1-16,
+A2-6, A2-11, B2-19, B2-20).** No flags touched.
+**CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again**: the order arrived
+modified-but-uncommitted, `PRE-DRAFT → APPROVED`, with both of the committed PRE-DRAFT's own
+explicit "User Review Required" open product questions (payment-setup consolidation approach,
+B2-19/B2-20 scope) silently resolved and a full 6-step Ordered Steps section added — no
+DRAFT-stage commit trail. Reported in full before proceeding, including several substantive
+findings (below); Davin confirmed live it was his own authentic authorization and resolved 4
+further implementation-level questions directly in the same message.
+**A1-15's own premise, both in the committed PRE-DRAFT and the rewritten APPROVED text, was
+found materially wrong against live code before any code was written:** the order claimed
+`commissions/page.tsx` "shows only a static 'Ready for payout' string... no reference to
+`WiseTransfer`/`WiseBatchGroup`/`DisbursementTransaction`/`PaymentBatch` anywhere in the file" —
+reading the file directly showed it already fully live: a real `GET /api/affiliate/dashboard/
+commission-report` fetch, real `Commission` rows, real pagination/filtering/computed totals. The
+cited string is one label inside a 4-item status-legend footer, not the whole page. The real,
+narrower gap: no `PaymentBatch`/`WiseTransfer` join existed anywhere for per-commission Wise
+status. Also found and resolved live: the order's own "Real Batch Enum Vocabulary" note
+(`PENDING, QUEUED, PROCESSING, COMPLETED, FAILED, CANCELLED` — real `PaymentBatchStatus`,
+schema-verified correct) would have been wrong applied to the commissions page, which correctly
+uses the DIFFERENT `CommissionStatus` enum (`PENDING, APPROVED, PAID, CANCELLED`) for
+per-commission status — Davin's live resolution: `CommissionStatus` stays on the commissions
+page unchanged, `PaymentBatchStatus`/Wise sub-status moved to the new payouts page instead.
+**`GET /api/wise/recipients` (cited in the order's own Feeds-on line) confirmed admin-only, not
+self-service** — read the route directly, `GET` calls `requireAdmin()` and lists every
+affiliate's recipients. Davin's live correction: use the already-correct self-service
+`GET /api/wise/recipients/me`, which `settings/payout/page.tsx` already called correctly since
+Session 4A-W3b — no code change needed there beyond a small copy addition.
+**No backend endpoint exists for Steps 4/5 (statements, resources) — resolved live (Davin):**
+client-side aggregation of the existing `commission-report` endpoint for statements (paginated
+fetch over a 12-month window, grouped by `earnedAt`'s calendar month, client-side CSV export via
+a Blob); a client-side resource hub for resources (real referral-link generator off the existing
+`codes` endpoint + the real `?ref=` query param `register-form.tsx` already reads, FAQ built
+from real `AFFILIATE_CONFIG` values, honest "not published yet" copy for brand assets since zero
+logo/banner files exist anywhere in `public/`, checked directly rather than fabricated). No new
+backend endpoint built for either — respects "Out: No backend service changes."
+**A real, previously-live-breaking production bug found and fixed while touching this exact code
+path (Step 2), not part of the order's own literal ask:** `commissions/page.tsx` and
+`CommissionTable` both read `commission.amount` — the real Prisma field is `commissionAmount` (a
+`Decimal`, serializes as a string over JSON, matching this codebase's own established
+`Number(...)`-on-Decimal convention in `lib/affiliate/report-builder.ts`). Every real commission
+row would throw `TypeError` on `.amount.toFixed(2)` the instant it rendered — invisible because
+the only existing test (`commission-table.test.tsx`) mocked the identical wrong field name.
+Fixed both consumers to read `commissionAmount` + `Number(...)`-convert; updated the existing
+test's mock data to the real field name (also fixed one unrelated pre-existing lint error in the
+same file — an unused mock param, never caught before since `__tests__/` sits outside this
+repo's `app components lib hooks` lint scope). New `LESSONS-LEARNED.md` **L62**.
+**Built (6 Ordered Steps, one commit each):** Step 1 — legacy `profile/payment/page.tsx`
+rewritten to a transparent `redirect()` to `/affiliate/settings/payout`; profile page's own nav
+link repointed to the canonical page. Step 2 — new `payouts/page.tsx` (server component, direct
+Prisma read via `DisbursementTransaction.commission.affiliateProfileId`, scoped strictly to the
+caller's own rows even though a `PaymentBatch` commonly spans many affiliates; real
+`PaymentBatchStatus` badges + `WiseTransfer.currentState` sub-status where present) + the
+`commissionAmount` bug fix + a "View Payout Status →" link from commissions to payouts. Step 3 —
+`code-inventory/page.tsx` (new, wires the already-live, zero-consumer `GET /api/affiliate/
+dashboard/code-inventory`). Step 4 — `statements/page.tsx` (new, client-side monthly aggregation +
+CSV export + a tax-disclaimer note). Step 5 — `resources/page.tsx` (new, referral-link generator,
+promo-code copy widgets, FAQ, honest brand-assets gap). Step 6 — 4 new test files (order named 2,
+split into 4 for real per-area coverage rather than cramming unrelated bullets together), 23
+tests: `payout-consolidation.test.tsx` (redirect + settings/payout form state),
+`code-inventory-report.test.tsx` (fetch/render/refetch), `commissions-payouts.test.tsx`
+(CommissionStatus-not-batch-vocabulary, payouts page own-profile-only query scoping),
+`statements.test.tsx` (monthly grouping, CSV Blob trigger).
+**Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
+— same 4 pre-existing warnings (tracked since Session 6-1/6-6), 0 introduced by this session's
+own edits; `test:ci` **142/142 suites, 2261/2261 tests** (was 138/138, 2238/2238 — +4 suites/+23
+tests, exactly this session's own new test files, zero regressions elsewhere). Live-verified
+against the real Next.js/Turbopack dev server: all 6 new/modified routes (`payouts`,
+`code-inventory`, `statements`, `resources`, the redirected `profile/payment`, `settings/payout`)
+compile cleanly and correctly redirect to `/login?callbackUrl=...` when unauthenticated, zero
+server errors — same standing gap as every Phase 6 session since 6-1b, no deep authenticated
+click-through possible in this environment (Waiting-on #117).
+**No flag, no cutover-table row** — same-stack UI work, no flag existed to touch or retire;
+`migration-cutover-table.md` unchanged.
+**Artifacts updated:** `6-7-affiliate.migration-order.md` (Status → CONFIRMED, executed, CLOSED
+SUCCESSFUL; Entry criteria all checked; Done-when all checked; Deviations filled in full — 9
+entries), `migration-stack-analysis.md` (new Session 6-7 entry, 4 new files + 6 modified),
+`LESSONS-LEARNED.md` (new **L62** — a test that mocks a field name the real Prisma model doesn't
+have will never catch the crash that field name causes in production), this file
+(session-history hygiene: Session 6-5's own full text moved to `history/sessions-archive.md`,
+matching this file's own rotation rule — the larger pre-existing backlog flagged at Waiting-on
+#102 is unchanged, still needs its own dedicated cleanup session). New
+`6-8-payments-checkout.migration-order.md` PRE-DRAFTed (UI-BUILD variant, resolves F61 + a
+3-endpoint wire-vs-delete decision on `/checkout`) per this order's own Next-session handoff —
+**not fast-path eligible**, flags 1 real product/scope decision (the 3 orphaned dLocal/checkout
+endpoints) that needs Davin's call before DRAFT can finalize.
+
+---
+
 _(superseded-by-above, retained for context)_ Session 6-6 (Admin, UI-BUILD variant, dial HIGH for new UI, LOW for data),
 CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as Session 6-5. **Closes the 6
 ADMIN-surface gap-matrix rows assigned to it (A1-5, A1-6, A1-14, A1-17/A2-10, A2-5, A2-7).** No
