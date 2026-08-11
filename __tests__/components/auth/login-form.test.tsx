@@ -177,4 +177,19 @@ describe('LoginForm', () => {
       expect(screen.getByText(/invalid email or password/i)).toBeInTheDocument()
     );
   });
+
+  // Session 6-12 a11y audit: the password-visibility toggle was icon-only
+  // with no accessible name and tabIndex={-1} (unreachable by keyboard).
+  it('exposes a keyboard-focusable, accessibly-named password visibility toggle', () => {
+    mockIsAuthBridgeEnabled.mockReturnValue(false);
+    render(<LoginForm />);
+
+    const toggle = screen.getByRole('button', { name: 'Show password' });
+    expect(toggle).not.toHaveAttribute('tabindex', '-1');
+
+    fireEvent.click(toggle);
+    expect(
+      screen.getByRole('button', { name: 'Hide password' })
+    ).toBeInTheDocument();
+  });
 });

@@ -159,4 +159,18 @@ describe('RegisterForm', () => {
       ).toBeInTheDocument()
     );
   });
+
+  // Session 6-12 a11y audit: both password-visibility toggles were
+  // icon-only with no accessible name.
+  it('exposes accessibly-named password and confirm-password visibility toggles', () => {
+    mockIsAuthBridgeEnabled.mockReturnValue(false);
+    render(<RegisterForm />);
+
+    expect(
+      screen.getByRole('button', { name: 'Show password' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Show password confirmation' })
+    ).toBeInTheDocument();
+  });
 });
