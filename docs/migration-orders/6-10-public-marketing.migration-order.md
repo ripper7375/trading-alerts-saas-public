@@ -95,10 +95,11 @@ Twelve-plus rows from `phase-6-frontend-gap-matrix.md`, independently re-verifie
 
 ## Done when
 
-- [ ] F63 resolved — `/terms`, `/privacy`, `/disclaimer` live and linked from registration form & footer.
-- [ ] Marketing pages (`/about`, `/docs`, `/blog`, `/changelog`, `/careers`, `/help`, `/status`) live.
-- [ ] `/affiliate` landing page live; `/affiliate/join` redirects to `/affiliate/register`.
-- [ ] `tsc --noEmit` clean; `eslint --max-warnings 0` introduces 0 new warnings; `test:ci` green.
+- [x] F63 resolved — `/terms`, `/privacy`, `/disclaimer` live and linked from registration form & footer.
+- [x] Marketing pages (`/about`, `/docs`, `/blog`, `/changelog`, `/careers`, `/help`, `/status`) live.
+- [x] `/affiliate` landing page live; `/affiliate/join` redirects to `/affiliate/register`.
+- [x] `tsc --noEmit` clean; `eslint --max-warnings 0` introduces 0 new warnings; `test:ci` green
+      (146/146 suites, 2291/2291 tests).
 
 ## Rollback
 
@@ -145,7 +146,44 @@ N/A.
      `// In a real implementation, this would send to a support system` still present — this
      session's own "No backend service changes" scope means it can only be verified, not wired to a
      real ticketing system.
-3. _(further deviations recorded during Steps 1-5 execution below)_
+3. **Built under `app/(marketing)/` rather than the order's own literal top-level `app/<name>/page.tsx`
+   surface citation** (all 10 content/legal pages) — route groups don't affect the URL (still
+   resolves to `/terms`, `/about`, etc.), and this inherits `MarketingLayout`'s header/nav/footer
+   automatically, matching the established `/pricing` precedent, instead of shipping 9 pages with
+   zero navigational chrome (the root `app/layout.tsx` provides none). `/affiliate` and
+   `/affiliate/join` stay at their literal `app/affiliate/*` paths — that directory already has real
+   subroutes and its own passthrough `layout.tsx`; a competing `(marketing)/affiliate/` route would
+   collide on the same URL. `/affiliate/page.tsx` imports `MarketingLayout` directly instead, for
+   the same chrome without the collision.
+4. **`/status` built with real checks, not fabricated "operational" copy**: new
+   `lib/status/check-system-status.ts` does a genuine `SELECT 1` DB ping (mirrors the existing
+   `app/api/disbursement/health/route.ts` precedent), a real `operation-service /health` reachability
+   check, and a value-blind payment-gateway config-presence check — never a hardcoded "all systems
+   operational" string. Exposed both as `app/api/status/route.ts` (a public JSON monitoring endpoint,
+   "Public endpoint for monitoring" matching the disbursement/health convention) and as the
+   server-rendered `/status` page. `components/layout/footer.tsx`'s existing external status link
+   stays untouched, per Davin's directive.
+5. **`/careers` and `/help` avoid extending the settings/help stub pattern onto new pages**: no ATS
+   backs `/careers`, so it honestly states no roles are posted rather than fabricating fake listings
+   (same discipline as F64/6-1b's fabricated-data finding). `/help` uses a real `mailto:` contact
+   rather than replicating `settings/help`'s own simulated-submit form (`await new Promise(...)`) on
+   a brand-new public page.
+6. **`/blog` and `/changelog` entries describe real, already-shipped product capability** (realtime
+   alert delivery, in-place alert editing, Wise international affiliate payouts, admin
+   consolidation, the notifications page, account-deletion flow) with genuinely-known dates from this
+   repo's own session history — not fabricated metrics or invented features.
+7. **`register-form.tsx` needed no edit** — its consent-checkbox `/terms` (line 534) and `/privacy`
+   (line 541) links already targeted the right paths; only the destination pages were missing. The
+   order's own Step 1 instruction to "update... register-form.tsx" is satisfied by the pages now
+   existing, not by any code change to that file.
+8. **Full verification:** `tsc --noEmit` clean throughout every step; `eslint app components lib
+hooks --max-warnings 0` — same 4 pre-existing warnings (header.tsx x2, admin/disbursement/
+   batches/[batchId]/page.tsx, admin/page.tsx), 0 introduced; `test:ci` **146/146 suites, 2291/2291
+   tests** (was 145/145, 2278/2278 at 6-8's close — +1 suite/+13 tests, exactly this session's own new
+   test file, zero regressions elsewhere).
+9. **Not done, disclosed rather than silently skipped:** live click-through of every new page against
+   a real deployed environment — same standing gap as every Phase 6 session since 6-1b
+   (Waiting-on #117).
 
 ## Known wrinkles / do-not-touch
 

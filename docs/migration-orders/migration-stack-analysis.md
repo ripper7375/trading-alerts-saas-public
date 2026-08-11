@@ -3351,7 +3351,46 @@ dlocal-payment.service.ts`'s `createPayment` never sends a `return_url`/`success
 
 </details>
 
+<details>
+<summary><strong>2026-08-11 — Session 6-10 (Public / Marketing Surface, UI-BUILD)</strong></summary>
+
+Closes all 12+ PUBLIC/MARKETING-surface gap-matrix rows (B1-3/4/5, B2-1..12). Resolves
+`DECISION-LOG.md` F63. Zero flags touched.
+
+- **New:** `app/(marketing)/{terms,privacy,disclaimer,about,docs,blog,changelog,careers,help,
+status}/page.tsx` (10 pages — built under `app/(marketing)/` rather than the order's literal
+  top-level path citation, to inherit `MarketingLayout`'s header/nav/footer automatically, matching
+  the established `/pricing` precedent); `app/affiliate/page.tsx` (public landing, imports
+  `MarketingLayout` directly since `app/affiliate/` already has real subroutes and its own
+  passthrough layout — a competing `(marketing)/affiliate/` route would collide);
+  `app/affiliate/join/page.tsx` (transparent `redirect('/affiliate/register')`);
+  `lib/status/check-system-status.ts` (real DB/`operation-service` health/payment-config checks,
+  not fabricated status copy); `app/api/status/route.ts` (public JSON monitoring endpoint,
+  matching the `app/api/disbursement/health` precedent); `__tests__/pages/marketing/
+public-pages.test.tsx` (13 tests).
+- **Modified:** `app/(marketing)/layout.tsx` (restored the 4 footer columns Session 6-2 pruned —
+  Product/Company/Resources/Legal — now pointing at all 10 built pages, per the file's own comment
+  naming this session as the one to do it).
+- **Not modified (already correct):** `components/auth/register-form.tsx` — its consent-checkbox
+  `/terms`/`/privacy` links already targeted the right paths; only the destination pages were
+  missing.
+- **CONFIRM found 5 live-state findings the order text didn't reflect**, all resolved live with
+  Davin: the footer-restoration gap above; `register-form.tsx:617`'s `/affiliate/join` reference
+  was already repointed to `/affiliate/register` at Session 6-2 (built the redirect anyway, for
+  bookmarks/external links); `components/layout/footer.tsx`'s dashboard-scoped external status
+  link (`https://status.tradingalerts.com`) stays untouched, separate from the new internal
+  `/status`; `/terms` adapts the existing, already-reviewed content from `app/(dashboard)/
+settings/terms/page.tsx` rather than drafting an independent version; `settings/help`'s stub
+  comment (B1-3) reconfirmed present, out of this session's fixable scope (no backend changes).
+- **Regression:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` — same
+  4 pre-existing warnings, 0 introduced; `test:ci` — see this session's own close-out for the final
+  count (13 new tests added on top of 6-8's 2278/2278 baseline).
+- **Not done:** live click-through of every new page against a real deployed environment — same
+  standing gap as every Phase 6 session since 6-1b (Waiting-on #117).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-11 (Session 6-8, Payments/Checkout)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-11 (Session 6-10, Public/Marketing Surface)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
