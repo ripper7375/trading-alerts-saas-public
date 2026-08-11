@@ -456,10 +456,44 @@ to `PARTIAL` — the 2FA link-swap genuinely shipped; the row's own login-histor
 and `SecurityAlert` UI-surfacing gaps did not, and remain exactly as originally documented.
 **F11 is NOT reopened** — the triage process itself is sound and 57 of 59 rows were independently
 re-confirmed correct; this was a single wrong verdict, caught and corrected, not a process
-failure. Full before/after and root-cause hypothesis recorded in the matrix's own new
-"Corrections found in ad-hoc verification (2026-08-11)" section. A2-12 now reads
-`OPEN — recorded BUILT in error`; disposition (build vs. re-triage `OUT_OF_SCOPE`) is Davin's own
-call, pending as of this entry.
+failure. Full before/after and root-cause hypothesis recorded in the matrix's own
+"Corrections found in ad-hoc verification (2026-08-11)" section.
+
+**Repair — same ad-hoc session, Davin's Decision A: build it.** Rather than re-triage A2-12/A1-9
+to `OUT_OF_SCOPE`, both were built for real this session: `app/(dashboard)/settings/security/
+activity/page.tsx` (new page, alerts grouped visually by `SecurityAlertType`, mark-as-read,
+pagination); `GET /user/security-alerts` + `POST /user/security-alerts/:id/read` on
+`operation-service`'s `UsersController` (ownership-scoped, matches the existing `revokeSession`
+no-id-enumeration convention); the mirrored `SecurityAlert` model in `operation-service/prisma/
+schema.prisma` widened additively (`deviceInfo`/`read`/`readAt`, `prisma generate` only, per
+`LESSONS-LEARNED.md` L1 — Correction 2's own predicted trap, confirmed real before fixing it);
+matching monolith routes at `app/api/user/security-alerts{,/[id]/read}/route.ts`, flag-gated
+behind the existing `MIGRATE_USER_SESSIONS` flag (default off — zero traffic cut over); both
+`docs/open-api-documents/part-13-settings-openapi.yaml` and `part-22-user-account-openapi.yaml`
+updated (Phase 7 generates its client from these specs — an endpoint absent from them would not
+exist in the generated client); the pre-existing `?limit=20` login-history hardcode on
+`/settings/security` fixed with a "Load more" control against the backend's own already-working
+`limit`/`offset` pagination (no backend change needed there — Correction 1's own premise that this
+needed a server-side "cap lift" did not hold, flagged and corrected before building); a real bug
+(`onClick={fetchLoginHistory}` would have passed the click event as the new `offset` parameter)
+found and fixed while wiring the Refresh button. 30 new tests total: 8 on `operation-service`
+(controller + service, existing spec files), 22 on the monolith across 4 new test files (11
+API-route: `security-alerts.test.ts` + `security-alerts-id-read.test.ts`; 11 page-level:
+`security-activity.test.tsx` + `security-login-history-pagination.test.tsx`) — monolith `test:ci`
+149/149→153/153 suites, 2322/2322→2344/2344 tests, exact match to the new file/test count, zero
+regressions. Deploy of the `operation-service` change was explicitly NOT done this session (escalation
+reserved for Davin per `EXECUTOR-PROTOCOL.md` §7) — the flag defaults off everywhere, so the
+monolith's local-Prisma fallback path is what's actually live; both A2-12 and A1-9 are now
+correctly `BUILT (ad-hoc, 2026-08-11)` in the matrix.
+
+**Decision B (Davin, same session): two endpoints orphaned as a side effect of otherwise-correct
+builds stay KEPT, not retired, pending Phase 8's deletion sweep** — `GET /api/affiliate/profile/
+payment` and `GET /api/disbursement/reports/affiliate/[affiliateId]` +
+`GET /api/disbursement/affiliates/[affiliateId]/commissions`. No code caller found anywhere in the
+repo for either, but a bookmark/saved-URL/external reference can't be ruled out and the cost of
+keeping them is zero. Recorded in the matrix's own Correction #4 and in `CLAUDE.md`'s Waiting-on
+list so Phase 8 inherits them explicitly. `validate-code`/`exchange-rate` (A1-8) re-confirmed
+unchanged, no new decision needed — still deliberately orphaned per 6-8's own resolution.
 
 ---
 

@@ -20,6 +20,17 @@ unscheduled since Session 4A-3's `vercel.json` cleanup) — before building admi
 monitors or triggers "the scheduled jobs," check `migration-cutover-table.md` for that slice's own
 row, not just that the route files exist.
 
+**Unpromoted candidate (ad-hoc session, 2026-08-11, not added as a new numbered entry — file
+already past cap):** a gap-matrix row's `Triage` verdict must cite the commit or file that
+actually closed it — "BUILT (Session N)" is not itself evidence. Row A2-12 was found triaged
+`BUILT (Session 6-5)` for a page/endpoint Session 6-5's own order never scoped or mentioned in any
+Ordered Step, and this false claim survived Session 6-12's own phase-exit review unchallenged.
+Root cause: A2-12's own "Backing evidence" cell only said "See A1-9," a sibling row that WAS
+partially fixed — the triage pass most likely credited both rows by association rather than
+independently checking A2-12's own distinct file-tree claim. Rule: before accepting any row's
+`BUILT`/`VERIFIED` verdict at face value in a phase-exit review, spot-check at least the rows
+whose evidence cross-references another row rather than citing its own independent file/line.
+
 ---
 
 ## Active lessons

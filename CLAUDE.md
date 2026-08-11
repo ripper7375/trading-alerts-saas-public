@@ -117,6 +117,71 @@ app components lib hooks --max-warnings 0` — same 4 pre-existing warnings (all
   entry) — deliberately leaves Ordered Steps open pending a real re-verification pass against
   live NestJS routes, same discipline the last several Phase 6 PRE-DRAFTs adopted after
   pre-guessed step text repeatedly drifted from ground truth by CONFIRM.
+- **Ad-hoc repair (2026-08-11, phase/session unchanged — Phase 6 stays CLOSED, Phase 7 has NOT
+  opened):** run per `EXECUTOR-PROTOCOL.md` §6 (no Advisor DRAFT), same OPEN/CONFIRM/CLOSE rituals
+  as any session. An independent post-6-12 re-audit of the live working tree found Phase 6's own
+  exit claim — "all 59 gap-matrix rows triaged as BUILT/VERIFIED/OUT_OF_SCOPE" — did not hold for
+  one row. **CONFIRM independently re-verified all 7 findings against live code before touching
+  anything** (full detail in `phase-6-frontend-gap-matrix.md`'s own "Corrections found in ad-hoc
+  verification" section): gap-matrix row **A2-12** (`/settings/security/activity`) was triaged
+  `BUILT (Session 6-5)` though no such page, route, or `SecurityAlert` UI surface existed anywhere
+  in the tree, and Session 6-5's own order never scoped it (its only touch on the security surface
+  was a 2FA dummy-widget-to-link swap, Deviation 2b); row **A1-9** (`/settings/security`, A2-12's
+  own cited evidence) was also wrongly `BUILT` — genuinely `PARTIAL`, since login-history's
+  `?limit=20` cap and `SecurityAlert`'s zero-UI-consumer gap were both still exactly as originally
+  documented. Corrected the record first (own commit, before any code): both rows' Triage cells,
+  a new header correction note, and `DECISION-LOG.md`'s F11 entry (appended, F11 **not** reopened
+  — the triage process was sound, this was one wrong verdict).
+  **Then, per Davin's explicit two decisions:** **Decision A (build it, not re-triage
+  `OUT_OF_SCOPE`)** — both rows built for real: new `app/(dashboard)/settings/security/
+activity/page.tsx`; `GET /user/security-alerts` + `POST /user/security-alerts/:id/read` on
+  `operation-service`'s `UsersController` (ownership-scoped `updateMany`, matches the existing
+  `revokeSession` no-id-enumeration convention); the mirrored `SecurityAlert` model widened
+  additively first (`deviceInfo`/`read`/`readAt` — `prisma generate` only, per
+  `LESSONS-LEARNED.md` L1, confirmed as a real gap before fixing it, not assumed); matching
+  monolith routes at `app/api/user/security-alerts{,/[id]/read}/route.ts`, flag-gated behind the
+  existing `MIGRATE_USER_SESSIONS` flag (default off everywhere — zero traffic cut over; the
+  `operation-service` deploy needed to make the flag meaningful was explicitly **not** attempted,
+  an `EXECUTOR-PROTOCOL.md` §7 escalation correctly left for Davin); both `docs/open-api-documents/
+part-13-settings-openapi.yaml` and `part-22-user-account-openapi.yaml` updated (Phase 7 generates
+  its unified client from these specs — an endpoint absent from them would not exist in the
+  generated client); login-history's own real gap fixed too — the backend
+  (`app/api/user/login-history/route.ts`) had always supported `limit`/`offset` pagination, the
+  page just never exposed it, fixed with a "Load more" control; a real, separate bug caught while
+  wiring it (`onClick={fetchLoginHistory}` would have silently passed the click event object as
+  the new `offset` parameter on every Refresh click — fixed to `onClick={() =>
+fetchLoginHistory()}`). 30 new tests (8 `operation-service`, 22 monolith across 4 new test files).
+  **Decision B (keep, don't retire)** — two endpoints orphaned as a side effect of otherwise-
+  correct Phase 6 builds (`GET /api/affiliate/profile/payment`, `GET /api/disbursement/reports/
+affiliate/[affiliateId]` + `.../commissions`) recorded `KEEP — retire in Phase 8's deletion sweep`
+  rather than silently left for a future session to rediscover; `validate-code`/`exchange-rate`
+  reconfirmed unchanged, no new decision needed (still deliberately orphaned per Session 6-8).
+  **Full verification:** `tsc --noEmit` clean throughout (re-checked after every step);
+  `eslint app components lib hooks --max-warnings 0` — same 4 pre-existing warnings tracked since
+  Session 6-12, 0 introduced; `test:ci` **153/153 suites, 2344/2344 tests** (was 149/149,
+  2322/2322 — +4 suites/+22 tests, exactly this session's own new files, zero regressions
+  elsewhere); `operation-service` 42/42 suites, 393/393 tests, `tsc --noEmit` clean. Live-verified
+  via the dev server: unauthenticated `/settings/security/activity` correctly redirects to
+  `/login?callbackUrl=%2Fsettings%2Fsecurity%2Factivity` (proves the route compiles and the
+  `(dashboard)` layout's auth gate covers it) — deeper authenticated click-through blocked by the
+  same standing no-test-credentials gap as every Phase 6 session since 6-1b (Waiting-on #117); a
+  pre-existing, unrelated dev-environment issue (`/api/auth/session`/`/api/auth/providers` 404s in
+  this local Turbopack dev server) was found and disclosed, not chased — outside this session's
+  own files entirely.
+  **Lesson harvested:** a gap-matrix row's triage verdict must cite the commit or file that
+  actually closed it — "BUILT (Session N)" is not evidence unless session N's own order genuinely
+  scoped and shipped that work; A2-12 passed a full phase-exit review carrying a verdict that
+  named a session which never touched it. See `LESSONS-LEARNED.md` for the numbered entry (added
+  or consolidated per that file's own hygiene cap).
+  **Artifacts updated:** `phase-6-frontend-gap-matrix.md` (A1-9/A2-12 Triage cells, header
+  correction note, new "Corrections found in ad-hoc verification" section, footer),
+  `DECISION-LOG.md` (F11 entry appended twice — the correction, then the repair + Decision B),
+  this file (this entry + Waiting-on #130/#131), `LESSONS-LEARNED.md` (new entry per above). No
+  `migration-cutover-table.md`/`migration-stack-analysis.md` change — no flag flipped, and this
+  session's own new files are recorded in `DECISION-LOG.md`/this entry directly rather than
+  duplicated into the stack-analysis file for a non-domain-slice ad-hoc repair. **No next session
+  PRE-DRAFTed** — `7-1-api-client-reverify-and-generate.migration-order.md` already exists from
+  Session 6-12's own close and is unaffected by this repair; it remains the literal next session.
 - **Previous:** Session 6-11 (Admin System Operations, UI-BUILD variant, dial HIGH for system
   operations visual polish and layout), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same
   day as Session 6-10. **Closes all 4 ADMIN-SYSTEM-OPERATIONS gap-matrix rows assigned to it
@@ -4666,8 +4731,39 @@ destination`) on `components/layout/header.tsx` (lines 85, 89) and
  `history/sessions-archive.md`— not done this session (a UI-BUILD session, not a hygiene
   session; the risk of corrupting a multi-thousand-line file via a partial manual move outweighed
   attempting it here). Adds to the same standing backlog as Waiting-on #102 — a future dedicated
-  cleanup session should walk the whole file once, per`EXECUTOR-PROTOCOL.md` §3's own rotation
+  cleanup session should walk the whole file once, per`EXECUTOR-PROTOCOL.md`§3's own rotation
   rule, not just the newest entry each time.
+  **(130, NEW — ad-hoc session, 2026-08-11)** Two endpoints found orphaned as a side effect of
+  otherwise-correct Phase 6 builds are deliberately KEPT, not retired, per Davin's own Decision B
+  — retire in Phase 8's deletion sweep, not before:`GET /api/affiliate/profile/payment`  (orphaned once A1-16/Session 6-7 consolidated onto`/affiliate/settings/payout`and turned the
+  legacy page into a redirect) and`GET /api/disbursement/reports/affiliate/[affiliateId]`+
+ `GET /api/disbursement/affiliates/[affiliateId]/commissions`(A2-7's own row cited three
+  endpoints as evidence; the page built at Session 6-6 calls only the sibling base route,
+ `GET /api/disbursement/affiliates/[affiliateId]`). No code caller found anywhere in the repo for
+  either, but a bookmark/saved-URL/external reference can't be ruled out and the cost of keeping
+  them is zero. Recorded in `phase-6-frontend-gap-matrix.md`'s own Correction #4.
+  **(131, RESOLVED — ad-hoc session, 2026-08-11, closes the Phase 6 exit-integrity gap this
+  session existed to fix)** An independent post-6-12 re-audit found gap-matrix row **A2-12**
+  (`/settings/security/activity`) wrongly triaged `BUILT (Session 6-5)`— no such page, route, or
+ `SecurityAlert` UI surface existed anywhere; Session 6-5's own order never scoped this work. Row
+  **A1-9** (`/settings/security`, A2-12's own cited evidence) was found `PARTIAL`, not fully
+  `BUILT`either — the 2FA link-swap shipped at 6-5, but login-history's`?limit=20`cap and
+ `SecurityAlert`'s zero-UI-consumer gap did not. Per Davin's Decision A (build it, not re-triage
+  `OUT_OF_SCOPE`), both were built for real this session: `app/(dashboard)/settings/security/
+  activity/page.tsx`(new),`GET /user/security-alerts`+`POST /user/security-alerts/:id/read`on
+ `operation-service`'s `UsersController`(the mirrored`SecurityAlert`model widened additively
+  first —`deviceInfo`/`read`/`readAt`, `prisma generate`only, per`LESSONS-LEARNED.md`L1 —
+  confirmed this was a real gap, not assumed), matching monolith routes flag-gated behind the
+  existing`MIGRATE_USER_SESSIONS`flag (default off, zero traffic cut over — the
+ `operation-service`deploy needed to make the flag meaningful was explicitly NOT done, an
+ `EXECUTOR-PROTOCOL.md`§7 escalation reserved for Davin), both`/api/user/\*` OpenAPI specs
+  updated (Phase 7 generates its client from these), and a real bug caught while wiring
+  login-history's own "Load more" control (`onClick={fetchLoginHistory}`would have passed the
+  click event as the new`offset`parameter — fixed). 30 new tests; monolith`test:ci`  149/149→153/153 suites, 2322/2322→2344/2344 tests, zero regressions;`operation-service`42/42
+  suites, 393/393 tests. F11 was never reopened — the triage process was sound, this was one wrong
+  verdict, now corrected and closed for real. Full detail in`phase-6-frontend-gap-matrix.md`'s
+  "Corrections found in ad-hoc verification (2026-08-11)" section and `DECISION-LOG.md`'s F11
+  entry.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
