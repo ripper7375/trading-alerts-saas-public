@@ -6,7 +6,7 @@
 > the two missing post-checkout landing pages (`/checkout/return`, `/upgrade/success`). Adapted from
 > `TEMPLATE-UI-BUILD.md`, dial **High for the 2 new landing pages, Low for data**.
 
-**Session:** 6-8 · **Phase:** Phase 6 (Frontend Redesign) · **Variant:** UI-BUILD (dial HIGH for the 2 new landing pages, LOW for data) · **Status:** APPROVED · **Generated:** 2026-08-10 ·
+**Session:** 6-8 · **Phase:** Phase 6 (Frontend Redesign) · **Variant:** UI-BUILD (dial HIGH for the 2 new landing pages, LOW for data) · **Status:** CONFIRMED · **Generated:** 2026-08-10 ·
 **Flags touched:** none · **Estimated time:** ~3-4h
 **Surface:** `app/api/geo/detect/route.ts` (new route wrapper), [`app/(marketing)/pricing/page.tsx`](<file:///d:/SaaS%20Project/trading-alerts-saas-public/app/(marketing)/pricing/page.tsx>) (geo detect consumer), [`components/payments/CountrySelector.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/components/payments/CountrySelector.tsx) (geo detect consumer), [`app/checkout/page.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/app/checkout/page.tsx) (checkout page), [`components/payments/DiscountCodeInput.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/components/payments/DiscountCodeInput.tsx) (code validate consumer), [`components/payments/PriceDisplay.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/components/payments/PriceDisplay.tsx) (live exchange rate consumer), `app/checkout/return/page.tsx` (new return page), `app/upgrade/success/page.tsx` (new success page) ·
 **Feeds on:** `lib/geo/detect-country.ts`, `GET /api/payments/dlocal/[paymentId]`, `GET /api/payments/dlocal/exchange-rate`, `POST /api/checkout/validate-code`, `GET /api/subscription`.
