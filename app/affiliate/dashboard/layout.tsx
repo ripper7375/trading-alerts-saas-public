@@ -32,7 +32,11 @@ interface DashboardLayoutProps {
 const navLinks = [
   { href: '/affiliate/dashboard', label: 'Dashboard' },
   { href: '/affiliate/dashboard/codes', label: 'My Codes' },
+  { href: '/affiliate/dashboard/code-inventory', label: 'Code Inventory' },
   { href: '/affiliate/dashboard/commissions', label: 'Commissions' },
+  { href: '/affiliate/dashboard/payouts', label: 'Payouts' },
+  { href: '/affiliate/dashboard/statements', label: 'Statements' },
+  { href: '/affiliate/dashboard/resources', label: 'Resources' },
   { href: '/affiliate/dashboard/profile', label: 'Profile' },
   { href: '/affiliate/settings/payout', label: 'Payout Settings' },
 ];

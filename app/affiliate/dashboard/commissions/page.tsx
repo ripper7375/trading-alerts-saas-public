@@ -10,6 +10,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 import { CommissionTable } from '@/components/affiliate/commission-table';
 
@@ -17,11 +18,18 @@ import { CommissionTable } from '@/components/affiliate/commission-table';
 // TYPE DEFINITIONS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+// Real Prisma `CommissionStatus` enum (per-commission status, distinct
+// from `PaymentBatchStatus` which describes the payout batch as a whole —
+// see /affiliate/dashboard/payouts for batch-level Wise transfer status).
 type CommissionStatus = 'PENDING' | 'APPROVED' | 'PAID' | 'CANCELLED';
 
 interface Commission {
   id: string;
-  amount: number;
+  /** Real Prisma field is `commissionAmount` (Decimal, arrives as a
+   *  string over JSON) — fixed Session 6-7, was silently `amount`
+   *  (undefined on every real row, crashing CommissionTable's
+   *  `.toFixed()` call the moment a real commission rendered). */
+  commissionAmount: string | number;
   status: CommissionStatus;
   earnedAt: Date;
   paidAt: Date | null;
@@ -98,39 +106,48 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
   const totalPages = Math.ceil(total / limit);
 
   // Calculate totals
-  const totalEarned = commissions.reduce((sum, c) => sum + c.amount, 0);
+  const totalEarned = commissions.reduce(
+    (sum, c) => sum + Number(c.commissionAmount),
+    0
+  );
   const pendingAmount = commissions
     .filter((c) => c.status === 'PENDING' || c.status === 'APPROVED')
-    .reduce((sum, c) => sum + c.amount, 0);
+    .reduce((sum, c) => sum + Number(c.commissionAmount), 0);
   const paidAmount = commissions
     .filter((c) => c.status === 'PAID')
-    .reduce((sum, c) => sum + c.amount, 0);
+    .reduce((sum, c) => sum + Number(c.commissionAmount), 0);
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Commissions</h1>
           <p className="text-gray-600">Track your earnings from referrals</p>
         </div>
+        <Link
+          href="/affiliate/dashboard/payouts"
+          className="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+        >
+          View Payout Status →
+        </Link>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg shadow p-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-lg bg-white p-4 shadow">
           <p className="text-sm text-gray-600">Total Earned (This Page)</p>
           <p className="text-2xl font-bold text-gray-900">
             ${totalEarned.toFixed(2)}
           </p>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="rounded-lg bg-white p-4 shadow">
           <p className="text-sm text-gray-600">Pending</p>
           <p className="text-2xl font-bold text-yellow-600">
             ${pendingAmount.toFixed(2)}
           </p>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
+        <div className="rounded-lg bg-white p-4 shadow">
           <p className="text-sm text-gray-600">Paid</p>
           <p className="text-2xl font-bold text-green-600">
             ${paidAmount.toFixed(2)}
@@ -139,12 +156,12 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-md p-4">
+      <div className="rounded-lg bg-white p-4 shadow-md">
         <div className="flex flex-wrap items-center gap-4">
           <div>
             <label
               htmlFor="statusFilter"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="mb-1 block text-sm font-medium text-gray-700"
             >
               Status
             </label>
@@ -155,7 +172,7 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
                 setStatusFilter(e.target.value as CommissionStatus | 'ALL');
                 setPage(1);
               }}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
             >
               <option value="ALL">All Status</option>
               <option value="PENDING">Pending</option>
@@ -173,16 +190,16 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       )}
 
       {/* Commissions Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="overflow-hidden rounded-lg bg-white shadow-md">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
           </div>
         ) : (
           <CommissionTable commissions={commissions} />
@@ -191,11 +208,11 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2">
+        <div className="flex items-center justify-center gap-2">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Previous
           </button>
@@ -207,7 +224,7 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Next
           </button>
@@ -215,31 +232,31 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
       )}
 
       {/* Info Section */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-        <h3 className="font-semibold text-gray-900 mb-3">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
+        <h3 className="mb-3 font-semibold text-gray-900">
           Commission Status Guide
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+        <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2 lg:grid-cols-4">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
+            <span className="rounded bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
               PENDING
             </span>
             <span className="text-gray-600">Awaiting approval</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+            <span className="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800">
               APPROVED
             </span>
             <span className="text-gray-600">Ready for payout</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+            <span className="rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
               PAID
             </span>
             <span className="text-gray-600">Payment completed</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium">
+            <span className="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800">
               CANCELLED
             </span>
             <span className="text-gray-600">Refund/cancellation</span>

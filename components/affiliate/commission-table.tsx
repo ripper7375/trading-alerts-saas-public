@@ -19,7 +19,10 @@ type CommissionStatus = 'PENDING' | 'APPROVED' | 'PAID' | 'CANCELLED';
 
 interface Commission {
   id: string;
-  amount: number;
+  /** Real Prisma field is `commissionAmount` (Decimal — arrives as a string
+   *  over JSON); accept both so callers passing an already-numeric value
+   *  (e.g. tests) keep working. */
+  commissionAmount: string | number;
   status: CommissionStatus;
   earnedAt: Date;
   paidAt?: Date | null;
@@ -64,7 +67,7 @@ export function CommissionTable({
 }: CommissionTableProps): React.ReactElement {
   if (commissions.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">No commissions yet</div>
+      <div className="py-8 text-center text-gray-500">No commissions yet</div>
     );
   }
 
@@ -75,59 +78,59 @@ export function CommissionTable({
           <tr>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
             >
               Code
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
             >
               Amount
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
             >
               Status
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
             >
               Earned
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
             >
               Paid
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="divide-y divide-gray-200 bg-white">
           {commissions.map((commission) => (
             <tr key={commission.id}>
-              <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">
+              <td className="whitespace-nowrap px-6 py-4 font-mono text-sm">
                 {commission.affiliateCode.code}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
-                ${commission.amount.toFixed(2)}
+              <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold">
+                ${Number(commission.commissionAmount).toFixed(2)}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="whitespace-nowrap px-6 py-4">
                 <span
                   className={cn(
-                    'px-2 py-1 text-xs font-medium rounded',
+                    'rounded px-2 py-1 text-xs font-medium',
                     statusStyles[commission.status]
                   )}
                 >
                   {commission.status}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
                 {format(new Date(commission.earnedAt), 'MMM d, yyyy')}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
                 {commission.paidAt
                   ? format(new Date(commission.paidAt), 'MMM d, yyyy')
                   : '-'}

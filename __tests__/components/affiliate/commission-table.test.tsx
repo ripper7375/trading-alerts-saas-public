@@ -12,7 +12,7 @@ import { CommissionTable } from '@/components/affiliate/commission-table';
 
 // Mock date-fns format
 jest.mock('date-fns', () => ({
-  format: (date: Date, formatStr: string) => {
+  format: (date: Date, _formatStr: string) => {
     const d = new Date(date);
     const months = [
       'Jan',
@@ -36,7 +36,7 @@ describe('CommissionTable Component', () => {
   const mockCommissions = [
     {
       id: '1',
-      amount: 4.64,
+      commissionAmount: 4.64,
       status: 'PENDING' as const,
       earnedAt: new Date('2024-01-15'),
       paidAt: null,
@@ -44,7 +44,7 @@ describe('CommissionTable Component', () => {
     },
     {
       id: '2',
-      amount: 4.64,
+      commissionAmount: 4.64,
       status: 'PAID' as const,
       earnedAt: new Date('2024-01-10'),
       paidAt: new Date('2024-02-01'),
@@ -52,7 +52,7 @@ describe('CommissionTable Component', () => {
     },
     {
       id: '3',
-      amount: 4.64,
+      commissionAmount: 4.64,
       status: 'APPROVED' as const,
       earnedAt: new Date('2024-01-20'),
       paidAt: null,
@@ -96,7 +96,7 @@ describe('CommissionTable Component', () => {
     it('should format amounts with two decimal places', () => {
       const commission = {
         ...mockCommissions[0],
-        amount: 10,
+        commissionAmount: 10,
       };
       render(<CommissionTable commissions={[commission]} />);
 
@@ -106,7 +106,7 @@ describe('CommissionTable Component', () => {
     it('should handle small amounts', () => {
       const commission = {
         ...mockCommissions[0],
-        amount: 0.5,
+        commissionAmount: 0.5,
       };
       render(<CommissionTable commissions={[commission]} />);
 
@@ -116,7 +116,7 @@ describe('CommissionTable Component', () => {
     it('should handle large amounts', () => {
       const commission = {
         ...mockCommissions[0],
-        amount: 1234.56,
+        commissionAmount: 1234.56,
       };
       render(<CommissionTable commissions={[commission]} />);
 
@@ -267,7 +267,7 @@ describe('CommissionTable Component', () => {
     it('should handle commission with zero amount', () => {
       const zeroCommission = {
         ...mockCommissions[0],
-        amount: 0,
+        commissionAmount: 0,
       };
       render(<CommissionTable commissions={[zeroCommission]} />);
 
@@ -277,7 +277,7 @@ describe('CommissionTable Component', () => {
     it('should handle very precise decimal amounts', () => {
       const preciseCommission = {
         ...mockCommissions[0],
-        amount: 4.644,
+        commissionAmount: 4.644,
       };
       render(<CommissionTable commissions={[preciseCommission]} />);
 
