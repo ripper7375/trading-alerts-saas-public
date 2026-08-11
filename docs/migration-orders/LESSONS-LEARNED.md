@@ -4,7 +4,7 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 62 (L1–L62) — a consolidation pass is overdue and
+**Hard cap ~40 active lessons.** Currently at 64 (L1–L64) — a consolidation pass is overdue and
 now more overdue than at last count; the next session that isn't itself time-constrained should
 do it before adding more. Candidates promoted and preamble archived 2026-08-03; L11's own
 9-recurrence narrative collapsed to a single count line same day (Session 4B-19), L27's own
@@ -709,3 +709,10 @@ dist/main` (the plain `npm start` script) instead of the `start:worker` script n
 - Root cause: a monolith write route's own flag-forwarding shim (built at the transport-layer BUILD session, e.g. 4A-10a) makes everything past the flag check in that same handler unreachable for real traffic once the cutover flag is flipped — but the code still compiles, still passes local tests (which exercise the flag-off branch), and still reads like the live implementation to anyone reading the file in isolation.
 - Rule: before editing a monolith route file's own business logic (not just its flag check), grep for a `shouldUseMoneyServiceFor*()`/`shouldUseOperationServiceFor*()` guard earlier in the same handler and check `migration-cutover-table.md`/CLAUDE.md's own cutover state for that specific slice — if the flag is live, mirror the change into the microservice's own copy (or make it there instead) or it will have no real-world effect. Distinct from L61 (drift between two independently maintained copies): here one copy isn't just out of sync, it's structurally unreachable.
 - Source: Session 6-8 (2026-08-11) · Status: ACTIVE
+
+### L64 — A new page's real navigational chrome depends on its route-group folder, not its literal path; check for both a matching chrome-providing group AND an existing competing directory before placing it
+
+- Symptom: this order's own Surface list cited literal top-level paths (`app/terms/page.tsx`, `app/about/page.tsx`, etc.) for 10 new public pages — building there would ship every one with zero header/nav/footer, since root `app/layout.tsx` is a bare shell; only pages nested under a route group (e.g. `(marketing)`) inherit that group's own layout.
+- Root cause: route groups (`(name)`) are invisible to the URL but ARE the layout-inheritance boundary in Next.js App Router.
+- Rule: place a new public page under the route group that already provides the chrome it needs (route groups don't change the URL) — but first check whether a non-grouped directory already exists at that same path with its own layout/subroutes (e.g. `app/affiliate/`); a competing route-group page at the identical URL collides at build time, so import the existing layout as a component instead of nesting under a new group.
+- Source: Session 6-10 (2026-08-11) · Status: ACTIVE

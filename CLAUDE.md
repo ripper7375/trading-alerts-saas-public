@@ -98,13 +98,15 @@
 analysis.md` (new Session 6-10 entry, 16 new files + 1 modified), this file (session-history
   hygiene: Session 6-7's own full text moved to `history/sessions-archive.md`, matching this
   file's own rotation rule — the larger pre-existing backlog flagged at Waiting-on #102 is
-  unchanged, still needs its own dedicated cleanup session). No new `LESSONS-LEARNED.md` entry —
-  both findings classes this session hit (self-contradicting order metadata, order text drifting
-  from its own cited ground truth) are already-documented recurrences of L11/L27, not a new
-  failure class; the file stays at 63 entries, still needs its overdue consolidation pass
-  (Waiting-on #30/unchanged). New `6-11-admin-system-operations.migration-order.md` PRE-DRAFTed
-  (UI-BUILD variant, `/admin/system/{terminals,jobs,outbox}`, B2-14/15/16) per this order's own
-  Next-session handoff.
+  unchanged, still needs its own dedicated cleanup session), `LESSONS-LEARNED.md` (new **L64** —
+  a new page's real navigational chrome depends on its route-group folder, not its literal path;
+  check for both a matching chrome-providing group and an existing competing directory before
+  placing it — the self-contradicting-order-metadata and order-text-drift findings this session
+  also hit are already-documented recurrences of L11/L27, not new failure classes, so nothing else
+  was added; the file is now at 64 entries, still needs its overdue consolidation pass, Waiting-on
+  #30/unchanged). New `6-11-admin-system-operations.migration-order.md` PRE-DRAFTed (UI-BUILD
+  variant, `/admin/system/{terminals,jobs,outbox,config-history}`, B2-14/15/16/17) per this
+  order's own Next-session handoff.
 - **Previous:** Session 6-8 (Payments / Checkout, UI-BUILD variant, dial HIGH for the 2 new landing
   pages, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as Session 6-7.
   **Closes the 4 PAYMENTS-surface gap-matrix rows assigned to it (F61/A1-7, A1-8, A2-8, A2-9).**
@@ -4444,11 +4446,12 @@ destination`) on `components/layout/header.tsx` (lines 85, 89) and
   finding, Waiting-on #123, unchanged — flagged again since 6-10 built `/checkout/return`'s
   sibling legal/marketing pages but didn't touch payments code, out of scope). No new information,
   just reconfirming it's still open and not accidentally fixed as a side effect.
-  **(126, NEW — Session 6-10, 2026-08-11)** `LESSONS-LEARNED.md` stays at 63 active entries — this
-  session's own two findings classes (self-contradicting order metadata, order text drifting from
-  its own cited ground truth) are both already-documented L11/L27 recurrences, not new failure
-  classes, so nothing was added — but the consolidation pass itself (Waiting-on #30, now 6+
-  sessions overdue) is still outstanding regardless.
+  **(126, NEW — Session 6-10, 2026-08-11)** `LESSONS-LEARNED.md` grew to 64 active entries — new
+  **L64** (route-group chrome-inheritance + competing-directory collision), the one genuinely new
+  pattern this session hit; the other two findings classes (self-contradicting order metadata,
+  order text drifting from its own cited ground truth) are both already-documented L11/L27
+  recurrences, so nothing further was added for them — but the consolidation pass itself
+  (Waiting-on #30, now 6+ sessions overdue) is still outstanding regardless.
   **(127, NEW — Session 6-10, 2026-08-11)** `components/layout/footer.tsx` (the auth-gated
   dashboard footer) still links "Privacy"/"Terms" to `/settings/privacy`/`/settings/terms` — the
   _settings_ versions, not the new public `/privacy`/`/terms` legal pages this session built.
