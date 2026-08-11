@@ -26,7 +26,98 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 6-11 (Admin System Operations, UI-BUILD variant, dial HIGH for system
+- **Current:** Session 6-12 (A11y + Responsive Audit / Phase 6 Exit Review, UI-BUILD variant,
+  dial MEDIUM), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as Session 6-11.
+  **Phase 6 (Frontend Redesign) is now CLOSED — F11 RESOLVED, all 59 gap-matrix rows triaged.**
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again, this time carrying
+  a substantive false claim, not just header metadata:** the order arrived
+  modified-but-uncommitted, `PRE-DRAFT → APPROVED`, asserting F11 already "RESOLVED... all 90
+  gap matrix rows triaged" — but at first read, `phase-6-frontend-gap-matrix.md` itself (the one
+  artifact that could prove or disprove that claim) had **zero** uncommitted changes: every one
+  of its 59 rows still showed an unfilled `—` Triage value, and its own footer read "F11 stays
+  OPEN — Triage column awaits Davin." A second, independent error compounded it: the order's own
+  "90 rows" citation was itself wrong — the real, re-verified, deduplicated matrix has **59**
+  rows (18 A1 + 12 A2 + 5 B1 + 20 B2 + 4 C, grep-counted); 90 is `ui-page-gap-register.xlsx`'s
+  raw pre-dedup source count, a distinct artifact. Reported both findings in full before
+  proceeding; Davin confirmed live the `APPROVED` rewrite was his own authentic authorization and
+  that he had completed the row-by-row triage — moments later the gap matrix itself picked up
+  real, substantive changes (a genuine `BUILT`/`VERIFIED`/`OUT_OF_SCOPE` value on every one of
+  the 59 rows, footer updated to "F11 RESOLVED"), independently re-verified before treating the
+  claim as settled rather than taken on trust. A third, smaller citation error (the order's own
+  baseline test-count citation, "146/146 suites, 2291/2291 tests," was Session 6-10's number, not
+  6-11's real close-out figure of 148/148, 2312/2312) was also found and corrected — a fresh
+  `test:ci` run at CONFIRM confirmed 148/148, 2312/2312 was the accurate, zero-drift baseline.
+  **Reconciled all three findings across the order file, `DECISION-LOG.md`'s F11 entries, and the
+  gap matrix's own header/footer text** before proceeding, so no future reader hits the same
+  "90 vs 59" confusion.
+  **Built (5 Ordered Steps, one commit each):** Step 1 — the triage reconciliation above (docs
+  only, no code). Step 2 — deleted `app/test-api/page.tsx` (confirmed zero references anywhere
+  in `app/`, `components/`, `__tests__/` before removing it; `tsc --noEmit` clean after). Step 3
+  — a real, evidence-based accessibility audit, **18 fixes across 13 files**: this codebase's
+  baseline was already solid (Radix primitives handle dialog focus-trapping; most icon buttons
+  already carried `aria-label`) — the audit found and fixed one genuinely **recurring** pattern
+  (8 password/secret-visibility toggle buttons across 6 forms — login, register ×2,
+  reset-password, forgot-password ×2, account-settings ×3, the 2FA secret toggle — were
+  icon-only with no accessible name; one of them, `login-form.tsx`, also carried `tabIndex={-1}`,
+  removing it from the keyboard tab order entirely, fixed by removing the override rather than
+  just adding a label) plus several one-off gaps (an icon-only profile-photo-upload overlay
+  button invisible on keyboard focus — `opacity-0 group-hover:opacity-100` with no
+  focus-visible affordance; the notification-delete button; the global toast-dismiss button,
+  which appears on every page; the 2FA secret copy button; 3 filter/search inputs relying on
+  placeholder text alone as their only label). Step 4 — a real responsive-layout audit, **8
+  fixes across 6 files**: 2 tables (`admin/affiliates` list, billing `invoice-list`) wrapped
+  their `<table>` in `overflow-hidden` with no horizontal-scroll fallback — content wider than
+  the viewport was clipped rather than scrollable, fixed to `overflow-x-auto` matching the
+  convention already used correctly by the other 23 table-containing files in this codebase; 6
+  stat-card/quick-link/filter grids (`admin/affiliates` quick-links + filters, and all 4 admin
+  affiliate-report pages' summary-card grids) used a bare `grid-cols-3/4/5` with no responsive
+  breakpoint downgrade — on a 320-480px viewport these crammed 3-5 columns of large-number stat
+  cards or full-width form fields into slivers, fixed with a `grid-cols-1/2` mobile default and
+  `sm:`/`lg:` breakpoints restoring the original column count from tablet up. Checked and
+  deliberately left as-is (already correctly responsive, confirmed by reading each): fixed-width
+  Select/Input elements inside `flex-wrap` or `flex-col sm:flex-row` containers (alerts filter
+  row, `affiliate-filters`, the referral-link input) — these wrap or stack correctly, no
+  overflow; a `min-w-[600px]` chart SVG (`pnl-trend-chart`) already had its own
+  `overflow-x-auto` wrapper. Step 5 — new `__tests__/pages/phase-6-exit.test.tsx` (8 tests): the
+  **first-ever direct test coverage** for `app/not-found.tsx`, `app/error.tsx`, and
+  `app/global-error.tsx` (all built Session 6-2, never directly tested before — existing
+  "not-found" test hits are dynamic-route `notFound()` calls, not these root-level boundary
+  pages themselves), plus a route-integrity check (`app/test-api/page.tsx` genuinely gone from
+  disk) and `ToastContainer`'s a11y fix (dismiss button now has an accessible name). Added 2
+  more regression tests directly into the existing `login-form.test.tsx`/`register-form.test.tsx`
+  harnesses (where the render setup already existed) covering this session's own password-toggle
+  fixes, rather than duplicating that setup in the new file.
+  **Full verification:** `tsc --noEmit` clean throughout, re-checked after every step; `eslint
+app components lib hooks --max-warnings 0` — same 4 pre-existing warnings (all pre-existing
+  routing-method lint, unrelated to a11y — `no-location-assign-relative-destination` ×3,
+  `no-html-link-for-pages` ×1), 0 introduced; `test:ci` **149/149 suites, 2322/2322 tests** (was
+  148/148, 2312/2312 — +1 suite/+10 tests, exactly this session's own new coverage — 8 in the new
+  file + 1 each in `login-form.test.tsx`/`register-form.test.tsx` — zero regressions elsewhere).
+  Live browser click-through not attempted this session — same standing gap as every Phase 6
+  session since 6-1b (Waiting-on #117).
+  **No flag beyond F11, no cutover-table row** — pure frontend audit/fix work, zero backend
+  service changes, zero microservice feature flags touched; `migration-cutover-table.md`
+  unchanged.
+  **Artifacts updated:** `6-12-a11y-responsive-phase-exit.migration-order.md` (Status →
+  CONFIRMED, executed, CLOSED SUCCESSFUL; Entry criteria all checked with the CONFIRM-time
+  findings recorded; Done-when all checked; Deviations filled in full — 3 entries covering the
+  L11 recurrence, the row-count reconciliation, and the baseline-citation fix),
+  `DECISION-LOG.md` (F11 → RESOLVED, register row + full entry corrected to the real 59-row
+  count), `phase-6-frontend-gap-matrix.md` (Triage column filled for all 59 rows by Davin; header
+  note and "How to read" section updated to match; new Correction #7 documenting the 90-vs-59
+  reconciliation), this file (session-history hygiene: Session 6-11's own full text demoted to
+  Previous below; Session 6-10's own full text marked superseded-by-above, still needs its own
+  move to `history/sessions-archive.md` — the larger pre-existing backlog flagged at Waiting-on
+  #102/#129 is unchanged, still needs its own dedicated cleanup session). No new
+  `LESSONS-LEARNED.md` entry — the L11 recurrence and the citation-drift findings are both
+  already-documented pattern classes (L11, L27), not new failure classes; the file's own
+  consolidation backlog (Waiting-on #30) is unchanged. **Phase 6 is CLOSED. Phase 7 (API Client
+  Rewrite) opens next — `7-1-api-client-reverify-and-generate.migration-order.md` PRE-DRAFTed**
+  (CONTRACT/PORT hybrid, per the session playbook's own Session 7-1 "Re-verify + generate"
+  entry) — deliberately leaves Ordered Steps open pending a real re-verification pass against
+  live NestJS routes, same discipline the last several Phase 6 PRE-DRAFTs adopted after
+  pre-guessed step text repeatedly drifted from ground truth by CONFIRM.
+- **Previous:** Session 6-11 (Admin System Operations, UI-BUILD variant, dial HIGH for system
   operations visual polish and layout), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same
   day as Session 6-10. **Closes all 4 ADMIN-SYSTEM-OPERATIONS gap-matrix rows assigned to it
   (B2-14, B2-15, B2-16, B2-17).** No flags touched, no `DECISION-LOG.md` flag resolved (none was
@@ -103,7 +194,9 @@ app components lib hooks --max-warnings 0` — same 4 pre-existing warnings, 0 i
   class distinct enough to warrant its own numbered entry). New
   `6-12-...migration-order.md` PRE-DRAFTed (a11y + responsive + Phase 6 exit review, per this
   order's own Next-session handoff — the final session before Phase 6 closes).
-- **Previous:** Session 6-10 (Public / Marketing Surface, UI-BUILD variant, dial HIGH for visual
+- _(superseded-by-above, retained for context — still needs its own move to
+  `history/sessions-archive.md`, same standing backlog as Waiting-on #102)_ Session 6-10
+  (Public / Marketing Surface, UI-BUILD variant, dial HIGH for visual
   polish and content layouts), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as
   Session 6-8. **Closes all 12+ PUBLIC/MARKETING-surface gap-matrix rows assigned to it
   (B1-3, B1-4, B1-5, B2-1 through B2-12).** Resolves `DECISION-LOG.md` **F63**. No flags touched.
@@ -4377,34 +4470,45 @@ affiliates/[affiliateId]` were both built new (the order assumed both already ex
   `/admin/system/{terminals,jobs,outbox,config-history}` pages built; B2-15's own job list was
   found materially wrong at CONFIRM (the monolith's 8 `/api/cron/*` routes stopped being
   scheduled at Session 4A-3) and re-scoped live with Davin to point at money-service's real
-  scheduler instead. **The actual next session overall is now 6-12**
-  (`6-12-...migration-order.md`, PRE-DRAFTed at 6-11's close) — a11y + responsive + Phase 6 exit
-  review, the final session before Phase 6 closes. Two named
-  Phase 4 exceptions run as their own independent tracks and do NOT block Phase 6:
-  `DECISION-LOG.md` F49 (dLocal `payment_method_flow`, needs its own fix session) and F60
-  (`4a-13-stripe-webhook-cutover.migration-order.md`, PRE-DRAFTed).
-  **Phase 6 is now 12 sessions, in this order:** 6-1 (gap matrix, audit only — done) → 6-1b
-  (mock-data hotfix, PORT/low dial — done) → 6-2 (IA + design system + shared shells; F62
-  resolved/executed — done) → 6-3 (alerts/charts; 3 orphan tier endpoints wired, edit route built —
-  done) → 6-4 (notifications; `/notifications` page built, bell link resolved — done) → 6-5
-  (settings/user; account-deletion confirm/cancel pages built — done) → 6-6 (admin; WISE provider
+  scheduler instead. **Session 6-12 (A11y + Responsive Audit / Phase 6 Exit Review) is now ALSO
+  CONFIRMED, executed, and CLOSED SUCCESSFUL** (2026-08-11, same day as 6-11 — see Current above
+  for full detail). F11 RESOLVED (all 59 gap-matrix rows genuinely triaged by Davin, independently
+  re-verified before treating the claim as settled — CONFIRM caught the working copy asserting
+  F11 resolved while the matrix itself still showed every row unfilled, same `LESSONS-LEARNED.md`
+  L11 pattern, resolved the same way as every prior recurrence); 18 real a11y fixes + 8 real
+  responsive fixes shipped; `app/test-api/page.tsx` deleted. **Phase 6 (Frontend Redesign) is now
+  fully CLOSED.** Two named Phase 4 exceptions run as their own independent tracks and were never
+  Phase 6 blockers: `DECISION-LOG.md` F49 (dLocal `payment_method_flow`, needs its own fix
+  session) and F60 (`4a-13-stripe-webhook-cutover.migration-order.md`, PRE-DRAFTed).
+  **Phase 6 ran 12 sessions, in this order, all done:** 6-1 (gap matrix, audit only) → 6-1b
+  (mock-data hotfix, PORT/low dial) → 6-2 (IA + design system + shared shells; F62
+  resolved/executed) → 6-3 (alerts/charts; 3 orphan tier endpoints wired, edit route built) → 6-4
+  (notifications; `/notifications` page built, bell link resolved) → 6-5
+  (settings/user; account-deletion confirm/cancel pages built) → 6-6 (admin; WISE provider
   option, accounts→recipients consolidation, user detail page, code-flows/affiliate-detail pages
-  built — done) → 6-7 (affiliate; payout consolidation, real Wise payout status, code inventory/
-  statements/resources built — done) → 6-8 (payments/checkout; F61 resolved, checkout return +
-  upgrade success pages built — done) → **6-10** (public/marketing surface; F63 resolved, 12 pages
-  built, footer restored — done) → **6-11** (admin system operations; B2-15 re-scoped to
-  money-service's real scheduler, 4 pages built — done) → **6-12** (a11y +
-  responsive + phase exit; was 6-9, next). **Session number 6-9 is retired — do not reuse it.**
+  built) → 6-7 (affiliate; payout consolidation, real Wise payout status, code inventory/
+  statements/resources built) → 6-8 (payments/checkout; F61 resolved, checkout return +
+  upgrade success pages built) → 6-10 (public/marketing surface; F63 resolved, 12 pages
+  built, footer restored) → 6-11 (admin system operations; B2-15 re-scoped to
+  money-service's real scheduler, 4 pages built) → **6-12** (a11y + responsive + phase exit; F11
+  resolved, Phase 6 closed). **Session number 6-9 is retired — was never used.**
   **Per the chain-length-one rule (`00-SKELETON-AND-RULES.md` §1.5), 6-1 and 6-2 both got full
   order files** (6-2's own F62 scope made it not fast-path eligible, same reasoning). 6-1b, 6-10,
-  6-11 and 6-12 are defined in the playbook and the v9 handbook, and each gets its own order
-  PRE-DRAFTed by the Executor at the close of the session before it — they were deliberately NOT
+  6-11 and 6-12 were defined in the playbook and the v9 handbook, and each got its own order
+  PRE-DRAFTed by the Executor at the close of the session before it — deliberately NOT
   drafted ahead. 6-3's own order was PRE-DRAFTed at 6-2's close per the same rule (a domain-build
   session following a just-closed one); 6-4's own order was PRE-DRAFTed at 6-3's close the same
   way; 6-5's own order was PRE-DRAFTed at 6-4's close the same way; 6-6's own order was PRE-DRAFTed
   at 6-5's close the same way; 6-7's own order was PRE-DRAFTed at 6-6's close the same way; 6-8's
   own order was PRE-DRAFTed at 6-7's close the same way; 6-10's own order was PRE-DRAFTed at 6-8's
-  close the same way.
+  close the same way; 6-12's own order was PRE-DRAFTed at 6-11's close the same way.
+  **Phase 7 (API Client Rewrite) now opens — `7-1-api-client-reverify-and-generate.migration-order.md`
+  PRE-DRAFTed at 6-12's close** (CONTRACT/PORT hybrid, per the session playbook's own Session 7-1
+  "Re-verify + generate" entry), the literal next session overall. It touches `lib/api/index.ts`
+  for the first time since it was declared known-broken-by-design near the start of this
+  migration (`EXECUTOR-PROTOCOL.md` §5) — deliberately leaves Ordered Steps open pending a real
+  re-verification pass against live NestJS routes, same discipline the last several Phase 6
+  PRE-DRAFTs adopted after pre-guessed step text repeatedly drifted from ground truth by CONFIRM.
 - **Waiting on (Phase 6, added 2026-08-10 by the UI gap analysis):** **(106, NEW)** `DECISION-LOG.md`
   **F61** — `GET /api/geo/detect` is called by `app/(marketing)/pricing/page.tsx:155` and
   `components/payments/CountrySelector.tsx:69` but `app/api/geo/` does not exist; every pricing-page

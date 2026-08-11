@@ -89,11 +89,13 @@ Final session of Phase 6 (Frontend Redesign). Verifies all Phase 6 exit criteria
 
 ## Done when
 
-- [ ] All Phase 6 exit criteria satisfied and verified.
-- [ ] F11 resolved and all 59 gap matrix rows triaged.
-- [ ] Accessibility and responsive layout audit clean across all Phase 6 pages.
-- [ ] `app/test-api/page.tsx` deleted.
-- [ ] `tsc --noEmit` clean; `eslint --max-warnings 0` introduces 0 new warnings; `test:ci` green.
+- [x] All Phase 6 exit criteria satisfied and verified.
+- [x] F11 resolved and all 59 gap matrix rows triaged.
+- [x] Accessibility and responsive layout audit clean across all Phase 6 pages — 18 real a11y
+      fixes (13 files) + 8 real responsive fixes (6 files), see Deviations for the full list.
+- [x] `app/test-api/page.tsx` deleted.
+- [x] `tsc --noEmit` clean; `eslint --max-warnings 0` introduces 0 new warnings (same 4
+      pre-existing); `test:ci` green — 149/149 suites, 2322/2322 tests (was 148/148, 2312/2312).
 
 ## Rollback
 
@@ -135,6 +137,31 @@ Same-stack UI work; rollback is `git revert`.
    returned **148/148 suites, 2312/2312 tests**, matching 6-11's own committed close-out
    (`CLAUDE.md:88`) exactly — zero drift since 6-11, the citation was simply copied from the wrong
    session. Corrected in this order's own Entry criteria.
+4. **Steps 2-5 executed as specified, one commit each.** Step 2: `app/test-api/page.tsx` deleted
+   after confirming zero references anywhere in `app/`, `components/`, `__tests__/`. Step 3: a
+   real, evidence-based accessibility audit — found and fixed one genuinely recurring pattern (8
+   password/secret-visibility toggle buttons across 6 forms had no accessible name; one,
+   `login-form.tsx`, also carried `tabIndex={-1}`, removing it from the keyboard tab order
+   entirely) plus several one-off gaps (photo-upload overlay button invisible on keyboard focus,
+   notification-delete button, the global toast-dismiss button, the 2FA secret copy button, 3
+   placeholder-only filter/search inputs) — 18 fixes across 13 files. The codebase's a11y
+   baseline was otherwise already solid (Radix primitives handle dialog focus-trapping; most
+   icon buttons already had `aria-label`), consistent with this session's own MEDIUM dial ("fix
+   real audit findings without redesigning"). Step 4: a real responsive-layout audit — 2 tables
+   wrapped in `overflow-hidden` with no horizontal-scroll fallback (fixed to `overflow-x-auto`,
+   matching the convention already correct elsewhere in this codebase) and 6 bare
+   `grid-cols-3/4/5` stat-card/filter grids with no responsive breakpoint downgrade (fixed with a
+   mobile-first `grid-cols-1/2` default) — 8 fixes across 6 files. Several suspicious fixed-width
+   elements found via grep (Select/Input widths, a `min-w-[600px]` chart) were checked and
+   confirmed already correctly responsive (flex-wrap/flex-col containers, an existing
+   `overflow-x-auto` wrapper) rather than fixed reflexively. Step 5: new
+   `__tests__/pages/phase-6-exit.test.tsx` (8 tests, first-ever coverage for
+   `app/not-found.tsx`/`app/error.tsx`/`app/global-error.tsx`, route-integrity, and
+   `ToastContainer`'s a11y fix) plus 2 regression tests added directly into the existing
+   `login-form.test.tsx`/`register-form.test.tsx` harnesses for this session's own password-toggle
+   fixes. Final baseline: `tsc --noEmit` clean; `eslint --max-warnings 0` — same 4 pre-existing
+   warnings (unrelated routing-method lint, not a11y), 0 new; `test:ci` 149/149 suites, 2322/2322
+   tests (was 148/148, 2312/2312 — +1 suite/+10 tests, exactly this session's own new coverage).
 
 ## Known wrinkles / do-not-touch
 
@@ -145,4 +172,8 @@ Same-stack UI work; rollback is `git revert`.
 
 ## Next-session handoff
 
-Phase 6 complete! Phase 7 (API Client Rewrite — Session 7-1) is next.
+Phase 6 complete! Phase 7 (API Client Rewrite — Session 7-1) is next —
+`7-1-api-client-reverify-and-generate.migration-order.md` PRE-DRAFTed (CONTRACT/PORT hybrid, per
+the session playbook's own Session 7-1 "Re-verify + generate" entry). This is the first session
+to touch `lib/api/index.ts` since it was declared known-broken-by-design near the start of this
+migration (`EXECUTOR-PROTOCOL.md` §5) — not fast-path eligible.

@@ -3428,7 +3428,54 @@ system-operations.test.tsx` (11 tests) + `__tests__/api/admin-system-operations.
 
 </details>
 
+<details>
+<summary><strong>2026-08-11 — Session 6-12 (A11y + Responsive Audit / Phase 6 Exit Review, UI-BUILD)</strong></summary>
+
+Resolves `DECISION-LOG.md` F11 (all 59 gap-matrix rows triaged). Closes Phase 6. No new
+modules — a pure audit-and-fix pass across existing Phase 6 surfaces, zero flags touched, no
+cutover-table row.
+
+- **Deleted:** `app/test-api/page.tsx` (confirmed zero references anywhere in `app/`,
+  `components/`, `__tests__/` before removal).
+- **New:** `__tests__/pages/phase-6-exit.test.tsx` (8 tests — first-ever direct coverage for
+  `app/not-found.tsx`, `app/error.tsx`, `app/global-error.tsx`; a route-integrity check for the
+  `test-api` deletion; `ToastContainer`'s a11y fix).
+- **Modified — accessibility (18 fixes, 13 files):** `components/auth/login-form.tsx` (removed
+  `tabIndex={-1}` + added `aria-label` on the password toggle — was unreachable by keyboard, not
+  just unlabeled), `components/auth/register-form.tsx` (2 toggles), `app/(auth)/reset-password/
+page.tsx`, `app/(auth)/forgot-password/page.tsx` (2 toggles), `app/(dashboard)/settings/account/
+account-settings-client.tsx` (3 toggles), `app/(dashboard)/settings/security/page.tsx` (2FA
+  secret show/hide + copy button), `app/(dashboard)/settings/profile/page.tsx` (photo-upload
+  overlay button — was invisible on keyboard focus), `components/notifications/notification-
+list.tsx` (delete button), `components/ui/toast-container.tsx` (dismiss button, appears on every
+  page), `app/(dashboard)/admin/errors/page.tsx` + `app/(dashboard)/admin/users/page.tsx` +
+  `app/(dashboard)/alerts/alerts-client.tsx` (3 filter/search inputs relying on placeholder text
+  alone). Regression coverage added directly into the existing `__tests__/components/auth/
+{login-form,register-form}.test.tsx` harnesses rather than duplicated in the new file.
+- **Modified — responsive (8 fixes, 6 files):** `app/(dashboard)/admin/affiliates/page.tsx` +
+  `components/billing/invoice-list.tsx` (`overflow-hidden` → `overflow-x-auto` on 2 tables — was
+  clipping content instead of scrolling); `app/(dashboard)/admin/affiliates/page.tsx` (2 more
+  grids) + `app/(dashboard)/admin/affiliates/reports/{code-inventory,commission-owings,
+profit-loss,sales-performance}/page.tsx` (6 bare `grid-cols-3/4/5` stat-card/filter grids given a
+  `grid-cols-1/2` mobile default with `sm:`/`lg:` breakpoints restoring the original count).
+- **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again, this time with a
+  substantive false claim:** the order arrived modified-but-uncommitted asserting F11 already
+  resolved ("all 90 rows triaged") while the live gap matrix still showed every row unfilled
+  (footer: "F11 stays OPEN"), and the "90" figure itself was wrong (the real, deduplicated matrix
+  has 59 rows — 90 is the raw pre-dedup source register's own count). Reported both findings;
+  Davin confirmed live the rewrite was his own authentic authorization, and the real triage then
+  landed for real (verified against the file itself, not the claim alone) before CONFIRM.
+- **Regression:** `tsc --noEmit` clean throughout; `eslint app components lib hooks
+--max-warnings 0` — same 4 pre-existing warnings (unrelated routing-method lint), 0 introduced;
+  `test:ci` 149/149 suites, 2322/2322 tests (was 148/148, 2312/2312 — +1/+10, exactly this
+  session's own new coverage).
+- **Not done:** live click-through against a real deployed environment (same standing gap as
+  every Phase 6 session since 6-1b, Waiting-on #117) — this is Phase 6's own last session and
+  the gap is now inherited into Phase 7, not closed.
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-11 (Session 6-11, Admin System Operations)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-11 (Session 6-12, A11y + Responsive Audit / Phase 6 Exit Review — Phase 6 CLOSED)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

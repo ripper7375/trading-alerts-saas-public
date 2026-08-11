@@ -394,9 +394,11 @@ stripe/route.ts` is still 100% monolith-native: raw body read, `constructWebhook
      - `docs/files-completion-list/ui-page-gap-analysis.md` — the report
      - `docs/files-completion-list/ui-page-gap-register.xlsx` — 90-row register, 32 orphaned
        endpoints/models, 14 dead links
-  2. _"Which gaps do we build?"_ — **STILL OPEN.** This is Davin's product judgment and is the
-     entire point of Session 6-1. The priority column in the register is the Advisor's
-     recommendation, explicitly NOT a triage verdict.
+  2. _"Which gaps do we build?"_ — **ANSWERED, Session 6-12.** Davin's own row-by-row triage
+     landed live during that session's CONFIRM (all 59 rows of the re-verified
+     `phase-6-frontend-gap-matrix.md` — distinct from this register's own raw 90-row count —
+     marked `BUILT` / `VERIFIED` / `OUT_OF_SCOPE`), independently re-verified against the matrix
+     file itself before being treated as settled, not taken on the claim alone.
 - Evidence (headline findings, each verified against live code at file:line):
   - **Baseline reconciliation:** `ui-pages.xlsx` claims 54 pages; the codebase has 56 distinct
     routes. Rows 18 and 18-5 are the same dynamic route; three Admin detail pages
