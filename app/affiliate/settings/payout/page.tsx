@@ -95,7 +95,15 @@ export default function AffiliatePayoutSettingsPage(): React.ReactElement {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Payout Settings</h1>
         <p className="text-gray-600">
-          Manage the bank details your commissions are paid out to.
+          Manage the bank details your commissions are paid out to. This is the
+          single place to configure how you get paid — see your{' '}
+          <a
+            href="/affiliate/dashboard/payouts"
+            className="text-blue-600 underline hover:text-blue-800"
+          >
+            payout history
+          </a>{' '}
+          for past transfers.
         </p>
       </div>
 

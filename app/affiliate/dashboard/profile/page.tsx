@@ -116,15 +116,15 @@ export default function AffiliateProfilePage(): React.ReactElement {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      <div className="flex min-h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
       </div>
     );
   }
 
   if (error && !profile) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+      <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
         {error}
       </div>
     );
@@ -133,7 +133,7 @@ export default function AffiliateProfilePage(): React.ReactElement {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
           <p className="text-gray-600">Manage your affiliate profile</p>
@@ -141,7 +141,7 @@ export default function AffiliateProfilePage(): React.ReactElement {
         {!editing && (
           <button
             onClick={() => setEditing(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
           >
             Edit Profile
           </button>
@@ -149,23 +149,23 @@ export default function AffiliateProfilePage(): React.ReactElement {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
           {error}
         </div>
       )}
 
       {/* Profile Card */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="rounded-lg bg-white p-6 shadow-md">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Personal Information */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Personal Information
             </h2>
             {editing ? (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
                     Full Name
                   </label>
                   <input
@@ -174,11 +174,11 @@ export default function AffiliateProfilePage(): React.ReactElement {
                     onChange={(e) =>
                       setFormData({ ...formData, fullName: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
                     Country
                   </label>
                   <input
@@ -188,7 +188,7 @@ export default function AffiliateProfilePage(): React.ReactElement {
                       setFormData({ ...formData, country: e.target.value })
                     }
                     maxLength={2}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
                   />
                 </div>
               </div>
@@ -206,7 +206,7 @@ export default function AffiliateProfilePage(): React.ReactElement {
                   <dt className="text-sm text-gray-500">Status</dt>
                   <dd>
                     <span
-                      className={`px-2 py-1 text-xs font-medium rounded ${
+                      className={`rounded px-2 py-1 text-xs font-medium ${
                         profile?.status === 'ACTIVE'
                           ? 'bg-green-100 text-green-800'
                           : profile?.status === 'SUSPENDED'
@@ -232,7 +232,7 @@ export default function AffiliateProfilePage(): React.ReactElement {
 
           {/* Account Statistics */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Account Statistics
             </h2>
             <dl className="space-y-3">
@@ -270,16 +270,16 @@ export default function AffiliateProfilePage(): React.ReactElement {
       </div>
 
       {/* Social Media Links */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="rounded-lg bg-white p-6 shadow-md">
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">
           Social Media Links
         </h2>
         {editing ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {['twitter', 'youtube', 'instagram', 'facebook', 'tiktok'].map(
               (platform) => (
                 <div key={platform}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">
+                  <label className="mb-1 block text-sm font-medium capitalize text-gray-700">
                     {platform}
                   </label>
                   <input
@@ -296,14 +296,14 @@ export default function AffiliateProfilePage(): React.ReactElement {
                       })
                     }
                     placeholder={`https://${platform}.com/username`}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2"
                   />
                 </div>
               )
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {[
               { key: 'twitterUrl', label: 'Twitter' },
               { key: 'youtubeUrl', label: 'YouTube' },
@@ -334,21 +334,21 @@ export default function AffiliateProfilePage(): React.ReactElement {
       </div>
 
       {/* Payment Settings Link */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="rounded-lg bg-white p-6 shadow-md">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              Payment Settings
+              Payout Settings
             </h2>
             <p className="text-gray-600">
-              Current method: {profile?.paymentMethod?.replace('_', ' ')}
+              Manage the bank details your commissions are paid out to
             </p>
           </div>
           <Link
-            href="/affiliate/dashboard/profile/payment"
-            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200"
+            href="/affiliate/settings/payout"
+            className="rounded-md bg-gray-100 px-4 py-2 text-gray-700 hover:bg-gray-200"
           >
-            Manage Payment
+            Manage Payout Settings
           </Link>
         </div>
       </div>
@@ -358,14 +358,14 @@ export default function AffiliateProfilePage(): React.ReactElement {
         <div className="flex justify-end gap-4">
           <button
             onClick={() => setEditing(false)}
-            className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            className="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </button>
