@@ -157,7 +157,7 @@ export default function ProfitLossReportPage(): React.ReactElement {
           </div>
 
           {/* Summary Cards */}
-          <div className="mb-8 grid grid-cols-4 gap-6">
+          <div className="mb-8 grid grid-cols-2 gap-6 sm:grid-cols-4">
             <div className="rounded-lg bg-white p-6 shadow">
               <h3 className="text-sm font-medium text-gray-500">
                 Gross Revenue

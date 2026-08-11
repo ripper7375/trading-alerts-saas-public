@@ -350,7 +350,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
           {/* All Time Stats */}
           <div className="mb-8">
             <h2 className="mb-4 text-lg font-semibold">All Time Statistics</h2>
-            <div className="grid grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
               <div className="rounded-lg bg-white p-6 shadow">
                 <h3 className="text-sm font-medium text-gray-500">
                   Total Codes
@@ -399,7 +399,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                   : '1 Year'}
               )
             </h2>
-            <div className="grid grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
               <div className="rounded-lg bg-white p-6 shadow">
                 <h3 className="text-sm font-medium text-gray-500">
                   Distributed

@@ -97,9 +97,9 @@ export function InvoiceList({
   if (invoices.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium mb-2">No invoices yet</h3>
-        <p className="text-muted-foreground max-w-sm">
+        <FileText className="mb-4 h-12 w-12 text-muted-foreground" />
+        <h3 className="mb-2 text-lg font-medium">No invoices yet</h3>
+        <p className="max-w-sm text-muted-foreground">
           Your billing history will appear here after your first payment.
         </p>
       </div>
@@ -109,10 +109,10 @@ export function InvoiceList({
   return (
     <div className="space-y-4">
       {/* Invoice Table */}
-      <div className="border rounded-lg overflow-hidden">
+      <div className="overflow-x-auto rounded-lg border">
         <table className="w-full">
           <thead>
-            <tr className="border-b bg-muted/50">
+            <tr className="bg-muted/50 border-b">
               <th className="px-4 py-3 text-left text-sm font-semibold">
                 Date
               </th>
@@ -138,7 +138,7 @@ export function InvoiceList({
               return (
                 <tr
                   key={invoice.id}
-                  className={`border-b last:border-b-0 transition-colors hover:bg-muted/50 ${
+                  className={`hover:bg-muted/50 border-b transition-colors last:border-b-0 ${
                     isEven ? '' : 'bg-muted/30'
                   }`}
                 >
@@ -197,7 +197,7 @@ export function InvoiceList({
           <Button variant="outline" onClick={onLoadMore} disabled={isLoading}>
             {isLoading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Loading...
               </>
             ) : (

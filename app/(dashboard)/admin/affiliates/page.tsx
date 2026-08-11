@@ -132,7 +132,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
       </div>
 
       {/* Quick Links */}
-      <div className="mb-8 grid grid-cols-4 gap-4">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link
           href="/admin/affiliates/reports/profit-loss"
           className="rounded-lg bg-blue-50 p-4 transition-colors hover:bg-blue-100"
@@ -165,7 +165,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
 
       {/* Filters */}
       <div className="mb-6 rounded-lg bg-white p-4 shadow">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700">
               Status
@@ -225,7 +225,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
           <p className="mt-4 text-gray-600">Loading affiliates...</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg bg-white shadow">
+        <div className="overflow-x-auto rounded-lg bg-white shadow">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
