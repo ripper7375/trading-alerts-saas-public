@@ -3390,7 +3390,45 @@ settings/terms/page.tsx` rather than drafting an independent version; `settings/
 
 </details>
 
+<details>
+<summary><strong>2026-08-11 — Session 6-11 (Admin System Operations, UI-BUILD)</strong></summary>
+
+Closes all 4 ADMIN-SYSTEM-OPERATIONS gap-matrix rows (B2-14/15/16/17). Zero flags touched, no
+`DECISION-LOG.md` flag applies.
+
+- **New:** `lib/admin/system-jobs.ts` (the real 8-job cron registry, ids matching money-service's
+  `CronTriggerController` route segments exactly); `app/api/admin/system/terminals/route.ts` +
+  `app/(dashboard)/admin/system/terminals/page.tsx` (B2-14, live flask-api reachability check with
+  an honest `not_configured`/`restricted`/`offline`/`degraded`/`online` discriminant);
+  `app/api/admin/system/jobs/[jobId]/trigger/route.ts` + `app/(dashboard)/admin/system/jobs/
+page.tsx` (B2-15, re-scoped at CONFIRM to money-service's real `CronTriggerController` — see
+  this session's own close-out for the full finding); `app/api/admin/system/outbox/retry/
+route.ts` + `app/(dashboard)/admin/system/outbox/page.tsx` +
+  `components/admin/system/retry-failed-events-button.tsx` (B2-16, real `OutboxEvent` groupBy
+  counts + FAILED-row retry); `app/(dashboard)/admin/system/config-history/page.tsx` (B2-17,
+  real `SystemConfigHistory` rows or honest empty state); `__tests__/pages/admin/
+system-operations.test.tsx` (11 tests) + `__tests__/api/admin-system-operations.test.ts` (10
+  tests, beyond the order's own literal Step 5 scope — closes a real coverage gap on the 3 new
+  routes).
+- **Modified:** `app/(dashboard)/admin/layout.tsx` (4 new `adminNavItems` entries; the hardcoded,
+  always-green "All systems operational" sidebar claim replaced with a plain link to the real
+  terminals check).
+- **CONFIRM found B2-15's own job list and "last run" framing materially wrong** — the monolith's
+  8 `app/api/cron/*` routes stopped being scheduled at Session 4A-3 (`vercel.json`'s `crons` is
+  empty); neither service persists cron run-history anywhere. Re-scoped live with Davin: honest
+  "Managed by Money-Service Scheduler" status, no fabricated timestamps, Run Now forwards to the
+  real `CronTriggerController` via the shared `CRON_SECRET`.
+- **Regression:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` — same
+  4 pre-existing warnings, 0 introduced; `test:ci` 148/148 suites, 2312/2312 tests (was 146/146,
+  2291/2291 — +2/+21, exactly this session's own new files).
+- **Not done:** live click-through against a real deployed environment (same standing gap as
+  every Phase 6 session since 6-1b, Waiting-on #117); real flask-api live status not
+  independently re-verified (last known OFFLINE, Waiting-on #101); whether money-service's own
+  `CRON_SECRET` value matches the monolith's is assumed, not verified (Waiting-on #128).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-11 (Session 6-10, Public/Marketing Surface)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-11 (Session 6-11, Admin System Operations)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

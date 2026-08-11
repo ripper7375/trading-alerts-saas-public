@@ -1,116 +1,134 @@
 # Migration Order — Session 6-11 — Admin System Operations
 
-> For a session that closes the ADMIN-SYSTEM-OPERATIONS gap-matrix rows assigned to it
+> For a session that **closes the 4 ADMIN-SYSTEM-OPERATIONS gap-matrix rows** assigned to it
 > (B2-14, B2-15, B2-16, B2-17) — builds `/admin/system/terminals`, `/admin/system/jobs`,
 > `/admin/system/outbox`, and `/admin/system/config-history` under the consolidated admin
-> tree (F62, Session 6-2). Adapted from `TEMPLATE-UI-BUILD.md`, dial HIGH for the new admin
-> UI, LOW for data (all 4 pages read existing, live backend state — no new business logic).
+> tree (F62, Session 6-2) and wires them into `app/(dashboard)/admin/layout.tsx`. Adapted from
+> `TEMPLATE-UI-BUILD.md`, dial **HIGH for system operations visual polish and layout**.
 
-**Session:** 6-11 · **Phase:** Phase 6 (Frontend Redesign) · **Variant:** UI-BUILD · **Status:**
-PRE-DRAFT · **Generated:** 2026-08-11 (at Session 6-10 close) · **Flags touched:** none expected ·
-**Estimated time:** ~4-6h (4 rows, all flagged "not independently re-checked" by the gap-matrix
-session itself — re-verify every citation at CONFIRM per `LESSONS-LEARNED.md` L27)
-
-**Surface:** `app/(dashboard)/admin/system/terminals/page.tsx`,
-`app/(dashboard)/admin/system/jobs/page.tsx`, `app/(dashboard)/admin/system/outbox/page.tsx`,
-`app/(dashboard)/admin/system/config-history/page.tsx` (all new), plus whatever admin-nav entry
-point makes all 4 reachable (likely `components/layout/admin-nav.tsx` or equivalent — verify the
-real component name/path at CONFIRM, not assumed here).
-
-**Feeds on:** `docs/migration-orders/phase-6-frontend-gap-matrix.md` rows B2-14/B2-15/B2-16/B2-17.
+**Session:** 6-11 · **Phase:** Phase 6 (Frontend Redesign) · **Variant:** UI-BUILD · **Status:** CONFIRMED · **Generated:** 2026-08-10 ·
+**Flags touched:** none · **Estimated time:** ~4-5h
+**Surface:** `app/(dashboard)/admin/system/terminals/page.tsx` (new), `app/(dashboard)/admin/system/jobs/page.tsx` (new), `app/(dashboard)/admin/system/outbox/page.tsx` (new), `app/(dashboard)/admin/system/config-history/page.tsx` (new), [`app/(dashboard)/admin/layout.tsx`](<file:///d:/SaaS%20Project/trading-alerts-saas-public/app/(dashboard)/admin/layout.tsx>) (admin nav entries) ·
+**Feeds on:** `flask-api` health/terminals endpoints (or graceful offline fallback), `/api/cron/*` endpoints, `OutboxEvent` Prisma model, `SystemConfigHistory` Prisma model, `phase-6-frontend-gap-matrix.md` rows B2-14..17.
 
 ---
 
 ## Context
 
-Four rows from `phase-6-frontend-gap-matrix.md`, **re-verify every citation at CONFIRM** per
-`LESSONS-LEARNED.md` L27 (order text drifts from its own cited ground truth — this pattern has
-recurred in nearly every Phase 6 session so far) — this PRE-DRAFT was authored from the gap
-matrix at Session 6-10's close, not from re-reading every target file in full. All 4 rows are
-explicitly flagged by the gap-matrix session itself as "not independently re-checked":
+Four rows from `phase-6-frontend-gap-matrix.md`, independently re-verified:
 
-- **B2-14 (`/admin/system/terminals`):** the gap matrix cites "5 OpenAPI endpoints (`flask-api`),
-  zero UI" — confirm the real endpoint list and response shapes against `flask-api`'s actual
-  OpenAPI spec before building anything; `flask-api` has been reported OFFLINE at least once this
-  migration (Waiting-on #101, Session 4B-18d) — check its live status before assuming this page
-  can show real data rather than an honest "service unavailable" state.
-- **B2-15 (`/admin/system/jobs`):** the gap matrix cites "8 `/api/cron/*` endpoints exist... no run
-  history/manual trigger UI" — confirm the real 8 endpoints and whether any already have a
-  manual-trigger mechanism (Session 4A-3's own crons-cutover work built one) before designing a
-  new one from scratch.
-- **B2-16 (`/admin/system/outbox`):** the gap matrix confirms `OutboxEvent`/`OutboxPublisherCron`
-  are genuinely live in production (`DECISION-LOG.md` F14, Session 4A-12) — this is the one row
-  with real, already-verified backend liveness; re-confirm the schema/model shape hasn't drifted
-  since, then build a real admin view (event counts by status, recent failures) rather than a mock.
-- **B2-17 (`/admin/system/config-history`):** the gap matrix cites "`SystemConfigHistory` model
-  referenced in schema" but its absence from the UI was NOT independently re-checked — confirm the
-  model actually exists and has real rows before building a page around it; if it's an empty or
-  unused table, that changes the page's own honest framing (same discipline as the 6-10 `/careers`/
-  F64 precedent — do not fabricate history rows).
+- **B2-14 (`/admin/system/terminals`):** Terminals and `flask-api` monitoring. Performs a live reachability check against `flask-api`; if online, displays active terminals and telemetry; if offline (Waiting-on #101), renders an honest "Service Offline / Attempting Reconnection" status alert card rather than throwing unhandled errors or fabricating metrics.
+- **B2-15 (`/admin/system/jobs`):** Cron and scheduled jobs manager (`/api/cron/*`). Lists all scheduled jobs (outbox publisher, alert cleaner, subscription checker, affiliate payout batching), displaying last run timestamp, execution status, and manual "Run Now" trigger buttons.
+- **B2-16 (`/admin/system/outbox`):** Outbox event queue monitor (`OutboxEvent` Prisma model). Displays event counts by status (`PENDING`, `PROCESSED`, `FAILED`), failure logs, and manual retry controls.
+- **B2-17 (`/admin/system/config-history`):** System configuration audit log (`SystemConfigHistory` Prisma model). Displays audit log entries (timestamp, modified by, config key, old/new values) with an honest empty state if no edits exist.
+- **Admin Nav Integration:** Integrates all 4 new pages into `adminNavItems` in `app/(dashboard)/admin/layout.tsx`.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> **`flask-api` availability (B2-14):** if `flask-api` is confirmed offline at CONFIRM (matching
-> the standing Waiting-on #101 gap), does this session still build `/admin/system/terminals` with
-> an honest "service unavailable" state, or defer the row until `flask-api` is restored? Not
-> decided here — needs Davin's call once CONFIRM re-checks live status.
+> **`flask-api` Offline Fallback (B2-14):** `/admin/system/terminals` checks `flask-api` reachability dynamically. If `flask-api` is offline, the page renders an honest "Service Unavailable — Attempting Reconnection" alert card. Fabricating fake "operational" data is strictly forbidden.
 
 > [!NOTE]
-> **No fabricated data, per the F64/6-1b and 6-10 `/status`/`/careers` precedent:** every one of
-> these 4 pages reads real backend state (even if that state is "zero rows" or "service down") —
-> none may show mocked/hardcoded "healthy" indicators.
+> **Admin Navigation Integration:** All 4 new system operations routes (`/admin/system/*`) are added to `adminNavItems` in `app/(dashboard)/admin/layout.tsx` so they are accessible from the sidebar.
 
 ## Entry criteria
 
-- [ ] Session 6-10 CONFIRMED, executed, closed (2026-08-11 — see `CLAUDE.md` Current entry).
-- [ ] All 4 rows re-verified live at CONFIRM — all 4 are flagged "not independently re-checked" by
-      the gap-matrix session itself; none may be trusted from the matrix's own citation alone.
-- [ ] `flask-api`'s live status re-checked (Waiting-on #101) — confirms B2-14's actual scope.
-- [ ] Monolith baseline re-measured at CONFIRM (`tsc --noEmit`, `eslint app components lib hooks
-  --max-warnings 0` clean [4 pre-existing warnings], `test:ci` — last known at 6-10's close:
-      146/146 suites, 2291/2291 tests).
-- [ ] Advisor DRAFT review + Davin APPROVED before CONFIRM — not fast-path eligible (B2-14's
-      `flask-api`-availability question is a real, undecided scope question).
+- [x] Session 6-10 CONFIRMED, executed, closed (2026-08-11 — see `CLAUDE.md` Current entry).
+- [x] All 4 rows (B2-14..17) re-verified live at CONFIRM — B2-16 held exactly; B2-14/17 held at
+      the existence level; **B2-15 was found materially wrong** (its own "outbox
+      publisher/alert cleaner/subscription checker/affiliate batching" job list and "last run"
+      framing don't match reality — see Deviation 1) and re-scoped with Davin's live direction
+      before Step 2 was built.
+- [x] `flask-api` reachability & offline alert handling resolved — dynamic check + honest
+      `not_configured`/`restricted`/`offline`/`degraded`/`online` discriminant (Step 1); real
+      flask-api live status not independently re-verified this session (last known OFFLINE at
+      Session 4B-18d, 2026-08-03 — Waiting-on #101, unchanged, the honest-fallback design handles
+      either state).
+- [x] Admin navigation integration defined in `app/(dashboard)/admin/layout.tsx` — confirmed live,
+      `adminNavItems` array, 8 pre-existing entries; 4 new entries added Step 4.
+- [x] Monolith baseline re-measured at CONFIRM — exact match: `tsc --noEmit` clean;
+      `eslint app components lib hooks --max-warnings 0` → 4 pre-existing warnings, 0 errors;
+      `test:ci` 146/146 suites, 2291/2291 tests.
+- [x] Davin APPROVED live in chat, 2026-08-11 — the PRE-DRAFT→APPROVED rewrite (no DRAFT-stage
+      commit trail, the recurring `LESSONS-LEARNED.md` L11 pattern) confirmed as his own
+      authentic authorization before execution.
 
 ## Integration points
 
-- **In:** `flask-api` OpenAPI spec (read-only, B2-14), `/api/cron/*` endpoints (read-only, B2-15),
-  `OutboxEvent`/`OutboxPublisherCron` Prisma models (read-only, B2-16), `SystemConfigHistory`
-  Prisma model (read-only, B2-17).
-- **Out:** no `operation-service`/`money-service` changes expected; no new cron/job-trigger
-  mechanism unless B2-15's own re-verification finds a real gap worth closing (decide at CONFIRM,
-  not assumed here).
-- **Owns:** the 4 new page files listed under Surface above, plus the admin-nav entry point(s)
-  needed to make them reachable (all 23 admin pages already share one nav tree since F62/Session
-  6-2 — verify the real component before assuming which file to edit).
+- **In:** `flask-api` health/terminals endpoints, `/api/cron/*` endpoints, `OutboxEvent` Prisma model, `SystemConfigHistory` Prisma model.
+- **Out:** No backend service changes.
+- **Owns:** 4 new page files under `app/(dashboard)/admin/system/*` and `app/(dashboard)/admin/layout.tsx`.
 
 ## Ordered steps
 
-_(to be finalized at DRAFT — this PRE-DRAFT intentionally leaves step-level detail for the
-Advisor/CONFIRM pass, per the same discipline Session 6-10's own PRE-DRAFT used before its own
-DRAFT/APPROVED rewrite)_
+### Step 1 — Build Terminals & Flask API Monitor Page (`/admin/system/terminals`) (B2-14)
 
-1. Re-verify all 4 rows' real backend state (`flask-api` OpenAPI + live status, `/api/cron/*` list,
-   `OutboxEvent` schema, `SystemConfigHistory` schema + row count) before writing any page.
-2. Build `/admin/system/terminals` (B2-14) — scope contingent on `flask-api`'s live status.
-3. Build `/admin/system/jobs` (B2-15) — run history + manual trigger if a real mechanism exists.
-4. Build `/admin/system/outbox` (B2-16) — real event counts/status/recent-failures view.
-5. Build `/admin/system/config-history` (B2-17) — honest empty-state if the table has no rows.
-6. Unit tests for all 4 pages; wire admin-nav entries.
+- Create `app/(dashboard)/admin/system/terminals/page.tsx`:
+  - Perform live reachability check against `flask-api`.
+  - If connected, render active terminal sessions and telemetry metrics.
+  - If offline, render a clean "Service Unavailable / Attempting Reconnection" status alert card.
+- _Verify:_ Page renders live telemetry when online, or "Service Unavailable" alert card when `flask-api` is offline without unhandled exceptions.
+- _Commit:_ `feat(6-11): build /admin/system/terminals page with live flask-api reachability check`
+
+### Step 2 — Build Scheduled Jobs & Cron Manager Page (`/admin/system/jobs`) (B2-15)
+
+- Create `app/(dashboard)/admin/system/jobs/page.tsx`:
+  - List `/api/cron/*` scheduled jobs (outbox publisher, alert cleaner, subscription checker, affiliate batching).
+  - Display last run timestamp, execution status badges, and manual "Run Now" trigger buttons calling `/api/cron/*`.
+- _Verify:_ Jobs list compiles, renders status badges, and manual trigger button calls target cron API.
+- _Commit:_ `feat(6-11): build /admin/system/jobs page with cron execution monitoring`
+
+### Step 3 — Build Outbox Event Queue Monitor Page (`/admin/system/outbox`) (B2-16)
+
+- Create `app/(dashboard)/admin/system/outbox/page.tsx` (server component querying `OutboxEvent`):
+  - Render event counts grouped by status (`PENDING`, `PROCESSED`, `FAILED`).
+  - Display recent failure logs table and "Retry Failed Events" action.
+- _Verify:_ Outbox page compiles, displays event queue metrics, and renders failure logs.
+- _Commit:_ `feat(6-11): build /admin/system/outbox page for OutboxEvent queue monitoring`
+
+### Step 4 — Build Config Audit History Page & Wire Admin Navigation (`/admin/system/config-history`) (B2-17)
+
+- Create `app/(dashboard)/admin/system/config-history/page.tsx` (server component querying `SystemConfigHistory` with honest empty state).
+- Update [`app/(dashboard)/admin/layout.tsx`](<file:///d:/SaaS%20Project/trading-alerts-saas-public/app/(dashboard)/admin/layout.tsx>) to add System Operations navigation items to `adminNavItems`.
+- _Verify:_ Config history page renders audit log or honest empty state; all 4 system ops pages are reachable from admin nav sidebar.
+- _Commit:_ `feat(6-11): build /admin/system/config-history page and wire system ops into admin nav`
+
+### Step 5 — Unit Tests for Admin System Operations Pages
+
+- Create `__tests__/pages/admin/system-operations.test.tsx` covering:
+  - Terminals page offline fallback alert.
+  - Scheduled jobs listing and manual trigger.
+  - Outbox event queue metrics and status badges.
+  - Config history page rendering and empty state.
+- _Verify:_ `test:ci` runs clean with all new and existing tests passing.
+- _Commit:_ `test(6-11): add unit tests for admin system operations pages`
 
 ## Rules specific to this variant
 
-- **UI Creativity (Dial HIGH)** for layout/visual polish.
-- **Data Discipline (Dial LOW):** every page reads real backend state — no fabricated "healthy"/
-  "operational" indicators (same discipline as 6-10's `/status` and `/careers` pages).
-- **No orphan creation:** each page must be reachable from the admin nav once built.
+- **UI Creativity (Dial HIGH):** High visual polish on system metrics, status badges, queue counters, and log tables.
+- **Data Discipline (Dial LOW):** Real backend state only — no fabricated "operational" metrics.
+- **Admin Nav Integration:** All 4 pages reachable from sidebar nav.
+- **A11y Standards:** ARIA labels, semantic headings, and clean focus states.
 
 ## Done when
 
-- [ ] All 4 rows (`terminals`, `jobs`, `outbox`, `config-history`) have either a real page reading
-      live backend state, or a documented, deliberate deferral with Davin's explicit sign-off.
-- [ ] `tsc --noEmit` clean; `eslint --max-warnings 0` introduces 0 new warnings; `test:ci` green.
+- [x] `/admin/system/terminals` live with `flask-api` reachability & offline alert card
+      (`not_configured`/`restricted`/`offline`/`degraded`/`online`, per Davin's #4 direction).
+- [x] `/admin/system/jobs` live — lists money-service's real 8 scheduled jobs (not the monolith's
+      unscheduled duplicates) with an honest "Managed by Money-Service Scheduler" badge, no
+      fabricated run-history timestamps, and confirmation-gated Run Now buttons forwarding to
+      money-service's real `CronTriggerController`, per Davin's #2 direction.
+- [x] `/admin/system/outbox` live displaying real `OutboxEvent` queue counts by status, recent
+      FAILED rows, and a Retry action that resets FAILED→PENDING with a fresh attempt budget.
+- [x] `/admin/system/config-history` live displaying real `SystemConfigHistory` rows or an honest
+      empty state (table has zero writers anywhere in the codebase today).
+- [x] All 4 pages wired into `adminNavItems` in `app/(dashboard)/admin/layout.tsx`; the
+      hardcoded, always-green "All systems operational" sidebar claim replaced with a plain link
+      to the real terminals check, per Davin's #3 direction.
+- [x] `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` → same 4
+      pre-existing warnings, 0 new; `test:ci` 148/148 suites, 2312/2312 tests (was 146/146,
+      2291/2291 — +2 suites/+21 tests, exactly this session's own new files, zero regressions
+      elsewhere).
 
 ## Rollback
 
@@ -118,23 +136,65 @@ Same-stack UI work; rollback is `git revert`.
 
 ## Retire
 
-N/A — no existing code retired by this session (new pages + nav wiring only).
+N/A.
 
 ## Deviations
 
-_(filled during execution)_
+1. **B2-15's own job list and "last run" framing were factually wrong, found at CONFIRM before
+   writing any code.** `vercel.json`'s `crons` array has been empty since Session 4A-3 —
+   `migration-cutover-table.md`'s Slice 1 row confirms "money-service's own scheduler is now the
+   sole live execution path." The 8 monolith `app/api/cron/*` routes still compile and still
+   contain live business logic, but are no longer scheduled by anything — a monitoring page built
+   against them (as the order's own Step 2 text literally described) would show stale/dead-path
+   status, not what actually runs in production. "Outbox publisher" and "alert cleaner" (named in
+   the order's job list) don't correspond to any of the 8 real files at all. Separately, neither
+   the monolith nor money-service persists any cron run-history anywhere — "last run timestamp"
+   as literally promised had no real data source, and the order's own "Out: No backend service
+   changes" ruled out adding one. Reported in full at CONFIRM; Davin's live resolution (his #2):
+   display the 8 real jobs with an honest "Managed by Money-Service Scheduler / Real-Time
+   Scheduled" status and no fabricated timestamps; wire Run Now to trigger the real jobs. Built
+   Run Now against money-service's own `CronTriggerController` (`POST /v1/cron-trigger/<id>`, the
+   real production execution surface, mirrors the "manual trigger" mechanism that controller's own
+   header comment says it exists for) rather than the monolith's now-dead duplicates — reusing the
+   `CRON_SECRET` value both services' guards are designed to share (money-service's own
+   `cron-secret.guard.ts` header comment: "mirrors the CRON_SECRET protection every source route
+   had"). Each trigger's result is rendered ephemerally (this-session-only), never persisted,
+   consistent with "no fabricated run-history."
+2. **The admin layout's own hardcoded "All systems operational" claim, found while reading the
+   file this session was already about to edit for nav wiring.** `app/(dashboard)/admin/layout.tsx`
+   (pre-existing, lines 143-152) unconditionally rendered a green pulsing dot and "All systems
+   operational" — directly contradicting this same session's own Data Discipline rule on the
+   pages built right next to it. Flagged and confirmed in scope (Davin's #3): replaced with a
+   plain link to the real `/admin/system/terminals` check rather than adding a second live status
+   computation to every admin page's own render path (would add network/DB latency to every admin
+   page load for a claim the sidebar itself doesn't need to make).
+3. **`/admin/system/terminals`'s admin-key handling, scoped explicitly by Davin (his #4) before
+   Step 1 was written.** `MT5_ADMIN_API_KEY` is documented (`docs/secret-matrix.md`) as
+   `.env.example`-only, absent from live `.env`/`.env.local` — so the route checks for its
+   presence server-side FIRST and returns an honest `not_configured` state without ever calling
+   flask-api, distinct from a `restricted` state (key present, rejected with 401/403) and an
+   `offline` state (network-unreachable). All three render as informative, non-alarming cards, not
+   generic error boundaries.
+4. **Base URL env var chosen deliberately, not guessed.** `docs/secret-matrix.md` documents 3
+   competing names for the same concept (`MT5_SERVICE_URL`, `MT5_API_URL`, `FLASK_MT5_URL`) as
+   known drift. Used `MT5_SERVICE_URL` — the one actually present in live `.env`/`.env.local` per
+   that same doc, and the one `lib/monitoring/system-monitor.ts` (an orphaned but real,
+   zero-importer precursor to this session's own check) already established as the live
+   convention.
+5. **Beyond the order's own Step 5 scope, added a second test file** (`__tests__/api/
+admin-system-operations.test.tsx`, 10 tests) covering the 3 new API routes directly (auth
+   gating, the flask-api discriminant branches, the money-service trigger forward with the real
+   `Authorization: Bearer <CRON_SECRET>` header, the outbox bulk reset) — closes a real
+   test-coverage gap on freshly-written server-side code, matching this migration's established
+   L28-class precedent, not required by the order's own literal text.
 
 ## Known wrinkles / do-not-touch
 
 - `lib/api/index.ts` stays untouched (`EXECUTOR-PROTOCOL.md` §5).
 - `frontend/` mirror tree is out of scope (`EXECUTOR-PROTOCOL.md` §5).
 - RiseWorks stays archived (F42).
-- `DECISION-LOG.md` **F49** (dLocal `payment_method_flow`), **F60** (Stripe webhook cutover), and
-  **F64** (subscription-card Undo flow) stay open, non-blocking.
-- `flask-api` offline status (Waiting-on #101) may narrow B2-14's real scope — do not assume it's
-  back online without checking.
+- `DECISION-LOG.md` **F49** (dLocal `payment_method_flow`), **F60** (Stripe webhook cutover), and **F64** (subscription-card Undo flow) stay open, non-blocking.
 
 ## Next-session handoff
 
-Session **6-12** (a11y + responsive + Phase 6 exit review, was 6-9) is next in Phase 6 — the last
-session before Phase 6 closes.
+Session **6-12** (a11y + responsive + Phase 6 exit review — final session before Phase 6 closes!) is next in Phase 6.

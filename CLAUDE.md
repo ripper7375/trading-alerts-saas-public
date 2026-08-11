@@ -26,7 +26,84 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 6-10 (Public / Marketing Surface, UI-BUILD variant, dial HIGH for visual
+- **Current:** Session 6-11 (Admin System Operations, UI-BUILD variant, dial HIGH for system
+  operations visual polish and layout), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same
+  day as Session 6-10. **Closes all 4 ADMIN-SYSTEM-OPERATIONS gap-matrix rows assigned to it
+  (B2-14, B2-15, B2-16, B2-17).** No flags touched, no `DECISION-LOG.md` flag resolved (none was
+  open for this session).
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again**: the order arrived
+  modified-but-uncommitted, `PRE-DRAFT → APPROVED`, with the committed PRE-DRAFT's own explicit
+  open question on B2-14 ("does this session still build... or defer? Not decided here — needs
+  Davin's call") silently resolved, its own explicit "not fast-path eligible" framing dropped, and
+  a full 5-step Ordered Steps section added — no DRAFT-stage commit trail (a `Generated:
+2026-08-10` date on the working copy even predating the committed PRE-DRAFT's own `Generated:
+2026-08-11`). Reported in full before proceeding; Davin confirmed live it was his own authentic
+  authorization.
+  **A real, substantive gap found and reported at CONFIRM, not just a citation drift:** the
+  order's own B2-15 (`/admin/system/jobs`) text — "List `/api/cron/*` scheduled jobs (outbox
+  publisher, alert cleaner, subscription checker, affiliate batching)... displaying last run
+  timestamp" — doesn't match live reality. `vercel.json`'s `crons` array has been empty since
+  Session 4A-3; `migration-cutover-table.md`'s own Slice 1 row confirms money-service's
+  `CronsScheduler` (`@Cron()` decorators) is "the sole live execution path," not the monolith's 8
+  `app/api/cron/*` routes (still compiling, still live logic, but genuinely unscheduled).
+  "Outbox publisher" and "alert cleaner" don't correspond to any of the real 8 job names at all,
+  and neither service persists any run-history anywhere — "last run timestamp" had no real data
+  source, directly contradicting the order's own "Out: No backend service changes." Davin
+  resolved live (his #2): show the real 8 jobs with an honest "Managed by Money-Service Scheduler"
+  status, no fabricated timestamps, Run Now wired to trigger the real jobs. Also confirmed live:
+  his #1 (the L11 rewrite is authentic), #3 (clean up the admin layout's own hardcoded "All
+  systems operational" claim, found while reading the file this session was already editing for
+  nav wiring — replaced with a plain link to the real terminals check rather than adding a live
+  status computation to every admin page's render path), and #4 (handle `MT5_ADMIN_API_KEY`
+  absence/rejection with informative, non-alarming alert cards, distinct from a genuine
+  network-unreachable state).
+  **Built (5 Ordered Steps, one commit each):** Step 1 — `app/api/admin/system/terminals/route.ts`
+  (server-side flask-api reachability check, `MT5_SERVICE_URL` — the env var actually live per
+  `docs/secret-matrix.md`, not the `.env.example`-only `MT5_API_URL` — returns an honest
+  `not_configured`/`restricted`/`offline`/`degraded`/`online` discriminant, never fabricates
+  "operational"; found and reused `lib/monitoring/system-monitor.ts`'s established `MT5_SERVICE_URL`
+  convention, itself real but orphaned, zero importers anywhere) + `app/(dashboard)/admin/system/
+terminals/page.tsx` (client component, 30s poll, real telemetry table + stats when online). Step
+  2 — new `lib/admin/system-jobs.ts` (the real 8-job registry, ids matching money-service's
+  `CronTriggerController` route segments exactly) + `app/api/admin/system/jobs/[jobId]/trigger/
+route.ts` (forwards to money-service's real `POST /v1/cron-trigger/<jobId>` using the `CRON_SECRET`
+  value both services' guards are designed to share, per that guard's own header comment) +
+  `app/(dashboard)/admin/system/jobs/page.tsx` (AlertDialog-confirmed Run Now per job, ephemeral
+  this-session-only result display, zero persisted history). Step 3 — `app/api/admin/system/
+outbox/retry/route.ts` (bulk `updateMany` FAILED→PENDING with a fresh attempt budget so
+  money-service's `OutboxPublisherCron`, F14, picks rows back up) + `app/(dashboard)/admin/system/
+outbox/page.tsx` (server component, real `groupBy` counts + recent FAILED rows) +
+  `components/admin/system/retry-failed-events-button.tsx` (client island, `router.refresh()` on
+  success). Step 4 — `app/(dashboard)/admin/system/config-history/page.tsx` (server component,
+  real `SystemConfigHistory` rows or an honest empty state — confirmed zero readers/writers
+  anywhere in the codebase today) + `app/(dashboard)/admin/layout.tsx` (4 new `adminNavItems`
+  entries + the "All systems operational" cleanup). Step 5 — 21 new tests: 11 page tests
+  (`__tests__/pages/admin/system-operations.test.tsx`) plus, beyond the order's own literal
+  scope, 10 route tests (`__tests__/api/admin-system-operations.test.ts`) closing a real
+  test-coverage gap on the freshly-written server-side code (auth gating, all 4 flask-api
+  discriminant branches, the money-service trigger's real Bearer-header forward, the outbox bulk
+  reset) — an L28-class addition, not required by the order's own text.
+  **Full verification:** `tsc --noEmit` clean throughout, re-checked after every step; `eslint
+app components lib hooks --max-warnings 0` — same 4 pre-existing warnings, 0 introduced; `test:ci`
+  **148/148 suites, 2312/2312 tests** (was 146/146, 2291/2291 — +2 suites/+21 tests, exactly this
+  session's own new files, zero regressions elsewhere). Live browser click-through not attempted
+  this session — same standing gap as every Phase 6 session since 6-1b (Waiting-on #117).
+  **No flag, no cutover-table row** — same-stack UI/admin-ops work, no flag existed to touch or
+  retire; `migration-cutover-table.md` unchanged.
+  **Artifacts updated:** `6-11-admin-system-operations.migration-order.md` (Status → CONFIRMED,
+  executed, CLOSED SUCCESSFUL; Entry criteria all checked; Done-when all checked; Deviations
+  filled in full — 5 entries), `migration-stack-analysis.md` (new Session 6-11 entry, 12 new
+  files + 1 modified), this file (session-history hygiene: Session 6-10's own full text demoted
+  to Previous below; Session 6-8's own full text marked superseded-by-above, still needs its own
+  move to `history/sessions-archive.md` — the larger pre-existing backlog flagged at Waiting-on
+  #102 is unchanged, still needs its own dedicated cleanup session), `LESSONS-LEARNED.md` (one
+  unpromoted candidate note added to the header — file stays at 64 numbered entries, past cap,
+  consolidation still overdue — the dead-scheduling-endpoints-still-compile finding is a specific
+  instance of checking cutover state before trusting route/file citations, not a new failure
+  class distinct enough to warrant its own numbered entry). New
+  `6-12-...migration-order.md` PRE-DRAFTed (a11y + responsive + Phase 6 exit review, per this
+  order's own Next-session handoff — the final session before Phase 6 closes).
+- **Previous:** Session 6-10 (Public / Marketing Surface, UI-BUILD variant, dial HIGH for visual
   polish and content layouts), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as
   Session 6-8. **Closes all 12+ PUBLIC/MARKETING-surface gap-matrix rows assigned to it
   (B1-3, B1-4, B1-5, B2-1 through B2-12).** Resolves `DECISION-LOG.md` **F63**. No flags touched.
@@ -107,7 +184,9 @@ analysis.md` (new Session 6-10 entry, 16 new files + 1 modified), this file (ses
   #30/unchanged). New `6-11-admin-system-operations.migration-order.md` PRE-DRAFTed (UI-BUILD
   variant, `/admin/system/{terminals,jobs,outbox,config-history}`, B2-14/15/16/17) per this
   order's own Next-session handoff.
-- **Previous:** Session 6-8 (Payments / Checkout, UI-BUILD variant, dial HIGH for the 2 new landing
+- _(superseded-by-above, retained for context — still needs its own move to
+  `history/sessions-archive.md`, same standing backlog as Waiting-on #102)_ Session 6-8
+  (Payments / Checkout, UI-BUILD variant, dial HIGH for the 2 new landing
   pages, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as Session 6-7.
   **Closes the 4 PAYMENTS-surface gap-matrix rows assigned to it (F61/A1-7, A1-8, A2-8, A2-9).**
   Resolves `DECISION-LOG.md` **F61**. No flags touched.
@@ -4293,9 +4372,14 @@ affiliates/[affiliateId]` were both built new (the order assumed both already ex
   Current above). **Session 6-10 (Public / Marketing Surface) is now ALSO CONFIRMED, executed, and
   CLOSED SUCCESSFUL** (2026-08-11, same day as 6-8 — see Current above for full detail). F63
   RESOLVED; all 12 new/redirect pages built; the pruned marketing footer columns restored.
-  **The actual next session overall is now 6-11**
-  (`6-11-admin-system-operations.migration-order.md`, PRE-DRAFTed at 6-10's close) — admin system
-  operations (`/admin/system/{terminals,jobs,outbox}`, B2-14/15/16) is next in Phase 6. Two named
+  **Session 6-11 (Admin System Operations) is now ALSO CONFIRMED, executed, and CLOSED
+  SUCCESSFUL** (2026-08-11, same day as 6-10 — see Current above for full detail). All 4
+  `/admin/system/{terminals,jobs,outbox,config-history}` pages built; B2-15's own job list was
+  found materially wrong at CONFIRM (the monolith's 8 `/api/cron/*` routes stopped being
+  scheduled at Session 4A-3) and re-scoped live with Davin to point at money-service's real
+  scheduler instead. **The actual next session overall is now 6-12**
+  (`6-12-...migration-order.md`, PRE-DRAFTed at 6-11's close) — a11y + responsive + Phase 6 exit
+  review, the final session before Phase 6 closes. Two named
   Phase 4 exceptions run as their own independent tracks and do NOT block Phase 6:
   `DECISION-LOG.md` F49 (dLocal `payment_method_flow`, needs its own fix session) and F60
   (`4a-13-stripe-webhook-cutover.migration-order.md`, PRE-DRAFTed).
@@ -4308,8 +4392,9 @@ affiliates/[affiliateId]` were both built new (the order assumed both already ex
   built — done) → 6-7 (affiliate; payout consolidation, real Wise payout status, code inventory/
   statements/resources built — done) → 6-8 (payments/checkout; F61 resolved, checkout return +
   upgrade success pages built — done) → **6-10** (public/marketing surface; F63 resolved, 12 pages
-  built, footer restored — done) → **6-11** (NEW — admin system operations, next) → **6-12** (a11y +
-  responsive + phase exit; was 6-9). **Session number 6-9 is retired — do not reuse it.**
+  built, footer restored — done) → **6-11** (admin system operations; B2-15 re-scoped to
+  money-service's real scheduler, 4 pages built — done) → **6-12** (a11y +
+  responsive + phase exit; was 6-9, next). **Session number 6-9 is retired — do not reuse it.**
   **Per the chain-length-one rule (`00-SKELETON-AND-RULES.md` §1.5), 6-1 and 6-2 both got full
   order files** (6-2's own F62 scope made it not fast-path eligible, same reasoning). 6-1b, 6-10,
   6-11 and 6-12 are defined in the playbook and the v9 handbook, and each gets its own order
@@ -4462,6 +4547,23 @@ destination`) on `components/layout/header.tsx` (lines 85, 89) and
   scope — the order only named `app/(marketing)/layout.tsx`, not the dashboard footer); worth a
   future session repointing `components/layout/footer.tsx`'s "Privacy" link to the new public
   `/privacy` page (or adding a second link) if this confusion matters in practice.
+  **(128, NEW — Session 6-11, 2026-08-11)** `/admin/system/jobs`'s "Run Now" proxy
+  (`app/api/admin/system/jobs/[jobId]/trigger/route.ts`) forwards to money-service's
+  `POST /v1/cron-trigger/<jobId>` using `process.env['CRON_SECRET']` read from the monolith's own
+  (Vercel) environment, on the assumption that this is the SAME value set on money-service's own
+  (Railway) environment — inferred from `money-service/src/crons/cron-secret.guard.ts`'s own
+  header comment ("mirrors the CRON*SECRET protection every source route had") rather than
+  independently verified (verifying would mean reading a live secret value, out of scope for this
+  session). If the two values have ever diverged, every "Run Now" click will 401 with a real,
+  honest error shown in the UI (not silently succeed) — but worth Davin confirming the two are in
+  sync before relying on this feature for a real operational need.
+  **(129, NEW — Session 6-11, 2026-08-11)** Session 6-8's own full `CLAUDE.md` entry (now marked
+  `*(superseded-by-above, retained for context)\_`above) still needs its physical move to
+ `history/sessions-archive.md`— not done this session (a UI-BUILD session, not a hygiene
+  session; the risk of corrupting a multi-thousand-line file via a partial manual move outweighed
+  attempting it here). Adds to the same standing backlog as Waiting-on #102 — a future dedicated
+  cleanup session should walk the whole file once, per`EXECUTOR-PROTOCOL.md` §3's own rotation
+  rule, not just the newest entry each time.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,

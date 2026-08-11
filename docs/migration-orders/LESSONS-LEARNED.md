@@ -13,6 +13,13 @@ do it before adding more. Candidates promoted and preamble archived 2026-08-03; 
 per this file's own hygiene rule, detail moved to `LESSONS-ARCHIVE.md`. Full history in
 `LESSONS-ARCHIVE.md`.
 
+**Unpromoted candidate (Session 6-11, not added as a new numbered entry — file already past cap):**
+a cutover slice's old monolith endpoints can keep compiling, passing tests, and existing on disk
+long after the real traffic moved elsewhere (Slice 1's 8 `app/api/cron/*` routes, silently
+unscheduled since Session 4A-3's `vercel.json` cleanup) — before building admin/ops UI that
+monitors or triggers "the scheduled jobs," check `migration-cutover-table.md` for that slice's own
+row, not just that the route files exist.
+
 ---
 
 ## Active lessons
