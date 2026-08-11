@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useToast } from '@/hooks/use-toast';
 import { ToastContainer } from '@/components/ui/toast-container';
@@ -132,7 +133,9 @@ export default function SecuritySettingsPage(): React.ReactElement {
   // Login history state
   const [loginHistory, setLoginHistory] = useState<LoginHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isLoadingMoreHistory, setIsLoadingMoreHistory] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [historyHasMore, setHistoryHasMore] = useState(false);
 
   // Security preferences state
   const [preferences, setPreferences] = useState<SecurityPreferences>({
@@ -169,15 +172,27 @@ export default function SecuritySettingsPage(): React.ReactElement {
   const [regeneratePassword, setRegeneratePassword] = useState('');
   const codeInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Fetch login history
-  const fetchLoginHistory = useCallback(async () => {
-    setIsLoadingHistory(true);
+  // Fetch login history. `append` drives the "Load more" control -- the
+  // backend has always supported limit/offset pagination
+  // (app/api/user/login-history/route.ts); this page just never exposed it
+  // (post-6-12 gap-matrix correction, A1-9).
+  const fetchLoginHistory = useCallback(async (offset = 0, append = false) => {
+    if (append) {
+      setIsLoadingMoreHistory(true);
+    } else {
+      setIsLoadingHistory(true);
+    }
     setHistoryError(null);
     try {
-      const response = await fetch('/api/user/login-history?limit=20');
+      const response = await fetch(
+        `/api/user/login-history?limit=20&offset=${offset}`
+      );
       if (response.ok) {
         const data = await response.json();
-        setLoginHistory(data.history || []);
+        setLoginHistory((prev) =>
+          append ? [...prev, ...(data.history || [])] : data.history || []
+        );
+        setHistoryHasMore(Boolean(data.pagination?.hasMore));
       } else {
         setHistoryError('Failed to load login history');
       }
@@ -186,8 +201,13 @@ export default function SecuritySettingsPage(): React.ReactElement {
       setHistoryError('Failed to load login history');
     } finally {
       setIsLoadingHistory(false);
+      setIsLoadingMoreHistory(false);
     }
   }, []);
+
+  const handleLoadMoreHistory = useCallback(() => {
+    fetchLoginHistory(loginHistory.length, true);
+  }, [fetchLoginHistory, loginHistory.length]);
 
   // Fetch security preferences
   const fetchPreferences = useCallback(async () => {
@@ -1024,7 +1044,7 @@ export default function SecuritySettingsPage(): React.ReactElement {
           <Button
             variant="ghost"
             size="sm"
-            onClick={fetchLoginHistory}
+            onClick={() => fetchLoginHistory()}
             disabled={isLoadingHistory}
           >
             <RefreshCw
@@ -1132,10 +1152,54 @@ export default function SecuritySettingsPage(): React.ReactElement {
         </div>
 
         {loginHistory.length > 0 && (
-          <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-500">
-            Showing last {loginHistory.length} login attempts
-          </p>
+          <div className="mt-4 text-center">
+            {historyHasMore ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLoadMoreHistory}
+                disabled={isLoadingMoreHistory}
+              >
+                {isLoadingMoreHistory ? (
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                ) : null}
+                Load more
+              </Button>
+            ) : (
+              <p className="text-xs text-gray-500 dark:text-gray-500">
+                Showing {loginHistory.length} login attempt
+                {loginHistory.length === 1 ? '' : 's'}
+              </p>
+            )}
+          </div>
         )}
+      </section>
+
+      <Separator className="my-8" />
+
+      {/* Security Activity Section -- SecurityAlert has had real writers
+          (password/2FA flows above, new-device login) since Session 3-4
+          with no UI-reachable reader anywhere until this link + the new
+          /settings/security/activity page (post-6-12 gap-matrix
+          correction, A1-9/A2-12). */}
+      <section>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+              <Shield className="h-5 w-5" />
+              Security Activity
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Password changes, two-factor changes, and device/login alerts for
+              your account
+            </p>
+          </div>
+          <Link href="/settings/security/activity">
+            <Button variant="outline" size="sm">
+              View All Activity
+            </Button>
+          </Link>
+        </div>
       </section>
 
       {/* Toast Notifications */}
