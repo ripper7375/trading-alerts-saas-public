@@ -98,8 +98,10 @@
   CLOSED SUCCESSFUL; Entry criteria all checked; Done-when checked with 2 items marked
   superseded-not-failed per the Step 2 resolution; Deviations filled in full — 10 entries),
   `DECISION-LOG.md` (F61 → RESOLVED, full resolution entry), `migration-stack-analysis.md` (new
-  Session 6-8 entry, 3 new files + 3 modified), `LESSONS-LEARNED.md` (new unpromoted candidate —
-  the active file is now at 62 entries, far past its 40 cap, flagged again below), this file
+  Session 6-8 entry, 3 new files + 3 modified), `LESSONS-LEARNED.md` (new **L63** — once a
+  monolith write route forwards to a cut-over microservice, editing only the monolith copy of its
+  downstream logic has zero live effect; plus a recurrence note on L59 — the active file is now at
+  **63 entries**, further past its 40 cap, flagged again below), this file
   (session-history hygiene: Session 6-6's own full text moved to `history/sessions-archive.md`,
   matching this file's own rotation rule — the larger pre-existing backlog flagged at Waiting-on
   #102 is unchanged, still needs its own dedicated cleanup session). New
@@ -4433,15 +4435,16 @@ destination`) on `components/layout/header.tsx` (lines 85, 89) and
   — needs its own dedicated PORT/fix session, likely alongside whatever session next touches
   dLocal payment creation (possibly the same session that resolves F49's `payment_method_flow`
   gap, since both touch the same request-body construction).
-  **(124, NEW — Session 6-8, 2026-08-11)** `LESSONS-LEARNED.md` is now at **62 active entries** —
+  **(124, NEW — Session 6-8, 2026-08-11)** `LESSONS-LEARNED.md` is now at **63 active entries** —
   far past its stated 40 cap, flagged repeatedly since Sessions 4A-2/4A-4 (Waiting-on #30) with no
-  consolidation pass ever happening. This session found one more genuinely reusable pattern
-  (once a monolith write route has a flag-forwarding shim to money-service AND that flag is
-  cut over in production, editing only the monolith copy of downstream logic has zero live
-  effect — always check the cutover state for that specific slice first) but did NOT add it as a
-  new numbered entry, per the established precedent of not promoting into an already-over-cap
-  file; recorded instead in `6-8-payments-checkout.migration-order.md`'s own Deviations #10. This
-  backlog needs the Advisor's dedicated attention before the file grows further.
+  consolidation pass ever happening. Davin explicitly asked this session's own close-out to
+  harvest its genuinely new pattern anyway (new **L63** — once a monolith write route has a
+  flag-forwarding shim to money-service AND that flag is cut over in production, editing only the
+  monolith copy of downstream logic has zero live effect — always check the cutover state for
+  that specific slice first) rather than deferring it as an unpromoted candidate, plus a
+  recurrence note on **L59** (the stable-mock-reference pattern, hit again in this session's own
+  new test files). This backlog still needs the Advisor's dedicated consolidation pass — adding
+  L63 makes it one entry further over cap, not closer to resolved.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,

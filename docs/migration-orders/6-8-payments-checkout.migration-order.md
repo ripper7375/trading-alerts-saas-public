@@ -49,7 +49,7 @@ Four rows from `docs/files-completion-list/ui-page-gap-analysis.md`, independent
       (into `/checkout/return`); `validate-code`/`exchange-rate` stay orphaned, `DiscountCodeInput`/
       `PriceDisplay` stay on their existing, already-working endpoints.
 - [x] Monolith baseline re-measured at CONFIRM: `tsc --noEmit` clean; `eslint app components lib
-    hooks --max-warnings 0` → exactly the same 4 pre-existing warnings; `test:ci` 142/142
+  hooks --max-warnings 0` → exactly the same 4 pre-existing warnings; `test:ci` 142/142
       suites, 2261/2261 tests — exact match to 6-7's own close.
 - [x] Davin APPROVED before CONFIRM — confirmed live as his own authentic authorization (the
       uncommitted-rewrite pattern flagged at CONFIRM, matching `LESSONS-LEARNED.md` L11).
@@ -215,14 +215,17 @@ exchange-rate`, returns only `{currency,rate}` — wiring it as literally instru
    branch after the primary assertion settled), but it produced console noise and flaky-adjacent
    behavior. Fixed by hoisting stable `mockRouter`/`mockSearchParams` objects, per the same
    established pattern.
-10. **New `LESSONS-LEARNED.md` candidate, NOT promoted — the active file is now at 62 entries**
-    (already far past the stated 40 cap, flagged repeatedly since Session 4A-2/4A-4/6-7 without a
-    consolidation pass happening): once a monolith write route has a flag-forwarding shim to
-    money-service AND that flag is cut over in production, editing only the monolith copy of any
-    downstream logic (URL construction, response shaping, etc.) has zero live effect — always
-    check `migration-cutover-table.md`/`CLAUDE.md`'s own cutover state for that specific slice
-    before treating a monolith-side-only edit as sufficient, and mirror the change into the
-    money-service copy when it's the one actually serving traffic.
+10. **Harvested into `LESSONS-LEARNED.md` as new L63, at Davin's explicit direction despite the
+    active file already being at 62 entries** (far past the stated 40 cap, flagged repeatedly
+    since Sessions 4A-2/4A-4/6-7 without a consolidation pass happening): once a monolith write
+    route has a flag-forwarding shim to money-service AND that flag is cut over in production,
+    editing only the monolith copy of any downstream logic (URL construction, response shaping,
+    etc.) has zero live effect — always check `migration-cutover-table.md`/`CLAUDE.md`'s own
+    cutover state for that specific slice before treating a monolith-side-only edit as sufficient,
+    and mirror the change into the money-service copy when it's the one actually serving traffic.
+    Also added a short recurrence note to the existing **L59** (stable-mock-reference pattern),
+    hit again this session in both new page-level test files (Deviation 9). The consolidation
+    backlog itself is still not addressed — the file is now at 63 entries, one further over cap.
 
 ## Known wrinkles / do-not-touch
 
