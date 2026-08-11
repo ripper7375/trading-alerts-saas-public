@@ -79,13 +79,13 @@ export default function MarketingLayout({
       <footer className="bg-muted/50 border-t">
         <div className="container mx-auto px-4 py-12">
           {/*
-            A1-18/C-3 (Session 6-2): the Company and Resources columns were
-            pruned entirely -- every link they held (/about, /blog,
-            /careers, /docs, /help, /affiliate) pointed at a page that
-            doesn't exist yet. Do not add placeholder destinations here;
-            that's Session 6-10's job once those pages are actually built.
+            A1-18/C-3 (Session 6-2) pruned the Company and Resources columns
+            because every link they held pointed at a page that didn't exist
+            yet. Session 6-10 restores all four columns now that /about,
+            /docs, /blog, /changelog, /careers, /help, /affiliate, /terms,
+            /privacy, and /disclaimer are real pages.
           */}
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {/* Product */}
             <div>
               <h3 className="mb-4 text-sm font-semibold">Product</h3>
@@ -100,6 +100,60 @@ export default function MarketingLayout({
                     Pricing
                   </Link>
                 </li>
+                <li>
+                  <Link href="/affiliate" className="hover:text-foreground">
+                    Affiliate Program
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Company */}
+            <div>
+              <h3 className="mb-4 text-sm font-semibold">Company</h3>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li>
+                  <Link href="/about" className="hover:text-foreground">
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/careers" className="hover:text-foreground">
+                    Careers
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/blog" className="hover:text-foreground">
+                    Blog
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Resources */}
+            <div>
+              <h3 className="mb-4 text-sm font-semibold">Resources</h3>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li>
+                  <Link href="/docs" className="hover:text-foreground">
+                    Documentation
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/help" className="hover:text-foreground">
+                    Help Center
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/changelog" className="hover:text-foreground">
+                    Changelog
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/status" className="hover:text-foreground">
+                    System Status
+                  </Link>
+                </li>
               </ul>
             </div>
 
@@ -108,13 +162,18 @@ export default function MarketingLayout({
               <h3 className="mb-4 text-sm font-semibold">Legal</h3>
               <ul className="space-y-3 text-sm text-muted-foreground">
                 <li>
+                  <Link href="/terms" className="hover:text-foreground">
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
                   <Link href="/privacy" className="hover:text-foreground">
                     Privacy Policy
                   </Link>
                 </li>
                 <li>
-                  <Link href="/terms" className="hover:text-foreground">
-                    Terms of Service
+                  <Link href="/disclaimer" className="hover:text-foreground">
+                    Risk Disclaimer
                   </Link>
                 </li>
               </ul>
