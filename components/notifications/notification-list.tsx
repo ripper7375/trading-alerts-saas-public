@@ -626,6 +626,7 @@ export function NotificationList(): React.JSX.Element {
                         e.stopPropagation();
                         handleDelete(notification.id);
                       }}
+                      aria-label="Delete notification"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

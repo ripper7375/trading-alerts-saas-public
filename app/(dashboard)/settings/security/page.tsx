@@ -68,7 +68,9 @@ interface SecurityPreferences {
 /**
  * Get icon component based on device type
  */
-function getDeviceIcon(device: string): React.ComponentType<{ className?: string }> {
+function getDeviceIcon(
+  device: string
+): React.ComponentType<{ className?: string }> {
   const deviceLower = device.toLowerCase();
   if (deviceLower.includes('mobile') || deviceLower.includes('phone')) {
     return Smartphone;
@@ -94,8 +96,10 @@ function formatRelativeTime(dateString: string): string {
   const diffDays = Math.floor(diffMs / 86400000);
 
   if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  if (diffMins < 60)
+    return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
+  if (diffHours < 24)
+    return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
   if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
 
   return date.toLocaleDateString('en-US', {
@@ -147,7 +151,14 @@ export default function SecuritySettingsPage(): React.ReactElement {
   const [setupStep, setSetupStep] = useState<'qr' | 'verify' | 'backup'>('qr');
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
-  const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
+  const [verificationCode, setVerificationCode] = useState([
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+  ]);
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [remainingBackupCodes, setRemainingBackupCodes] = useState(0);
   const [is2FASubmitting, setIs2FASubmitting] = useState(false);
@@ -243,7 +254,10 @@ export default function SecuritySettingsPage(): React.ReactElement {
       setSetupStep('qr');
       setShowSetupDialog(true);
     } catch (error) {
-      showError('Setup Failed', error instanceof Error ? error.message : 'Failed to start 2FA setup');
+      showError(
+        'Setup Failed',
+        error instanceof Error ? error.message : 'Failed to start 2FA setup'
+      );
     } finally {
       setIs2FASubmitting(false);
     }
@@ -260,7 +274,10 @@ export default function SecuritySettingsPage(): React.ReactElement {
     }
   };
 
-  const handleCodeKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>): void => {
+  const handleCodeKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>
+  ): void => {
     if (e.key === 'Backspace' && !verificationCode[index] && index > 0) {
       codeInputRefs.current[index - 1]?.focus();
     }
@@ -290,7 +307,9 @@ export default function SecuritySettingsPage(): React.ReactElement {
       setRemainingBackupCodes(10);
       success('2FA Enabled', 'Two-factor authentication has been enabled');
     } catch (error) {
-      setTwoFactorError(error instanceof Error ? error.message : 'Verification failed');
+      setTwoFactorError(
+        error instanceof Error ? error.message : 'Verification failed'
+      );
       setVerificationCode(['', '', '', '', '', '']);
       codeInputRefs.current[0]?.focus();
     } finally {
@@ -321,7 +340,9 @@ export default function SecuritySettingsPage(): React.ReactElement {
       setDisableCode('');
       success('2FA Disabled', 'Two-factor authentication has been disabled');
     } catch (error) {
-      setTwoFactorError(error instanceof Error ? error.message : 'Failed to disable 2FA');
+      setTwoFactorError(
+        error instanceof Error ? error.message : 'Failed to disable 2FA'
+      );
     } finally {
       setIs2FASubmitting(false);
     }
@@ -349,7 +370,9 @@ export default function SecuritySettingsPage(): React.ReactElement {
       setRegeneratePassword('');
       success('Codes Regenerated', 'New backup codes have been generated');
     } catch (error) {
-      setTwoFactorError(error instanceof Error ? error.message : 'Failed to regenerate codes');
+      setTwoFactorError(
+        error instanceof Error ? error.message : 'Failed to regenerate codes'
+      );
     } finally {
       setIs2FASubmitting(false);
     }
@@ -404,11 +427,17 @@ export default function SecuritySettingsPage(): React.ReactElement {
         throw new Error('Failed to update preference');
       }
 
-      success('Preference Updated', `Security alert setting has been ${value ? 'enabled' : 'disabled'}.`);
+      success(
+        'Preference Updated',
+        `Security alert setting has been ${value ? 'enabled' : 'disabled'}.`
+      );
     } catch (error) {
       // Rollback on error
       setPreferences((prev) => ({ ...prev, [key]: previousValue }));
-      showError('Update Failed', 'Could not update preference. Please try again.');
+      showError(
+        'Update Failed',
+        'Could not update preference. Please try again.'
+      );
       console.error('Error updating preference:', error);
     } finally {
       setIsSavingPrefs(false);
@@ -417,17 +446,17 @@ export default function SecuritySettingsPage(): React.ReactElement {
 
   return (
     <div className="animate-fade-in">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+      <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white">
         Security Settings
       </h2>
 
       {/* Security Alerts Section */}
       <section className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          <Bell className="w-5 h-5" />
+        <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+          <Bell className="h-5 w-5" />
           Security Alerts
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
           Receive email notifications when important security events occur.
         </p>
 
@@ -438,10 +467,10 @@ export default function SecuritySettingsPage(): React.ReactElement {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-2 animate-pulse" />
-                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-64 animate-pulse" />
+                      <div className="mb-2 h-4 w-48 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                      <div className="h-3 w-64 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
                     </div>
-                    <div className="w-10 h-5 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+                    <div className="h-5 w-10 animate-pulse rounded-full bg-gray-200 dark:bg-gray-700" />
                   </div>
                 </CardContent>
               </Card>
@@ -451,18 +480,19 @@ export default function SecuritySettingsPage(): React.ReactElement {
           <div className="space-y-3">
             {/* New Device Alerts */}
             <Card>
-              <CardContent className="p-4 flex items-center justify-between">
+              <CardContent className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
-                  <Smartphone className="w-5 h-5 text-gray-500" />
+                  <Smartphone className="h-5 w-5 text-gray-500" />
                   <div>
                     <Label
                       htmlFor="newDeviceAlerts"
-                      className="font-semibold text-gray-900 dark:text-white cursor-pointer"
+                      className="cursor-pointer font-semibold text-gray-900 dark:text-white"
                     >
                       New Device Login Alerts
                     </Label>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Get notified when your account is accessed from a new device
+                      Get notified when your account is accessed from a new
+                      device
                     </p>
                   </div>
                 </div>
@@ -479,13 +509,13 @@ export default function SecuritySettingsPage(): React.ReactElement {
 
             {/* Password Change Alerts */}
             <Card>
-              <CardContent className="p-4 flex items-center justify-between">
+              <CardContent className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
-                  <Shield className="w-5 h-5 text-gray-500" />
+                  <Shield className="h-5 w-5 text-gray-500" />
                   <div>
                     <Label
                       htmlFor="passwordChangeAlerts"
-                      className="font-semibold text-gray-900 dark:text-white cursor-pointer"
+                      className="cursor-pointer font-semibold text-gray-900 dark:text-white"
                     >
                       Password Change Alerts
                     </Label>
@@ -512,22 +542,23 @@ export default function SecuritySettingsPage(): React.ReactElement {
 
       {/* Two-Factor Authentication Section */}
       <section className="mb-8">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          <Key className="w-5 h-5" />
+        <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+          <Key className="h-5 w-5" />
           Two-Factor Authentication
         </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Add an extra layer of security to your account by requiring a verification code from your authenticator app.
+        <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+          Add an extra layer of security to your account by requiring a
+          verification code from your authenticator app.
         </p>
 
         {isLoading2FA ? (
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+                <div className="h-10 w-10 animate-pulse rounded-full bg-gray-200 dark:bg-gray-700" />
                 <div className="flex-1">
-                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-2 animate-pulse" />
-                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-64 animate-pulse" />
+                  <div className="mb-2 h-4 w-48 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                  <div className="h-3 w-64 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
                 </div>
               </div>
             </CardContent>
@@ -537,8 +568,8 @@ export default function SecuritySettingsPage(): React.ReactElement {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                    <Shield className="h-5 w-5 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -553,8 +584,9 @@ export default function SecuritySettingsPage(): React.ReactElement {
                       Your account is protected with 2FA
                     </p>
                     {remainingBackupCodes <= 3 && remainingBackupCodes > 0 && (
-                      <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">
-                        Warning: Only {remainingBackupCodes} backup code{remainingBackupCodes !== 1 ? 's' : ''} remaining
+                      <p className="mt-1 text-sm text-amber-600 dark:text-amber-400">
+                        Warning: Only {remainingBackupCodes} backup code
+                        {remainingBackupCodes !== 1 ? 's' : ''} remaining
                       </p>
                     )}
                   </div>
@@ -571,7 +603,7 @@ export default function SecuritySettingsPage(): React.ReactElement {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowDisableDialog(true)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
                   >
                     Disable
                   </Button>
@@ -584,8 +616,8 @@ export default function SecuritySettingsPage(): React.ReactElement {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-gray-500" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
+                    <Shield className="h-5 w-5 text-gray-500" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -604,7 +636,7 @@ export default function SecuritySettingsPage(): React.ReactElement {
                 <Button onClick={startSetup} disabled={is2FASubmitting}>
                   {is2FASubmitting ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Setting up...
                     </>
                   ) : (
@@ -618,7 +650,10 @@ export default function SecuritySettingsPage(): React.ReactElement {
       </section>
 
       {/* 2FA Setup Dialog */}
-      <Dialog open={showSetupDialog} onOpenChange={(open) => !open && closeSetupDialog()}>
+      <Dialog
+        open={showSetupDialog}
+        onOpenChange={(open) => !open && closeSetupDialog()}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
@@ -627,35 +662,45 @@ export default function SecuritySettingsPage(): React.ReactElement {
               {setupStep === 'backup' && 'Save Backup Codes'}
             </DialogTitle>
             <DialogDescription>
-              {setupStep === 'qr' && 'Scan this QR code with your authenticator app'}
-              {setupStep === 'verify' && 'Enter the 6-digit code from your authenticator app'}
-              {setupStep === 'backup' && 'Save these backup codes in a safe place'}
+              {setupStep === 'qr' &&
+                'Scan this QR code with your authenticator app'}
+              {setupStep === 'verify' &&
+                'Enter the 6-digit code from your authenticator app'}
+              {setupStep === 'backup' &&
+                'Save these backup codes in a safe place'}
             </DialogDescription>
           </DialogHeader>
 
           {setupStep === 'qr' && (
             <div className="space-y-4">
               {qrCode && (
-                <div className="flex justify-center p-4 bg-white rounded-lg">
+                <div className="flex justify-center rounded-lg bg-white p-4">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={qrCode} alt="2FA QR Code" className="w-48 h-48" />
+                  <img src={qrCode} alt="2FA QR Code" className="h-48 w-48" />
                 </div>
               )}
               {secret && (
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
                     Or enter this code manually:
                   </p>
                   <div className="flex items-center gap-2">
-                    <code className="flex-1 p-2 bg-gray-100 dark:bg-gray-800 rounded font-mono text-sm break-all">
+                    <code className="flex-1 break-all rounded bg-gray-100 p-2 font-mono text-sm dark:bg-gray-800">
                       {showSecret ? secret : '••••••••••••••••'}
                     </code>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowSecret(!showSecret)}
+                      aria-label={
+                        showSecret ? 'Hide secret key' : 'Show secret key'
+                      }
                     >
-                      {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showSecret ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                     <Button
                       variant="ghost"
@@ -664,8 +709,9 @@ export default function SecuritySettingsPage(): React.ReactElement {
                         navigator.clipboard.writeText(secret);
                         success('Copied', 'Secret copied to clipboard');
                       }}
+                      aria-label="Copy secret key to clipboard"
                     >
-                      <Copy className="w-4 h-4" />
+                      <Copy className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -679,15 +725,19 @@ export default function SecuritySettingsPage(): React.ReactElement {
           {setupStep === 'verify' && (
             <div className="space-y-4">
               {twoFactorError && (
-                <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-3 rounded">
-                  <p className="text-red-800 dark:text-red-200 text-sm">{twoFactorError}</p>
+                <div className="rounded border-l-4 border-red-500 bg-red-50 p-3 dark:bg-red-900/20">
+                  <p className="text-sm text-red-800 dark:text-red-200">
+                    {twoFactorError}
+                  </p>
                 </div>
               )}
               <div className="flex justify-center gap-2">
                 {verificationCode.map((digit, index) => (
                   <input
                     key={index}
-                    ref={(el) => { codeInputRefs.current[index] = el; }}
+                    ref={(el) => {
+                      codeInputRefs.current[index] = el;
+                    }}
                     type="text"
                     inputMode="numeric"
                     maxLength={1}
@@ -695,12 +745,16 @@ export default function SecuritySettingsPage(): React.ReactElement {
                     onChange={(e) => handleCodeChange(index, e.target.value)}
                     onKeyDown={(e) => handleCodeKeyDown(index, e)}
                     disabled={is2FASubmitting}
-                    className="w-10 h-12 text-center text-xl font-bold border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                    className="h-12 w-10 rounded-lg border bg-background text-center text-xl font-bold focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
                   />
                 ))}
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setSetupStep('qr')} className="flex-1">
+                <Button
+                  variant="outline"
+                  onClick={() => setSetupStep('qr')}
+                  className="flex-1"
+                >
                   Back
                 </Button>
                 <Button
@@ -710,7 +764,7 @@ export default function SecuritySettingsPage(): React.ReactElement {
                 >
                   {is2FASubmitting ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Verifying...
                     </>
                   ) : (
@@ -723,28 +777,40 @@ export default function SecuritySettingsPage(): React.ReactElement {
 
           {setupStep === 'backup' && (
             <div className="space-y-4">
-              <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-3 rounded">
-                <p className="text-amber-800 dark:text-amber-200 text-sm font-medium">
+              <div className="rounded border-l-4 border-amber-500 bg-amber-50 p-3 dark:bg-amber-900/20">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
                   Important: Save these codes now!
                 </p>
-                <p className="text-amber-700 dark:text-amber-300 text-sm mt-1">
-                  You won&apos;t be able to see them again. Each code can only be used once.
+                <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
+                  You won&apos;t be able to see them again. Each code can only
+                  be used once.
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-2 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg font-mono text-sm">
+              <div className="grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-4 font-mono text-sm dark:bg-gray-800">
                 {backupCodes.map((code, index) => (
-                  <div key={index} className="p-2 bg-white dark:bg-gray-700 rounded text-center">
+                  <div
+                    key={index}
+                    className="rounded bg-white p-2 text-center dark:bg-gray-700"
+                  >
                     {code}
                   </div>
                 ))}
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={copyBackupCodes} className="flex-1">
-                  <Copy className="w-4 h-4 mr-2" />
+                <Button
+                  variant="outline"
+                  onClick={copyBackupCodes}
+                  className="flex-1"
+                >
+                  <Copy className="mr-2 h-4 w-4" />
                   Copy
                 </Button>
-                <Button variant="outline" onClick={downloadBackupCodes} className="flex-1">
-                  <Download className="w-4 h-4 mr-2" />
+                <Button
+                  variant="outline"
+                  onClick={downloadBackupCodes}
+                  className="flex-1"
+                >
+                  <Download className="mr-2 h-4 w-4" />
                   Download
                 </Button>
               </div>
@@ -762,13 +828,16 @@ export default function SecuritySettingsPage(): React.ReactElement {
           <DialogHeader>
             <DialogTitle>Disable Two-Factor Authentication</DialogTitle>
             <DialogDescription>
-              Enter your password and a 2FA code to disable two-factor authentication.
+              Enter your password and a 2FA code to disable two-factor
+              authentication.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {twoFactorError && (
-              <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-3 rounded">
-                <p className="text-red-800 dark:text-red-200 text-sm">{twoFactorError}</p>
+              <div className="rounded border-l-4 border-red-500 bg-red-50 p-3 dark:bg-red-900/20">
+                <p className="text-sm text-red-800 dark:text-red-200">
+                  {twoFactorError}
+                </p>
               </div>
             )}
             <div>
@@ -778,7 +847,7 @@ export default function SecuritySettingsPage(): React.ReactElement {
                 type="password"
                 value={disablePassword}
                 onChange={(e) => setDisablePassword(e.target.value)}
-                className="w-full mt-1 px-3 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                className="mt-1 w-full rounded-md border bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Enter your password"
               />
             </div>
@@ -790,8 +859,10 @@ export default function SecuritySettingsPage(): React.ReactElement {
                 inputMode="numeric"
                 maxLength={6}
                 value={disableCode}
-                onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full mt-1 px-3 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary font-mono text-center text-lg tracking-widest"
+                onChange={(e) =>
+                  setDisableCode(e.target.value.replace(/\D/g, '').slice(0, 6))
+                }
+                className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-center font-mono text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="000000"
               />
             </div>
@@ -810,12 +881,16 @@ export default function SecuritySettingsPage(): React.ReactElement {
               </Button>
               <Button
                 onClick={disable2FA}
-                disabled={is2FASubmitting || !disablePassword || disableCode.length !== 6}
+                disabled={
+                  is2FASubmitting ||
+                  !disablePassword ||
+                  disableCode.length !== 6
+                }
                 className="flex-1 bg-red-600 hover:bg-red-700"
               >
                 {is2FASubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Disabling...
                   </>
                 ) : (
@@ -828,36 +903,53 @@ export default function SecuritySettingsPage(): React.ReactElement {
       </Dialog>
 
       {/* Backup Codes Dialog */}
-      <Dialog open={showBackupCodesDialog} onOpenChange={setShowBackupCodesDialog}>
+      <Dialog
+        open={showBackupCodesDialog}
+        onOpenChange={setShowBackupCodesDialog}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Backup Codes</DialogTitle>
             <DialogDescription>
-              View or regenerate your backup codes. You have {remainingBackupCodes} codes remaining.
+              View or regenerate your backup codes. You have{' '}
+              {remainingBackupCodes} codes remaining.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {twoFactorError && (
-              <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-3 rounded">
-                <p className="text-red-800 dark:text-red-200 text-sm">{twoFactorError}</p>
+              <div className="rounded border-l-4 border-red-500 bg-red-50 p-3 dark:bg-red-900/20">
+                <p className="text-sm text-red-800 dark:text-red-200">
+                  {twoFactorError}
+                </p>
               </div>
             )}
             {backupCodes.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 gap-2 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg font-mono text-sm">
+                <div className="grid grid-cols-2 gap-2 rounded-lg bg-gray-100 p-4 font-mono text-sm dark:bg-gray-800">
                   {backupCodes.map((code, index) => (
-                    <div key={index} className="p-2 bg-white dark:bg-gray-700 rounded text-center">
+                    <div
+                      key={index}
+                      className="rounded bg-white p-2 text-center dark:bg-gray-700"
+                    >
                       {code}
                     </div>
                   ))}
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={copyBackupCodes} className="flex-1">
-                    <Copy className="w-4 h-4 mr-2" />
+                  <Button
+                    variant="outline"
+                    onClick={copyBackupCodes}
+                    className="flex-1"
+                  >
+                    <Copy className="mr-2 h-4 w-4" />
                     Copy
                   </Button>
-                  <Button variant="outline" onClick={downloadBackupCodes} className="flex-1">
-                    <Download className="w-4 h-4 mr-2" />
+                  <Button
+                    variant="outline"
+                    onClick={downloadBackupCodes}
+                    className="flex-1"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
                     Download
                   </Button>
                 </div>
@@ -865,7 +957,8 @@ export default function SecuritySettingsPage(): React.ReactElement {
             ) : (
               <>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Enter your password to regenerate new backup codes. This will invalidate all existing codes.
+                  Enter your password to regenerate new backup codes. This will
+                  invalidate all existing codes.
                 </p>
                 <div>
                   <Label htmlFor="regeneratePassword">Password</Label>
@@ -874,7 +967,7 @@ export default function SecuritySettingsPage(): React.ReactElement {
                     type="password"
                     value={regeneratePassword}
                     onChange={(e) => setRegeneratePassword(e.target.value)}
-                    className="w-full mt-1 px-3 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="mt-1 w-full rounded-md border bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                     placeholder="Enter your password"
                   />
                 </div>
@@ -901,7 +994,7 @@ export default function SecuritySettingsPage(): React.ReactElement {
                 >
                   {is2FASubmitting ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Generating...
                     </>
                   ) : (
@@ -918,10 +1011,10 @@ export default function SecuritySettingsPage(): React.ReactElement {
 
       {/* Login History Section */}
       <section>
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <History className="w-5 h-5" />
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
+              <History className="h-5 w-5" />
               Login History
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -935,7 +1028,7 @@ export default function SecuritySettingsPage(): React.ReactElement {
             disabled={isLoadingHistory}
           >
             <RefreshCw
-              className={`w-4 h-4 mr-1 ${isLoadingHistory ? 'animate-spin' : ''}`}
+              className={`mr-1 h-4 w-4 ${isLoadingHistory ? 'animate-spin' : ''}`}
             />
             Refresh
           </Button>
@@ -943,8 +1036,8 @@ export default function SecuritySettingsPage(): React.ReactElement {
 
         {historyError && (
           <Card className="mb-4 border-red-200 dark:border-red-900">
-            <CardContent className="p-4 flex items-center gap-2 text-red-600">
-              <AlertTriangle className="w-5 h-5" />
+            <CardContent className="flex items-center gap-2 p-4 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
               <span>{historyError}</span>
             </CardContent>
           </Card>
@@ -958,10 +1051,10 @@ export default function SecuritySettingsPage(): React.ReactElement {
                 <Card key={i}>
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+                      <div className="h-10 w-10 animate-pulse rounded-full bg-gray-200 dark:bg-gray-700" />
                       <div className="flex-1">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-2 animate-pulse" />
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-32 animate-pulse" />
+                        <div className="mb-2 h-4 w-48 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
+                        <div className="h-3 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />
                       </div>
                     </div>
                   </CardContent>
@@ -971,11 +1064,11 @@ export default function SecuritySettingsPage(): React.ReactElement {
           ) : loginHistory.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
-                <History className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <History className="mx-auto mb-4 h-12 w-12 text-gray-400" />
                 <p className="text-gray-500 dark:text-gray-400">
                   No login history available yet
                 </p>
-                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
                   Your login activity will appear here
                 </p>
               </CardContent>
@@ -988,20 +1081,26 @@ export default function SecuritySettingsPage(): React.ReactElement {
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
                       {/* Device Icon */}
-                      <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
-                        <Icon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
+                        <Icon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                       </div>
 
                       {/* Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="font-semibold text-gray-900 dark:text-white">
                             {entry.browser} on {entry.os}
                           </span>
                           <Badge className={getStatusColor(entry.status)}>
-                            {entry.status === 'SUCCESS' && <Check className="w-3 h-3 mr-1" />}
-                            {entry.status === 'FAILED' && <X className="w-3 h-3 mr-1" />}
-                            {entry.status === 'BLOCKED' && <AlertTriangle className="w-3 h-3 mr-1" />}
+                            {entry.status === 'SUCCESS' && (
+                              <Check className="mr-1 h-3 w-3" />
+                            )}
+                            {entry.status === 'FAILED' && (
+                              <X className="mr-1 h-3 w-3" />
+                            )}
+                            {entry.status === 'BLOCKED' && (
+                              <AlertTriangle className="mr-1 h-3 w-3" />
+                            )}
                             {entry.status}
                           </Badge>
                           {entry.isNewDevice && (
@@ -1011,15 +1110,15 @@ export default function SecuritySettingsPage(): React.ReactElement {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-4 mt-1 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="mt-1 flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                           <span className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
+                            <MapPin className="h-3 w-3" />
                             {entry.location}
                           </span>
                           <span>{entry.ipAddress}</span>
                         </div>
 
-                        <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 dark:text-gray-500">
+                        <div className="mt-1 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-500">
                           <span>{formatRelativeTime(entry.createdAt)}</span>
                           <span>via {entry.provider}</span>
                         </div>
@@ -1033,7 +1132,7 @@ export default function SecuritySettingsPage(): React.ReactElement {
         </div>
 
         {loginHistory.length > 0 && (
-          <p className="text-xs text-gray-500 dark:text-gray-500 mt-4 text-center">
+          <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-500">
             Showing last {loginHistory.length} login attempts
           </p>
         )}

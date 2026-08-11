@@ -562,6 +562,7 @@ export function AlertsClient({
                 placeholder="Search alerts..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search alerts"
                 className="w-[200px] rounded-lg border-2"
               />
             </div>

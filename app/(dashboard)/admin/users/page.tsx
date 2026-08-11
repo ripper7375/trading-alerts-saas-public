@@ -167,6 +167,7 @@ export default function UsersPage(): React.ReactElement {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setSearch(e.target.value)
                 }
+                aria-label="Search users by name or email"
                 className="border-gray-600 bg-gray-700 text-white placeholder:text-gray-400"
               />
             </div>

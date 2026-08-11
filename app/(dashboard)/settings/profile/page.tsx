@@ -235,33 +235,34 @@ export default function ProfileSettingsPage(): React.ReactElement {
 
   return (
     <div className="animate-fade-in">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+      <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white">
         Profile Information
       </h2>
 
       <form onSubmit={handleSubmit}>
         {/* Profile Photo Section */}
         <div className="mb-6">
-          <Label className="text-sm font-semibold mb-3 block text-gray-700 dark:text-gray-300">
+          <Label className="mb-3 block text-sm font-semibold text-gray-700 dark:text-gray-300">
             Profile Photo
           </Label>
           <div className="flex items-center gap-4">
-            <div className="relative group">
-              <Avatar className="w-24 h-24 border-4 border-gray-200 dark:border-gray-700 shadow-lg">
+            <div className="group relative">
+              <Avatar className="h-24 w-24 border-4 border-gray-200 shadow-lg dark:border-gray-700">
                 <AvatarImage
                   src={photoUrl || '/placeholder.svg'}
                   alt={formData.name}
                 />
-                <AvatarFallback className="bg-blue-600 text-white text-2xl font-bold">
+                <AvatarFallback className="bg-blue-600 text-2xl font-bold text-white">
                   {getInitials(formData.name || 'U')}
                 </AvatarFallback>
               </Avatar>
               <button
                 type="button"
                 onClick={handlePhotoUpload}
-                className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                aria-label="Upload profile photo"
+                className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black bg-opacity-50 opacity-0 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-white group-hover:opacity-100 group-focus-visible:opacity-100"
               >
-                <Camera className="w-6 h-6 text-white" />
+                <Camera className="h-6 w-6 text-white" />
               </button>
             </div>
             <div>
@@ -281,11 +282,11 @@ export default function ProfileSettingsPage(): React.ReactElement {
                   className="ml-2 text-red-600 hover:text-red-700"
                   onClick={handleRemovePhoto}
                 >
-                  <X className="w-4 h-4 mr-1" />
+                  <X className="mr-1 h-4 w-4" />
                   Remove
                 </Button>
               )}
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 JPG, PNG or GIF. Max 5MB.
               </p>
             </div>
@@ -298,7 +299,7 @@ export default function ProfileSettingsPage(): React.ReactElement {
         <div className="space-y-4">
           {/* Full Name */}
           <div>
-            <div className="flex justify-between items-center mb-1">
+            <div className="mb-1 flex items-center justify-between">
               <Label
                 htmlFor="name"
                 className="font-medium text-gray-700 dark:text-gray-300"
@@ -317,8 +318,8 @@ export default function ProfileSettingsPage(): React.ReactElement {
               className={errors.name ? 'border-red-500' : ''}
             />
             {errors.name && (
-              <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
+              <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
+                <AlertCircle className="h-4 w-4" />
                 {errors.name}
               </p>
             )}
@@ -328,11 +329,11 @@ export default function ProfileSettingsPage(): React.ReactElement {
           <div>
             <Label
               htmlFor="email"
-              className="font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-2"
+              className="mb-1 flex items-center gap-2 font-medium text-gray-700 dark:text-gray-300"
             >
               Email
-              <Badge className="bg-green-100 text-green-800 text-xs">
-                <Check className="w-3 h-3 mr-1" />
+              <Badge className="bg-green-100 text-xs text-green-800">
+                <Check className="mr-1 h-3 w-3" />
                 Verified
               </Badge>
             </Label>
@@ -344,8 +345,8 @@ export default function ProfileSettingsPage(): React.ReactElement {
               className={errors.email ? 'border-red-500' : ''}
             />
             {errors.email && (
-              <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
+              <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
+                <AlertCircle className="h-4 w-4" />
                 {errors.email}
               </p>
             )}
@@ -355,7 +356,7 @@ export default function ProfileSettingsPage(): React.ReactElement {
           <div>
             <Label
               htmlFor="username"
-              className="font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="mb-1 font-medium text-gray-700 dark:text-gray-300"
             >
               Username (optional)
             </Label>
@@ -376,28 +377,28 @@ export default function ProfileSettingsPage(): React.ReactElement {
             {formData.username && (
               <div className="mt-1">
                 {usernameStatus === 'checking' && (
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                  <p className="flex items-center gap-1 text-xs text-gray-500">
+                    <Loader2 className="h-3 w-3 animate-spin" />
                     Checking availability...
                   </p>
                 )}
                 {usernameStatus === 'available' && (
-                  <p className="text-xs text-green-600 flex items-center gap-1">
-                    <Check className="w-3 h-3" />
+                  <p className="flex items-center gap-1 text-xs text-green-600">
+                    <Check className="h-3 w-3" />
                     Username available
                   </p>
                 )}
                 {usernameStatus === 'taken' && (
-                  <p className="text-xs text-red-600 flex items-center gap-1">
-                    <X className="w-3 h-3" />
+                  <p className="flex items-center gap-1 text-xs text-red-600">
+                    <X className="h-3 w-3" />
                     Username is invalid or taken
                   </p>
                 )}
               </div>
             )}
             {errors.username && (
-              <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
+              <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
+                <AlertCircle className="h-4 w-4" />
                 {errors.username}
               </p>
             )}
@@ -405,7 +406,7 @@ export default function ProfileSettingsPage(): React.ReactElement {
 
           {/* Bio */}
           <div>
-            <div className="flex justify-between items-center mb-1">
+            <div className="mb-1 flex items-center justify-between">
               <Label
                 htmlFor="bio"
                 className="font-medium text-gray-700 dark:text-gray-300"
@@ -422,12 +423,12 @@ export default function ProfileSettingsPage(): React.ReactElement {
               onChange={(e) => handleInputChange('bio', e.target.value)}
               maxLength={500}
               rows={3}
-              className={`flex w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${errors.bio ? 'border-red-500' : ''}`}
+              className={`flex w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 ${errors.bio ? 'border-red-500' : ''}`}
               placeholder="Tell us about yourself..."
             />
             {errors.bio && (
-              <p className="text-sm text-red-600 mt-1 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
+              <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
+                <AlertCircle className="h-4 w-4" />
                 {errors.bio}
               </p>
             )}
@@ -437,7 +438,7 @@ export default function ProfileSettingsPage(): React.ReactElement {
           <div>
             <Label
               htmlFor="company"
-              className="font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="mb-1 font-medium text-gray-700 dark:text-gray-300"
             >
               Company/Organization (optional)
             </Label>
@@ -451,7 +452,7 @@ export default function ProfileSettingsPage(): React.ReactElement {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 mt-8">
+        <div className="mt-8 flex justify-end gap-3">
           <Button
             type="button"
             variant="outline"
@@ -469,12 +470,12 @@ export default function ProfileSettingsPage(): React.ReactElement {
           >
             {isSaving ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Saving...
               </>
             ) : saveSuccess ? (
               <>
-                <Check className="w-4 h-4 mr-2" />
+                <Check className="mr-2 h-4 w-4" />
                 Saved!
               </>
             ) : (
