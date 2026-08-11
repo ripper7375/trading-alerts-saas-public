@@ -3309,5 +3309,49 @@ flags touched.
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-11 (Session 6-7, Affiliate)
+<details>
+<summary><strong>2026-08-11 — Session 6-8 (Payments / Checkout, UI-BUILD)</strong></summary>
+
+Closes the 4 PAYMENTS-surface gap-matrix rows (F61/A1-7, A1-8, A2-8, A2-9). Resolves
+`DECISION-LOG.md` F61. Zero flags touched.
+
+- **New:** `app/api/geo/detect/route.ts` (thin wrapper around the already-live, previously-
+  zero-importer `lib/geo/detect-country.ts`, resolves F61); `app/checkout/return/page.tsx`
+  (wires the previously-orphaned `GET /api/payments/dlocal/[paymentId]`, real `PaymentStatus`
+  vocabulary — PENDING/COMPLETED/FAILED/CANCELLED/REFUNDED, not the order's own paraphrase);
+  `app/upgrade/success/page.tsx` (confirms real PRO status via `GET /api/subscription` rather
+  than trusting the `upgrade` query param alone); 3 new test files under
+  `__tests__/pages/checkout/` (17 tests).
+- **Modified:** `app/api/checkout/route.ts` + `money-service/src/stripe/
+stripe-checkout.controller.ts` (both `successUrl` constructions repointed from
+  `/dashboard?upgrade=success` to `/upgrade/success?upgrade=success` — mirrored identically since
+  Stripe checkout write traffic is cut over to money-service in production, Session 4A-10b,
+  making the monolith's own copy dead code otherwise).
+- **Deliberately NOT modified, per Davin's live Step 2 resolution:**
+  `components/payments/DiscountCodeInput.tsx` and `components/payments/PriceDisplay.tsx` — both
+  already had working consumers of different, real endpoints (`validate-discount`, `convert`);
+  the order's own literal "wire an orphan" instruction for both would have been a behavior change,
+  and for `PriceDisplay` would have forced client-side math violating the order's own
+  Service-Returned Math Rule. `POST /api/checkout/validate-code` and
+  `GET /api/payments/dlocal/exchange-rate` stay genuinely orphaned.
+- **A real gap found and escalated mid-session, not part of the order's own literal ask:**
+  `app/api/checkout/route.ts`'s `successUrl` construction is dead code in production (forwarded
+  to money-service whenever `MIGRATE_WRITE_APIS_MONEY_STRIPE` is on) — asked Davin directly before
+  committing Step 4 rather than shipping a fix with zero live effect; his call was to mirror both
+  files.
+- **Regression:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` — same
+  4 pre-existing warnings, 0 introduced; `test:ci` **145/145 suites, 2278/2278 tests** (was
+  142/142, 2261/2261 — +3 suites/+17 tests, exactly this session's own new test files, zero
+  regressions elsewhere).
+- **Not done:** live authenticated click-through of `/checkout/return`/`/upgrade/success` against
+  a real dLocal/Stripe payment — same standing gap as every Phase 6 session since 6-1b
+  (Waiting-on #117). Also found, not fixed (out of session scope): `lib/dlocal/
+dlocal-payment.service.ts`'s `createPayment` never sends a `return_url`/`success_url` to dLocal,
+  so no real dLocal payment flow currently redirects a customer back to `/checkout/return` at all.
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-11 (Session 6-8, Payments/Checkout)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

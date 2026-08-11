@@ -26,7 +26,89 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 6-7 (Affiliate, UI-BUILD variant, dial HIGH for consolidated payment-setup
+- **Current:** Session 6-8 (Payments / Checkout, UI-BUILD variant, dial HIGH for the 2 new landing
+  pages, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as Session 6-7.
+  **Closes the 4 PAYMENTS-surface gap-matrix rows assigned to it (F61/A1-7, A1-8, A2-8, A2-9).**
+  Resolves `DECISION-LOG.md` **F61**. No flags touched.
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again**: the order arrived
+  modified-but-uncommitted, `PRE-DRAFT → APPROVED`, with the committed PRE-DRAFT's own explicit
+  "User Review Required" wire-vs-delete question for 2 of 3 orphaned endpoints silently resolved
+  to "wire all 3," a citation-source swap from the authoritative `phase-6-frontend-gap-matrix.md`
+  to the less-authoritative `ui-page-gap-analysis.md`, and a full 5-step Ordered Steps section
+  added — no DRAFT-stage commit trail. Reported in full before proceeding, including 3 substantive
+  ground-truth findings (below); Davin confirmed live it was his own authentic authorization and
+  resolved all 3 directly in the same message.
+  **F61 was still OPEN in `DECISION-LOG.md` with an explicit, unresolved vendor/cost/privacy
+  question the order's own Context section had silently treated as already settled** — the log's
+  own text says plainly "not a technical coin-flip" (`detectCountryFromIP` calls a third-party
+  plain-HTTP IP lookup, `ip-api.com`, with the caller's real IP). Davin's live call: build it as
+  specified, keep the existing fallback as-is. F61 → RESOLVED.
+  **Step 2's own two "wire an orphan" instructions targeted components that already had live,
+  working consumers of DIFFERENT endpoints — found by reading the components before editing them,
+  not assumed from the order's prose (`LESSONS-LEARNED.md` L27 recurrence):** `DiscountCodeInput.tsx`
+  already calls `/api/payments/dlocal/validate-discount` (session-authenticated); the order's
+  target, `/api/checkout/validate-code`, is a genuinely different, unauthenticated,
+  per-IP-rate-limited endpoint with a different response shape. `PriceDisplay.tsx` already calls
+  `/api/payments/dlocal/convert`, which returns `localAmount` directly server-side; the order's
+  target, `/api/payments/dlocal/exchange-rate`, returns only `{currency,rate}` — wiring it as
+  literally instructed would have forced client-side `usdAmount * rate` math, **directly violating
+  this same order's own "Service-Returned Math Rule" two paragraphs later.** Davin's live
+  resolution: leave both components untouched; only `GET /api/payments/dlocal/[paymentId]` gets
+  wired (into the new `/checkout/return`); `validate-code`/`exchange-rate` stay genuinely orphaned.
+  **A2-9's own `?upgrade=PRO` premise was factually wrong** — both `app/api/checkout/route.ts` and
+  money-service's byte-identical `stripe-checkout.controller.ts:95` built
+  `successUrl = '${baseUrl}/dashboard?upgrade=success'`, not a redirect to `/upgrade/success` at
+  all, and the query value was the literal string `success`, not `PRO`
+  (`dashboard/page.tsx` confirmed to never read it either way). Davin's live resolution: build
+  `/upgrade/success` AND repoint `successUrl` to `/upgrade/success?upgrade=success`.
+  **A fourth gap found mid-execution, escalated separately via a clarifying question before
+  committing Step 4:** `app/api/checkout/route.ts` forwards the entire request to money-service
+  whenever `shouldUseMoneyServiceForStripeWrite()` is true — which, per Session 4A-10b, is the
+  live state in production (Stripe/Group A cut over). Editing only the monolith's `successUrl`
+  construction, as Davin's literal Step 4 instruction named, would have shipped a fix with zero
+  live effect (money-service's own copy is what real users actually see). Davin's call, once
+  asked: mirror both files identically, matching this migration's established precedent (e.g.
+  F48's dLocal signing fix touched both copies).
+  **Built (5 Ordered Steps, one commit each):** Step 1 — `app/api/geo/detect/route.ts` (thin
+  wrapper around the already-live, previously-zero-importer `detectCountry()`). Step 2 — no code
+  change (both target components stay on their existing, working endpoints per the resolution
+  above; documented as a Deviation, not a silent no-op). Step 3 — `app/checkout/return/page.tsx`
+  (wires the previously-orphaned `[paymentId]` endpoint; status card built against the real
+  `PaymentStatus` vocabulary — `PENDING`/`COMPLETED`/`FAILED`/`CANCELLED`/`REFUNDED` — not the
+  order's own wrong `PAID`/`PENDING`/`REJECTED`/`CANCELLED` list). Step 4 —
+  `app/upgrade/success/page.tsx` (confirms real PRO status via `GET /api/subscription` rather than
+  trusting the query param alone) + the `successUrl` mirror fix in both files. Step 5 — 3 new test
+  files (17 tests): `geo-detect.test.tsx`, `checkout-return.test.tsx` (all 5 real `PaymentStatus`
+  values + 401/404/403), `upgrade-success.test.tsx` (unauthenticated redirect, PRO success render,
+  FREE-tier processing state + retry).
+  **A real, pre-existing gap found reading `lib/dlocal/dlocal-payment.service.ts`'s
+  `createPayment`, not fixed (out of this UI-BUILD session's own scope):** no `return_url`/
+  `success_url` is ever sent to dLocal when creating a payment — only `notification_url` — so
+  dLocal's own hosted payment page has no configured way to redirect a real customer back to
+  `/checkout/return` today. Flagged in Waiting-on rather than silently fixed (a real
+  payments-behavior change).
+  **Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
+  — same 4 pre-existing warnings, 0 introduced; `test:ci` **145/145 suites, 2278/2278 tests** (was
+  142/142, 2261/2261 — +3 suites/+17 tests, exactly this session's own new test files, zero
+  regressions elsewhere). Live browser click-through not attempted this session — same standing
+  gap as every Phase 6 session since 6-1b (Waiting-on #117).
+  **No flag, no cutover-table row** — same-stack UI work, no flag existed to touch or retire;
+  `migration-cutover-table.md` unchanged.
+  **Artifacts updated:** `6-8-payments-checkout.migration-order.md` (Status → CONFIRMED, executed,
+  CLOSED SUCCESSFUL; Entry criteria all checked; Done-when checked with 2 items marked
+  superseded-not-failed per the Step 2 resolution; Deviations filled in full — 10 entries),
+  `DECISION-LOG.md` (F61 → RESOLVED, full resolution entry), `migration-stack-analysis.md` (new
+  Session 6-8 entry, 3 new files + 3 modified), `LESSONS-LEARNED.md` (new unpromoted candidate —
+  the active file is now at 62 entries, far past its 40 cap, flagged again below), this file
+  (session-history hygiene: Session 6-6's own full text moved to `history/sessions-archive.md`,
+  matching this file's own rotation rule — the larger pre-existing backlog flagged at Waiting-on
+  #102 is unchanged, still needs its own dedicated cleanup session). New
+  `6-10-public-marketing.migration-order.md` PRE-DRAFTed (UI-BUILD variant, 12+ gap-matrix rows,
+  resolves B1-3/B1-4/B1-5/B2-1…12) per this order's own Next-session handoff — **not fast-path
+  eligible**, flags F63 (public legal-page content) as a real, unresolved Davin-owned decision
+  that needs his call before DRAFT can finalize (though most of 6-10's own scope doesn't depend on
+  it and can proceed regardless).
+- **Previous:** Session 6-7 (Affiliate, UI-BUILD variant, dial HIGH for consolidated payment-setup
   & report UI, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as
   Session 6-6. **Closes the 6 AFFILIATE-surface gap-matrix rows assigned to it (A1-15, A1-16,
   A2-6, A2-11, B2-19, B2-20).** No flags touched.
@@ -114,100 +196,6 @@ dashboard/code-inventory`). Step 4 — `statements/page.tsx` (new, client-side m
   3-endpoint wire-vs-delete decision on `/checkout`) per this order's own Next-session handoff —
   **not fast-path eligible**, flags 1 real product/scope decision (the 3 orphaned dLocal/checkout
   endpoints) that needs Davin's call before DRAFT can finalize.
-- **Previous:** Session 6-6 (Admin, UI-BUILD variant, dial HIGH for new UI, LOW for data),
-  CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as Session 6-5. **Closes the 6
-  ADMIN-surface gap-matrix rows assigned to it (A1-5, A1-6, A1-14, A1-17/A2-10, A2-5, A2-7).** No
-  flags touched.
-  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again, with real
-  body-content drift**: the order arrived modified-but-uncommitted, `PRE-DRAFT → APPROVED`, with
-  both of the committed PRE-DRAFT's own explicit "User Review Required" open product questions
-  (RiseWorks-accounts disposition, admin user-detail-page scope) silently resolved, and a new
-  "Money Service Batch Lifecycle Vocabulary" mandate added — which turned out to be **factually
-  wrong** (see below). No DRAFT-stage commit trail. Reported in full before proceeding; Davin
-  confirmed live it was his own authentic authorization and resolved all open questions directly
-  in the same message.
-  **The order's own batch-vocabulary mandate (`DRAFTING`/`PENDING_APPROVAL`/`APPROVED`/
-  `PROCESSING`/`COMPLETED`/`CANCELLED`) does not exist anywhere in this codebase** — checked both
-  Prisma schemas (must mirror per L1) and grepped the whole repo: real `PaymentBatchStatus` is
-  `PENDING, QUEUED, PROCESSING, COMPLETED, FAILED, CANCELLED`; real `WiseBatchGroupStatus` is
-  `NEW, COMPLETED, AWAITING_MANUAL_FUNDING, FUNDED, MARKED_FOR_CANCELLATION, PROCESSING_CANCEL,
-  CANCELLED`; `DRAFTING`/`PENDING_APPROVAL` appear zero times repo-wide. Davin corrected this live
-  to "use the real Prisma enums" before execution.
-  **Two of the order's own 6 target rows (A2-5 `code-flows`, A2-7 `disbursement/affiliates/
-[affiliateId]`) don't exist at all**, contrary to the order's "wire"/"audit" phrasing (implying
-  small edits to existing pages) — both real backing API routes already existed and were live;
-  built both pages new, consuming those routes as-is with the real enum vocabulary.
-  **A1-6's disposition changed from "rebuild" to "redirect + consolidate"**, found before
-  building: `app/(dashboard)/admin/disbursement/recipients/page.tsx` already existed (Session
-  4A-W3b) and already rendered live Wise recipients — the order never mentioned it. Davin's
-  resolution: `accounts/page.tsx` now redirects to `recipients/page.tsx`, which gained a
-  Wise-Recipients/RiseWorks-Historical tab switcher (RiseWorks stays archived, F42, read-only, no
-  create/sync actions) — avoiding a duplicate build. The redundant "RiseWorks Accounts" nav entry
-  was removed; the provider badge/widget now reads `getDefaultProvider()` instead of a hardcoded
-  "RiseWorks" string.
-  **A1-14's literal "each active promo code row" wasn't buildable** — `code-inventory/page.tsx`
-  only ever showed aggregate counts, never individual code rows, and no per-code listing endpoint
-  exists anywhere in this codebase. Built as a standalone code-lookup-and-cancel form instead
-  (type a code, confirm, fires the real `POST /api/admin/codes/[code]/cancel`).
-  **A1-5 needed two narrow, necessary backend fixes beyond "add a UI option"**, approved as
-  exceptions to the order's own "no backend changes" framing: `lib/disbursement/constants.ts`/
-  `provider-factory.ts` had never been synced with WISE support (only money-service's own copy
-  had — an L31/L32-class gap), so `isProviderAvailable('WISE')` always returned `false`; fixed
-  additively, mirroring money-service's exact semantics. `GET /api/disbursement/config`'s
-  `available` list never included WISE either — fixed. Also fixed, found while touching this
-  exact code path: a genuine pre-existing bug where the frontend's `DisbursementConfig` type
-  treated `config.provider` as a flat string, but the real API returns a nested `{default,
-available, riseEnabled}` object — rendering `{config.provider}` directly would have thrown a
-  React child-type error the first time this page was actually loaded with real data (invisible
-  until now — no live browser testing has been possible since Session 4B-21, Waiting-on #117).
-  `PATCH /api/disbursement/config` stays its existing no-op placeholder; the page now shows an
-  explicit "Configured via `DISBURSEMENT_PROVIDER` env var" notice instead of implying Save
-  switches the live provider.
-  **Built (6 Ordered Steps, one commit each, plus 1 own-initiative test fix commit):** Step 1 —
-  WISE provider option + the 2 backend fixes above. Step 2 — accounts→recipients redirect +
-  RiseWorks historical tab + nav cleanup. Step 3 — code-inventory cancel-a-code widget with
-  confirmation dialog. Step 4 — `app/(dashboard)/admin/users/[id]/page.tsx` (new, server
-  component, direct Prisma reads mirroring the `alerts/[id]/edit` precedent — 5 sections: Profile
-  & Account, Subscription & Billing, Security & 2FA, Fraud Alerts, Affiliate & Code Info;
-  `Subscription`/`UserSession`/`FraudAlert`/`AffiliateProfile` are all plain scalar FKs on `User`,
-  no declared Prisma relation, so each queried separately; "last login" mirrors `GET
-/api/admin/users`'s own established heuristic). Step 5 — `code-flows/page.tsx` (new) +
-  `disbursement/affiliates/[affiliateId]/page.tsx` (new, consumes the already-live `GET
-/api/disbursement/affiliates/[affiliateId]`, badges with the real enum values) + "View"/"View
-  Details" links so both new pages are reachable. Step 6 — 2 new test files (11 tests):
-  `user-detail.test.tsx` (5-section rendering, "not an affiliate" state, `notFound()`),
-  `code-cancel.test.tsx` (confirm/cancel dialog flow + WISE radio-selection state).
-  **One legitimate, expected test break found only by the full `test:ci` run, not the scoped
-  checks:** `__tests__/lib/disbursement/constants.test.ts` hard-coded `SUPPORTED_PROVIDERS` to
-  `['RISE', 'MOCK']` — Step 1's WISE addition correctly changed the real array; updated the
-  assertion with an explanatory comment, per `LESSONS-LEARNED.md` L3.
-  **A new, unexplained lint warning appeared that this session did not cause:** `admin/page.tsx:
-308` (`@next/next/no-html-link-for-pages` on a bare `<a href="/admin/users?tier=PRO">`) —
-  confirmed via `git status`/`git diff` the file has zero changes in this session's history; the
-  scoped baseline went from 3 warnings (pre-session) to 4 (post-session), with this file the only
-  new entry. Not chased further (unclear root cause, genuinely untouched file); flagged in
-  Waiting-on.
-  **Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
-  — 4 warnings (2× `header.tsx`, 1× `batches/[batchId]/page.tsx`, both tracked since Session 6-1;
-  1× `admin/page.tsx:308`, new but unrelated per above), 0 introduced by this session's own
-  edits; `test:ci` **138/138 suites, 2238/2238 tests** (was 136/136, 2230/2230 — +2 suites/+8
-  tests, exactly this session's own 2 new test files, zero regressions elsewhere). Live-verified
-  against the real Next.js/Turbopack dev server: all 5 new/modified routes (`config`, `accounts`
-  redirect, `code-flows`, `users/[id]`, `disbursement/affiliates/[id]`) compile cleanly and
-  correctly redirect to `/login?callbackUrl=...` when unauthenticated, zero server errors — same
-  standing gap as every Phase 6 session since 6-1b, no deep authenticated click-through possible
-  in this environment (Waiting-on #117).
-  **No flag, no cutover-table row** — same-stack UI work, no flag existed to touch or retire;
-  `migration-cutover-table.md` unchanged.
-  **Artifacts updated:** `6-6-admin.migration-order.md` (Status → CONFIRMED, executed, CLOSED
-  SUCCESSFUL; Entry criteria all checked; Done-when all checked; Deviations filled in full — 8
-  entries), this file (session-history hygiene: Session 6-4's own full text moved to
-  `history/sessions-archive.md`, matching this file's own rotation rule — the larger pre-existing
-  backlog flagged at Waiting-on #102 is unchanged, still needs its own dedicated cleanup
-  session). New `6-7-affiliate.migration-order.md` PRE-DRAFTed (UI-BUILD variant, commissions
-  real-data wiring + payment-setup consolidation) per this order's own Next-session handoff —
-  **not fast-path eligible**, flags 2 real product/scope decisions (payment-setup consolidation,
-  B2-19/B2-20 scope) that need Davin's call before DRAFT can finalize.
 - _(superseded-by-above, retained for context)_ Session 6-3 (Alerts & Charts, UI-BUILD variant, dial HIGH for the edit-form UI/flow,
   LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-10, same day as Session 6-2.
   **The 3 orphan `/api/tier/*` endpoints now have a real UI consumer, and `/alerts/[id]/edit` exists
@@ -4300,13 +4288,19 @@ affiliates/[affiliateId]` were both built new (the order assumed both already ex
   previously-live-breaking `commissionAmount`-vs-`amount` bug was found and fixed on the
   commissions page (`LESSONS-LEARNED.md` L62); the order's own A1-15 premise ("shows only a static
   string") was found materially wrong against live code, corrected before writing any code.
-  Waiting-on #117 carries forward yet again, same standing gap. **The literal next session is now
-  6-8** (`6-8-payments-checkout.migration-order.md`, PRE-DRAFTed at 6-7's close) — resolves F61
-  (`GET /api/geo/detect`) and a 3-endpoint wire-vs-delete decision on `/checkout`,
-  **not fast-path eligible**, carries 1 real product/scope decision forward as an explicit User
-  Review item needing Davin's call before DRAFT can finalize. Two named Phase 4 exceptions run as
-  their own independent tracks and do NOT block Phase 6: `DECISION-LOG.md` F49 (dLocal
-  `payment_method_flow`, needs its own fix session) and F60
+  Waiting-on #117 carries forward yet again, same standing gap. **Session 6-8 is now ALSO
+  CONFIRMED, executed, and CLOSED SUCCESSFUL** (see Current above) — resolves F61
+  (`GET /api/geo/detect`, built as specified); the 3-endpoint disposition narrowed from "wire all
+  3" to "wire `[paymentId]` only" once Davin found the other two endpoints' target components
+  already had live, different, working consumers (`DiscountCodeInput.tsx`/`PriceDisplay.tsx` left
+  untouched); `/checkout/return` and `/upgrade/success` both built new; `successUrl` repointed in
+  both the monolith and money-service (a real dead-code gap found and escalated mid-session — see
+  Current above). **The literal next session is now 6-10**
+  (`6-10-public-marketing.migration-order.md`, PRE-DRAFTed at 6-8's close) — 12+ gap-matrix rows
+  (B1-3/B1-4/B1-5/B2-1…12), **not fast-path eligible**, carries F63 (public legal-page content)
+  forward as a real, unresolved Davin-owned decision, though most of 6-10's own scope doesn't
+  depend on it. Two named Phase 4 exceptions run as their own independent tracks and do NOT block
+  Phase 6: `DECISION-LOG.md` F49 (dLocal `payment_method_flow`, needs its own fix session) and F60
   (`4a-13-stripe-webhook-cutover.migration-order.md`, PRE-DRAFTed).
   **Phase 6 is now 12 sessions, in this order:** 6-1 (gap matrix, audit only — done) → 6-1b
   (mock-data hotfix, PORT/low dial — done) → 6-2 (IA + design system + shared shells; F62
@@ -4315,10 +4309,10 @@ affiliates/[affiliateId]` were both built new (the order assumed both already ex
   (settings/user; account-deletion confirm/cancel pages built — done) → 6-6 (admin; WISE provider
   option, accounts→recipients consolidation, user detail page, code-flows/affiliate-detail pages
   built — done) → 6-7 (affiliate; payout consolidation, real Wise payout status, code inventory/
-  statements/resources built — done) → **6-8** (payments/checkout, next; resolves F61) →
-  **6-10** (NEW — public/marketing surface; blocked on F63) → **6-11** (NEW — admin system
-  operations) → **6-12** (a11y + responsive + phase exit; was 6-9). **Session number 6-9 is
-  retired — do not reuse it.**
+  statements/resources built — done) → 6-8 (payments/checkout; F61 resolved, checkout return +
+  upgrade success pages built — done) → **6-10** (NEW — public/marketing surface, next; blocked on
+  F63 for 4 of its rows) → **6-11** (NEW — admin system operations) → **6-12** (a11y + responsive +
+  phase exit; was 6-9). **Session number 6-9 is retired — do not reuse it.**
   **Per the chain-length-one rule (`00-SKELETON-AND-RULES.md` §1.5), 6-1 and 6-2 both got full
   order files** (6-2's own F62 scope made it not fast-path eligible, same reasoning). 6-1b, 6-10,
   6-11 and 6-12 are defined in the playbook and the v9 handbook, and each gets its own order
@@ -4429,6 +4423,25 @@ destination`) on `components/layout/header.tsx` (lines 85, 89) and
   Worth flagging to the Advisor: any remaining un-re-verified gap-matrix row (items #115/#116 above)
   should be read in full, not trusted from its own citation, before a future session builds against
   it.
+  **(123, NEW — Session 6-8, 2026-08-11)** `lib/dlocal/dlocal-payment.service.ts`'s `createPayment`
+  never sends a `return_url`/`success_url` to dLocal when creating a payment — only
+  `notification_url` (the server-to-server webhook). This means dLocal's own hosted payment page
+  has no configured way to redirect a real customer back to the new `/checkout/return` page at
+  all today; the page itself was built and tested (supports both `payment_id`/`paymentId` query
+  param names), but nothing currently sends a real user there. Not fixed this session (a genuine
+  payments-behavior change to the outbound dLocal request, out of a UI-BUILD session's own scope)
+  — needs its own dedicated PORT/fix session, likely alongside whatever session next touches
+  dLocal payment creation (possibly the same session that resolves F49's `payment_method_flow`
+  gap, since both touch the same request-body construction).
+  **(124, NEW — Session 6-8, 2026-08-11)** `LESSONS-LEARNED.md` is now at **62 active entries** —
+  far past its stated 40 cap, flagged repeatedly since Sessions 4A-2/4A-4 (Waiting-on #30) with no
+  consolidation pass ever happening. This session found one more genuinely reusable pattern
+  (once a monolith write route has a flag-forwarding shim to money-service AND that flag is
+  cut over in production, editing only the monolith copy of downstream logic has zero live
+  effect — always check the cutover state for that specific slice first) but did NOT add it as a
+  new numbered entry, per the established precedent of not promoting into an already-over-cap
+  file; recorded instead in `6-8-payments-checkout.migration-order.md`'s own Deviations #10. This
+  backlog needs the Advisor's dedicated attention before the file grows further.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
@@ -4554,7 +4567,10 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
   into `app/(dashboard)/admin/*`, `app/admin/login` retired with a permanent redirect to
   `/login`; all 23 admin pages now share one `getServerSession` + role guard and one 8-section
   nav ·
-  F11–F12, F49, F50, F61, F63, F64 OPEN (register: plan §11 · resolutions:
+  **F61 fully RESOLVED (Session 6-8, Davin)** — build `app/api/geo/detect/route.ts` as a thin
+  wrapper around the existing `detectCountry()`, keeping its third-party IP-geolocation fallback
+  as-is ·
+  F11–F12, F49, F50, F63, F64 OPEN (register: plan §11 · resolutions:
   `docs/migration-orders/DECISION-LOG.md`)
 
 ## Key documents

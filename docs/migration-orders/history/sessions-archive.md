@@ -7,6 +7,101 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+_(superseded-by-above, retained for context)_ Session 6-6 (Admin, UI-BUILD variant, dial HIGH for new UI, LOW for data),
+CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as Session 6-5. **Closes the 6
+ADMIN-surface gap-matrix rows assigned to it (A1-5, A1-6, A1-14, A1-17/A2-10, A2-5, A2-7).** No
+flags touched.
+**CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again, with real
+body-content drift**: the order arrived modified-but-uncommitted, `PRE-DRAFT → APPROVED`, with
+both of the committed PRE-DRAFT's own explicit "User Review Required" open product questions
+(RiseWorks-accounts disposition, admin user-detail-page scope) silently resolved, and a new
+"Money Service Batch Lifecycle Vocabulary" mandate added — which turned out to be **factually
+wrong** (see below). No DRAFT-stage commit trail. Reported in full before proceeding; Davin
+confirmed live it was his own authentic authorization and resolved all open questions directly
+in the same message.
+**The order's own batch-vocabulary mandate (`DRAFTING`/`PENDING_APPROVAL`/`APPROVED`/
+`PROCESSING`/`COMPLETED`/`CANCELLED`) does not exist anywhere in this codebase** — checked both
+Prisma schemas (must mirror per L1) and grepped the whole repo: real `PaymentBatchStatus` is
+`PENDING, QUEUED, PROCESSING, COMPLETED, FAILED, CANCELLED`; real `WiseBatchGroupStatus` is
+`NEW, COMPLETED, AWAITING_MANUAL_FUNDING, FUNDED, MARKED_FOR_CANCELLATION, PROCESSING_CANCEL,
+CANCELLED`; `DRAFTING`/`PENDING_APPROVAL` appear zero times repo-wide. Davin corrected this live
+to "use the real Prisma enums" before execution.
+**Two of the order's own 6 target rows (A2-5 `code-flows`, A2-7 `disbursement/affiliates/
+[affiliateId]`) don't exist at all**, contrary to the order's "wire"/"audit" phrasing (implying
+small edits to existing pages) — both real backing API routes already existed and were live;
+built both pages new, consuming those routes as-is with the real enum vocabulary.
+**A1-6's disposition changed from "rebuild" to "redirect + consolidate"**, found before
+building: `app/(dashboard)/admin/disbursement/recipients/page.tsx` already existed (Session
+4A-W3b) and already rendered live Wise recipients — the order never mentioned it. Davin's
+resolution: `accounts/page.tsx` now redirects to `recipients/page.tsx`, which gained a
+Wise-Recipients/RiseWorks-Historical tab switcher (RiseWorks stays archived, F42, read-only, no
+create/sync actions) — avoiding a duplicate build. The redundant "RiseWorks Accounts" nav entry
+was removed; the provider badge/widget now reads `getDefaultProvider()` instead of a hardcoded
+"RiseWorks" string.
+**A1-14's literal "each active promo code row" wasn't buildable** — `code-inventory/page.tsx`
+only ever showed aggregate counts, never individual code rows, and no per-code listing endpoint
+exists anywhere in this codebase. Built as a standalone code-lookup-and-cancel form instead
+(type a code, confirm, fires the real `POST /api/admin/codes/[code]/cancel`).
+**A1-5 needed two narrow, necessary backend fixes beyond "add a UI option"**, approved as
+exceptions to the order's own "no backend changes" framing: `lib/disbursement/constants.ts`/
+`provider-factory.ts` had never been synced with WISE support (only money-service's own copy
+had — an L31/L32-class gap), so `isProviderAvailable('WISE')` always returned `false`; fixed
+additively, mirroring money-service's exact semantics. `GET /api/disbursement/config`'s
+`available` list never included WISE either — fixed. Also fixed, found while touching this
+exact code path: a genuine pre-existing bug where the frontend's `DisbursementConfig` type
+treated `config.provider` as a flat string, but the real API returns a nested `{default,
+available, riseEnabled}` object — rendering `{config.provider}` directly would have thrown a
+React child-type error the first time this page was actually loaded with real data (invisible
+until now — no live browser testing has been possible since Session 4B-21, Waiting-on #117).
+`PATCH /api/disbursement/config` stays its existing no-op placeholder; the page now shows an
+explicit "Configured via `DISBURSEMENT_PROVIDER` env var" notice instead of implying Save
+switches the live provider.
+**Built (6 Ordered Steps, one commit each, plus 1 own-initiative test fix commit):** Step 1 —
+WISE provider option + the 2 backend fixes above. Step 2 — accounts→recipients redirect +
+RiseWorks historical tab + nav cleanup. Step 3 — code-inventory cancel-a-code widget with
+confirmation dialog. Step 4 — `app/(dashboard)/admin/users/[id]/page.tsx` (new, server
+component, direct Prisma reads mirroring the `alerts/[id]/edit` precedent — 5 sections: Profile
+& Account, Subscription & Billing, Security & 2FA, Fraud Alerts, Affiliate & Code Info;
+`Subscription`/`UserSession`/`FraudAlert`/`AffiliateProfile` are all plain scalar FKs on `User`,
+no declared Prisma relation, so each queried separately; "last login" mirrors `GET
+/api/admin/users`'s own established heuristic). Step 5 — `code-flows/page.tsx` (new) +
+`disbursement/affiliates/[affiliateId]/page.tsx` (new, consumes the already-live `GET
+/api/disbursement/affiliates/[affiliateId]`, badges with the real enum values) + "View"/"View
+Details" links so both new pages are reachable. Step 6 — 2 new test files (11 tests):
+`user-detail.test.tsx` (5-section rendering, "not an affiliate" state, `notFound()`),
+`code-cancel.test.tsx` (confirm/cancel dialog flow + WISE radio-selection state).
+**One legitimate, expected test break found only by the full `test:ci` run, not the scoped
+checks:** `__tests__/lib/disbursement/constants.test.ts` hard-coded `SUPPORTED_PROVIDERS` to
+`['RISE', 'MOCK']` — Step 1's WISE addition correctly changed the real array; updated the
+assertion with an explanatory comment, per `LESSONS-LEARNED.md` L3.
+**A new, unexplained lint warning appeared that this session did not cause:** `admin/page.tsx:
+308` (`@next/next/no-html-link-for-pages` on a bare `<a href="/admin/users?tier=PRO">`) —
+confirmed via `git status`/`git diff` the file has zero changes in this session's history; the
+scoped baseline went from 3 warnings (pre-session) to 4 (post-session), with this file the only
+new entry. Not chased further (unclear root cause, genuinely untouched file); flagged in
+Waiting-on.
+**Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
+— 4 warnings (2× `header.tsx`, 1× `batches/[batchId]/page.tsx`, both tracked since Session 6-1;
+1× `admin/page.tsx:308`, new but unrelated per above), 0 introduced by this session's own
+edits; `test:ci` **138/138 suites, 2238/2238 tests** (was 136/136, 2230/2230 — +2 suites/+8
+tests, exactly this session's own 2 new test files, zero regressions elsewhere). Live-verified
+against the real Next.js/Turbopack dev server: all 5 new/modified routes (`config`, `accounts`
+redirect, `code-flows`, `users/[id]`, `disbursement/affiliates/[id]`) compile cleanly and
+correctly redirect to `/login?callbackUrl=...` when unauthenticated, zero server errors — same
+standing gap as every Phase 6 session since 6-1b, no deep authenticated click-through possible
+in this environment (Waiting-on #117).
+**No flag, no cutover-table row** — same-stack UI work, no flag existed to touch or retire;
+`migration-cutover-table.md` unchanged.
+**Artifacts updated:** `6-6-admin.migration-order.md` (Status → CONFIRMED, executed, CLOSED
+SUCCESSFUL; Entry criteria all checked; Done-when all checked; Deviations filled in full — 8
+entries), this file (session-history hygiene: Session 6-4's own full text moved to
+`history/sessions-archive.md`, matching this file's own rotation rule — the larger pre-existing
+backlog flagged at Waiting-on #102 is unchanged, still needs its own dedicated cleanup
+session). New `6-7-affiliate.migration-order.md` PRE-DRAFTed (UI-BUILD variant, commissions
+real-data wiring + payment-setup consolidation) per this order's own Next-session handoff —
+**not fast-path eligible**, flags 2 real product/scope decisions (payment-setup consolidation,
+B2-19/B2-20 scope) that need Davin's call before DRAFT can finalize.
+
 _(superseded-by-above, retained for context)_ Session 6-5 (Settings/User, UI-BUILD variant, dial HIGH for the confirm/cancel flow
 UX, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11. **Builds the missing
 account-deletion confirm/cancel pages — all 3 `app/api/user/account/deletion-*` routes were
