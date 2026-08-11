@@ -12,6 +12,7 @@ import {
   ChevronUp,
   ExternalLink,
   Check,
+  Headphones,
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -26,9 +27,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useLocale } from '@/lib/context/locale-context';
+import { useSupportChat } from '@/components/chat-widget/chat-context';
 
 export default function HelpPage() {
   const { t } = useLocale();
+  const { openChatWithMessage } = useSupportChat();
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(0);
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -116,6 +119,31 @@ export default function HelpPage() {
           <Badge className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300">
             {t('24/7 SUPPORT')}
           </Badge>
+        </div>
+
+        {/* Live Support Centre Banner (chat-feature-2.png) */}
+        <div className="flex flex-col items-center justify-between gap-3 rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent p-4 sm:flex-row">
+          <div className="flex items-center space-x-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-slate-950 shadow-md">
+              <Headphones className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-xs font-extrabold text-white">
+                {t('Need Instant Assistance? Launch Support Centre Chat')}
+              </h3>
+              <p className="text-[11px] text-slate-300">
+                {t('Connect with Davin AI Support Specialist in real time')}
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() =>
+              openChatWithMessage('I need assistance with DavinTrade SaaS')
+            }
+            className="h-9 shrink-0 bg-gradient-to-r from-amber-500 to-amber-600 font-extrabold text-slate-950 shadow-md hover:from-amber-400 hover:to-amber-500"
+          >
+            {t('Launch Support Chat')}
+          </Button>
         </div>
 
         {/* Quick Link Cards */}

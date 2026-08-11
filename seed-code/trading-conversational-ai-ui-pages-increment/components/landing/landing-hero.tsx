@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { useSupportChat } from '@/components/chat-widget/chat-context';
 import {
   Sparkles,
   ArrowRight,
@@ -14,20 +15,21 @@ import {
 } from 'lucide-react';
 
 export function LandingHero() {
-  // Annotation 4: Initial prompt text
   const [prompt, setPrompt] = useState('How can I help you today ?');
   const router = useRouter();
+  const { openChatWithMessage } = useSupportChat();
 
   const handleLaunchSupport = () => {
     if (prompt.trim()) {
-      router.push(`/terminal?q=${encodeURIComponent(prompt)}`);
+      openChatWithMessage(prompt);
     } else {
-      router.push('/terminal');
+      openChatWithMessage('How can I help you today ?');
     }
   };
 
   const handleChipClick = (topicText: string) => {
     setPrompt(`Tell me more about ${topicText}...`);
+    openChatWithMessage(`I have a question about ${topicText}...`, topicText);
   };
 
   return (
@@ -67,13 +69,13 @@ export function LandingHero() {
 
             {/* Support Centre Input Sandbox */}
             <div className="relative rounded-2xl border border-slate-700/80 bg-[#0d111c]/90 p-2.5 shadow-2xl shadow-black/80 backdrop-blur-xl transition-all focus-within:border-amber-500/60 focus-within:ring-1 focus-within:ring-amber-500/30">
-              {/* Annotation 3: Header Badge "Support Centre" */}
+              {/* Header Badge "Support Centre" */}
               <div className="mb-2 flex items-center space-x-2 border-b border-slate-800/60 px-3 py-1 pb-2 text-xs font-semibold text-amber-400/90">
                 <Headphones className="h-3.5 w-3.5 text-amber-400" />
                 <span>Support Centre</span>
               </div>
 
-              {/* Annotation 4: Textarea content */}
+              {/* Textarea content */}
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
@@ -89,7 +91,7 @@ export function LandingHero() {
               />
 
               <div className="flex flex-col justify-between gap-3 border-t border-slate-800/60 px-2 pt-2 sm:flex-row sm:items-center">
-                {/* Annotation 5: Quick Chips "Product Info | Technical Support | PRO Subscription | Billing" */}
+                {/* Quick Chips "Product Info | Technical Support | PRO Subscription | Billing" */}
                 <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
                   <button
                     type="button"
@@ -121,7 +123,7 @@ export function LandingHero() {
                   </button>
                 </div>
 
-                {/* Annotation 6: Button "Ask Customer Support" */}
+                {/* Button "Ask Customer Support" (Triggers Floating Chat Box matching chat-feature-1.png) */}
                 <Button
                   onClick={handleLaunchSupport}
                   size="sm"

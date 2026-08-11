@@ -8,6 +8,9 @@ import {
 } from '@/lib/i18n/locale-resolver';
 import { AppearanceProvider } from '@/components/providers/appearance-provider';
 import { AppearanceSettings } from '@/lib/appearance/types';
+import { SupportChatProvider } from '@/components/chat-widget/chat-context';
+import { SupportChatWidget } from '@/components/chat-widget/support-chat-widget';
+import { FloatingChatTrigger } from '@/components/chat-widget/floating-chat-trigger';
 
 export default function ClientProviders({
   children,
@@ -21,7 +24,11 @@ export default function ClientProviders({
   return (
     <LocaleProvider initialPreferences={initialPreferences}>
       <AppearanceProvider initialSettings={initialAppearance}>
-        {children}
+        <SupportChatProvider>
+          {children}
+          <SupportChatWidget />
+          <FloatingChatTrigger />
+        </SupportChatProvider>
       </AppearanceProvider>
     </LocaleProvider>
   );
