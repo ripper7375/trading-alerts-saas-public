@@ -54,6 +54,30 @@ const adminNavItems: AdminNavItem[] = [
     label: 'Affiliate Settings',
     href: '/admin/settings/affiliate',
   },
+  {
+    id: 'system-terminals',
+    icon: '🖥️',
+    label: 'Terminals & Flask API',
+    href: '/admin/system/terminals',
+  },
+  {
+    id: 'system-jobs',
+    icon: '⏱️',
+    label: 'Scheduled Jobs',
+    href: '/admin/system/jobs',
+  },
+  {
+    id: 'system-outbox',
+    icon: '📤',
+    label: 'Outbox Queue',
+    href: '/admin/system/outbox',
+  },
+  {
+    id: 'system-config-history',
+    icon: '📜',
+    label: 'Config History',
+    href: '/admin/system/config-history',
+  },
 ];
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -139,18 +163,18 @@ export default async function AdminLayout({
           {/* Divider */}
           <div className="my-4 border-t border-gray-700" />
 
-          {/* Quick Stats Summary */}
-          <div className="hidden rounded-lg bg-gray-700/50 px-4 py-3 sm:block">
+          {/* System Status -- links to a real check, does not claim one */}
+          <Link
+            href="/admin/system/terminals"
+            className="hidden rounded-lg bg-gray-700/50 px-4 py-3 transition-colors hover:bg-gray-700 sm:block"
+          >
             <p className="mb-2 text-xs uppercase tracking-wide text-gray-400">
               System Status
             </p>
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-              <span className="text-sm text-gray-300">
-                All systems operational
-              </span>
-            </div>
-          </div>
+            <span className="text-sm text-blue-400">
+              Check terminals &amp; jobs →
+            </span>
+          </Link>
         </aside>
 
         {/* Main Content */}
