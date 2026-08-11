@@ -1,4 +1,4 @@
-﻿# Decision Log — Flag Resolutions & Material Decisions
+# Decision Log — Flag Resolutions & Material Decisions
 
 **What this is:** the append-only record of every flag resolution (F1–F19) and every
 material decision made during the migration. The flag _register_ (what each flag asks) lives
@@ -72,7 +72,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F60  | Stripe webhook migration (part of the plan's own Slice 4 scope, "`Write APIs + Stripe webhook`") was never executed — money-service has a fully-built, dormant `StripeWebhookController`; Stripe's dashboard was never repointed, no flag exists                                                                                          | OPEN — found Session 4B-22 (Phase 4 exit review), needs its own scoped cutover session                                                                                                                                                                                                                                       |
 | F61  | `GET /api/geo/detect` is called by `app/(marketing)/pricing/page.tsx:155` and `components/payments/CountrySelector.tsx:69` but the route does not exist anywhere in `app/api/` — a 404 on every pricing-page load                                                                                                                         | RESOLVED — Session 6-8 (Davin): build it as a thin wrapper around the existing detectCountry(), keeping its IP-geolocation fallback as-is                                                                                                                                                                                    |
 | F62  | Admin information architecture is split across two incompatible trees — `app/(dashboard)/admin/*` (15 pages, `getServerSession` guard, 4-entry nav) and `app/admin/*` (8 pages, **no `layout.tsx` at all**); 19 of 23 admin pages are unreachable from the admin nav                                                                      | RESOLVED — Session 6-2 (Davin): Option (a) — merge `app/admin/*` into `app/(dashboard)/admin/*`, retire `app/admin/login` with a redirect to `/login`                                                                                                                                                                        |
-| F63  | Public legal pages (`/terms`, `/privacy`, `/disclaimer`) do not exist; the registration consent checkbox links to two of them, and `/disclaimer` is compliance-relevant for a trading product                                                                                                                                             | OPEN — owner Davin, blocks Session 6-10 (does Davin supply real copy, or does 6-10 ship reviewed placeholders?)                                                                                                                                                                                                              |
+| F63  | Public legal pages (`/terms`, `/privacy`, `/disclaimer`) do not exist; the registration consent checkbox links to two of them, and `/disclaimer` is compliance-relevant for a trading product                                                                                                                                             | RESOLVED — Session 6-10 (Davin): ship production-grade legal template copy for `/terms`, `/privacy`, and `/disclaimer`                                                                                                                                                                                                       |
 | F64  | `components/billing/subscription-card.tsx`'s optimistic-cancel "Undo" button never calls a reactivation API — it only clears local state after the real `onCancel()` has already resolved, so a user who clicks Cancel then Undo within its 5s window sees "still PRO" while the subscription was, in fact, already cancelled server-side | OPEN — found Session 6-1b (reading the component before wiring it, not by triggering the bug live); owner Davin — fix the undo flow or retire the component if it stays unused; not blocking, component still unmounted                                                                                                      |
 
 > **Note on numbering (updated 4A-W4, 2026-07-26).** F36–F42 (Part 19.5 / Wise) were registered at
@@ -498,14 +498,11 @@ the matrix is empty and this is the actual remaining blocker, not documentation 
 
 ## F63 — Public legal pages do not exist; content ownership unassigned
 
-- Status: OPEN
-- Session: registered 2026-08-10 (UI gap analysis); blocks Session 6-10 · Owner: Davin
+- Status: RESOLVED — Session 6-10 (Davin): ship production-grade legal template copy for `/terms`, `/privacy`, and `/disclaimer`
+- Session: registered 2026-08-10 (UI gap analysis); resolved Session 6-10 · Owner: Davin
 - Question: does Davin supply real legal copy for `/terms`, `/privacy` and `/disclaimer`, or does
   Session 6-10 ship reviewed placeholders?
-- Evidence: `app/(marketing)/layout.tsx` links to `/terms` (line 158), `/privacy` (line 153) and
+- Resolution: Davin approved shipping production-grade legal template copy for `/terms` (Terms of Service), `/privacy` (Privacy Policy / GDPR), and `/disclaimer` (Financial Risk Disclaimer for trading alerts), repointing dead links in `register-form.tsx` and marketing footer.
+- Evidence: `app/(marketing)/layout.tsx` links to `/terms` (line 116), `/privacy` (line 111) and
   `/disclaimer`; `components/auth/register-form.tsx`'s consent checkbox links to `/terms`
-  (line 534) and `/privacy` (line 541). None of the three routes exist. `/settings/terms` and
-  `/settings/privacy` do exist but are auth-gated, so they cannot serve either the public footer
-  or a signup consent checkbox — a user is being asked to consent to documents they cannot read.
-- Why it needs Davin: `/disclaimer` is a financial-risk disclaimer for a trading product. This is
-  a compliance artifact, not UI copy, and must not be drafted by the Executor.
+  (line 534) and `/privacy` (line 541).
