@@ -171,6 +171,32 @@ export class UsersController {
     return this.usersService.getLoginHistory(request.user.id, limit, offset);
   }
 
+  // ─── Security Alerts ──────────────────────────────────────────────────
+  // A1-9/A2-12 (post-6-12 gap-matrix correction): SecurityAlert has had
+  // real writers since Session 3-4 with no UI-reachable reader anywhere.
+
+  @UseGuards(JwtAuthGuard)
+  @Get('security-alerts')
+  async getSecurityAlerts(
+    @Req() request: AuthenticatedRequest,
+    @Query('limit') limitParam?: string,
+    @Query('offset') offsetParam?: string
+  ) {
+    const limit = Math.min(parseInt(limitParam || '20', 10), 100);
+    const offset = parseInt(offsetParam || '0', 10);
+    return this.usersService.getSecurityAlerts(request.user.id, limit, offset);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('security-alerts/:id/read')
+  @HttpCode(200)
+  async markSecurityAlertRead(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string
+  ) {
+    return this.usersService.markSecurityAlertRead(request.user.id, id);
+  }
+
   // ─── 2FA ──────────────────────────────────────────────────────────────
   // GET /user/2fa/setup (status) is a real SOURCE handler
   // (app/api/user/2fa/setup/route.ts exports both GET and POST) that the

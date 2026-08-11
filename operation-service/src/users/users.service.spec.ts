@@ -34,7 +34,13 @@ describe('UsersService', () => {
     },
     session: { deleteMany: jest.fn() },
     loginHistory: { findMany: jest.fn(), count: jest.fn() },
-    securityAlert: { create: jest.fn() },
+    securityAlert: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
+      updateMany: jest.fn(),
+      findFirst: jest.fn(),
+    },
     accountDeletionRequest: {
       findFirst: jest.fn(),
       create: jest.fn(),
@@ -267,6 +273,71 @@ describe('UsersService', () => {
       expect(result.success).toBe(true);
       expect(mockPrisma.session.deleteMany).toHaveBeenCalledWith({
         where: { sessionToken: 'tok-1' },
+      });
+    });
+  });
+
+  describe('getSecurityAlerts', () => {
+    it('returns alerts scoped to the caller with pagination', async () => {
+      mockPrisma.securityAlert.findMany.mockResolvedValue([
+        { id: 'alert-1', type: 'PASSWORD_CHANGED' },
+      ]);
+      mockPrisma.securityAlert.count.mockResolvedValue(1);
+
+      const result = await makeService().getSecurityAlerts('user-1', 20, 0);
+
+      expect(mockPrisma.securityAlert.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'user-1' } })
+      );
+      expect(result.pagination).toEqual({
+        total: 1,
+        limit: 20,
+        offset: 0,
+        hasMore: false,
+      });
+    });
+  });
+
+  describe('markSecurityAlertRead', () => {
+    it('throws NotFoundException for a non-existent or non-owned alert', async () => {
+      mockPrisma.securityAlert.updateMany.mockResolvedValue({ count: 0 });
+      mockPrisma.securityAlert.findFirst.mockResolvedValue(null);
+
+      await expect(
+        makeService().markSecurityAlertRead('user-1', 'alert-1')
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('returns alreadyRead without rewriting readAt when already read', async () => {
+      mockPrisma.securityAlert.updateMany.mockResolvedValue({ count: 0 });
+      mockPrisma.securityAlert.findFirst.mockResolvedValue({ id: 'alert-1' });
+
+      const result = await makeService().markSecurityAlertRead(
+        'user-1',
+        'alert-1'
+      );
+      expect(result).toEqual({
+        success: true,
+        alreadyRead: true,
+        message: 'Security alert was already marked as read',
+      });
+    });
+
+    it('marks an unread alert read, scoped to the caller', async () => {
+      mockPrisma.securityAlert.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await makeService().markSecurityAlertRead(
+        'user-1',
+        'alert-1'
+      );
+      expect(mockPrisma.securityAlert.updateMany).toHaveBeenCalledWith({
+        where: { id: 'alert-1', userId: 'user-1', read: false },
+        data: expect.objectContaining({ read: true }),
+      });
+      expect(result).toEqual({
+        success: true,
+        alreadyRead: false,
+        message: 'Security alert marked as read',
       });
     });
   });

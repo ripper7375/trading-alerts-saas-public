@@ -41,6 +41,8 @@ describe('UsersController', () => {
       'revokeAllSessions',
       'revokeSession',
       'getLoginHistory',
+      'getSecurityAlerts',
+      'markSecurityAlertRead',
       'get2FAStatus',
       'setup2FA',
       'verifySetup2FA',
@@ -124,6 +126,24 @@ describe('UsersController', () => {
 
       await controller.getLoginHistory(mockRequest(), '500', undefined);
       expect(getLoginHistory).toHaveBeenCalledWith('user-1', 100, 0);
+    });
+
+    it('getSecurityAlerts clamps limit to 100 and defaults offset to 0', async () => {
+      const getSecurityAlerts = jest.fn().mockResolvedValue({ alerts: [] });
+      const controller = makeController({ getSecurityAlerts });
+
+      await controller.getSecurityAlerts(mockRequest(), '500', undefined);
+      expect(getSecurityAlerts).toHaveBeenCalledWith('user-1', 100, 0);
+    });
+
+    it('markSecurityAlertRead delegates with the caller id and alert id', async () => {
+      const markSecurityAlertRead = jest
+        .fn()
+        .mockResolvedValue({ success: true });
+      const controller = makeController({ markSecurityAlertRead });
+
+      await controller.markSecurityAlertRead(mockRequest(), 'alert-1');
+      expect(markSecurityAlertRead).toHaveBeenCalledWith('user-1', 'alert-1');
     });
 
     it('verify2FA delegates without touching request.user (route is unauthenticated)', async () => {

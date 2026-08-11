@@ -461,6 +461,80 @@ export class UsersService {
     };
   }
 
+  // A1-9/A2-12 (post-6-12 gap-matrix correction): SecurityAlert has had 6
+  // writers (this file's own password/2FA flows, lib/security/device-
+  // detection.ts) since Session 3-4 with zero UI-reachable reader anywhere
+  // until this method. Mirrors getLoginHistory's own pagination shape
+  // exactly (limit/offset, same Pagination response shape) for frontend
+  // consistency between the two "activity" lists on /settings/security.
+  async getSecurityAlerts(userId: string, limit: number, offset: number) {
+    const alerts = await this.prisma.securityAlert.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
+      select: {
+        id: true,
+        type: true,
+        title: true,
+        message: true,
+        ipAddress: true,
+        deviceInfo: true,
+        location: true,
+        read: true,
+        readAt: true,
+        createdAt: true,
+      },
+    });
+    const totalCount = await this.prisma.securityAlert.count({
+      where: { userId },
+    });
+
+    return {
+      alerts,
+      pagination: {
+        total: totalCount,
+        limit,
+        offset,
+        hasMore: offset + limit < totalCount,
+      },
+    };
+  }
+
+  // Ownership-scoped `updateMany` (matches this file's own revokeSession
+  // convention, not notifications.service.ts's distinct-403 convention) —
+  // a non-existent id and someone else's alert both resolve to the same
+  // NotFoundException, so a caller can't enumerate other users' alert ids.
+  // `read: false` in the where-clause additionally guards the invariant
+  // that an already-read alert's `readAt` is never rewritten.
+  async markSecurityAlertRead(userId: string, id: string) {
+    const result = await this.prisma.securityAlert.updateMany({
+      where: { id, userId, read: false },
+      data: { read: true, readAt: new Date() },
+    });
+
+    if (result.count === 0) {
+      const existing = await this.prisma.securityAlert.findFirst({
+        where: { id, userId },
+        select: { id: true },
+      });
+      if (!existing) {
+        throw new NotFoundException('Security alert not found');
+      }
+      return {
+        success: true,
+        alreadyRead: true,
+        message: 'Security alert was already marked as read',
+      };
+    }
+
+    return {
+      success: true,
+      alreadyRead: false,
+      message: 'Security alert marked as read',
+    };
+  }
+
   private parseUserAgent(userAgent: string): {
     browser: string;
     browserVersion: string;
