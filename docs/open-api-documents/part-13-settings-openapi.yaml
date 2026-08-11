@@ -569,6 +569,112 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
+  /api/user/security-alerts:
+    get:
+      tags:
+        - Security Alerts
+      summary: Get security alerts
+      description: |
+        Retrieves the user's security alerts with pagination.
+
+        Alerts are created by password-change, 2FA enable/disable, and
+        new-device-login flows. Sorted by timestamp descending (most
+        recent first).
+      operationId: getSecurityAlerts
+      parameters:
+        - name: limit
+          in: query
+          description: Number of entries to return (1-100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of entries to skip for pagination
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Security alerts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityAlertsResponse'
+              example:
+                alerts:
+                  - id: 'alert_abc123'
+                    type: 'PASSWORD_CHANGED'
+                    title: 'Password changed'
+                    message: 'Your password was changed'
+                    ipAddress: '192.168.1.100'
+                    deviceInfo: 'Chrome on Windows'
+                    location: 'New York, NY, US'
+                    read: false
+                    readAt: null
+                    createdAt: '2025-12-20T15:30:00.000Z'
+                pagination:
+                  total: 3
+                  limit: 20
+                  offset: 0
+                  hasMore: false
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/user/security-alerts/{id}/read:
+    post:
+      tags:
+        - Security Alerts
+      summary: Mark a security alert as read
+      description: |
+        Marks a specific security alert as read. Ownership-scoped: a
+        non-existent id and an alert owned by another user both return
+        404 -- the response never distinguishes the two, so a caller
+        cannot enumerate other users' alert ids.
+
+        Already-read alerts short-circuit without rewriting `readAt`.
+      operationId: markSecurityAlertRead
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Security alert marked as read (or already was)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, alreadyRead, message]
+                properties:
+                  success:
+                    type: boolean
+                  alreadyRead:
+                    type: boolean
+                  message:
+                    type: string
+              example:
+                success: true
+                alreadyRead: false
+                message: 'Security alert marked as read'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Security alert not found (or not owned by the caller)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
   /api/user/2fa/setup:
     post:
       tags:
@@ -1462,6 +1568,77 @@ components:
           type: boolean
           description: Whether login was from a new device
           example: false
+
+    SecurityAlertsResponse:
+      type: object
+      required:
+        - alerts
+        - pagination
+      properties:
+        alerts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SecurityAlertEntry'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    SecurityAlertEntry:
+      type: object
+      required:
+        - id
+        - type
+        - title
+        - message
+        - read
+        - createdAt
+      properties:
+        id:
+          type: string
+          description: Security alert ID
+          example: 'alert_abc123'
+        type:
+          type: string
+          enum:
+            [
+              NEW_DEVICE_LOGIN,
+              PASSWORD_CHANGED,
+              EMAIL_CHANGED,
+              TWO_FACTOR_ENABLED,
+              TWO_FACTOR_DISABLED,
+              SUSPICIOUS_LOGIN,
+              ACCOUNT_LOCKED,
+            ]
+          description: Security alert category
+          example: 'PASSWORD_CHANGED'
+        title:
+          type: string
+          example: 'Password changed'
+        message:
+          type: string
+          example: 'Your password was changed'
+        ipAddress:
+          type: string
+          nullable: true
+          example: '192.168.1.100'
+        deviceInfo:
+          type: string
+          nullable: true
+          description: Browser and OS, e.g. "Chrome on Windows"
+          example: 'Chrome on Windows'
+        location:
+          type: string
+          nullable: true
+          example: 'New York, NY, US'
+        read:
+          type: boolean
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-12-20T15:30:00.000Z'
 
     Pagination:
       type: object

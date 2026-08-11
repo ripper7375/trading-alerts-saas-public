@@ -5,7 +5,9 @@ info:
   description: |
     User account management API for Trading Alerts SaaS platform (Part 22).
 
-    **Last Updated:** 2026-08-04 — verified against all 14 live route handlers under `app/api/user/**` (6 sub-domains).
+    **Last Updated:** 2026-08-11 (ad-hoc, post-6-12 gap-matrix correction) — added
+    `Security Alerts`, the 16th/17th route handlers under `app/api/user/**`; previously
+    verified 2026-08-04 against the other 14 live route handlers (6 sub-domains).
 
     ## Sub-domains
     - **Two-Factor Auth** (`/api/user/2fa/*`): TOTP setup/verify/disable, backup codes
@@ -15,6 +17,8 @@ info:
     - **Password** (`/api/user/password`)
     - **Preferences** (`/api/user/preferences`)
     - **Profile** (`/api/user/profile`)
+    - **Security Alerts** (`/api/user/security-alerts*`): list + mark-as-read, populated
+      by the password/2FA/new-device-login flows above
     - **Sessions** (`/api/user/sessions*`): list/revoke active sessions
 
     All routes require an authenticated session except `POST /api/user/2fa/verify`
@@ -39,6 +43,7 @@ tags:
   - name: Password
   - name: Preferences
   - name: Profile
+  - name: Security Alerts
   - name: Sessions
 
 paths:
@@ -603,6 +608,129 @@ paths:
                       hasMore: { type: boolean }
         '401':
           description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/security-alerts:
+    get:
+      tags: [Security Alerts]
+      summary: Fetch the authenticated user's security alerts
+      description: |
+        Returns paginated security alerts (password changed, 2FA enabled/
+        disabled, new device login, etc.) created by the password/2FA flows
+        above and `lib/security/device-detection.ts`'s new-device check.
+
+        **Implementation:** `app/api/user/security-alerts/route.ts` (GET)
+      operationId: getSecurityAlerts
+      security: [{ sessionAuth: [] }]
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 20, maximum: 100 }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer, default: 0 }
+      responses:
+        '200':
+          description: Security alerts retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [alerts, pagination]
+                properties:
+                  alerts:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, type, title, message, read, createdAt]
+                      properties:
+                        id: { type: string }
+                        type:
+                          type: string
+                          enum:
+                            [
+                              NEW_DEVICE_LOGIN,
+                              PASSWORD_CHANGED,
+                              EMAIL_CHANGED,
+                              TWO_FACTOR_ENABLED,
+                              TWO_FACTOR_DISABLED,
+                              SUSPICIOUS_LOGIN,
+                              ACCOUNT_LOCKED,
+                            ]
+                        title: { type: string }
+                        message: { type: string }
+                        ipAddress: { type: string, nullable: true }
+                        deviceInfo: { type: string, nullable: true }
+                        location: { type: string, nullable: true }
+                        read: { type: boolean }
+                        readAt:
+                          { type: string, format: date-time, nullable: true }
+                        createdAt: { type: string, format: date-time }
+                  pagination:
+                    type: object
+                    required: [total, limit, offset, hasMore]
+                    properties:
+                      total: { type: integer }
+                      limit: { type: integer }
+                      offset: { type: integer }
+                      hasMore: { type: boolean }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+
+  /api/user/security-alerts/{id}/read:
+    post:
+      tags: [Security Alerts]
+      summary: Mark a security alert as read
+      description: |
+        Ownership-scoped: a non-existent id and an alert owned by another
+        user both return 404 — the response never distinguishes the two,
+        so a caller cannot enumerate other users' alert ids. Already-read
+        alerts short-circuit without rewriting `readAt`.
+
+        **Implementation:** `app/api/user/security-alerts/[id]/read/route.ts` (POST)
+      operationId: markSecurityAlertRead
+      security: [{ sessionAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Marked as read (or was already read)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, alreadyRead, message]
+                properties:
+                  success: { type: boolean }
+                  alreadyRead: { type: boolean }
+                  message: { type: string }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              { schema: { $ref: '#/components/schemas/ErrorResponse' } }
+        '404':
+          description: Security alert not found (or not owned by the caller)
           content:
             application/json:
               { schema: { $ref: '#/components/schemas/ErrorResponse' } }
