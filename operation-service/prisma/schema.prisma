@@ -205,14 +205,16 @@ model Session {
   @@index([userId])
 }
 
-// Session 3-4: NARROW subset mirror of prisma/non-market-data/schema.prisma's
-// SecurityAlert, same convention as User above — only the fields the 2FA
-// enable/disable endpoints actually write (a create-only write path this
-// session; nothing here ever reads SecurityAlert rows back). `deviceInfo`/
-// `read`/`readAt` are the source model's own fields for its OTHER caller
-// (new-device-login alerts, out of this session's scope) and are
-// deliberately omitted — the real DB columns still get their own defaults
-// on insert regardless of what this generate-only schema declares.
+// Session 3-4: subset mirror of prisma/non-market-data/schema.prisma's
+// SecurityAlert, same convention as User above. Originally narrowed to only
+// the fields the 2FA enable/disable endpoints wrote (create-only); widened
+// additively at Session 6-x-adhoc (post-6-12 gap-matrix correction, A1-9/
+// A2-12) to add `deviceInfo`/`read`/`readAt` for the new
+// GET/POST /user/security-alerts* read+mark-read endpoints. All 3 columns
+// already existed in the live `security_alerts` table before this widening
+// (the SOURCE model always wrote them) — this is a Prisma-schema-only
+// change, `prisma generate` only, never `db push`/`migrate deploy` from
+// this service (LESSONS-LEARNED L1 — would risk dropping monolith tables).
 // @@map is load-bearing: the real table is `security_alerts`, not the
 // PascalCase default Prisma would otherwise assume.
 enum SecurityAlertType {
@@ -232,12 +234,16 @@ model SecurityAlert {
   title       String
   message     String
   ipAddress   String?
+  deviceInfo  String?
   location    String?
   emailSent   Boolean           @default(false)
   emailSentAt DateTime?
+  read        Boolean           @default(false)
+  readAt      DateTime?
   createdAt   DateTime          @default(now())
 
   @@index([userId])
+  @@index([userId, read])
   @@map("security_alerts")
 }
 
