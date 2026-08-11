@@ -3,18 +3,23 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Bot, Sparkles, ArrowRight, Globe, Shield, Zap } from 'lucide-react';
+import { Sparkles, ArrowRight, Globe, Zap } from 'lucide-react';
 
 export function LandingNavbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-[#06070a]/85 backdrop-blur-xl">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-        {/* Brand Logo */}
+        {/* Brand Logo with Davin AI Icon (Annotation 1) */}
         <Link href="/" className="group flex items-center space-x-3">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 p-0.5 shadow-lg shadow-amber-500/20 transition-transform group-hover:scale-105">
-            <div className="flex h-full w-full items-center justify-center rounded-[10px] bg-[#0c0f17]">
-              <Bot className="h-5 w-5 text-amber-400" />
-            </div>
+          <div className="relative flex h-10 w-10 overflow-hidden rounded-xl border border-amber-500/40 bg-amber-500/20 p-0.5 shadow-lg shadow-amber-500/20 transition-transform group-hover:scale-105">
+            <Image
+              src="/davintrade-ai-icon.png"
+              alt="DavinTrade AI Icon"
+              width={40}
+              height={40}
+              className="h-full w-full rounded-[9px] object-cover"
+              priority
+            />
           </div>
           <div className="flex flex-col">
             <span className="flex items-center gap-1.5 text-lg font-black tracking-tight text-white">
@@ -87,13 +92,14 @@ export function LandingNavbar() {
             </Button>
           </Link>
 
+          {/* Top-Right Action Button: "Try Davin" (Annotation 2) */}
           <Link href="/terminal">
             <Button
               size="sm"
               className="h-9 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 font-bold text-slate-950 shadow-md shadow-amber-500/25 transition-all duration-300 hover:scale-[1.02] hover:from-amber-400 hover:to-amber-500 hover:shadow-amber-500/40"
             >
               <Sparkles className="mr-1.5 h-4 w-4" />
-              Launch AI Terminal
+              Try Davin
               <ArrowRight className="ml-1 h-3.5 w-3.5" />
             </Button>
           </Link>

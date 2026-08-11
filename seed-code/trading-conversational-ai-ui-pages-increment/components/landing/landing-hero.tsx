@@ -8,27 +8,26 @@ import { Button } from '@/components/ui/button';
 import {
   Sparkles,
   ArrowRight,
-  TrendingUp,
   ShieldCheck,
-  Zap,
-  LineChart,
-  Bot,
+  Headphones,
   CheckCircle2,
-  Paperclip,
 } from 'lucide-react';
 
 export function LandingHero() {
-  const [prompt, setPrompt] = useState(
-    'Analyze XAUUSD 5M breakout level and verify signal confluence...'
-  );
+  // Annotation 4: Initial prompt text
+  const [prompt, setPrompt] = useState('How can I help you today ?');
   const router = useRouter();
 
-  const handleLaunchWithPrompt = () => {
+  const handleLaunchSupport = () => {
     if (prompt.trim()) {
       router.push(`/terminal?q=${encodeURIComponent(prompt)}`);
     } else {
       router.push('/terminal');
     }
+  };
+
+  const handleChipClick = (topicText: string) => {
+    setPrompt(`Tell me more about ${topicText}...`);
   };
 
   return (
@@ -40,7 +39,7 @@ export function LandingHero() {
 
       <div className="relative z-10 container mx-auto px-4 md:px-6">
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12">
-          {/* Left Column: Headline & Interactive AI Prompt Sandbox */}
+          {/* Left Column: Headline & Customer Support Centre */}
           <div className="space-y-8 lg:col-span-6">
             {/* Top Pill */}
             <div className="inline-flex items-center space-x-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 backdrop-blur-md">
@@ -66,43 +65,69 @@ export function LandingHero() {
               </p>
             </div>
 
-            {/* Prompt Interactive Builder */}
-            <div className="relative rounded-2xl border border-slate-700/80 bg-[#0d111c]/90 p-2 shadow-2xl shadow-black/80 backdrop-blur-xl transition-all focus-within:border-amber-500/60 focus-within:ring-1 focus-within:ring-amber-500/30">
+            {/* Support Centre Input Sandbox */}
+            <div className="relative rounded-2xl border border-slate-700/80 bg-[#0d111c]/90 p-2.5 shadow-2xl shadow-black/80 backdrop-blur-xl transition-all focus-within:border-amber-500/60 focus-within:ring-1 focus-within:ring-amber-500/30">
+              {/* Annotation 3: Header Badge "Support Centre" */}
               <div className="mb-2 flex items-center space-x-2 border-b border-slate-800/60 px-3 py-1 pb-2 text-xs font-semibold text-amber-400/90">
-                <Bot className="h-3.5 w-3.5" />
-                <span>Interactive Prompt Sandbox</span>
+                <Headphones className="h-3.5 w-3.5 text-amber-400" />
+                <span>Support Centre</span>
               </div>
+
+              {/* Annotation 4: Textarea content */}
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleLaunchWithPrompt();
+                    handleLaunchSupport();
                   }
                 }}
                 rows={2}
-                placeholder="Ask Davin AI to analyze any pair, pattern, or risk ratio..."
-                className="w-full resize-none bg-transparent px-3 py-1 font-mono text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+                placeholder="How can I help you today ?"
+                className="w-full resize-none bg-transparent px-3 py-1 text-sm font-medium text-slate-100 placeholder:text-slate-500 focus:outline-none"
               />
-              <div className="flex items-center justify-between border-t border-slate-800/60 px-2 pt-2">
-                <div className="flex items-center space-x-2 text-xs text-slate-400">
-                  <span className="rounded bg-slate-800/80 px-2 py-0.5 font-mono text-[11px] text-slate-300">
-                    XAUUSD
-                  </span>
-                  <span className="rounded bg-slate-800/80 px-2 py-0.5 font-mono text-[11px] text-slate-300">
-                    EURUSD
-                  </span>
-                  <span className="rounded bg-slate-800/80 px-2 py-0.5 font-mono text-[11px] text-slate-300">
-                    BTCUSD
-                  </span>
+
+              <div className="flex flex-col justify-between gap-3 border-t border-slate-800/60 px-2 pt-2 sm:flex-row sm:items-center">
+                {/* Annotation 5: Quick Chips "Product Info | Technical Support | PRO Subscription | Billing" */}
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+                  <button
+                    type="button"
+                    onClick={() => handleChipClick('Product Info')}
+                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition-colors hover:bg-amber-500/20 hover:text-amber-300"
+                  >
+                    Product Info
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleChipClick('Technical Support')}
+                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition-colors hover:bg-amber-500/20 hover:text-amber-300"
+                  >
+                    Technical Support
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleChipClick('PRO Subscription')}
+                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition-colors hover:bg-amber-500/20 hover:text-amber-300"
+                  >
+                    PRO Subscription
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleChipClick('Billing')}
+                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition-colors hover:bg-amber-500/20 hover:text-amber-300"
+                  >
+                    Billing
+                  </button>
                 </div>
+
+                {/* Annotation 6: Button "Ask Customer Support" */}
                 <Button
-                  onClick={handleLaunchWithPrompt}
+                  onClick={handleLaunchSupport}
                   size="sm"
-                  className="h-9 bg-gradient-to-r from-amber-500 to-amber-600 font-bold text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
+                  className="h-9 shrink-0 bg-gradient-to-r from-amber-500 to-amber-600 font-bold text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
                 >
-                  Ask Davin AI
+                  Ask Customer Support
                   <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Button>
               </div>
