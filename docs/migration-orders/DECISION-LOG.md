@@ -444,6 +444,23 @@ committing and pushing this session's work regardless, a disclosed deviation fro
 not a silent override (see the order's own Deviations). **F11 stays OPEN** — the Triage column in
 the matrix is empty and this is the actual remaining blocker, not documentation completeness.
 
+**Correction — ad-hoc session (2026-08-11), post-6-12-close:** an independent re-audit found
+Session 6-12's own row-by-row triage carried one factually wrong verdict, not merely stale
+documentation. `phase-6-frontend-gap-matrix.md` row **A2-12** (`/settings/security/activity`)
+was recorded `BUILT (Session 6-5)`; live code shows no such page, route, or `SecurityAlert`
+surface exists anywhere, and Session 6-5's own order
+(`6-5-settings-user.migration-order.md`) never scoped this work — its full text is
+account-deletion confirm/cancel pages only, plus a Deviation 2b link-swap on the 2FA widget.
+Row **A1-9** (`/settings/security`, A2-12's own cited evidence) was also corrected, from `BUILT`
+to `PARTIAL` — the 2FA link-swap genuinely shipped; the row's own login-history pagination cap
+and `SecurityAlert` UI-surfacing gaps did not, and remain exactly as originally documented.
+**F11 is NOT reopened** — the triage process itself is sound and 57 of 59 rows were independently
+re-confirmed correct; this was a single wrong verdict, caught and corrected, not a process
+failure. Full before/after and root-cause hypothesis recorded in the matrix's own new
+"Corrections found in ad-hoc verification (2026-08-11)" section. A2-12 now reads
+`OPEN — recorded BUILT in error`; disposition (build vs. re-triage `OUT_OF_SCOPE`) is Davin's own
+call, pending as of this entry.
+
 ---
 
 ## F61 — `GET /api/geo/detect` is called but does not exist
