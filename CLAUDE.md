@@ -26,7 +26,95 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 6-6 (Admin, UI-BUILD variant, dial HIGH for new UI, LOW for data),
+- **Current:** Session 6-7 (Affiliate, UI-BUILD variant, dial HIGH for consolidated payment-setup
+  & report UI, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as
+  Session 6-6. **Closes the 6 AFFILIATE-surface gap-matrix rows assigned to it (A1-15, A1-16,
+  A2-6, A2-11, B2-19, B2-20).** No flags touched.
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again**: the order arrived
+  modified-but-uncommitted, `PRE-DRAFT → APPROVED`, with both of the committed PRE-DRAFT's own
+  explicit "User Review Required" open product questions (payment-setup consolidation approach,
+  B2-19/B2-20 scope) silently resolved and a full 6-step Ordered Steps section added — no
+  DRAFT-stage commit trail. Reported in full before proceeding, including several substantive
+  findings (below); Davin confirmed live it was his own authentic authorization and resolved 4
+  further implementation-level questions directly in the same message.
+  **A1-15's own premise, both in the committed PRE-DRAFT and the rewritten APPROVED text, was
+  found materially wrong against live code before any code was written:** the order claimed
+  `commissions/page.tsx` "shows only a static 'Ready for payout' string... no reference to
+  `WiseTransfer`/`WiseBatchGroup`/`DisbursementTransaction`/`PaymentBatch` anywhere in the file" —
+  reading the file directly showed it already fully live: a real `GET /api/affiliate/dashboard/
+commission-report` fetch, real `Commission` rows, real pagination/filtering/computed totals. The
+  cited string is one label inside a 4-item status-legend footer, not the whole page. The real,
+  narrower gap: no `PaymentBatch`/`WiseTransfer` join existed anywhere for per-commission Wise
+  status. Also found and resolved live: the order's own "Real Batch Enum Vocabulary" note
+  (`PENDING, QUEUED, PROCESSING, COMPLETED, FAILED, CANCELLED` — real `PaymentBatchStatus`,
+  schema-verified correct) would have been wrong applied to the commissions page, which correctly
+  uses the DIFFERENT `CommissionStatus` enum (`PENDING, APPROVED, PAID, CANCELLED`) for
+  per-commission status — Davin's live resolution: `CommissionStatus` stays on the commissions
+  page unchanged, `PaymentBatchStatus`/Wise sub-status moved to the new payouts page instead.
+  **`GET /api/wise/recipients` (cited in the order's own Feeds-on line) confirmed admin-only, not
+  self-service** — read the route directly, `GET` calls `requireAdmin()` and lists every
+  affiliate's recipients. Davin's live correction: use the already-correct self-service
+  `GET /api/wise/recipients/me`, which `settings/payout/page.tsx` already called correctly since
+  Session 4A-W3b — no code change needed there beyond a small copy addition.
+  **No backend endpoint exists for Steps 4/5 (statements, resources) — resolved live (Davin):**
+  client-side aggregation of the existing `commission-report` endpoint for statements (paginated
+  fetch over a 12-month window, grouped by `earnedAt`'s calendar month, client-side CSV export via
+  a Blob); a client-side resource hub for resources (real referral-link generator off the existing
+  `codes` endpoint + the real `?ref=` query param `register-form.tsx` already reads, FAQ built
+  from real `AFFILIATE_CONFIG` values, honest "not published yet" copy for brand assets since zero
+  logo/banner files exist anywhere in `public/`, checked directly rather than fabricated). No new
+  backend endpoint built for either — respects "Out: No backend service changes."
+  **A real, previously-live-breaking production bug found and fixed while touching this exact code
+  path (Step 2), not part of the order's own literal ask:** `commissions/page.tsx` and
+  `CommissionTable` both read `commission.amount` — the real Prisma field is `commissionAmount` (a
+  `Decimal`, serializes as a string over JSON, matching this codebase's own established
+  `Number(...)`-on-Decimal convention in `lib/affiliate/report-builder.ts`). Every real commission
+  row would throw `TypeError` on `.amount.toFixed(2)` the instant it rendered — invisible because
+  the only existing test (`commission-table.test.tsx`) mocked the identical wrong field name.
+  Fixed both consumers to read `commissionAmount` + `Number(...)`-convert; updated the existing
+  test's mock data to the real field name (also fixed one unrelated pre-existing lint error in the
+  same file — an unused mock param, never caught before since `__tests__/` sits outside this
+  repo's `app components lib hooks` lint scope). New `LESSONS-LEARNED.md` **L62**.
+  **Built (6 Ordered Steps, one commit each):** Step 1 — legacy `profile/payment/page.tsx`
+  rewritten to a transparent `redirect()` to `/affiliate/settings/payout`; profile page's own nav
+  link repointed to the canonical page. Step 2 — new `payouts/page.tsx` (server component, direct
+  Prisma read via `DisbursementTransaction.commission.affiliateProfileId`, scoped strictly to the
+  caller's own rows even though a `PaymentBatch` commonly spans many affiliates; real
+  `PaymentBatchStatus` badges + `WiseTransfer.currentState` sub-status where present) + the
+  `commissionAmount` bug fix + a "View Payout Status →" link from commissions to payouts. Step 3 —
+  `code-inventory/page.tsx` (new, wires the already-live, zero-consumer `GET /api/affiliate/
+dashboard/code-inventory`). Step 4 — `statements/page.tsx` (new, client-side monthly aggregation +
+  CSV export + a tax-disclaimer note). Step 5 — `resources/page.tsx` (new, referral-link generator,
+  promo-code copy widgets, FAQ, honest brand-assets gap). Step 6 — 4 new test files (order named 2,
+  split into 4 for real per-area coverage rather than cramming unrelated bullets together), 23
+  tests: `payout-consolidation.test.tsx` (redirect + settings/payout form state),
+  `code-inventory-report.test.tsx` (fetch/render/refetch), `commissions-payouts.test.tsx`
+  (CommissionStatus-not-batch-vocabulary, payouts page own-profile-only query scoping),
+  `statements.test.tsx` (monthly grouping, CSV Blob trigger).
+  **Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
+  — same 4 pre-existing warnings (tracked since Session 6-1/6-6), 0 introduced by this session's
+  own edits; `test:ci` **142/142 suites, 2261/2261 tests** (was 138/138, 2238/2238 — +4 suites/+23
+  tests, exactly this session's own new test files, zero regressions elsewhere). Live-verified
+  against the real Next.js/Turbopack dev server: all 6 new/modified routes (`payouts`,
+  `code-inventory`, `statements`, `resources`, the redirected `profile/payment`, `settings/payout`)
+  compile cleanly and correctly redirect to `/login?callbackUrl=...` when unauthenticated, zero
+  server errors — same standing gap as every Phase 6 session since 6-1b, no deep authenticated
+  click-through possible in this environment (Waiting-on #117).
+  **No flag, no cutover-table row** — same-stack UI work, no flag existed to touch or retire;
+  `migration-cutover-table.md` unchanged.
+  **Artifacts updated:** `6-7-affiliate.migration-order.md` (Status → CONFIRMED, executed, CLOSED
+  SUCCESSFUL; Entry criteria all checked; Done-when all checked; Deviations filled in full — 9
+  entries), `migration-stack-analysis.md` (new Session 6-7 entry, 4 new files + 6 modified),
+  `LESSONS-LEARNED.md` (new **L62** — a test that mocks a field name the real Prisma model doesn't
+  have will never catch the crash that field name causes in production), this file
+  (session-history hygiene: Session 6-5's own full text moved to `history/sessions-archive.md`,
+  matching this file's own rotation rule — the larger pre-existing backlog flagged at Waiting-on
+  #102 is unchanged, still needs its own dedicated cleanup session). New
+  `6-8-payments-checkout.migration-order.md` PRE-DRAFTed (UI-BUILD variant, resolves F61 + a
+  3-endpoint wire-vs-delete decision on `/checkout`) per this order's own Next-session handoff —
+  **not fast-path eligible**, flags 1 real product/scope decision (the 3 orphaned dLocal/checkout
+  endpoints) that needs Davin's call before DRAFT can finalize.
+- **Previous:** Session 6-6 (Admin, UI-BUILD variant, dial HIGH for new UI, LOW for data),
   CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as Session 6-5. **Closes the 6
   ADMIN-surface gap-matrix rows assigned to it (A1-5, A1-6, A1-14, A1-17/A2-10, A2-5, A2-7).** No
   flags touched.
@@ -120,90 +208,6 @@ available, riseEnabled}` object — rendering `{config.provider}` directly would
   real-data wiring + payment-setup consolidation) per this order's own Next-session handoff —
   **not fast-path eligible**, flags 2 real product/scope decisions (payment-setup consolidation,
   B2-19/B2-20 scope) that need Davin's call before DRAFT can finalize.
-- **Previous:** Session 6-5 (Settings/User, UI-BUILD variant, dial HIGH for the confirm/cancel flow
-  UX, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11. **Builds the missing
-  account-deletion confirm/cancel pages — all 3 `app/api/user/account/deletion-*` routes were
-  already live (Session 4B-11) but zero pages existed anywhere for a user to land on after
-  clicking the confirm/cancel link in a deletion email.** No flags, no backend service changes.
-  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again (12th+ recurrence)**:
-  the order arrived modified-but-uncommitted, `PRE-DRAFT → APPROVED`, with the human-in-the-loop
-  question resolved and 4 concrete Ordered Steps added, no DRAFT-stage commit trail against the
-  committed PRE-DRAFT. Reported in full before proceeding; Davin confirmed live it was his own
-  authentic authorization.
-  **Two real content bugs found in the order's own Context/Step-1 text, both resolved by Davin
-  live before writing code:** (a) the order's blanket "all UI copy must state 7 days" instruction
-  conflated two genuinely different, both-live deadlines — `AccountDeletionRequest.expiresAt`'s
-  7-day link-expiry window (REQUEST→CONFIRM) and `deletion-confirm/route.ts`'s own live response
-  (`scheduledDeletionTime = now + 24h`, CONFIRM→execution); `DECISION-LOG.md` F21's own register
-  title ("24h Account-Deletion GDPR gap") directly contradicted the order's claim that F21
-  "defines the actual grace period as 7 days." Resolved: pre-confirm/pending-banner copy states
-  the 7-day link deadline, post-confirm/CONFIRMED-banner copy states the real 24-hour execution
-  window, both noting cancellation is still possible. (b) Step 4's "re-verify 2FA... on
-  `settings/account/page.tsx`" assumed a real integration existed there — `handleTwoFactorToggle`
-  was a bare `useState` flip, zero calls to any `/api/user/2fa/*` endpoint, its own comment
-  reading "In a real implementation, this would open a 2FA setup flow." The real, fully-wired
-  implementation (gap-matrix row A1-9) already exists at `settings/security/page.tsx`. Resolved
-  (Davin, option a): replaced the dummy widget with a "Manage 2FA" link to that page instead.
-  **A real invariant conflict found before Step 1 could be built, resolved via a live multiple-
-  choice check-in before any code was written:** `middleware.ts`'s `/settings/:path*` matcher
-  would hard-redirect any logged-out visitor away from the new pages before they ever rendered —
-  directly breaking the deliberately-unauthenticated/optional-auth email-link flow both routes
-  are built for. Davin chose an exact-pathname allow-list in `middleware.ts` over relocating the
-  URL or requiring login first.
-  **A second, deeper layer of the same conflict, found only by live browser verification after
-  Steps 1-2 were already built and committed:** `app/(dashboard)/layout.tsx` does its own
-  server-side `getServerSession()`+`redirect` on every page it wraps, entirely independent of
-  `middleware.ts` — the middleware allow-list alone wasn't sufficient, since the new pages
-  physically lived inside that route group. Fixed same-session (the direct, necessary technical
-  consequence of the already-approved decision, not a new one): relocated both pages to a new
-  `app/(public)/` route group (route groups are transparent to the URL, so the URLs themselves are
-  unchanged); confirmed live, unauthenticated — both pages 200 OK with correct content,
-  `/settings/account` and `/settings/security` both still correctly redirect to `/login`.
-  **Built (4 Ordered Steps, one commit each, plus 2 own-addition fix commits):** Step 1 —
-  `app/(public)/settings/account/delete/confirm/page.tsx` (human-in-the-loop gate; also fixed
-  `deletion-request/route.ts`'s own dormant `confirmationUrl`/`cancelUrl` construction, which
-  pointed at paths that never existed — currently inert since email sending is still a TODO, but
-  would have 404'd every deletion email once wired up). Step 2 —
-  `app/(public)/settings/account/delete/cancel/page.tsx` (auto-fires on mount, token-or-session
-  dual mode, matching the route's own design — cancelling is non-destructive, unlike confirm).
-  Step 3 — `settings/account/page.tsx` restructured from a `'use client'` page into a server
-  component (`page.tsx`, direct `prisma.accountDeletionRequest.findFirst` read, mirroring the
-  `alerts/[id]/edit` precedent) + client component (`account-settings-client.tsx`) — required
-  since none of the 3 real routes exposes a side-effect-free status check
-  (`deletion-request` itself creates a row when none exists); adds the pending-deletion banner,
-  session-based cancel button, and the "Manage 2FA" link replacing the dummy toggle. Step 4 — 2
-  new test files (13 tests total): `account-deletion.test.tsx` (confirm/cancel pages) and
-  `account-settings-page.test.tsx` (the new server component + banner logic, first-ever coverage
-  for this page).
-  **Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
-  — same 3 pre-existing warnings tracked since Session 6-1, 0 new; `test:ci` **136/136 suites,
-  2230/2230 tests** (was 134/134, 2217/2217 — +2 suites/+13 tests, exactly this session's own new
-  files, zero regressions elsewhere). Live-verified against the real Next.js/Turbopack dev
-  server, unauthenticated: both new pages render correctly (missing-token and token-present
-  states); the real `/settings/account`/`/settings/security` pages both still correctly redirect
-  to `/login?callbackUrl=...`, unaffected.
-  **Not done this session, disclosed rather than silently skipped, same standing gap as every
-  Phase 6 session since 6-1b:** deep interactive click-through of the real 2FA flows on
-  `/settings/security` under a real authenticated session — no test credentials available in this
-  environment (Waiting-on #117, `CredentialsProvider` removed at Session 4B-21).
-  **Found, not fixed, flagged for a future session:** `operation-service/src/users/users.service.ts`'s
-  own `requestDeletion()` has the identical stale URL-construction bug the monolith route was
-  fixed for this session — a genuine backend-service file, out of this UI-BUILD session's stated
-  scope; should be fixed alongside whichever future session wires up real deletion-email sending.
-  **No flag, no cutover-table row** — same-stack UI work, no flag existed to touch or retire;
-  `migration-cutover-table.md` unchanged.
-  **Artifacts updated:** `6-5-settings-user.migration-order.md` (Status → CONFIRMED, executed,
-  CLOSED SUCCESSFUL; Entry criteria all checked; Done-when all checked; Deviations filled in full
-  — 8 entries), `migration-stack-analysis.md` (new Session 6-5 entry, 4 new files + 3 modified),
-  `LESSONS-LEARNED.md` (new **L60** — `middleware.ts`'s matcher and `app/(dashboard)/layout.tsx`'s
-  own `getServerSession`+`redirect` are two independent auth gates, bypassing one alone doesn't
-  make a page public; L27's own recurrence narrative collapsed to a single count line — now at 6
-  through this session, including Session 6-2's own occurrence which had been left un-collapsed
-  inline since 2026-08-10 — full detail moved to `LESSONS-ARCHIVE.md`, matching L11's own
-  precedent), this file (session-history hygiene: Session 6-3's own full text marked
-  `_(superseded-by-above)_`, matching this file's own rotation rule — the larger pre-existing
-  backlog flagged at Waiting-on #102 is unchanged, still needs its own dedicated cleanup session).
-  New `6-6-admin.migration-order.md` PRE-DRAFTed per this order's own Next-session handoff.
 - _(superseded-by-above, retained for context)_ Session 6-3 (Alerts & Charts, UI-BUILD variant, dial HIGH for the edit-form UI/flow,
   LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-10, same day as Session 6-2.
   **The 3 orphan `/api/tier/*` endpoints now have a real UI consumer, and `/alerts/[id]/edit` exists
@@ -4289,32 +4293,41 @@ affiliates/[affiliateId]` were both built new (the order assumed both already ex
   fabricated batch-status vocabulary in the order's own text was caught and corrected to the real
   Prisma enum values before any code was written. Waiting-on #117 carries forward yet again, same
   standing gap; a new, unexplained (and unrelated to this session's own edits) lint warning was
-  found and flagged, not fixed. **The literal next session is now 6-7**
-  (`6-7-affiliate.migration-order.md`, PRE-DRAFTed at 6-6's close) — commissions real-data wiring
-  - payment-setup consolidation, **not fast-path eligible**, carries 2 real product/scope
-    decisions (payment-setup consolidation, B2-19/B2-20 scope) forward as explicit User Review
-    items needing Davin's call before DRAFT can finalize. Two named Phase 4 exceptions run as their
-    own independent tracks and do NOT block Phase 6: `DECISION-LOG.md` F49 (dLocal
-    `payment_method_flow`, needs its own fix session) and F60
-    (`4a-13-stripe-webhook-cutover.migration-order.md`, PRE-DRAFTed).
-    **Phase 6 is now 12 sessions, in this order:** 6-1 (gap matrix, audit only — done) → 6-1b
-    (mock-data hotfix, PORT/low dial — done) → 6-2 (IA + design system + shared shells; F62
-    resolved/executed — done) → 6-3 (alerts/charts; 3 orphan tier endpoints wired, edit route built —
-    done) → 6-4 (notifications; `/notifications` page built, bell link resolved — done) → 6-5
-    (settings/user; account-deletion confirm/cancel pages built — done) → 6-6 (admin; WISE provider
-    option, accounts→recipients consolidation, user detail page, code-flows/affiliate-detail pages
-    built — done) → **6-7** (affiliate, next) → 6-8 (payments/checkout; resolves F61) → **6-10**
-    (NEW — public/marketing surface; blocked on F63) → **6-11** (NEW — admin system operations) →
-    **6-12** (a11y + responsive + phase exit; was 6-9). **Session number 6-9 is retired — do not
-    reuse it.**
-    **Per the chain-length-one rule (`00-SKELETON-AND-RULES.md` §1.5), 6-1 and 6-2 both got full
-    order files** (6-2's own F62 scope made it not fast-path eligible, same reasoning). 6-1b, 6-10,
-    6-11 and 6-12 are defined in the playbook and the v9 handbook, and each gets its own order
-    PRE-DRAFTed by the Executor at the close of the session before it — they were deliberately NOT
-    drafted ahead. 6-3's own order was PRE-DRAFTed at 6-2's close per the same rule (a domain-build
-    session following a just-closed one); 6-4's own order was PRE-DRAFTed at 6-3's close the same
-    way; 6-5's own order was PRE-DRAFTed at 6-4's close the same way; 6-6's own order was PRE-DRAFTed
-    at 6-5's close the same way; 6-7's own order was PRE-DRAFTed at 6-6's close the same way.
+  found and flagged, not fixed. **Session 6-7 is now ALSO CONFIRMED, executed, and CLOSED
+  SUCCESSFUL** (see Current above) — the two payment-setup surfaces are consolidated onto
+  `/affiliate/settings/payout`; `/affiliate/dashboard/payouts` (real `PaymentBatchStatus`/Wise
+  sub-status), `code-inventory`, `statements`, and `resources` were all built new; a real,
+  previously-live-breaking `commissionAmount`-vs-`amount` bug was found and fixed on the
+  commissions page (`LESSONS-LEARNED.md` L62); the order's own A1-15 premise ("shows only a static
+  string") was found materially wrong against live code, corrected before writing any code.
+  Waiting-on #117 carries forward yet again, same standing gap. **The literal next session is now
+  6-8** (`6-8-payments-checkout.migration-order.md`, PRE-DRAFTed at 6-7's close) — resolves F61
+  (`GET /api/geo/detect`) and a 3-endpoint wire-vs-delete decision on `/checkout`,
+  **not fast-path eligible**, carries 1 real product/scope decision forward as an explicit User
+  Review item needing Davin's call before DRAFT can finalize. Two named Phase 4 exceptions run as
+  their own independent tracks and do NOT block Phase 6: `DECISION-LOG.md` F49 (dLocal
+  `payment_method_flow`, needs its own fix session) and F60
+  (`4a-13-stripe-webhook-cutover.migration-order.md`, PRE-DRAFTed).
+  **Phase 6 is now 12 sessions, in this order:** 6-1 (gap matrix, audit only — done) → 6-1b
+  (mock-data hotfix, PORT/low dial — done) → 6-2 (IA + design system + shared shells; F62
+  resolved/executed — done) → 6-3 (alerts/charts; 3 orphan tier endpoints wired, edit route built —
+  done) → 6-4 (notifications; `/notifications` page built, bell link resolved — done) → 6-5
+  (settings/user; account-deletion confirm/cancel pages built — done) → 6-6 (admin; WISE provider
+  option, accounts→recipients consolidation, user detail page, code-flows/affiliate-detail pages
+  built — done) → 6-7 (affiliate; payout consolidation, real Wise payout status, code inventory/
+  statements/resources built — done) → **6-8** (payments/checkout, next; resolves F61) →
+  **6-10** (NEW — public/marketing surface; blocked on F63) → **6-11** (NEW — admin system
+  operations) → **6-12** (a11y + responsive + phase exit; was 6-9). **Session number 6-9 is
+  retired — do not reuse it.**
+  **Per the chain-length-one rule (`00-SKELETON-AND-RULES.md` §1.5), 6-1 and 6-2 both got full
+  order files** (6-2's own F62 scope made it not fast-path eligible, same reasoning). 6-1b, 6-10,
+  6-11 and 6-12 are defined in the playbook and the v9 handbook, and each gets its own order
+  PRE-DRAFTed by the Executor at the close of the session before it — they were deliberately NOT
+  drafted ahead. 6-3's own order was PRE-DRAFTed at 6-2's close per the same rule (a domain-build
+  session following a just-closed one); 6-4's own order was PRE-DRAFTed at 6-3's close the same
+  way; 6-5's own order was PRE-DRAFTed at 6-4's close the same way; 6-6's own order was PRE-DRAFTed
+  at 6-5's close the same way; 6-7's own order was PRE-DRAFTed at 6-6's close the same way; 6-8's
+  own order was PRE-DRAFTed at 6-7's close the same way.
 - **Waiting on (Phase 6, added 2026-08-10 by the UI gap analysis):** **(106, NEW)** `DECISION-LOG.md`
   **F61** — `GET /api/geo/detect` is called by `app/(marketing)/pricing/page.tsx:155` and
   `components/payments/CountrySelector.tsx:69` but `app/api/geo/` does not exist; every pricing-page
@@ -4398,6 +4411,24 @@ destination`) on `components/layout/header.tsx` (lines 85, 89) and
   a fresh baseline check at the next session's own CONFIRM to see if it's still there, and a small
   dedicated fix (swap the `<a>` for `<Link>`) whenever a session next touches that file for other
   reasons.
+  **(121, RESOLVED — Session 6-7, 2026-08-11)** #120's own "is it still there" question: confirmed
+  yes, unchanged — `eslint app components lib hooks --max-warnings 0` showed exactly the same 4
+  warnings (0 errors) both at this session's CONFIRM and at its own post-execution baseline
+  re-check, `admin/page.tsx:308` included. Still not fixed (out of this session's own affiliate
+  surface) — the small `<a>`→`<Link>` fix noted in #120 remains open for whichever session next
+  touches that file.
+  **(122, NEW — Session 6-7, 2026-08-11)** `phase-6-frontend-gap-matrix.md`'s own A1-15 row
+  ("`commissions/page.tsx` shows only a static 'Ready for payout' string... no reference to
+  `WiseTransfer`/`WiseBatchGroup`/`DisbursementTransaction`/`PaymentBatch` anywhere in the file")
+  was found materially wrong against live code at this session's CONFIRM — the cited line/string
+  is real, but it's one label in a 4-item status-legend footer on an otherwise fully live,
+  real-data-fetching page, not a description of the whole file. Corrected before writing any code
+  (full detail in `6-7-affiliate.migration-order.md`'s own Deviations #2). Same `LESSONS-LEARNED.md`
+  L27 class recurring yet again (order/matrix text drifting from its own cited ground truth) — this
+  time in the gap matrix itself, the artifact every Phase 6 session treats as its own scope source.
+  Worth flagging to the Advisor: any remaining un-re-verified gap-matrix row (items #115/#116 above)
+  should be read in full, not trusted from its own citation, before a future session builds against
+  it.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,

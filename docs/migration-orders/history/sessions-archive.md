@@ -7,6 +7,93 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+_(superseded-by-above, retained for context)_ Session 6-5 (Settings/User, UI-BUILD variant, dial HIGH for the confirm/cancel flow
+UX, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11. **Builds the missing
+account-deletion confirm/cancel pages — all 3 `app/api/user/account/deletion-*` routes were
+already live (Session 4B-11) but zero pages existed anywhere for a user to land on after
+clicking the confirm/cancel link in a deletion email.** No flags, no backend service changes.
+**CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again (12th+ recurrence)**:
+the order arrived modified-but-uncommitted, `PRE-DRAFT → APPROVED`, with the human-in-the-loop
+question resolved and 4 concrete Ordered Steps added, no DRAFT-stage commit trail against the
+committed PRE-DRAFT. Reported in full before proceeding; Davin confirmed live it was his own
+authentic authorization.
+**Two real content bugs found in the order's own Context/Step-1 text, both resolved by Davin
+live before writing code:** (a) the order's blanket "all UI copy must state 7 days" instruction
+conflated two genuinely different, both-live deadlines — `AccountDeletionRequest.expiresAt`'s
+7-day link-expiry window (REQUEST→CONFIRM) and `deletion-confirm/route.ts`'s own live response
+(`scheduledDeletionTime = now + 24h`, CONFIRM→execution); `DECISION-LOG.md` F21's own register
+title ("24h Account-Deletion GDPR gap") directly contradicted the order's claim that F21
+"defines the actual grace period as 7 days." Resolved: pre-confirm/pending-banner copy states
+the 7-day link deadline, post-confirm/CONFIRMED-banner copy states the real 24-hour execution
+window, both noting cancellation is still possible. (b) Step 4's "re-verify 2FA... on
+`settings/account/page.tsx`" assumed a real integration existed there — `handleTwoFactorToggle`
+was a bare `useState` flip, zero calls to any `/api/user/2fa/*` endpoint, its own comment
+reading "In a real implementation, this would open a 2FA setup flow." The real, fully-wired
+implementation (gap-matrix row A1-9) already exists at `settings/security/page.tsx`. Resolved
+(Davin, option a): replaced the dummy widget with a "Manage 2FA" link to that page instead.
+**A real invariant conflict found before Step 1 could be built, resolved via a live multiple-
+choice check-in before any code was written:** `middleware.ts`'s `/settings/:path*` matcher
+would hard-redirect any logged-out visitor away from the new pages before they ever rendered —
+directly breaking the deliberately-unauthenticated/optional-auth email-link flow both routes
+are built for. Davin chose an exact-pathname allow-list in `middleware.ts` over relocating the
+URL or requiring login first.
+**A second, deeper layer of the same conflict, found only by live browser verification after
+Steps 1-2 were already built and committed:** `app/(dashboard)/layout.tsx` does its own
+server-side `getServerSession()`+`redirect` on every page it wraps, entirely independent of
+`middleware.ts` — the middleware allow-list alone wasn't sufficient, since the new pages
+physically lived inside that route group. Fixed same-session (the direct, necessary technical
+consequence of the already-approved decision, not a new one): relocated both pages to a new
+`app/(public)/` route group (route groups are transparent to the URL, so the URLs themselves are
+unchanged); confirmed live, unauthenticated — both pages 200 OK with correct content,
+`/settings/account` and `/settings/security` both still correctly redirect to `/login`.
+**Built (4 Ordered Steps, one commit each, plus 2 own-addition fix commits):** Step 1 —
+`app/(public)/settings/account/delete/confirm/page.tsx` (human-in-the-loop gate; also fixed
+`deletion-request/route.ts`'s own dormant `confirmationUrl`/`cancelUrl` construction, which
+pointed at paths that never existed — currently inert since email sending is still a TODO, but
+would have 404'd every deletion email once wired up). Step 2 —
+`app/(public)/settings/account/delete/cancel/page.tsx` (auto-fires on mount, token-or-session
+dual mode, matching the route's own design — cancelling is non-destructive, unlike confirm).
+Step 3 — `settings/account/page.tsx` restructured from a `'use client'` page into a server
+component (`page.tsx`, direct `prisma.accountDeletionRequest.findFirst` read, mirroring the
+`alerts/[id]/edit` precedent) + client component (`account-settings-client.tsx`) — required
+since none of the 3 real routes exposes a side-effect-free status check
+(`deletion-request` itself creates a row when none exists); adds the pending-deletion banner,
+session-based cancel button, and the "Manage 2FA" link replacing the dummy toggle. Step 4 — 2
+new test files (13 tests total): `account-deletion.test.tsx` (confirm/cancel pages) and
+`account-settings-page.test.tsx` (the new server component + banner logic, first-ever coverage
+for this page).
+**Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
+— same 3 pre-existing warnings tracked since Session 6-1, 0 new; `test:ci` **136/136 suites,
+2230/2230 tests** (was 134/134, 2217/2217 — +2 suites/+13 tests, exactly this session's own new
+files, zero regressions elsewhere). Live-verified against the real Next.js/Turbopack dev
+server, unauthenticated: both new pages render correctly (missing-token and token-present
+states); the real `/settings/account`/`/settings/security` pages both still correctly redirect
+to `/login?callbackUrl=...`, unaffected.
+**Not done this session, disclosed rather than silently skipped, same standing gap as every
+Phase 6 session since 6-1b:** deep interactive click-through of the real 2FA flows on
+`/settings/security` under a real authenticated session — no test credentials available in this
+environment (Waiting-on #117, `CredentialsProvider` removed at Session 4B-21).
+**Found, not fixed, flagged for a future session:** `operation-service/src/users/users.service.ts`'s
+own `requestDeletion()` has the identical stale URL-construction bug the monolith route was
+fixed for this session — a genuine backend-service file, out of this UI-BUILD session's stated
+scope; should be fixed alongside whichever future session wires up real deletion-email sending.
+**No flag, no cutover-table row** — same-stack UI work, no flag existed to touch or retire;
+`migration-cutover-table.md` unchanged.
+**Artifacts updated:** `6-5-settings-user.migration-order.md` (Status → CONFIRMED, executed,
+CLOSED SUCCESSFUL; Entry criteria all checked; Done-when all checked; Deviations filled in full
+— 8 entries), `migration-stack-analysis.md` (new Session 6-5 entry, 4 new files + 3 modified),
+`LESSONS-LEARNED.md` (new **L60** — `middleware.ts`'s matcher and `app/(dashboard)/layout.tsx`'s
+own `getServerSession`+`redirect` are two independent auth gates, bypassing one alone doesn't
+make a page public; L27's own recurrence narrative collapsed to a single count line — now at 6
+through this session, including Session 6-2's own occurrence which had been left un-collapsed
+inline since 2026-08-10 — full detail moved to `LESSONS-ARCHIVE.md`, matching L11's own
+precedent), this file (session-history hygiene: Session 6-3's own full text marked
+`_(superseded-by-above)_`, matching this file's own rotation rule — the larger pre-existing
+backlog flagged at Waiting-on #102 is unchanged, still needs its own dedicated cleanup session).
+New `6-6-admin.migration-order.md` PRE-DRAFTed per this order's own Next-session handoff.
+
+---
+
 _(superseded-by-above, retained for context)_ Session 6-4 (Notifications, UI-BUILD variant, dial HIGH for list/filter/realtime
 UX, LOW for data), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-10, same day as Session 6-3.
 **Builds the missing `/notifications` page — the bell icon's own "View all" link (Session

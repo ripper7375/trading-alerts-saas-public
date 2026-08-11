@@ -4,7 +4,7 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 61 (L1–L61) — a consolidation pass is overdue and
+**Hard cap ~40 active lessons.** Currently at 62 (L1–L62) — a consolidation pass is overdue and
 now more overdue than at last count; the next session that isn't itself time-constrained should
 do it before adding more. Candidates promoted and preamble archived 2026-08-03; L11's own
 9-recurrence narrative collapsed to a single count line same day (Session 4B-19), L27's own
@@ -694,3 +694,10 @@ dist/main` (the plain `npm start` script) instead of the `start:worker` script n
 - Root cause: this migration has, in several places, two independently maintained copies of the same business logic (one in the monolith, one in a microservice) rather than one shared source — nothing enforces the two staying in sync, and a session that fixes one side has no natural trigger to check whether a sibling copy exists and needs the identical fix.
 - Rule: whenever a session ports or duplicates logic between the monolith and a microservice (provider factories, config constants, status enums, etc.), grep for a sibling copy of the SAME logic in the other codebase before assuming a one-sided fix is complete — and when building anything on one side that reads such logic, don't assume the other side's already-fixed state has propagated; verify the copy you're actually touching directly.
 - Source: Session 6-6 (2026-08-11) · Status: ACTIVE
+
+### L62 — A UI test that mocks a field name the real Prisma model doesn't have will never catch the crash that field name causes in production
+
+- Symptom: `app/affiliate/dashboard/commissions/page.tsx` and `components/affiliate/commission-table.tsx` both read `commission.amount` and called `.amount.toFixed(2)` directly — the real Prisma field is `commissionAmount` (a Decimal, arriving as a string over JSON). Every real commission row would throw `TypeError: Cannot read properties of undefined (reading 'toFixed')` the instant it rendered — a live, unconditional crash for any affiliate with at least one real commission. Undetected because `commission-table.test.tsx`'s own mock data used `amount: 4.64`, matching the component's fictional field name instead of the real API shape.
+- Root cause: nothing in this codebase's test suite ever exercised the real `GET /api/affiliate/dashboard/commission-report` response shape against this page — the mock and the component were internally consistent with each other and both wrong relative to the real Prisma model.
+- Rule: when a component's own test mocks a field name, cross-check that name against the real Prisma model (or the actual route handler's response, not the frontend's own `interface` declaration) before trusting the test as proof the field exists — an `interface` in the frontend is a claim, not a source of truth; Prisma `Decimal` fields also serialize as strings over JSON, not numbers, so arithmetic call sites need `Number(...)` regardless of the field-name fix.
+- Source: Session 6-7 (2026-08-11) · Status: ACTIVE

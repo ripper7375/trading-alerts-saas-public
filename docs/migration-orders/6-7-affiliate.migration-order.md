@@ -3,7 +3,7 @@
 > For a session that **closes the 6 AFFILIATE-surface gap-matrix rows** assigned to it (A1-15, A1-16,
 > A2-6, A2-11, B2-19, B2-20) — real Wise payout data wiring on commissions/payouts pages, payment-setup consolidation, code inventory report view, monthly statements download, and affiliate resource center. Adapted from `TEMPLATE-UI-BUILD.md`, dial **High for consolidated payment-setup & report UI, Low for data**.
 
-**Session:** 6-7 · **Phase:** Phase 6 (Frontend Redesign) · **Variant:** UI-BUILD (dial HIGH for consolidated payment-setup & report UI, LOW for data) · **Status:** APPROVED · **Generated:** 2026-08-10 ·
+**Session:** 6-7 · **Phase:** Phase 6 (Frontend Redesign) · **Variant:** UI-BUILD (dial HIGH for consolidated payment-setup & report UI, LOW for data) · **Status:** CONFIRMED, executed, CLOSED SUCCESSFUL · **Generated:** 2026-08-10 ·
 **Flags touched:** none · **Estimated time:** ~4-5h
 **Surface:** [`app/affiliate/dashboard/commissions/page.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/app/affiliate/dashboard/commissions/page.tsx) (real Wise payout status), `app/affiliate/dashboard/payouts/page.tsx` (new payouts history page), [`app/affiliate/settings/payout/page.tsx`](file:///d:/SaaS%20Project/trading-alerts-saas-public/app/affiliate/settings/payout/page.tsx) (canonical payout setup), `app/affiliate/dashboard/profile/payment/page.tsx` (redirect to settings payout), `app/affiliate/dashboard/code-inventory/page.tsx` (new report view), `app/affiliate/dashboard/statements/page.tsx` (new monthly statements view), `app/affiliate/dashboard/resources/page.tsx` (new resource center) ·
 **Feeds on:** `GET /api/affiliate/dashboard/code-inventory`, `GET /api/affiliate/dashboard/commission-report`, `GET /api/affiliate/dashboard/stats`, `GET /api/wise/recipients`.
@@ -36,12 +36,22 @@ Six rows from `docs/files-completion-list/ui-page-gap-analysis.md`, independentl
 
 ## Entry criteria
 
-- [ ] Session 6-6 CONFIRMED, executed, closed (2026-08-11 — see `CLAUDE.md` Current entry).
-- [ ] All 6 gap-matrix rows (A1-15, A1-16, A2-6, A2-11, B2-19, B2-20) re-verified live at CONFIRM.
-- [ ] Payment-setup consolidation resolved (redirect legacy profile payment page to payout settings).
-- [ ] Statements and Resources scope resolved (built as new dashboard subpages).
-- [ ] Monolith baseline re-measured at CONFIRM (`tsc --noEmit`, `eslint app components lib hooks --max-warnings 0`, `test:ci` — last known at 6-6's close: 138/138 suites, 2238/2238 tests, 4 pre-existing lint warnings).
-- [ ] Advisor DRAFT review + Davin APPROVED before CONFIRM.
+- [x] Session 6-6 CONFIRMED, executed, closed (2026-08-11 — see `CLAUDE.md` Current entry).
+- [x] All 6 gap-matrix rows (A1-15, A1-16, A2-6, A2-11, B2-19, B2-20) re-verified live at CONFIRM —
+      found A1-15's own premise materially wrong (see Deviations); A1-16/A2-6/B2-19/B2-20 held.
+- [x] Payment-setup consolidation resolved (redirect legacy profile payment page to payout settings)
+      — Davin confirmed live at CONFIRM the working-copy rewrite (PRE-DRAFT→APPROVED, both open
+      User Review questions resolved, Ordered Steps added) was his own authentic authorization.
+- [x] Statements and Resources scope resolved (built as new dashboard subpages) — same live
+      confirmation.
+- [x] Monolith baseline re-measured at CONFIRM — `tsc --noEmit` clean, `eslint --max-warnings 0` 4
+      warnings/0 errors (exact match to 6-6's close), `test:ci` 138/138 suites, 2238/2238 tests
+      (exact match). Post-execution: 142/142 suites, 2261/2261 tests (+4 suites/+23 tests, exactly
+      this session's own new test files).
+- [x] Advisor DRAFT review + Davin APPROVED before CONFIRM — the working copy's own
+      `PRE-DRAFT → APPROVED` rewrite had no DRAFT-stage commit trail (the by-now-familiar
+      `LESSONS-LEARNED.md` L11 pattern); confirmed live by Davin as his own authentic edit before
+      CONFIRM proceeded.
 
 ## Integration points
 
@@ -103,12 +113,15 @@ Six rows from `docs/files-completion-list/ui-page-gap-analysis.md`, independentl
 
 ## Done when
 
-- [ ] `/affiliate/settings/payout` is canonical payout setup; legacy profile payment page redirects to it.
-- [ ] `/affiliate/dashboard/commissions` and `/affiliate/dashboard/payouts` render real Wise payout data.
-- [ ] `/affiliate/dashboard/code-inventory` wired to `GET /api/affiliate/dashboard/code-inventory`.
-- [ ] `/affiliate/dashboard/statements` built with CSV export.
-- [ ] `/affiliate/dashboard/resources` built with referral link builder and marketing assets.
-- [ ] `tsc --noEmit` clean; `eslint --max-warnings 0` introduces 0 new warnings; `test:ci` green.
+- [x] `/affiliate/settings/payout` is canonical payout setup; legacy profile payment page redirects to it.
+- [x] `/affiliate/dashboard/commissions` and `/affiliate/dashboard/payouts` render real Wise payout data
+      (commissions keeps real `CommissionStatus`, payouts shows real `PaymentBatchStatus`/Wise
+      transfer sub-status — Davin's live CONFIRM-time scoping, see Deviations).
+- [x] `/affiliate/dashboard/code-inventory` wired to `GET /api/affiliate/dashboard/code-inventory`.
+- [x] `/affiliate/dashboard/statements` built with CSV export.
+- [x] `/affiliate/dashboard/resources` built with referral link builder and marketing assets.
+- [x] `tsc --noEmit` clean; `eslint --max-warnings 0` introduces 0 new warnings (same 4 pre-existing);
+      `test:ci` green — 142/142 suites, 2261/2261 tests.
 
 ## Rollback
 
@@ -120,7 +133,66 @@ Legacy `/affiliate/dashboard/profile/payment` page retired in favor of `/affilia
 
 ## Deviations
 
-_(filled during execution)_
+1. **L11 recurrence, confirmed authentic (blocking, resolved at CONFIRM):** the committed `HEAD`
+   had this order at `Status: PRE-DRAFT`, no Ordered Steps, and two explicit open User Review
+   questions (payment-setup consolidation approach; B2-19/B2-20 scope) — the working copy was a
+   full uncommitted rewrite to `Status: APPROVED` with both questions resolved and 6 Ordered Steps
+   added, no DRAFT-stage commit trail. Reported in full before proceeding; Davin confirmed live it
+   was his own authentic authorization and additionally resolved 4 implementation-level questions
+   directly in the same message (enum scoping, endpoint correction, statements/resources data
+   source — see #2-#4 below).
+2. **A1-15's own premise found materially wrong against live code, corrected before writing any
+   code:** the order's Context (both PRE-DRAFT and APPROVED text) claimed
+   `commissions/page.tsx` "shows only a static 'Ready for payout' string... no reference to real
+   models" — read the file directly and found it already a fully live page: real
+   `GET /api/affiliate/dashboard/commission-report` fetch, real `Commission` rows, real pagination/
+   filtering/computed totals. The literal string is one label in a 4-item status-legend footer, not
+   the whole page. Real narrower gap: no `PaymentBatch`/`WiseTransfer` join existed anywhere.
+3. **Enum-scoping conflict found and resolved live (Davin):** the order's own "Real Batch Enum
+   Vocabulary" note (`PaymentBatchStatus`: PENDING/QUEUED/PROCESSING/COMPLETED/FAILED/CANCELLED)
+   would have been wrong if applied to the commissions page, which correctly uses the DIFFERENT
+   `CommissionStatus` enum (PENDING/APPROVED/PAID/CANCELLED) for per-commission status. Resolved:
+   commissions page keeps `CommissionStatus` unchanged; the new `/affiliate/dashboard/payouts` page
+   is where `PaymentBatchStatus` (and, where present, `WiseTransfer.currentState`) is shown.
+4. **`GET /api/wise/recipients` (cited in Feeds-on) confirmed admin-only, not self-service —
+   corrected before Step 1:** read the route directly — `GET` calls `requireAdmin()` and returns a
+   paginated list across ALL affiliates. Davin confirmed live: use the already-correct self-service
+   `GET /api/wise/recipients/me` (which `settings/payout/page.tsx` already called correctly before
+   this session — no code change needed there beyond a small copy addition).
+5. **No backend endpoint exists for Steps 4/5 (statements, resources) — resolved live (Davin):**
+   client-side aggregation of the existing `commission-report` endpoint (paginated fetch over a
+   12-month window, grouped by `earnedAt`'s calendar month) for statements; a client-side resource
+   hub (real referral-link generator off the existing `codes` endpoint + the real `?ref=` query
+   param `register-form.tsx` already reads, FAQ off real `AFFILIATE_CONFIG` values) for resources.
+   No new backend endpoint built for either — respects "Out: No backend service changes."
+6. **A genuine, previously-live-breaking bug found and fixed while touching this exact code path
+   (Step 2), not part of the order's own literal ask:** `commissions/page.tsx` and
+   `CommissionTable` both read `commission.amount` — the real Prisma field is `commissionAmount`
+   (a `Decimal`, serializes as a string over JSON, per this codebase's own established
+   `Number(...)`-on-Decimal convention in `lib/affiliate/report-builder.ts`). Every real commission
+   row would throw `TypeError` on `.amount.toFixed(2)` the instant it rendered — invisible because
+   the only existing test (`commission-table.test.tsx`) mocked the same wrong field name. Fixed
+   both consumers to read `commissionAmount` + `Number(...)`-convert; updated the existing test's
+   mock data to the real field name (found and fixed one unrelated pre-existing lint error in the
+   same file while there — an unused mock param, never caught before since `__tests__/` is out of
+   this repo's `app components lib hooks` lint scope). New `LESSONS-LEARNED.md` **L62**.
+7. **Step 6's own literal 2-file ask (`payout-consolidation.test.tsx`,
+   `code-inventory-report.test.tsx`) covering 4 distinct areas was split into 4 test files instead**
+   — `payout-consolidation.test.tsx` and `code-inventory-report.test.tsx` as named, plus
+   `commissions-payouts.test.tsx` and `statements.test.tsx` for the other two named bullets (Wise
+   payout status display, CSV download function) — real per-area coverage rather than cramming
+   unrelated areas into 2 files. 23 tests total, all green.
+8. **Nav links for all 4 new pages added in one edit to `app/affiliate/dashboard/layout.tsx`
+   during Step 2**, rather than touching the shared file once per step across Steps 2-5 — avoids
+   4 separate touches to the same array; recorded as a minor efficiency deviation, not a scope
+   change (all 4 links point at pages this order itself builds).
+9. **Live verification performed via unauthenticated redirect-gate checks, same standing gap as
+   every Phase 6 session since 6-1b (Waiting-on #117):** started the real Next.js/Turbopack dev
+   server and navigated to all 6 new/changed routes (`payouts`, `code-inventory`, `statements`,
+   `resources`, the redirected `profile/payment`, `settings/payout`) — all compiled cleanly (zero
+   server errors in `preview_logs`) and correctly redirected to `/login?callbackUrl=...`
+   unauthenticated. No deep authenticated click-through possible in this environment — no test
+   credentials available (`CredentialsProvider` removed at Session 4B-21).
 
 ## Known wrinkles / do-not-touch
 
@@ -131,4 +203,7 @@ _(filled during execution)_
 
 ## Next-session handoff
 
-Session **6-8** (Payments/Checkout — resolves F61, the missing `/api/geo/detect` endpoint) is next in Phase 6.
+Session **6-8** (`6-8-payments-checkout.migration-order.md`, PRE-DRAFTed at this session's close —
+resolves F61, the missing `/api/geo/detect` endpoint, plus the 3-orphaned-endpoint wire-vs-delete
+decision on `/checkout`) is next in Phase 6. Not fast-path eligible — carries a real, unresolved
+product/scope decision (User Review) forward, same shape as this session's own gate.

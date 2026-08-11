@@ -3260,5 +3260,54 @@ MARKED_FOR_CANCELLATION, PROCESSING_CANCEL, CANCELLED`. Davin corrected this liv
 
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-11 (Session 6-6, Admin)
+<details>
+<summary><strong>2026-08-11 — Session 6-7 (Affiliate, UI-BUILD)</strong></summary>
+
+Closes the 6 AFFILIATE-surface gap-matrix rows (A1-15, A1-16, A2-6, A2-11, B2-19, B2-20). Zero
+flags touched.
+
+- **New:** `app/affiliate/dashboard/payouts/page.tsx` (server component, direct Prisma read scoped
+  to the caller's own `DisbursementTransaction` rows, real `PaymentBatchStatus`/`WiseTransfer`
+  sub-status); `app/affiliate/dashboard/code-inventory/page.tsx` (wires the already-live `GET
+/api/affiliate/dashboard/code-inventory`); `app/affiliate/dashboard/statements/page.tsx`
+  (client-side monthly aggregation of `commission-report` + CSV export, no new endpoint);
+  `app/affiliate/dashboard/resources/page.tsx` (client-side resource hub — referral-link generator
+  off the existing `codes` endpoint, FAQ off real `AFFILIATE_CONFIG` values, no new endpoint); 4
+  new test files under `__tests__/pages/affiliate/` (23 tests).
+- **Modified:** `app/affiliate/dashboard/profile/payment/page.tsx` (rewritten to a transparent
+  `redirect()` to `/affiliate/settings/payout` — the legacy PayPal-style payment page is retired);
+  `app/affiliate/dashboard/profile/page.tsx` (nav link repointed to the canonical payout page);
+  `app/affiliate/settings/payout/page.tsx` (small copy addition linking to the new payouts page);
+  `app/affiliate/dashboard/commissions/page.tsx` + `components/affiliate/commission-table.tsx`
+  (fixed a genuine pre-existing bug — both read the non-existent `commission.amount` instead of
+  the real Prisma field `commissionAmount`, a live crash on any real commission row; added a link
+  to the new payouts page); `app/affiliate/dashboard/layout.tsx` (nav entries for all 4 new pages);
+  `__tests__/components/affiliate/commission-table.test.tsx` (mock data corrected to the real
+  field name, one unrelated pre-existing lint error fixed).
+- **A real, previously-invisible production bug found and fixed while touching this exact code
+  path, not part of the order's own literal ask:** see `LESSONS-LEARNED.md` L62 — `commission.amount`
+  doesn't exist on the real API response (`commissionAmount`, a Decimal serializing as a string);
+  every real commission row would have thrown `TypeError` on render, undetected because the only
+  existing test mocked the same wrong field name.
+- **A factually wrong page-content claim in the order's own text, caught before any code was
+  written:** the order's Context section (both PRE-DRAFT and rewritten-APPROVED versions) claimed
+  `commissions/page.tsx` "shows only a static 'Ready for payout' string... no reference to real
+  models" — the page was already fully live-data-driven; the real gap was narrower (no
+  `PaymentBatch`/`WiseTransfer` join existed). Davin resolved the resulting enum-scoping question
+  live: `CommissionStatus` stays on the commissions page, `PaymentBatchStatus` moved to the new
+  payouts page.
+- **Regression:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` — same
+  4 pre-existing warnings, 0 introduced; `test:ci` **142/142 suites, 2261/2261 tests** (was
+  138/138, 2238/2238 — +4 suites/+23 tests, exactly this session's own new test files, zero
+  regressions elsewhere).
+- **Not done:** live authenticated click-through of any of the 6 new/modified affiliate routes —
+  same standing gap as every Phase 6 session since 6-1b (Waiting-on #117); all 6 verified instead
+  via a live dev server's unauthenticated redirect chain (clean compile, zero server errors,
+  correct `callbackUrl`).
+
+</details>
+
+---
+
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-11 (Session 6-7, Affiliate)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
