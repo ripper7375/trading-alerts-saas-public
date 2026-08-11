@@ -109,14 +109,10 @@ row, not just that the route files exist.
   design decision" open question silently resolved with no visible rationale, and a carried-forward
   Done-when item dropped. Confirmed live by Davin as authentic; he also resolved the design
   question directly and explicitly reinstated the dropped item rather than letting it stay lost.
-  Recurred again at Session 6-12 (2026-08-11) — a more consequential variant: the working copy
-  asserted a blocking flag (F11) already resolved with zero visible evidence, directly contradicted
-  by the one artifact (`phase-6-frontend-gap-matrix.md`) that should have carried that evidence —
-  its Triage column was still 100% unfilled at first read. Confirmed live by Davin as authentic;
-  the real triage then landed for real and was independently re-verified against the file itself
-  (not the claim alone) before being treated as settled. Lesson holds: a status-field claim about a
-  flag's resolution is not itself evidence — check the artifact the flag's own resolution should
-  be recorded in.
+  Recurred again at Session 6-12 (2026-08-11) — the working copy asserted F11 already resolved
+  with the one artifact that should carry that evidence (`phase-6-frontend-gap-matrix.md`) still
+  100% unfilled at first read. Confirmed live by Davin as authentic; the real triage then landed
+  and was re-verified against the file itself, not the claim alone, before treating it as settled.
 
 ### L12 — A catch block checking `error.message` for a marker the source only ever sets on `error.code` is dead code
 
