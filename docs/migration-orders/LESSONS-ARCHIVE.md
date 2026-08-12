@@ -1398,3 +1398,276 @@ specific occurrence.
   genuinely different facts from two different code paths — verify the instruction's own premise
   (is this really ONE number, or two being treated as one?) against the code, not just whether the
   cited number itself is correct.
+
+## Consolidated archival (2026-08-12)
+
+### L4 — Config-file paths and Bind mounts must match filesystem case and style exactly
+
+- Rule: Path strings in config files (`tsconfig.json`, `.eslintignore`) must match the on-disk casing exactly. When constructing a Windows path to embed in a command passed to a native executable from Git Bash, use forward slashes (`C:/Users/WiN/...`). Git Bash strips backslashes.
+
+### L5 — A script's `require()` must be backed by a direct dependency
+
+- Rule: Any package a script directly `require()`s must be a direct `dependencies`/`devDependencies` entry. Never rely on pnpm's hoisting of transitive deps.
+
+### L8 — "No Vercel dashboard access" blocks CLI actions, not reaching the live public site
+
+- Rule: If a "verify production" step only needs a GET against known public routes, just navigate a browser or fetch the real production URL directly (`trading-alerts-saas-frontend.vercel.app`). Do not mark it blocked by Vercel access.
+
+### L9 — `ts-node` needs an explicit CommonJS override when tsconfig targets ESM
+
+- Rule: Any one-off `ts-node <file>.ts` invocation needs `TS_NODE_COMPILER_OPTIONS='{"module":"commonjs"}'` set to avoid `ERR_UNKNOWN_FILE_EXTENSION`.
+
+### L10 — A shared `jest.mock()` setup file only intercepts if imported BEFORE the mocked module
+
+- Rule: Any test file using a shared `jest.mock()` setup must import that setup file as the FIRST import. Wrap it in `/* eslint-disable import/order */` so the linter doesn't reorder it.
+
+### L12 — A catch block checking `error.message` for a marker the source only ever sets on `error.code` is dead code
+
+- Symptom: 4 monolith routes' auth-error handling (`error.message.includes('AFFILIATE_REQUIRED')`) never fires — `lib/auth/session.ts`'s thrown errors set that marker on `.code`, never `.message` — every real auth failure silently falls through to a generic 500 in production, zero test coverage either way.
+- Rule: when porting error-handling logic 1:1, read what the thrown error's fields ACTUALLY are, not just what the catch block appears to check — a plausible-looking condition can be permanently unreachable. Port the route's own documented/intended contract (its JSDoc `@returns`) when the actual behavior is a provably dead, zero-coverage bug.
+- Source: Session 4A-6 · Status: ACTIVE
+
+### L13 — Next.js 16 Turbopack CommonJS external resolution (`lucide-react` & `ioredis`)
+
+- Symptom: `npm run build` under Next.js 16 Turbopack fails with `Can't resolve 'lucide-react/dist/esm/icons/*-icon'` or `Can't resolve './utils/argumentParsers'` inside `ioredis/built/Command.js`.
+- Root cause: (1) Legacy `modularizeImports` for `lucide-react` appended `-icon` suffixes to icon filenames during build, whereas Next.js 16 natively tree-shakes ESM export maps. (2) `ioredis` internal CJS requires fail under Turbopack when untranspiled.
+- Rule: Remove legacy `modularizeImports` for `lucide-react` under Next.js 16 (let native ESM export maps handle tree-shaking). Add `transpilePackages: ['ioredis']` in `next.config.js` for `ioredis` bundling under Turbopack.
+- Source: Session 5-2 · Status: ACTIVE
+
+### L14 — Next.js 16 (`next@16.2.10`) deprecates/removes `next lint` CLI command in favor of ESLint 9 Flat Config
+
+- Symptom: `npm run validate:lint` (`next lint --max-warnings 0`) fails with `error: unknown option '--max-warnings'` or unknown command under Next.js 16.
+- Root cause: Next.js 16 deprecated/removed `next lint` from Next CLI in favor of native ESLint 9 Flat Config (`eslint.config.mjs` exporting `eslint-config-next@16.2.10`).
+- Rule: Under Next.js 16 / ESLint 9, create `eslint.config.mjs` importing native `eslint-config-next` flat config array and invoke ESLint directly (`eslint <dirs> --max-warnings 0`) in `package.json` scripts. Target application source directories (`app components lib hooks`) explicitly to avoid scanning out-of-scope separate-stack paths.
+- Source: Session 5-3 · Status: ACTIVE
+
+### L15 — Vercel Root Directory configuration vs monorepos/legacy subdirectories (`frontend/`)
+
+- Symptom: Vercel production build installs stale `next@15.5.20` and `prisma@6.19` and chokes on legacy build-time lint rules despite root `package.json` specifying `next@16.2.10` and `prisma@7.8.0`.
+- Root cause: Vercel Project Settings had **Root Directory** set to `frontend` (a legacy transitional subfolder) instead of `./` (root).
+- Rule: Ensure Vercel Dashboard -> Settings -> Build and Deployment -> **Root Directory** is set to `./` (blank) so Vercel builds the root application (`trading-alerts-saas-v7`).
+- Source: Session 5-4 Vercel Deployment · Status: ACTIVE
+
+### L16 — `pnpm` strict dependency isolation & Prisma runtime bundling under Next.js 16 Turbopack
+
+- Symptom: Vercel build fails with `Module not found: Can't resolve '@prisma/client-runtime-utils'` when bundling custom-generated Prisma Clients (`.prisma/market-client`, `.prisma/non-market-client`).
+- Root cause: `pnpm` enforces strict symlink dependency isolation and does not hoist sub-packages like `@prisma/client-runtime-utils` unless explicitly declared or hoisted.
+- Rule: When building custom Prisma Client output paths under `pnpm` on Vercel: (1) declare `"@prisma/client-runtime-utils": "7.8.0"` explicitly in `package.json` dependencies, (2) add `public-hoist-pattern[]=@prisma/*` to `.npmrc`, and (3) add `'@prisma/client'` and `'@prisma/client-runtime-utils'` to `serverExternalPackages` in `next.config.js`.
+- Source: Session 5-4 Vercel Deployment · Status: ACTIVE
+
+### L20 — `npm run validate`'s `validate:format`/`validate:policies` steps are not part of this repo's actual green bar on Windows
+
+- Symptom: `npm run validate` (the full chain) fails on `validate:format` (`prettier --check .`, 287 files) even on an otherwise-clean checkout with zero relevant edits.
+- Root cause: `core.autocrlf=true` on Windows checkouts converts tracked LF files to CRLF on disk; prettier's default `endOfLine: "lf"` then flags nearly every file. No `.gitattributes` normalizes this. Every session's actual historical exit-suite report (`type-check`/`validate:lint`/`build`/`test:ci`) already omitted `validate:format`/`validate:policies` — this isn't a new regression, just never verified as failing until this session actually ran the full chain instead of the split scripts.
+- Rule: on this repo, treat `tsc --noEmit` + `eslint --max-warnings 0` + `next build` + the relevant test suites as the real green bar, not the literal `npm run validate` chain, until a dedicated session adds `.gitattributes` line-ending normalization and re-baselines `validate:format`/`validate:policies`. Don't run `prettier --write` repo-wide as a drive-by fix inside an unrelated session.
+- Source: Session 4A-7a · Status: ACTIVE
+
+### L24 — An order's stated guard level for a proxy route is not evidence; read the live backend controller's actual guard before wiring a UI-BUILD session's proxy
+
+- Symptom: the order specified guarding `POST /api/wise/recipients/[id]/revalidate` with `requireAdmin()` and placing its trigger button on an admin page. The already-built live backend endpoint (`wise-recipients.controller.ts`, frozen at a prior PORT session) is actually `AffiliateGuard`-scoped self-service only — it derives the target recipient from the CALLER's own token, using the URL's `:id` only for an ownership check, never to select which recipient to act on. Building it as specified would have meant an admin caller either 403s or silently revalidates the ADMIN's OWN recipient instead of the intended affiliate's.
+- Root cause: the order's prose assumed a REST-ish "verb + path param" shape implies the caller can act on an arbitrary target by ID — true for admin-authored endpoints, false for a self-service-designed one. A UI-BUILD session consuming a PORT session's already-frozen backend inherits that backend's actual permission model, not the order's guess at it.
+- Rule: before wiring any proxy route's own guard (`requireAffiliate()`/`requireAdmin()`), read the live backend controller's own guard decorator AND how the handler derives its target entity (from the caller's token vs. from the path param) — never trust an order's stated guard level alone for an endpoint someone else already built. A mismatch here is a live bug, not a style choice.
+- Source: Session 4A-W3b · Status: ACTIVE
+
+### L29 — A quote/conversion amount field's currency isn't proven correct until a real non-default-currency case actually runs through it
+
+- Symptom: `wise-quote.service.ts`'s `createQuote` passes `Commission.commissionAmount` (always
+  USD) straight through as `targetAmount` with `targetCurrency` set to the recipient's local
+  currency. For every prior test (sandbox GBP/USD fixtures, all 4A-W5/W6 unit and E2E coverage),
+  this either matched or was never exercised against a currency where the bug would show — a `$50`
+  commission became a request for `50 THB` (≈$1.49) the first time a real non-USD recipient
+  (Thailand) was used, four sessions after the code was written and fully test-suite-green the
+  whole time.
+- Root cause: `commissionAmount`'s currency (USD, fixed by `DEFAULT_CURRENCY`) and the Wise API
+  parameter it gets passed into (`targetAmount`, meaning "amount in `targetCurrency`") are silently
+  different currencies whenever `targetCurrency !== 'USD'`. No test ever ran a same-code-path
+  conversion between two different real currencies — sandbox fixtures used currencies where the
+  units happened not to expose the mismatch, or mocked the Wise API response entirely.
+- Rule: any field whose name implies "amount in currency X" must be checked against what currency
+  the VALUE being passed in was actually computed/stored in — a same-named variable flowing across
+  a currency boundary is a real bug class, not a style nit, and unit tests using a single currency
+  (or mocks) cannot catch it. Before trusting a cross-currency amount conversion as correct, prove
+  it with a real non-default-currency case against the real API, not just green tests in the
+  system's own default currency.
+- Source: Session 4A-W7 (2026-07-27), found live during the first-ever real non-USD Wise payout
+  attempt · Status: ACTIVE · See `DECISION-LOG.md` F47.
+
+### L34 — This app's monolith routes authenticate via NextAuth session cookie, not a Bearer header; Bearer is only what money-service's OWN guards expect on the forwarded request
+
+- Symptom: suggested `Authorization: Bearer <token>` for testing a monolith Next.js route
+  (`/api/payments/dlocal/create`) and got a 401 that never reached money-service — the monolith's
+  own `getServerSession(authOptions)` call reads NextAuth's `httpOnly` session cookie
+  (`__Secure-next-auth.session-token` in production), never an `Authorization` header. Bearer auth
+  only enters the picture INSIDE `forwardWriteRequestToMoneyService`, which reads the monolith's
+  own resolved session and re-attaches it as a Bearer token when calling money-service — the
+  external caller never supplies a Bearer token directly for these routes.
+- Rule: when constructing a live test request against a MONOLITH Next.js API route, use a real
+  session cookie (`WebRequestSession` + `System.Net.Cookie`, per L(Cookie via -Headers is dropped,
+  Session 4A-10b prior entry) — never a Bearer header. Bearer headers are only correct when calling
+  money-service's OWN endpoints directly (`JwtAuthGuard`-protected `/v1/...` routes).
+- Source: Session 4A-10b continuation (2026-07-30) · Status: ACTIVE
+
+### L36 — `vercel --prod` (or plain `vercel deploy`) fails outright on this monorepo without `--archive=tgz`
+
+- Symptom: `npx vercel --prod --yes` failed immediately with
+  `"files" should NOT have more than 15000 items, received 32981` / `missing_archive`, before any
+  build even started.
+- Root cause: Vercel's default deploy upload mode sends one file per HTTP multipart entry, capped
+  at 15,000 files; this repo (monolith + money-service + operation-service + docs, all in one
+  checkout) has over 32,000 files even after `.vercelignore`/`.gitignore` exclusions.
+- Rule: always pass `--archive=tgz` on any `vercel deploy`/`vercel --prod` invocation in this repo
+  (bundles the upload into a single tarball, sidesteps the file-count cap entirely). Every prior
+  session's Vercel redeploys happened via `git push` (Vercel's own GitHub auto-deploy), which never
+  hits this limit — this only bites when triggering a deploy directly via the CLI, which is
+  necessary specifically for an env-var-only change (a flag flip) with no new commit to push.
+- Source: Session 4A-10c (2026-07-30) · Status: ACTIVE
+
+### L37 — An event's `aggregateId` is not always the right notification recipient; check each eventType's own emission call site, not just the field name
+
+- Symptom: building operation-service's outbox consumer, the order's own text treated "resolve the
+  recipient via `aggregateId` -> `User.id`" as a universal rule for all 6 `OutboxEvent` types. Five
+  of six really do work that way (the aggregate IS the notified user). The sixth,
+  `COMMISSION_CREDITED`, does not: `stripe-webhook.service.ts` emits it with `aggregateId` set to
+  the PAYING SUBSCRIBER's id (reusing the same `userId` variable the checkout session's tier-write
+  used), not the affiliate who actually earned the commission — a field named `aggregateId` reads as
+  generically "the entity this event is about," which silently hid that it means something
+  different per eventType here.
+- Root cause: an event schema with one shared `aggregateId` field across multiple `eventType`
+  values invites treating recipient resolution as uniform. It isn't, whenever an event's subject
+  (whose tier/state changed) and its intended notification target (who should be emailed) are
+  different people — commission crediting is inherently third-party (subscriber pays, affiliate
+  earns), unlike every other tier/subscription event in this stream.
+- Rule: for any event-driven consumer dispatching by `eventType`, read the ACTUAL EMISSION call
+  site for each eventType (not just the payload shape) before assuming a single resolution strategy
+  covers all of them — specifically check what value the emitting code passed as the identifier and
+  whether that's provably the same person the notification should reach. Where it isn't (and the
+  payload can't supply the real target), skip and flag rather than guess; a wrong-recipient email is
+  a worse failure mode than a missed one.
+- Source: Session 4A-11 (2026-07-30), `DECISION-LOG.md` F50 · Status: ACTIVE
+
+### L39 — A shared package's `exports` map is invisible to a consumer whose tsconfig uses classic/Node module resolution; `typesVersions` is the fix, not touching the consumer's tsconfig
+
+- Symptom: `@trading-alerts/types`'s subpath exports (`./geometry`, `./alert-engine`, `./validations`)
+  resolved fine for the monolith (`moduleResolution: bundler`) and for Node's own runtime `require()`
+  (which understands `package.json` `exports` natively), but `operation-service`'s `tsc --noEmit`
+  failed every subpath import with `TS2307` — its tsconfig has no `moduleResolution` set to
+  `node16`/`nodenext`/`bundler`, so it defaults to TypeScript's older classic/Node algorithm, which
+  does not consult the `exports` field at all.
+- Root cause: TypeScript has (at least) two independent module-resolution behaviors gated by
+  `moduleResolution` — only `node16`/`nodenext`/`bundler` read `package.json` `exports`; classic/Node
+  resolution does a raw path lookup relative to the package root instead, so a subpath's real
+  location under `dist/` is invisible to it regardless of how correct the `exports` map is.
+- Rule: when a new shared package uses subpath `exports` and will be consumed by a service whose
+  tsconfig you don't want to (or can't safely) change, add a `typesVersions` field to the package's
+  own `package.json` mapping each subpath to its real `.d.ts` location — this is TypeScript's
+  purpose-built compatibility shim for exactly this gap, understood under every `moduleResolution`
+  setting. Verify with a real `tsc --noEmit` in the CONSUMING service (not just the monolith), not
+  just a runtime `require()` check — Node's runtime resolver and TypeScript's compile-time resolver
+  are different code paths that can disagree.
+- Source: Session 4B-1 (2026-07-31), `DECISION-LOG.md` F9 · Status: ACTIVE
+
+### L41 — A `railway.toml` `[[services]]` block declares intent; it does not provision the service, and does not guarantee the deployed service actually runs the command it names
+
+- Symptom: adding a second `[[services]]` array entry (`name = "operation-service-worker"`,
+  `command = "npm run start:worker"`) to `operation-service/railway.toml` and pushing it to
+  `origin/main` did nothing observable — `railway service list` still showed the same 6
+  pre-existing services with no new one. Once a real service WAS separately created (through
+  Railway's own service-creation flow, outside this config file), its first deployment ran `node
+dist/main` (the plain `npm start` script) instead of the `start:worker` script named in
+  `railway.toml` — the config file's command wasn't actually wired to that service's real deploy
+  settings until fixed.
+- Root cause: `railway.toml`'s `[[services]]` array is a declarative description Railway CAN apply
+  to a service once one exists and is linked to that block — it is not, by itself, a
+  provisioning trigger. Creating the actual service (a name, a deployment, a start command binding)
+  is a separate action from writing the config file, and nothing in this repo's tooling makes that
+  gap visible short of directly querying Railway's own service list.
+- Rule: after any `railway.toml` edit that adds or changes a service definition, verify against
+  `railway service list` (or `railway status`) — not just `git log`/the file's own content — that
+  the named service actually exists, AND pull its live boot logs to confirm the command it's
+  actually running matches what the config file says, before treating the config change as having
+  taken effect. A clean `git push` and a healthy-looking `/health` 200 from a DIFFERENT,
+  already-existing service in the same project proves nothing about a newly-declared one.
+- Source: Session 4B-3 (2026-08-01) · Status: ACTIVE
+
+### L42 — Express 5 / path-to-regexp v8 removed the bare `'*'` wildcard for catch-all routes and middleware
+
+- Symptom: the obvious pattern for "match every route" — `consumer.apply(Middleware).forRoutes('*')`
+  (or a raw Express `app.use('*', ...)`/`app.all('*', ...)`) — throws at construction time in this
+  repo's real installed versions: calling the actual installed `pathToRegexp('*')` directly threw
+  `"Missing parameter name at index 1: *"`, confirmed empirically before it could break anything.
+- Root cause: `express@5.2.1` (both `operation-service` and `money-service`'s real installed
+  version) depends on `path-to-regexp@8.4.2`, which removed the old bare-wildcard/`(.*)` syntax
+  entirely (a breaking change carried since path-to-regexp v6). Neither service had any prior
+  middleware/catch-all route registration to reveal this — first `forRoutes()`-style call in
+  either service's history, so nothing in the existing codebase warned about it.
+- Rule: for any Nest `MiddlewareConsumer.forRoutes()` (or raw Express route) that needs to match
+  every path in this repo, use `'/{*splat}'` — verified empirically (via a standalone
+  `pathToRegexp()` call against the real installed package) to match every path including bare
+  `/`. Never assume the old bare `'*'`/`'(.*)'` syntax still works from memory or older
+  Express/Nest documentation/tutorials — test the actual pattern against the real installed
+  `path-to-regexp` (or just use `'/{*splat}'` directly) before relying on it.
+- Source: Session 4B-4 (2026-08-01) · Status: ACTIVE
+
+### L43 — NestJS `@Post()` defaults to `201`; a ported SOURCE route that returns `200` needs explicit `@HttpCode(200)`, and a controller-construction unit test can never catch the mismatch
+
+- Symptom: `POST /notifications` (mark-all-read) and `POST /notifications/:id/read` (mark-one-read) both shipped to production returning `201 Created` — the ported monolith SOURCE (`app/api/notifications/route.ts` and `[id]/read/route.ts`) both return `200` via a bare `NextResponse.json(...)` with no explicit status. Found only via operation-service's real Railway HTTP access logs during the cutover's own live smoke test; the client-side response BODY looked identical either way, so nothing about the visible result signaled a problem.
+- Root cause: NestJS assigns `201` as the default HTTP status for any `@Post()` handler (every other verb defaults to `200`) unless overridden with `@HttpCode()`. A PORT session's "preserve exact response structures" instinct checks the JSON body against SOURCE; nothing prompts a check of the per-verb default status against SOURCE's own implicit-200 behavior. Worse: every unit test written for the new controller (`new NotificationsController(mockService)`, called directly) never touches Nest's real HTTP pipeline at all — `@HttpCode()` resolution only happens when a real `INestApplication` handles a real HTTP request, so this class of bug is invisible to that entire test style.
+- Rule: for any PORT session moving a POST-based mutating endpoint from a Next.js route (implicitly `200` via `NextResponse.json()`) to a NestJS `@Post()` handler, add `@HttpCode(200)` explicitly unless SOURCE genuinely returns `201`. Verify the REAL status via an e2e spec (`Test.createTestingModule` + `supertest` against a live Nest app, same pattern as `all-exceptions.filter.e2e.spec.ts`) — a controller-construction unit test proves the response body, never the status code Nest actually assigns.
+- Source: Session 4B-9 (2026-08-02), found live via Railway HTTP logs during the cutover's own smoke test, fixed same-session · Status: ACTIVE
+
+### L44 — Never `taskkill` by image name for test processes
+
+- Symptom: A single test process spawned for verification caused a blanket kill of every Node process on the machine.
+- Root cause: `taskkill //IM node.exe` is not scoped to the spawned PID.
+- Rule: Capture and kill the specific PID, or avoid spawning a background process by using in-memory test harnesses instead.
+- Source: Session 4B-4 · Status: ACTIVE
+
+### L45 — Always manually sync `operation-service/packages/types`
+
+- Symptom: `operation-service`'s `tsc` failed despite root `packages/types` building clean.
+- Root cause: `operation-service` has an embedded, git-tracked copy of types without an automated sync mechanism.
+- Rule: Any change to `packages/types` must sync to the embedded copy. The root build succeeding proves nothing.
+- Detect early: Run `tsc --noEmit` inside `operation-service`.
+- Source: Session 4B-5 · Status: ACTIVE
+
+### L48 — Verify headers like `user-agent` propagate in forwarders
+
+- Symptom: Monolith-to-operation-service forwarders dropped `user-agent` and `x-forwarded-for`.
+- Root cause: Forwarders did not wire `forwardedRequestContext()` by default.
+- Rule: Before porting routes reading device headers, verify forwarders propagate them via live smoke test.
+- Source: Session 4B-11 · Status: ACTIVE
+
+### L52 — NestJS's `OnGatewayDisconnect` dispatch discards every socket.io disconnect argument except the client; widening `handleDisconnect`'s signature cannot recover the reason
+
+- Symptom: needed the real Socket.IO disconnect `reason` string (`"ping timeout"`, `"transport close"`, etc.) for a live investigation; assumed `handleDisconnect(client, reason)` would work.
+- Root cause: read the installed `@nestjs/websockets` source directly — `web-sockets-controller.js`'s `getConnectionHandler` feeds `handleDisconnect` via a bare RxJS `Subject<Socket>`, calling `.next(client)` only. No NestJS-provided path carries additional event args through to this lifecycle hook, for socket.io or `ws`.
+- Rule: to capture a raw socket.io event argument NestJS's own gateway lifecycle doesn't expose (disconnect reason, or any multi-arg native event), attach a listener directly on the raw client inside `handleConnection` (`client.on('disconnect', (reason) => ...)`) — Socket.IO's own documented pattern — rather than trying to widen a Nest lifecycle hook's signature.
+- Source: Session 4B-18d (2026-08-03), `DECISION-LOG.md` F55 · Status: ACTIVE
+
+### L54 — The plan's "143 BACKEND files" is a `lib/*` service-layer census, not an `app/api/**` route census — the two exit criteria are about different file sets
+
+- Symptom: at Phase 4 exit review, it was tempting to walk `app/api/**/route.ts` files against the "143 BACKEND files" figure directly — they don't correspond. `migration-stack-analysis.md`'s own 72 CORE + 71 BUSINESS FUNCTION appendix lists almost entirely `lib/*`/`__tests__/*` files; zero `app/api/**/route.ts` entries appear anywhere in it.
+- Root cause: the plan's own readiness notes say it explicitly ("`FRONTEND (320 files)`... `app/api/**/route.ts` routes will need to become Railway API calls... as each BACKEND module migrates") — route files are tracked separately (the cutover table), not counted in the 143. Easy to miss without re-reading that specific paragraph.
+- Rule: exit criterion 1 ("143 BACKEND files retired") is answered by checking `lib/*` file existence against the stack-analysis appendix; exit criterion 2 ("`app/api/**` reduced to intentional remainders") is answered by a separate route-file census against the cutover table and each slice's own close-out. Don't conflate the two when auditing either one.
+- Source: Session 4B-22 (2026-08-04) · Status: ACTIVE
+
+### L55 — Archiving a RESOLVED flag's full entry can silently carry still-OPEN flags out of `DECISION-LOG.md`'s main register table too
+
+- Symptom: reviewing "every OPEN flag" for the Phase 4 exit review, `DECISION-LOG.md`'s own register table came up empty for F48-F52 — all 5 existed only in `history/decisions-archive.md` (2 RESOLVED, but F49/F50 genuinely still OPEN), only found by directly grepping the archive file after the table search came up empty.
+- Root cause: the file's own hygiene rule says "after resolving a flag, move its full resolution entry to the archive" — but when a batch of flags (F48-F52) was archived together, the still-OPEN ones (F49, F50) went with them, dropping out of the one place ("register table + OPEN entries") a future session is told to check.
+- Rule: when moving a resolved flag's full entry to `history/decisions-archive.md`, first re-verify every flag in that batch is actually RESOLVED — if any are still OPEN, they (and their register-table row) MUST stay in `DECISION-LOG.md`'s main body, archive entry or not.
+- Source: Session 4B-22 (2026-08-04) · Status: ACTIVE
+
+### L58 — A backgrounded `npm run build` and a live `next dev` server share `node_modules/.prisma`; running both at once produces transient, misleading "module not found" errors that look like a real regression
+
+- Symptom: mid-session, with `next dev` already serving requests, a backgrounded `npm run build` was kicked off to verify the whole app compiles. The live dev server's own logs immediately started showing `Module not found: Can't resolve '.prisma/non-market-client'` on unrelated routes (`/api/config/affiliate`, NextAuth) — looked exactly like a code regression from that session's own file moves.
+- Root cause: this repo's `prebuild` script (`rimraf .next tsconfig.tsbuildinfo node_modules/.prisma && npm run prisma:generate:...`) deletes and regenerates the Prisma clients as its first step. A `next dev` server reading from `node_modules/.prisma` mid-request during that window sees the directory momentarily empty/mid-rewrite and throws — a pure timing artifact of two processes sharing one `node_modules`, not a code defect.
+- Rule: never run `npm run build` (or anything invoking the `prebuild` script) while a `next dev` server from the same checkout is live. If a build-time and a dev-time check are both needed in one session, run them sequentially — stop the dev server first, or run the build in an isolated checkout/worktree. If this error appears while both are running concurrently, confirm the cause via `node_modules/.prisma`'s presence/timestamp and the build's own exit code before treating it as a regression.
+- Source: Session 6-2 (2026-08-10) · Status: ACTIVE
+
+### L64 — A new page's real navigational chrome depends on its route-group folder, not its literal path; check for both a matching chrome-providing group AND an existing competing directory before placing it
+
+- Symptom: this order's own Surface list cited literal top-level paths (`app/terms/page.tsx`, `app/about/page.tsx`, etc.) for 10 new public pages — building there would ship every one with zero header/nav/footer, since root `app/layout.tsx` is a bare shell; only pages nested under a route group (e.g. `(marketing)`) inherit that group's own layout.
+- Root cause: route groups (`(name)`) are invisible to the URL but ARE the layout-inheritance boundary in Next.js App Router.
+- Rule: place a new public page under the route group that already provides the chrome it needs (route groups don't change the URL) — but first check whether a non-grouped directory already exists at that same path with its own layout/subroutes (e.g. `app/affiliate/`); a competing route-group page at the identical URL collides at build time, so import the existing layout as a component instead of nesting under a new group.
+- Source: Session 6-10 (2026-08-11) · Status: ACTIVE

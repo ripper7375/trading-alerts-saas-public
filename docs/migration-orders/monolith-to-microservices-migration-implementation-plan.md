@@ -598,15 +598,23 @@ the 5 MT5 terminal admin endpoints (`part-06-flask_mt5_openapi.yaml`), the 8 cro
 `SystemConfigHistory` (no audit view). The `flask-api` outage found at Session 4B-18d was
 invisible in-product — this is the session that fixes that class of blindness.
 
-### Exit criteria
+### Exit criteria — ✅ ALL MET, Phase 6 CLOSED 2026-08-11
 
-- Gap matrix fully triaged: every backend endpoint either consumed by UI, explicitly marked
-  internal-only, or ticketed as out-of-scope.
-- All redesigned surfaces live behind completed flags; component tests green.
-- **No page renders hardcoded or mock data in place of a live endpoint.**
-- **Zero dead internal links; `app/not-found.tsx` exists.**
-- **F61, F62, F63 resolved** (`/api/geo/detect`; admin IA consolidation; public legal copy).
-- `app/test-api/page.tsx` deleted.
+| Criterion                                            | Status | Verified                                                                                                                                                                                        |
+| ---------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gap matrix fully triaged                             | ✅     | 59 rows, all `BUILT` / `VERIFIED` / `OUT_OF_SCOPE`. One row (A2-12) was wrongly marked `BUILT`; found by independent re-audit, corrected, then genuinely built in the 2026-08-11 ad-hoc repair. |
+| All redesigned surfaces live; component tests green  | ✅     | 57 → **85 pages**. Note: no surface used a `MIGRATE_UI_*` flag — the anticipated flag convention was never exercised; component tests plus Davin's review were the gate.                        |
+| No page renders hardcoded or mock data               | ✅     | Scanned all 85 `page.tsx` — zero mock/hardcoded data constants (was 3 pages).                                                                                                                   |
+| Zero dead internal links; `app/not-found.tsx` exists | ✅     | Every internal `href` resolves against the live route tree (was 14 dead). `not-found.tsx` + `global-error.tsx` both present.                                                                    |
+| F61, F62, F63 resolved                               | ✅     | F61 Session 6-8, F62 Session 6-2, F63 Session 6-10. F11 resolved Session 6-12.                                                                                                                  |
+| `app/test-api/page.tsx` deleted                      | ✅     | Confirmed absent.                                                                                                                                                                               |
+
+**Open by decision, not oversight:** B2-13 `/welcome` (ticketed `OUT_OF_SCOPE`); the
+`operation-service` Railway deploy for the new security-alerts endpoints (escalated per
+`EXECUTOR-PROTOCOL.md` §7 — flag defaults off, monolith fallback serves the feature); and the
+standing no-live-authenticated-browser-check gap (`CLAUDE.md` Waiting-on #117, open since 6-1b).
+
+Full evidence: `docs/files-completion-list/ui-page-gap-register.xlsx`, sheet `verification`.
 
 ---
 
@@ -625,17 +633,29 @@ market-data path shape), has zero real consumers, and was deferred precisely unt
 7.1 Re-read the appendix flag's mismatch list; confirm each against the **new** NestJS routes
 (several mismatches may have dissolved — e.g. the NestJS alerts controller defines its own
 verb set; the client must match the Phase 0/4 OpenAPI spec, which is now the only truth).
-7.2 Rewrite the client **generated from the OpenAPI specs** rather than hand-maintained:
-typed methods per service (`operationApi`, `moneyApi`, optionally `gatewayApi`), JWT
-bearer injection from the Phase 3 token layer, base URLs from env
-(`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_MONEY_API_URL`).
-7.3 Migrate the Phase 6 interim per-domain fetch wrappers onto the unified client; delete the
-unguarded `app/api-test/page.tsx` debug page or gate it to admin+dev.
-7.4 Rewrite the 2 test files (`stack-a-client.test.ts`, `stack-b-client.test.ts`) against
-recorded real responses (contract tests), not blanket `fetch` mocks — the old suites'
-36/36 pass was meaningless per the flag.
-7.5 Update/retire the 3 stale design docs
-(`backend-stack-a/api-client-between-frontend-and-stack-b/api-client-{design,maintenance-
+7.2 Rewrite the client **generated rather than hand-maintained**: typed methods per service
+(`operationApi`, `moneyApi`, optionally `gatewayApi`), JWT bearer injection from the Phase 3
+token layer, base URLs from env (`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_MONEY_API_URL`).
+
+> ⚠️ **AMENDED 2026-08-11.** This step originally read "generated **from the OpenAPI specs**."
+> That is not possible as written: the 21 specs in `docs/open-api-documents/` describe the
+> **monolith's `/api/*` surface**, while `operationApi`/`moneyApi` must wrap **107 NestJS service
+> routes** (`operation-service` 62, `money-service` 45) that no spec documents. Evidence:
+> `docs/open-api-documents/OPENAPI-DRIFT-REPORT-pre-phase-7.md`. **Session 7-1 Step 0 is now a
+> scope decision for Davin** — (a) hand-author the service specs, (b) emit them from the running
+> services via `@nestjs/swagger` (both already define DTO classes; a generated spec cannot drift
+> from its code — evaluate first), or (c) narrow Phase 7 to the monolith surface only, defensible
+> if the browser-never-calls-services invariant holds (F45/F30). Register the outcome as a flag.
+> Also note: `operation-service` sets **no** global prefix while `money-service` uses `/v1` —
+> the generated client must encode this, and no current spec records it.
+> 7.3 Migrate the Phase 6 interim per-domain fetch wrappers onto the unified client; delete the
+> unguarded `app/api-test/page.tsx` debug page or gate it to admin+dev.
+> 7.4 Rewrite the 2 test files (`stack-a-client.test.ts`, `stack-b-client.test.ts`) against
+> recorded real responses (contract tests), not blanket `fetch` mocks — the old suites'
+> 36/36 pass was meaningless per the flag.
+> 7.5 Update/retire the 3 stale design docs
+> (`backend-stack-a/api-client-between-frontend-and-stack-b/api-client-{design,maintenance-
+
     and-updates,testing}.md`) — they predate the V8 single-symbol redesign.
 
 ### Exit criteria

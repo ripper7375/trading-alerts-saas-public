@@ -1,3 +1,8 @@
+Antigravity decides from documents; Claude Code decides from live code.
+
+========================================================================
+========================================================================
+
 ⚠️ REAL MONEY CUTOVER: Requires Davin present live for every step (EXECUTOR-PROTOCOL.md §7). ---> Any requirements for me to manually run test to prove that previous builds work flawlessly in production before actually cutting over ?
 
 =======================================================

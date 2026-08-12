@@ -365,7 +365,33 @@ Phase 4 is repetitive by design. Two session _templates_ repeat per slice:
 
 ---
 
-## Phase 6 — Frontend redesign (12 sessions)
+## Phase 6 — Frontend redesign (12 sessions) — ✅ CLOSED 2026-08-11
+
+> **STATUS: CLOSED.** All 12 sessions executed (6-1 → 6-12), plus one ad-hoc exit-integrity
+> repair on 2026-08-11. Independently re-verified twice against the live tree: 57 → **85 pages**,
+> zero pages rendering mock data (was 3), **zero dead internal links** (was 14), orphaned
+> endpoints **32 → 4** (all four now carrying explicit recorded decisions), `app/not-found.tsx`
+> and `app/global-error.tsx` present, `app/test-api/` deleted. **F11, F61, F62 and F63 all
+> RESOLVED.**
+>
+> **One correction is part of the record, deliberately.** At Phase 6's exit review, gap-matrix
+> row **A2-12** (`/settings/security/activity`) was marked `BUILT (Session 6-5)` for work that
+> session never scoped — the page did not exist. Found by an independent post-6-12 re-audit,
+> corrected, and then genuinely built in the ad-hoc repair (with the endpoint on both services
+> and both `/api/user/*` OpenAPI specs updated). The lesson is in `LESSONS-LEARNED.md`: _a
+> triage verdict must cite the commit or file that closed it — "BUILT (Session N)" is not
+> evidence unless session N's own order scoped it._
+>
+> **Two items remain open by decision, not oversight:** B2-13 `/welcome` (ticketed
+> `OUT_OF_SCOPE`) and the `operation-service` Railway deploy for the new security-alerts
+> endpoints (correctly escalated per §7; flag defaults off, monolith fallback serves the feature
+> today). Full evidence: `docs/files-completion-list/ui-page-gap-register.xlsx`, sheet
+> `verification`.
+>
+> **Note on flags:** the `MIGRATE_UI_<SURFACE>` convention anticipated for Phase 6 was **never
+> used** — no Phase 6 session shipped behind a UI feature flag; surfaces went live directly with
+> component tests and Davin's review as the gate. `migration-cutover-table.md` has no Phase 6
+> rows, and that is correct rather than an omission.
 
 > **Revised 2026-08-10.** Phase 6 was ~9 sessions (6-1…6-9). A full UI gap analysis completed
 > out-of-band found three classes of work with no session that owned them, so Phase 6 is now
@@ -472,10 +498,34 @@ consent checkbox links to `/terms` and `/privacy` — which exist only behind au
 
 ### Session 7-1 — Re-verify + generate
 
-- **Tasks:** Re-read the `lib/api/` flag's mismatch list vs the NEW NestJS routes; regenerate
-  the unified client from the OpenAPI specs (`operationApi`, `moneyApi`), JWT injection, env
-  base URLs.
-- **Done when:** generated client compiles; old mismatches all accounted for.
+> ⚠️ **AMENDED 2026-08-11 — the "generate from the OpenAPI specs" instruction below cannot be
+> followed as written.** An OpenAPI drift audit run before Phase 7 opened
+> (`docs/open-api-documents/OPENAPI-DRIFT-REPORT-pre-phase-7.md`) found the 21 specs describe
+> the **monolith's `/api/*` surface**, while `operationApi`/`moneyApi` must wrap **107 NestJS
+> service routes** (`operation-service` 62 across 10 controllers, `money-service` 45 across 15)
+> that **no spec documents**. Measured: 112 spec'd paths vs 129 real monolith endpoints; 42 real
+> endpoints documented nowhere; 27 spec'd paths absent from the monolith, of which only 4 are
+> genuinely wrong.
+>
+> **Step 0 of 7-1 is therefore a scope decision for Davin, not a build step.** Three options:
+> (a) hand-author the service specs first; (b) emit them from the running services via
+> `@nestjs/swagger` — both already define DTO classes, and a generated spec cannot drift from
+> its code (**evaluate this first**); (c) narrow Phase 7 to the monolith surface only, which is
+> defensible if the browser-never-calls-services invariant holds
+> (`lib/operation-service/client.ts` asserts it; flags F45/F30 decided it). **Register the
+> outcome as a new flag.**
+>
+> Three traps: six `token-2fa-*` routes are believed dead (Session 4B-22) — do not spec them
+> without checking, or the client gets dead methods; **`operation-service` has no global prefix
+> while `money-service` uses `/v1`** (excluding `health`/`health-auth`) and no spec records the
+> asymmetry; and **path coverage is not schema correctness** — schema-level drift was not
+> measured and may exceed path drift.
+
+- **Tasks:** Resolve the scope question above **first**. Then re-read the `lib/api/` flag's
+  mismatch list vs the NEW NestJS routes; produce the unified client (`operationApi`,
+  `moneyApi`) by whichever generation route Davin picked, JWT injection, env base URLs.
+- **Done when:** scope flag registered and resolved; generated client compiles; old mismatches
+  all accounted for with live file:line or route citations, not assertions.
 
 ### Session 7-2 — Migrate consumers
 

@@ -35,6 +35,11 @@ The full rule is `00-SKELETON-AND-RULES.md` §1.0. What it means for you, concre
 
 ## 1. Session OPEN (do this before anything else, every session)
 
+0. **Size gate (before anything else):** check the byte size of `CLAUDE.md` and
+   `DECISION-LOG.md`. If either exceeds its target (**CLAUDE.md > ~100 KB** or
+   **DECISION-LOG.md > ~50 KB**), run the matching archival pass from §3.3 **right now**,
+   before proceeding to step 1. The session does not start until active files are at
+   target size — this prevents the archival backlog from compounding across sessions.
 1. Read `CLAUDE.md` (root) → identify current phase/session and the current order file.
    Then read `docs/migration-orders/LESSONS-LEARNED.md` (short, Tier-1) — these are the
    reflexes learned from past failures; they apply to everything you do today.
