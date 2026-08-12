@@ -9,11 +9,50 @@ approved order and drafts the next one. This file defines what ALL orders share;
 
 ## 1. The chain protocol (three roles — see `development-chain-protocol.jpg`)
 
-| Role                | Who                        | Does                                                                    |
-| ------------------- | -------------------------- | ----------------------------------------------------------------------- |
-| **Executor**        | Claude Code (Sonnet)       | Confirms & executes orders; produces the PRE-DRAFT for the next session |
-| **Advisor/Planner** | Claude Cowork (Fable/Opus) | Upgrades PRE-DRAFT → DRAFT using the strategy docs + templates          |
-| **Authorizer**      | Davin                      | Approves every DRAFT; his approval is the gate                          |
+| Role                | Who                  | Does                                                                    |
+| ------------------- | -------------------- | ----------------------------------------------------------------------- |
+| **Executor**        | Claude Code (Sonnet) | Confirms & executes orders; produces the PRE-DRAFT for the next session |
+| **Advisor/Planner** | Antigravity (IDE)    | Upgrades PRE-DRAFT → DRAFT using the strategy docs + templates          |
+| **Authorizer**      | Davin                | Approves every DRAFT; his approval is the gate                          |
+
+### 1.0 The decision model — who decides, who asks (binding from 2026-08-11)
+
+The two AI roles have **deliberately asymmetric** authority, because they have deliberately
+asymmetric evidence:
+
+> **The Advisor decides from documents. The Executor decides from live code.**
+> **The Advisor does not ask; the Executor does.**
+
+|                     | **Advisor (Antigravity)**                                                                                                                                                | **Executor (Claude Code)**                                                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sees                | The docset: plan, playbook, orders, flags, lessons. A whole-repo view, but a _static_ one.                                                                               | The live tree, real runtime, real test output, real deploy state.                                                                                                |
+| On an open question | **Decides.** Picks the best-practice option and writes it into the DRAFT with its rationale. **Must not send the question back to Davin.**                               | **Escalates.** Stops and asks Davin.                                                                                                                             |
+| Why                 | An Advisor that asks converts every judgment call into a round-trip and stalls the chain. Its choices are reviewable — Davin's `APPROVED` at BEAT 2 _is_ the checkpoint. | An Executor that guesses ships a wrong assumption into the codebase, where it is expensive to find. Its uncertainty is usually evidence the documents are wrong. |
+
+**Why this is safe:** the Advisor is not deciding _unreviewed_ — it is deciding _in a document
+Davin must approve before anything executes_. The decision moved from a separate round-trip into
+the artifact he already reads. That only holds if he can see it, which is why §3 makes
+**`Decisions taken`** a mandatory section of every order.
+
+**Advisor decides autonomously:** template variant · step sequencing · which files to touch ·
+generation strategy and tooling · library and pattern choices · test strategy · audit method ·
+naming — anything where "what is best practice here?" has a defensible, evidence-backed answer.
+
+**Advisor must still flag, but with a recommendation attached — never as an open question.**
+Mark these **`⚠ NEEDS EXPLICIT SIGN-OFF`** inside `Decisions taken` so they cannot be approved by
+skimming: real money movement · auth semantics · secrets or role grants · production deploys ·
+cutover flag flips · deletion of production data · legal/compliance content. (Same list as
+`EXECUTOR-PROTOCOL.md` §7.)
+
+**Executor escalates — always:** an order's claim contradicted by live code · a document that
+contradicts another document · anything the order does not cover · a test failure it cannot
+explain · any §7 item. **When the Advisor's plan and the live code disagree, live code wins** —
+the Executor reports the conflict, and the plan is revised to match reality, never the reverse.
+
+**Neither role edits the other's artifacts.** The Advisor owns `*.migration-order.md`. The
+Executor owns `CLAUDE.md`, `DECISION-LOG.md`, `migration-cutover-table.md` and
+`migration-stack-analysis.md`, written at session CLOSE (`EXECUTOR-PROTOCOL.md` §3). If the
+Advisor believes one of those needs changing, it says so in the DRAFT and lets the Executor do it.
 
 **Order status lifecycle:** `PRE-DRAFT → DRAFT → APPROVED → CONFIRMED → executed`
 
@@ -22,7 +61,7 @@ approved order and drafts the next one. This file defines what ALL orders share;
    — raw facts: what changed, surprises, candidate steps. **Artifacts are the only channel**
    to the Advisor (it never sees the session transcript) — an empty Deviations section or
    stale CLAUDE.md starves the next plan.
-2. **Between sessions (Advisor):** Davin prompts Claude Cowork with the PRE-DRAFT; it
+2. **Between sessions (Advisor):** Davin prompts Antigravity with the PRE-DRAFT; it
    produces the authoritative `DRAFT` — correct template variant, skeleton as minimum
    required content, strategy context (plan, flags, playbook, file inventory) applied.
    **Canonical prompt (step 7 in the diagram):** _"Here's the PRE-DRAFT from session <N> —
@@ -60,12 +99,21 @@ may add sections, never remove these:
 
 1. **Header:** session ref · phase/plan section · variant used · status (PRE-DRAFT/DRAFT/APPROVED/CONFIRMED) ·
    generated date · flags touched · estimated time (split the session if > ~4h)
-2. **Entry criteria** (checkboxes — verified at CONFIRM time, not assumed)
-3. **Ordered steps** — each step carries its own verification, not just a description
-4. **Done when** — the session's objective exit test
-5. **Rollback** — for any step that changes a live system (omit only for read-only sessions)
-6. **Deviations** — filled DURING execution (see §4); starts empty, never deleted
-7. **Next-session handoff** — the DRAFT order for the following session (chain protocol §1)
+2. **Decisions taken** — **added 2026-08-11, mandatory in every DRAFT** (see §1.0). A short,
+   scannable list of every judgment call the Advisor made instead of asking Davin. One line each:
+   **what was chosen · what was rejected · why · how hard to undo.** Placed at the TOP of the
+   order, immediately after the header — never buried inside the ordered steps. Items on the §7
+   list carry **`⚠ NEEDS EXPLICIT SIGN-OFF`**. This section is the mechanism that makes
+   "the Advisor decides" safe: it is what Davin actually reviews at BEAT 2. An order whose
+   decisions are discoverable only by reading step 7 has failed this requirement.
+   _(A PRE-DRAFT written by the Executor may leave this empty or list open questions for the
+   Advisor to resolve — the Executor is not the deciding role.)_
+3. **Entry criteria** (checkboxes — verified at CONFIRM time, not assumed)
+4. **Ordered steps** — each step carries its own verification, not just a description
+5. **Done when** — the session's objective exit test
+6. **Rollback** — for any step that changes a live system (omit only for read-only sessions)
+7. **Deviations** — filled DURING execution (see §4); starts empty, never deleted
+8. **Next-session handoff** — the DRAFT order for the following session (chain protocol §1)
 
 ## 4. Autonomy & deviation (applies to every order)
 

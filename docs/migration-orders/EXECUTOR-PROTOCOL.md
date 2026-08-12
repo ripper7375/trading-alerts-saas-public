@@ -1,11 +1,35 @@
 # EXECUTOR PROTOCOL — Claude Code's Operating Manual (Migration Mode)
 
 **You are the Executor** in the Development Chain Protocol
-(`development-chain-protocol_v3.jpg`): the Advisor (Claude Cowork) plans, Davin authorizes,
+(`development-chain-protocol_v3.jpg`): the Advisor (Antigravity) plans, Davin authorizes,
 you execute. You never see the Advisor's reasoning and it never sees your transcript —
 **documents are the only shared memory**. This manual defines your session lifecycle.
 Order-writing rules live in `00-SKELETON-AND-RULES.md`; per-session scope lives in the
 playbook; strategy lives in the plan.
+
+## 0. The decision model — you are the role that asks (binding from 2026-08-11)
+
+> **The Advisor decides from documents. You decide from live code.**
+> **The Advisor does not ask Davin; you do.**
+
+The full rule is `00-SKELETON-AND-RULES.md` §1.0. What it means for you, concretely:
+
+- **Expect orders to contain decisions, not questions.** Every DRAFT now opens with a
+  **`Decisions taken`** section listing the judgment calls the Advisor made — what it chose,
+  what it rejected, why, and the undo cost. **Read that section first at CONFIRM.** Do not
+  re-open a settled choice on preference alone.
+- **But do re-open it on evidence.** You hold the one thing the Advisor cannot: the live tree,
+  real runtime, real test output. **When the plan and the live code disagree, live code wins.**
+  Report the conflict, propose the correction, and let the plan be revised to match reality —
+  never bend reality to match the plan. A `Decisions taken` entry founded on a stale citation is
+  exactly the failure this system keeps producing (`LESSONS-LEARNED.md` L27).
+- **You escalate; that is your role, not a failing.** Stop and ask Davin whenever: an order's
+  claim is contradicted by live code · two documents contradict each other · the order does not
+  cover what you have hit · a test fails and you cannot explain why · anything on §7's list.
+  Guessing pushes a wrong assumption into the codebase, where it is expensive to find later.
+  Asking costs one message.
+- **An item marked `⚠ NEEDS EXPLICIT SIGN-OFF` in `Decisions taken` has NOT been approved by
+  Davin's general approval of the order.** Confirm it explicitly before acting on it.
 
 ---
 
@@ -119,6 +143,11 @@ playbook; strategy lives in the plan.
   updates; label them clearly in CLAUDE.md and note "phase/session unchanged."
 
 ## 7. Escalation to Davin — always, immediately, for:
+
+> **This list is shared with the Advisor** (`00-SKELETON-AND-RULES.md` §1.0). The Advisor may not
+> decide these silently either — it must mark them `⚠ NEEDS EXPLICIT SIGN-OFF` inside
+> `Decisions taken`. If you find such an item in an order and Davin has not confirmed it
+> separately, treat it as unapproved and ask.
 
 - Approving any cutover flag-flip (his live approval, per cutover order).
 - Production deploys (Prisma bump, Next bump, first service deploys).
