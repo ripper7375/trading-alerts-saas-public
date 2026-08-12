@@ -141,45 +141,37 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/wise/recipients/{id}:
-    get:
+  # Fixed (Session 7-1, 2026-08-12): app/api/wise/recipients/[id]/route.ts does not exist — only
+  # app/api/wise/recipients/[id]/revalidate/route.ts (POST) does. The GET/DELETE operations
+  # previously documented here described endpoints that were never built. See
+  # OPENAPI-DRIFT-REPORT-pre-phase-7.md §3.
+  /api/wise/recipients/{id}/revalidate:
+    post:
       tags: [Wise Recipients]
-      summary: Get Wise recipient details
-      description: Returns specific Wise recipient information by ID.
-      operationId: getWiseRecipient
+      summary: Revalidate a Wise recipient's account requirements
+      description: |
+        Affiliate self-service action (Session 4A-W3b) — server-side proxy to money-service's
+        `POST /v1/wise/recipients/:id/revalidate`. Guarded by `requireAffiliate()`, NOT an admin
+        guard: the backend derives the recipient from the caller's OWN token and only uses `:id`
+        for an ownership check (`LESSONS-LEARNED.md` L24) — an admin-guarded proxy would either
+        403 or silently revalidate the admin's own recipient instead of the target affiliate's.
+      operationId: revalidateWiseRecipient
+      security: [{ sessionAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdPath'
       responses:
         '200':
-          description: Recipient object
+          description: Recipient revalidated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/WiseRecipient'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
 
-    delete:
-      tags: [Wise Recipients]
-      summary: Deactivate Wise recipient
-      description: Marks a recipient as inactive, preventing future payout batch assignment.
-      operationId: deleteWiseRecipient
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      responses:
-        '200':
-          description: Recipient deactivated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-
-  /api/admin/disbursement/batches:
+  /api/disbursement/batches:
     get:
       tags: [Admin Disbursement]
       summary: List payout batches
@@ -227,7 +219,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/WisePayoutBatch'
 
-  /api/admin/disbursement/batches/{id}/execute:
+  # Fixed (Session 7-1, 2026-08-12): real monolith paths have no `admin` path segment
+  # (app/api/disbursement/batches/[batchId]/execute/route.ts) and the dynamic segment is named
+  # `batchId`, not `id`. See OPENAPI-DRIFT-REPORT-pre-phase-7.md §3.
+  /api/disbursement/batches/{batchId}/execute:
     post:
       tags: [Admin Disbursement]
       summary: Execute Wise payout batch
@@ -235,7 +230,7 @@ paths:
       operationId: executeDisbursementBatch
       security: [{ sessionAuth: [] }, { adminRole: [] }]
       parameters:
-        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/BatchIdPath'
       responses:
         '200':
           description: Batch executed successfully
@@ -273,6 +268,13 @@ components:
       schema:
         type: string
       description: Entity ID
+    BatchIdPath:
+      name: batchId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: PaymentBatch ID (app/api/disbursement/batches/[batchId]/*)
 
   schemas:
     WiseRecipient:

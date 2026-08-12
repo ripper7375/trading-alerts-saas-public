@@ -5,6 +5,13 @@ info:
   description: |
     # Part 08: Dashboard & Layout Components
 
+    > **⚠ Not a REST API spec.** This document uses OpenAPI syntax to inventory Next.js **page**
+    > routes (server-rendered UI, not JSON endpoints) — a category error flagged by the pre-Phase-7
+    > drift audit (`OPENAPI-DRIFT-REPORT-pre-phase-7.md` §3). Kept in OpenAPI format for continuity
+    > with the rest of `docs/open-api-documents/` rather than converted to a different format;
+    > every `paths:` entry below is a browser-navigable page, not a fetch()-able API operation, and
+    > none of them belong in Session 7-1's generated `operationApi`/`moneyApi` clients.
+
     ## Overview
 
     **Last Updated:** 2026-08-04 — verified against live dashboard pages, settings layouts, and navigation components.
@@ -171,26 +178,9 @@ paths:
         '200':
           description: Create alert page rendered
 
-  /dashboard/watchlist:
-    get:
-      tags:
-        - Dashboard Pages
-      summary: Watchlist management page
-      description: |
-        Displays user's watchlist with add/remove functionality.
-
-        **Backend Operations:**
-        - Authenticates user session
-        - Fetches or creates default watchlist
-        - Retrieves all watchlist items
-        - Applies tier-based limits (FREE: 5, PRO: 50)
-        - Provides tier-filtered symbol/timeframe selectors
-      security:
-        - SessionAuth: []
-      responses:
-        '200':
-          description: Watchlist page rendered
-
+  # /dashboard/watchlist removed (Session 7-1, 2026-08-12): watchlists were removed from the
+  # product entirely in the V8 single-symbol redesign — no such page or route exists. See
+  # OPENAPI-DRIFT-REPORT-pre-phase-7.md §3.
   /dashboard/charts:
     get:
       tags:
