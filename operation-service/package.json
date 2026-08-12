@@ -17,17 +17,20 @@
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "openapi:generate": "ts-node scripts/generate-openapi-spec.ts"
   },
   "dependencies": {
     "@nest-lab/throttler-storage-redis": "^1.2.0",
     "@nestjs/bullmq": "^11.0.4",
+    "@nestjs/cli": "^11.0.24",
     "@nestjs/common": "11.1.28",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "11.1.28",
     "@nestjs/platform-express": "11.1.28",
     "@nestjs/platform-socket.io": "^11.1.28",
     "@nestjs/schedule": "^6.1.3",
+    "@nestjs/swagger": "^11.4.6",
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^11.1.28",
     "@opentelemetry/api": "^1.9.1",
@@ -56,8 +59,7 @@
     "reflect-metadata": "^0.2.2",
     "resend": "^2.1.0",
     "rxjs": "^7.8.2",
-    "socket.io": "^4.8.3",
-    "@nestjs/cli": "^11.0.24"
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@nestjs/testing": "11.1.28",

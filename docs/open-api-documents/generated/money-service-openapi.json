@@ -1,0 +1,649 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "HealthController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Health"]
+      }
+    },
+    "/health-auth": {
+      "get": {
+        "operationId": "HealthController_healthAuth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Health"]
+      }
+    },
+    "/v1/cron-trigger/check-expiring-subscriptions": {
+      "post": {
+        "operationId": "CronTriggerController_checkExpiringSubscriptions",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["CronTrigger"]
+      }
+    },
+    "/v1/cron-trigger/daily-maintenance": {
+      "post": {
+        "operationId": "CronTriggerController_dailyMaintenance",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["CronTrigger"]
+      }
+    },
+    "/v1/cron-trigger/distribute-codes": {
+      "post": {
+        "operationId": "CronTriggerController_distributeCodes",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["CronTrigger"]
+      }
+    },
+    "/v1/cron-trigger/downgrade-expired-subscriptions": {
+      "post": {
+        "operationId": "CronTriggerController_downgradeExpiredSubscriptions",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["CronTrigger"]
+      }
+    },
+    "/v1/cron-trigger/expire-codes": {
+      "post": {
+        "operationId": "CronTriggerController_expireCodes",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["CronTrigger"]
+      }
+    },
+    "/v1/cron-trigger/process-pending-disbursements": {
+      "post": {
+        "operationId": "CronTriggerController_processPendingDisbursements",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["CronTrigger"]
+      }
+    },
+    "/v1/cron-trigger/send-monthly-reports": {
+      "post": {
+        "operationId": "CronTriggerController_sendMonthlyReports",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["CronTrigger"]
+      }
+    },
+    "/v1/cron-trigger/sync-riseworks-accounts": {
+      "post": {
+        "operationId": "CronTriggerController_syncRiseWorksAccounts",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["CronTrigger"]
+      }
+    },
+    "/v1/wise/recipients/requirements": {
+      "get": {
+        "operationId": "WiseRecipientsController_getRequirements",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseRecipients"]
+      }
+    },
+    "/v1/wise/recipients/requirements/refresh": {
+      "post": {
+        "operationId": "WiseRecipientsController_refreshRequirements",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseRecipients"]
+      }
+    },
+    "/v1/wise/recipients": {
+      "get": {
+        "operationId": "WiseRecipientsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseRecipients"]
+      },
+      "post": {
+        "operationId": "WiseRecipientsController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseRecipients"]
+      }
+    },
+    "/v1/wise/recipients/me": {
+      "get": {
+        "operationId": "WiseRecipientsController_getMine",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseRecipients"]
+      }
+    },
+    "/v1/wise/recipients/{id}/revalidate": {
+      "post": {
+        "operationId": "WiseRecipientsController_revalidate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseRecipients"]
+      }
+    },
+    "/v1/wise/recipients/{id}": {
+      "delete": {
+        "operationId": "WiseRecipientsController_deactivate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseRecipients"]
+      }
+    },
+    "/v1/webhooks/wise": {
+      "post": {
+        "operationId": "WiseWebhookController_handleWebhook",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseWebhook"]
+      }
+    },
+    "/v1/wise/batches": {
+      "get": {
+        "operationId": "WiseBatchesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseBatches"]
+      },
+      "post": {
+        "operationId": "WiseBatchesController_prepare",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseBatches"]
+      }
+    },
+    "/v1/wise/batches/{batchId}": {
+      "get": {
+        "operationId": "WiseBatchesController_get",
+        "parameters": [
+          {
+            "name": "batchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseBatches"]
+      }
+    },
+    "/v1/wise/batches/{batchId}/complete": {
+      "post": {
+        "operationId": "WiseBatchesController_complete",
+        "parameters": [
+          {
+            "name": "batchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseBatches"]
+      }
+    },
+    "/v1/wise/batches/{batchId}/fund": {
+      "post": {
+        "operationId": "WiseBatchesController_fund",
+        "parameters": [
+          {
+            "name": "batchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseBatches"]
+      }
+    },
+    "/v1/wise/batches/{batchId}/mark-funded": {
+      "post": {
+        "operationId": "WiseBatchesController_markFunded",
+        "parameters": [
+          {
+            "name": "batchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseBatches"]
+      }
+    },
+    "/v1/wise/batches/{batchId}/cancel": {
+      "post": {
+        "operationId": "WiseBatchesController_cancel",
+        "parameters": [
+          {
+            "name": "batchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["WiseBatches"]
+      }
+    },
+    "/v1/webhooks/dlocal": {
+      "post": {
+        "operationId": "DlocalWebhookController_handleWebhook",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["DlocalWebhook"]
+      }
+    },
+    "/v1/payments/dlocal/create": {
+      "post": {
+        "operationId": "DlocalPaymentController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["DlocalPayment"]
+      }
+    },
+    "/v1/webhooks/riseworks": {
+      "post": {
+        "operationId": "RiseworksWebhookController_handleWebhook",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["RiseworksWebhook"]
+      }
+    },
+    "/v1/affiliate/dashboard/stats": {
+      "get": {
+        "operationId": "AffiliateDashboardController_getStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["AffiliateDashboard"]
+      }
+    },
+    "/v1/affiliate/dashboard/codes": {
+      "get": {
+        "operationId": "AffiliateDashboardController_getCodes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["AffiliateDashboard"]
+      }
+    },
+    "/v1/affiliate/dashboard/code-inventory": {
+      "get": {
+        "operationId": "AffiliateDashboardController_getCodeInventory",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["AffiliateDashboard"]
+      }
+    },
+    "/v1/affiliate/dashboard/commission-report": {
+      "get": {
+        "operationId": "AffiliateDashboardController_getCommissionReport",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["AffiliateDashboard"]
+      }
+    },
+    "/v1/admin/affiliates": {
+      "get": {
+        "operationId": "AdminAffiliatesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["AdminAffiliates"]
+      }
+    },
+    "/v1/admin/affiliates/{id}": {
+      "get": {
+        "operationId": "AdminAffiliatesController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["AdminAffiliates"]
+      }
+    },
+    "/v1/admin/affiliates/{id}/distribute-codes": {
+      "post": {
+        "operationId": "AdminAffiliatesController_distributeCodes",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["AdminAffiliates"]
+      }
+    },
+    "/v1/admin/affiliates/reports/code-flows": {
+      "get": {
+        "operationId": "AdminAffiliateReportsController_codeFlows",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["AdminAffiliateReports"]
+      }
+    },
+    "/v1/admin/affiliates/reports/code-inventory": {
+      "get": {
+        "operationId": "AdminAffiliateReportsController_codeInventory",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["AdminAffiliateReports"]
+      }
+    },
+    "/v1/admin/affiliates/reports/commission-owings": {
+      "get": {
+        "operationId": "AdminAffiliateReportsController_commissionOwings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["AdminAffiliateReports"]
+      }
+    },
+    "/v1/admin/affiliates/reports/profit-loss": {
+      "get": {
+        "operationId": "AdminAffiliateReportsController_profitLoss",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["AdminAffiliateReports"]
+      }
+    },
+    "/v1/admin/affiliates/reports/sales-performance": {
+      "get": {
+        "operationId": "AdminAffiliateReportsController_salesPerformance",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["AdminAffiliateReports"]
+      }
+    },
+    "/v1/admin/analytics": {
+      "get": {
+        "operationId": "AdminAnalyticsController_getAnalytics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["AdminAnalytics"]
+      }
+    },
+    "/v1/stripe/checkout": {
+      "post": {
+        "operationId": "StripeCheckoutController_createCheckout",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["StripeCheckout"]
+      }
+    },
+    "/v1/stripe/subscriptions/cancel": {
+      "post": {
+        "operationId": "StripeSubscriptionController_cancel",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["StripeSubscription"]
+      }
+    },
+    "/v1/webhooks/stripe": {
+      "post": {
+        "operationId": "StripeWebhookController_handleWebhook",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["StripeWebhook"]
+      }
+    },
+    "/v1/disbursement/batches/{batchId}/execute": {
+      "post": {
+        "operationId": "DisbursementBatchesController_execute",
+        "parameters": [
+          {
+            "name": "batchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": ["DisbursementBatches"]
+      }
+    }
+  },
+  "info": {
+    "title": "money-service",
+    "description": "Auto-emitted from live NestJS controllers (Session 7-1) -- paths/methods/params are authoritative and cannot drift from the code. Request/response bodies are generic: this service validates via Zod, not class-validator DTOs (see file header for detail). Routes are served under /v1 (excluding /health, /health-auth) -- unlike operation-service, which has no global prefix.",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {}
+  }
+}
