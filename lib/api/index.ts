@@ -1,12 +1,99 @@
 /**
- * API Client - Unified interface for Stack A and Stack B endpoints
+ * API Client -- Unified interface (Session 7-1 rewrite)
+ *
+ * ## SERVER-ONLY as of this session
+ * `operationApi`/`moneyApi` below transitively import `next/headers` (via
+ * `lib/operation-service/client.ts`'s and `lib/money-service/client.ts`'s
+ * `OperationServiceError`/`MoneyServiceError` classes, which sit in the same
+ * module as their `cookies()`-reading token helpers). Importing ANYTHING
+ * from this file -- even a legacy `stackA` type -- into a `'use client'`
+ * component will break the build: `LESSONS-LEARNED.md` L6, "a server-only
+ * import anywhere in a module taints the whole module for every 'use
+ * client' importer." Verified zero current importers anywhere in `app/`,
+ * `components/`, or `hooks/` at Session 7-1's CONFIRM (this file has had no
+ * live consumers since `app/test-api/page.tsx`, its only prior caller, was
+ * deleted at Session 6-12) -- so nothing breaks today, but any future
+ * consumer of this file must be a route handler or server component, never
+ * client-side.
+ *
+ * ## New (Session 7-1): operationApi / moneyApi
+ * Typed clients generated from operation-service's and money-service's own
+ * live OpenAPI specs (`lib/api/generated/`, emitted via `@nestjs/swagger`
+ * from the real controllers -- see `operation-service/scripts/
+ * generate-openapi-spec.ts` and its money-service twin). Path/method/param
+ * shapes are auto-emitted and cannot silently drift from the code the way
+ * `stackA`/`stackB` below did (that drift is exactly what this whole
+ * session exists to fix -- see `docs/open-api-documents/
+ * OPENAPI-DRIFT-REPORT-pre-phase-7.md`). Request/response BODY types are
+ * currently generic (`unknown`): both services validate via Zod through a
+ * custom `ZodValidationPipe`, not class-validator DTOs, so `@nestjs/
+ * swagger` has nothing to introspect for body shapes -- a real, disclosed
+ * limitation, not silently claimed as complete; see this session's own
+ * Deviations for the follow-up options (Zod-to-OpenAPI conversion, or
+ * targeted `@ApiBody()` annotation on high-value routes).
+ *
+ * Regenerate via `npm run generate:api-client` at the repo root (chains
+ * both services' `openapi:generate` with the `openapi-typescript` codegen
+ * step) whenever a controller's routes change.
+ *
+ * Usage (inside a route handler or server component only):
+ * ```ts
+ * import { createOperationApi, unwrapOperationApi, getOperationServiceToken } from '@/lib/api';
+ *
+ * const token = await getOperationServiceToken();
+ * const client = createOperationApi(token);
+ * const alert = await unwrapOperationApi(await client.GET('/alerts/{id}', { params: { path: { id } } }));
+ * ```
+ *
+ * ### Token-* bridge audit (Decision 3, this session)
+ * `operationApi` wraps operation-service's OWN routes (e.g. `/auth/2fa/
+ * setup`) directly -- it has no relationship to the monolith's separate
+ * `app/api/auth/token-*` bridge route FILES (Next.js route handlers, not
+ * NestJS controllers, so `@nestjs/swagger` never sees them and they were
+ * never candidates for inclusion in `operationApi`'s generated surface in
+ * the first place). Of the monolith's 14 `token-*` bridge routes + 1
+ * `[...nextauth]` catch-all, 6 (`token-2fa-{setup,verify-setup,verify,
+ * status,disable,backup-codes}`) are confirmed dead code (Session 4B-22,
+ * re-confirmed via a zero-consumer grep at this session's CONFIRM) --
+ * flagged here for a future retirement session, not deleted now (this
+ * order's own Retire section: "nothing retired this session").
+ *
+ * ## Legacy (broken by design, Session 7-2/7-3 retires): stackA / stackB
  *
  * Stack A:  Currently deployed endpoints (Parts 1-19)
  * Stack B: Future endpoints (Parts 20-26) - will return 404 until deployed
+ *
+ * @deprecated Known broken against live routes (`updateAlert()` sends `PUT`
+ * where the route only accepts `PATCH`; `markNotificationAsRead()` sends
+ * `PATCH /api/notifications/{id}` where the route needs
+ * `POST /api/notifications/{id}/read`; `updateSettings()` sends `PATCH
+ * /api/user/preferences` where the route only accepts `PUT`;
+ * `stackB.getMarketData()`/`getOHLCV()` call a path shape that doesn't
+ * match the one real market-data route,
+ * `GET /api/market-data/channel?symbol=&timeframe=&variant=&limit=`) --
+ * see `migration-stack-analysis.md`'s `lib/api/` appendix and this
+ * session's own Deviation 0 for the full, re-verified mismatch list.
+ * Zero real consumers as of Session 7-1. Not fixed or removed this session
+ * (Session 7-2/7-3's scope, per this order's own Rules and Retire section)
+ * -- kept as-is so nothing that might still reference these named exports
+ * breaks, but do not build new code against `stackA`/`stackB`.
  */
 
+export {
+  createMoneyApi,
+  createOperationApi,
+  type MoneyApiClient,
+  type MoneyApiPaths,
+  type OperationApiClient,
+  type OperationApiPaths,
+  unwrapMoneyApi,
+  unwrapOperationApi,
+} from './generated';
+export { getMoneyServiceToken } from '@/lib/money-service/routes';
+export { getOperationServiceToken } from '@/lib/operation-service/client';
+
 // Type definitions
-interface AlertData {
+export interface AlertData {
   symbol?: string;
   condition?: string;
   price?: number;
@@ -15,29 +102,29 @@ interface AlertData {
   [key: string]: unknown;
 }
 
-interface UserData {
+export interface UserData {
   name?: string;
   email?: string;
   [key: string]: unknown;
 }
 
-interface SubscriptionData {
+export interface SubscriptionData {
   tier?: string;
   status?: string;
   [key: string]: unknown;
 }
 
-interface PaymentData {
+export interface PaymentData {
   amount: number;
   currency?: string;
   [key: string]: unknown;
 }
 
-interface SettingsData {
+export interface SettingsData {
   [key: string]: unknown;
 }
 
-interface QueryParams {
+export interface QueryParams {
   [key: string]: string | number | boolean;
 }
 
