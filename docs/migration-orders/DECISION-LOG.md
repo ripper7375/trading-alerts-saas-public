@@ -1,7 +1,12 @@
 # Decision Log — Flag Resolutions & Material Decisions
 
 **What this is:** the append-only record of every flag resolution (F1–F19) and every
-material decision made during the migration. The flag _register_ (what each flag asks) lives
+material decision made during the migration.
+
+**Two ID prefixes are in use.** `F<n>` = a _technical_ flag from the plan's §11 register (an
+unknown identified during planning, resolved during execution). `PD<n>` = a **Process Decision**
+— a change to how the three-role chain itself operates (roles, authority, ritual). They are kept
+distinct deliberately: a PD changes the machine, an F changes the work the machine does. The flag _register_ (what each flag asks) lives
 in the plan §11; this file records _how each was resolved, by whom, with what evidence_.
 The Executor writes entries at session close; Davin's sign-off is quoted where required.
 
@@ -32,6 +37,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F8   | Realtime/websocket architecture                                                                                                                                                                                                                                                                                                           | RESOLVED — Session 4B-17 (Davin): operation-service's existing HTTP process, real socket.io-client/socket.io, alert-fired scope only, NextAuth-JWE handshake auth                                                                                                                                                            |
 | F9   | @trading-alerts/types packaging mechanics                                                                                                                                                                                                                                                                                                 | RESOLVED — Session 4B-1 (pnpm workspace for the monolith, `file:` dependency for operation-service/money-service; Railway deploy-time resolution for operation-service still open, see F9's own entry)                                                                                                                       |
 | F10  | Next.js 15→16 breaking-change audit                                                                                                                                                                                                                                                                                                       | RESOLVED — Session 5-1                                                                                                                                                                                                                                                                                                       |
+| PD1  | **Process decision — the decision model.** The Advisor decides from documents and does NOT ask Davin; the Executor decides from live code and DOES ask. Every DRAFT must open with a `Decisions taken` section.                                                                                                                           | RESOLVED — 2026-08-11 (Davin)                                                                                                                                                                                                                                                                                                |
 | F11  | Frontend gap matrix — enumeration DELIVERED 2026-08-10, re-verified and matrix produced at Session 6-1 (`phase-6-frontend-gap-matrix.md`); row-by-row triage still outstanding                                                                                                                                                            | RESOLVED — Session 6-12 (Davin): all 59 gap-matrix rows (deduplicated from the 90-row source register) triaged as BUILT / VERIFIED / OUT_OF_SCOPE across Sessions 6-1..6-11                                                                                                                                                  |
 | F12  | Whole-plan duration estimate                                                                                                                                                                                                                                                                                                              | OPEN — revisit after F1–F5                                                                                                                                                                                                                                                                                                   |
 | F13  | Observability/tracing backend                                                                                                                                                                                                                                                                                                             | RESOLVED — Session 4B-4 (Davin): Option C (OTel SDK + OTLP Exporter + Pino Correlation Logging)                                                                                                                                                                                                                              |
@@ -562,3 +568,78 @@ unchanged, no new decision needed — still deliberately orphaned per 6-8's own 
 - Evidence: `app/(marketing)/layout.tsx` links to `/terms` (line 116), `/privacy` (line 111) and
   `/disclaimer`; `components/auth/register-form.tsx`'s consent checkbox links to `/terms`
   (line 534) and `/privacy` (line 541).
+
+---
+
+## PD1 — The decision model: who decides, who asks
+
+- Status: RESOLVED (binding)
+- Session: n/a — a process decision taken between Phase 6's close and Phase 7's open · Date: 2026-08-11
+- Decided by: Davin, explicitly.
+
+**Decision.** The two AI roles are given deliberately asymmetric authority, because they hold
+deliberately asymmetric evidence:
+
+> **The Advisor decides from documents. The Executor decides from live code.**
+> **The Advisor does not ask; the Executor does.**
+
+- The **Advisor (Antigravity)** must no longer send judgment calls back to Davin as questions.
+  It picks the best-practice option and records it. Its scope: template variant, step
+  sequencing, files touched, generation strategy and tooling, library/pattern choices, test
+  strategy, audit method, naming — anything where "what is best practice here?" has a
+  defensible, evidence-backed answer.
+- The **Executor (Claude Code)** remains the escalating role, and its escalations are the
+  system's error correction rather than an interruption of it: order-vs-live-code conflicts,
+  doc-vs-doc conflicts, gaps the order does not cover, unexplained test failures, and every §7
+  item. **When the plan and live code disagree, live code wins.**
+- **Davin's `APPROVED` at BEAT 2 is unchanged and remains the gate.**
+
+**Why this is safe rather than a loss of control.** The Advisor is not deciding _unreviewed_ —
+it is deciding _inside a document Davin must approve before anything executes_. The decision
+moved from a separate round-trip into the artifact he already reads. That only holds if he can
+see it, so the decision carries one hard structural requirement:
+
+**`Decisions taken` is now a mandatory section of the order skeleton**
+(`00-SKELETON-AND-RULES.md` §3, item 2) — at the TOP of every order, listing each judgment call
+as _what was chosen · what was rejected · why · how hard to undo_. An order whose decisions are
+discoverable only by reading step 7 has failed the requirement. Without this section the
+decision model degrades into "Davin approves things he never saw," which is close to how the
+false `BUILT` claim on gap-matrix row A2-12 survived Phase 6's exit review.
+
+**Carve-out — seven items the Advisor may not settle silently.** Real money movement · auth
+semantics · secrets or role grants · production deploys · cutover flag flips · deletion of
+production data · legal/compliance content. For these the Advisor still **recommends** (it does
+not ask an open question) but must tag the item **`⚠ NEEDS EXPLICIT SIGN-OFF`** so it cannot be
+approved by skimming. This preserves `EXECUTOR-PROTOCOL.md` §7 and the handbook `Roles` sheet's
+standing rule that Davin decides every flag and approves every cutover himself. The Executor
+must treat such an item as unapproved until Davin confirms it separately.
+
+**Motivation.** Davin's decision load had become the chain's bottleneck: architectural questions
+that the Advisor was well-positioned to answer from a whole-repo view were being converted into
+round-trips. Meanwhile the genuinely valuable escalations — the Executor finding that a document
+contradicted the live tree — were the ones that repeatedly caught real defects (F52's missing
+table, F48/F49's dLocal bugs, A2-12's false `BUILT`). The model now routes each kind of
+uncertainty to the role equipped to resolve it.
+
+**Documents amended to carry this** (all 2026-08-11): `00-SKELETON-AND-RULES.md` (§1 role table,
+new §1.0, §3 skeleton), `EXECUTOR-PROTOCOL.md` (new §0, §7 preamble), `CLAUDE.md`
+(non-negotiable #7), this entry, and
+`davin-operational-manual/antigravity/migration-process-handbook-antigravity-v11.xlsx`
+(`Guide`, `Roles`, `Instruction` sheets). Also corrected in passing: the Advisor is
+**Antigravity**, not "Claude Cowork" as `00-SKELETON-AND-RULES.md` §1 and
+`EXECUTOR-PROTOCOL.md`'s preamble had said since the v5→v6 role swap.
+
+**First real use, Session 7-1 (2026-08-12).** `EXECUTOR-PROTOCOL.md` and
+`00-SKELETON-AND-RULES.md` were found still uncommitted at Session 7-1's CONFIRM (only this entry
+and `CLAUDE.md` had — coincidentally — already been touched by the same working-tree state); the
+Executor committed both as a standalone housekeeping commit before executing, so the repo's
+tracked state matches what actually governs sessions. The order itself arrived with a real
+`Decisions taken` section (4 items, none requiring `⚠ NEEDS EXPLICIT SIGN-OFF` — correctly, since
+this session was additive-only with zero cutover flags). Davin explicitly confirmed live, in
+chat, that the PD1 batch and the order's own `APPROVED` status were his authentic authorization
+before the Executor began CONFIRM — the model worked as designed: the Advisor decided from
+documents (Option (b), the prefix asymmetry, the token-_ pruning, the 4 spec-path fixes), the
+Executor found and reported 4 real drift-report citation errors the Advisor's own decisions had
+inherited (a wrong "18" `token-_`count in Decision 3, corrected by the Advisor within the same
+session after the Executor's CONFIRM report), and none of it required a round-trip beyond Davin's
+single`APPROVED`/confirmation.

@@ -56,12 +56,12 @@ The pre-Phase 7 OpenAPI drift audit (`docs/open-api-documents/OPENAPI-DRIFT-REPO
 
 ## Entry criteria
 
-- [ ] Session 6-12 and post-6-12 ad-hoc exit repair CONFIRMED and CLOSED (Phase 6 closed).
-- [ ] Re-verify `migration-stack-analysis.md` `lib/api/` appendix flag mismatches (alerts PUT vs PATCH, notification read path, preferences PATCH vs PUT, market-data path shape) against current live NestJS controllers.
-- [ ] Monolith baseline re-measured at CONFIRM (`tsc --noEmit` clean, `eslint app components lib hooks --max-warnings 0` clean [4 pre-existing warnings], `test:ci` green — last known baseline: 153/153 suites, 2344/2344 tests).
-- [ ] `operation-service` baseline re-measured at CONFIRM (`tsc --noEmit` clean, 42/42 suites, 393/393 tests).
-- [ ] `money-service` baseline re-measured at CONFIRM (`tsc --noEmit` clean, 62/62 suites, 522/522 tests).
-- [ ] Advisor DRAFT reviewed and Davin APPROVED before execution — not fast-path eligible.
+- [x] Session 6-12 and post-6-12 ad-hoc exit repair CONFIRMED and CLOSED (Phase 6 closed). Confirmed via `CLAUDE.md` Current entry and independently via `4b-22-phase-4-exit-review.migration-order.md`'s own CONFIRMED/CLOSED status.
+- [x] Re-verify `migration-stack-analysis.md` `lib/api/` appendix flag mismatches against current live NestJS controllers. All 4 confirmed still live and broken (verified against both the operation-service controller AND the actual monolith `route.ts` handler `lib/api/index.ts` calls — see Deviation 0).
+- [x] Monolith baseline re-measured at CONFIRM — exact match: `tsc --noEmit` clean, eslint 0 errors/4 warnings (same 4), `test:ci` 153/153 suites, 2344/2344 tests.
+- [x] `operation-service` baseline re-measured at CONFIRM — exact match: `tsc --noEmit` clean, 42/42 suites, 393/393 tests.
+- [x] `money-service` baseline re-measured at CONFIRM — exact match on a clean run: `tsc --noEmit` clean, 62/62 suites, 522/522 tests. First run showed 1 flaky failure (`prisma.shutdown.spec.ts`, SIGTERM-timing test under parallel load) that passed both in isolation and on full-suite retry — not a regression.
+- [x] Advisor DRAFT reviewed and Davin APPROVED before execution — confirmed live by Davin in chat, 2026-08-12.
 
 ## Integration points
 
@@ -134,13 +134,13 @@ The pre-Phase 7 OpenAPI drift audit (`docs/open-api-documents/OPENAPI-DRIFT-REPO
 
 ## Done when
 
-- [ ] OpenAPI spec emission script added to both `operation-service` and `money-service`.
-- [ ] Emitted specs generated in `docs/open-api-documents/generated/` covering 107 NestJS service routes.
-- [ ] `operationApi` and `moneyApi` clients generated and exported from `lib/api/index.ts`.
-- [ ] The 4 genuinely-wrong monolith spec paths corrected in `docs/open-api-documents/`.
-- [ ] `tsc --noEmit` clean in monolith, `operation-service`, and `money-service`.
-- [ ] `eslint app components lib hooks --max-warnings 0` clean (0 errors, max 4 pre-existing warnings).
-- [ ] Monolith `test:ci` and service test suites all green.
+- [x] OpenAPI spec emission script added to both `operation-service` and `money-service` (`scripts/generate-openapi-spec.ts` + `npm run openapi:generate` in each).
+- [x] Emitted specs generated in `docs/open-api-documents/generated/` covering all 107 NestJS service operations (62 operation-service + 45 money-service, across 47 + 43 unique paths — verified operation-by-operation against Step 2's own live-controller route count, not just trusted from the drift report).
+- [x] `operationApi` and `moneyApi` clients generated (`lib/api/generated/`) and exported from `lib/api/index.ts`.
+- [x] The 4 genuinely-wrong monolith spec paths corrected in `docs/open-api-documents/` (`/api/auth/register` removed; both `/api/admin/disbursement/batches*` paths lost the `admin` segment and gained the real `batchId` param name; `/api/wise/recipients/{id}` replaced with the real `POST .../revalidate` operation, not just renamed).
+- [x] `tsc --noEmit` clean in monolith, `operation-service`, and `money-service`.
+- [x] `eslint app components lib hooks --max-warnings 0` clean (0 errors, same 4 pre-existing warnings, 0 introduced).
+- [x] Monolith `test:ci` and service test suites all green — monolith 154/154 suites, 2356/2356 tests (was 153/153, 2344/2344 — +1 suite/+12 tests, exactly this session's own new file); `operation-service` 42/42, 393/393; `money-service` 62/62, 522/522 on a clean run (see Deviation 7 for the flaky test, independently confirmed unrelated to this session).
 
 ## Rollback
 
@@ -152,7 +152,105 @@ The pre-Phase 7 OpenAPI drift audit (`docs/open-api-documents/OPENAPI-DRIFT-REPO
 
 ## Deviations
 
-_(to be filled by Executor during execution)_
+**0. Drift-report re-verification found real errors in the report's own breakdown** (CONFIRM,
+before execution). Headline totals all independently re-derived and confirmed correct
+(112/129/42/27/62/45/107). Found and reconciled: §2a's "18 token-_ routes" header — live count is
+15 (14 `token-_`route files +`[...nextauth]`), already corrected in the order's own Decision 3
+by the Advisor after CONFIRM reported it; §2d's header says "(3)" but lists 5 items; the
+operation-service per-controller table has 3 wrong rows (alerts 5 not 7, drawings 4 not 5, user 21
+not 18 — net washes to the correct 62 total); `/api/webhooks/riseworks` is undocumented but never
+appears anywhere in the report's own itemized §2 breakdown (the silent, unlisted 42nd item). None
+of this changed Decision 1 (Option b) — the load-bearing claims under it (prefix asymmetry,
+server-only client.ts files, zero client-side importers) were independently verified true.
+
+**1. `/api/wise/recipients/{id}` fixed to the real operation, not just renamed** (Step 1). The
+order's own Decision 4 said "fix `/api/wise/recipients/{id}/revalidate`" as if this were a path
+rename — but the spec's existing `get`/`delete` operations at that path don't correspond to any
+real route (`app/api/wise/recipients/[id]/route.ts` was never built; only `[id]/revalidate/
+route.ts`, POST-only, exists). Replaced the whole path block with the real `POST .../revalidate`
+operation, read directly from the route file's own header comment (self-service,
+`requireAffiliate()`, per `LESSONS-LEARNED.md` L24), rather than leaving stale GET/DELETE
+descriptions under a renamed key.
+
+**2. `/api/admin/disbursement/batches/{id}/execute` also needed its param renamed, not just the
+`admin` segment dropped** (Step 1). Real folder is `app/api/disbursement/batches/[batchId]/
+execute/`, not `[id]/` — added a dedicated `BatchIdPath` parameter component rather than reusing
+the generic `IdPath` (which stays correctly `id`-named for the routes that really use it).
+
+**3. `@nestjs/swagger`'s automatic body-schema introspection doesn't apply to this codebase**
+(Step 2, found before writing the generator scripts). Both services validate exclusively via Zod
+schemas through a custom `ZodValidationPipe` — DTOs are bare `type` aliases inferred from those
+Zod schemas (`z.infer<>`), not class-validator-decorated classes, so there is no runtime decorator
+metadata for `@nestjs/swagger` to read for request/response bodies. Route paths/methods/params
+(from `@Controller`/`@Get`/`@Post`/`@Param` decorators) ARE fully and accurately introspected —
+this is what actually solves the drift report's core problem (107 undocumented ROUTES) — but body
+schemas emit as generic `type: object`. Documented explicitly in both generator scripts' own
+header comments and each spec's `info.description`, not silently claimed as complete. **Follow-up
+recommendation for a future session:** either (a) `@asteasolutions/zod-to-openapi` to convert the
+existing Zod schemas directly (highest fidelity, reuses the actual validation source of truth), or
+(b) targeted `@ApiBody()`/`@ApiResponse()` annotations on the highest-traffic routes only. Not
+attempted this session — 100+ routes' worth of schema work is disproportionate to a MEDIUM-dial
+CONTRACT session whose explicit ask was route-level emission.
+
+**4. Both generator scripts skip `app.close()`** (Step 2, found while first running money-
+service's script). `WiseWebhookProcessor.onModuleDestroy()` throws ("Worker has not yet been
+initialized") if the process closes before its BullMQ `Worker` instance finishes async-
+initializing — a real, pre-existing, unrelated bug in already-tested production code, out of this
+session's scope to fix. Both scripts call `process.exit()` directly instead; a one-shot codegen
+script has nothing to gracefully drain.
+
+**5. `operationApi`/`moneyApi` are typed via `openapi-typescript` + `openapi-fetch`, not a bespoke
+generator** (Step 3, a tooling choice within Decision 1's already-settled scope, not a re-opening
+of it). Reasoned through and rejected two alternatives before choosing this: (a) hand-writing ~107
+named client methods would itself become a second, hand-maintained surface that can drift, directly
+contradicting Decision 1's own rationale; (b) a from-scratch path-template/fetch wrapper would
+duplicate what a well-established, actively-maintained library (`openapi-fetch`, 0.17.0) already
+solves correctly (path-param substitution, method-keyed typing against the real `paths` type).
+Reused the EXISTING `OperationServiceError`/`MoneyServiceError` throw-on-non-2xx convention via
+`unwrapOperationApi`/`unwrapMoneyApi` wrappers instead of adopting openapi-fetch's own `{data,
+error}` tuple shape, so a route handler adopting the new client doesn't need a second error-
+handling pattern alongside every other operation-service/money-service call site.
+
+**6. `lib/api/index.ts` is now fully server-only, and this is stated explicitly in its own header**
+(Step 4, `LESSONS-LEARNED.md` L6 discipline). Re-exporting `operationApi`/`moneyApi` pulls in
+`next/headers` transitively (via `OperationServiceError`/`MoneyServiceError`'s home modules).
+Verified zero current importers anywhere in `app/`, `components/`, or `hooks/` before doing this —
+safe today (this file's only-ever real consumer, `app/test-api/page.tsx`, was deleted at Session
+6-12) — but any future consumer must be a route handler or server component. `stackA`/`stackB` kept
+exactly as-is (still broken per Deviation 0's re-verified mismatch list) and marked `@deprecated`
+rather than fixed or removed — consumer migration and legacy removal are Session 7-2/7-3's scope.
+Their previously module-private type interfaces are now exported (harmless — nothing imported them
+before).
+
+**Token-\* bridge audit resolved differently than Decision 3's literal framing implied** (Step 4).
+`operationApi` wraps operation-service's OWN routes (e.g. `/auth/2fa/setup`) directly — these have
+no naming relationship to the monolith's separate `app/api/auth/token-*` bridge route FILES (Next.js
+handlers, never seen by `@nestjs/swagger`, never candidates for `operationApi`'s generated surface
+to begin with). So there was nothing to literally "exclude from generated client methods" for this
+reason — the exclusion was already structurally true. Re-confirmed the 6 `token-2fa-*` monolith
+files are still dead (Session 4B-22's own finding, re-verified via a fresh zero-consumer grep at
+this session's CONFIRM) and documented this directly in `lib/api/index.ts`'s own header for a future
+retirement session — not deleted here, per this order's own Retire section.
+
+**7. money-service's `prisma.shutdown.spec.ts` flaked once, confirmed unrelated to this session.**
+First full-suite run (61/62 suites passed, `prisma.shutdown.spec.ts` timed out at 5000ms — a real
+SIGTERM/`enableShutdownHooks()` timing test, same class `LESSONS-LEARNED.md` L25 already flags as
+sensitive to parallel-test-runner load). Passed in isolation and on two subsequent full-suite
+retries (62/62, 522/522 both times). money-service's own source was never touched this session
+(only its `package.json`/new `scripts/generate-openapi-spec.ts`, nowhere near the Prisma shutdown
+code path) — not a regression, an environmental flake.
+
+**8. Found, not fixed — a stale, contradictory comment in `money-service/src/main.ts`'s CORS
+setup** (unrelated to this session's own Ordered Steps, surfaced while reading main.ts for Step
+2's global-prefix replication). The comment says money-service "is called directly from the
+browser per blueprint §5.4 ('data hooks point at NEXT_PUBLIC_MONEY_API_URL')" — but
+`NEXT_PUBLIC_MONEY_API_URL` doesn't exist anywhere else in the repo (verified via a full-repo grep),
+and this session's own CONFIRM independently verified `lib/money-service/client.ts` IS server-only
+with zero client-side importers, directly contradicting the comment's own premise. Reads as design
+documentation left over from before F45 (Session 4A-7a) established the server-side-proxy pattern,
+never updated. Not fixed here (out of this session's own scope — a documentation-only issue in an
+unrelated, already-tested file) — flagged in Waiting-on for whichever session next touches
+money-service's `main.ts`.
 
 ## Known wrinkles / do-not-touch
 

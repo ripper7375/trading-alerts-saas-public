@@ -886,6 +886,15 @@ role). Everything else in each list is exclusively that track's own code._
 
 - `lib/api/index.ts`
 
+**Session 7-1 update (2026-08-12):** `stackA`/`stackB` themselves are UNCHANGED and still broken
+exactly as described below (re-verified against live routes at Session 7-1's CONFIRM, zero
+drift) — Phase 7's own Session 7-2/7-3 retires them, not this entry. What changed: `lib/api/
+index.ts` now ALSO exports `operationApi`/`moneyApi` (`lib/api/generated/`), typed clients
+generated from `@nestjs/swagger`-emitted specs covering all 107 operation-service/money-service
+operations, wrapping the existing `callOperationServiceWithToken`/`callMoneyServiceWithToken`
+error convention. The whole file is now server-only (see its own header). Full detail in
+`7-1-api-client-reverify-and-generate.migration-order.md`.
+
 **⚠️ Known broken, fix deferred (flagged 2026-07-11):** this "unified Stack A/Stack B API client"
 (design docs: `backend-stack-a/api-client-between-frontend-and-stack-b/api-client-{design,
 maintenance-and-updates,testing}.md`) has zero real consumers — the only caller in the app is
@@ -3475,7 +3484,50 @@ profit-loss,sales-performance}/page.tsx` (6 bare `grid-cols-3/4/5` stat-card/fil
 
 </details>
 
+<details>
+<summary>Session 7-1 (API Client Re-verify + Generate) — 12 new files, 5 modified, Phase 7 opens</summary>
+
+- **New — `operation-service`:** `scripts/generate-openapi-spec.ts` (boots the real `AppModule`,
+  emits an OpenAPI v3 doc via `@nestjs/swagger`'s `SwaggerModule.createDocument()` — 47 unique
+  paths / 62 operations, matching the live controller count exactly).
+- **New — `money-service`:** `scripts/generate-openapi-spec.ts` (same pattern, replicates
+  `main.ts`'s `setGlobalPrefix('v1', {exclude:['health','health-auth']})` before generating — 43
+  unique paths / 45 operations).
+- **New — `docs/open-api-documents/generated/`:** `operation-service-openapi.json`,
+  `money-service-openapi.json` (committed generator output, regenerate via
+  `npm run generate:api-client` at the repo root — never hand-edit).
+- **New — `lib/api/generated/`:** `operation-api/{schema.ts,client.ts}`,
+  `money-api/{schema.ts,client.ts}`, `index.ts`. `schema.ts` files are raw `openapi-typescript`
+  output (`paths` types, do not hand-edit). `client.ts` files export
+  `createOperationApi(token)`/`createMoneyApi(token)` (wrap `openapi-fetch`, typed against
+  `schema.ts`) and `unwrapOperationApi()`/`unwrapMoneyApi()` (convert openapi-fetch's
+  `{data,error,response}` into the established `OperationServiceError`/`MoneyServiceError`
+  throw-on-non-2xx convention). Both server-only.
+- **New — `__tests__/lib/api/generated-clients.test.ts`:** 12 contract-style tests (prefix
+  correctness, path-param substitution, Bearer header attach/omit, `unwrap*` success + error
+  mapping including a 500 case).
+- **Modified:** `lib/api/index.ts` (re-exports `operationApi`/`moneyApi` + both token helpers;
+  `stackA`/`stackB` and their type interfaces kept as-is, now exported, marked `@deprecated`; the
+  whole file's header now states it is server-only per `LESSONS-LEARNED.md` L6);
+  `docs/open-api-documents/part-05-authentication-openapi.yaml` (removed deleted
+  `/api/auth/register`); `docs/open-api-documents/part-19.5-wise-disbursement-openapi.yaml`
+  (`/api/wise/recipients/{id}` replaced with the real `POST .../revalidate` operation; both
+  `/api/admin/disbursement/batches*` paths lost the `admin` segment and gained a real
+  `BatchIdPath` parameter); `docs/open-api-documents/part-08-dashboard-layout-openapi.yaml`
+  (category-error notice added; `/dashboard/watchlist` removed — V8 dropped watchlists
+  entirely); `package.json` (root — added `openapi-typescript`/`openapi-fetch`, new
+  `generate:api-client` script); `operation-service/package.json` +
+  `money-service/package.json` (added `@nestjs/swagger`, new `openapi:generate` script).
+- **Not done:** consumer rewiring onto `operationApi`/`moneyApi` (explicitly Session 7-2's own
+  scope, per this order's own Rules — no existing route handler or UI page call site was touched
+  this session); request/response body-schema fidelity in the emitted specs (both services
+  validate via Zod, not class-validator, so `@nestjs/swagger` has no decorator metadata to read
+  for bodies — documented as a known limitation with a follow-up plan, not silently claimed
+  complete; see `CLAUDE.md` Waiting-on #136).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-11 (Session 6-12, A11y + Responsive Audit / Phase 6 Exit Review — Phase 6 CLOSED)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-12 (Session 7-1, API Client Re-verify + Generate — Phase 7 opened)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

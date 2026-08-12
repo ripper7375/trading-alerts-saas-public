@@ -26,7 +26,123 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 6-12 (A11y + Responsive Audit / Phase 6 Exit Review, UI-BUILD variant,
+- **Current:** Session 7-1 (API Client Re-verify + Generate, CONTRACT/PORT hybrid, dial MEDIUM),
+  CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-12. First session of Phase 7 (API Client
+  Rewrite) — `lib/api/index.ts` finally touched after being on `EXECUTOR-PROTOCOL.md` §5's
+  standing do-not-touch list for the entire migration.
+  **PD1 (the decision model, `DECISION-LOG.md`) went into effect this session for the first
+  time** — the order arrived with a `Decisions taken` section (Advisor picked Option (b) —
+  `@nestjs/swagger` spec emission + generated typed clients — over hand-authoring 107 service
+  routes or a monolith-only client) instead of an open question. CONFIRM found the order and 3
+  other governance docs (`EXECUTOR-PROTOCOL.md`, `00-SKELETON-AND-RULES.md`, `DECISION-LOG.md`)
+  all modified-but-uncommitted — the by-now-familiar `LESSONS-LEARNED.md` L11 pattern, but this
+  time as one large, internally consistent batch (the PD1 entry cites real, independently-
+  checkable incidents — F52's missing table, F48/F49's dLocal bugs, gap-matrix row A2-12's false
+  `BUILT` claim) rather than a lone status flip. Reported in full before proceeding; Davin
+  explicitly confirmed the PD1 batch and this order's `APPROVED` status as authentic before
+  execution began — recorded as `DECISION-LOG.md`'s own PD1 entry note, not silently trusted.
+  **Independently re-verified every claim before executing, not just the ones in the order's own
+  checklist:** re-derived all 7 headline counts in `OPENAPI-DRIFT-REPORT-pre-phase-7.md` from live
+  code (112 unique spec paths / 129 monolith route files / 42 undocumented / 27 spec'd-but-absent
+  / 62 operation-service operations / 45 money-service operations / 107 total) — all correct in
+  aggregate, but found 4 real errors in the report's own internal breakdown (§2a's "18 token-_
+  routes" header vs. a real count of 15 — 14 route files + `[...nextauth]`; §2d's header says "3"
+  but lists 5; 3 wrong rows in the operation-service per-controller table that net-wash to the
+  right 62 total; `/api/webhooks/riseworks` undocumented but never once mentioned in the report's
+  own §2 breakdown despite being needed to make "42" add up) — see this order's own Deviation 0.
+  Re-verified all 4 historical `lib/api/` mismatches (alerts PUT-vs-PATCH, notification read
+  path, preferences PATCH-vs-PUT, market-data phantom path) against BOTH the live operation-
+  service controllers AND the real monolith `route.ts` handlers `lib/api/index.ts` actually calls
+  — all 4 still live and broken today, zero drift.
+  **Built all 5 Ordered Steps, one commit each, plus a housekeeping commit for the PD1 batch:**
+  Step 0 (housekeeping, not an Ordered Step) — committed `EXECUTOR-PROTOCOL.md`/`00-SKELETON-
+AND-RULES.md`'s own PD1 edits, which had been sitting uncommitted since 2026-08-11. Step 1 —
+  fixed the 4 genuinely-wrong monolith spec paths (`/api/auth/register` removed; both `/api/
+  admin/disbursement/batches_`paths lost the`admin`segment AND gained the real`batchId`param
+  name, not just a segment removal;`/api/wise/recipients/{id}`replaced with the real`POST
+  .../revalidate`operation since the GET/DELETE it previously described were never built, not
+  just renamed;`part-08`'s `/dashboard/watchlist`removed + a category-error notice added).
+  Step 2 —`@nestjs/swagger@^11.4.6`added to both services;`scripts/generate-openapi-spec.ts`  boots the real`AppModule`DI graph and lets`SwaggerModule`introspect the live controllers —
+  emits 47 unique paths/62 operations (operation-service) and 43 paths/45 operations (money-
+  service, correctly under`/v1`except`/health`/`/health-auth`, replicating `main.ts`'s own
+  `setGlobalPrefix()`call before`createDocument()`). **Request/response body schemas are
+  deliberately generic (`type: object`), not fabricated** — both services validate via Zod
+  through a custom `ZodValidationPipe`, not class-validator DTOs, so `@nestjs/swagger`has no
+  decorator metadata to read for bodies; documented explicitly in both scripts' own headers and
+  each spec's`info.description`, with a concrete follow-up plan (Zod-to-OpenAPI conversion, or
+  targeted `@ApiBody()`on high-value routes) left for a future session rather than attempted here
+  (100+ routes' worth of schema work is disproportionate to a MEDIUM-dial session). Found and
+  worked around a real, pre-existing, unrelated bug while testing: money-service's
+ `WiseWebhookProcessor.onModuleDestroy()`throws if`app.close()`runs before its BullMQ Worker
+  finishes async-initializing — both generator scripts skip`app.close()`entirely (a one-shot
+  script has nothing to gracefully drain) rather than touch that already-tested production file.
+  Step 3 —`openapi-typescript`/`openapi-fetch` added to the monolith root via **pnpm**, not npm
+  (`npm install`fails outright —`@trading-alerts/types`is referenced with a`workspace:_`   specifier the plain npm CLI can't parse, per F9's pnpm-workspace setup from Session 4B-1);
+  `lib/api/generated/{operation-api,money-api}/{schema.ts,client.ts}`—`createOperationApi(token)`/
+  `createMoneyApi(token)`wrap`openapi-fetch`'s real, path/method/param-typed client (typed
+  against the Step-2-emitted specs, so a typo'd path or wrong method fails `tsc`, not just at
+  runtime) for the network mechanics, with `unwrapOperationApi()`/`unwrapMoneyApi()`converting
+  openapi-fetch's`{data,error,response}`result into the EXISTING`OperationServiceError`/
+  `MoneyServiceError`throw-on-non-2xx convention every other caller of`lib/operation-service/
+  client.ts`/`lib/money-service/client.ts` already expects — deliberately chosen over hand-writing
+  ~107 named client methods (would itself become a second hand-maintained, driftable surface,
+  directly contradicting Decision 1's own rationale) or a from-scratch fetch wrapper (`openapi-
+  fetch`already solves path-param substitution and method-keyed typing correctly). Added
+ `generate:api-client`to the root`package.json`, chaining both services' `openapi:generate`  with the two`openapi-typescript`invocations — verified idempotent (ran twice, identical 47/43
+  path output both times). Step 4 —`lib/api/index.ts`rewritten: exports`operationApi`/
+  `moneyApi`+`getOperationServiceToken`/`getMoneyServiceToken`; its own header now states
+  explicitly that the WHOLE FILE is server-only (`LESSONS-LEARNED.md`L6 — re-exporting
+  operationApi/moneyApi transitively pulls in`next/headers`via the error classes' home modules),
+  verified safe today via a zero-current-importers grep across`app/`/`components/`/`hooks/`  before making the change (this file's only-ever real consumer,`app/test-api/page.tsx`, was
+  deleted at Session 6-12). `stackA`/`stackB`kept exactly as-is and marked`@deprecated` rather
+  than fixed or removed (Session 7-2/7-3's scope, per this order's own Retire section) — their
+  previously module-private type interfaces are now exported (harmless, nothing imported them
+  before). \*\*The token-_ bridge audit (Decision 3) resolved differently than its own literal
+  framing implied**: `operationApi` wraps operation-service's OWN routes directly (e.g. `/auth/
+2fa/setup`), which have no naming relationship to the monolith's separate `app/api/auth/token-*`
+  bridge route FILES (Next.js handlers, never seen by `@nestjs/swagger`, never candidates for
+  `operationApi`'s surface to begin with) — so there was nothing to literally "exclude" for this
+  reason, the exclusion was already structurally true. Re-confirmed the 6 `token-2fa-*` monolith
+  files are still dead (Session 4B-22's own finding, re-verified via a fresh zero-consumer grep)
+  and documented this directly in `lib/api/index.ts`'s own header for a future retirement session
+  — not deleted here. Step 5 — `__tests__/lib/api/generated-clients.test.ts`, 12 contract-style
+  tests (root-prefix + path-param substitution, `/v1` prefix + the `health`/`health-auth`
+  exclusion, Bearer-header attach/omit, `unwrap*` returning data on 2xx and throwing a REAL
+  `OperationServiceError`/`MoneyServiceError` — not a mock double — with the right `.status`/
+  `.body` on non-2xx including a 500, not just 4xx) — mocks `global.fetch` and asserts on the
+  real `Request` object `openapi-fetch` constructs, exercising the actual generated client code
+  (URL/path-param substitution, header merging, this session's own error mapping), not a vacuous
+  mock; no live service process in this test run, matching this repo's own established `lib/api/`
+  test convention and the order's own "contract-style unit tests" framing for Step 5.
+  **Full verification:** `tsc --noEmit` clean throughout, re-checked after every step; `eslint app
+components lib hooks --max-warnings 0` — same 4 pre-existing warnings, 0 introduced; monolith
+  `test:ci` **154/154 suites, 2356/2356 tests** (was 153/153, 2344/2344 — +1 suite/+12 tests,
+  exactly this session's own new file, zero regressions elsewhere); `operation-service` 42/42
+  suites, 393/393 tests unchanged; `money-service` 62/62 suites, 522/522 tests on a clean run —
+  first full run showed 1 flaky failure (`prisma.shutdown.spec.ts`, a SIGTERM-timing test already
+  flagged sensitive to parallel-test load by `LESSONS-LEARNED.md` L25), independently confirmed
+  unrelated to this session by passing in isolation and on two subsequent full-suite retries;
+  money-service's own source was never touched this session (only `package.json` + a new
+  `scripts/` file, nowhere near the Prisma shutdown code path).
+  **No flag flipped, no cutover-table row** — pure client-SDK/tooling work, zero consumer
+  rewiring (explicitly deferred to Session 7-2 per this order's own Rules), zero traffic-routing
+  flag exists to touch; `migration-cutover-table.md` unchanged. The order's own header line
+  "Flags touched: `MIGRATE_API_CLIENT`" was corrected before execution — that name is never
+  referenced anywhere in code or docs, this session builds no traffic-routing flag at all.
+  **Found, not fixed (out of scope):** a stale, contradictory CORS comment in `money-service/
+src/main.ts` claiming the browser calls money-service directly via a `NEXT_PUBLIC_MONEY_API_URL`
+  that doesn't exist anywhere else in the repo — leftover pre-F45 design documentation, directly
+  contradicted by this session's own re-verification that `lib/money-service/client.ts` is
+  genuinely server-only with zero client-side importers. Flagged in Waiting-on for whichever
+  session next touches that file.
+  **Artifacts updated:\*_ `7-1-api-client-reverify-and-generate.migration-order.md` (Status →
+  CONFIRMED, executed; entry criteria all checked with CONFIRM-time findings recorded; Done-when
+  all checked; Deviations filled in full — 9 entries), `DECISION-LOG.md` (PD1's own note on this
+  session's confirmation), this file (Current/Previous rotation, Waiting-on, flag notes). New
+  `7-2-api-client-migrate-consumers.migration-order.md` PRE-DRAFTed (migrate Phase 6 per-domain
+  fetch wrappers onto `operationApi`/`moneyApi`; delete the already-empty leftover `app/api/auth/
+register/` directory; audit which of the 6 dead `token-2fa-_` monolith files are safe to retire).
+- **Previous:** Session 6-12 (A11y + Responsive Audit / Phase 6 Exit Review, UI-BUILD variant,
   dial MEDIUM), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as Session 6-11.
   **Phase 6 (Frontend Redesign) is now CLOSED — F11 RESOLVED, all 59 gap-matrix rows triaged.**
   **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again, this time carrying
@@ -182,7 +298,8 @@ affiliate/[affiliateId]` + `.../commissions`) recorded `KEEP — retire in Phase
   duplicated into the stack-analysis file for a non-domain-slice ad-hoc repair. **No next session
   PRE-DRAFTed** — `7-1-api-client-reverify-and-generate.migration-order.md` already exists from
   Session 6-12's own close and is unaffected by this repair; it remains the literal next session.
-- **Previous:** Session 6-11 (Admin System Operations, UI-BUILD variant, dial HIGH for system
+- _(superseded-by-above, retained for context — still needs its own move to
+  `history/sessions-archive.md`, same standing backlog as Waiting-on #102)_ Session 6-11 (Admin System Operations, UI-BUILD variant, dial HIGH for system
   operations visual polish and layout), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same
   day as Session 6-10. **Closes all 4 ADMIN-SYSTEM-OPERATIONS gap-matrix rows assigned to it
   (B2-14, B2-15, B2-16, B2-17).** No flags touched, no `DECISION-LOG.md` flag resolved (none was
@@ -4567,13 +4684,17 @@ affiliates/[affiliateId]` were both built new (the order assumed both already ex
   at 6-5's close the same way; 6-7's own order was PRE-DRAFTed at 6-6's close the same way; 6-8's
   own order was PRE-DRAFTed at 6-7's close the same way; 6-10's own order was PRE-DRAFTed at 6-8's
   close the same way; 6-12's own order was PRE-DRAFTed at 6-11's close the same way.
-  **Phase 7 (API Client Rewrite) now opens — `7-1-api-client-reverify-and-generate.migration-order.md`
-  PRE-DRAFTed at 6-12's close** (CONTRACT/PORT hybrid, per the session playbook's own Session 7-1
-  "Re-verify + generate" entry), the literal next session overall. It touches `lib/api/index.ts`
-  for the first time since it was declared known-broken-by-design near the start of this
-  migration (`EXECUTOR-PROTOCOL.md` §5) — deliberately leaves Ordered Steps open pending a real
-  re-verification pass against live NestJS routes, same discipline the last several Phase 6
-  PRE-DRAFTs adopted after pre-guessed step text repeatedly drifted from ground truth by CONFIRM.
+  **Phase 7 (API Client Rewrite) opened with Session 7-1, now CONFIRMED, executed, and CLOSED
+  SUCCESSFUL** (2026-08-12 — see Current above for full detail). `lib/api/index.ts` was touched
+  for the first time since being declared known-broken-by-design near the start of this migration
+  (`EXECUTOR-PROTOCOL.md` §5); `operationApi`/`moneyApi` now exist, generated from live
+  `@nestjs/swagger`-emitted specs covering all 107 service operations, with a documented,
+  disclosed limitation on request/response body-schema fidelity (Waiting-on #136). **The actual
+  next session overall is now 7-2** (`7-2-api-client-migrate-consumers.migration-order.md`,
+  PRE-DRAFTed at 7-1's close) — migrate Phase 6's per-domain fetch wrappers onto
+  `operationApi`/`moneyApi`, delete the leftover empty `app/api/auth/register/` directory
+  (Waiting-on #139), and decide the fate of the 6 dead `token-2fa-*` monolith files documented
+  (not yet retired) in `lib/api/index.ts`'s own header.
 - **Waiting on (Phase 6, added 2026-08-10 by the UI gap analysis):** **(106, NEW)** `DECISION-LOG.md`
   **F61** — `GET /api/geo/detect` is called by `app/(marketing)/pricing/page.tsx:155` and
   `components/payments/CountrySelector.tsx:69` but `app/api/geo/` does not exist; every pricing-page
@@ -4764,6 +4885,72 @@ destination`) on `components/layout/header.tsx` (lines 85, 89) and
   verdict, now corrected and closed for real. Full detail in`phase-6-frontend-gap-matrix.md`'s
   "Corrections found in ad-hoc verification (2026-08-11)" section and `DECISION-LOG.md`'s F11
   entry.
+- **Waiting on (Phase 7 readiness, added 2026-08-11 by an OpenAPI drift audit — Advisor-side, no
+  code changed, phase/session unchanged):** **(132, NEW — blocks Session 7-1's own premise)**
+  `7-1-api-client-reverify-and-generate.migration-order.md`'s Surface line names
+  `docs/open-api-documents/*` as "(read, not modified) the source of truth" — **that premise is
+  false and the order has been AMENDED in place to say so.** The 21 specs describe the MONOLITH's
+  `/api/*` surface; Phase 7 must generate `operationApi`/`moneyApi` clients for **107 NestJS
+  service routes** (`operation-service` 62 across 10 controllers, `money-service` 45 across 15)
+  that **no spec documents**. Full evidence:
+  `docs/open-api-documents/OPENAPI-DRIFT-REPORT-pre-phase-7.md`. Measured path drift: 112 spec'd
+  paths vs 129 real monolith endpoints; **42 real endpoints documented nowhere** (all 18
+  `token-*` auth routes, the entire 16-route `/api/disbursement/*` family, the 5 Phase-6 builds
+  incl. `/api/geo/detect` and `/api/status`, plus Wise/realtime); 27 spec'd paths absent from the
+  monolith of which **only 4 are genuinely wrong** (the rest are legitimately Flask-MT5,
+  railway-gateway, `/internal/*`, NextAuth built-ins, or UI-page-route docs). **Davin owes a
+  scope decision at 7-1 Step 0** — hand-author service specs, emit them from the running services
+  via `@nestjs/swagger` (recommended for evaluation: both services already define DTO classes and
+  a generated spec cannot drift from its code), or narrow Phase 7 to the monolith surface only
+  (defensible if the browser-never-calls-services invariant holds per
+  `lib/operation-service/client.ts` + flags F45/F30). Register the outcome as a new flag.
+  **(133, NEW)** Three traps recorded in the same amendment: six `token-2fa-*` routes are
+  believed dead/orphaned (Session 4B-22) and must be checked before being spec'd, or the
+  generated client gets dead methods; **`operation-service` sets NO global prefix while
+  `money-service` uses `/v1`** (excluding `health`/`health-auth`) and no spec records this
+  asymmetry; and **path coverage is not schema correctness** — the original `lib/api/` mismatch
+  list (PUT-vs-PATCH on alerts, wrong notification read path, PATCH-vs-PUT on preferences) is
+  itself evidence that verb/shape errors exist, and **schema-level drift was NOT measured** by
+  this audit. **(134, NEW)** Four genuinely-wrong spec entries worth fixing regardless of the
+  scope decision: `/api/auth/register` (deleted at 4B-21), `/api/admin/disbursement/batches` and
+  `.../batches/{id}/execute` (real paths have no `admin` segment),
+  `/api/wise/recipients/{id}` (real route is `.../{id}/revalidate`). Separately,
+  `part-08-dashboard-layout-openapi.yaml` documents UI _page_ routes in an OpenAPI file and
+  includes `/dashboard/watchlist` — a feature removed from the product entirely (V8); its fate
+  needs a decision.
+  **(135, RESOLVED — Session 7-1, 2026-08-12)** Item #132's own scope decision is now made: Davin
+  approved the Advisor's Option (b) (`@nestjs/swagger` emission) via the order's own `Decisions
+taken` section (PD1's first real use). Item #133's `token-2fa-*` trap and prefix-asymmetry trap
+  were both handled correctly (dead routes documented not spec'd; the asymmetry is now encoded in
+  both `lib/api/generated/*/client.ts` and each generator script). Item #134's 4 wrong paths are
+  fixed in `docs/open-api-documents/` — see Current above.
+  **(136, NEW)** Item #133's own "schema-level drift was NOT measured" concern is now partially
+  addressed for PATHS (Session 7-1 emitted real, live-controller-derived route inventories
+  covering all 107 service operations) but request/response BODY schemas are still unmeasured/
+  generic (`type: object`) — both services validate via Zod, not class-validator, so
+  `@nestjs/swagger` has nothing to introspect for bodies. A future session should evaluate
+  `@asteasolutions/zod-to-openapi` (converts the EXISTING Zod schemas directly — highest fidelity,
+  reuses the real validation source of truth) or targeted `@ApiBody()` annotation on the
+  highest-traffic routes; full detail in `7-1-...migration-order.md`'s own Deviation 3.
+  **(137, NEW)** `money-service/src/main.ts`'s CORS-setup comment claims the browser calls
+  money-service directly via `NEXT_PUBLIC_MONEY_API_URL` — that env var doesn't exist anywhere
+  else in the repo (verified via a full-repo grep, Session 7-1), and directly contradicts
+  `lib/money-service/client.ts`'s own header (and this session's own re-verification of zero
+  client-side importers) stating money-service is server-only-proxied per F45. Reads as leftover
+  pre-F45 design documentation, never updated. Not fixed (out of Session 7-1's own scope, an
+  unrelated already-tested file) — worth a one-line comment fix whenever a future session next
+  touches `money-service/src/main.ts`.
+  **(138, NEW)** `OPENAPI-DRIFT-REPORT-pre-phase-7.md` itself (committed at Session 7-1) has 2
+  internal inconsistencies worth being aware of if it's ever cited again: §2a's own header says
+  "18" `token-*` routes but its own body lists 15 (14 route files + `[...nextauth]`); §2d's header
+  says "(3)" but lists 5 items. Both independently re-verified against live code at Session 7-1's
+  CONFIRM — the report's 7 HEADLINE totals are all correct, only these 2 sub-section headers
+  drifted from their own bodies.
+  **(139, NEW)** An empty leftover directory, `app/api/auth/register/` (no `route.ts` inside — the
+  file was genuinely deleted at Session 4B-21, only the directory itself was never cleaned up),
+  still sits on disk. Harmless (not a live route, doesn't appear in any route enumeration), but
+  worth a one-line `rmdir` whenever a future session is already touching that area — flagged for
+  Session 7-2's own cleanup pass, not urgent enough to justify a dedicated session.
 - **Open flags:** F1 fully RESOLVED (Session 0-3) · F2 RESOLVED (Session 0-1) · F3
   RESOLVED (Session 1-1: on Railway, different instance than `railway-gateway`) · F17
   RESOLVED (Session 0-5: synthetic seed only) · F18 RESOLVED (Session 1-1: RPO ≤ 24h,
@@ -4925,6 +5112,16 @@ TABLE` (the table never actually existed before) · **F24 fully RESOLVED (Sessio
 5. **Money and auth changes escalate.** Anything touching payments, grants, secrets, CORS,
    or auth semantics beyond the order's explicit steps → stop and ask Davin.
 6. **Verification is never skipped, only strengthened.**
+7. **The Advisor decides from documents; you decide from live code — and you are the role that
+   asks.** (Binding from 2026-08-11; full rule `00-SKELETON-AND-RULES.md` §1.0,
+   `EXECUTOR-PROTOCOL.md` §0; recorded as `DECISION-LOG.md` **PD1**.) Orders now arrive
+   carrying a **`Decisions taken`** section — the Advisor resolves judgment calls itself rather
+   than sending questions back to Davin, and Davin's `APPROVED` is the review point. Read that
+   section first at CONFIRM. **Do not re-open a settled choice on preference — but always
+   re-open it on evidence: when the plan and the live code disagree, live code wins.** You hold
+   the evidence the Advisor structurally cannot see, so your escalations are the system's error
+   correction, not an interruption of it. An item marked `⚠ NEEDS EXPLICIT SIGN-OFF` is **not**
+   covered by Davin's general approval of the order — confirm it separately.
 
 ## Security Override Policy (retained from legacy guide — still binding)
 

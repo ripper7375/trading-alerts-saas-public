@@ -31,6 +31,28 @@ independently checking A2-12's own distinct file-tree claim. Rule: before accept
 `BUILT`/`VERIFIED` verdict at face value in a phase-exit review, spot-check at least the rows
 whose evidence cross-references another row rather than citing its own independent file/line.
 
+**Unpromoted candidate (Session 7-1, 2026-08-12, not added as a new numbered entry — file already
+past cap):** `npm install <pkg>` at the monolith root fails outright
+(`EUNSUPPORTEDPROTOCOL: Unsupported URL Type "workspace:"`) the moment ANY workspace dependency
+(here, `@trading-alerts/types`, `workspace:*`) exists anywhere in the tree — plain npm can't parse
+pnpm's workspace protocol at all, even to install an unrelated package. Use `pnpm add -w
+<pkg>[@version]` instead (`-w`/`--workspace-root` is required even from the repo root, or pnpm
+refuses with `ERR_PNPM_ADDING_TO_ROOT`). This is a monolith-root-only rule — `operation-service`/
+`money-service` are plain npm projects (not pnpm workspace members, per F9), so `npm install`
+still works fine inside either of them.
+
+**Unpromoted candidate (Session 7-1, 2026-08-12, not added as a new numbered entry — file already
+past cap):** `@nestjs/swagger`'s automatic body-schema introspection needs class-validator-style
+decorated DTO classes — it has nothing to read when a codebase validates via Zod schemas through a
+custom pipe (this repo's own established pattern since Session 4B-5, `ZodValidationPipe`), since
+the exported handler types are bare `type` aliases (`z.infer<>`) that erase at compile time and
+carry no runtime decorator metadata. Route paths/methods/params (from `@Controller`/`@Get`/
+`@Param` decorators) ARE still fully and correctly introspected regardless — only request/response
+BODY shapes come out generic (`type: object`). Before assuming `@nestjs/swagger` alone will produce
+a complete spec on a Zod-validated NestJS service, check whether the codebase uses class-validator
+DTOs or Zod first; if Zod, either accept generic body schemas (routes/paths still drift-proof) or
+plan for `@asteasolutions/zod-to-openapi`/targeted `@ApiBody()` annotation as a separate step.
+
 ---
 
 ## Active lessons
