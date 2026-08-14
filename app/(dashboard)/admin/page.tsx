@@ -317,9 +317,86 @@ export default function AdminDashboardPage(): React.ReactElement {
             >
               📊 API Usage Stats
             </a>
+            <a
+              href="/admin/system/terminals"
+              className="block w-full rounded-lg bg-gray-700 px-4 py-3 text-left text-white transition-colors hover:bg-gray-600"
+            >
+              🖥️ System Status &amp; Terminals
+            </a>
           </CardContent>
         </Card>
       </div>
+
+      {/* System Status & Infrastructure Operations */}
+      <Card className="border-gray-700 bg-gray-800">
+        <CardHeader>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-white">
+                System Status &amp; Infrastructure Operations
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Core services, Flask API terminals, scheduled cron jobs, and
+                event outbox queue
+              </CardDescription>
+            </div>
+            <a
+              href="/status"
+              className="inline-flex items-center text-xs font-medium text-blue-400 hover:text-blue-300"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Public Status View ↗
+            </a>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <a
+              href="/admin/system/terminals"
+              className="rounded-lg border border-gray-700 bg-gray-700/50 p-4 transition-colors hover:bg-gray-700"
+            >
+              <div className="mb-1 text-xl">🖥️</div>
+              <div className="font-semibold text-white">
+                Flask API Terminals
+              </div>
+              <p className="mt-1 text-xs text-gray-400">
+                Real-time terminal connections &amp; telemetry
+              </p>
+            </a>
+            <a
+              href="/admin/system/jobs"
+              className="rounded-lg border border-gray-700 bg-gray-700/50 p-4 transition-colors hover:bg-gray-700"
+            >
+              <div className="mb-1 text-xl">⏱️</div>
+              <div className="font-semibold text-white">Scheduled Jobs</div>
+              <p className="mt-1 text-xs text-gray-400">
+                Cron jobs, maintenance tasks &amp; schedules
+              </p>
+            </a>
+            <a
+              href="/admin/system/outbox"
+              className="rounded-lg border border-gray-700 bg-gray-700/50 p-4 transition-colors hover:bg-gray-700"
+            >
+              <div className="mb-1 text-xl">📤</div>
+              <div className="font-semibold text-white">Outbox Queue</div>
+              <p className="mt-1 text-xs text-gray-400">
+                Reliable event processing &amp; retry engine
+              </p>
+            </a>
+            <a
+              href="/admin/system/config-history"
+              className="rounded-lg border border-gray-700 bg-gray-700/50 p-4 transition-colors hover:bg-gray-700"
+            >
+              <div className="mb-1 text-xl">📜</div>
+              <div className="font-semibold text-white">Config History</div>
+              <p className="mt-1 text-xs text-gray-400">
+                Audit log of system &amp; commission configs
+              </p>
+            </a>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Recent Fraud Alerts */}
       <Card className="border-gray-700 bg-gray-800">

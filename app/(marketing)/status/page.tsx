@@ -105,7 +105,20 @@ export default async function StatusPage(): Promise<React.ReactElement> {
           })}
         </div>
 
-        <p className="mt-8 text-center text-xs text-muted-foreground">
+        <div className="mt-8 rounded-lg border border-border bg-card p-4 text-center">
+          <p className="text-sm text-muted-foreground">
+            System operations, Flask API terminals, scheduled jobs, and queue
+            diagnostics are managed in the Admin Panel.
+          </p>
+          <a
+            href="/admin/system/terminals"
+            className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+          >
+            Go to Admin System Panel →
+          </a>
+        </div>
+
+        <p className="mt-6 text-center text-xs text-muted-foreground">
           Last checked {new Date(status.checkedAt).toLocaleString()}. This page
           reflects live checks against this environment.
         </p>

@@ -89,10 +89,7 @@ export function FraudAlertCard({
               )}
               {(alert.currency || alert.amount || alert.paymentMethod) && (
                 <span>
-                  {alert.currency && alert.amount
-                    ? `${alert.currency} ${alert.amount}`
-                    : alert.amount || ''}
-                  {alert.paymentMethod ? ` via ${alert.paymentMethod}` : ''}
+                  {`${alert.currency ? `${alert.currency} ` : ''}${alert.amount || ''}${alert.paymentMethod ? ` via ${alert.paymentMethod}` : ''}`.trim()}
                 </span>
               )}
             </div>
@@ -120,12 +117,22 @@ export function FraudAlertCard({
           </div>
 
           {/* Right side: Action */}
-          <Link href={`/admin/fraud-alerts/${alert.id}`}>
-            <Button variant="ghost" size="sm">
-              View
-              <ChevronRight className="ml-1 h-4 w-4" />
+          <div className="flex shrink-0 items-center">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="hover:bg-primary hover:text-primary-foreground"
+            >
+              <Link
+                href={`/admin/fraud-alerts/${alert.id}`}
+                className="flex items-center gap-1"
+              >
+                View &amp; Investigate
+                <ChevronRight className="h-4 w-4" />
+              </Link>
             </Button>
-          </Link>
+          </div>
         </div>
       </CardContent>
     </Card>

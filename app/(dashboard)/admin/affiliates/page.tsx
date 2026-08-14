@@ -132,34 +132,61 @@ export default function AdminAffiliatesPage(): React.ReactElement {
       </div>
 
       {/* Quick Links */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Link
           href="/admin/affiliates/reports/profit-loss"
-          className="rounded-lg bg-blue-50 p-4 transition-colors hover:bg-blue-100"
+          className="rounded-lg bg-blue-50 p-4 transition-colors hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50"
         >
-          <h3 className="font-semibold text-blue-800">P&L Report</h3>
-          <p className="text-sm text-blue-600">Revenue & margins</p>
+          <h3 className="font-semibold text-blue-800 dark:text-blue-200">
+            P&L Report
+          </h3>
+          <p className="text-sm text-blue-600 dark:text-blue-400">
+            Revenue & margins
+          </p>
         </Link>
         <Link
           href="/admin/affiliates/reports/sales-performance"
-          className="rounded-lg bg-green-50 p-4 transition-colors hover:bg-green-100"
+          className="rounded-lg bg-green-50 p-4 transition-colors hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50"
         >
-          <h3 className="font-semibold text-green-800">Sales Performance</h3>
-          <p className="text-sm text-green-600">Top affiliates</p>
+          <h3 className="font-semibold text-green-800 dark:text-green-200">
+            Sales Performance
+          </h3>
+          <p className="text-sm text-green-600 dark:text-green-400">
+            Top affiliates
+          </p>
         </Link>
         <Link
           href="/admin/affiliates/reports/commission-owings"
-          className="rounded-lg bg-yellow-50 p-4 transition-colors hover:bg-yellow-100"
+          className="rounded-lg bg-yellow-50 p-4 transition-colors hover:bg-yellow-100 dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50"
         >
-          <h3 className="font-semibold text-yellow-800">Commission Owings</h3>
-          <p className="text-sm text-yellow-600">Pending payouts</p>
+          <h3 className="font-semibold text-yellow-800 dark:text-yellow-200">
+            Commission Owings
+          </h3>
+          <p className="text-sm text-yellow-600 dark:text-yellow-400">
+            Pending payouts
+          </p>
         </Link>
         <Link
           href="/admin/affiliates/reports/code-inventory"
-          className="rounded-lg bg-purple-50 p-4 transition-colors hover:bg-purple-100"
+          className="rounded-lg bg-purple-50 p-4 transition-colors hover:bg-purple-100 dark:bg-purple-900/30 dark:hover:bg-purple-900/50"
         >
-          <h3 className="font-semibold text-purple-800">Code Inventory</h3>
-          <p className="text-sm text-purple-600">Distribution stats</p>
+          <h3 className="font-semibold text-purple-800 dark:text-purple-200">
+            Code Inventory
+          </h3>
+          <p className="text-sm text-purple-600 dark:text-purple-400">
+            Distribution stats
+          </p>
+        </Link>
+        <Link
+          href="/admin/affiliates/reports/code-flows"
+          className="rounded-lg bg-indigo-50 p-4 transition-colors hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50"
+        >
+          <h3 className="font-semibold text-indigo-800 dark:text-indigo-200">
+            Code Flows
+          </h3>
+          <p className="text-sm text-indigo-600 dark:text-indigo-400">
+            Lifecycle & audit
+          </p>
         </Link>
       </div>
 

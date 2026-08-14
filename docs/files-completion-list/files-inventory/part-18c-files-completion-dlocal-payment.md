@@ -1,84 +1,47 @@
-# Part 18C: User Experience & Admin Fraud Dashboard (Vertical Slice 3 of 3) - List of Files Completion
+# Part 18C: Payment UX & Admin Fraud Dashboard (Vertical Slice 3) - List of Files Completion
 
-**Last Updated:** 2026-08-04
-**Total Files:** 25 files (22 implementation + 3 test files)
-**Status:** ✅ Complete (100%)
-
----
-
-## 📋 Production & Test Files Inventory (25 Files)
-
-### Phase A: Payment UI Components (9 files)
-
-**File 1/25:** ✅ `components/payments/CountrySelector.tsx` — Dropdown component supporting 8 dLocal countries with flag icons and currency labels
-**File 2/25:** ✅ `components/payments/PlanSelector.tsx` — Visual plan selector component for 3-Day ($1.99) vs Monthly ($29.00) plans with trial eligibility badges
-**File 3/25:** ✅ `components/payments/PaymentMethodSelector.tsx` — Grid component rendering local payment methods (UPI, MoMo, GoPay, JazzCash, bank transfer)
-**File 4/25:** ✅ `components/payments/PriceDisplay.tsx` — Real-time price display showing local currency amount alongside USD reference
-**File 5/25:** ✅ `components/payments/DiscountCodeInput.tsx` — Discount promo code input field with real-time validation (monthly plan only)
-**File 6/25:** ✅ `components/payments/PaymentButton.tsx` — Interactive payment submit button with loading and error states
-**File 7/25:** ✅ `components/payments/index.ts` — Barrel export for payment UI components
-**File 8/25:** ✅ `__tests__/components/payments/PlanSelector.test.tsx` — Unit test suite for `PlanSelector` component
-**File 9/25:** ✅ `__tests__/components/payments/PriceDisplay.test.tsx` — Unit test suite for `PriceDisplay` component
+**Last Updated:** 2026-08-14
+**Status:** ✅ Complete (100% verified)
 
 ---
 
-### Phase B: Unified Checkout Page (1 file)
+## 📊 Overview
 
-**File 10/25:** ✅ `app/checkout/page.tsx`
-
-- **Status:** Complete
-- **Description:** Unified checkout UI presenting Stripe (international cards/wallets) as primary option and dLocal (emerging market local payment methods) as secondary option
+Part 18C implements the frontend payment user experience: country selector, payment method selector, localized price display, discount code input, and administrator fraud alert inspection dashboard.
 
 ---
 
-### Phase C: Transactional Email Templates (5 files)
+## 📋 Production Files Inventory (14 Files)
 
-**File 11/25:** ✅ `emails/payment-confirmation.tsx` — Payment success email template with local currency breakdown and manual renewal instructions
-**File 12/25:** ✅ `emails/renewal-reminder.tsx` — Renewal reminder email template sent 3 days before subscription expiration
-**File 13/25:** ✅ `emails/subscription-expired.tsx` — Subscription expiration email notification with re-subscribe CTA
-**File 14/25:** ✅ `emails/payment-failure.tsx` — Payment failure notification email template with retry instructions
-**File 15/25:** ✅ `emails/index.ts` — Email template exports barrel
+### Payment UI Components (`components/payments/`)
 
----
+| #   | File Path                                          | Status   | Description                                                          |
+| --- | -------------------------------------------------- | -------- | -------------------------------------------------------------------- |
+| 1   | ✅ `components/payments/CountrySelector.tsx`       | Complete | Country dropdown selector with automatic GeoIP detection             |
+| 2   | ✅ `components/payments/PlanSelector.tsx`          | Complete | Subscription plan selector (Monthly vs Annual with discount badge)   |
+| 3   | ✅ `components/payments/PaymentMethodSelector.tsx` | Complete | Payment method picker (Credit Card, PIX, OXXO, SPEI, Boleto, PayPal) |
+| 4   | ✅ `components/payments/PriceDisplay.tsx`          | Complete | Formatted price display showing local currency and USD equivalent    |
+| 5   | ✅ `components/payments/DiscountCodeInput.tsx`     | Complete | Promo code input box with real-time validation and discount feedback |
+| 6   | ✅ `components/payments/PaymentButton.tsx`         | Complete | Checkout submit button with loading spinner and security badges      |
+| 7   | ✅ `components/payments/index.ts`                  | Complete | Payments component export barrel                                     |
 
-### Phase D: Admin Fraud Dashboard (6 files)
+### Admin Fraud Alerts & Transaction Views
 
-**File 16/25:** ✅ `app/(dashboard)/admin/fraud-alerts/page.tsx` — Fraud alerts monitoring dashboard with severity and status filters
-**File 17/25:** ✅ `app/(dashboard)/admin/fraud-alerts/[id]/page.tsx` — Fraud alert detail page with user risk profile, payment history, and account blocking actions
-**File 18/25:** ✅ `app/api/admin/fraud-alerts/route.ts` — `GET`: List fraud alerts with status/severity filters and summary metrics
-**File 19/25:** ✅ `app/api/admin/fraud-alerts/[id]/route.ts` — `GET`/`PATCH`: Fetch or update fraud alert status (marking `BLOCKED` suspends user account)
-**File 20/25:** ✅ `components/admin/FraudAlertCard.tsx` — Alert card component displaying severity badge, risk score, and quick actions
-**File 21/25:** ✅ `components/admin/FraudPatternBadge.tsx` — Badge component for detected fraud patterns (multiple 3-day attempts, rapid failures, country hopping)
-
----
-
-### Phase E & F: Part 12 Integration & Discount API (3 files)
-
-**File 22/25:** ✅ `app/(marketing)/pricing/page.tsx` — Marketing pricing page featuring dLocal regional pricing and 3-day trial option
-**File 23/25:** ✅ `components/billing/subscription-card.tsx` — Billing subscription card displaying active provider (Stripe/dLocal) and renewal countdown
-**File 24/25:** ✅ `app/api/payments/dlocal/validate-discount/route.ts` — `POST`: API validating promo codes and calculating final discounted price for monthly plan
-
----
-
-### Phase G: E2E Test Suite (1 file)
-
-**File 25/25:** ✅ `__tests__/e2e/dlocal-payment-flow.test.ts` — End-to-end test suite verifying country selection, plan choice, payment creation, webhook handling, and PRO unlock
+| #   | File Path                                             | Status   | Description                                                                    |
+| --- | ----------------------------------------------------- | -------- | ------------------------------------------------------------------------------ |
+| 8   | ✅ `app/(dashboard)/admin/fraud-alerts/page.tsx`      | Complete | Admin queue for reviewing flagged fraudulent payment attempts                  |
+| 9   | ✅ `app/(dashboard)/admin/fraud-alerts/[id]/page.tsx` | Complete | Deep fraud investigation view with IP history and risk score breakdown         |
+| 10  | ✅ `components/admin/FraudAlertCard.tsx`              | Complete | Fraud incident summary card                                                    |
+| 11  | ✅ `components/admin/FraudPatternBadge.tsx`           | Complete | Detected risk pattern badge                                                    |
+| 12  | ✅ `app/checkout/return/page.tsx`                     | Complete | Post-checkout landing page                                                     |
+| 13  | ✅ `app/upgrade/success/page.tsx`                     | Complete | Upgrade confirmation success view                                              |
+| 14  | ✅ `lib/email/subscription-emails.ts`                 | Complete | Subscription confirmation, renewal reminder, and payment failure email builder |
 
 ---
 
-## 📊 Status Summary
+## 🔗 Related Documentation
 
-- **Total Production Files:** 22/22 (100%)
-- **Total Test Files:** 3/3 (100%)
-- **Grand Total:** 25 files
-- **Complete Part 18 Suite:** 67 total files across 18A (23 files), 18B (19 files), and 18C (25 files)
-
----
-
-## 🎯 Fraud Detection & UX Architecture
-
-- **Unified Dual-Provider Checkout:** Offers international Stripe payments as primary and dLocal local payment methods as secondary alternative.
-- **Account Blocking Mechanism:** Resolving a fraud alert to `BLOCKED` in `app/api/admin/fraud-alerts/[id]/route.ts` automatically updates `User.status = BLOCKED` to mitigate multi-trial anti-abuse.
+- **Ecommerce & Billing:** [`docs/files-completion-list/files-inventory/part-12-files-completion-ecommerce-billing.md`](file:///d:/SaaS%20Project/trading-alerts-saas-public/docs/files-completion-list/files-inventory/part-12-files-completion-ecommerce-billing.md)
 
 ---
 

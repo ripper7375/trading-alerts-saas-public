@@ -29,7 +29,9 @@ const PUBLIC_SETTINGS_PATHS = new Set<string>([
 ]);
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
-  if (PUBLIC_SETTINGS_PATHS.has(request.nextUrl.pathname)) {
+  const { pathname } = request.nextUrl;
+
+  if (PUBLIC_SETTINGS_PATHS.has(pathname)) {
     return NextResponse.next();
   }
 
@@ -41,18 +43,26 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     });
 
     if (!token) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('callbackUrl', request.nextUrl.pathname);
+      const loginPath =
+        pathname.startsWith('/affiliate/dashboard') ||
+        pathname.startsWith('/affiliate/settings')
+          ? '/affiliate/login'
+          : '/login';
+      const loginUrl = new URL(loginPath, request.url);
+      loginUrl.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(loginUrl);
+    }
+
+    // Role-based Edge Guard: Admin routes
+    if (pathname.startsWith('/admin') && token.role !== 'ADMIN') {
+      const dashboardUrl = new URL('/dashboard', request.url);
+      dashboardUrl.searchParams.set('error', 'admin_required');
+      return NextResponse.redirect(dashboardUrl);
     }
 
     return NextResponse.next();
   } catch (error) {
-    // Fail OPEN, not closed: this is the first-ever middleware.ts in this
-    // repo, and every matched request depends on it. A bug/exception here
-    // must not lock every user out — the per-page session checks
-    // (app/(dashboard)/layout.tsx's getServerSession call) remain the
-    // authoritative backstop either way.
+    // Fail OPEN, not closed: per-page session checks remain authoritative backstop.
     console.error(
       '[middleware] token decode failed, allowing request through:',
       error
@@ -61,18 +71,6 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-// /admin was excluded here until Session 6-2 (DECISION-LOG.md F62): a
-// separate, non-route-group tree (app/admin/login, app/admin/affiliates,
-// app/admin/settings) shared this URL prefix and had its own bespoke,
-// already-logged-out-reachable login page — matching /admin/:path* here
-// would have redirected logged-out admins away from their own login page
-// before they could ever reach it. That tree is gone now: all 23 admin
-// pages live under app/(dashboard)/admin/* (one shell, one
-// getServerSession + role guard via app/(dashboard)/admin/layout.tsx),
-// and /admin/login redirects to the standard /login flow
-// (next.config.js). /admin/:path* is covered below as the same earlier,
-// edge-level defense-in-depth every other authenticated route already
-// gets — the layout guard stays the authoritative backstop either way.
 export const config = {
   matcher: [
     '/dashboard/:path*',
@@ -81,5 +79,7 @@ export const config = {
     '/settings/:path*',
     '/admin/:path*',
     '/notifications/:path*',
+    '/affiliate/dashboard/:path*',
+    '/affiliate/settings/:path*',
   ],
 };

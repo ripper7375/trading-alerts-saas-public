@@ -7,6 +7,7 @@ import {
   Settings,
   HelpCircle,
   Lock,
+  Shield,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -71,6 +72,7 @@ const bottomNavItems: NavItem[] = [
 
 interface SidebarProps {
   userTier: string;
+  userRole?: string;
 }
 
 /**
@@ -80,8 +82,12 @@ interface SidebarProps {
  * - Tier-based navigation items (hide PRO features for FREE users with lock icon)
  * - Active link highlighting
  * - Icon-based navigation with descriptions
+ * - Admin Executive Dashboard navigation for ADMIN users
  */
-export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
+export function Sidebar({
+  userTier,
+  userRole,
+}: SidebarProps): React.ReactElement {
   const pathname = usePathname();
 
   // Check if user can access the nav item based on tier
@@ -92,8 +98,8 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
 
   // Check if the current path matches the nav item
   const isActive = (href: string): boolean => {
-    if (href === '/dashboard') {
-      return pathname === '/dashboard';
+    if (href === '/dashboard' || href === '/admin') {
+      return pathname === href;
     }
     return pathname.startsWith(href);
   };
@@ -102,6 +108,31 @@ export function Sidebar({ userTier }: SidebarProps): React.ReactElement {
     <div className="flex h-full flex-col border-r bg-white dark:border-gray-700 dark:bg-gray-800">
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
+        {userRole === 'ADMIN' && (
+          <div className="mb-4">
+            <p className="px-3 text-xs font-semibold uppercase tracking-wider text-red-500 dark:text-red-400">
+              Admin Portal
+            </p>
+            <div className="mt-1 space-y-1">
+              <Link
+                href="/admin"
+                data-testid="nav-admin-dashboard"
+                className={cn(
+                  'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                  isActive('/admin')
+                    ? 'bg-red-50 text-red-700 dark:bg-red-900/50 dark:text-red-300'
+                    : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+                )}
+              >
+                <Shield className="h-5 w-5 shrink-0 text-red-500" />
+                <span className="flex-1 font-semibold">
+                  Executive Dashboard
+                </span>
+              </Link>
+            </div>
+          </div>
+        )}
+
         <div className="mb-4">
           <p className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
             Main Menu

@@ -239,6 +239,37 @@ export default function BillingSettingsPage(): React.ReactElement {
         Billing & Subscription
       </h2>
 
+      {/* Affiliate Partner Notice */}
+      {(session?.user as { role?: string })?.role === 'AFFILIATE' && (
+        <div className="mb-6 rounded-lg border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-900 dark:bg-indigo-900/20">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold text-indigo-900 dark:text-indigo-200">
+                Affiliate Partner Account
+              </p>
+              <p className="text-sm text-indigo-700 dark:text-indigo-300">
+                Your account is enrolled in the Affiliate Partner Program.
+                Manage your commission earnings and disbursement bank details in
+                the partner portal.
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="border-indigo-300 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:text-indigo-200"
+              >
+                <Link href="/affiliate/dashboard/payouts">View Payouts</Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href="/affiliate/settings/payout">Payout Settings</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {subscriptionError && (
         <div className="border-destructive/50 bg-destructive/10 mb-6 rounded-lg border p-4 text-sm text-destructive">
           {subscriptionError}

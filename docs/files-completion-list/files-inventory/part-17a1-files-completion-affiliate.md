@@ -1,132 +1,49 @@
 # Part 17A-1: Affiliate Portal - Foundation & Backend APIs - List of Files Completion
 
-**Last Updated:** 2026-08-04
-**Total Files:** 27 files (20 implementation + 7 test files)
-**Status:** ✅ Complete (100%)
+**Last Updated:** 2026-08-14
+**Status:** ✅ Complete (100% verified)
 
 ---
 
-## 📋 Production & Test Files Inventory (27 Files)
+## 📊 Overview
 
-### Phase 0: Test Infrastructure (2 files)
-
-**File 1/27:** ✅ `__tests__/setup.ts`
-
-- **Status:** Complete
-- **Description:** Global test setup and environment configuration
-
-**File 2/27:** ✅ `__tests__/helpers/supertest-setup.ts`
-
-- **Status:** Complete
-- **Description:** Supertest agent setup helper for API endpoint testing
+Part 17A-1 provides the affiliate system core business logic, promo code generators, commission calculators, conversion processing engine, validation schemas, and affiliate dashboard APIs.
 
 ---
 
-### Phase A: Foundation (14 files)
+## 📋 Production Files Inventory (16 Files)
 
-#### Database Schema (1 file)
+### Affiliate Core Libraries (`lib/affiliate/`)
 
-**File 3/27:** ✅ `prisma/non-market-data/schema.prisma`
+| #   | File Path                                   | Status   | Description                                                             |
+| --- | ------------------------------------------- | -------- | ----------------------------------------------------------------------- |
+| 1   | ✅ `lib/affiliate/registration.ts`          | Complete | Affiliate application registration and validation logic                 |
+| 2   | ✅ `lib/affiliate/code-generator.ts`        | Complete | Unique promo referral code generator with collision prevention          |
+| 3   | ✅ `lib/affiliate/commission-calculator.ts` | Complete | Tier-based commission rate calculation (10% standard, custom overrides) |
+| 4   | ✅ `lib/affiliate/conversion-processor.ts`  | Complete | Attribution processor linking customer purchases to referring affiliate |
+| 5   | ✅ `lib/affiliate/report-builder.ts`        | Complete | Affiliate financial and commission report generator                     |
+| 6   | ✅ `lib/affiliate/validators.ts`            | Complete | Zod validation schemas for affiliate applications and settings          |
+| 7   | ✅ `lib/affiliate/db.ts`                    | Complete | Database query helpers for affiliate entity management                  |
+| 8   | ✅ `lib/affiliate/types.ts`                 | Complete | TypeScript interface definitions for affiliate entities and payloads    |
+| 9   | ✅ `lib/affiliate/constants.ts`             | Complete | Affiliate program constants, tier rates, and payout thresholds          |
 
-- **Status:** Complete
-- **Description:** Normalized relational schema defining `AffiliateProfile` (16 cols), `AffiliateCode` (11 cols), `Commission` (14 cols), and `SystemConfig` / `SystemConfigHistory`
+### Affiliate API Routes (`app/api/affiliate/`)
 
-#### Library Files (9 files)
-
-**File 4/27:** ✅ `lib/affiliate/constants.ts`
-
-- **Status:** Complete
-- **Description:** Default configuration constants (`AFFILIATE_CONFIG`, `CODE_GENERATION`) and dynamic getter functions (`getAffiliateConfigFromDB`, `getDiscountPercent`, `getCommissionPercent`)
-
-**File 5/27:** ✅ `lib/affiliate/types.ts`
-
-- **Status:** Complete
-- **Description:** TypeScript interfaces for `AffiliateProfile`, `AffiliateCode`, `Commission`, `DashboardStats`, `CodeInventoryReport`
-
-**File 6/27:** ✅ `lib/affiliate/code-generator.ts`
-
-- **Status:** Complete
-- **Description:** Unique code generation (`generateUniqueCode`) and bulk code distribution (`distributeCodes`)
-
-**File 7/27:** ✅ `lib/affiliate/commission-calculator.ts`
-
-- **Status:** Complete
-- **Description:** Revenue and commission calculation functions (`calculateDiscount`, `calculateNetRevenue`, `calculateCommission`, `calculateFullBreakdown`)
-
-**File 8/27:** ✅ `lib/affiliate/report-builder.ts`
-
-- **Status:** Complete
-- **Description:** Report builder functions (`buildDashboardStats`, `buildCodeInventoryReport`, `buildGlobalCodeInventoryReport`, `buildCommissionSummary`)
-
-**File 9/27:** ✅ `lib/affiliate/validators.ts`
-
-- **Status:** Complete
-- **Description:** Zod validation schemas for affiliate registration, code management, payment details, and profile updates
-
-**File 10/27:** ✅ `lib/affiliate/registration.ts`
-
-- **Status:** Complete
-- **Description:** Affiliate registration (`registerAffiliate`) and email verification (`verifyAffiliateEmail`) issuing initial promo codes upon confirmation
-
-**File 11/27:** ✅ `lib/affiliate/conversion-processor.ts`
-
-- **Status:** Complete
-- **Description:** Shared provider-agnostic conversion processor executed by both Stripe and dLocal webhook handlers upon checkout completion with an affiliate code
-
-#### Email Templates (3 files)
-
-**File 12/27:** ✅ `lib/email/templates/affiliate/welcome.tsx` — Sent upon affiliate registration containing email verification link
-**File 13/27:** ✅ `lib/email/templates/affiliate/code-distributed.tsx` — Sent when new promo codes are distributed
-**File 14/27:** ✅ `lib/email/templates/affiliate/code-used.tsx` — Sent when a customer redeems an affiliate code
-
-#### Unit & Integration Tests (3 files)
-
-**File 15/27:** ✅ `__tests__/lib/affiliate/code-generator.test.ts` — Tests for code generator and distribution logic
-**File 16/27:** ✅ `__tests__/lib/affiliate/commission-calculator.test.ts` — Tests for discount, net revenue, and commission calculations
-**File 17/27:** ✅ `__tests__/lib/affiliate/registration.test.ts` — Tests for registration flow and verification token handling
+| #   | File Path                                                   | Status   | Description                                                    |
+| --- | ----------------------------------------------------------- | -------- | -------------------------------------------------------------- |
+| 10  | ✅ `app/api/affiliate/auth/register/route.ts`               | Complete | Affiliate registration endpoint                                |
+| 11  | ✅ `app/api/affiliate/auth/verify-email/route.ts`           | Complete | Email verification endpoint for new affiliates                 |
+| 12  | ✅ `app/api/affiliate/dashboard/stats/route.ts`             | Complete | Real-time earnings, clicks, and conversion statistics endpoint |
+| 13  | ✅ `app/api/affiliate/dashboard/codes/route.ts`             | Complete | Affiliate promo code inventory and generation endpoint         |
+| 14  | ✅ `app/api/affiliate/dashboard/code-inventory/route.ts`    | Complete | Granular code usage, allocation, and expiration ledger         |
+| 15  | ✅ `app/api/affiliate/dashboard/commission-report/route.ts` | Complete | Historical and pending commissions listing endpoint            |
+| 16  | ✅ `app/api/affiliate/profile/route.ts`                     | Complete | Authenticated affiliate profile retriever and update endpoint  |
 
 ---
 
-### Phase B: Backend API Routes (10 files)
+## 🔗 Related Documentation
 
-#### Affiliate Authentication (2 files)
-
-**File 18/27:** ✅ `app/api/affiliate/auth/register/route.ts` — `POST`: Registers user as affiliate, creates `AffiliateProfile`, and dispatches welcome email
-**File 19/27:** ✅ `app/api/affiliate/auth/verify-email/route.ts` — `POST`: Verifies token, activates profile, and distributes initial promo codes
-
-#### Dashboard APIs (4 files)
-
-**File 20/27:** ✅ `app/api/affiliate/dashboard/stats/route.ts` — `GET`: Retrieves dashboard stats (active codes, conversions, earnings, balances)
-**File 21/27:** ✅ `app/api/affiliate/dashboard/codes/route.ts` — `GET`: Paginated list of assigned promo codes with status filter
-**File 22/27:** ✅ `app/api/affiliate/dashboard/code-inventory/route.ts` — `GET`: Code inventory census report
-**File 23/27:** ✅ `app/api/affiliate/dashboard/commission-report/route.ts` — `GET`: Paginated commission earnings history
-
-#### Profile APIs (2 files)
-
-**File 24/27:** ✅ `app/api/affiliate/profile/route.ts` — `GET`/`PUT`: View and update affiliate profile (name, social links, country)
-**File 25/27:** ✅ `app/api/affiliate/profile/payment/route.ts` — `PUT`: Update payout payment method and details (PayPal, Bank, Crypto, Wise)
-
-#### Checkout Integration & Public Config (2 files)
-
-**File 26/27:** ✅ `app/api/checkout/validate-code/route.ts` — `POST`: Validates promo code and returns discount percentage
-**File 27/27:** ✅ `app/api/config/affiliate/route.ts` — `GET`: Public endpoint providing current affiliate program configuration
-
----
-
-## 📊 Status Summary
-
-- **Total Production & Test Files:** 27/27 (100%)
-- **Test Infrastructure & Tests:** 5 files
-- **Foundation & Service Libraries:** 9 files
-- **Email Templates:** 3 files
-- **Backend API Routes:** 10 files
-
----
-
-## 🎯 Architecture & Integration Features
-
-- **Provider-Agnostic Conversion Processor (`conversion-processor.ts`):** Both Stripe (`webhooks/stripe`) and dLocal (`webhooks/dlocal`) trigger the exact same conversion processor to mark codes as `USED`, record pending commissions, update balances, and notify affiliates.
-- **Dynamic Configuration:** All rates (discount %, commission %) are stored dynamically in `SystemConfig` table with audit trails in `SystemConfigHistory`.
+- **Affiliate Portal Frontend:** [`docs/files-completion-list/files-inventory/part-17a2-files-completion-affiliate.md`](file:///d:/SaaS%20Project/trading-alerts-saas-public/docs/files-completion-list/files-inventory/part-17a2-files-completion-affiliate.md)
 
 ---
 

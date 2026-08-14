@@ -1,76 +1,51 @@
-# Part 17A-2: Affiliate Portal - API Testing & Frontend Components/Pages - List of Files Completion
+# Part 17A-2: Affiliate Portal - Frontend & Dashboard - List of Files Completion
 
-**Last Updated:** 2026-08-04
-**Total Files:** 21 files (15 implementation + 6 test files)
-**Status:** ✅ Complete (100%)
-
----
-
-## 📋 Production & Test Files Inventory (21 Files)
-
-### Phase C: API E2E Testing (3 test files)
-
-**File 1/21:** ✅ `__tests__/api/affiliate-registration.test.ts` — Integration tests for registration, validation, and email verification
-**File 2/21:** ✅ `__tests__/api/affiliate-dashboard.test.ts` — Integration tests for dashboard stats, code inventory, and commission reports
-**File 3/21:** ✅ `__tests__/api/affiliate-conversion.test.ts` — Integration tests for code validation, checkout redemption, and commission crediting
+**Last Updated:** 2026-08-14
+**Status:** ✅ Complete (100% verified)
 
 ---
 
-### Phase D: Frontend Components & Tests (7 files)
+## 📊 Overview
 
-#### Component Index & Implementations (4 files)
-
-**File 4/21:** ✅ `components/affiliate/index.ts` — Barrel export for affiliate UI components (`StatsCard`, `CodeTable`, `CommissionTable`)
-**File 5/21:** ✅ `components/affiliate/stats-card.tsx` — Reusable metric card displaying icon, value, and trend indicators
-**File 6/21:** ✅ `components/affiliate/code-table.tsx` — Table component displaying assigned promo codes with status badges, copy-to-clipboard button, and expiration dates
-**File 7/21:** ✅ `components/affiliate/commission-table.tsx` — Table component displaying commission earnings history with status colors and payment references
-
-#### Component Unit Tests (3 files)
-
-**File 8/21:** ✅ `__tests__/components/affiliate/stats-card.test.tsx` — Unit tests for `StatsCard` rendering and number formatting
-**File 9/21:** ✅ `__tests__/components/affiliate/code-table.test.tsx` — Unit tests for `CodeTable` status badges, copy action, and empty states
-**File 10/21:** ✅ `__tests__/components/affiliate/commission-table.test.tsx` — Unit tests for `CommissionTable` status styling and date formatting
+Part 17A-2 implements the complete self-service Affiliate Portal: registration, email verification, overview dashboard, promo code management, commission ledger, payout history, monthly statements, marketing resource center, and Wise payout setup.
 
 ---
 
-### Phase D: Frontend Layouts & Pages (11 files)
+## 📋 Production Files Inventory (18 Files)
 
-#### Layout Files (4 files)
+### Frontend Pages (`app/affiliate/`)
 
-**File 11/21:** ✅ `app/affiliate/layout.tsx` — Root layout for affiliate portal verifying `isAffiliate` session status
-**File 12/21:** ✅ `app/affiliate/register/layout.tsx` — Unauthenticated layout wrapper for registration page
-**File 13/21:** ✅ `app/affiliate/verify/layout.tsx` — Unauthenticated layout wrapper for email verification page
-**File 14/21:** ✅ `app/affiliate/dashboard/layout.tsx` — Dashboard layout container with sidebar navigation drawer
+| #   | File Path                                            | Status   | Description                                                        |
+| --- | ---------------------------------------------------- | -------- | ------------------------------------------------------------------ |
+| 1   | ✅ `app/affiliate/layout.tsx`                        | Complete | Root affiliate portal shell and navigation layout                  |
+| 2   | ✅ `app/affiliate/page.tsx`                          | Complete | Affiliate program landing and information page                     |
+| 3   | ✅ `app/affiliate/join/page.tsx`                     | Complete | Affiliate onboarding and application page                          |
+| 4   | ✅ `app/affiliate/register/page.tsx`                 | Complete | Affiliate registration form                                        |
+| 5   | ✅ `app/affiliate/verify/page.tsx`                   | Complete | Affiliate email verification confirmation page                     |
+| 6   | ✅ `app/affiliate/dashboard/layout.tsx`              | Complete | Authenticated affiliate dashboard layout                           |
+| 7   | ✅ `app/affiliate/dashboard/page.tsx`                | Complete | Main affiliate dashboard with KPI cards and performance overview   |
+| 8   | ✅ `app/affiliate/dashboard/codes/page.tsx`          | Complete | Referral promo codes list and copy tool                            |
+| 9   | ✅ `app/affiliate/dashboard/commissions/page.tsx`    | Complete | Detailed commission earnings ledger                                |
+| 10  | ✅ `app/affiliate/dashboard/payouts/page.tsx`        | Complete | Historical and scheduled disbursement payouts                      |
+| 11  | ✅ `app/affiliate/dashboard/code-inventory/page.tsx` | Complete | Detailed code allocation, usage rate, and expiration breakdown     |
+| 12  | ✅ `app/affiliate/dashboard/resources/page.tsx`      | Complete | Marketing resource center (banners, copy snippets, link builder)   |
+| 13  | ✅ `app/affiliate/dashboard/statements/page.tsx`     | Complete | Monthly earnings statements with CSV export                        |
+| 14  | ✅ `app/affiliate/settings/layout.tsx`               | Complete | Affiliate settings section layout                                  |
+| 15  | ✅ `app/affiliate/settings/payout/page.tsx`          | Complete | Unified Wise disbursement payout setup and bank account management |
 
-#### Registration & Verification Pages (2 files)
+### Affiliate UI Components (`components/affiliate/`)
 
-**File 15/21:** ✅ `app/affiliate/register/page.tsx` — Affiliate registration form (full name, country, payment method, social media URLs)
-**File 16/21:** ✅ `app/affiliate/verify/page.tsx` — Email verification page processing verification token from URL
-
-#### Dashboard Pages (5 files)
-
-**File 17/21:** ✅ `app/affiliate/dashboard/page.tsx` — Main affiliate dashboard overview (stats cards, recent commissions, active codes preview)
-**File 18/21:** ✅ `app/affiliate/dashboard/codes/page.tsx` — Codes management page listing all promo codes with copy buttons and status filters
-**File 19/21:** ✅ `app/affiliate/dashboard/commissions/page.tsx` — Earnings history page with status filtering and export options
-**File 20/21:** ✅ `app/affiliate/dashboard/profile/page.tsx` — Profile edit page for managing name, country, and social media URLs
-**File 21/21:** ✅ `app/affiliate/dashboard/profile/payment/page.tsx` — Payout settings page for configuring payment methods (PayPal, Bank, Crypto, Wise)
-
----
-
-## 📊 Status Summary
-
-- **Total Production & Test Files:** 21/21 (100%)
-- **API E2E Tests:** 3 files
-- **UI Component Barrel & Implementations:** 4 files
-- **Component Unit Tests:** 3 files
-- **Portal Layouts & UI Pages:** 11 files
+| #   | File Path                                         | Status   | Description                                                                   |
+| --- | ------------------------------------------------- | -------- | ----------------------------------------------------------------------------- |
+| 16  | ✅ `components/affiliate/stats-card.tsx`          | Complete | Metric card displaying clicks, conversion rate, and unpaid earnings           |
+| 17  | ✅ `components/affiliate/code-table.tsx`          | Complete | Table for managing promo codes and referral links                             |
+| 18  | ✅ `components/affiliate/wise-recipient-form.tsx` | Complete | Wise recipient bank account modal form with country-specific field validation |
 
 ---
 
-## 🎯 Frontend Architecture
+## 🔗 Related Documentation
 
-- **Role Guarding:** Portal routes check session status; only authenticated users with `isAffiliate: true` can enter dashboard routes (`/affiliate/dashboard/*`).
-- **Data Fetching & State:** Built with SWR/React Query pattern for optimistic updates, copy-to-clipboard feedback, and responsive layout styling.
+- **Wise Disbursements:** [`docs/files-completion-list/files-inventory/part-19.5-files-completion-wise-disbursement.md`](file:///d:/SaaS%20Project/trading-alerts-saas-public/docs/files-completion-list/files-inventory/part-19.5-files-completion-wise-disbursement.md)
 
 ---
 

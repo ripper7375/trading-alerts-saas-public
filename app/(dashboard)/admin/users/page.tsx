@@ -278,14 +278,20 @@ export default function UsersPage(): React.ReactElement {
                       className="border-b border-gray-700/50 transition-colors hover:bg-gray-700/30"
                     >
                       <td className="px-4 py-3">
-                        <span className="text-white">
+                        <Link
+                          href={`/admin/users/${user.id}`}
+                          className="font-medium text-white transition-colors hover:text-blue-400"
+                        >
                           {user.name || 'No name'}
-                        </span>
+                        </Link>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-sm text-gray-300">
+                        <Link
+                          href={`/admin/users/${user.id}`}
+                          className="text-sm text-gray-300 transition-colors hover:text-blue-400"
+                        >
                           {user.email}
-                        </span>
+                        </Link>
                       </td>
                       <td className="px-4 py-3">
                         <Badge
@@ -323,12 +329,16 @@ export default function UsersPage(): React.ReactElement {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Link
-                          href={`/admin/users/${user.id}`}
-                          className="text-sm text-blue-400 transition-colors hover:text-blue-300"
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-600 bg-gray-700/50 hover:bg-blue-600 hover:text-white"
                         >
-                          View Details
-                        </Link>
+                          <Link href={`/admin/users/${user.id}`}>
+                            Inspect User →
+                          </Link>
+                        </Button>
                       </td>
                     </tr>
                   ))}

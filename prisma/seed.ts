@@ -108,7 +108,7 @@ async function main() {
           password: 'AffiliatePassword123!',
           name: 'Affiliate Test User',
           tier: 'FREE' as const,
-          role: 'USER' as const,
+          role: 'AFFILIATE' as const,
         },
         {
           email: 'unverified@trading-alerts.test',
@@ -122,7 +122,7 @@ async function main() {
 
       for (const testUser of testUsers) {
         const hashedTestPassword = await bcrypt.hash(testUser.password, 10);
-        await prisma.user.upsert({
+        const createdUser = await prisma.user.upsert({
           where: { email: testUser.email },
           update: {
             name: testUser.name,
@@ -144,6 +144,25 @@ async function main() {
             hasUsedThreeDayPlan: false,
           },
         });
+
+        if (testUser.email === 'affiliate-test@trading-alerts.test') {
+          await prisma.affiliateProfile.upsert({
+            where: { userId: createdUser.id },
+            update: {
+              fullName: 'Affiliate Test User',
+              country: 'US',
+              status: 'ACTIVE',
+            },
+            create: {
+              userId: createdUser.id,
+              fullName: 'Affiliate Test User',
+              country: 'US',
+              status: 'ACTIVE',
+              paymentMethod: 'WISE',
+              paymentDetails: {},
+            },
+          });
+        }
       }
 
       console.log('✅ E2E test users created:');

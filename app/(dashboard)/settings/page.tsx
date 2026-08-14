@@ -181,39 +181,65 @@ export default function SettingsPage(): React.ReactElement {
             </div>
           </div>
 
-          {/* Upgrade Prompt for FREE users */}
-          {tier === 'FREE' && (
-            <div className="mt-6 rounded-lg bg-blue-50 p-4 dark:bg-blue-900/30">
-              <h3 className="mb-2 font-semibold text-blue-900 dark:text-blue-100">
-                Unlock More with Pro
+          {/* Upgrade Prompt for FREE users (non-affiliate) */}
+          {tier === 'FREE' &&
+            (session?.user as { role?: string })?.role !== 'AFFILIATE' && (
+              <div className="mt-6 rounded-lg bg-blue-50 p-4 dark:bg-blue-900/30">
+                <h3 className="mb-2 font-semibold text-blue-900 dark:text-blue-100">
+                  Unlock More with Pro
+                </h3>
+                <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-200">
+                  <li className="flex items-center gap-2">
+                    <span className="text-green-600">✓</span>
+                    100 price alerts on XAUUSD M5/M15
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-green-600">✓</span>
+                    Drawing engine line alerts
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-green-600">✓</span>
+                    Multi-timeframe visualization
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-green-600">✓</span>
+                    Full alert &amp; notification system
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-green-600">✓</span>
+                    5x API rate limit
+                  </li>
+                </ul>
+                <Link href="/pricing">
+                  <Button className="mt-4 w-full bg-blue-600 hover:bg-blue-700">
+                    Start 7-Day Free Trial
+                  </Button>
+                </Link>
+              </div>
+            )}
+
+          {/* Affiliate Partner Hub Card */}
+          {(session?.user as { role?: string })?.role === 'AFFILIATE' && (
+            <div className="mt-6 rounded-lg bg-indigo-50 p-4 dark:bg-indigo-900/30">
+              <h3 className="mb-2 font-semibold text-indigo-900 dark:text-indigo-100">
+                Affiliate Partner Hub
               </h3>
-              <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-200">
-                <li className="flex items-center gap-2">
-                  <span className="text-green-600">✓</span>
-                  100 price alerts on XAUUSD M5/M15
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-green-600">✓</span>
-                  Drawing engine line alerts
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-green-600">✓</span>
-                  Multi-timeframe visualization
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-green-600">✓</span>
-                  Full alert &amp; notification system
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-green-600">✓</span>
-                  5x API rate limit
-                </li>
-              </ul>
-              <Link href="/pricing">
-                <Button className="mt-4 w-full bg-blue-600 hover:bg-blue-700">
-                  Start 7-Day Free Trial
+              <p className="text-sm text-indigo-800 dark:text-indigo-200">
+                You are enrolled in the Affiliate Partner Program. Distribute
+                promo discount codes and track commission disbursements.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button
+                  asChild
+                  size="sm"
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                >
+                  <Link href="/affiliate/dashboard">Partner Dashboard</Link>
                 </Button>
-              </Link>
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/affiliate/settings/payout">Payout Settings</Link>
+                </Button>
+              </div>
             </div>
           )}
 

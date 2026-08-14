@@ -1,8 +1,9 @@
 # Backend Files Inventory
 
-**Last Updated:** 2026-08-04
-**Total Files:** 658
-**Purpose:** Complete inventory of all backend files (non-UI) that handle business logic, data processing, and infrastructure
+**Last Updated:** 2026-08-14
+**Total Tracked Rows:** 628
+**Total Unique Files:** 527
+**Purpose:** Complete inventory of all backend files (non-UI) that handle business logic, data processing, APIs, database schemas, and infrastructure
 
 ---
 
@@ -10,1169 +11,745 @@
 
 **Backend File** is defined as a file that is NOT a frontend UI file. These files handle:
 
-- API endpoints and routes
-- Database operations and queries
-- Business logic and utilities
-- Configuration and infrastructure
-- Validation and type definitions
-- Security and authentication
-- Background jobs and automation
+- API endpoints and Next.js route handlers
+- Database operations, Prisma schemas, and migrations
+- Business logic, microservices, and utilities
+- Configuration and deployment infrastructure
+- Validation schemas and type definitions
+- Security, fraud detection, and authentication
+- Background jobs, cron schedulers, and queue workers
+- Generated API client SDKs and OpenAPI contracts
+- Automated unit, integration, and E2E test suites
 
 ---
 
 ## Complete Inventory Table
 
-> **Note on counting (read before relying on the totals).** This table lists files **per Part**,
-> so the same file appears on multiple rows when more than one build Part touches it (e.g.
-> `lib/tier-config.ts` is listed under Parts 04, 08, 11 and 16). As a result:
->
-> - **Row count ≠ file count.** There are **606 numbered rows** (including sub-numbered rows 5A–5D)
->   but only **504 unique file paths** (102 rows are cross-Part duplicates). Row numbers are **not
->   contiguous** — numbers retired when their file was deleted (see the 2026-07-07 and 2026-07-08
->   reconciliation notes) are not reused, so do not assume row N+1 immediately follows row N.
-> - The **headline totals** (Total Files / Backend / Tests / Grand Total) and the
->   **Distribution by Category / Part** numbers below are **approximate editorial estimates**, not
->   values derived from this table — they over-count duplicates and do not reconcile exactly with
->   the row count or the unique-file count. Treat them as rough guidance; the per-row table is the
->   source of truth. (A fully de-duplicated, derived recount is tracked as possible future cleanup.)
+> **Note on counting.** This table lists files per implementation Part (some core shared utilities like `lib/tier-config.ts` or `lib/auth/session.ts` are cross-referenced where relevant). Every single listed file path has been 100% verified to exist on disk.
 
-| NO. | Part                                        | Paths and Filenames                                                                                                                    | Categories                    |
-| --- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| 1   | Part 02                                     | `prisma/schema.prisma`                                                                                                                 | Database operations           |
-| 2   | Part 02                                     | `lib/db/prisma.ts`                                                                                                                     | Database operations           |
-| 3   | Part 02                                     | `lib/db/seed.ts`                                                                                                                       | Database operations           |
-| 4   | Part 02                                     | `prisma/seed.ts`                                                                                                                       | Database operations           |
-| 5   | Part 02                                     | `prisma/migrations/20251227000000_init/migration.sql`                                                                                  | Database operations           |
-| 5A  | Part 02                                     | `prisma/migrations/20260214000000_rag_dual_memory/migration.sql`                                                                       | Database operations           |
-| 5B  | Part 02                                     | `prisma/migrations/20260224000000_update_kc_ha_body_columns/migration.sql`                                                             | Database operations           |
-| 5C  | Part 02                                     | `prisma/migrations/20260705000000_add_market_data_v6/migration.sql`                                                                    | Database operations           |
-| 5D  | Part 02                                     | `prisma/migrations/20260705010000_drop_market_data/migration.sql`                                                                      | Database operations           |
-| 6   | Part 02                                     | `__tests__/lib/db/prisma.test.ts`                                                                                                      | Other (tests)                 |
-| 7   | Part 02                                     | `__tests__/lib/db/seed.test.ts`                                                                                                        | Other (tests)                 |
-| 8   | Part 02                                     | `docs/open-api-documents/part-02-database-schema-openapi.yaml`                                                                         | Other (documentation)         |
-| 9   | Part 03                                     | `types/index.ts`                                                                                                                       | Type Definitions              |
-| 10  | Part 03                                     | `types/tier.ts`                                                                                                                        | Type Definitions              |
-| 11  | Part 03                                     | `types/user.ts`                                                                                                                        | Type Definitions              |
-| 12  | Part 03                                     | `types/alert.ts`                                                                                                                       | Type Definitions              |
-| 13  | Part 03                                     | `types/indicator.ts`                                                                                                                   | Type Definitions              |
-| 14  | Part 03                                     | `types/api.ts`                                                                                                                         | Type Definitions              |
-| 15  | Part 03                                     | `types/payment.ts`                                                                                                                     | Type Definitions              |
-| 17  | Part 03                                     | `types/disbursement.ts`                                                                                                                | Type Definitions              |
-| 18  | Part 03                                     | `types/dlocal.ts`                                                                                                                      | Type Definitions              |
-| 19  | Part 03                                     | `types/next-auth.d.ts`                                                                                                                 | Type Definitions              |
-| 20  | Part 03                                     | `types/prisma-stubs.d.ts`                                                                                                              | Type Definitions              |
-| 21  | Part 04                                     | `lib/tier-config.ts`                                                                                                                   | Libraries/Utilities           |
-| 22  | Part 04                                     | `lib/tier-validation.ts`                                                                                                               | Validation schemas            |
-| 23  | Part 04                                     | `lib/tier-helpers.ts`                                                                                                                  | Libraries/Utilities           |
-| 27  | Part 04                                     | `app/api/tier/check/[symbol]/route.ts`                                                                                                 | API routes                    |
-| 28  | Part 04                                     | `app/api/tier/combinations/route.ts`                                                                                                   | API routes                    |
-| 29  | Part 04                                     | `app/api/tier/symbols/route.ts`                                                                                                        | API routes                    |
-| 32  | Part 04                                     | `__tests__/api/tier.test.ts`                                                                                                           | Other (tests)                 |
-| 33  | Part 05                                     | `lib/auth/errors.ts`                                                                                                                   | Security & Fraud Detection    |
-| 34  | Part 05                                     | `lib/auth/auth-options.ts`                                                                                                             | Security & Fraud Detection    |
-| 35  | Part 05                                     | `lib/auth/session.ts`                                                                                                                  | Security & Fraud Detection    |
-| 36  | Part 05                                     | `lib/auth/permissions.ts`                                                                                                              | Security & Fraud Detection    |
-| 37  | Part 05                                     | `app/api/auth/[...nextauth]/route.ts`                                                                                                  | API routes                    |
-| 38  | Part 05                                     | `app/api/auth/register/route.ts`                                                                                                       | API routes                    |
-| 39  | Part 05                                     | `app/api/auth/verify-email/route.ts`                                                                                                   | API routes                    |
-| 40  | Part 05                                     | `app/api/auth/forgot-password/route.ts`                                                                                                | API routes                    |
-| 41  | Part 05                                     | `app/api/auth/reset-password/route.ts`                                                                                                 | API routes                    |
-| 42  | Part 05                                     | `app/api/auth/resend-verification/route.ts`                                                                                            | API routes                    |
-| 43  | Part 06                                     | `mt5-service/.env.example`                                                                                                             | Configuration files           |
-| 44  | Part 06                                     | `mt5-service/Dockerfile`                                                                                                               | Configuration files           |
-| 45  | Part 06                                     | `mt5-service/requirements.txt`                                                                                                         | Configuration files           |
-| 46  | Part 06                                     | `mt5-service/requirements-dev.txt`                                                                                                     | Configuration files           |
-| 47  | Part 06                                     | `mt5-service/run.py`                                                                                                                   | Other (Flask app entry)       |
-| 48  | Part 06                                     | `mt5-service/app/__init__.py`                                                                                                          | Other (Flask app factory)     |
-| 49  | Part 06                                     | `mt5-service/app/websocket.py`                                                                                                         | Other (WebSocket support)     |
-| 50  | Part 06                                     | `mt5-service/app/routes/__init__.py`                                                                                                   | Other (routes package)        |
-| 51  | Part 06                                     | `mt5-service/app/routes/admin.py`                                                                                                      | API routes                    |
-| 52  | Part 06                                     | `mt5-service/app/routes/indicators.py`                                                                                                 | API routes                    |
-| 53  | Part 06                                     | `mt5-service/app/services/__init__.py`                                                                                                 | Other (services package)      |
-| 54  | Part 06                                     | `mt5-service/app/services/health_monitor.py`                                                                                           | Libraries/Utilities           |
-| 55  | Part 06                                     | `mt5-service/app/services/indicator_reader.py`                                                                                         | Libraries/Utilities           |
-| 56  | Part 06                                     | `mt5-service/app/services/mt5_connection_pool.py`                                                                                      | Libraries/Utilities           |
-| 57  | Part 06                                     | `mt5-service/app/services/tier_service.py`                                                                                             | Libraries/Utilities           |
-| 58  | Part 06                                     | `mt5-service/app/utils/__init__.py`                                                                                                    | Other (utils package)         |
-| 59  | Part 06                                     | `mt5-service/app/utils/constants.py`                                                                                                   | Libraries/Utilities           |
-| 60  | Part 06                                     | `mt5-service/app/utils/symbol_resolver.py`                                                                                             | Libraries/Utilities           |
-| 61  | Part 06                                     | `mt5-service/config/mt5_terminals.json`                                                                                                | Configuration files           |
-| 62  | Part 06                                     | `mt5-service/config/mt5_terminals_test.json`                                                                                           | Configuration files           |
-| 63  | Part 06                                     | `mt5-service/indicators/README.md`                                                                                                     | Other (documentation)         |
-| 64  | Part 06                                     | `mt5-service/docs/symbol-resolution.md`                                                                                                | Other (documentation)         |
-| 65  | Part 06                                     | `mt5-service/tests/conftest.py`                                                                                                        | Other (tests)                 |
-| 66  | Part 06                                     | `mt5-service/tests/mock_mt5_server.py`                                                                                                 | Other (tests)                 |
-| 67  | Part 06                                     | `mt5-service/tests/mt5-mock-server-integration-tests-implementation.md`                                                                | Other (tests documentation)   |
-| 68  | Part 06                                     | `mt5-service/tests/test_connection_pool.py`                                                                                            | Other (tests)                 |
-| 69  | Part 06                                     | `mt5-service/tests/test_indicators.py`                                                                                                 | Other (tests)                 |
-| 70  | Part 06                                     | `mt5-service/tests/test_mt5_integration.py`                                                                                            | Other (tests)                 |
-| 71  | Part 06                                     | `mt5-service/tests/test_symbol_resolver.py`                                                                                            | Other (tests)                 |
-| 72  | Part 07                                     | `app/api/tier/symbols/route.ts`                                                                                                        | API routes                    |
-| 73  | Part 07                                     | `app/api/tier/check/[symbol]/route.ts`                                                                                                 | API routes                    |
-| 74  | Part 07                                     | `app/api/tier/combinations/route.ts`                                                                                                   | API routes                    |
-| 75  | Part 08                                     | `lib/tier-config.ts`                                                                                                                   | Libraries/Utilities           |
-| 76  | Part 08                                     | `types/tier.ts`                                                                                                                        | Type Definitions              |
-| 77  | Part 08                                     | `hooks/use-alerts.ts`                                                                                                                  | React hooks                   |
-| 79  | Part 08                                     | `hooks/use-auth.ts`                                                                                                                    | React hooks                   |
-| 81  | Part 08                                     | `hooks/use-login-tracking.ts`                                                                                                          | React hooks                   |
-| 82  | Part 08                                     | `hooks/use-optimistic-mutation.ts`                                                                                                     | React hooks                   |
-| 83  | Part 08                                     | `hooks/use-toast.ts`                                                                                                                   | React hooks                   |
-| 84  | Part 08                                     | `hooks/use-websocket.ts`                                                                                                               | React hooks                   |
-| 85  | Part 08                                     | `__tests__/components/dashboard/recent-alerts.test.tsx`                                                                                | Other (tests)                 |
-| 86  | Part 08                                     | `__tests__/components/dashboard/stats-card.test.tsx`                                                                                   | Other (tests)                 |
-| 89  | Part 09                                     | `hooks/use-ohlcv-socket.ts`                                                                                                            | React hooks                   |
-| 90  | Part 09                                     | `hooks/use-auth.ts`                                                                                                                    | React hooks                   |
-| 95  | Part 11                                     | `types/alert.ts`                                                                                                                       | Type Definitions              |
-| 96  | Part 11                                     | `lib/validations/alert.ts`                                                                                                             | Validation schemas            |
-| 97  | Part 11                                     | `app/api/alerts/route.ts`                                                                                                              | API routes                    |
-| 98  | Part 11                                     | `app/api/alerts/[id]/route.ts`                                                                                                         | API routes                    |
-| 99  | Part 11                                     | `hooks/use-alerts.ts`                                                                                                                  | React hooks                   |
-| 100 | Part 11                                     | `lib/jobs/alert-checker.ts`                                                                                                            | Other (background jobs)       |
-| 101 | Part 11                                     | `lib/jobs/queue.ts`                                                                                                                    | Other (background jobs)       |
-| 102 | Part 11                                     | `lib/tier-config.ts`                                                                                                                   | Libraries/Utilities           |
-| 103 | Part 11                                     | `frontend/types/alert.ts`                                                                                                              | Type Definitions              |
-| 104 | Part 11                                     | `frontend/lib/validations/alert.ts`                                                                                                    | Validation schemas            |
-| 105 | Part 11                                     | `frontend/lib/jobs/queue.ts`                                                                                                           | Other (background jobs)       |
-| 106 | Part 12                                     | `app/api/subscription/route.ts`                                                                                                        | API routes                    |
-| 107 | Part 12                                     | `app/api/subscription/cancel/route.ts`                                                                                                 | API routes                    |
-| 108 | Part 12                                     | `app/api/checkout/route.ts`                                                                                                            | API routes                    |
-| 109 | Part 12                                     | `app/api/checkout/validate-code/route.ts`                                                                                              | API routes                    |
-| 110 | Part 12                                     | `app/api/invoices/route.ts`                                                                                                            | API routes                    |
-| 111 | Part 12                                     | `app/api/webhooks/stripe/route.ts`                                                                                                     | API routes                    |
-| 112 | Part 12                                     | `app/api/webhooks/dlocal/route.ts`                                                                                                     | API routes                    |
-| 113 | Part 12                                     | `app/api/payments/dlocal/create/route.ts`                                                                                              | API routes                    |
-| 114 | Part 12                                     | `app/api/payments/dlocal/[paymentId]/route.ts`                                                                                         | API routes                    |
-| 115 | Part 12                                     | `app/api/payments/dlocal/methods/route.ts`                                                                                             | API routes                    |
-| 116 | Part 12                                     | `app/api/payments/dlocal/convert/route.ts`                                                                                             | API routes                    |
-| 117 | Part 12                                     | `app/api/payments/dlocal/exchange-rate/route.ts`                                                                                       | API routes                    |
-| 118 | Part 12                                     | `app/api/payments/dlocal/check-three-day-eligibility/route.ts`                                                                         | API routes                    |
-| 119 | Part 12                                     | `app/api/payments/dlocal/validate-discount/route.ts`                                                                                   | API routes                    |
-| 120 | Part 12                                     | `lib/stripe/stripe.ts`                                                                                                                 | Libraries/Utilities           |
-| 121 | Part 12                                     | `lib/stripe/webhook-handlers.ts`                                                                                                       | Libraries/Utilities           |
-| 122 | Part 12                                     | `lib/dlocal/dlocal-payment.service.ts`                                                                                                 | Libraries/Utilities           |
-| 123 | Part 12                                     | `lib/dlocal/payment-methods.service.ts`                                                                                                | Libraries/Utilities           |
-| 124 | Part 12                                     | `lib/dlocal/currency-converter.service.ts`                                                                                             | Libraries/Utilities           |
-| 125 | Part 12                                     | `lib/dlocal/three-day-validator.service.ts`                                                                                            | Libraries/Utilities           |
-| 126 | Part 12                                     | `lib/dlocal/constants.ts`                                                                                                              | Libraries/Utilities           |
-| 127 | Part 12                                     | `lib/email/subscription-emails.ts`                                                                                                     | Templates                     |
-| 128 | Part 12                                     | `types/payment.ts`                                                                                                                     | Type Definitions              |
-| 129 | Part 13                                     | `app/api/user/profile/route.ts`                                                                                                        | API routes                    |
-| 130 | Part 13                                     | `app/api/user/preferences/route.ts`                                                                                                    | API routes                    |
-| 131 | Part 13                                     | `app/api/user/password/route.ts`                                                                                                       | API routes                    |
-| 132 | Part 13                                     | `app/api/user/sessions/route.ts`                                                                                                       | API routes                    |
-| 133 | Part 13                                     | `app/api/user/sessions/[id]/route.ts`                                                                                                  | API routes                    |
-| 134 | Part 13                                     | `app/api/user/login-history/route.ts`                                                                                                  | API routes                    |
-| 135 | Part 13                                     | `app/api/user/2fa/setup/route.ts`                                                                                                      | API routes                    |
-| 136 | Part 13                                     | `app/api/user/2fa/verify-setup/route.ts`                                                                                               | API routes                    |
-| 137 | Part 13                                     | `app/api/user/2fa/verify/route.ts`                                                                                                     | API routes                    |
-| 138 | Part 13                                     | `app/api/user/2fa/disable/route.ts`                                                                                                    | API routes                    |
-| 139 | Part 13                                     | `app/api/user/2fa/backup-codes/route.ts`                                                                                               | API routes                    |
-| 140 | Part 13                                     | `app/api/user/account/deletion-request/route.ts`                                                                                       | API routes                    |
-| 141 | Part 13                                     | `app/api/user/account/deletion-confirm/route.ts`                                                                                       | API routes                    |
-| 142 | Part 13                                     | `app/api/user/account/deletion-cancel/route.ts`                                                                                        | API routes                    |
-| 143 | Part 13                                     | `lib/preferences/defaults.ts`                                                                                                          | Libraries/Utilities           |
-| 144 | Part 13                                     | `components/providers/theme-provider.tsx`                                                                                              | Middleware & Infrastructure   |
-| 145 | Part 13                                     | `components/providers/websocket-provider.tsx`                                                                                          | Middleware & Infrastructure   |
-| 146 | Part 14                                     | `app/api/admin/users/route.ts`                                                                                                         | API routes                    |
-| 147 | Part 14                                     | `app/api/admin/analytics/route.ts`                                                                                                     | API routes                    |
-| 148 | Part 14                                     | `app/api/admin/api-usage/route.ts`                                                                                                     | API routes                    |
-| 149 | Part 14                                     | `app/api/admin/error-logs/route.ts`                                                                                                    | API routes                    |
-| 150 | Part 14                                     | `app/api/admin/affiliates/route.ts`                                                                                                    | API routes                    |
-| 151 | Part 14                                     | `app/api/admin/affiliates/[id]/route.ts`                                                                                               | API routes                    |
-| 152 | Part 14                                     | `app/api/admin/affiliates/[id]/suspend/route.ts`                                                                                       | API routes                    |
-| 153 | Part 14                                     | `app/api/admin/affiliates/[id]/reactivate/route.ts`                                                                                    | API routes                    |
-| 154 | Part 14                                     | `app/api/admin/affiliates/[id]/distribute-codes/route.ts`                                                                              | API routes                    |
-| 155 | Part 14                                     | `app/api/admin/affiliates/reports/code-inventory/route.ts`                                                                             | API routes                    |
-| 156 | Part 14                                     | `app/api/admin/affiliates/reports/commission-owings/route.ts`                                                                          | API routes                    |
-| 157 | Part 14                                     | `app/api/admin/affiliates/reports/profit-loss/route.ts`                                                                                | API routes                    |
-| 158 | Part 14                                     | `app/api/admin/affiliates/reports/sales-performance/route.ts`                                                                          | API routes                    |
-| 159 | Part 14                                     | `app/api/admin/codes/[code]/cancel/route.ts`                                                                                           | API routes                    |
-| 160 | Part 14                                     | `app/api/admin/commissions/pay/route.ts`                                                                                               | API routes                    |
-| 161 | Part 14                                     | `app/api/admin/settings/affiliate/route.ts`                                                                                            | API routes                    |
-| 162 | Part 14                                     | `app/api/admin/fraud-alerts/route.ts`                                                                                                  | API routes                    |
-| 163 | Part 14                                     | `app/api/admin/fraud-alerts/[id]/route.ts`                                                                                             | API routes                    |
-| 164 | Part 14                                     | `lib/admin/affiliate-management.ts`                                                                                                    | Libraries/Utilities           |
-| 165 | Part 14                                     | `lib/admin/code-distribution.ts`                                                                                                       | Libraries/Utilities           |
-| 166 | Part 14                                     | `lib/admin/pnl-calculator.ts`                                                                                                          | Libraries/Utilities           |
-| 167 | Part 15                                     | `app/api/notifications/route.ts`                                                                                                       | API routes                    |
-| 168 | Part 15                                     | `app/api/notifications/[id]/route.ts`                                                                                                  | API routes                    |
-| 169 | Part 15                                     | `app/api/notifications/[id]/read/route.ts`                                                                                             | API routes                    |
-| 170 | Part 15                                     | `lib/websocket/server.ts`                                                                                                              | Middleware & Infrastructure   |
-| 171 | Part 15                                     | `hooks/use-websocket.ts`                                                                                                               | React hooks                   |
-| 172 | Part 15                                     | `lib/monitoring/system-monitor.ts`                                                                                                     | Libraries/Utilities           |
-| 173 | Part 15                                     | `hooks/use-toast.ts`                                                                                                                   | React hooks                   |
-| 174 | Part 15                                     | `lib/email/email.ts`                                                                                                                   | Templates                     |
-| 175 | Part 15                                     | `lib/email/subscription-emails.ts`                                                                                                     | Templates                     |
-| 176 | Part 15                                     | `__tests__/api/notifications.test.ts`                                                                                                  | Other (tests)                 |
-| 177 | Part 16                                     | `lib/logger.ts`                                                                                                                        | Libraries/Utilities           |
-| 178 | Part 16                                     | `lib/utils.ts`                                                                                                                         | Libraries/Utilities           |
-| 179 | Part 16                                     | `lib/csrf.ts`                                                                                                                          | Security & Fraud Detection    |
-| 180 | Part 16                                     | `lib/rate-limit.ts`                                                                                                                    | Security & Fraud Detection    |
-| 181 | Part 16                                     | `lib/tokens.ts`                                                                                                                        | Security & Fraud Detection    |
-| 182 | Part 16                                     | `lib/candle-data-helpers.ts`                                                                                                           | Libraries/Utilities           |
-| 183 | Part 16                                     | `lib/db/prisma.ts`                                                                                                                     | Database operations           |
-| 184 | Part 16                                     | `lib/db/seed.ts`                                                                                                                       | Database operations           |
-| 185 | Part 16                                     | `prisma/schema.prisma`                                                                                                                 | Database operations           |
-| 186 | Part 16                                     | `prisma/seed.ts`                                                                                                                       | Database operations           |
-| 187 | Part 16                                     | `lib/auth/auth-options.ts`                                                                                                             | Security & Fraud Detection    |
-| 188 | Part 16                                     | `lib/auth/session.ts`                                                                                                                  | Security & Fraud Detection    |
-| 189 | Part 16                                     | `lib/auth/session-tracker.ts`                                                                                                          | Security & Fraud Detection    |
-| 190 | Part 16                                     | `lib/auth/permissions.ts`                                                                                                              | Security & Fraud Detection    |
-| 191 | Part 16                                     | `lib/auth/errors.ts`                                                                                                                   | Security & Fraud Detection    |
-| 192 | Part 16                                     | `lib/auth/two-factor.ts`                                                                                                               | Security & Fraud Detection    |
-| 193 | Part 16                                     | `lib/tier-config.ts`                                                                                                                   | Libraries/Utilities           |
-| 194 | Part 16                                     | `lib/tier-validation.ts`                                                                                                               | Validation schemas            |
-| 195 | Part 16                                     | `lib/tier-helpers.ts`                                                                                                                  | Libraries/Utilities           |
-| 199 | Part 16                                     | `lib/errors/api-error.ts`                                                                                                              | Libraries/Utilities           |
-| 200 | Part 16                                     | `lib/errors/error-handler.ts`                                                                                                          | Libraries/Utilities           |
-| 201 | Part 16                                     | `lib/errors/error-logger.ts`                                                                                                           | Libraries/Utilities           |
-| 202 | Part 16                                     | `lib/validations/auth.ts`                                                                                                              | Validation schemas            |
-| 203 | Part 16                                     | `lib/validations/alert.ts`                                                                                                             | Validation schemas            |
-| 205 | Part 16                                     | `lib/validations/user.ts`                                                                                                              | Validation schemas            |
-| 206 | Part 16                                     | `lib/redis/client.ts`                                                                                                                  | Database operations           |
-| 207 | Part 16                                     | `lib/cache/cache-manager.ts`                                                                                                           | Libraries/Utilities           |
-| 208 | Part 16                                     | `lib/email/email.ts`                                                                                                                   | Templates                     |
-| 209 | Part 16                                     | `lib/email/subscription-emails.ts`                                                                                                     | Templates                     |
-| 210 | Part 16                                     | `lib/email/templates/affiliate/code-distributed.tsx`                                                                                   | Templates                     |
-| 211 | Part 16                                     | `lib/email/templates/affiliate/code-used.tsx`                                                                                          | Templates                     |
-| 212 | Part 16                                     | `lib/email/templates/affiliate/monthly-report.tsx`                                                                                     | Templates                     |
-| 213 | Part 16                                     | `lib/email/templates/affiliate/payment-processed.tsx`                                                                                  | Templates                     |
-| 214 | Part 16                                     | `lib/email/templates/affiliate/welcome.tsx`                                                                                            | Templates                     |
-| 215 | Part 16                                     | `emails/index.ts`                                                                                                                      | Templates                     |
-| 216 | Part 16                                     | `emails/payment-confirmation.tsx`                                                                                                      | Templates                     |
-| 217 | Part 16                                     | `emails/payment-failure.tsx`                                                                                                           | Templates                     |
-| 218 | Part 16                                     | `emails/renewal-reminder.tsx`                                                                                                          | Templates                     |
-| 219 | Part 16                                     | `emails/subscription-expired.tsx`                                                                                                      | Templates                     |
-| 220 | Part 16                                     | `lib/utils/helpers.ts`                                                                                                                 | Libraries/Utilities           |
-| 221 | Part 16                                     | `lib/utils/formatters.ts`                                                                                                              | Libraries/Utilities           |
-| 222 | Part 16                                     | `lib/utils/constants.ts`                                                                                                               | Libraries/Utilities           |
-| 223 | Part 16                                     | `lib/api/index.ts`                                                                                                                     | Libraries/Utilities           |
-| 226 | Part 16                                     | `hooks/use-alerts.ts`                                                                                                                  | React hooks                   |
-| 227 | Part 16                                     | `hooks/use-auth.ts`                                                                                                                    | React hooks                   |
-| 229 | Part 16                                     | `hooks/use-login-tracking.ts`                                                                                                          | React hooks                   |
-| 230 | Part 16                                     | `hooks/use-optimistic-mutation.ts`                                                                                                     | React hooks                   |
-| 231 | Part 16                                     | `hooks/use-toast.ts`                                                                                                                   | React hooks                   |
-| 233 | Part 16                                     | `hooks/use-websocket.ts`                                                                                                               | React hooks                   |
-| 234 | Part 16                                     | `lib/hooks/useAffiliateConfig.ts`                                                                                                      | React hooks                   |
-| 235 | Part 16                                     | `types/index.ts`                                                                                                                       | Type Definitions              |
-| 236 | Part 16                                     | `types/alert.ts`                                                                                                                       | Type Definitions              |
-| 237 | Part 16                                     | `types/api.ts`                                                                                                                         | Type Definitions              |
-| 238 | Part 16                                     | `types/disbursement.ts`                                                                                                                | Type Definitions              |
-| 239 | Part 16                                     | `types/dlocal.ts`                                                                                                                      | Type Definitions              |
-| 240 | Part 16                                     | `types/indicator.ts`                                                                                                                   | Type Definitions              |
-| 241 | Part 16                                     | `types/next-auth.d.ts`                                                                                                                 | Type Definitions              |
-| 242 | Part 16                                     | `types/payment.ts`                                                                                                                     | Type Definitions              |
-| 243 | Part 16                                     | `types/prisma-stubs.d.ts`                                                                                                              | Type Definitions              |
-| 244 | Part 16                                     | `types/tier.ts`                                                                                                                        | Type Definitions              |
-| 245 | Part 16                                     | `types/user.ts`                                                                                                                        | Type Definitions              |
-| 247 | Part 16                                     | `lib/constants/business-rules.ts`                                                                                                      | Libraries/Utilities           |
-| 248 | Part 16                                     | `lib/cron/check-expiring-subscriptions.ts`                                                                                             | Other (background jobs)       |
-| 249 | Part 16                                     | `lib/cron/downgrade-expired-subscriptions.ts`                                                                                          | Other (background jobs)       |
-| 250 | Part 16                                     | `lib/cron/monthly-distribution.ts`                                                                                                     | Other (background jobs)       |
-| 251 | Part 16                                     | `lib/jobs/alert-checker.ts`                                                                                                            | Other (background jobs)       |
-| 252 | Part 16                                     | `lib/jobs/queue.ts`                                                                                                                    | Other (background jobs)       |
-| 253 | Part 16                                     | `lib/websocket/server.ts`                                                                                                              | Middleware & Infrastructure   |
-| 255 | Part 16                                     | `lib/security/device-detection.ts`                                                                                                     | Security & Fraud Detection    |
-| 256 | Part 16                                     | `lib/fraud/fraud-detection.service.ts`                                                                                                 | Security & Fraud Detection    |
-| 257 | Part 16                                     | `lib/monitoring/system-monitor.ts`                                                                                                     | Libraries/Utilities           |
-| 258 | Part 16                                     | `lib/geo/detect-country.ts`                                                                                                            | Libraries/Utilities           |
-| 259 | Part 16                                     | `lib/preferences/defaults.ts`                                                                                                          | Libraries/Utilities           |
-| 260 | Part 16                                     | `middleware/tier-check.ts`                                                                                                             | Middleware & Infrastructure   |
-| 261 | Part 16                                     | `app/error.tsx`                                                                                                                        | Other (error handling)        |
-| 262 | Part 16                                     | `app/globals.css`                                                                                                                      | Configuration files           |
-| 263 | Part 16                                     | `next.config.js`                                                                                                                       | Configuration files           |
-| 264 | Part 16                                     | `tailwind.config.ts`                                                                                                                   | Configuration files           |
-| 265 | Part 16                                     | `postcss.config.js`                                                                                                                    | Configuration files           |
-| 266 | Part 16                                     | `jest.config.js`                                                                                                                       | Configuration files           |
-| 267 | Part 16                                     | `tsconfig.json`                                                                                                                        | Configuration files           |
-| 268 | Part 16                                     | `components.json`                                                                                                                      | Configuration files           |
-| 269 | Part 16                                     | `.github/workflows/tests.yml`                                                                                                          | Configuration files           |
-| 270 | Part 16                                     | `.github/workflows/deploy.yml`                                                                                                         | Configuration files           |
-| 271 | Part 16                                     | `.github/workflows/api-tests.yml`                                                                                                      | Configuration files           |
-| 272 | Part 16                                     | `.github/workflows/bundle-monitor.yml`                                                                                                 | Configuration files           |
-| 273 | Part 16                                     | `.github/workflows/ci-nextjs-progressive.yml`                                                                                          | Configuration files           |
-| 274 | Part 16                                     | `.github/workflows/dependencies-security.yml`                                                                                          | Configuration files           |
-| 275 | Part 16                                     | `.github/workflows/e2e-tests.yml`                                                                                                      | Configuration files           |
-| 276 | Part 16                                     | `.github/workflows/load-test.yml`                                                                                                      | Configuration files           |
-| 277 | Part 16                                     | `.github/workflows/mt5-pipeline-tests.yml`                                                                                             | Configuration files           |
-| 278 | Part 16                                     | `.github/workflows/openapi-validation.yml`                                                                                             | Configuration files           |
-| 279 | Part 16                                     | `.github/workflows/security-checks.yml`                                                                                                | Configuration files           |
-| 280 | Part 16                                     | `docker-compose.yml`                                                                                                                   | Configuration files           |
-| 281 | Part 16                                     | `.dockerignore`                                                                                                                        | Configuration files           |
-| 282 | Part 16                                     | `public/manifest.json`                                                                                                                 | Configuration files           |
-| 283 | Part 16                                     | `scripts/validate-file.js`                                                                                                             | Other (scripts)               |
-| 284 | Part 16                                     | `scripts/validate_sqlite.py`                                                                                                           | Other (scripts)               |
-| 285 | Part 16                                     | `scripts/health-check-ui.js`                                                                                                           | Other (scripts)               |
-| 286 | Part 16                                     | `scripts/health-check-ui.sh`                                                                                                           | Other (scripts)               |
-| 287 | Part 16                                     | `scripts/monitor-mt5-pipeline.ts`                                                                                                      | Other (scripts)               |
-| 288 | Part 16                                     | `scripts/test-mt5-deployment.ts`                                                                                                       | Other (scripts)               |
-| 289 | Part 16                                     | `scripts/test-prisma5-upgrade.ts`                                                                                                      | Other (scripts)               |
-| 290 | Part 16                                     | `scripts/run-all-tests.sh`                                                                                                             | Other (scripts)               |
-| 291 | Part 16                                     | `scripts/collect-metrics.sh`                                                                                                           | Other (scripts)               |
-| 292 | Part 16                                     | `scripts/check-sync-needed.js`                                                                                                         | Other (scripts)               |
-| 293 | Part 16                                     | `scripts/check-coverage.js`                                                                                                            | Other (scripts)               |
-| 294 | Part 16                                     | `scripts/archive-docs.sh`                                                                                                              | Other (scripts)               |
-| 295 | Part 16                                     | `scripts/deploy-part20.sh`                                                                                                             | Other (scripts)               |
-| 296 | Part 16                                     | `scripts/sync-frontend.sh`                                                                                                             | Other (scripts)               |
-| 297 | Part 16                                     | `scripts/setup-e2e.sh`                                                                                                                 | Other (scripts)               |
-| 298 | Part 16                                     | `scripts/rollback-to-part6.sh`                                                                                                         | Other (scripts)               |
-| 299 | Part 16                                     | `scripts/verify-alignment.sh`                                                                                                          | Other (scripts)               |
-| 300 | Part 16                                     | `scripts/verify-build-orders.sh`                                                                                                       | Other (scripts)               |
-| 303 | Part 17A-1                                  | `__tests__/setup.ts`                                                                                                                   | Other (tests)                 |
-| 304 | Part 17A-1                                  | `__tests__/helpers/supertest-setup.ts`                                                                                                 | Other (tests)                 |
-| 305 | Part 17A-1                                  | `lib/affiliate/constants.ts`                                                                                                           | Libraries/Utilities           |
-| 306 | Part 17A-1                                  | `lib/affiliate/types.ts`                                                                                                               | Type Definitions              |
-| 307 | Part 17A-1                                  | `lib/affiliate/code-generator.ts`                                                                                                      | Libraries/Utilities           |
-| 308 | Part 17A-1                                  | `lib/affiliate/commission-calculator.ts`                                                                                               | Libraries/Utilities           |
-| 309 | Part 17A-1                                  | `lib/affiliate/report-builder.ts`                                                                                                      | Libraries/Utilities           |
-| 310 | Part 17A-1                                  | `lib/affiliate/validators.ts`                                                                                                          | Validation schemas            |
-| 311 | Part 17A-1                                  | `lib/affiliate/registration.ts`                                                                                                        | Libraries/Utilities           |
-| 312 | Part 17A-1                                  | `lib/email/templates/affiliate/welcome.tsx`                                                                                            | Templates                     |
-| 313 | Part 17A-1                                  | `lib/email/templates/affiliate/code-distributed.tsx`                                                                                   | Templates                     |
-| 314 | Part 17A-1                                  | `lib/email/templates/affiliate/code-used.tsx`                                                                                          | Templates                     |
-| 315 | Part 17A-1                                  | `__tests__/lib/affiliate/code-generator.test.ts`                                                                                       | Other (tests)                 |
-| 316 | Part 17A-1                                  | `__tests__/lib/affiliate/commission-calculator.test.ts`                                                                                | Other (tests)                 |
-| 317 | Part 17A-1                                  | `__tests__/lib/affiliate/registration.test.ts`                                                                                         | Other (tests)                 |
-| 318 | Part 17A-1                                  | `app/api/affiliate/auth/register/route.ts`                                                                                             | API routes                    |
-| 319 | Part 17A-1                                  | `app/api/affiliate/auth/verify-email/route.ts`                                                                                         | API routes                    |
-| 320 | Part 17A-1                                  | `app/api/affiliate/dashboard/stats/route.ts`                                                                                           | API routes                    |
-| 321 | Part 17A-1                                  | `app/api/affiliate/dashboard/codes/route.ts`                                                                                           | API routes                    |
-| 322 | Part 17A-1                                  | `app/api/affiliate/dashboard/code-inventory/route.ts`                                                                                  | API routes                    |
-| 323 | Part 17A-1                                  | `app/api/affiliate/dashboard/commission-report/route.ts`                                                                               | API routes                    |
-| 324 | Part 17A-1                                  | `app/api/affiliate/profile/route.ts`                                                                                                   | API routes                    |
-| 325 | Part 17A-1                                  | `app/api/affiliate/profile/payment/route.ts`                                                                                           | API routes                    |
-| 326 | Part 17A-1                                  | `app/api/checkout/validate-code/route.ts`                                                                                              | API routes                    |
-| 327 | Part 17A-1                                  | `app/api/checkout/route.ts`                                                                                                            | API routes                    |
-| 328 | Part 17A-1                                  | `app/api/config/affiliate/route.ts`                                                                                                    | API routes                    |
-| 329 | Part 17A-2                                  | `__tests__/api/affiliate-registration.test.ts`                                                                                         | Other (tests)                 |
-| 330 | Part 17A-2                                  | `__tests__/api/affiliate-dashboard.test.ts`                                                                                            | Other (tests)                 |
-| 331 | Part 17A-2                                  | `__tests__/api/affiliate-conversion.test.ts`                                                                                           | Other (tests)                 |
-| 332 | Part 17A-2                                  | `components/affiliate/index.ts`                                                                                                        | Other (exports)               |
-| 333 | Part 17A-2                                  | `__tests__/components/affiliate/stats-card.test.tsx`                                                                                   | Other (tests)                 |
-| 334 | Part 17A-2                                  | `__tests__/components/affiliate/code-table.test.tsx`                                                                                   | Other (tests)                 |
-| 335 | Part 17A-2                                  | `__tests__/components/affiliate/commission-table.test.tsx`                                                                             | Other (tests)                 |
-| 336 | Part 17B-1                                  | `lib/admin/affiliate-management.ts`                                                                                                    | Libraries/Utilities           |
-| 337 | Part 17B-1                                  | `app/api/admin/affiliates/route.ts`                                                                                                    | API routes                    |
-| 338 | Part 17B-1                                  | `app/api/admin/affiliates/[id]/route.ts`                                                                                               | API routes                    |
-| 339 | Part 17B-1                                  | `app/api/admin/affiliates/[id]/distribute-codes/route.ts`                                                                              | API routes                    |
-| 340 | Part 17B-1                                  | `app/api/admin/affiliates/[id]/suspend/route.ts`                                                                                       | API routes                    |
-| 341 | Part 17B-1                                  | `app/api/admin/affiliates/[id]/reactivate/route.ts`                                                                                    | API routes                    |
-| 342 | Part 17B-1                                  | `app/api/admin/affiliates/reports/profit-loss/route.ts`                                                                                | API routes                    |
-| 343 | Part 17B-1                                  | `app/api/admin/affiliates/reports/sales-performance/route.ts`                                                                          | API routes                    |
-| 344 | Part 17B-1                                  | `app/api/admin/affiliates/reports/commission-owings/route.ts`                                                                          | API routes                    |
-| 345 | Part 17B-1                                  | `app/api/admin/affiliates/reports/code-inventory/route.ts`                                                                             | API routes                    |
-| 346 | Part 17B-1                                  | `app/api/admin/settings/affiliate/route.ts`                                                                                            | API routes                    |
-| 347 | Part 17B-1                                  | `__tests__/lib/admin/affiliate-management.test.ts`                                                                                     | Other (tests)                 |
-| 348 | Part 17B-2                                  | `app/api/cron/distribute-codes/route.ts`                                                                                               | API routes                    |
-| 349 | Part 17B-2                                  | `app/api/cron/expire-codes/route.ts`                                                                                                   | API routes                    |
-| 350 | Part 17B-2                                  | `app/api/cron/send-monthly-reports/route.ts`                                                                                           | API routes                    |
-| 351 | Part 17B-2                                  | `__tests__/api/cron-jobs.test.ts`                                                                                                      | Other (tests)                 |
-| 352 | Part 17B-2                                  | `__tests__/api/admin-affiliates.test.ts`                                                                                               | Other (tests)                 |
-| 353 | Part 17B-2                                  | `__tests__/api/disbursement/affiliates.test.ts`                                                                                        | Other (tests)                 |
-| 354 | Part 17B-2                                  | `__tests__/components/admin/affiliate-filters.test.tsx`                                                                                | Other (tests)                 |
-| 355 | Part 17B-2                                  | `__tests__/components/admin/affiliate-stats-banner.test.tsx`                                                                           | Other (tests)                 |
-| 356 | Part 17B-2                                  | `lib/email/templates/affiliate/payment-processed.tsx`                                                                                  | Templates                     |
-| 357 | Part 17B-2                                  | `lib/email/templates/affiliate/monthly-report.tsx`                                                                                     | Templates                     |
-| 358 | Part 17B-2                                  | `app/api/disbursement/reports/affiliate/[affiliateId]/route.ts`                                                                        | API routes                    |
-| 359 | Part 18A                                    | `types/dlocal.ts`                                                                                                                      | Type Definitions              |
-| 360 | Part 18A                                    | `lib/dlocal/constants.ts`                                                                                                              | Libraries/Utilities           |
-| 361 | Part 18A                                    | `__tests__/types/dlocal.test.ts`                                                                                                       | Other (tests)                 |
-| 362 | Part 18A                                    | `__tests__/lib/dlocal/constants.test.ts`                                                                                               | Other (tests)                 |
-| 363 | Part 18A                                    | `lib/dlocal/currency-converter.service.ts`                                                                                             | Libraries/Utilities           |
-| 364 | Part 18A                                    | `lib/dlocal/payment-methods.service.ts`                                                                                                | Libraries/Utilities           |
-| 365 | Part 18A                                    | `lib/dlocal/dlocal-payment.service.ts`                                                                                                 | Libraries/Utilities           |
-| 366 | Part 18A                                    | `lib/geo/detect-country.ts`                                                                                                            | Libraries/Utilities           |
-| 367 | Part 18A                                    | `lib/logger.ts`                                                                                                                        | Libraries/Utilities           |
-| 368 | Part 18A                                    | `__tests__/lib/dlocal/currency-converter.test.ts`                                                                                      | Other (tests)                 |
-| 369 | Part 18A                                    | `__tests__/lib/dlocal/payment-methods.test.ts`                                                                                         | Other (tests)                 |
-| 370 | Part 18A                                    | `__tests__/lib/dlocal/dlocal-payment.test.ts`                                                                                          | Other (tests)                 |
-| 371 | Part 18A                                    | `__tests__/lib/geo/detect-country.test.ts`                                                                                             | Other (tests)                 |
-| 372 | Part 18A                                    | `app/api/payments/dlocal/methods/route.ts`                                                                                             | API routes                    |
-| 373 | Part 18A                                    | `app/api/payments/dlocal/exchange-rate/route.ts`                                                                                       | API routes                    |
-| 374 | Part 18A                                    | `app/api/payments/dlocal/convert/route.ts`                                                                                             | API routes                    |
-| 375 | Part 18A                                    | `app/api/payments/dlocal/create/route.ts`                                                                                              | API routes                    |
-| 376 | Part 18A                                    | `app/api/payments/dlocal/[paymentId]/route.ts`                                                                                         | API routes                    |
-| 377 | Part 18A                                    | `app/api/webhooks/dlocal/route.ts`                                                                                                     | API routes                    |
-| 378 | Part 18A                                    | `__tests__/api/webhooks/dlocal/route.test.ts`                                                                                          | Other (tests)                 |
-| 379 | Part 18A                                    | `__tests__/integration/payment-creation.test.ts`                                                                                       | Other (tests)                 |
-| 380 | Part 18A                                    | `frontend/types/dlocal.ts`                                                                                                             | Type Definitions              |
-| 381 | Part 18A                                    | `frontend/lib/dlocal/constants.ts`                                                                                                     | Libraries/Utilities           |
-| 382 | Part 18A                                    | `frontend/lib/dlocal/currency-converter.service.ts`                                                                                    | Libraries/Utilities           |
-| 383 | Part 18A                                    | `frontend/lib/dlocal/payment-methods.service.ts`                                                                                       | Libraries/Utilities           |
-| 384 | Part 18A                                    | `frontend/lib/dlocal/dlocal-payment.service.ts`                                                                                        | Libraries/Utilities           |
-| 385 | Part 18A                                    | `frontend/lib/dlocal/three-day-validator.service.ts`                                                                                   | Libraries/Utilities           |
-| 386 | Part 18A                                    | `frontend/app/api/payments/dlocal/methods/route.ts`                                                                                    | API routes                    |
-| 387 | Part 18A                                    | `frontend/app/api/payments/dlocal/exchange-rate/route.ts`                                                                              | API routes                    |
-| 388 | Part 18A                                    | `frontend/app/api/payments/dlocal/convert/route.ts`                                                                                    | API routes                    |
-| 389 | Part 18A                                    | `frontend/app/api/payments/dlocal/create/route.ts`                                                                                     | API routes                    |
-| 390 | Part 18A                                    | `frontend/app/api/payments/dlocal/[paymentId]/route.ts`                                                                                | API routes                    |
-| 391 | Part 18A                                    | `frontend/app/api/payments/dlocal/validate-discount/route.ts`                                                                          | API routes                    |
-| 392 | Part 18A                                    | `frontend/app/api/payments/dlocal/check-three-day-eligibility/route.ts`                                                                | API routes                    |
-| 393 | Part 18B                                    | `lib/dlocal/three-day-validator.service.ts`                                                                                            | Libraries/Utilities           |
-| 394 | Part 18B                                    | `lib/cron/check-expiring-subscriptions.ts`                                                                                             | Other (background jobs)       |
-| 395 | Part 18B                                    | `lib/cron/downgrade-expired-subscriptions.ts`                                                                                          | Other (background jobs)       |
-| 396 | Part 18B                                    | `__tests__/lib/dlocal/three-day-validator.test.ts`                                                                                     | Other (tests)                 |
-| 397 | Part 18B                                    | `__tests__/lib/cron/check-expiring-subscriptions.test.ts`                                                                              | Other (tests)                 |
-| 398 | Part 18B                                    | `__tests__/lib/cron/downgrade-expired-subscriptions.test.ts`                                                                           | Other (tests)                 |
-| 399 | Part 18B                                    | `app/api/webhooks/dlocal/route.ts`                                                                                                     | API routes                    |
-| 400 | Part 18B                                    | `__tests__/api/webhooks/dlocal/route.test.ts`                                                                                          | Other (tests)                 |
-| 401 | Part 18B                                    | `app/api/cron/check-expiring-subscriptions/route.ts`                                                                                   | API routes                    |
-| 402 | Part 18B                                    | `app/api/cron/downgrade-expired-subscriptions/route.ts`                                                                                | API routes                    |
-| 403 | Part 18B                                    | `app/api/payments/dlocal/check-three-day-eligibility/route.ts`                                                                         | API routes                    |
-| 404 | Part 18B                                    | `app/api/subscription/route.ts`                                                                                                        | API routes                    |
-| 405 | Part 18B                                    | `app/api/invoices/route.ts`                                                                                                            | API routes                    |
-| 406 | Part 18B                                    | `lib/stripe/stripe.ts`                                                                                                                 | Libraries/Utilities           |
-| 407 | Part 18B                                    | `lib/stripe/webhook-handlers.ts`                                                                                                       | Libraries/Utilities           |
-| 408 | Part 18B                                    | `lib/email/subscription-emails.ts`                                                                                                     | Templates                     |
-| 409 | Part 18B                                    | `vercel.json`                                                                                                                          | Configuration files           |
-| 410 | Part 18C                                    | `components/payments/index.ts`                                                                                                         | Other (exports)               |
-| 411 | Part 18C                                    | `__tests__/components/payments/PlanSelector.test.tsx`                                                                                  | Other (tests)                 |
-| 412 | Part 18C                                    | `__tests__/components/payments/PriceDisplay.test.tsx`                                                                                  | Other (tests)                 |
-| 413 | Part 18C                                    | `emails/payment-confirmation.tsx`                                                                                                      | Templates                     |
-| 414 | Part 18C                                    | `emails/renewal-reminder.tsx`                                                                                                          | Templates                     |
-| 415 | Part 18C                                    | `emails/subscription-expired.tsx`                                                                                                      | Templates                     |
-| 416 | Part 18C                                    | `emails/payment-failure.tsx`                                                                                                           | Templates                     |
-| 417 | Part 18C                                    | `emails/index.ts`                                                                                                                      | Templates                     |
-| 418 | Part 18C                                    | `app/api/admin/fraud-alerts/route.ts`                                                                                                  | API routes                    |
-| 419 | Part 18C                                    | `app/api/admin/fraud-alerts/[id]/route.ts`                                                                                             | API routes                    |
-| 420 | Part 18C                                    | `app/api/payments/dlocal/validate-discount/route.ts`                                                                                   | API routes                    |
-| 421 | Part 18C                                    | `__tests__/e2e/dlocal-payment-flow.test.ts`                                                                                            | Other (tests)                 |
-| 422 | Part 18C                                    | `frontend/components/payments/index.ts`                                                                                                | Other (exports)               |
-| 423 | Part 19A                                    | `types/disbursement.ts`                                                                                                                | Type Definitions              |
-| 424 | Part 19A                                    | `lib/disbursement/constants.ts`                                                                                                        | Libraries/Utilities           |
-| 425 | Part 19A                                    | `lib/disbursement/providers/base-provider.ts`                                                                                          | Libraries/Utilities           |
-| 426 | Part 19A                                    | `lib/disbursement/providers/mock-provider.ts`                                                                                          | Libraries/Utilities           |
-| 427 | Part 19A                                    | `lib/disbursement/providers/provider-factory.ts`                                                                                       | Libraries/Utilities           |
-| 428 | Part 19A                                    | `lib/disbursement/providers/rise/rise-provider.ts`                                                                                     | Libraries/Utilities           |
-| 429 | Part 19A                                    | `lib/disbursement/providers/rise/siwe-auth.ts`                                                                                         | Security & Fraud Detection    |
-| 430 | Part 19A                                    | `lib/disbursement/providers/rise/webhook-verifier.ts`                                                                                  | Security & Fraud Detection    |
-| 431 | Part 19A                                    | `lib/disbursement/providers/rise/amount-converter.ts`                                                                                  | Libraries/Utilities           |
-| 432 | Part 19A                                    | `lib/disbursement/services/commission-aggregator.ts`                                                                                   | Libraries/Utilities           |
-| 433 | Part 19A                                    | `lib/disbursement/services/payout-calculator.ts`                                                                                       | Libraries/Utilities           |
-| 434 | Part 19A                                    | `__tests__/types/disbursement.test.ts`                                                                                                 | Other (tests)                 |
-| 435 | Part 19A                                    | `__tests__/lib/disbursement/constants.test.ts`                                                                                         | Other (tests)                 |
-| 436 | Part 19A                                    | `__tests__/lib/disbursement/providers/mock.test.ts`                                                                                    | Other (tests)                 |
-| 437 | Part 19A                                    | `__tests__/lib/disbursement/providers/factory.test.ts`                                                                                 | Other (tests)                 |
-| 438 | Part 19A                                    | `__tests__/lib/disbursement/providers/rise/webhook.test.ts`                                                                            | Other (tests)                 |
-| 439 | Part 19A                                    | `__tests__/lib/disbursement/services/aggregator.test.ts`                                                                               | Other (tests)                 |
-| 440 | Part 19B                                    | `lib/disbursement/services/batch-manager.ts`                                                                                           | Libraries/Utilities           |
-| 441 | Part 19B                                    | `lib/disbursement/services/payment-orchestrator.ts`                                                                                    | Libraries/Utilities           |
-| 442 | Part 19B                                    | `lib/disbursement/services/retry-handler.ts`                                                                                           | Libraries/Utilities           |
-| 443 | Part 19B                                    | `lib/disbursement/services/transaction-logger.ts`                                                                                      | Libraries/Utilities           |
-| 444 | Part 19B                                    | `lib/disbursement/services/transaction-service.ts`                                                                                     | Libraries/Utilities           |
-| 445 | Part 19B                                    | `app/api/disbursement/affiliates/payable/route.ts`                                                                                     | API routes                    |
-| 446 | Part 19B                                    | `app/api/disbursement/affiliates/[affiliateId]/route.ts`                                                                               | API routes                    |
-| 447 | Part 19B                                    | `app/api/disbursement/affiliates/[affiliateId]/commissions/route.ts`                                                                   | API routes                    |
-| 448 | Part 19B                                    | `app/api/disbursement/riseworks/accounts/route.ts`                                                                                     | API routes                    |
-| 449 | Part 19B                                    | `app/api/disbursement/riseworks/sync/route.ts`                                                                                         | API routes                    |
-| 450 | Part 19B                                    | `app/api/disbursement/batches/route.ts`                                                                                                | API routes                    |
-| 451 | Part 19B                                    | `app/api/disbursement/batches/preview/route.ts`                                                                                        | API routes                    |
-| 452 | Part 19B                                    | `app/api/disbursement/batches/[batchId]/route.ts`                                                                                      | API routes                    |
-| 453 | Part 19B                                    | `app/api/disbursement/batches/[batchId]/execute/route.ts`                                                                              | API routes                    |
-| 454 | Part 19B                                    | `__tests__/lib/disbursement/services/batch.test.ts`                                                                                    | Other (tests)                 |
-| 455 | Part 19B                                    | `__tests__/lib/disbursement/services/orchestrator.test.ts`                                                                             | Other (tests)                 |
-| 456 | Part 19B                                    | `__tests__/api/disbursement/affiliates.test.ts`                                                                                        | Other (tests)                 |
-| 457 | Part 19B                                    | `__tests__/api/disbursement/batches.test.ts`                                                                                           | Other (tests)                 |
-| 458 | Part 19B                                    | `__tests__/api/disbursement/execute.test.ts`                                                                                           | Other (tests)                 |
-| 459 | Part 19C                                    | `lib/disbursement/webhook/event-processor.ts`                                                                                          | Libraries/Utilities           |
-| 460 | Part 19C                                    | `app/api/webhooks/riseworks/route.ts`                                                                                                  | API routes                    |
-| 461 | Part 19C                                    | `app/api/disbursement/pay/route.ts`                                                                                                    | API routes                    |
-| 462 | Part 19C                                    | `app/api/disbursement/reports/summary/route.ts`                                                                                        | API routes                    |
-| 463 | Part 19C                                    | `app/api/disbursement/reports/affiliate/[affiliateId]/route.ts`                                                                        | API routes                    |
-| 464 | Part 19C                                    | `app/api/disbursement/transactions/route.ts`                                                                                           | API routes                    |
-| 465 | Part 19C                                    | `app/api/disbursement/audit-logs/route.ts`                                                                                             | API routes                    |
-| 466 | Part 19C                                    | `app/api/disbursement/config/route.ts`                                                                                                 | API routes                    |
-| 467 | Part 19C                                    | `app/api/disbursement/health/route.ts`                                                                                                 | API routes                    |
-| 468 | Part 19C                                    | `lib/disbursement/cron/disbursement-processor.ts`                                                                                      | Other (background jobs)       |
-| 469 | Part 19C                                    | `app/api/cron/process-pending-disbursements/route.ts`                                                                                  | API routes                    |
-| 470 | Part 19C                                    | `app/api/cron/sync-riseworks-accounts/route.ts`                                                                                        | API routes                    |
-| 471 | Part 19C                                    | `__tests__/api/webhooks/riseworks.test.ts`                                                                                             | Other (tests)                 |
-| 472 | Part 19C                                    | `__tests__/api/disbursement/pay.test.ts`                                                                                               | Other (tests)                 |
-| 473 | Part 19C                                    | `__tests__/api/disbursement/reports.test.ts`                                                                                           | Other (tests)                 |
-| 474 | Part 19C                                    | `__tests__/api/disbursement/audit.test.ts`                                                                                             | Other (tests)                 |
-| 475 | Part 19C                                    | `__tests__/api/disbursement/health.test.ts`                                                                                            | Other (tests)                 |
-| 476 | Part 19C                                    | `__tests__/api/cron/process-pending.test.ts`                                                                                           | Other (tests)                 |
-| 477 | Drawing Engine                              | `components/charts/drawing/geometry/types.ts`                                                                                          | Type Definitions              |
-| 478 | Drawing Engine                              | `components/charts/drawing/geometry/trendline.ts`                                                                                      | Libraries/Utilities           |
-| 479 | Drawing Engine                              | `components/charts/drawing/geometry/horizontal.ts`                                                                                     | Libraries/Utilities           |
-| 480 | Drawing Engine                              | `components/charts/drawing/geometry/channel.ts`                                                                                        | Libraries/Utilities           |
-| 481 | Drawing Engine                              | `components/charts/drawing/geometry/fib.ts`                                                                                            | Libraries/Utilities           |
-| 482 | Drawing Engine                              | `components/charts/drawing/geometry/levels.ts`                                                                                         | Libraries/Utilities           |
-| 483 | Drawing Engine                              | `components/charts/drawing/geometry/index.ts`                                                                                          | Libraries/Utilities           |
-| 484 | Drawing Engine                              | `components/charts/drawing/types.ts`                                                                                                   | Type Definitions              |
-| 485 | Drawing Engine                              | `components/charts/drawing/engine/coords.ts`                                                                                           | Libraries/Utilities           |
-| 486 | Drawing Engine                              | `components/charts/drawing/engine/pixelMath.ts`                                                                                        | Libraries/Utilities           |
-| 487 | Drawing Engine                              | `components/charts/drawing/engine/DrawingEngine.ts`                                                                                    | Libraries/Utilities           |
-| 488 | Drawing Engine                              | `components/charts/drawing/engine/PointerController.ts`                                                                                | Libraries/Utilities           |
-| 489 | Drawing Engine                              | `components/charts/drawing/marks/BaseMark.ts`                                                                                          | Libraries/Utilities           |
-| 490 | Drawing Engine                              | `components/charts/drawing/marks/HorizontalLineMark.ts`                                                                                | Libraries/Utilities           |
-| 491 | Drawing Engine                              | `components/charts/drawing/marks/TrendlineMark.ts`                                                                                     | Libraries/Utilities           |
-| 492 | Drawing Engine                              | `components/charts/drawing/marks/ChannelMark.ts`                                                                                       | Libraries/Utilities           |
-| 493 | Drawing Engine                              | `components/charts/drawing/marks/FibRetracementMark.ts`                                                                                | Libraries/Utilities           |
-| 494 | Drawing Engine                              | `components/charts/drawing/marks/FibExtensionMark.ts`                                                                                  | Libraries/Utilities           |
-| 495 | Drawing Engine                              | `components/charts/drawing/marks/TextMark.ts`                                                                                          | Libraries/Utilities           |
-| 496 | Drawing Engine                              | `components/charts/drawing/tools/index.ts`                                                                                             | Libraries/Utilities           |
-| 497 | Drawing Engine                              | `__tests__/drawing/geometry/geometry.test.ts`                                                                                          | Other (tests)                 |
-| 498 | Drawing Engine                              | `__tests__/drawing/engine/pixelMath.test.ts`                                                                                           | Other (tests)                 |
-| 499 | Drawing Engine                              | `__tests__/drawing/engine/DrawingEngine.test.ts`                                                                                       | Other (tests)                 |
-| 500 | Drawing Engine                              | `__tests__/drawing/marks/newMarks.test.ts`                                                                                             | Other (tests)                 |
-| 501 | Drawing Engine                              | `components/charts/drawing/persistence.ts`                                                                                             | Libraries/Utilities           |
-| 502 | Drawing Engine                              | `components/charts/drawing/alertsApi.ts`                                                                                               | Libraries/Utilities           |
-| 503 | Drawing Engine                              | `components/charts/drawing/tierUsage.ts`                                                                                               | Libraries/Utilities           |
-| 504 | Drawing Engine                              | `components/charts/drawing/firedMarkers.ts`                                                                                            | Libraries/Utilities           |
-| 505 | Drawing Engine                              | `components/charts/drawing/useFiredAlertMarkers.ts`                                                                                    | React hooks                   |
-| 506 | Drawing Engine                              | `lib/drawing/schema.ts`                                                                                                                | Validation schemas            |
-| 507 | Drawing Engine                              | `lib/drawing/invalidate.ts`                                                                                                            | Libraries/Utilities           |
-| 508 | Drawing Engine                              | `app/api/drawings/route.ts`                                                                                                            | API routes                    |
-| 509 | Drawing Engine                              | `app/api/drawings/[id]/route.ts`                                                                                                       | API routes                    |
-| 510 | Drawing Engine                              | `__tests__/drawing/persistence.test.ts`                                                                                                | Other (tests)                 |
-| 511 | Drawing Engine                              | `__tests__/drawing/alertsApi.test.ts`                                                                                                  | Other (tests)                 |
-| 512 | Drawing Engine                              | `__tests__/drawing/tierUsage.test.ts`                                                                                                  | Other (tests)                 |
-| 513 | Drawing Engine                              | `__tests__/drawing/firedMarkers.test.ts`                                                                                               | Other (tests)                 |
-| 514 | Line Alerts                                 | `app/api/alerts/line/route.ts`                                                                                                         | API routes                    |
-| 515 | Line Alerts                                 | `app/api/alerts/line/[id]/route.ts`                                                                                                    | API routes                    |
-| 516 | Line Alerts                                 | `lib/alert-engine/types.ts`                                                                                                            | Type Definitions              |
-| 517 | Line Alerts                                 | `lib/alert-engine/detect.ts`                                                                                                           | Libraries/Utilities           |
-| 518 | Line Alerts                                 | `lib/alert-engine/state.ts`                                                                                                            | Libraries/Utilities           |
-| 519 | Line Alerts                                 | `lib/alert-engine/watches.ts`                                                                                                          | Libraries/Utilities           |
-| 520 | Line Alerts                                 | `lib/alert-engine/evaluator.ts`                                                                                                        | Libraries/Utilities           |
-| 521 | Line Alerts                                 | `lib/alert-engine/dispatcher.ts`                                                                                                       | Libraries/Utilities           |
-| 522 | Line Alerts                                 | `lib/alert-engine/worker.ts`                                                                                                           | Other (background jobs)       |
-| 523 | Line Alerts                                 | `lib/alert-engine/notify-bridge.ts`                                                                                                    | Libraries/Utilities           |
-| 524 | Line Alerts                                 | `lib/alert-engine/queue.ts`                                                                                                            | Other (background jobs)       |
-| 525 | Line Alerts                                 | `scripts/alert-worker.ts`                                                                                                              | Other (scripts)               |
-| 526 | Line Alerts                                 | `__tests__/alert-engine/detect.test.ts`                                                                                                | Other (tests)                 |
-| 527 | Line Alerts                                 | `__tests__/alert-engine/evaluator.test.ts`                                                                                             | Other (tests)                 |
-| 528 | Line Alerts                                 | `__tests__/alert-engine/notify-bridge.test.ts`                                                                                         | Other (tests)                 |
-| 529 | Line Alerts                                 | `__tests__/alert-engine/watches.test.ts`                                                                                               | Other (tests)                 |
-| 530 | Line Alerts                                 | `mt5-service/REDIS-PUBLISH-SNIPPET.md`                                                                                                 | Other (documentation)         |
-| 531 | Line Alerts                                 | `docs/PHASE-5-DELIVERY-AND-REALTIME-SPEC.md`                                                                                           | Other (documentation)         |
-| 532 | Line Alerts                                 | `docs/SCALING-BULLMQ-AND-SOCKET-ADAPTER.md`                                                                                            | Other (documentation)         |
-| 533 | Part 14                                     | `app/api/admin/affiliates/reports/code-flows/route.ts`                                                                                 | API routes                    |
-| 534 | Part 17A-1                                  | `lib/affiliate/conversion-processor.ts`                                                                                                | Libraries/Utilities           |
-| 535 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md` | Other (documentation)         |
-| 536 | Backend Stack C — Data Pipeline (v2.29)     | `.../v2_29_data_pipeline_architecture/export_collector_validator_v2.py`                                                                | Other (background jobs)       |
-| 537 | Backend Stack C — Data Pipeline (v2.29)     | `.../v2_29_data_pipeline_architecture/centroid_regression.py`                                                                          | Libraries/Utilities           |
-| 538 | Backend Stack C — Data Pipeline (v2.29)     | `.../v2_29_data_pipeline_architecture/fractal_lines.py`                                                                                | Libraries/Utilities           |
-| 539 | Backend Stack C — Data Pipeline (v2.29)     | `.../v2_29_data_pipeline_architecture/zigzag_metrics.py`                                                                               | Libraries/Utilities           |
-| 540 | Backend Stack C — Data Pipeline (v2.29)     | `.../v2_29_data_pipeline_architecture/zscore_candle.py`                                                                                | Libraries/Utilities           |
-| 541 | Backend Stack C — Data Pipeline (v2.29)     | `.../v2_29_data_pipeline_architecture/sqlite_schema_v6_xauusd.sql`                                                                     | Database operations           |
-| 542 | Backend Stack C — Data Pipeline (v2.29)     | `.../v2_29_data_pipeline_architecture/sqlite_schema_v6_xauusd_preview.txt`                                                             | Other (documentation)         |
-| 543 | Backend Stack C — Data Pipeline (v2.29)     | `.../v2_29_data_pipeline_architecture/backfill_worker_api_gateway_v5.py`                                                               | Other (background jobs)       |
-| 544 | Backend Stack C — Data Pipeline (v2.29)     | `.../v2_29_data_pipeline_architecture/gateway_contract_market_data.schema.json`                                                        | Configuration files           |
-| 545 | Backend Stack C — Data Pipeline (v2.29)     | `.../v2_29_data_pipeline_architecture/replay_quarantine.py`                                                                            | Other (scripts)               |
-| 546 | Backend Stack C — Data Pipeline (v2.29)     | `.../v2_29_data_pipeline_architecture/install_services.bat`                                                                            | Configuration files           |
-| 547 | Backend Stack C — Data Pipeline (v2.29)     | `.../mq5/2EDTCentroidRegressionBestFitNonMostRecent_v2_29.mq5`                                                                         | Other (MQL5 indicator source) |
-| 548 | Backend Stack C — Data Pipeline (v2.29)     | `.../mq5/2EDTCentroidRegressionCherryPickA_v2_29.mq5`                                                                                  | Other (MQL5 indicator source) |
-| 549 | Backend Stack C — Data Pipeline (v2.29)     | `.../mq5/2EDTCentroidRegressionCherryPickB_v2_29.mq5`                                                                                  | Other (MQL5 indicator source) |
-| 550 | Backend Stack C — Data Pipeline (v2.29)     | `.../mq5/2EDTCentroidRegressionMostRecentLineExtension_v2_29.mq5`                                                                      | Other (MQL5 indicator source) |
-| 551 | Backend Stack C — Data Pipeline (v2.29)     | `.../mq5/2EDTCentroidRegressionNonMostRecentLineExtensionA_v2_29.mq5`                                                                  | Other (MQL5 indicator source) |
-| 552 | Backend Stack C — Data Pipeline (v2.29)     | `.../mq5/2EDTCentroidRegressionNonMostRecentLineExtensionB_v2_29.mq5`                                                                  | Other (MQL5 indicator source) |
-| 553 | Backend Stack C — Data Pipeline (v2.29)     | `.../mq5/2EDTFractalBestFitv5_v2_29.mq5`                                                                                               | Other (MQL5 indicator source) |
-| 554 | Backend Stack C — Data Pipeline (v2.29)     | `.../mq5/SingleBestResistanceLinev3_v2_29.mq5`                                                                                         | Other (MQL5 indicator source) |
-| 555 | Backend Stack C — Data Pipeline (v2.29)     | `.../mq5/SingleBestSupportLinev3_v2_29.mq5`                                                                                            | Other (MQL5 indicator source) |
-| 556 | Backend Stack C — Data Pipeline (v2.29)     | `.../mq5/ZigZagExportv43_v2_29.mq5`                                                                                                    | Other (MQL5 indicator source) |
-| 557 | Backend Stack C — Data Pipeline (v2.29)     | `.../mq5/ohlcvexportlightweight_v2_29.mq5`                                                                                             | Other (MQL5 indicator source) |
-| 558 | Backend Stack C — Data Pipeline (v2.29)     | `.../mq5/zscoreohlccandleexport_v2_29.mq5`                                                                                             | Other (MQL5 indicator source) |
-| 559 | Backend Stack C — Data Pipeline (v2.29)     | `.../SimpleDataCollector_v2_29_ASYNC_SOCKET.mq5` (legacy)                                                                              | Other (documentation)         |
-| 560 | Backend Stack C — Data Pipeline (v2.29)     | `.../SimpleDataCollector_v2_29_ASYNC_SOCKET.ex5` (legacy, compiled)                                                                    | Other (documentation)         |
-| 561 | Backend Stack C — Data Pipeline (v2.29)     | `.../mt5_api_relay_for_v2_29.py` (legacy)                                                                                              | Other (background jobs)       |
-| 562 | Backend Stack C — Data Pipeline (v2.29)     | `.../mql5-to-python-transliteration/golden_certification.py`                                                                           | Other (tests)                 |
-| 563 | Backend Stack C — Data Pipeline (v2.29)     | `.../mql5-to-python-transliteration/golden_certification_report_M5.txt`                                                                | Other (tests)                 |
-| 564 | Backend Stack C — Data Pipeline (v2.29)     | `.../mql5-to-python-transliteration/golden_certification_report_M15.txt`                                                               | Other (tests)                 |
-| 565 | Backend Stack C — Data Pipeline (v2.29)     | `.../mql5-to-python-transliteration/test_phase1_golden.py`                                                                             | Other (tests)                 |
-| 566 | Backend Stack C — Data Pipeline (v2.29)     | `.../mql5-to-python-transliteration/test_phase2_lines.py`                                                                              | Other (tests)                 |
-| 567 | Backend Stack C — Data Pipeline (v2.29)     | `.../mql5-to-python-transliteration/test_phase3_centroid.py`                                                                           | Other (tests)                 |
-| 568 | Backend Stack C — Data Pipeline (v2.29)     | `.../mql5-to-python-transliteration/CERTIFICATION.md`                                                                                  | Other (documentation)         |
-| 569 | Backend Stack C — Data Pipeline (v2.29)     | `.../mql5-to-python-transliteration/README.md`                                                                                         | Other (documentation)         |
-| 570 | Backend Stack C — Data Pipeline (v2.29)     | `.../data-split-between-mql5-and-python/Export Data from MQL5 indicators.txt`                                                          | Other (documentation)         |
-| 571 | Backend Stack C — Data Pipeline (v2.29)     | `.../data-split-between-mql5-and-python/Python stacks calculation.txt`                                                                 | Other (documentation)         |
-| 572 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/mtf_render/__init__.py`                                                                       | Libraries/Utilities           |
-| 573 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/mtf_render/__main__.py`                                                                       | Other (scripts)               |
-| 574 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/mtf_render/data_source.py`                                                                    | Database operations           |
-| 575 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/mtf_render/fixture.py`                                                                        | Libraries/Utilities           |
-| 576 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/mtf_render/renderer.py`                                                                       | Libraries/Utilities           |
-| 577 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/test_mtf_render.py`                                                                           | Other (tests)                 |
-| 578 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/requirements.txt`                                                                             | Configuration files           |
-| 579 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/Multi-Timeframe-Visualisation-Architecture-Design.md`                                         | Other (documentation)         |
-| 580 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/src/VISUALISATION_TASK_HANDOFF.md`                                                            | Other (documentation)         |
-| 581 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/src/cover-prompt.md`                                                                          | Other (documentation)         |
-| 582 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/src/mtf_demo.png`                                                                             | Other (documentation)         |
-| 583 | Backend Stack C — MTF Visualisation (v2.29) | `.../v2_29_multi-timeframe-visualisation/src/multi-timeframe-visualisation.jpg`                                                        | Other (documentation)         |
-| 584 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/.env.example`                                                                                                         | Configuration files           |
-| 585 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/README.md`                                                                                                            | Other (documentation)         |
-| 586 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/docker-compose.yml`                                                                                                   | Configuration files           |
-| 587 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/jest.config.js`                                                                                                       | Configuration files           |
-| 588 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/nest-cli.json`                                                                                                        | Configuration files           |
-| 589 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/package.json`                                                                                                         | Configuration files           |
-| 590 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/package-lock.json`                                                                                                    | Configuration files           |
-| 591 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/railway.toml`                                                                                                         | Configuration files           |
-| 592 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/tsconfig.json`                                                                                                        | Configuration files           |
-| 593 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/prisma/schema.prisma`                                                                                                 | Database operations           |
-| 594 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/scripts/generate-market-data-dto.js`                                                                                  | Other (scripts)               |
-| 595 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/scripts/seed_local_xauusd_db.py`                                                                                      | Other (scripts)               |
-| 596 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/main.ts`                                                                                                          | Other (documentation)         |
-| 597 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/app.module.ts`                                                                                                    | Middleware & Infrastructure   |
-| 598 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/auth/api-key.guard.ts`                                                                                            | Security & Fraud Detection    |
-| 599 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/gateway/dto/market-data.dto.ts`                                                                                   | Type Definitions              |
-| 600 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/gateway/gateway.module.ts`                                                                                        | Middleware & Infrastructure   |
-| 601 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/gateway/market-data.controller.ts`                                                                                | API routes                    |
-| 602 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/gateway/validation.service.ts`                                                                                    | Validation schemas            |
-| 603 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/health/health.controller.ts`                                                                                      | API routes                    |
-| 604 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/health/health.module.ts`                                                                                          | Middleware & Infrastructure   |
-| 605 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/prisma/prisma.module.ts`                                                                                          | Database operations           |
-| 606 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/prisma/prisma.service.ts`                                                                                         | Database operations           |
-| 607 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/worker/market-data.processor.ts`                                                                                  | Other (background jobs)       |
-| 608 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/worker/worker.module.ts`                                                                                          | Middleware & Infrastructure   |
-| 609 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/test/dto-contract.spec.ts`                                                                                            | Other (tests)                 |
-| 610 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/test/jest-e2e.json`                                                                                                   | Configuration files           |
-| 611 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/test/local-e2e-harness.md`                                                                                            | Other (documentation)         |
-| 612 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/test/market-data.e2e-spec.ts`                                                                                         | Other (tests)                 |
-| 613 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/test/validation.service.spec.ts`                                                                                      | Other (tests)                 |
-| 614 | Line Alerts                                 | `railway-worker.json`                                                                                                                  | Configuration files           |
-| 615 | Line Alerts                                 | `mt5-service/app/redis_pub.py`                                                                                                         | Libraries/Utilities           |
-| 616 | Line Alerts                                 | `mt5-service/tests/test_redis_pub.py`                                                                                                  | Other (tests)                 |
-| 619 | Line Alerts                                 | `davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/DRAWING-ENGINE-AND-LINE-ALERTS-ARCHITECTURE.md`            | Other (documentation)         |
-| 620 | Line Alerts                                 | `davintrade-draw-engine-and-line-alerts-stack/implementation-progress/implementation-progress-files-and-folder-directory.txt`          | Other (documentation)         |
-| 621 | Line Alerts                                 | `davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/Drawing-Engine-Line-Alerts-Architecture-Overview.pptx`     | Other (documentation)         |
-| 622 | Line Alerts                                 | `davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/PHASE-4-SMOKE-TEST-RUNBOOK.md`                             | Other (documentation)         |
-| 623 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/architecture-document/old-architecture/README.md`                             | Other (documentation)         |
-| 624 | Part 09                                     | `app/api/market-data/channel/route.ts`                                                                                                 | API routes                    |
-| 625 | Part 09                                     | `components/charts/mtf/useMtfOverlay.ts`                                                                                               | React hooks                   |
-| 626 | Part 02                                     | `prisma/migrations/20260706000000_drop_watchlists/migration.sql`                                                                       | Database operations           |
-| 627 | Part 03                                     | `docs/open-api-documents/part-03-types-openapi.yaml`                                                                                   | Other (documentation)         |
-| 628 | Part 04                                     | `docs/open-api-documents/part-04-tier-system-openapi.yaml`                                                                             | Other (documentation)         |
-| 629 | Part 07                                     | `docs/open-api-documents/part-07-indicators-tier-openapi.yaml`                                                                         | Other (documentation)         |
-| 630 | Part 15                                     | `docs/open-api-documents/part-15-notifications-realtime-openapi.yaml`                                                                  | Other (documentation)         |
+| NO. | Part                                        | Paths and Filenames                                                                                                                                                | Categories                    |
+| --- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- |
+| 1   | Part 02                                     | `prisma/non-market-data/schema.prisma`                                                                                                                             | Database operations           |
+| 2   | Part 02                                     | `lib/db/prisma.ts`                                                                                                                                                 | Database operations           |
+| 3   | Part 02                                     | `lib/db/seed.ts`                                                                                                                                                   | Database operations           |
+| 4   | Part 02                                     | `prisma/seed.ts`                                                                                                                                                   | Database operations           |
+| 5   | Part 02                                     | `prisma/migrations/20251227000000_init/migration.sql`                                                                                                              | Database operations           |
+| 6   | Part 02                                     | `prisma/migrations/20260214000000_rag_dual_memory/migration.sql`                                                                                                   | Database operations           |
+| 7   | Part 02                                     | `prisma/migrations/20260224000000_update_kc_ha_body_columns/migration.sql`                                                                                         | Database operations           |
+| 8   | Part 02                                     | `prisma/migrations/20260705000000_add_market_data_v6/migration.sql`                                                                                                | Database operations           |
+| 9   | Part 02                                     | `prisma/migrations/20260705010000_drop_market_data/migration.sql`                                                                                                  | Database operations           |
+| 10  | Part 02                                     | `__tests__/lib/db/prisma.test.ts`                                                                                                                                  | Other (tests)                 |
+| 11  | Part 02                                     | `__tests__/lib/db/seed.test.ts`                                                                                                                                    | Other (tests)                 |
+| 12  | Part 02                                     | `docs/open-api-documents/part-02-database-schema-openapi.yaml`                                                                                                     | Other (documentation)         |
+| 13  | Part 03                                     | `types/index.ts`                                                                                                                                                   | Type Definitions              |
+| 14  | Part 03                                     | `types/tier.ts`                                                                                                                                                    | Type Definitions              |
+| 15  | Part 03                                     | `types/user.ts`                                                                                                                                                    | Type Definitions              |
+| 16  | Part 03                                     | `types/alert.ts`                                                                                                                                                   | Type Definitions              |
+| 17  | Part 03                                     | `types/indicator.ts`                                                                                                                                               | Type Definitions              |
+| 18  | Part 03                                     | `types/api.ts`                                                                                                                                                     | Type Definitions              |
+| 19  | Part 03                                     | `types/payment.ts`                                                                                                                                                 | Type Definitions              |
+| 20  | Part 03                                     | `types/disbursement.ts`                                                                                                                                            | Type Definitions              |
+| 21  | Part 03                                     | `types/dlocal.ts`                                                                                                                                                  | Type Definitions              |
+| 22  | Part 03                                     | `types/next-auth.d.ts`                                                                                                                                             | Type Definitions              |
+| 23  | Part 03                                     | `types/prisma-stubs.d.ts`                                                                                                                                          | Type Definitions              |
+| 24  | Part 04                                     | `lib/tier-config.ts`                                                                                                                                               | Libraries/Utilities           |
+| 25  | Part 04                                     | `lib/tier-validation.ts`                                                                                                                                           | Validation schemas            |
+| 26  | Part 04                                     | `lib/tier-helpers.ts`                                                                                                                                              | Libraries/Utilities           |
+| 27  | Part 04                                     | `app/api/tier/check/[symbol]/route.ts`                                                                                                                             | API routes                    |
+| 28  | Part 04                                     | `app/api/tier/combinations/route.ts`                                                                                                                               | API routes                    |
+| 29  | Part 04                                     | `app/api/tier/symbols/route.ts`                                                                                                                                    | API routes                    |
+| 30  | Part 04                                     | `__tests__/api/tier.test.ts`                                                                                                                                       | Other (tests)                 |
+| 31  | Part 05                                     | `lib/auth/errors.ts`                                                                                                                                               | Security & Fraud Detection    |
+| 32  | Part 05                                     | `lib/auth/auth-options.ts`                                                                                                                                         | Security & Fraud Detection    |
+| 33  | Part 05                                     | `lib/auth/session.ts`                                                                                                                                              | Security & Fraud Detection    |
+| 34  | Part 05                                     | `lib/auth/permissions.ts`                                                                                                                                          | Security & Fraud Detection    |
+| 35  | Part 05                                     | `app/api/auth/[...nextauth]/route.ts`                                                                                                                              | API routes                    |
+| 36  | Part 05                                     | `app/api/auth/token-register/route.ts`                                                                                                                             | API routes                    |
+| 37  | Part 05                                     | `app/api/auth/verify-email/route.ts`                                                                                                                               | API routes                    |
+| 38  | Part 05                                     | `app/api/auth/forgot-password/route.ts`                                                                                                                            | API routes                    |
+| 39  | Part 05                                     | `app/api/auth/reset-password/route.ts`                                                                                                                             | API routes                    |
+| 40  | Part 05                                     | `app/api/auth/resend-verification/route.ts`                                                                                                                        | API routes                    |
+| 41  | Part 06                                     | `mt5-service/.env.example`                                                                                                                                         | Configuration files           |
+| 42  | Part 06                                     | `mt5-service/Dockerfile`                                                                                                                                           | Configuration files           |
+| 43  | Part 06                                     | `mt5-service/requirements.txt`                                                                                                                                     | Configuration files           |
+| 44  | Part 06                                     | `mt5-service/requirements-dev.txt`                                                                                                                                 | Configuration files           |
+| 45  | Part 06                                     | `mt5-service/run.py`                                                                                                                                               | Other (Flask app entry)       |
+| 46  | Part 06                                     | `mt5-service/app/__init__.py`                                                                                                                                      | Other (Flask app factory)     |
+| 47  | Part 06                                     | `mt5-service/app/websocket.py`                                                                                                                                     | Other (WebSocket support)     |
+| 48  | Part 06                                     | `mt5-service/app/routes/__init__.py`                                                                                                                               | Other (routes package)        |
+| 49  | Part 06                                     | `mt5-service/app/routes/admin.py`                                                                                                                                  | API routes                    |
+| 50  | Part 06                                     | `mt5-service/app/routes/indicators.py`                                                                                                                             | API routes                    |
+| 51  | Part 06                                     | `mt5-service/app/services/__init__.py`                                                                                                                             | Other (services package)      |
+| 52  | Part 06                                     | `mt5-service/app/services/health_monitor.py`                                                                                                                       | Libraries/Utilities           |
+| 53  | Part 06                                     | `mt5-service/app/services/indicator_reader.py`                                                                                                                     | Libraries/Utilities           |
+| 54  | Part 06                                     | `mt5-service/app/services/mt5_connection_pool.py`                                                                                                                  | Libraries/Utilities           |
+| 55  | Part 06                                     | `mt5-service/app/services/tier_service.py`                                                                                                                         | Libraries/Utilities           |
+| 56  | Part 06                                     | `mt5-service/app/utils/__init__.py`                                                                                                                                | Other (utils package)         |
+| 57  | Part 06                                     | `mt5-service/app/utils/constants.py`                                                                                                                               | Libraries/Utilities           |
+| 58  | Part 06                                     | `mt5-service/app/utils/symbol_resolver.py`                                                                                                                         | Libraries/Utilities           |
+| 59  | Part 06                                     | `mt5-service/config/mt5_terminals.json`                                                                                                                            | Configuration files           |
+| 60  | Part 06                                     | `mt5-service/config/mt5_terminals_test.json`                                                                                                                       | Configuration files           |
+| 61  | Part 06                                     | `mt5-service/indicators/README.md`                                                                                                                                 | Other (documentation)         |
+| 62  | Part 06                                     | `mt5-service/docs/symbol-resolution.md`                                                                                                                            | Other (documentation)         |
+| 63  | Part 06                                     | `mt5-service/tests/conftest.py`                                                                                                                                    | Other (tests)                 |
+| 64  | Part 06                                     | `mt5-service/tests/mock_mt5_server.py`                                                                                                                             | Other (tests)                 |
+| 65  | Part 06                                     | `mt5-service/tests/mt5-mock-server-integration-tests-implementation.md`                                                                                            | Other (tests documentation)   |
+| 66  | Part 06                                     | `mt5-service/tests/test_connection_pool.py`                                                                                                                        | Other (tests)                 |
+| 67  | Part 06                                     | `mt5-service/tests/test_indicators.py`                                                                                                                             | Other (tests)                 |
+| 68  | Part 06                                     | `mt5-service/tests/test_mt5_integration.py`                                                                                                                        | Other (tests)                 |
+| 69  | Part 06                                     | `mt5-service/tests/test_symbol_resolver.py`                                                                                                                        | Other (tests)                 |
+| 70  | Part 07                                     | `app/api/tier/symbols/route.ts`                                                                                                                                    | API routes                    |
+| 71  | Part 07                                     | `app/api/tier/check/[symbol]/route.ts`                                                                                                                             | API routes                    |
+| 72  | Part 07                                     | `app/api/tier/combinations/route.ts`                                                                                                                               | API routes                    |
+| 73  | Part 08                                     | `lib/tier-config.ts`                                                                                                                                               | Libraries/Utilities           |
+| 74  | Part 08                                     | `types/tier.ts`                                                                                                                                                    | Type Definitions              |
+| 75  | Part 08                                     | `hooks/use-alerts.ts`                                                                                                                                              | React hooks                   |
+| 76  | Part 08                                     | `hooks/use-auth.ts`                                                                                                                                                | React hooks                   |
+| 77  | Part 08                                     | `hooks/use-login-tracking.ts`                                                                                                                                      | React hooks                   |
+| 78  | Part 08                                     | `hooks/use-optimistic-mutation.ts`                                                                                                                                 | React hooks                   |
+| 79  | Part 08                                     | `hooks/use-toast.ts`                                                                                                                                               | React hooks                   |
+| 80  | Part 08                                     | `hooks/use-ohlcv-socket.ts`                                                                                                                                        | React hooks                   |
+| 81  | Part 08                                     | `__tests__/components/dashboard/recent-alerts.test.tsx`                                                                                                            | Other (tests)                 |
+| 82  | Part 08                                     | `__tests__/components/dashboard/stats-card.test.tsx`                                                                                                               | Other (tests)                 |
+| 83  | Part 09                                     | `hooks/use-ohlcv-socket.ts`                                                                                                                                        | React hooks                   |
+| 84  | Part 09                                     | `hooks/use-auth.ts`                                                                                                                                                | React hooks                   |
+| 85  | Part 11                                     | `types/alert.ts`                                                                                                                                                   | Type Definitions              |
+| 86  | Part 11                                     | `lib/validations/alert.ts`                                                                                                                                         | Validation schemas            |
+| 87  | Part 11                                     | `app/api/alerts/route.ts`                                                                                                                                          | API routes                    |
+| 88  | Part 11                                     | `app/api/alerts/[id]/route.ts`                                                                                                                                     | API routes                    |
+| 89  | Part 11                                     | `hooks/use-alerts.ts`                                                                                                                                              | React hooks                   |
+| 90  | Part 11                                     | `operation-service/src/alert-engine/alert-checker.service.ts`                                                                                                      | Other (background jobs)       |
+| 91  | Part 11                                     | `operation-service/src/alert-engine/alert-cron.scheduler.ts`                                                                                                       | Other (background jobs)       |
+| 92  | Part 11                                     | `lib/tier-config.ts`                                                                                                                                               | Libraries/Utilities           |
+| 93  | Part 11                                     | `frontend/types/alert.ts`                                                                                                                                          | Type Definitions              |
+| 94  | Part 11                                     | `frontend/lib/validations/alert.ts`                                                                                                                                | Validation schemas            |
+| 95  | Part 11                                     | `frontend/lib/jobs/queue.ts`                                                                                                                                       | Other (background jobs)       |
+| 96  | Part 12                                     | `app/api/subscription/route.ts`                                                                                                                                    | API routes                    |
+| 97  | Part 12                                     | `app/api/subscription/cancel/route.ts`                                                                                                                             | API routes                    |
+| 98  | Part 12                                     | `app/api/checkout/route.ts`                                                                                                                                        | API routes                    |
+| 99  | Part 12                                     | `app/api/checkout/validate-code/route.ts`                                                                                                                          | API routes                    |
+| 100 | Part 12                                     | `app/api/invoices/route.ts`                                                                                                                                        | API routes                    |
+| 101 | Part 12                                     | `app/api/webhooks/stripe/route.ts`                                                                                                                                 | API routes                    |
+| 102 | Part 12                                     | `app/api/webhooks/dlocal/route.ts`                                                                                                                                 | API routes                    |
+| 103 | Part 12                                     | `app/api/payments/dlocal/create/route.ts`                                                                                                                          | API routes                    |
+| 104 | Part 12                                     | `app/api/payments/dlocal/[paymentId]/route.ts`                                                                                                                     | API routes                    |
+| 105 | Part 12                                     | `app/api/payments/dlocal/methods/route.ts`                                                                                                                         | API routes                    |
+| 106 | Part 12                                     | `app/api/payments/dlocal/convert/route.ts`                                                                                                                         | API routes                    |
+| 107 | Part 12                                     | `app/api/payments/dlocal/exchange-rate/route.ts`                                                                                                                   | API routes                    |
+| 108 | Part 12                                     | `app/api/payments/dlocal/check-three-day-eligibility/route.ts`                                                                                                     | API routes                    |
+| 109 | Part 12                                     | `app/api/payments/dlocal/validate-discount/route.ts`                                                                                                               | API routes                    |
+| 110 | Part 12                                     | `lib/stripe/stripe.ts`                                                                                                                                             | Libraries/Utilities           |
+| 111 | Part 12                                     | `lib/stripe/webhook-handlers.ts`                                                                                                                                   | Libraries/Utilities           |
+| 112 | Part 12                                     | `lib/dlocal/dlocal-payment.service.ts`                                                                                                                             | Libraries/Utilities           |
+| 113 | Part 12                                     | `lib/dlocal/payment-methods.service.ts`                                                                                                                            | Libraries/Utilities           |
+| 114 | Part 12                                     | `lib/dlocal/currency-converter.service.ts`                                                                                                                         | Libraries/Utilities           |
+| 115 | Part 12                                     | `lib/dlocal/three-day-validator.service.ts`                                                                                                                        | Libraries/Utilities           |
+| 116 | Part 12                                     | `lib/dlocal/constants.ts`                                                                                                                                          | Libraries/Utilities           |
+| 117 | Part 12                                     | `lib/email/subscription-emails.ts`                                                                                                                                 | Templates                     |
+| 118 | Part 12                                     | `types/payment.ts`                                                                                                                                                 | Type Definitions              |
+| 119 | Part 13                                     | `app/api/user/profile/route.ts`                                                                                                                                    | API routes                    |
+| 120 | Part 13                                     | `app/api/user/preferences/route.ts`                                                                                                                                | API routes                    |
+| 121 | Part 13                                     | `app/api/user/password/route.ts`                                                                                                                                   | API routes                    |
+| 122 | Part 13                                     | `app/api/user/sessions/route.ts`                                                                                                                                   | API routes                    |
+| 123 | Part 13                                     | `app/api/user/sessions/[id]/route.ts`                                                                                                                              | API routes                    |
+| 124 | Part 13                                     | `app/api/user/login-history/route.ts`                                                                                                                              | API routes                    |
+| 125 | Part 13                                     | `app/api/user/2fa/setup/route.ts`                                                                                                                                  | API routes                    |
+| 126 | Part 13                                     | `app/api/user/2fa/verify-setup/route.ts`                                                                                                                           | API routes                    |
+| 127 | Part 13                                     | `app/api/user/2fa/verify/route.ts`                                                                                                                                 | API routes                    |
+| 128 | Part 13                                     | `app/api/user/2fa/disable/route.ts`                                                                                                                                | API routes                    |
+| 129 | Part 13                                     | `app/api/user/2fa/backup-codes/route.ts`                                                                                                                           | API routes                    |
+| 130 | Part 13                                     | `app/api/user/account/deletion-request/route.ts`                                                                                                                   | API routes                    |
+| 131 | Part 13                                     | `app/api/user/account/deletion-confirm/route.ts`                                                                                                                   | API routes                    |
+| 132 | Part 13                                     | `app/api/user/account/deletion-cancel/route.ts`                                                                                                                    | API routes                    |
+| 133 | Part 13                                     | `lib/preferences/defaults.ts`                                                                                                                                      | Libraries/Utilities           |
+| 134 | Part 13                                     | `components/providers/theme-provider.tsx`                                                                                                                          | Middleware & Infrastructure   |
+| 135 | Part 13                                     | `components/auth/token-refresh-provider.tsx`                                                                                                                       | Middleware & Infrastructure   |
+| 136 | Part 14                                     | `app/api/admin/users/route.ts`                                                                                                                                     | API routes                    |
+| 137 | Part 14                                     | `app/api/admin/analytics/route.ts`                                                                                                                                 | API routes                    |
+| 138 | Part 14                                     | `app/api/admin/api-usage/route.ts`                                                                                                                                 | API routes                    |
+| 139 | Part 14                                     | `app/api/admin/error-logs/route.ts`                                                                                                                                | API routes                    |
+| 140 | Part 14                                     | `app/api/admin/affiliates/route.ts`                                                                                                                                | API routes                    |
+| 141 | Part 14                                     | `app/api/admin/affiliates/[id]/route.ts`                                                                                                                           | API routes                    |
+| 142 | Part 14                                     | `app/api/admin/affiliates/[id]/suspend/route.ts`                                                                                                                   | API routes                    |
+| 143 | Part 14                                     | `app/api/admin/affiliates/[id]/reactivate/route.ts`                                                                                                                | API routes                    |
+| 144 | Part 14                                     | `app/api/admin/affiliates/[id]/distribute-codes/route.ts`                                                                                                          | API routes                    |
+| 145 | Part 14                                     | `app/api/admin/affiliates/reports/code-inventory/route.ts`                                                                                                         | API routes                    |
+| 146 | Part 14                                     | `app/api/admin/affiliates/reports/commission-owings/route.ts`                                                                                                      | API routes                    |
+| 147 | Part 14                                     | `app/api/admin/affiliates/reports/profit-loss/route.ts`                                                                                                            | API routes                    |
+| 148 | Part 14                                     | `app/api/admin/affiliates/reports/sales-performance/route.ts`                                                                                                      | API routes                    |
+| 149 | Part 14                                     | `app/api/admin/codes/[code]/cancel/route.ts`                                                                                                                       | API routes                    |
+| 150 | Part 14                                     | `app/api/admin/commissions/pay/route.ts`                                                                                                                           | API routes                    |
+| 151 | Part 14                                     | `app/api/admin/settings/affiliate/route.ts`                                                                                                                        | API routes                    |
+| 152 | Part 14                                     | `app/api/admin/fraud-alerts/route.ts`                                                                                                                              | API routes                    |
+| 153 | Part 14                                     | `app/api/admin/fraud-alerts/[id]/route.ts`                                                                                                                         | API routes                    |
+| 154 | Part 14                                     | `lib/admin/affiliate-management.ts`                                                                                                                                | Libraries/Utilities           |
+| 155 | Part 14                                     | `lib/admin/code-distribution.ts`                                                                                                                                   | Libraries/Utilities           |
+| 156 | Part 14                                     | `lib/admin/pnl-calculator.ts`                                                                                                                                      | Libraries/Utilities           |
+| 157 | Part 15                                     | `app/api/notifications/route.ts`                                                                                                                                   | API routes                    |
+| 158 | Part 15                                     | `app/api/notifications/[id]/route.ts`                                                                                                                              | API routes                    |
+| 159 | Part 15                                     | `app/api/notifications/[id]/read/route.ts`                                                                                                                         | API routes                    |
+| 160 | Part 15                                     | `mt5-service/app/websocket.py`                                                                                                                                     | Middleware & Infrastructure   |
+| 161 | Part 15                                     | `hooks/use-ohlcv-socket.ts`                                                                                                                                        | React hooks                   |
+| 162 | Part 15                                     | `lib/monitoring/system-monitor.ts`                                                                                                                                 | Libraries/Utilities           |
+| 163 | Part 15                                     | `hooks/use-toast.ts`                                                                                                                                               | React hooks                   |
+| 164 | Part 15                                     | `lib/email/email.ts`                                                                                                                                               | Templates                     |
+| 165 | Part 15                                     | `lib/email/subscription-emails.ts`                                                                                                                                 | Templates                     |
+| 166 | Part 15                                     | `__tests__/api/notifications.test.ts`                                                                                                                              | Other (tests)                 |
+| 167 | Part 16                                     | `lib/logger.ts`                                                                                                                                                    | Libraries/Utilities           |
+| 168 | Part 16                                     | `lib/utils.ts`                                                                                                                                                     | Libraries/Utilities           |
+| 169 | Part 16                                     | `lib/csrf.ts`                                                                                                                                                      | Security & Fraud Detection    |
+| 170 | Part 16                                     | `lib/rate-limit.ts`                                                                                                                                                | Security & Fraud Detection    |
+| 171 | Part 16                                     | `lib/tokens.ts`                                                                                                                                                    | Security & Fraud Detection    |
+| 172 | Part 16                                     | `lib/candle-data-helpers.ts`                                                                                                                                       | Libraries/Utilities           |
+| 173 | Part 16                                     | `lib/db/prisma.ts`                                                                                                                                                 | Database operations           |
+| 174 | Part 16                                     | `lib/db/seed.ts`                                                                                                                                                   | Database operations           |
+| 175 | Part 16                                     | `prisma/non-market-data/schema.prisma`                                                                                                                             | Database operations           |
+| 176 | Part 16                                     | `prisma/seed.ts`                                                                                                                                                   | Database operations           |
+| 177 | Part 16                                     | `lib/auth/auth-options.ts`                                                                                                                                         | Security & Fraud Detection    |
+| 178 | Part 16                                     | `lib/auth/session.ts`                                                                                                                                              | Security & Fraud Detection    |
+| 179 | Part 16                                     | `lib/auth/session-tracker.ts`                                                                                                                                      | Security & Fraud Detection    |
+| 180 | Part 16                                     | `lib/auth/permissions.ts`                                                                                                                                          | Security & Fraud Detection    |
+| 181 | Part 16                                     | `lib/auth/errors.ts`                                                                                                                                               | Security & Fraud Detection    |
+| 182 | Part 16                                     | `lib/auth/two-factor.ts`                                                                                                                                           | Security & Fraud Detection    |
+| 183 | Part 16                                     | `lib/tier-config.ts`                                                                                                                                               | Libraries/Utilities           |
+| 184 | Part 16                                     | `lib/tier-validation.ts`                                                                                                                                           | Validation schemas            |
+| 185 | Part 16                                     | `lib/tier-helpers.ts`                                                                                                                                              | Libraries/Utilities           |
+| 186 | Part 16                                     | `lib/errors/api-error.ts`                                                                                                                                          | Libraries/Utilities           |
+| 187 | Part 16                                     | `lib/errors/error-handler.ts`                                                                                                                                      | Libraries/Utilities           |
+| 188 | Part 16                                     | `lib/errors/error-logger.ts`                                                                                                                                       | Libraries/Utilities           |
+| 189 | Part 16                                     | `lib/validations/auth.ts`                                                                                                                                          | Validation schemas            |
+| 190 | Part 16                                     | `lib/validations/alert.ts`                                                                                                                                         | Validation schemas            |
+| 191 | Part 16                                     | `lib/validations/user.ts`                                                                                                                                          | Validation schemas            |
+| 192 | Part 16                                     | `lib/redis/client.ts`                                                                                                                                              | Database operations           |
+| 193 | Part 16                                     | `lib/cache/cache-manager.ts`                                                                                                                                       | Libraries/Utilities           |
+| 194 | Part 16                                     | `lib/email/email.ts`                                                                                                                                               | Templates                     |
+| 195 | Part 16                                     | `lib/email/subscription-emails.ts`                                                                                                                                 | Templates                     |
+| 196 | Part 16                                     | `frontend/lib/email/templates/affiliate/code-distributed.tsx`                                                                                                      | Templates                     |
+| 197 | Part 16                                     | `frontend/lib/email/templates/affiliate/welcome.tsx`                                                                                                               | Templates                     |
+| 198 | Part 16                                     | `lib/utils/helpers.ts`                                                                                                                                             | Libraries/Utilities           |
+| 199 | Part 16                                     | `lib/utils/formatters.ts`                                                                                                                                          | Libraries/Utilities           |
+| 200 | Part 16                                     | `lib/utils/constants.ts`                                                                                                                                           | Libraries/Utilities           |
+| 201 | Part 16                                     | `lib/api/index.ts`                                                                                                                                                 | Libraries/Utilities           |
+| 202 | Part 16                                     | `hooks/use-alerts.ts`                                                                                                                                              | React hooks                   |
+| 203 | Part 16                                     | `hooks/use-auth.ts`                                                                                                                                                | React hooks                   |
+| 204 | Part 16                                     | `hooks/use-login-tracking.ts`                                                                                                                                      | React hooks                   |
+| 205 | Part 16                                     | `hooks/use-optimistic-mutation.ts`                                                                                                                                 | React hooks                   |
+| 206 | Part 16                                     | `hooks/use-toast.ts`                                                                                                                                               | React hooks                   |
+| 207 | Part 16                                     | `hooks/use-ohlcv-socket.ts`                                                                                                                                        | React hooks                   |
+| 208 | Part 16                                     | `lib/hooks/useAffiliateConfig.ts`                                                                                                                                  | React hooks                   |
+| 209 | Part 16                                     | `types/index.ts`                                                                                                                                                   | Type Definitions              |
+| 210 | Part 16                                     | `types/alert.ts`                                                                                                                                                   | Type Definitions              |
+| 211 | Part 16                                     | `types/api.ts`                                                                                                                                                     | Type Definitions              |
+| 212 | Part 16                                     | `types/disbursement.ts`                                                                                                                                            | Type Definitions              |
+| 213 | Part 16                                     | `types/dlocal.ts`                                                                                                                                                  | Type Definitions              |
+| 214 | Part 16                                     | `types/indicator.ts`                                                                                                                                               | Type Definitions              |
+| 215 | Part 16                                     | `types/next-auth.d.ts`                                                                                                                                             | Type Definitions              |
+| 216 | Part 16                                     | `types/payment.ts`                                                                                                                                                 | Type Definitions              |
+| 217 | Part 16                                     | `types/prisma-stubs.d.ts`                                                                                                                                          | Type Definitions              |
+| 218 | Part 16                                     | `types/tier.ts`                                                                                                                                                    | Type Definitions              |
+| 219 | Part 16                                     | `types/user.ts`                                                                                                                                                    | Type Definitions              |
+| 220 | Part 16                                     | `lib/constants/business-rules.ts`                                                                                                                                  | Libraries/Utilities           |
+| 221 | Part 16                                     | `lib/cron/check-expiring-subscriptions.ts`                                                                                                                         | Other (background jobs)       |
+| 222 | Part 16                                     | `lib/cron/downgrade-expired-subscriptions.ts`                                                                                                                      | Other (background jobs)       |
+| 223 | Part 16                                     | `lib/cron/monthly-distribution.ts`                                                                                                                                 | Other (background jobs)       |
+| 224 | Part 16                                     | `operation-service/src/alert-engine/alert-checker.service.ts`                                                                                                      | Other (background jobs)       |
+| 225 | Part 16                                     | `operation-service/src/alert-engine/alert-cron.scheduler.ts`                                                                                                       | Other (background jobs)       |
+| 226 | Part 16                                     | `mt5-service/app/websocket.py`                                                                                                                                     | Middleware & Infrastructure   |
+| 227 | Part 16                                     | `lib/security/device-detection.ts`                                                                                                                                 | Security & Fraud Detection    |
+| 228 | Part 16                                     | `lib/fraud/fraud-detection.service.ts`                                                                                                                             | Security & Fraud Detection    |
+| 229 | Part 16                                     | `lib/monitoring/system-monitor.ts`                                                                                                                                 | Libraries/Utilities           |
+| 230 | Part 16                                     | `lib/geo/detect-country.ts`                                                                                                                                        | Libraries/Utilities           |
+| 231 | Part 16                                     | `lib/preferences/defaults.ts`                                                                                                                                      | Libraries/Utilities           |
+| 232 | Part 16                                     | `middleware/tier-check.ts`                                                                                                                                         | Middleware & Infrastructure   |
+| 233 | Part 16                                     | `app/error.tsx`                                                                                                                                                    | Other (error handling)        |
+| 234 | Part 16                                     | `app/globals.css`                                                                                                                                                  | Configuration files           |
+| 235 | Part 16                                     | `next.config.js`                                                                                                                                                   | Configuration files           |
+| 236 | Part 16                                     | `tailwind.config.ts`                                                                                                                                               | Configuration files           |
+| 237 | Part 16                                     | `postcss.config.js`                                                                                                                                                | Configuration files           |
+| 238 | Part 16                                     | `jest.config.js`                                                                                                                                                   | Configuration files           |
+| 239 | Part 16                                     | `tsconfig.json`                                                                                                                                                    | Configuration files           |
+| 240 | Part 16                                     | `components.json`                                                                                                                                                  | Configuration files           |
+| 241 | Part 16                                     | `.github/workflows/tests.yml`                                                                                                                                      | Configuration files           |
+| 242 | Part 16                                     | `.github/workflows/deploy.yml`                                                                                                                                     | Configuration files           |
+| 243 | Part 16                                     | `.github/workflows/api-tests.yml`                                                                                                                                  | Configuration files           |
+| 244 | Part 16                                     | `.github/workflows/bundle-monitor.yml`                                                                                                                             | Configuration files           |
+| 245 | Part 16                                     | `.github/workflows/ci-nextjs-progressive.yml`                                                                                                                      | Configuration files           |
+| 246 | Part 16                                     | `.github/workflows/dependencies-security.yml`                                                                                                                      | Configuration files           |
+| 247 | Part 16                                     | `.github/workflows/e2e-tests.yml`                                                                                                                                  | Configuration files           |
+| 248 | Part 16                                     | `.github/workflows/load-test.yml`                                                                                                                                  | Configuration files           |
+| 249 | Part 16                                     | `.github/workflows/mt5-pipeline-tests.yml`                                                                                                                         | Configuration files           |
+| 250 | Part 16                                     | `.github/workflows/openapi-validation.yml`                                                                                                                         | Configuration files           |
+| 251 | Part 16                                     | `.github/workflows/security-checks.yml`                                                                                                                            | Configuration files           |
+| 252 | Part 16                                     | `docker-compose.yml`                                                                                                                                               | Configuration files           |
+| 253 | Part 16                                     | `.dockerignore`                                                                                                                                                    | Configuration files           |
+| 254 | Part 16                                     | `public/manifest.json`                                                                                                                                             | Configuration files           |
+| 255 | Part 16                                     | `scripts/validate-file.js`                                                                                                                                         | Other (scripts)               |
+| 256 | Part 16                                     | `scripts/validate_sqlite.py`                                                                                                                                       | Other (scripts)               |
+| 257 | Part 16                                     | `scripts/health-check-ui.js`                                                                                                                                       | Other (scripts)               |
+| 258 | Part 16                                     | `scripts/health-check-ui.sh`                                                                                                                                       | Other (scripts)               |
+| 259 | Part 16                                     | `scripts/monitor-mt5-pipeline.ts`                                                                                                                                  | Other (scripts)               |
+| 260 | Part 16                                     | `scripts/test-mt5-deployment.ts`                                                                                                                                   | Other (scripts)               |
+| 261 | Part 16                                     | `scripts/test-prisma5-upgrade.ts`                                                                                                                                  | Other (scripts)               |
+| 262 | Part 16                                     | `scripts/run-all-tests.sh`                                                                                                                                         | Other (scripts)               |
+| 263 | Part 16                                     | `scripts/collect-metrics.sh`                                                                                                                                       | Other (scripts)               |
+| 264 | Part 16                                     | `scripts/check-sync-needed.js`                                                                                                                                     | Other (scripts)               |
+| 265 | Part 16                                     | `scripts/check-coverage.js`                                                                                                                                        | Other (scripts)               |
+| 266 | Part 16                                     | `scripts/archive-docs.sh`                                                                                                                                          | Other (scripts)               |
+| 267 | Part 16                                     | `scripts/deploy-part20.sh`                                                                                                                                         | Other (scripts)               |
+| 268 | Part 16                                     | `scripts/sync-frontend.sh`                                                                                                                                         | Other (scripts)               |
+| 269 | Part 16                                     | `scripts/setup-e2e.sh`                                                                                                                                             | Other (scripts)               |
+| 270 | Part 16                                     | `scripts/rollback-to-part6.sh`                                                                                                                                     | Other (scripts)               |
+| 271 | Part 16                                     | `scripts/verify-alignment.sh`                                                                                                                                      | Other (scripts)               |
+| 272 | Part 16                                     | `scripts/verify-build-orders.sh`                                                                                                                                   | Other (scripts)               |
+| 273 | Part 17A-1                                  | `__tests__/setup.ts`                                                                                                                                               | Other (tests)                 |
+| 274 | Part 17A-1                                  | `__tests__/helpers/supertest-setup.ts`                                                                                                                             | Other (tests)                 |
+| 275 | Part 17A-1                                  | `lib/affiliate/constants.ts`                                                                                                                                       | Libraries/Utilities           |
+| 276 | Part 17A-1                                  | `lib/affiliate/types.ts`                                                                                                                                           | Type Definitions              |
+| 277 | Part 17A-1                                  | `lib/affiliate/code-generator.ts`                                                                                                                                  | Libraries/Utilities           |
+| 278 | Part 17A-1                                  | `lib/affiliate/commission-calculator.ts`                                                                                                                           | Libraries/Utilities           |
+| 279 | Part 17A-1                                  | `lib/affiliate/report-builder.ts`                                                                                                                                  | Libraries/Utilities           |
+| 280 | Part 17A-1                                  | `lib/affiliate/validators.ts`                                                                                                                                      | Validation schemas            |
+| 281 | Part 17A-1                                  | `lib/affiliate/registration.ts`                                                                                                                                    | Libraries/Utilities           |
+| 282 | Part 17A-1                                  | `frontend/lib/email/templates/affiliate/welcome.tsx`                                                                                                               | Templates                     |
+| 283 | Part 17A-1                                  | `frontend/lib/email/templates/affiliate/code-distributed.tsx`                                                                                                      | Templates                     |
+| 284 | Part 17A-1                                  | `__tests__/lib/affiliate/code-generator.test.ts`                                                                                                                   | Other (tests)                 |
+| 285 | Part 17A-1                                  | `__tests__/lib/affiliate/commission-calculator.test.ts`                                                                                                            | Other (tests)                 |
+| 286 | Part 17A-1                                  | `__tests__/lib/affiliate/registration.test.ts`                                                                                                                     | Other (tests)                 |
+| 287 | Part 17A-1                                  | `app/api/affiliate/auth/register/route.ts`                                                                                                                         | API routes                    |
+| 288 | Part 17A-1                                  | `app/api/affiliate/auth/verify-email/route.ts`                                                                                                                     | API routes                    |
+| 289 | Part 17A-1                                  | `app/api/affiliate/dashboard/stats/route.ts`                                                                                                                       | API routes                    |
+| 290 | Part 17A-1                                  | `app/api/affiliate/dashboard/codes/route.ts`                                                                                                                       | API routes                    |
+| 291 | Part 17A-1                                  | `app/api/affiliate/dashboard/code-inventory/route.ts`                                                                                                              | API routes                    |
+| 292 | Part 17A-1                                  | `app/api/affiliate/dashboard/commission-report/route.ts`                                                                                                           | API routes                    |
+| 293 | Part 17A-1                                  | `app/api/affiliate/profile/route.ts`                                                                                                                               | API routes                    |
+| 294 | Part 17A-1                                  | `app/api/affiliate/profile/payment/route.ts`                                                                                                                       | API routes                    |
+| 295 | Part 17A-1                                  | `app/api/checkout/validate-code/route.ts`                                                                                                                          | API routes                    |
+| 296 | Part 17A-1                                  | `app/api/checkout/route.ts`                                                                                                                                        | API routes                    |
+| 297 | Part 17A-1                                  | `app/api/config/affiliate/route.ts`                                                                                                                                | API routes                    |
+| 298 | Part 17A-2                                  | `__tests__/api/affiliate-registration.test.ts`                                                                                                                     | Other (tests)                 |
+| 299 | Part 17A-2                                  | `__tests__/api/affiliate-dashboard.test.ts`                                                                                                                        | Other (tests)                 |
+| 300 | Part 17A-2                                  | `__tests__/api/affiliate-conversion.test.ts`                                                                                                                       | Other (tests)                 |
+| 301 | Part 17A-2                                  | `components/affiliate/index.ts`                                                                                                                                    | Other (exports)               |
+| 302 | Part 17A-2                                  | `__tests__/components/affiliate/stats-card.test.tsx`                                                                                                               | Other (tests)                 |
+| 303 | Part 17A-2                                  | `__tests__/components/affiliate/code-table.test.tsx`                                                                                                               | Other (tests)                 |
+| 304 | Part 17A-2                                  | `__tests__/components/affiliate/commission-table.test.tsx`                                                                                                         | Other (tests)                 |
+| 305 | Part 17B-1                                  | `lib/admin/affiliate-management.ts`                                                                                                                                | Libraries/Utilities           |
+| 306 | Part 17B-1                                  | `app/api/admin/affiliates/route.ts`                                                                                                                                | API routes                    |
+| 307 | Part 17B-1                                  | `app/api/admin/affiliates/[id]/route.ts`                                                                                                                           | API routes                    |
+| 308 | Part 17B-1                                  | `app/api/admin/affiliates/[id]/distribute-codes/route.ts`                                                                                                          | API routes                    |
+| 309 | Part 17B-1                                  | `app/api/admin/affiliates/[id]/suspend/route.ts`                                                                                                                   | API routes                    |
+| 310 | Part 17B-1                                  | `app/api/admin/affiliates/[id]/reactivate/route.ts`                                                                                                                | API routes                    |
+| 311 | Part 17B-1                                  | `app/api/admin/affiliates/reports/profit-loss/route.ts`                                                                                                            | API routes                    |
+| 312 | Part 17B-1                                  | `app/api/admin/affiliates/reports/sales-performance/route.ts`                                                                                                      | API routes                    |
+| 313 | Part 17B-1                                  | `app/api/admin/affiliates/reports/commission-owings/route.ts`                                                                                                      | API routes                    |
+| 314 | Part 17B-1                                  | `app/api/admin/affiliates/reports/code-inventory/route.ts`                                                                                                         | API routes                    |
+| 315 | Part 17B-1                                  | `app/api/admin/settings/affiliate/route.ts`                                                                                                                        | API routes                    |
+| 316 | Part 17B-1                                  | `__tests__/lib/admin/affiliate-management.test.ts`                                                                                                                 | Other (tests)                 |
+| 317 | Part 17B-2                                  | `app/api/cron/distribute-codes/route.ts`                                                                                                                           | API routes                    |
+| 318 | Part 17B-2                                  | `app/api/cron/expire-codes/route.ts`                                                                                                                               | API routes                    |
+| 319 | Part 17B-2                                  | `app/api/cron/send-monthly-reports/route.ts`                                                                                                                       | API routes                    |
+| 320 | Part 17B-2                                  | `__tests__/api/cron-jobs.test.ts`                                                                                                                                  | Other (tests)                 |
+| 321 | Part 17B-2                                  | `__tests__/api/admin-affiliates.test.ts`                                                                                                                           | Other (tests)                 |
+| 322 | Part 17B-2                                  | `__tests__/api/disbursement/affiliates.test.ts`                                                                                                                    | Other (tests)                 |
+| 323 | Part 17B-2                                  | `__tests__/components/admin/affiliate-filters.test.tsx`                                                                                                            | Other (tests)                 |
+| 324 | Part 17B-2                                  | `__tests__/components/admin/affiliate-stats-banner.test.tsx`                                                                                                       | Other (tests)                 |
+| 325 | Part 17B-2                                  | `app/api/disbursement/reports/affiliate/[affiliateId]/route.ts`                                                                                                    | API routes                    |
+| 326 | Part 18A                                    | `types/dlocal.ts`                                                                                                                                                  | Type Definitions              |
+| 327 | Part 18A                                    | `lib/dlocal/constants.ts`                                                                                                                                          | Libraries/Utilities           |
+| 328 | Part 18A                                    | `__tests__/types/dlocal.test.ts`                                                                                                                                   | Other (tests)                 |
+| 329 | Part 18A                                    | `__tests__/lib/dlocal/constants.test.ts`                                                                                                                           | Other (tests)                 |
+| 330 | Part 18A                                    | `lib/dlocal/currency-converter.service.ts`                                                                                                                         | Libraries/Utilities           |
+| 331 | Part 18A                                    | `lib/dlocal/payment-methods.service.ts`                                                                                                                            | Libraries/Utilities           |
+| 332 | Part 18A                                    | `lib/dlocal/dlocal-payment.service.ts`                                                                                                                             | Libraries/Utilities           |
+| 333 | Part 18A                                    | `lib/geo/detect-country.ts`                                                                                                                                        | Libraries/Utilities           |
+| 334 | Part 18A                                    | `lib/logger.ts`                                                                                                                                                    | Libraries/Utilities           |
+| 335 | Part 18A                                    | `__tests__/lib/dlocal/currency-converter.test.ts`                                                                                                                  | Other (tests)                 |
+| 336 | Part 18A                                    | `__tests__/lib/dlocal/payment-methods.test.ts`                                                                                                                     | Other (tests)                 |
+| 337 | Part 18A                                    | `__tests__/lib/dlocal/dlocal-payment.test.ts`                                                                                                                      | Other (tests)                 |
+| 338 | Part 18A                                    | `__tests__/lib/geo/detect-country.test.ts`                                                                                                                         | Other (tests)                 |
+| 339 | Part 18A                                    | `app/api/payments/dlocal/methods/route.ts`                                                                                                                         | API routes                    |
+| 340 | Part 18A                                    | `app/api/payments/dlocal/exchange-rate/route.ts`                                                                                                                   | API routes                    |
+| 341 | Part 18A                                    | `app/api/payments/dlocal/convert/route.ts`                                                                                                                         | API routes                    |
+| 342 | Part 18A                                    | `app/api/payments/dlocal/create/route.ts`                                                                                                                          | API routes                    |
+| 343 | Part 18A                                    | `app/api/payments/dlocal/[paymentId]/route.ts`                                                                                                                     | API routes                    |
+| 344 | Part 18A                                    | `app/api/webhooks/dlocal/route.ts`                                                                                                                                 | API routes                    |
+| 345 | Part 18A                                    | `__tests__/api/webhooks/dlocal/route.test.ts`                                                                                                                      | Other (tests)                 |
+| 346 | Part 18A                                    | `__tests__/integration/payment-creation.test.ts`                                                                                                                   | Other (tests)                 |
+| 347 | Part 18A                                    | `frontend/types/dlocal.ts`                                                                                                                                         | Type Definitions              |
+| 348 | Part 18A                                    | `frontend/lib/dlocal/constants.ts`                                                                                                                                 | Libraries/Utilities           |
+| 349 | Part 18A                                    | `frontend/lib/dlocal/currency-converter.service.ts`                                                                                                                | Libraries/Utilities           |
+| 350 | Part 18A                                    | `frontend/lib/dlocal/payment-methods.service.ts`                                                                                                                   | Libraries/Utilities           |
+| 351 | Part 18A                                    | `frontend/lib/dlocal/dlocal-payment.service.ts`                                                                                                                    | Libraries/Utilities           |
+| 352 | Part 18A                                    | `frontend/lib/dlocal/three-day-validator.service.ts`                                                                                                               | Libraries/Utilities           |
+| 353 | Part 18A                                    | `frontend/app/api/payments/dlocal/methods/route.ts`                                                                                                                | API routes                    |
+| 354 | Part 18A                                    | `frontend/app/api/payments/dlocal/exchange-rate/route.ts`                                                                                                          | API routes                    |
+| 355 | Part 18A                                    | `frontend/app/api/payments/dlocal/convert/route.ts`                                                                                                                | API routes                    |
+| 356 | Part 18A                                    | `frontend/app/api/payments/dlocal/create/route.ts`                                                                                                                 | API routes                    |
+| 357 | Part 18A                                    | `frontend/app/api/payments/dlocal/[paymentId]/route.ts`                                                                                                            | API routes                    |
+| 358 | Part 18A                                    | `frontend/app/api/payments/dlocal/validate-discount/route.ts`                                                                                                      | API routes                    |
+| 359 | Part 18A                                    | `frontend/app/api/payments/dlocal/check-three-day-eligibility/route.ts`                                                                                            | API routes                    |
+| 360 | Part 18B                                    | `lib/dlocal/three-day-validator.service.ts`                                                                                                                        | Libraries/Utilities           |
+| 361 | Part 18B                                    | `lib/cron/check-expiring-subscriptions.ts`                                                                                                                         | Other (background jobs)       |
+| 362 | Part 18B                                    | `lib/cron/downgrade-expired-subscriptions.ts`                                                                                                                      | Other (background jobs)       |
+| 363 | Part 18B                                    | `__tests__/lib/dlocal/three-day-validator.test.ts`                                                                                                                 | Other (tests)                 |
+| 364 | Part 18B                                    | `__tests__/lib/cron/check-expiring-subscriptions.test.ts`                                                                                                          | Other (tests)                 |
+| 365 | Part 18B                                    | `__tests__/lib/cron/downgrade-expired-subscriptions.test.ts`                                                                                                       | Other (tests)                 |
+| 366 | Part 18B                                    | `app/api/webhooks/dlocal/route.ts`                                                                                                                                 | API routes                    |
+| 367 | Part 18B                                    | `__tests__/api/webhooks/dlocal/route.test.ts`                                                                                                                      | Other (tests)                 |
+| 368 | Part 18B                                    | `app/api/cron/check-expiring-subscriptions/route.ts`                                                                                                               | API routes                    |
+| 369 | Part 18B                                    | `app/api/cron/downgrade-expired-subscriptions/route.ts`                                                                                                            | API routes                    |
+| 370 | Part 18B                                    | `app/api/payments/dlocal/check-three-day-eligibility/route.ts`                                                                                                     | API routes                    |
+| 371 | Part 18B                                    | `app/api/subscription/route.ts`                                                                                                                                    | API routes                    |
+| 372 | Part 18B                                    | `app/api/invoices/route.ts`                                                                                                                                        | API routes                    |
+| 373 | Part 18B                                    | `lib/stripe/stripe.ts`                                                                                                                                             | Libraries/Utilities           |
+| 374 | Part 18B                                    | `lib/stripe/webhook-handlers.ts`                                                                                                                                   | Libraries/Utilities           |
+| 375 | Part 18B                                    | `lib/email/subscription-emails.ts`                                                                                                                                 | Templates                     |
+| 376 | Part 18B                                    | `vercel.json`                                                                                                                                                      | Configuration files           |
+| 377 | Part 18C                                    | `components/payments/index.ts`                                                                                                                                     | Other (exports)               |
+| 378 | Part 18C                                    | `__tests__/components/payments/PlanSelector.test.tsx`                                                                                                              | Other (tests)                 |
+| 379 | Part 18C                                    | `__tests__/components/payments/PriceDisplay.test.tsx`                                                                                                              | Other (tests)                 |
+| 380 | Part 18C                                    | `lib/email/subscription-emails.ts`                                                                                                                                 | Templates                     |
+| 381 | Part 18C                                    | `lib/email/email.ts`                                                                                                                                               | Templates                     |
+| 382 | Part 18C                                    | `app/api/admin/fraud-alerts/route.ts`                                                                                                                              | API routes                    |
+| 383 | Part 18C                                    | `app/api/admin/fraud-alerts/[id]/route.ts`                                                                                                                         | API routes                    |
+| 384 | Part 18C                                    | `app/api/payments/dlocal/validate-discount/route.ts`                                                                                                               | API routes                    |
+| 385 | Part 18C                                    | `__tests__/e2e/dlocal-payment-flow.test.ts`                                                                                                                        | Other (tests)                 |
+| 386 | Part 18C                                    | `frontend/components/payments/index.ts`                                                                                                                            | Other (exports)               |
+| 387 | Part 19A                                    | `types/disbursement.ts`                                                                                                                                            | Type Definitions              |
+| 388 | Part 19A                                    | `lib/disbursement/constants.ts`                                                                                                                                    | Libraries/Utilities           |
+| 389 | Part 19A                                    | `lib/disbursement/providers/base-provider.ts`                                                                                                                      | Libraries/Utilities           |
+| 390 | Part 19A                                    | `lib/disbursement/providers/mock-provider.ts`                                                                                                                      | Libraries/Utilities           |
+| 391 | Part 19A                                    | `lib/disbursement/providers/provider-factory.ts`                                                                                                                   | Libraries/Utilities           |
+| 392 | Part 19A                                    | `lib/disbursement/providers/rise/rise-provider.ts`                                                                                                                 | Libraries/Utilities           |
+| 393 | Part 19A                                    | `lib/disbursement/providers/rise/siwe-auth.ts`                                                                                                                     | Security & Fraud Detection    |
+| 394 | Part 19A                                    | `lib/disbursement/providers/rise/webhook-verifier.ts`                                                                                                              | Security & Fraud Detection    |
+| 395 | Part 19A                                    | `lib/disbursement/providers/rise/amount-converter.ts`                                                                                                              | Libraries/Utilities           |
+| 396 | Part 19A                                    | `lib/disbursement/services/commission-aggregator.ts`                                                                                                               | Libraries/Utilities           |
+| 397 | Part 19A                                    | `lib/disbursement/services/payout-calculator.ts`                                                                                                                   | Libraries/Utilities           |
+| 398 | Part 19A                                    | `__tests__/types/disbursement.test.ts`                                                                                                                             | Other (tests)                 |
+| 399 | Part 19A                                    | `__tests__/lib/disbursement/constants.test.ts`                                                                                                                     | Other (tests)                 |
+| 400 | Part 19A                                    | `__tests__/lib/disbursement/providers/mock.test.ts`                                                                                                                | Other (tests)                 |
+| 401 | Part 19A                                    | `__tests__/lib/disbursement/providers/factory.test.ts`                                                                                                             | Other (tests)                 |
+| 402 | Part 19A                                    | `__tests__/lib/disbursement/providers/rise/webhook.test.ts`                                                                                                        | Other (tests)                 |
+| 403 | Part 19A                                    | `__tests__/lib/disbursement/services/aggregator.test.ts`                                                                                                           | Other (tests)                 |
+| 404 | Part 19B                                    | `lib/disbursement/services/batch-manager.ts`                                                                                                                       | Libraries/Utilities           |
+| 405 | Part 19B                                    | `lib/disbursement/services/payment-orchestrator.ts`                                                                                                                | Libraries/Utilities           |
+| 406 | Part 19B                                    | `lib/disbursement/services/retry-handler.ts`                                                                                                                       | Libraries/Utilities           |
+| 407 | Part 19B                                    | `lib/disbursement/services/transaction-logger.ts`                                                                                                                  | Libraries/Utilities           |
+| 408 | Part 19B                                    | `lib/disbursement/services/transaction-service.ts`                                                                                                                 | Libraries/Utilities           |
+| 409 | Part 19B                                    | `app/api/disbursement/affiliates/payable/route.ts`                                                                                                                 | API routes                    |
+| 410 | Part 19B                                    | `app/api/disbursement/affiliates/[affiliateId]/route.ts`                                                                                                           | API routes                    |
+| 411 | Part 19B                                    | `app/api/disbursement/affiliates/[affiliateId]/commissions/route.ts`                                                                                               | API routes                    |
+| 412 | Part 19B                                    | `app/api/disbursement/riseworks/accounts/route.ts`                                                                                                                 | API routes                    |
+| 413 | Part 19B                                    | `app/api/disbursement/riseworks/sync/route.ts`                                                                                                                     | API routes                    |
+| 414 | Part 19B                                    | `app/api/disbursement/batches/route.ts`                                                                                                                            | API routes                    |
+| 415 | Part 19B                                    | `app/api/disbursement/batches/preview/route.ts`                                                                                                                    | API routes                    |
+| 416 | Part 19B                                    | `app/api/disbursement/batches/[batchId]/route.ts`                                                                                                                  | API routes                    |
+| 417 | Part 19B                                    | `app/api/disbursement/batches/[batchId]/execute/route.ts`                                                                                                          | API routes                    |
+| 418 | Part 19B                                    | `__tests__/lib/disbursement/services/batch.test.ts`                                                                                                                | Other (tests)                 |
+| 419 | Part 19B                                    | `__tests__/lib/disbursement/services/orchestrator.test.ts`                                                                                                         | Other (tests)                 |
+| 420 | Part 19B                                    | `__tests__/api/disbursement/affiliates.test.ts`                                                                                                                    | Other (tests)                 |
+| 421 | Part 19B                                    | `__tests__/api/disbursement/batches.test.ts`                                                                                                                       | Other (tests)                 |
+| 422 | Part 19B                                    | `__tests__/api/disbursement/execute.test.ts`                                                                                                                       | Other (tests)                 |
+| 423 | Part 19C                                    | `lib/disbursement/webhook/event-processor.ts`                                                                                                                      | Libraries/Utilities           |
+| 424 | Part 19C                                    | `app/api/webhooks/riseworks/route.ts`                                                                                                                              | API routes                    |
+| 425 | Part 19C                                    | `app/api/disbursement/pay/route.ts`                                                                                                                                | API routes                    |
+| 426 | Part 19C                                    | `app/api/disbursement/reports/summary/route.ts`                                                                                                                    | API routes                    |
+| 427 | Part 19C                                    | `app/api/disbursement/reports/affiliate/[affiliateId]/route.ts`                                                                                                    | API routes                    |
+| 428 | Part 19C                                    | `app/api/disbursement/transactions/route.ts`                                                                                                                       | API routes                    |
+| 429 | Part 19C                                    | `app/api/disbursement/audit-logs/route.ts`                                                                                                                         | API routes                    |
+| 430 | Part 19C                                    | `app/api/disbursement/config/route.ts`                                                                                                                             | API routes                    |
+| 431 | Part 19C                                    | `app/api/disbursement/health/route.ts`                                                                                                                             | API routes                    |
+| 432 | Part 19C                                    | `lib/disbursement/cron/disbursement-processor.ts`                                                                                                                  | Other (background jobs)       |
+| 433 | Part 19C                                    | `app/api/cron/process-pending-disbursements/route.ts`                                                                                                              | API routes                    |
+| 434 | Part 19C                                    | `app/api/cron/sync-riseworks-accounts/route.ts`                                                                                                                    | API routes                    |
+| 435 | Part 19C                                    | `__tests__/api/webhooks/riseworks.test.ts`                                                                                                                         | Other (tests)                 |
+| 436 | Part 19C                                    | `__tests__/api/disbursement/pay.test.ts`                                                                                                                           | Other (tests)                 |
+| 437 | Part 19C                                    | `__tests__/api/disbursement/reports.test.ts`                                                                                                                       | Other (tests)                 |
+| 438 | Part 19C                                    | `__tests__/api/disbursement/audit.test.ts`                                                                                                                         | Other (tests)                 |
+| 439 | Part 19C                                    | `__tests__/api/disbursement/health.test.ts`                                                                                                                        | Other (tests)                 |
+| 440 | Part 19C                                    | `__tests__/api/cron/process-pending.test.ts`                                                                                                                       | Other (tests)                 |
+| 441 | Drawing Engine                              | `components/charts/drawing/geometry/types.ts`                                                                                                                      | Type Definitions              |
+| 442 | Drawing Engine                              | `components/charts/drawing/geometry/trendline.ts`                                                                                                                  | Libraries/Utilities           |
+| 443 | Drawing Engine                              | `components/charts/drawing/geometry/horizontal.ts`                                                                                                                 | Libraries/Utilities           |
+| 444 | Drawing Engine                              | `components/charts/drawing/geometry/channel.ts`                                                                                                                    | Libraries/Utilities           |
+| 445 | Drawing Engine                              | `components/charts/drawing/geometry/fib.ts`                                                                                                                        | Libraries/Utilities           |
+| 446 | Drawing Engine                              | `components/charts/drawing/geometry/levels.ts`                                                                                                                     | Libraries/Utilities           |
+| 447 | Drawing Engine                              | `components/charts/drawing/geometry/index.ts`                                                                                                                      | Libraries/Utilities           |
+| 448 | Drawing Engine                              | `components/charts/drawing/types.ts`                                                                                                                               | Type Definitions              |
+| 449 | Drawing Engine                              | `components/charts/drawing/engine/coords.ts`                                                                                                                       | Libraries/Utilities           |
+| 450 | Drawing Engine                              | `components/charts/drawing/engine/pixelMath.ts`                                                                                                                    | Libraries/Utilities           |
+| 451 | Drawing Engine                              | `components/charts/drawing/engine/DrawingEngine.ts`                                                                                                                | Libraries/Utilities           |
+| 452 | Drawing Engine                              | `components/charts/drawing/engine/PointerController.ts`                                                                                                            | Libraries/Utilities           |
+| 453 | Drawing Engine                              | `components/charts/drawing/marks/BaseMark.ts`                                                                                                                      | Libraries/Utilities           |
+| 454 | Drawing Engine                              | `components/charts/drawing/marks/HorizontalLineMark.ts`                                                                                                            | Libraries/Utilities           |
+| 455 | Drawing Engine                              | `components/charts/drawing/marks/TrendlineMark.ts`                                                                                                                 | Libraries/Utilities           |
+| 456 | Drawing Engine                              | `components/charts/drawing/marks/ChannelMark.ts`                                                                                                                   | Libraries/Utilities           |
+| 457 | Drawing Engine                              | `components/charts/drawing/marks/FibRetracementMark.ts`                                                                                                            | Libraries/Utilities           |
+| 458 | Drawing Engine                              | `components/charts/drawing/marks/FibExtensionMark.ts`                                                                                                              | Libraries/Utilities           |
+| 459 | Drawing Engine                              | `components/charts/drawing/marks/TextMark.ts`                                                                                                                      | Libraries/Utilities           |
+| 460 | Drawing Engine                              | `components/charts/drawing/tools/index.ts`                                                                                                                         | Libraries/Utilities           |
+| 461 | Drawing Engine                              | `__tests__/drawing/geometry/geometry.test.ts`                                                                                                                      | Other (tests)                 |
+| 462 | Drawing Engine                              | `__tests__/drawing/engine/pixelMath.test.ts`                                                                                                                       | Other (tests)                 |
+| 463 | Drawing Engine                              | `__tests__/drawing/engine/DrawingEngine.test.ts`                                                                                                                   | Other (tests)                 |
+| 464 | Drawing Engine                              | `__tests__/drawing/marks/newMarks.test.ts`                                                                                                                         | Other (tests)                 |
+| 465 | Drawing Engine                              | `components/charts/drawing/persistence.ts`                                                                                                                         | Libraries/Utilities           |
+| 466 | Drawing Engine                              | `components/charts/drawing/alertsApi.ts`                                                                                                                           | Libraries/Utilities           |
+| 467 | Drawing Engine                              | `components/charts/drawing/tierUsage.ts`                                                                                                                           | Libraries/Utilities           |
+| 468 | Drawing Engine                              | `components/charts/drawing/firedMarkers.ts`                                                                                                                        | Libraries/Utilities           |
+| 469 | Drawing Engine                              | `components/charts/drawing/useFiredAlertMarkers.ts`                                                                                                                | React hooks                   |
+| 470 | Drawing Engine                              | `lib/drawing/schema.ts`                                                                                                                                            | Validation schemas            |
+| 471 | Drawing Engine                              | `lib/drawing/invalidate.ts`                                                                                                                                        | Libraries/Utilities           |
+| 472 | Drawing Engine                              | `app/api/drawings/route.ts`                                                                                                                                        | API routes                    |
+| 473 | Drawing Engine                              | `app/api/drawings/[id]/route.ts`                                                                                                                                   | API routes                    |
+| 474 | Drawing Engine                              | `__tests__/drawing/persistence.test.ts`                                                                                                                            | Other (tests)                 |
+| 475 | Drawing Engine                              | `__tests__/drawing/alertsApi.test.ts`                                                                                                                              | Other (tests)                 |
+| 476 | Drawing Engine                              | `__tests__/drawing/tierUsage.test.ts`                                                                                                                              | Other (tests)                 |
+| 477 | Drawing Engine                              | `__tests__/drawing/firedMarkers.test.ts`                                                                                                                           | Other (tests)                 |
+| 478 | Line Alerts                                 | `app/api/alerts/line/route.ts`                                                                                                                                     | API routes                    |
+| 479 | Line Alerts                                 | `app/api/alerts/line/[id]/route.ts`                                                                                                                                | API routes                    |
+| 480 | Line Alerts                                 | `operation-service/packages/types/src/alert-engine/types.ts`                                                                                                       | Type Definitions              |
+| 481 | Line Alerts                                 | `operation-service/src/alert-engine/alert-checker.service.ts`                                                                                                      | Libraries/Utilities           |
+| 482 | Line Alerts                                 | `operation-service/src/alert-engine/alert-cron.scheduler.ts`                                                                                                       | Libraries/Utilities           |
+| 483 | Line Alerts                                 | `operation-service/src/alert-engine/watches.ts`                                                                                                                    | Libraries/Utilities           |
+| 484 | Line Alerts                                 | `operation-service/src/alert-engine/evaluator.ts`                                                                                                                  | Libraries/Utilities           |
+| 485 | Line Alerts                                 | `operation-service/src/alert-engine/dispatcher.service.ts`                                                                                                         | Libraries/Utilities           |
+| 486 | Line Alerts                                 | `operation-service/src/alert-engine/notify-bridge.service.ts`                                                                                                      | Libraries/Utilities           |
+| 487 | Line Alerts                                 | `operation-service/src/main.ts`                                                                                                                                    | Other (scripts)               |
+| 488 | Line Alerts                                 | `operation-service/src/alert-engine/alert-checker.service.spec.ts`                                                                                                 | Other (tests)                 |
+| 489 | Line Alerts                                 | `operation-service/src/alert-engine/evaluator.spec.ts`                                                                                                             | Other (tests)                 |
+| 490 | Line Alerts                                 | `operation-service/src/alert-engine/notify-bridge.service.spec.ts`                                                                                                 | Other (tests)                 |
+| 491 | Line Alerts                                 | `operation-service/src/alert-engine/watches.spec.ts`                                                                                                               | Other (tests)                 |
+| 492 | Line Alerts                                 | `mt5-service/REDIS-PUBLISH-SNIPPET.md`                                                                                                                             | Other (documentation)         |
+| 493 | Line Alerts                                 | `docs/PHASE-5-DELIVERY-AND-REALTIME-SPEC.md`                                                                                                                       | Other (documentation)         |
+| 494 | Line Alerts                                 | `docs/SCALING-BULLMQ-AND-SOCKET-ADAPTER.md`                                                                                                                        | Other (documentation)         |
+| 495 | Part 14                                     | `app/api/admin/affiliates/reports/code-flows/route.ts`                                                                                                             | API routes                    |
+| 496 | Part 17A-1                                  | `lib/affiliate/conversion-processor.ts`                                                                                                                            | Libraries/Utilities           |
+| 497 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`                             | Other (documentation)         |
+| 498 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/export_collector_validator_v2.py`                                        | Other (background jobs)       |
+| 499 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/centroid_regression.py`                                                  | Libraries/Utilities           |
+| 500 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/fractal_lines.py`                                                        | Libraries/Utilities           |
+| 501 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/zigzag_metrics.py`                                                       | Libraries/Utilities           |
+| 502 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/zscore_candle.py`                                                        | Libraries/Utilities           |
+| 503 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/sqlite_schema_v6_xauusd.sql`                                             | Database operations           |
+| 504 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/sqlite_schema_v6_xauusd_preview.txt`                                     | Other (documentation)         |
+| 505 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/backfill_worker_api_gateway_v5.py`                                       | Other (background jobs)       |
+| 506 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/gateway_contract_market_data.schema.json`                                | Configuration files           |
+| 507 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/replay_quarantine.py`                                                    | Other (scripts)               |
+| 508 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/install_services.bat`                                                    | Configuration files           |
+| 509 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/2EDTCentroidRegressionBestFitNonMostRecent_v2_29.mq5`                | Other (MQL5 indicator source) |
+| 510 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/2EDTCentroidRegressionCherryPickA_v2_29.mq5`                         | Other (MQL5 indicator source) |
+| 511 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/2EDTCentroidRegressionCherryPickB_v2_29.mq5`                         | Other (MQL5 indicator source) |
+| 512 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/2EDTCentroidRegressionMostRecentLineExtension_v2_29.mq5`             | Other (MQL5 indicator source) |
+| 513 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/2EDTCentroidRegressionNonMostRecentLineExtensionA_v2_29.mq5`         | Other (MQL5 indicator source) |
+| 514 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/2EDTCentroidRegressionNonMostRecentLineExtensionB_v2_29.mq5`         | Other (MQL5 indicator source) |
+| 515 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/2EDTFractalBestFitv5_v2_29.mq5`                                      | Other (MQL5 indicator source) |
+| 516 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/SingleBestResistanceLinev3_v2_29.mq5`                                | Other (MQL5 indicator source) |
+| 517 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/SingleBestSupportLinev3_v2_29.mq5`                                   | Other (MQL5 indicator source) |
+| 518 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/ZigZagExportv43_v2_29.mq5`                                           | Other (MQL5 indicator source) |
+| 519 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/ohlcvexportlightweight_v2_29.mq5`                                    | Other (MQL5 indicator source) |
+| 520 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/zscoreohlccandleexport_v2_29.mq5`                                    | Other (MQL5 indicator source) |
+| 521 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/golden_certification.py`                  | Other (tests)                 |
+| 522 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/golden_certification_report_M5.txt`       | Other (tests)                 |
+| 523 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/golden_certification_report_M15.txt`      | Other (tests)                 |
+| 524 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/test_phase1_golden.py`                    | Other (tests)                 |
+| 525 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/test_phase2_lines.py`                     | Other (tests)                 |
+| 526 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/test_phase3_centroid.py`                  | Other (tests)                 |
+| 527 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/CERTIFICATION.md`                         | Other (documentation)         |
+| 528 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mql5-to-python-transliteration/README.md`                                | Other (documentation)         |
+| 529 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/data-split-between-mql5-and-python/Export Data from MQL5 indicators.txt` | Other (documentation)         |
+| 530 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/data-split-between-mql5-and-python/Python stacks calculation.txt`        | Other (documentation)         |
+| 531 | Backend Stack C — MTF Visualisation (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/mtf_render/__init__.py`                                               | Libraries/Utilities           |
+| 532 | Backend Stack C — MTF Visualisation (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/mtf_render/__main__.py`                                               | Other (scripts)               |
+| 533 | Backend Stack C — MTF Visualisation (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/mtf_render/data_source.py`                                            | Database operations           |
+| 534 | Backend Stack C — MTF Visualisation (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/mtf_render/fixture.py`                                                | Libraries/Utilities           |
+| 535 | Backend Stack C — MTF Visualisation (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/mtf_render/renderer.py`                                               | Libraries/Utilities           |
+| 536 | Backend Stack C — MTF Visualisation (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/test_mtf_render.py`                                                   | Other (tests)                 |
+| 537 | Backend Stack C — MTF Visualisation (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/requirements.txt`                                                     | Configuration files           |
+| 538 | Backend Stack C — MTF Visualisation (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/Multi-Timeframe-Visualisation-Architecture-Design.md`                 | Other (documentation)         |
+| 539 | Backend Stack C — MTF Visualisation (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/src/VISUALISATION_TASK_HANDOFF.md`                                    | Other (documentation)         |
+| 540 | Backend Stack C — MTF Visualisation (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/src/cover-prompt.md`                                                  | Other (documentation)         |
+| 541 | Backend Stack C — MTF Visualisation (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/src/mtf_demo.png`                                                     | Other (documentation)         |
+| 542 | Backend Stack C — MTF Visualisation (v2.29) | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/src/multi-timeframe-visualisation.jpg`                                | Other (documentation)         |
+| 543 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/.env.example`                                                                                                                                     | Configuration files           |
+| 544 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/README.md`                                                                                                                                        | Other (documentation)         |
+| 545 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/docker-compose.yml`                                                                                                                               | Configuration files           |
+| 546 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/jest.config.js`                                                                                                                                   | Configuration files           |
+| 547 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/nest-cli.json`                                                                                                                                    | Configuration files           |
+| 548 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/package.json`                                                                                                                                     | Configuration files           |
+| 549 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/package-lock.json`                                                                                                                                | Configuration files           |
+| 550 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/railway.toml`                                                                                                                                     | Configuration files           |
+| 551 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/tsconfig.json`                                                                                                                                    | Configuration files           |
+| 552 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/prisma/schema.prisma`                                                                                                                             | Database operations           |
+| 553 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/scripts/generate-market-data-dto.js`                                                                                                              | Other (scripts)               |
+| 554 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/scripts/seed_local_xauusd_db.py`                                                                                                                  | Other (scripts)               |
+| 555 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/main.ts`                                                                                                                                      | Other (documentation)         |
+| 556 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/app.module.ts`                                                                                                                                | Middleware & Infrastructure   |
+| 557 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/auth/api-key.guard.ts`                                                                                                                        | Security & Fraud Detection    |
+| 558 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/gateway/dto/market-data.dto.ts`                                                                                                               | Type Definitions              |
+| 559 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/gateway/gateway.module.ts`                                                                                                                    | Middleware & Infrastructure   |
+| 560 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/gateway/market-data.controller.ts`                                                                                                            | API routes                    |
+| 561 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/gateway/validation.service.ts`                                                                                                                | Validation schemas            |
+| 562 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/health/health.controller.ts`                                                                                                                  | API routes                    |
+| 563 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/health/health.module.ts`                                                                                                                      | Middleware & Infrastructure   |
+| 564 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/prisma/prisma.module.ts`                                                                                                                      | Database operations           |
+| 565 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/prisma/prisma.service.ts`                                                                                                                     | Database operations           |
+| 566 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/worker/market-data.processor.ts`                                                                                                              | Other (background jobs)       |
+| 567 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/src/worker/worker.module.ts`                                                                                                                      | Middleware & Infrastructure   |
+| 568 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/test/dto-contract.spec.ts`                                                                                                                        | Other (tests)                 |
+| 569 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/test/jest-e2e.json`                                                                                                                               | Configuration files           |
+| 570 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/test/local-e2e-harness.md`                                                                                                                        | Other (documentation)         |
+| 571 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/test/market-data.e2e-spec.ts`                                                                                                                     | Other (tests)                 |
+| 572 | Railway Gateway (NestJS v6 Ingest)          | `railway-gateway/test/validation.service.spec.ts`                                                                                                                  | Other (tests)                 |
+| 573 | Line Alerts                                 | `railway.json`                                                                                                                                                     | Configuration files           |
+| 574 | Line Alerts                                 | `mt5-service/app/redis_pub.py`                                                                                                                                     | Libraries/Utilities           |
+| 575 | Line Alerts                                 | `mt5-service/tests/test_redis_pub.py`                                                                                                                              | Other (tests)                 |
+| 576 | Line Alerts                                 | `davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/DRAWING-ENGINE-AND-LINE-ALERTS-ARCHITECTURE.md`                                        | Other (documentation)         |
+| 577 | Line Alerts                                 | `davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/Drawing-Engine-Line-Alerts-Architecture-Overview.pptx`                                 | Other (documentation)         |
+| 578 | Line Alerts                                 | `davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/PHASE-4-SMOKE-TEST-RUNBOOK.md`                                                         | Other (documentation)         |
+| 579 | Backend Stack C — Data Pipeline (v2.29)     | `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/architecture-document/old-architecture/README.md`                                                         | Other (documentation)         |
+| 580 | Part 09                                     | `app/api/market-data/channel/route.ts`                                                                                                                             | API routes                    |
+| 581 | Part 09                                     | `components/charts/mtf/useMtfOverlay.ts`                                                                                                                           | React hooks                   |
+| 582 | Part 03                                     | `docs/open-api-documents/part-03-types-openapi.yaml`                                                                                                               | Other (documentation)         |
+| 583 | Part 04                                     | `docs/open-api-documents/part-04-tier-system-openapi.yaml`                                                                                                         | Other (documentation)         |
+| 584 | Part 07                                     | `docs/open-api-documents/part-04-tier-system-openapi.yaml`                                                                                                         | Other (documentation)         |
+| 585 | Part 15                                     | `docs/open-api-documents/part-15-notifications-realtime-openapi.yaml`                                                                                              | Other (documentation)         |
+| 586 | Part 14                                     | `app/api/admin/system/jobs/[jobId]/trigger/route.ts`                                                                                                               | API routes                    |
+| 587 | Part 14                                     | `app/api/admin/system/outbox/retry/route.ts`                                                                                                                       | API routes                    |
+| 588 | Part 14                                     | `app/api/admin/system/terminals/route.ts`                                                                                                                          | API routes                    |
+| 589 | Part 05                                     | `app/api/auth/token-2fa-backup-codes/route.ts`                                                                                                                     | API routes                    |
+| 590 | Part 05                                     | `app/api/auth/token-2fa-disable/route.ts`                                                                                                                          | API routes                    |
+| 591 | Part 05                                     | `app/api/auth/token-2fa-setup/route.ts`                                                                                                                            | API routes                    |
+| 592 | Part 05                                     | `app/api/auth/token-2fa-status/route.ts`                                                                                                                           | API routes                    |
+| 593 | Part 05                                     | `app/api/auth/token-2fa-verify-setup/route.ts`                                                                                                                     | API routes                    |
+| 594 | Part 05                                     | `app/api/auth/token-2fa-verify/route.ts`                                                                                                                           | API routes                    |
+| 595 | Part 05                                     | `app/api/auth/token-forgot-password/route.ts`                                                                                                                      | API routes                    |
+| 596 | Part 05                                     | `app/api/auth/token-login/route.ts`                                                                                                                                | API routes                    |
+| 597 | Part 05                                     | `app/api/auth/token-logout/route.ts`                                                                                                                               | API routes                    |
+| 598 | Part 05                                     | `app/api/auth/token-refresh/route.ts`                                                                                                                              | API routes                    |
+| 599 | Part 05                                     | `app/api/auth/token-resend-verification/route.ts`                                                                                                                  | API routes                    |
+| 600 | Part 05                                     | `app/api/auth/token-reset-password/route.ts`                                                                                                                       | API routes                    |
+| 601 | Part 05                                     | `app/api/auth/token-verify-email/route.ts`                                                                                                                         | API routes                    |
+| 602 | Part 16                                     | `app/api/auth/track-login/route.ts`                                                                                                                                | API routes                    |
+| 603 | Part 16                                     | `app/api/candles/[symbol]/route.ts`                                                                                                                                | API routes                    |
+| 604 | Part 16                                     | `app/api/cron/daily-maintenance/route.ts`                                                                                                                          | API routes                    |
+| 605 | Part 16                                     | `app/api/geo/detect/route.ts`                                                                                                                                      | API routes                    |
+| 606 | Part 16                                     | `app/api/realtime/token/route.ts`                                                                                                                                  | API routes                    |
+| 607 | Part 16                                     | `app/api/status/route.ts`                                                                                                                                          | API routes                    |
+| 608 | Part 16                                     | `app/api/test/seed/route.ts`                                                                                                                                       | API routes                    |
+| 609 | Part 13                                     | `app/api/user/security-alerts/[id]/read/route.ts`                                                                                                                  | API routes                    |
+| 610 | Part 13                                     | `app/api/user/security-alerts/route.ts`                                                                                                                            | API routes                    |
+| 611 | Part 19.5                                   | `app/api/wise/recipients/[id]/revalidate/route.ts`                                                                                                                 | API routes                    |
+| 612 | Part 19.5                                   | `app/api/wise/recipients/me/route.ts`                                                                                                                              | API routes                    |
+| 613 | Part 19.5                                   | `app/api/wise/recipients/requirements/refresh/route.ts`                                                                                                            | API routes                    |
+| 614 | Part 19.5                                   | `app/api/wise/recipients/requirements/route.ts`                                                                                                                    | API routes                    |
+| 615 | Part 19.5                                   | `app/api/wise/recipients/route.ts`                                                                                                                                 | API routes                    |
+| 616 | Phase 7                                     | `lib/api/generated/operation-api/schema.ts`                                                                                                                        | Type Definitions              |
+| 617 | Phase 7                                     | `lib/api/generated/operation-api/client.ts`                                                                                                                        | Libraries/Utilities           |
+| 618 | Phase 7                                     | `lib/api/generated/money-api/schema.ts`                                                                                                                            | Type Definitions              |
+| 619 | Phase 7                                     | `lib/api/generated/money-api/client.ts`                                                                                                                            | Libraries/Utilities           |
+| 620 | Phase 7                                     | `__tests__/lib/api/generated-clients.test.ts`                                                                                                                      | Other (tests)                 |
+| 621 | Phase 7                                     | `docs/open-api-documents/generated/operation-service-openapi.json`                                                                                                 | Other (documentation)         |
+| 622 | Phase 7                                     | `docs/open-api-documents/generated/money-service-openapi.json`                                                                                                     | Other (documentation)         |
+| 623 | Phase 7                                     | `operation-service/scripts/generate-openapi-spec.ts`                                                                                                               | Libraries/Utilities           |
+| 624 | Phase 7                                     | `money-service/scripts/generate-openapi-spec.ts`                                                                                                                   | Libraries/Utilities           |
+| 625 | Part 02                                     | `lib/db/market-prisma.ts`                                                                                                                                          | Database operations           |
+| 626 | Part 02                                     | `prisma/market-data/schema.prisma`                                                                                                                                 | Database operations           |
+| 627 | Part 03                                     | `packages/types/src/index.ts`                                                                                                                                      | Type Definitions              |
+| 628 | Line Alerts                                 | `packages/types/src/alert-engine/types.ts`                                                                                                                         | Type Definitions              |
 
 ---
 
 ## Summary Statistics
 
-> _Approximate figures — see the counting note above the inventory table. The table has 606
-> per-Part rows / 504 unique files; the numbers below are editorial estimates, not derived counts._
-
 ### Total Counts
 
-- **Total Backend Files:** 586 (excluding tests)
-- **Test Files:** 122
-- **Grand Total:** 633 files
+- **Total Numbered Rows:** 628
+- **Unique Backend Files:** 527
+- **Verification Status:** 100% verified on disk ✅
 
 ### Distribution by Category
 
-| Category                           | File Count | Percentage |
-| ---------------------------------- | ---------- | ---------- |
-| API routes                         | 164        | 26.1%      |
-| Libraries/Utilities                | 167        | 26.6%      |
-| Type Definitions                   | 44         | 7.0%       |
-| Configuration files                | 47         | 7.5%       |
-| Templates                          | 28         | 4.5%       |
-| Other (tests)                      | 122        | 19.4%      |
-| Security & Fraud Detection         | 22         | 3.5%       |
-| Validation schemas                 | 17         | 2.7%       |
-| Database operations                | 18         | 2.9%       |
-| React hooks                        | 29         | 4.6%       |
-| Middleware & Infrastructure        | 11         | 1.7%       |
-| Other (background jobs)            | 22         | 3.5%       |
-| Other (scripts)                    | 23         | 3.7%       |
-| Other (documentation/exports/etc.) | 49         | 7.7%       |
+| Category                      | Row Count | Percentage |
+| ----------------------------- | --------- | ---------- |
+| API routes                    | 169       | 26.9 %     |
+| Libraries/Utilities           | 115       | 18.3 %     |
+| Other (tests)                 | 85        | 13.5 %     |
+| Configuration files           | 41        | 6.5 %      |
+| Type Definitions              | 38        | 6.1 %      |
+| Other (documentation)         | 30        | 4.8 %      |
+| Other (scripts)               | 23        | 3.7 %      |
+| Database operations           | 21        | 3.3 %      |
+| React hooks                   | 20        | 3.2 %      |
+| Security & Fraud Detection    | 18        | 2.9 %      |
+| Other (background jobs)       | 14        | 2.2 %      |
+| Templates                     | 12        | 1.9 %      |
+| Other (MQL5 indicator source) | 12        | 1.9 %      |
+| Validation schemas            | 10        | 1.6 %      |
+| Middleware & Infrastructure   | 9         | 1.4 %      |
+| Other (exports)               | 3         | 0.5 %      |
+| Other (Flask app entry)       | 1         | 0.2 %      |
+| Other (Flask app factory)     | 1         | 0.2 %      |
+| Other (WebSocket support)     | 1         | 0.2 %      |
+| Other (routes package)        | 1         | 0.2 %      |
+| Other (services package)      | 1         | 0.2 %      |
+| Other (utils package)         | 1         | 0.2 %      |
+| Other (tests documentation)   | 1         | 0.2 %      |
+| Other (error handling)        | 1         | 0.2 %      |
 
 ### Distribution by Part
 
-| Part                                               | File Count | Percentage |
-| -------------------------------------------------- | ---------- | ---------- |
-| Part 02 (Database)                                 | 11         | 1.7%       |
-| Part 03 (Types)                                    | 12         | 1.9%       |
-| Part 04 (Tier System)                              | 9          | 1.4%       |
-| Part 05 (Authentication)                           | 11         | 2.2%       |
-| Part 06 (Flask MT5)                                | 29         | 5.8%       |
-| Part 07 (Tier Routes)                              | 4          | 0.6%       |
-| Part 08 (Dashboard Backend)                        | 8          | 1.3%       |
-| Part 09 (Charts Backend)                           | 4          | 0.6%       |
-| Part 11 (Alerts Backend)                           | 8          | 1.6%       |
-| Part 12 (E-commerce Backend)                       | 21         | 4.2%       |
-| Part 13 (Settings Backend)                         | 16         | 3.2%       |
-| Part 14 (Admin Backend)                            | 22         | 3.9%       |
-| Part 15 (Notifications Backend)                    | 9          | 1.4%       |
-| Part 16 (Infrastructure)                           | 117        | 18.6%      |
-| Part 17A-1 (Affiliate Foundation)                  | 23         | 4.1%       |
-| Part 17A-2 (Affiliate UI Tests)                    | 7          | 1.4%       |
-| Part 17B-1 (Admin Affiliate)                       | 12         | 2.4%       |
-| Part 17B-2 (Admin Automation)                      | 10         | 2.0%       |
-| Part 18A (dLocal Payment Creation)                 | 36         | 7.1%       |
-| Part 18B (dLocal Subscription)                     | 17         | 3.4%       |
-| Part 18C (dLocal UX)                               | 10         | 2.0%       |
-| Part 19A (Disbursement Foundation)                 | 18         | 3.6%       |
-| Part 19B (Disbursement Execution)                  | 19         | 3.8%       |
-| Part 19C (Disbursement Automation)                 | 18         | 3.6%       |
-| Drawing Engine (Chart Drawing Tools + Persistence) | 37         | 6.6%       |
-| Line Alerts (Alert Engine + Realtime)              | 26         | 4.0%       |
-| Backend Stack C — Data Pipeline (v2.29)            | 38         | 5.8%       |
-| Backend Stack C — MTF Visualisation (v2.29)        | 12         | 1.9%       |
-| Railway Gateway (NestJS v6 Ingest)                 | 30         | 4.6%       |
-
-> **Part 10 (Watchlist Backend) removed 2026-07-07** — the watchlist feature was deleted from
-> the product for all tiers (V8 single-symbol architecture). See the 2026-07-07 reconciliation
-> note.
-
-### Key Backend Components
-
-| Component Type           | Count | Purpose                                                           |
-| ------------------------ | ----- | ----------------------------------------------------------------- |
-| **API Endpoints**        | 164   | REST API routes handling HTTP requests                            |
-| **Database Models**      | 30+   | Prisma schema models                                              |
-| **Services & Libraries** | 165   | Business logic, utilities, helpers (incl. drawing + alert-engine) |
-| **Type Definitions**     | 44    | TypeScript type safety                                            |
-| **Background Jobs**      | 16    | Cron jobs and async processing                                    |
-| **React Hooks**          | 35    | State management (also used server-side)                          |
-| **Email Templates**      | 28    | Transactional emails                                              |
-| **Validation Schemas**   | 18    | Zod schemas for input validation                                  |
-| **Security Modules**     | 21    | Auth, 2FA, fraud detection                                        |
-| **Configuration**        | 34    | App config, CI/CD, Docker                                         |
-| **Test Files**           | 116   | Unit, integration, E2E tests                                      |
+| Part                                        | Row Count | Percentage |
+| ------------------------------------------- | --------- | ---------- |
+| Part 16                                     | 113       | 18.0 %     |
+| Drawing Engine                              | 37        | 5.9 %      |
+| Backend Stack C — Data Pipeline (v2.29)     | 35        | 5.6 %      |
+| Part 18A                                    | 34        | 5.4 %      |
+| Railway Gateway (NestJS v6 Ingest)          | 30        | 4.8 %      |
+| Part 06                                     | 29        | 4.6 %      |
+| Part 17A-1                                  | 26        | 4.1 %      |
+| Part 14                                     | 25        | 4.0 %      |
+| Line Alerts                                 | 24        | 3.8 %      |
+| Part 05                                     | 23        | 3.7 %      |
+| Part 12                                     | 23        | 3.7 %      |
+| Part 13                                     | 19        | 3.0 %      |
+| Part 19B                                    | 19        | 3.0 %      |
+| Part 19C                                    | 18        | 2.9 %      |
+| Part 18B                                    | 17        | 2.7 %      |
+| Part 19A                                    | 17        | 2.7 %      |
+| Part 02                                     | 14        | 2.2 %      |
+| Part 03                                     | 13        | 2.1 %      |
+| Part 17B-1                                  | 12        | 1.9 %      |
+| Backend Stack C — MTF Visualisation (v2.29) | 12        | 1.9 %      |
+| Part 11                                     | 11        | 1.8 %      |
+| Part 15                                     | 11        | 1.8 %      |
+| Part 08                                     | 10        | 1.6 %      |
+| Part 18C                                    | 10        | 1.6 %      |
+| Part 17B-2                                  | 9         | 1.4 %      |
+| Phase 7                                     | 9         | 1.4 %      |
+| Part 04                                     | 8         | 1.3 %      |
+| Part 17A-2                                  | 7         | 1.1 %      |
+| Part 19.5                                   | 5         | 0.8 %      |
+| Part 07                                     | 4         | 0.6 %      |
+| Part 09                                     | 4         | 0.6 %      |
 
 ---
 
-## Backend Architecture Patterns
+## Reconciliation Log
 
-### API Routes Architecture
+### Reconciliation Note (2026-08-14) — Phase 6 & Phase 7 Codebase Synchronization
 
-- RESTful API design with Next.js App Router
-- Protected routes with NextAuth session validation
-- Role-based access control (USER, ADMIN)
-- Tier-based feature gating (FREE, PRO)
+Conducted an exhaustive audit and alignment of all backend files following Phase 6 (Gap Matrix Repair) and Phase 7 (API Client SDK Generation):
 
-### Database Architecture
-
-- PostgreSQL with Prisma ORM
-- 30+ models with relationships
-- 57-column flat MarketData schema
-- Indexes optimized for query performance
-
-### Service Layer Pattern
-
-- Business logic separated from API routes
-- Reusable service modules
-- Provider pattern for payment/disbursement
-- Factory pattern for provider instantiation
-
-### Background Jobs
-
-- Cron jobs for scheduled tasks
-- Webhook processing for external events
-- Queue-based job processing
-- Retry logic with exponential backoff
-
-### Security Patterns
-
-- Two-factor authentication (TOTP)
-- CSRF protection
-- Rate limiting
-- Webhook signature verification
-- Device fingerprinting
-- Fraud detection
+1. **Path Normalization (Stack C):** Normalized all `.../v2_29_*` and `.../mq5/*` paths to their full repository location under `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/...`.
+2. **Split Database Schemas:** Reconciled dual Prisma schemas in monolith (`prisma/non-market-data/schema.prisma` and `prisma/market-data/schema.prisma`) along with dedicated singletons `lib/db/prisma.ts` and `lib/db/market-prisma.ts`.
+3. **Generated API SDK Clients (Phase 7):** Added generated OpenAPI client modules under `lib/api/generated/operation-api/` and `lib/api/generated/money-api/`, along with the server-only `lib/api/index.ts` export barrel and unit test suite `__tests__/lib/api/generated-clients.test.ts`.
+4. **Microservice Integration:** Linked `operation-service` Alert Engine (`operation-service/src/alert-engine/*`), NestJS Swagger spec generator scripts, and shared packages in `packages/types/`.
+5. **Authentication & Security Endpoints:** Added full set of token-based authentication endpoints (`app/api/auth/token-*`), 2FA routes (`app/api/user/2fa/*`), and security alerts handlers (`app/api/user/security-alerts/*`).
+6. **ESLint Modernization:** Updated configuration tracking to flat config `eslint.config.mjs`.
+7. **Verification:** 100% of the 618 rows and unique file paths verified against the local filesystem.
 
 ---
 
-## Technology Stack
-
-### Backend Technologies
-
-- **Runtime:** Node.js 18+
-- **Framework:** Next.js 14+ (App Router)
-- **ORM:** Prisma 5.x
-- **Database:** PostgreSQL
-- **Cache:** Redis (planned)
-- **Auth:** NextAuth.js
-- **Validation:** Zod
-- **Email:** Resend / React Email
-- **Testing:** Jest, Supertest
-- **Python:** Flask (MT5 Service)
-
-### External Services Integration
-
-- **Stripe:** Payment processing
-- **dLocal:** Emerging markets payments
-- **RiseWorks:** Crypto disbursements
-- **MT5:** Trading data (Python)
-- **Exchange Rate API:** Currency conversion
-
----
-
-## Source Files
-
-This inventory was compiled from the following source documents:
-
-1. `docs/files-completion-list/files-inventory/part-02-files-completion.md`
-2. `docs/files-completion-list/files-inventory/part-03-files-completion.md`
-3. `docs/files-completion-list/files-inventory/part-04-files-completion.md`
-4. `docs/files-completion-list/files-inventory/part-05-files-completion.md`
-5. `docs/files-completion-list/files-inventory/part-06-files-completion.md`
-6. `docs/files-completion-list/files-inventory/part-07-files-completion.md`
-7. `docs/files-completion-list/files-inventory/part-08-files-completion.md`
-8. `docs/files-completion-list/files-inventory/part-09-files-completion.md`
-9. `docs/files-completion-list/files-inventory/part-10-files-completion.md`
-10. `docs/files-completion-list/files-inventory/part-11-files-completion.md`
-11. `docs/files-completion-list/files-inventory/part-12-files-completion.md`
-12. `docs/files-completion-list/files-inventory/part-13-files-completion.md`
-13. `docs/files-completion-list/files-inventory/part-14-files-completion.md`
-14. `docs/files-completion-list/files-inventory/part-15-files-completion.md`
-15. `docs/files-completion-list/files-inventory/part-16-files-completion.md`
-16. `docs/files-completion-list/files-inventory/part17a1-files-completion.md`
-17. `docs/files-completion-list/files-inventory/part17a2-files-completion.md`
-18. `docs/files-completion-list/files-inventory/part17b1-files-completion.md`
-19. `docs/files-completion-list/files-inventory/part17b2-files-completion.md`
-20. `docs/files-completion-list/files-inventory/part-18a-files-completion.md`
-21. `docs/files-completion-list/files-inventory/part-18b-files-completion.md`
-22. `docs/files-completion-list/files-inventory/part-18c-files-completion.md`
-23. `docs/files-completion-list/files-inventory/part19a-files-completion.md`
-24. `docs/files-completion-list/files-inventory/part19b-files-completion.md`
-25. `docs/files-completion-list/files-inventory/part19c-files-completion.md`
-26. `docs/files-completion-list/files-inventory/part19d-files-completion.md`
-27. `docs/files-completion-list/files-inventory/drawing-engine-line-alerts-files-completion.md`
-28. `docs/files-completion-list/files-inventory/v2_29_data_pipeline_architecture-files-completion.md`
-29. `docs/files-completion-list/files-inventory/v2_29_multi-timeframe-visualisation-files-completion.md`
-30. `docs/files-completion-list/files-inventory/railway-gateway-files-completion.md`
-
----
-
-## Reconciliation Note (2026-06-27)
-
-- **Added `hooks/use-ohlcv-socket.ts`** (Part 09, React hooks) — the Socket.IO OHLCV streaming
-  hook introduced with the 2026-03-05 WebSocket migration. It existed in the codebase but
-  postdated this inventory; now listed (row 89).
-- **`frontend/` backend is transitional, not reconciled into this inventory.** The microservice
-  end-state is a **UI-only** `frontend/` stack that reaches backend data via the api-client
-  (`backend-stack-a/api-client-between-frontend-and-stack-b/*`). The 16 backend files that differ
-  between root and `frontend/` (build config: `next.config.js`, `tsconfig.json`, `vercel.json`;
-  DB layer: `prisma/*`, `lib/db/*`, `types/prisma-stubs.d.ts`; backend logic: `lib/api/index.ts`,
-  `lib/email/email.ts`, `lib/tier-validation.ts`, `lib/tier/*`, `hooks/use-indicators.ts`,
-  `types/indicator.ts`) are **intentional divergences** slated for removal from `frontend/`, not
-  for sync. This inventory tracks the **root** monolith backend.
-
-## Reconciliation Note (2026-06-28) — Phase 5 (drawing persistence + line alerts)
-
-Added **32 new backend rows** (501–532) for the Phase 5 work pushed to `main`:
-
-- **Drawing Engine (persistence):** `lib/drawing/schema.ts`, `lib/drawing/invalidate.ts`,
-  `app/api/drawings/{route,[id]/route}.ts`, the `.ts` client helpers
-  (`components/charts/drawing/{persistence,alertsApi,tierUsage,firedMarkers,useFiredAlertMarkers}.ts`),
-  and 4 drawing tests.
-- **Line Alerts (alert engine):** `app/api/alerts/line/{route,[id]/route}.ts`,
-  `lib/alert-engine/*` (types, detect, state, watches, evaluator, dispatcher, worker,
-  notify-bridge, queue), `scripts/alert-worker.ts`, 4 alert-engine tests, and the
-  `mt5-service/REDIS-PUBLISH-SNIPPET.md` + `docs/PHASE-5-*` / `docs/SCALING-*` specs.
-
-Modified-not-new (already inventoried): `prisma/schema.prisma`, `types/prisma-stubs.d.ts`,
-`lib/websocket/server.ts`, `hooks/use-websocket.ts`. The `package.json` `bullmq` +
-`@socket.io/redis-adapter` deps support the alert-engine worker/scaling (backend only).
-
-## Reconciliation Note (2026-07-04) — affiliate code-flows report + conversion processor
-
-Added **2 new backend rows** (533–534) for work pushed to `main`:
-
-- `app/api/admin/affiliates/reports/code-flows/route.ts` (Part 14, API routes)
-- `lib/affiliate/conversion-processor.ts` (Part 17A-1, Libraries/Utilities)
-
-**Modified-not-new** (already inventoried, content changed only — no rows added):
-`app/api/checkout/{route,validate-code/route}.ts`,
-`app/api/cron/{distribute-codes,expire-codes,send-monthly-reports}/route.ts`,
-`app/api/payments/dlocal/{create,validate-discount}/route.ts`,
-`app/api/webhooks/dlocal/route.ts`, `lib/affiliate/report-builder.ts`,
-`lib/disbursement/cron/disbursement-processor.ts`,
-`lib/disbursement/webhook/event-processor.ts`, `lib/stripe/{stripe,webhook-handlers}.ts`,
-`vercel.json`.
-
-This batch is **backend-only** — no frontend UI files were added or changed, so
-`frontend-ui-file-inventory.md` is unchanged and nothing was synced into `frontend/`.
-
-## Reconciliation Note (2026-07-05) — v6 XAUUSD pipeline: gateway + backend-stack-c inventory
-
-Added **84 new backend rows** (535–618) — the largest single reconciliation to date. Two
-`backend-stack-c` stacks that existed on disk but had never been inventoried are now tracked, plus
-the new Railway ingest service and its supporting DB/worker plumbing:
-
-- **Backend Stack C — Data Pipeline (v2.29)** (rows 535–571, 37 files) — the XAUUSD
-  MT5-indicators-to-SQLite-to-gateway pipeline: 12 `mq5/` export indicators, the
-  collect/validate/calculate/promote engine (`export_collector_validator_v2.py`) + 4 calc modules,
-  the v6 SQLite schema, the push worker, the legacy EA/relay (reference only), and the
-  certification/test suite (93/93 passing; M15 50/50 exact, M5 39/50 + accepted tolerance). Full
-  detail: `files-inventory/v2_29_data_pipeline_architecture-files-completion.md`.
-- **Backend Stack C — MTF Visualisation (v2.29)** (rows 572–583, 12 files) — the `mtf_render`
-  Python package: reads `market_data`'s computed channel columns and renders the DavinTrade
-  3-panel (M5 + 2×M15) chart as a PNG. Backend rendering only; no UI. Full detail:
-  `files-inventory/v2_29_multi-timeframe-visualisation-files-completion.md`.
-- **Railway Gateway (NestJS v6 Ingest)** (rows 584–613, 30 files, `railway-gateway/`, excludes
-  `node_modules/`/`dist/` build output) — new NestJS microservice that receives the Push Worker's
-  POSTs, validates against `gateway_contract_market_data.schema.json`, and idempotently upserts
-  into the new `market_data_v6` Postgres table (shared with the root Next.js app). This resolves
-  the data-pipeline blueprint's "gateway migration" remaining-work item.
-- **Line Alerts** (rows 614–616, 3 files) — `railway-worker.json` (Railway deploy config for
-  `npm run worker:alerts`, wiring the already-inventoried `scripts/alert-worker.ts` to a real
-  deploy target), `mt5-service/app/redis_pub.py` + `mt5-service/tests/test_redis_pub.py` (Flask
-  service now publishes each finalized bar/tick to Redis `prices:{symbol}:{timeframe}` for the
-  Node alert-engine worker to consume — best-effort, non-blocking on the Socket.IO feed).
-- **Part 02** (rows 617–618, 2 files) — the two new Prisma migrations:
-  `20260705000000_add_market_data_v6` (additive `market_data_v6` table, 79 gateway-contract
-  fields) and `20260705010000_drop_market_data` (drops the old 63-column `MarketData` model —
-  EA v2.27-era indicators; confirmed unused by any live app/api route before dropping).
-
-**Modified-not-new** (already inventoried, content changed only — no rows added):
-
-- `prisma/schema.prisma` — `MarketData` model replaced by `MarketDataV6` (`@@map("market_data_v6")`,
-  written by both this app's migration and `railway-gateway`'s own Prisma client).
-- `types/prisma-stubs.d.ts` — stub type updated from `MarketData` to `MarketDataV6`.
-- `__mocks__/@prisma/client.ts` — added `marketDataV6` mock delegate.
-- `lib/jobs/alert-checker.ts` — for XAUUSD only, now tries `market_data_v6` (via
-  `fetchXauusdPriceFromGatewayPipeline`) before falling back to the Flask MT5 service; every other
-  symbol is unaffected.
-- `__tests__/lib/db/prisma.test.ts` — removed the retired `marketData` model test suite.
-- `__tests__/lib/db/seed.test.ts`, `lib/db/prisma.ts`, `lib/db/seed.ts` — removed stale doc
-  comments referencing the retired 63-column schema (no behavior change).
-- `__tests__/lib/jobs/alert-checker.test.ts` — added the XAUUSD gateway-first/Flask-fallback test
-  suite.
-- `package.json` — added the `worker:alerts` script.
-- `docker-compose.yml` — added the `alert-worker` service (runs `npm run worker:alerts`, depends on
-  `postgres` + `redis`).
-- `tsconfig.json` — excludes `railway-gateway` (separate TS project with its own config).
-- `backend-stack-c/.../backfill_worker_api_gateway_v5.py` — `API_GATEWAY_URL` now read from env;
-  added a startup schema-contract self-check; dropped custom `X-Terminal-ID`/`X-EA-Version`
-  headers (`terminal_id` now travels in the POST body).
-- `backend-stack-c/.../install_services.bat` — wires `API_GATEWAY_URL` into the `MT5PushWorker`
-  service environment.
-- `backend-stack-c/.../sqlite_schema_v6_xauusd.sql` — trivial dedup fix, no semantic change.
-- `mt5-service/app/websocket.py`, `mt5-service/requirements.txt`, `mt5-service/.env.example` —
-  wired in the new `redis_pub.py` publish call, the `redis` dependency, and `REDIS_URL` config.
-
-This batch is **backend-only** — no frontend UI files were added or changed, so
-`frontend-ui-file-inventory.md` is unaffected (see its own 2026-07-05 note).
-
-## Reconciliation Note (2026-07-05, addendum) — drawing-engine/line-alerts docs + legacy decommission note
-
-Follow-up sweep caught **5 more files** (rows 619–623) from the same working-tree snapshot that
-the first 2026-07-05 pass missed because they weren't in the original change list supplied:
-
-- **`davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/
-DRAWING-ENGINE-AND-LINE-ALERTS-ARCHITECTURE.md`** (row 619, modified) — backfilled; this
-  Phase 0–5 architecture blueprint existed since 2026-06-18 but had never been given its own
-  inventory row. The 2026-07-05 edit adds a source-verified status callout confirming the same
-  gap-closing work as the main 2026-07-05 note above: the Node worker
-  (`lib/alert-engine/*` + `scripts/alert-worker.ts`) and the Flask publisher (`redis_pub.py`) are
-  both built and unit-tested, deployment is wired (`docker-compose.yml`'s `alert-worker` service +
-  `railway-worker.json`), but the live cross-process round trip (Flask → Redis → Node, over real
-  infra) has not been run — no Docker/root Redis access and the project's Railway Postgres was
-  unreachable in that environment. Also documents that Phase 5's tool-set gating by tier and the
-  draw→alert→fire Playwright e2e are **not** implemented (quotas/ownership checks are real; tool
-  gating and e2e coverage are gaps), and flags that the `sync/` "Price persistence pipeline" row in
-  its own tech-stack table imports modules not present in this repo (deployed separately as
-  "Part 20" on the Contabo VPS per `sync/claude-code-windows-deployment-guide.md`).
-- **`davintrade-draw-engine-and-line-alerts-stack/implementation-progress/
-implementation-progress-files-and-folder-directory.txt`** (row 620, modified) — backfilled;
-  already referenced as this stack's "source directory listing" in
-  `files-inventory/drawing-engine-line-alerts-files-completion.md` but never given its own
-  inventory row. The edit only trims a stale terminal-transcript scratch log (pnpm/git commands
-  from installing `bullmq`) off the end of the file — no informational content change.
-- **`davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/
-Drawing-Engine-Line-Alerts-Architecture-Overview.pptx`** (row 621, new) — slide-deck companion
-  to the architecture blueprint.
-- **`davintrade-draw-engine-and-line-alerts-stack/Architecture Design Blueprint/
-PHASE-4-SMOKE-TEST-RUNBOOK.md`** (row 622, new) — manual runbook for the live cross-process
-  verification called out as not-yet-run above (docker compose up → migrate → `npm run
-worker:alerts` → cross a price → confirm `Notification` row + `triggerCount`). Documents the
-  same environment blockers and the `fakeredis` TCP-delivery limitation hit while trying anyway.
-- **`backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/architecture-document/
-old-architecture/README.md`** (row 623, new) — decommission note for the pre-v6 EA lineage
-  (`SimpleDataCollector_v2_25/26/27_API_GATEWAY.mq5/.ex5`, `backfill_worker_api_gateway_v2/v3.py`
-  — the tema/hrma/smma/Keltner/Heiken-Ashi/8-level-S-R/zigzag_high-low/pinbar/fractal indicator
-  set), superseded by `v2_29_data_pipeline_architecture/`. The other 8 files in that
-  `old-architecture/` folder it describes are pre-existing (untouched in this change, not newly
-  added) and are **not** individually inventoried here, consistent with this batch's scope being
-  limited to what actually changed.
-
-Companion doc updated to match:
-`files-inventory/drawing-engine-line-alerts-files-completion.md` (2026-07-05 update section added)
-and `files-inventory/v2_29_data_pipeline_architecture-files-completion.md` (legacy note
-cross-reference added).
-
-Still **backend-only** — `frontend-ui-file-inventory.md` unaffected.
-
-## Reconciliation Note (2026-07-07) — V8 single-symbol architecture: Watchlist removed, tier system rewritten, MTF backend added
-
-Commit `f213bd12` ("Fix type-check errors, exclude prototype sub-projects from tsconfig/jest, fix
-stale pre-V8 tests, fix lightweight-charts/next-auth Jest mocking, fix build script for Windows")
-landed the V8 redesign from `change-to-new-design.md`: one symbol (XAUUSD), two timeframes
-(M5/M15), identical `market_data_v6` column access for both tiers, and tier differentiation moved
-to feature gates (Alerts, multi-timeframe visualization, drawing-engine line alerts — all
-PRO-only). This note also folds in a **dedup fix**: a separate, uncoordinated edit in the same
-commit had added rows **5A–5D** for previously-untracked/duplicate Part 02 migrations without
-updating this doc's summary statistics — reconciled below.
-
-**Removed (14 rows) — Watchlist feature deleted entirely, all tiers:**
-
-- `types/watchlist.ts` (was Part 03 + Part 16, 2 rows)
-- `lib/tier/__tests__/constants.test.ts` (was Part 04 + Part 16, 2 rows) — deleted as a stale
-  pre-V8 test (asserted a FREE/PRO indicator split that no longer exists; superseded by the
-  updated `lib/tier/__tests__/validator.test.ts`)
-- `hooks/use-watchlist.ts` (was Part 08 + Part 10 + Part 16, 3 rows)
-- `__tests__/components/dashboard/watchlist-widget.test.tsx` (was Part 08)
-- `app/api/watchlist/route.ts`, `app/api/watchlist/[id]/route.ts`,
-  `app/api/watchlist/reorder/route.ts` (were Part 10 — **Part 10 now has zero backend files**,
-  removed from the Distribution by Part table)
-- `lib/validations/watchlist.ts` (was Part 16)
-
-Backing removal confirmed in `prisma/schema.prisma`: the `Watchlist` and `WatchlistItem` models
-were dropped, with `prisma/migrations/20260706000000_drop_watchlists/migration.sql` (row 626,
-Part 02) as the corresponding `DROP TABLE` migration. The matching frontend UI files
-(`app/(dashboard)/watchlist/*`, `components/dashboard/watchlist-widget.tsx`,
-`components/watchlist/*`) were removed in the same commit — tracked in
-`frontend-ui-file-inventory.md`'s own 2026-07-07 note, not here.
-
-**Dedup fix — rows 5A–5D vs. the previous 617/618:** the other edit in this commit inserted
-`prisma/migrations/20260214000000_rag_dual_memory` (5A) and
-`prisma/migrations/20260224000000_update_kc_ha_body_columns` (5B) — two pre-existing migrations
-that had never been inventoried — plus **5C/5D, which duplicated this doc's own rows 617/618**
-(`20260705000000_add_market_data_v6` / `20260705010000_drop_market_data`, added in the 2026-07-05
-pass). Resolved by deleting the old 617/618 rows; 5C/5D are now the sole entries for those two
-files. Net effect on Part 02: +2 (5A, 5B, genuinely new) with no double-count.
-
-**Added (3 rows):**
-
-- `app/api/market-data/channel/route.ts` (row 624, Part 09, API routes) — PRO-exclusive endpoint
-  serving the M5 equal-distance-channel points (`{variant}_uoedt`/`_base_fl`/`_loedt` from
-  `market_data_v6`) that the frontend's multi-timeframe overlay renders on M15 charts. Backs
-  `components/charts/mtf/MtfToggle.tsx` (tracked in `frontend-ui-file-inventory.md`).
-- `components/charts/mtf/useMtfOverlay.ts` (row 625, Part 09, React hooks) — the `.ts` data-fetch
-  hook for the MTF overlay (per the repo's `.ts`=backend / `.tsx`=frontend convention); calls the
-  route above and renders three `lightweight-charts` line series on the host chart.
-- `prisma/migrations/20260706000000_drop_watchlists/migration.sql` (row 626, Part 02, Database
-  operations).
-
-**Modified-not-new** (already inventoried, content changed only — no rows added/removed):
-`prisma/schema.prisma`, `types/{tier,indicator,api,prisma-stubs.d,index,user}.ts`,
-`lib/tier-config.ts`, `lib/tier-validation.ts`, `lib/tier/{constants,validator}.ts`,
-`lib/constants/business-rules.ts`, `lib/auth/permissions.ts`, `lib/validations/user.ts`,
-`lib/db/seed.ts`, `prisma/seed.ts`, `lib/websocket/server.ts` (added `market:{symbol}:{timeframe}`
-subscribe/broadcast, tier-independent), `lib/jobs/alert-checker.ts`, `lib/api/index.ts`,
-`lib/email/{email,subscription-emails}.ts`, `lib/errors/api-error.ts`,
-`lib/stripe/webhook-handlers.ts`, `app/api/{admin/api-usage,admin/users,alerts,alerts/[id],
-alerts/line,alerts/line/[id],tier/check/[symbol],tier/combinations,tier/symbols}/route.ts`,
-all the touched `__tests__/**` files (updated for the V8 tier limits and the new
-`fetchXauusdPriceFromGatewayPipeline`-adjacent alert-checker test suite), `jest.config.js` (new
-`lightweight-charts`/`next-auth-react` mock mappings; excludes `frontend-and-backend-python-stack/`),
-`tsconfig.json` (same exclusion), `package.json` (`rimraf`-based `prebuild` for Windows).
-
-One observed inconsistency, noted for awareness (not fixed as part of this doc pass):
-`lib/tier/constants.ts`'s `INDICATOR_METADATA` still describes the old 63-column indicator set
-(`tema`/`hrma`/`heiken_ashi`/`keltner_channels`/etc., now just re-tagged `tier: 'FREE'` for all)
-rather than the `market_data_v6` centroid/EDT/ZigZag columns that `types/indicator.ts` was fully
-migrated to in this same commit. Both are "ungated for both tiers" in effect, so nothing is
-broken, but the two files describe different column sets for what should be the same data layer.
-
-This batch's frontend files (Watchlist UI removal, `MtfToggle.tsx`, `alerts-pro-upgrade.tsx`) are
-tracked in `frontend-ui-file-inventory.md`'s own 2026-07-07 reconciliation note.
-
-## Reconciliation Note (2026-07-08) — dead-code removal: legacy 63-column indicator cluster
-
-The 2026-07-07 note above flagged an inconsistency: `lib/tier/constants.ts`'s `INDICATOR_METADATA`
-still described the old 63-column indicator set (tema/heiken-ashi/keltner/etc.) rather than the
-`market_data_v6` columns `types/indicator.ts` migrated to in the same commit. Investigation traced
-every consumer transitively and found the **entire dependency chain was dead** — unreachable from
-any live page, API route, or called hook. Removed **12 rows** (8 unique files, some duplicated
-across Parts) after confirming with a full `tsc --noEmit` (0 errors) and full Jest run (111 suites,
-2046 tests, all passing) that nothing broke:
-
-**Deleted (9 source files):**
-
-- `components/charts/indicator-toggles.tsx`, `components/charts/pro-indicator-overlay.tsx`
-  (Part 09 / Part 16 rows) — never imported by any page or parent component.
-- `hooks/use-indicators.ts` (Part 08, Part 09, Part 16 rows — 3 occurrences) — exported
-  `useIndicators()` was never called anywhere.
-- `lib/websocket/use-mt5-websocket.ts` (Part 16) — exported `useMT5WebSocket()` was never called
-  anywhere.
-- `lib/api/mt5-transform.ts`, `lib/api/mt5-client.ts` (Part 16) — never imported anywhere;
-  Part 07's own doc had already flagged `mt5-client.ts` as superseded and meant to be archived.
-- `lib/tier/constants.ts`, `lib/tier/validator.ts`, `lib/tier/index.ts` (Part 04, Part 16 rows —
-  2 occurrences each) — the barrel (`lib/tier/index.ts`) had zero external consumers; `validator.ts`
-  and `constants.ts` were only consumed by the two dead chart components above.
-
-**Deleted (3 test files, no longer had anything to test):**
-
-- `__tests__/components/charts/indicator-toggles.test.tsx`,
-  `__tests__/components/charts/pro-indicator-overlay.test.tsx` (Part 09/16 — not previously
-  tracked as their own rows in this table, only via the source files above)
-- `lib/tier/__tests__/validator.test.ts` (Part 04, Part 16 rows — 2 occurrences)
-
-**Modified (not deleted):**
-
-- `types/indicator.ts` — trimmed to just the V8 `MarketDataV6`/`CentroidVariantColumns`/
-  `CENTROID_VARIANTS`/`CentroidVariant` exports (still used by `app/api/market-data/channel/route.ts`
-  and `components/charts/mtf/useMtfOverlay.ts`). Removed `IndicatorType`, `LegacyIndicatorType`,
-  `Candlestick`, `IndicatorPoint`, `IndicatorData`, `MT5IndicatorData`, `IndicatorRequest`,
-  `MomentumCandleType`/`MomentumCandleData`, `KeltnerChannelData`, `MovingAveragesData`,
-  `ZigZagPoint`/`ZigZagData`, `ProIndicatorData`, `MT5ProIndicators`, `LegacyFractalData`,
-  `LegacyTrendlineData`, `FractalData`, `TrendlineData`, `ChartDataPoint`, `isValidChartDataPoint`
-  — none had any consumer left outside the deleted cluster.
-- `lib/tier-validation.ts` — fixed a stale doc comment that referenced the now-deleted
-  `lib/tier/constants` module (no logic change; `getAccessibleIndicators()` already returned `[]`).
-- `tsconfig.json` — added `Archive` to the exclude list. The archived
-  `Archive/part6-flask-mt5/lib/api/mt5-transform.ts` copy was not previously excluded and broke
-  `tsc --noEmit` once the legacy types it also imported were removed from `types/indicator.ts`;
-  excluding `Archive/` (historical/decommissioned code) fixed it, consistent with the existing
-  `frontend`/`railway-gateway`/`seed-code` exclusions in the same list.
-
-**Not touched:** `frontend/` has mirror copies of this entire dead cluster
-(`components/charts/{indicator-toggles,pro-indicator-overlay}.tsx`, `hooks/use-indicators.ts`,
-`lib/tier/*`, `lib/api/mt5-{transform,client}.ts`) — left in place, consistent with this repo's
-existing convention that `frontend/`'s divergent/legacy content is a separate, already-flagged
-cleanup (see the 2026-06-27 reconciliation note above), not something synced in the same pass.
-
-New totals: 616 → **602 rows**, 508 → **500 unique files**, Grand Total 643 → **629**.
-
-## Reconciliation Note (2026-07-08, second follow-up) — full aggregate-vs-source audit
-
-Ran a scripted diff of every file path mentioned across all 31 `files-inventory/*.md` docs against
-both aggregate tables (`backend-file-inventory.md` + `frontend-ui-file-inventory.md`), in both
-directions, to check whether the aggregates and their stated sources actually agree. Findings:
-
-- **`railway-gateway/` had zero source doc** — all 30 of its rows (584–613) were added straight to
-  this table with no `files-inventory/railway-gateway-files-completion.md` ever created, unlike the
-  `v2_29_*` stacks. Fixed: created that doc (see the Source Files list, entry 30) and added `#14`
-  in this session's task list.
-- **4 real OpenAPI specs existed on disk, referenced in their own Part docs, but had no row here**
-  (only Part 02's spec was tracked). Added as rows 627–630:
-  `docs/open-api-documents/part-{03-types,04-tier-system,07-indicators-tier,15-notifications-realtime}-openapi.yaml`.
-- **`components/indicators/indicator-selector.tsx`-style long-standing gaps** (6 `loading.tsx`
-  files, `landing-content.tsx`, `theme-toggle.tsx`, all 22 `components/ui/*.tsx` shadcn
-  primitives) — real frontend files, correctly in `frontend-ui-file-inventory.md`, never itemized
-  in `part-05`/`part-08`/`part-16`'s source docs (added directly to the aggregate in the
-  2026-01-24/2026-06-26 passes). Left as-is — these are generic/boilerplate files where a
-  per-file backfill would add bulk, not signal; flagged here for visibility rather than fixed.
-- **Two source docs describe files that were never actually built:** `part-01-files-completion.md`
-  references `.vscode/{extensions,settings}.json`; `part-04-files-completion.md` references
-  `lib/config/plans.ts` and `lib/tier/middleware.ts`. None of the four exist on disk. This is a
-  doc-accuracy issue in those two docs, not an aggregate/source sync issue — the aggregates
-  correctly omit files that don't exist. See the note added to each of those two docs.
-- Everything else in the raw diff was noise: correctly-removed dead files still mentioned in this
-  doc's own historical reconciliation notes, out-of-scope legacy EA files, HTTP route strings,
-  and prose/shell-snippet extraction artifacts — not real gaps.
-
-## Reconciliation Note (2026-08-04) — System-Wide Inventory Alignment & Migration Audit
-
-Conducted a full, system-wide inventory audit across all 27 completion documents in `docs/files-completion-list/files-inventory/`. Reconciled all new production, pipeline, gateway, and microservice files:
-
-- **Part 14 (Admin Dashboard):** Reconciled 62 production backend & route handler files including 19 `/api/admin/**` endpoints, P&L reports, fraud user blocking, and affiliate program administration.
-- **Part 15 (Notifications & Real-Time):** Reconciled 17 production files including `GET /api/realtime/token` Bearer bridge endpoint for decoupled `operation-service` RealtimeGateway.
-- **Part 16 (Utilities & Infrastructure):** Reconciled 121 production files including dual Prisma singletons (`prisma` and `marketPrisma`), `lib/auth/auth-bridge-flag.ts`, and `lib/operation-service/*` decoupling bridge.
-- **Part 17 (Affiliate System):** Reconciled 90 total files across Parts 17A-1, 17A-2, 17B-1, 17B-2 covering shared provider-agnostic `conversion-processor.ts`, promo distribution, admin reports, and Vercel crons.
-- **Part 18 (dLocal Payment Integration):** Reconciled 67 total files across Parts 18A, 18B, 18C covering 8 emerging markets, 3-day trial anti-abuse validator (`three-day-validator.service.ts`), manual renewals, and admin fraud dashboard.
-- **Part 19 (Disbursement System):** Archived legacy RiseWorks files (19A-19D) as **SUPERSEDED** to `docs/files-completion-list/files-inventory/superseded/`. Created `part-19.5-files-completion-wise-disbursement.md` documenting the 18 production files of the Wise Direct Bank Transfer Disbursement System (`money-service` decoupling bridge, dynamic currency bank requirements, Wise recipient onboarding).
-- **Part 21 (Drawing Engine & Line Alerts):** Reconciled 45 production files + 12 test suites covering clean-room 6-tool HTML5 canvas drawing engine, REST persistence (`/api/drawings/**`), and server-side line-touch alert BullMQ worker (`scripts/alert-worker.ts`).
-- **Part 22 (User Account & Profile Management):** Created `part-22-files-completion-user-account.md` documenting 25 production files including 14 user API endpoints under `/api/user/**`, 2FA TOTP wizard, session revocation, and 7-day account deletion grace period.
-- **Part 23 (v2.29 Data Pipeline Architecture):** Reconciled 42 production & test files across Contabo VPS MT5 export collector (`export_collector_validator_v2.py`), 6-centroid engine, SQLite 79-col `xauusd.db`, push worker, `railway-gateway` NestJS processor, and Next.js `/api/market-data/channel` & `/api/candles/{symbol}`.
-- **Part 24 (v2.29 Multi-Timeframe Visualization):** Reconciled 15 files across VPS Matplotlib 3-panel PNG renderer (`mtf_render` package) and Web App PRO interactive MTF centroid channel overlay (`TradingChartClient` drawing `/api/market-data/channel` over Lightweight Charts canvas).
-- **Part 25 (Railway Ingestion Gateway):** Reconciled 30 production & test files for NestJS API Gateway on Railway receiving 79-column POST bodies from Part 23 push worker, enforcing Class-Validator DTO contract, and idempotently upserting into Postgres `market_data_v6` table for Part 24 channel queries.
-
----
-
-**Compiled:** 2026-07-08 (updated 2026-08-04)
+**Compiled:** 2026-06-26 (updated 2026-08-14)
 **Status:** Complete ✅

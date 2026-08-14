@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 import { Camera, Check, X, AlertCircle, Loader2 } from 'lucide-react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -238,6 +239,33 @@ export default function ProfileSettingsPage(): React.ReactElement {
       <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white">
         Profile Information
       </h2>
+
+      {/* Affiliate Partner Profile Banner */}
+      {(session?.user as { role?: string })?.role === 'AFFILIATE' && (
+        <div className="mb-6 rounded-lg border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-900 dark:bg-indigo-900/20">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold text-indigo-900 dark:text-indigo-200">
+                Affiliate Partner Profile
+              </p>
+              <p className="text-sm text-indigo-700 dark:text-indigo-300">
+                Manage your public affiliate partner details, social media
+                channels, and payout configurations in the dedicated Partner
+                Profile.
+              </p>
+            </div>
+            <Button
+              asChild
+              size="sm"
+              className="shrink-0 bg-indigo-600 hover:bg-indigo-700"
+            >
+              <Link href="/affiliate/dashboard/profile">
+                Open Partner Profile →
+              </Link>
+            </Button>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         {/* Profile Photo Section */}

@@ -59,7 +59,7 @@ export default async function DashboardLayout({
       <div className="flex">
         {/* Sidebar - hidden on mobile, fixed on desktop */}
         <aside className="hidden lg:fixed lg:inset-y-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:pt-16">
-          <Sidebar userTier={user.tier} />
+          <Sidebar userTier={user.tier} userRole={user.role} />
         </aside>
 
         {/* Main content area */}

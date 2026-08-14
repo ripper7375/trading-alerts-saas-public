@@ -8,7 +8,9 @@ import {
   ChevronDown,
   User,
   CreditCard,
+  Shield,
 } from 'lucide-react';
+
 import Link from 'next/link';
 import { getSession, signOut } from 'next-auth/react';
 import { useState } from 'react';
@@ -241,7 +243,20 @@ export function Header({ user }: HeaderProps): React.ReactElement {
                       Settings
                     </Link>
                   </DropdownMenuItem>
+                  {user.role === 'ADMIN' && (
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href="/admin"
+                        className="cursor-pointer font-semibold text-red-600 hover:text-red-700 dark:text-red-400"
+                        data-testid="menu-admin"
+                      >
+                        <Shield className="mr-2 h-4 w-4" />
+                        Admin Executive Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuGroup>
+
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="cursor-pointer text-red-600 focus:text-red-600"

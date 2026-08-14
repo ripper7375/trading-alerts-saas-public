@@ -225,8 +225,7 @@ function PendingDeletionBanner({
 export function AccountSettingsClient({
   initialDeletionStatus,
 }: AccountSettingsClientProps): React.ReactElement {
-  // Session available for future use (2FA, session management)
-  useSession();
+  const { data: session } = useSession();
 
   // Toast notifications
   const { toasts, removeToast, success, error: showError } = useToast();
@@ -836,6 +835,20 @@ export function AccountSettingsClient({
                       This action cannot be undone. This will permanently delete
                       your account and remove all your data from our servers.
                     </DialogDescription>
+                    {(session?.user as { role?: string })?.role ===
+                      'AFFILIATE' && (
+                      <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
+                        <p className="font-semibold">
+                          ⚠️ Affiliate Partner Notice:
+                        </p>
+                        <p className="mt-1">
+                          Deleting your account will forfeit any pending or
+                          unpaid commission balances and invalidate your active
+                          promo codes. Make sure your payouts are completed
+                          before deleting.
+                        </p>
+                      </div>
+                    )}
                   </DialogHeader>
                   <div className="my-4">
                     <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">

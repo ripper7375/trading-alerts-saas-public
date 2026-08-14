@@ -6,18 +6,39 @@ import {
   Loader2,
   Shield,
   ArrowLeft,
+  UserCheck,
+  LayoutDashboard,
+  LogOut,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn, getSession } from 'next-auth/react';
+import { signIn, getSession, signOut } from 'next-auth/react';
 import { useState, useEffect, useRef, Suspense } from 'react';
 
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+import { Button } from '@/components/ui/button';
+
+interface SafeUserSession {
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    role?: string;
+  };
+}
 
 function TwoFactorVerificationContent(): JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const [session, setSession] = useState<SafeUserSession | null>(null);
+
+  useEffect(() => {
+    if (!token && typeof getSession === 'function') {
+      void getSession().then((s) => {
+        if (s?.user) setSession(s as SafeUserSession);
+      });
+    }
+  }, [token]);
 
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,12 +56,10 @@ function TwoFactorVerificationContent(): JSX.Element {
     }
   }, [isBackupCode]);
 
-  // Redirect if no token
+  // Check session status if no token
   useEffect(() => {
-    if (!token) {
-      router.push('/login');
-    }
-  }, [token, router]);
+    // Let user stay on page to see informative message if no token is present
+  }, [token]);
 
   const handleCodeChange = (index: number, value: string): void => {
     // Only allow digits
@@ -214,11 +233,68 @@ function TwoFactorVerificationContent(): JSX.Element {
   }
 
   if (!token) {
+    if (session?.user) {
+      const userRole = (session.user as { role?: string }).role;
+
+      const dashboardHref = userRole === 'ADMIN' ? '/admin' : '/dashboard';
+
+      return (
+        <div className="w-full max-w-md">
+          <div className="space-y-4 rounded-lg border bg-card p-8 text-center shadow-xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+              <UserCheck className="h-7 w-7" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">
+              Already Authenticated
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              You are currently signed in as{' '}
+              <span className="font-semibold text-foreground">
+                {session.user.name || session.user.email}
+              </span>
+              . Two-Factor Authentication is not pending.
+            </p>
+            <div className="space-y-3 pt-2">
+              <Button asChild className="w-full" size="lg">
+                <Link
+                  href={dashboardHref}
+                  className="flex items-center justify-center gap-2"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Go to Dashboard
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                className="flex w-full items-center justify-center gap-2"
+                onClick={() => signOut({ callbackUrl: '/login' })}
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="w-full max-w-md">
-        <div className="rounded-lg bg-card p-8 shadow-xl">
-          <div className="py-8 text-center">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="space-y-4 rounded-lg border bg-card p-8 text-center shadow-xl">
+          <div className="bg-primary/10 mx-auto flex h-14 w-14 items-center justify-center rounded-full">
+            <Shield className="h-7 w-7 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">
+            Two-Factor Authentication
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            No active 2FA verification challenge found. Please sign in to
+            generate a challenge.
+          </p>
+          <div className="pt-2">
+            <Button asChild className="w-full" size="lg">
+              <Link href="/login">Return to Sign In</Link>
+            </Button>
           </div>
         </div>
       </div>
