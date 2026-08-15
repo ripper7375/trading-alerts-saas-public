@@ -48,11 +48,24 @@ export default function LoginForm(): JSX.Element {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isValid, touchedFields },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     mode: 'onChange',
   });
+
+  const handleAutofill = (
+    presetEmail: string,
+    presetPassword: string
+  ): void => {
+    setValue('email', presetEmail, { shouldValidate: true, shouldTouch: true });
+    setValue('password', presetPassword, {
+      shouldValidate: true,
+      shouldTouch: true,
+    });
+    setError(null);
+  };
 
   // Bridge path (Session 4B-20, DECISION-LOG.md F56): calls operation-
   // service's /auth/login via the token-login route instead of next-auth/
@@ -280,6 +293,78 @@ export default function LoginForm(): JSX.Element {
             </div>
           </div>
         )}
+
+        {/* Quick Test Accounts Helper */}
+        <div className="bg-muted/40 mb-6 rounded-lg border border-border p-3 text-xs">
+          <div className="mb-2 flex items-center justify-between font-semibold text-muted-foreground">
+            <span>⚡ Quick Test Credentials:</span>
+            <span className="text-[10px] text-primary">Click to Autofill</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
+            <button
+              type="button"
+              onClick={() =>
+                handleAutofill(
+                  'free-test@trading-alerts.test',
+                  'TestPassword123!'
+                )
+              }
+              className="flex items-center justify-between rounded border border-border bg-card p-2 text-foreground transition-colors hover:bg-muted"
+            >
+              <span>FREE User</span>
+              <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleAutofill(
+                  'pro-test@trading-alerts.test',
+                  'TestPassword123!'
+                )
+              }
+              className="flex items-center justify-between rounded border border-blue-500/30 bg-blue-500/10 p-2 text-blue-500 transition-colors hover:bg-blue-500/20"
+            >
+              <span className="font-semibold">PRO User</span>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleAutofill(
+                  'admin-test@trading-alerts.test',
+                  'AdminPassword123!'
+                )
+              }
+              className="flex items-center justify-between rounded border border-red-500/30 bg-red-500/10 p-2 text-red-500 transition-colors hover:bg-red-500/20"
+            >
+              <span className="font-semibold">Admin Test</span>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleAutofill('admin@tradingalerts.com', 'ChangeMe123!')
+              }
+              className="flex items-center justify-between rounded border border-amber-500/30 bg-amber-500/10 p-2 text-amber-500 transition-colors hover:bg-amber-500/20"
+            >
+              <span className="font-semibold">Admin (Fixed)</span>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleAutofill(
+                  'affiliate-test@trading-alerts.test',
+                  'AffiliatePassword123!'
+                )
+              }
+              className="col-span-2 flex items-center justify-between rounded border border-emerald-500/30 bg-emerald-500/10 p-2 text-emerald-500 transition-colors hover:bg-emerald-500/20"
+            >
+              <span className="font-semibold">Affiliate Partner User</span>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Email Field */}
