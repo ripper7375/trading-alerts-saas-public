@@ -2,6 +2,8 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { type NextAuthOptions } from 'next-auth';
 import type { Account, User } from 'next-auth';
 import type { Adapter, AdapterUser } from 'next-auth/adapters';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import bcrypt from 'bcryptjs';
 import GoogleProvider from 'next-auth/providers/google';
 import LinkedInProvider from 'next-auth/providers/linkedin';
 import TwitterProvider from 'next-auth/providers/twitter';
@@ -100,6 +102,61 @@ export const authOptions: NextAuthOptions = {
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   providers: [
+    CredentialsProvider({
+      id: 'credentials',
+      name: 'Credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error('INVALID_CREDENTIALS');
+        }
+
+        const email = credentials.email.toLowerCase().trim();
+
+        const user = await prisma.user.findUnique({
+          where: { email },
+        });
+
+        if (!user || !user.password) {
+          throw new Error('INVALID_CREDENTIALS');
+        }
+
+        const isPasswordValid = await bcrypt.compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isPasswordValid) {
+          throw new Error('INVALID_CREDENTIALS');
+        }
+
+        if (!user.isActive) {
+          throw new Error('locked');
+        }
+
+        if (user.emailVerified === null || user.emailVerified === undefined) {
+          throw new Error('EMAIL_NOT_VERIFIED');
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+          tier: user.tier as 'FREE' | 'PRO',
+          role: (user.role === 'ADMIN' ? 'ADMIN' : 'USER') as 'USER' | 'ADMIN',
+          isAffiliate: user.isAffiliate,
+          emailVerified: user.emailVerified,
+          isActive: user.isActive,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        };
+      },
+    }),
+
     // OAuth providers are conditionally included based on environment variables
     // This prevents errors when OAuth credentials are not configured
     ...(isGoogleConfigured
@@ -185,8 +242,11 @@ export const authOptions: NextAuthOptions = {
           user.email
         );
 
-        // account.provider is always an OAuth provider name here - this file
-        // registers no other kind (Session 4B-21, F56).
+        if (account?.provider === 'credentials') {
+          return true;
+        }
+
+        // account.provider is an OAuth provider name here
         if (account?.provider) {
           // Twitter doesn't provide email - generate a placeholder email using Twitter ID
           if (!user.email && account.provider === 'twitter') {

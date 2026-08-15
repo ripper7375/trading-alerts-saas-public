@@ -79,99 +79,97 @@ async function main() {
     console.log(`   Role: ${admin.role}`);
     console.log(`   Created: ${admin.createdAt.toISOString()}`);
 
-    // Create E2E test users (only in development)
-    if (process.env['NODE_ENV'] !== 'production') {
-      const testUsers = [
-        {
-          email: 'free-test@trading-alerts.test',
-          password: 'TestPassword123!',
-          name: 'Free Test User',
-          tier: 'FREE' as const,
-          role: 'USER' as const,
-        },
-        {
-          email: 'pro-test@trading-alerts.test',
-          password: 'TestPassword123!',
-          name: 'Pro Test User',
-          tier: 'PRO' as const,
-          role: 'USER' as const,
-        },
-        {
-          email: 'admin-test@trading-alerts.test',
-          password: 'AdminPassword123!',
-          name: 'Admin Test User',
-          tier: 'PRO' as const,
-          role: 'ADMIN' as const,
-        },
-        {
-          email: 'affiliate-test@trading-alerts.test',
-          password: 'AffiliatePassword123!',
-          name: 'Affiliate Test User',
-          tier: 'FREE' as const,
-          role: 'AFFILIATE' as const,
-        },
-        {
-          email: 'unverified@trading-alerts.test',
-          password: 'TestPassword123!',
-          name: 'Unverified Test User',
-          tier: 'FREE' as const,
-          role: 'USER' as const,
-          emailVerified: false,
-        },
-      ];
+    // Create E2E test users & Fixed Accounts across all environments
+    const testUsers = [
+      {
+        email: 'free-test@trading-alerts.test',
+        password: 'TestPassword123!',
+        name: 'Free Test User',
+        tier: 'FREE' as const,
+        role: 'USER' as const,
+      },
+      {
+        email: 'pro-test@trading-alerts.test',
+        password: 'TestPassword123!',
+        name: 'Pro Test User',
+        tier: 'PRO' as const,
+        role: 'USER' as const,
+      },
+      {
+        email: 'admin-test@trading-alerts.test',
+        password: 'AdminPassword123!',
+        name: 'Admin Test User',
+        tier: 'PRO' as const,
+        role: 'ADMIN' as const,
+      },
+      {
+        email: 'affiliate-test@trading-alerts.test',
+        password: 'AffiliatePassword123!',
+        name: 'Affiliate Test User',
+        tier: 'FREE' as const,
+        role: 'AFFILIATE' as const,
+      },
+      {
+        email: 'unverified@trading-alerts.test',
+        password: 'TestPassword123!',
+        name: 'Unverified Test User',
+        tier: 'FREE' as const,
+        role: 'USER' as const,
+        emailVerified: false,
+      },
+    ];
 
-      for (const testUser of testUsers) {
-        const hashedTestPassword = await bcrypt.hash(testUser.password, 10);
-        const createdUser = await prisma.user.upsert({
-          where: { email: testUser.email },
+    for (const testUser of testUsers) {
+      const hashedTestPassword = await bcrypt.hash(testUser.password, 10);
+      const createdUser = await prisma.user.upsert({
+        where: { email: testUser.email },
+        update: {
+          name: testUser.name,
+          password: hashedTestPassword,
+          tier: testUser.tier,
+          role: testUser.role,
+          emailVerified: testUser.emailVerified === false ? null : new Date(),
+          isActive: true,
+        },
+        create: {
+          email: testUser.email,
+          name: testUser.name,
+          password: hashedTestPassword,
+          tier: testUser.tier,
+          role: testUser.role,
+          emailVerified: testUser.emailVerified === false ? null : new Date(),
+          isActive: true,
+          hasUsedStripeTrial: false,
+          hasUsedThreeDayPlan: false,
+        },
+      });
+
+      if (testUser.email === 'affiliate-test@trading-alerts.test') {
+        await prisma.affiliateProfile.upsert({
+          where: { userId: createdUser.id },
           update: {
-            name: testUser.name,
-            password: hashedTestPassword,
-            tier: testUser.tier,
-            role: testUser.role,
-            emailVerified: testUser.emailVerified === false ? null : new Date(),
-            isActive: true,
+            fullName: 'Affiliate Test User',
+            country: 'US',
+            status: 'ACTIVE',
           },
           create: {
-            email: testUser.email,
-            name: testUser.name,
-            password: hashedTestPassword,
-            tier: testUser.tier,
-            role: testUser.role,
-            emailVerified: testUser.emailVerified === false ? null : new Date(),
-            isActive: true,
-            hasUsedStripeTrial: false,
-            hasUsedThreeDayPlan: false,
+            userId: createdUser.id,
+            fullName: 'Affiliate Test User',
+            country: 'US',
+            status: 'ACTIVE',
+            paymentMethod: 'WISE',
+            paymentDetails: {},
           },
         });
-
-        if (testUser.email === 'affiliate-test@trading-alerts.test') {
-          await prisma.affiliateProfile.upsert({
-            where: { userId: createdUser.id },
-            update: {
-              fullName: 'Affiliate Test User',
-              country: 'US',
-              status: 'ACTIVE',
-            },
-            create: {
-              userId: createdUser.id,
-              fullName: 'Affiliate Test User',
-              country: 'US',
-              status: 'ACTIVE',
-              paymentMethod: 'WISE',
-              paymentDetails: {},
-            },
-          });
-        }
       }
-
-      console.log('✅ E2E test users created:');
-      console.log('   - free-test@trading-alerts.test (FREE)');
-      console.log('   - pro-test@trading-alerts.test (PRO)');
-      console.log('   - admin-test@trading-alerts.test (ADMIN)');
-      console.log('   - affiliate-test@trading-alerts.test (AFFILIATE)');
-      console.log('   - unverified@trading-alerts.test (UNVERIFIED)');
     }
+
+    console.log('✅ E2E test users created:');
+    console.log('   - free-test@trading-alerts.test (FREE)');
+    console.log('   - pro-test@trading-alerts.test (PRO)');
+    console.log('   - admin-test@trading-alerts.test (ADMIN)');
+    console.log('   - affiliate-test@trading-alerts.test (AFFILIATE)');
+    console.log('   - unverified@trading-alerts.test (UNVERIFIED)');
 
     // V8: watchlists removed from the product — no watchlist seeding.
 
