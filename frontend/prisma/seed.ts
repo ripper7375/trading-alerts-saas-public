@@ -101,6 +101,15 @@ async function main() {
           name: 'Affiliate Test User',
           tier: 'FREE' as const,
           role: 'USER' as const,
+          isAffiliate: true,
+        },
+        {
+          email: 'affiliate-pro-test@trading-alerts.test',
+          password: 'AffiliatePassword123!',
+          name: 'Affiliate Pro Test User',
+          tier: 'PRO' as const,
+          role: 'USER' as const,
+          isAffiliate: true,
         },
         {
           email: 'unverified@trading-alerts.test',

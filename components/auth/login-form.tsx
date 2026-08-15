@@ -335,9 +335,22 @@ export default function LoginForm(): JSX.Element {
                   'AffiliatePassword123!'
                 )
               }
-              className="col-span-2 flex items-center justify-between rounded border border-emerald-500/30 bg-emerald-500/10 p-2 text-emerald-500 transition-colors hover:bg-emerald-500/20"
+              className="flex items-center justify-between rounded border border-emerald-500/30 bg-emerald-500/10 p-2 text-emerald-500 transition-colors hover:bg-emerald-500/20"
             >
-              <span className="font-semibold">Affiliate Partner User</span>
+              <span className="font-semibold">Affiliate (FREE)</span>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleAutofill(
+                  'affiliate-pro-test@trading-alerts.test',
+                  'AffiliatePassword123!'
+                )
+              }
+              className="flex items-center justify-between rounded border border-teal-500/30 bg-teal-500/10 p-2 text-teal-500 transition-colors hover:bg-teal-500/20"
+            >
+              <span className="font-semibold">Affiliate (PRO)</span>
               <CheckCircle2 className="h-3.5 w-3.5" />
             </button>
           </div>

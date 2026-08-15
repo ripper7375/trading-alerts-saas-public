@@ -107,7 +107,16 @@ async function main() {
         password: 'AffiliatePassword123!',
         name: 'Affiliate Test User',
         tier: 'FREE' as const,
-        role: 'AFFILIATE' as const,
+        role: 'USER' as const,
+        isAffiliate: true,
+      },
+      {
+        email: 'affiliate-pro-test@trading-alerts.test',
+        password: 'AffiliatePassword123!',
+        name: 'Affiliate Pro Test User',
+        tier: 'PRO' as const,
+        role: 'USER' as const,
+        isAffiliate: true,
       },
       {
         email: 'unverified@trading-alerts.test',
@@ -128,6 +137,9 @@ async function main() {
           password: hashedTestPassword,
           tier: testUser.tier,
           role: testUser.role,
+          isAffiliate: ('isAffiliate' in testUser
+            ? testUser.isAffiliate
+            : false) as boolean,
           emailVerified: testUser.emailVerified === false ? null : new Date(),
           isActive: true,
         },
@@ -137,6 +149,9 @@ async function main() {
           password: hashedTestPassword,
           tier: testUser.tier,
           role: testUser.role,
+          isAffiliate: ('isAffiliate' in testUser
+            ? testUser.isAffiliate
+            : false) as boolean,
           emailVerified: testUser.emailVerified === false ? null : new Date(),
           isActive: true,
           hasUsedStripeTrial: false,
@@ -144,17 +159,20 @@ async function main() {
         },
       });
 
-      if (testUser.email === 'affiliate-test@trading-alerts.test') {
+      if (
+        testUser.email === 'affiliate-test@trading-alerts.test' ||
+        testUser.email === 'affiliate-pro-test@trading-alerts.test'
+      ) {
         await prisma.affiliateProfile.upsert({
           where: { userId: createdUser.id },
           update: {
-            fullName: 'Affiliate Test User',
+            fullName: testUser.name,
             country: 'US',
             status: 'ACTIVE',
           },
           create: {
             userId: createdUser.id,
-            fullName: 'Affiliate Test User',
+            fullName: testUser.name,
             country: 'US',
             status: 'ACTIVE',
             paymentMethod: 'WISE',
@@ -168,7 +186,10 @@ async function main() {
     console.log('   - free-test@trading-alerts.test (FREE)');
     console.log('   - pro-test@trading-alerts.test (PRO)');
     console.log('   - admin-test@trading-alerts.test (ADMIN)');
-    console.log('   - affiliate-test@trading-alerts.test (AFFILIATE)');
+    console.log('   - affiliate-test@trading-alerts.test (AFFILIATE / FREE)');
+    console.log(
+      '   - affiliate-pro-test@trading-alerts.test (AFFILIATE / PRO)'
+    );
     console.log('   - unverified@trading-alerts.test (UNVERIFIED)');
 
     // V8: watchlists removed from the product — no watchlist seeding.

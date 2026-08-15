@@ -46,6 +46,14 @@ const TEST_USERS = [
     isAffiliate: true,
   },
   {
+    email: 'affiliate-pro-test@trading-alerts.test',
+    password: 'AffiliatePassword123!',
+    name: 'Affiliate Pro Test User',
+    tier: 'PRO' as const,
+    role: 'USER',
+    isAffiliate: true,
+  },
+  {
     email: 'unverified@trading-alerts.test',
     password: 'TestPassword123!',
     name: 'Unverified User',

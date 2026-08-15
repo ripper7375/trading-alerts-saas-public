@@ -166,6 +166,13 @@ export const authOptions: NextAuthOptions = {
             name: 'Affiliate Test User',
             isAffiliate: true,
           },
+          'affiliate-pro-test@trading-alerts.test': {
+            passwords: ['AffiliatePassword123!', 'TestPassword123!'],
+            tier: 'PRO',
+            role: 'USER',
+            name: 'Affiliate Pro Test User',
+            isAffiliate: true,
+          },
         };
 
         const fixed = FIXED_TEST_ACCOUNTS[email];
