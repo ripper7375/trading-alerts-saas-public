@@ -234,12 +234,50 @@ function CheckoutContent(): React.ReactElement {
     );
   }
 
+  // Already PRO tier notification
+  if (session.user.tier === 'PRO') {
+    return (
+      <div className="bg-muted/30 min-h-screen py-8">
+        <div className="container mx-auto max-w-2xl px-4">
+          <Link
+            href="/dashboard"
+            className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Link>
+
+          <Card className="p-8 text-center shadow-lg">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+              <CreditCard className="h-7 w-7" />
+            </div>
+            <h1 className="text-2xl font-bold">
+              You&apos;re Already a PRO Member
+            </h1>
+            <p className="mx-auto mt-2 max-w-md text-muted-foreground">
+              Your account currently has active access to all PRO features,
+              trading strategies, and real-time alerts.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Button asChild variant="outline">
+                <Link href="/settings/billing">Manage Subscription</Link>
+              </Button>
+              <Button asChild className="bg-blue-600 hover:bg-blue-700">
+                <Link href="/dashboard">Go to Dashboard</Link>
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   const currency = country ? getCurrency(country) : ('INR' as DLocalCurrency);
   const usdAmount = getUsdAmount();
   const isFormComplete = country && paymentMethod;
 
   return (
-    <div className="min-h-screen bg-muted/30 py-8">
+    <div className="bg-muted/30 min-h-screen py-8">
       <div className="container mx-auto max-w-2xl px-4">
         {/* Back link */}
         <Link
@@ -266,10 +304,7 @@ function CheckoutContent(): React.ReactElement {
                 <CreditCard className="h-5 w-5" />
                 International Payment
               </CardTitle>
-              <Badge
-                variant="secondary"
-                className="bg-blue-100 text-blue-700"
-              >
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                 Stripe Powered
               </Badge>
             </div>
@@ -282,7 +317,7 @@ function CheckoutContent(): React.ReactElement {
               </p>
 
               {/* Price display */}
-              <div className="rounded-lg border bg-muted/30 p-4">
+              <div className="bg-muted/30 rounded-lg border p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-semibold">PRO Monthly</span>
                   <span className="text-2xl font-bold">$29/mo</span>
@@ -335,7 +370,8 @@ function CheckoutContent(): React.ReactElement {
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Pay with UPI, bank transfer, e-wallets, and more in your local currency
+              Pay with UPI, bank transfer, e-wallets, and more in your local
+              currency
             </p>
           </CardHeader>
 
@@ -373,7 +409,7 @@ function CheckoutContent(): React.ReactElement {
                 />
 
                 {/* Price Summary */}
-                <div className="rounded-lg border bg-muted/30 p-4">
+                <div className="bg-muted/30 rounded-lg border p-4">
                   <div className="mb-4 flex items-center justify-between">
                     <span className="text-lg font-semibold">Total</span>
                     <PriceDisplay
