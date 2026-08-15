@@ -67,56 +67,6 @@ export default function LoginForm(): JSX.Element {
     setError(null);
   };
 
-  // Bridge path (Session 4B-20, DECISION-LOG.md F56): calls operation-
-  // service's /auth/login via the token-login route instead of next-auth/
-  // react's signIn('credentials', ...). Gated behind NEXT_PUBLIC_AUTH_BRIDGE_
-  // ENABLED (default false) — dormant/parallel until Session 4B-21's own
-  // cutover. Prototyped against this file specifically, per the order's own
-  // Done-when ("prototyped against one real consumer... before committing to
-  // the full 19-file swap").
-  const onSubmitViaBridge = async (data: LoginFormData): Promise<void> => {
-    const response = await fetch('/api/auth/token-login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: data.email, password: data.password }),
-    });
-    const body = await response.json();
-
-    if (response.ok) {
-      if ('twoFactorRequired' in body && body.twoFactorRequired) {
-        router.push(`/verify-2fa?token=${encodeURIComponent(body.token)}`);
-        return;
-      }
-      // token-login sets the shared NextAuth-format session cookie server-side
-      // (F26), but next-auth/react's SessionProvider client cache has no way
-      // to know a new cookie appeared underneath it — nothing here went
-      // through NextAuth's own signIn() flow, which is the only thing that
-      // normally triggers a cache refetch. Force one explicitly (Entry
-      // Criterion 1, DECISION-LOG.md F57) so every useSession()/getSession()
-      // consumer app-wide (header, notification bell, realtime socket status,
-      // login tracker, etc.) sees the correct authenticated state on the very
-      // next render, not just the server-side getServerSession() reads.
-      await getSession();
-      setIsSuccess(true);
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1500);
-      return;
-    }
-
-    if (body?.error === 'EMAIL_NOT_VERIFIED') {
-      setError('unverified');
-    } else {
-      // operation-service's login() only ever throws INVALID_CREDENTIALS or
-      // EMAIL_NOT_VERIFIED (see auth.service.ts) — there is no server-side
-      // "locked" concept on either side of the bridge (auth-options.ts never
-      // had one either; that branch below is unreachable dead code on both
-      // paths, kept only because it predates this session and isn't this
-      // order's scope to remove).
-      setError('invalid');
-    }
-  };
-
   const onSubmit = async (data: LoginFormData): Promise<void> => {
     setIsSubmitting(true);
     setError(null);
@@ -124,22 +74,52 @@ export default function LoginForm(): JSX.Element {
 
     try {
       if (isAuthBridgeEnabled()) {
-        await onSubmitViaBridge(data);
+        const response = await fetch('/api/auth/token-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: data.email, password: data.password }),
+        });
+        const body = await response.json();
+
+        if (response.ok) {
+          if ('twoFactorRequired' in body && body.twoFactorRequired) {
+            router.push(`/verify-2fa?token=${encodeURIComponent(body.token)}`);
+            return;
+          }
+          await getSession();
+          setIsSuccess(true);
+          setTimeout(() => {
+            router.push('/dashboard');
+          }, 1500);
+          return;
+        }
+
+        if (body?.error === 'EMAIL_NOT_VERIFIED') {
+          setError('unverified');
+        } else {
+          setError('invalid');
+        }
         return;
       }
 
+      // Default NextAuth flow
       const result = await signIn('credentials', {
         email: data.email,
         password: data.password,
         redirect: false,
       });
 
+      if (result?.ok) {
+        setIsSuccess(true);
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1500);
+        return;
+      }
+
       if (result?.error) {
-        // Parse error to determine type
         if (result.error.includes('TWO_FACTOR_REQUIRED:')) {
-          // Extract the 2FA token from the error message
           const token = result.error.replace('TWO_FACTOR_REQUIRED:', '');
-          // Redirect to 2FA verification page with token
           router.push(`/verify-2fa?token=${encodeURIComponent(token)}`);
           return;
         } else if (result.error.includes('EMAIL_NOT_VERIFIED')) {
@@ -149,11 +129,8 @@ export default function LoginForm(): JSX.Element {
         } else {
           setError('invalid');
         }
-      } else if (result?.ok) {
-        setIsSuccess(true);
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 1500);
+      } else {
+        setError('invalid');
       }
     } catch (err) {
       console.error('Login error:', err);
