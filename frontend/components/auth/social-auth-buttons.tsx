@@ -4,12 +4,11 @@ import { Loader2 } from 'lucide-react';
 import { signIn, getProviders } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
-type LoadingProvider = 'google' | 'twitter' | 'linkedin' | null;
+type LoadingProvider = 'google' | 'twitter' | null;
 
 interface AvailableProviders {
   google: boolean;
   twitter: boolean;
-  linkedin: boolean;
 }
 
 export default function SocialAuthButtons(): JSX.Element {
@@ -18,7 +17,6 @@ export default function SocialAuthButtons(): JSX.Element {
     useState<AvailableProviders>({
       google: true,
       twitter: true,
-      linkedin: true,
     });
   const [providersLoaded, setProvidersLoaded] = useState(false);
 
@@ -31,7 +29,6 @@ export default function SocialAuthButtons(): JSX.Element {
           setAvailableProviders({
             google: 'google' in providers,
             twitter: 'twitter' in providers,
-            linkedin: 'linkedin' in providers,
           });
         }
       } catch (error) {
@@ -65,31 +62,18 @@ export default function SocialAuthButtons(): JSX.Element {
     }
   };
 
-  const handleLinkedInSignIn = async (): Promise<void> => {
-    try {
-      setLoadingProvider('linkedin');
-      await signIn('linkedin', { callbackUrl: '/dashboard' });
-    } catch (error) {
-      console.error('Error signing in with LinkedIn:', error);
-    } finally {
-      setLoadingProvider(null);
-    }
-  };
-
   const isLoading = loadingProvider !== null;
 
   // Check if any OAuth provider is available
   const hasAnyOAuthProvider =
-    availableProviders.google ||
-    availableProviders.twitter ||
-    availableProviders.linkedin;
+    availableProviders.google || availableProviders.twitter;
 
   // If no OAuth providers are configured, show a message
   if (providersLoaded && !hasAnyOAuthProvider) {
     return (
-      <div className="text-center text-sm text-muted-foreground py-2">
+      <div className="py-2 text-center text-sm text-muted-foreground">
         <p>Social login not configured.</p>
-        <p className="text-xs mt-1">Use email/password to sign in.</p>
+        <p className="mt-1 text-xs">Use email/password to sign in.</p>
       </div>
     );
   }
@@ -102,7 +86,7 @@ export default function SocialAuthButtons(): JSX.Element {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={isLoading}
-          className="w-full flex justify-center items-center px-4 py-2 border border-border shadow-sm text-sm font-medium rounded-md text-foreground bg-card hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex w-full items-center justify-center rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loadingProvider === 'google' ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -140,7 +124,7 @@ export default function SocialAuthButtons(): JSX.Element {
           type="button"
           onClick={handleTwitterSignIn}
           disabled={isLoading}
-          className="w-full flex justify-center items-center px-4 py-2 border border-black dark:border-white shadow-sm text-sm font-medium rounded-md text-white dark:text-black bg-black dark:bg-white hover:bg-gray-900 dark:hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex w-full items-center justify-center rounded-md border border-black bg-black px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white dark:bg-white dark:text-black dark:hover:bg-gray-100"
         >
           {loadingProvider === 'twitter' ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -154,29 +138,6 @@ export default function SocialAuthButtons(): JSX.Element {
             </svg>
           )}
           Login with X
-        </button>
-      )}
-
-      {/* LinkedIn Sign In Button */}
-      {availableProviders.linkedin && (
-        <button
-          type="button"
-          onClick={handleLinkedInSignIn}
-          disabled={isLoading}
-          className="w-full flex justify-center items-center px-4 py-2 border border-[#0A66C2] shadow-sm text-sm font-medium rounded-md text-white bg-[#0A66C2] hover:bg-[#004182] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0A66C2] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loadingProvider === 'linkedin' ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <svg
-              className="mr-2 h-4 w-4"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
-              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-            </svg>
-          )}
-          Sign in with LinkedIn
         </button>
       )}
     </div>
