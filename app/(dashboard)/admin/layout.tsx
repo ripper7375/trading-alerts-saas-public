@@ -35,6 +35,7 @@ const adminNavItems: AdminNavItem[] = [
     href: '/admin/fraud-alerts',
   },
   { id: 'api-usage', icon: '🔌', label: 'API Usage', href: '/admin/api-usage' },
+  { id: 'status', icon: '🟢', label: 'System Status', href: '/status' },
   { id: 'errors', icon: '🚨', label: 'System Errors', href: '/admin/errors' },
   {
     id: 'affiliates',
