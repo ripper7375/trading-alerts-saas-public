@@ -1,0 +1,261 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import {
+  Bell,
+  CheckCheck,
+  Filter,
+  Trash2,
+  Zap,
+  Shield,
+  CreditCard,
+  Radio,
+  Clock,
+  Sparkles,
+  ArrowRight,
+} from 'lucide-react';
+import AppHeader from '@/components/layout/app-header';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useLocale } from '@/lib/context/locale-context';
+
+interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  category: 'ALERT' | 'SYSTEM' | 'BILLING' | 'SECURITY';
+  timestamp: string;
+  read: boolean;
+  link?: string;
+}
+
+export default function NotificationsPage() {
+  const { t } = useLocale();
+  const [filter, setFilter] = useState<'ALL' | 'UNREAD' | 'ALERTS' | 'SYSTEM'>(
+    'ALL'
+  );
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
+    {
+      id: 'notif-1',
+      title: t(
+        'XAUUSD M5 Bullish Fractal Confirmed',
+        'ยืนยันสัญญาณแฟร็กทัลขาขึ้น XAUUSD M5'
+      ),
+      message: t(
+        'Price broke above 2,420.50 with multi-timeframe volume confirmation.',
+        'ราคาทะลุ 2,420.50 พร้อมการยืนยันวอลุ่มหลายกรอบเวลา'
+      ),
+      category: 'ALERT',
+      timestamp: '5m ago',
+      read: false,
+      link: '/terminal',
+    },
+    {
+      id: 'notif-2',
+      title: t(
+        'Davin AI Copilot v2.4 Active',
+        'Davin AI Copilot v2.4 พร้อมใช้งาน'
+      ),
+      message: t(
+        'New conversational market reasoning models are now live on your terminal.',
+        'แบบจำลอง AI วิเคราะห์ตลาดเวอร์ชันใหม่เปิดให้ใช้งานแล้วในเทอร์มินัลของคุณ'
+      ),
+      category: 'SYSTEM',
+      timestamp: '2h ago',
+      read: false,
+      link: '/changelog',
+    },
+    {
+      id: 'notif-3',
+      title: t('PRO Subscription Active', 'แพ็กเกจ PRO เปิดใช้งานแล้ว'),
+      message: t(
+        'Your monthly invoice has been processed securely via Stripe.',
+        'ใบเสร็จรายเดือนของคุณได้รับการประมวลผลผ่าน Stripe เรียบร้อยแล้ว'
+      ),
+      category: 'BILLING',
+      timestamp: '1d ago',
+      read: true,
+      link: '/settings/billing',
+    },
+    {
+      id: 'notif-4',
+      title: t(
+        'New Login from Chrome on Windows',
+        'การเข้าสู่ระบบใหม่จาก Chrome บน Windows'
+      ),
+      message: t(
+        'New active session detected in Bangkok, Thailand.',
+        'ตรวจพบเซสชันใหม่ที่กรุงเทพฯ ประเทศไทย'
+      ),
+      category: 'SECURITY',
+      timestamp: '2d ago',
+      read: true,
+      link: '/settings/security/activity',
+    },
+  ]);
+
+  const markAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const markItemRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+  };
+
+  const filtered = notifications.filter((n) => {
+    if (filter === 'UNREAD') return !n.read;
+    if (filter === 'ALERTS') return n.category === 'ALERT';
+    if (filter === 'SYSTEM') return n.category === 'SYSTEM';
+    return true;
+  });
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  return (
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+      <AppHeader
+        title={t('Notifications Centre', 'ศูนย์การแจ้งเตือน')}
+        subtitle={t(
+          'Live Signal Alerts, System Announcements & Security Events',
+          'สัญญาณแจ้งเตือน ประกาศระบบ และเหตุการณ์ความปลอดภัยแบบเรียลไทม์'
+        )}
+      />
+
+      <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 md:p-6">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          {/* Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {[
+              { id: 'ALL', label: t('All', 'ทั้งหมด') },
+              {
+                id: 'UNREAD',
+                label: `${t('Unread', 'ยังไม่อ่าน')} (${unreadCount})`,
+              },
+              { id: 'ALERTS', label: t('Signals', 'สัญญาณ') },
+              { id: 'SYSTEM', label: t('System', 'ระบบ') },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setFilter(tab.id as any)}
+                className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                  filter === tab.id
+                    ? 'bg-amber-500 font-bold text-slate-950 shadow-md shadow-amber-500/20'
+                    : 'border border-slate-800 bg-[#090b14] text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {unreadCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={markAllRead}
+              className="self-start border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
+            >
+              <CheckCheck className="mr-1.5 h-3.5 w-3.5 text-emerald-400" />
+              {t('Mark all as read', 'ทำเครื่องหมายอ่านแล้วทั้งหมด')}
+            </Button>
+          )}
+        </div>
+
+        {/* Notifications Feed */}
+        <div className="space-y-3">
+          {filtered.length === 0 ? (
+            <Card className="border-slate-800 bg-[#090b14]/80 p-12 text-center">
+              <Bell className="mx-auto mb-3 h-10 w-10 text-slate-600" />
+              <h3 className="text-sm font-bold text-slate-300">
+                {t('No notifications found', 'ไม่มีการแจ้งเตือน')}
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">
+                {t(
+                  'You are all caught up with your alert telemetry.',
+                  'คุณติดตามข้อมูลทั้งหมดครบถ้วนแล้ว'
+                )}
+              </p>
+            </Card>
+          ) : (
+            filtered.map((item) => {
+              const getIcon = () => {
+                switch (item.category) {
+                  case 'ALERT':
+                    return <Zap className="h-4 w-4 text-amber-400" />;
+                  case 'BILLING':
+                    return <CreditCard className="h-4 w-4 text-cyan-400" />;
+                  case 'SECURITY':
+                    return <Shield className="h-4 w-4 text-rose-400" />;
+                  default:
+                    return <Sparkles className="h-4 w-4 text-purple-400" />;
+                }
+              };
+
+              return (
+                <Card
+                  key={item.id}
+                  onClick={() => markItemRead(item.id)}
+                  className={`border transition-all hover:border-slate-700 ${
+                    item.read
+                      ? 'border-slate-800/60 bg-[#070910]/70'
+                      : 'border-amber-500/30 bg-[#0b0e1a]/95 shadow-md shadow-amber-500/5'
+                  }`}
+                >
+                  <CardContent className="flex items-start justify-between gap-4 p-4">
+                    <div className="flex items-start gap-3.5">
+                      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-800 bg-[#06080e]">
+                        {getIcon()}
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4
+                            className={`text-xs font-bold ${item.read ? 'text-slate-300' : 'text-slate-100'}`}
+                          >
+                            {item.title}
+                          </h4>
+                          {!item.read && (
+                            <span className="h-2 w-2 rounded-full bg-amber-400" />
+                          )}
+                        </div>
+                        <p className="text-xs leading-relaxed text-slate-400">
+                          {item.message}
+                        </p>
+                        <div className="flex items-center gap-3 pt-1 text-[10px] text-slate-500">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {item.timestamp}
+                          </span>
+                          <span>•</span>
+                          <span className="font-semibold tracking-wider uppercase">
+                            {item.category}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {item.link && (
+                      <Link href={item.link} className="shrink-0 self-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="px-2.5 text-xs text-amber-400 hover:bg-amber-500/10"
+                        >
+                          <span>{t('View', 'ดู')}</span>
+                          <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                        </Button>
+                      </Link>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
