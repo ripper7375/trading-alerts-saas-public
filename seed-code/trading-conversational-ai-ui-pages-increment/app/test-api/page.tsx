@@ -116,10 +116,9 @@ export default function TestApiHarnessPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t('Interactive API Test Harness', 'ระบบทดสอบและตรวจสอบ API')}
+        title={t('Interactive API Test Harness')}
         subtitle={t(
-          'Diagnostic REST Workbench for Platform Developers & QA Engineers',
-          'เครื่องมือทดสอบ REST API สำหรับนักพัฒนาและวิศวกรทดสอบระบบ'
+          'Diagnostic REST Workbench for Platform Developers & QA Engineers'
         )}
       />
 
@@ -127,7 +126,7 @@ export default function TestApiHarnessPage() {
         {/* Preset quick links */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           <span className="mr-1 text-xs font-bold tracking-wider text-slate-400 uppercase">
-            {t('Quick Presets', 'ตัวอย่างคำขอ')}:
+            {t('Quick Presets')}:
           </span>
           {presets.map((p, idx) => (
             <button
@@ -145,7 +144,7 @@ export default function TestApiHarnessPage() {
           {/* Request Composer */}
           <Card className="space-y-4 border-slate-800/80 bg-[#090b14]/90 p-5">
             <h3 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
-              {t('HTTP Request Details', 'รายละเอียดคำขอ HTTP')}
+              {t('HTTP Request Details')}
             </h3>
 
             <form onSubmit={handleExecute} className="space-y-4">
@@ -196,7 +195,7 @@ export default function TestApiHarnessPage() {
                 ) : (
                   <Play className="mr-2 h-4 w-4 fill-current" />
                 )}
-                {t('Send Request', 'ส่งคำขอ')}
+                {t('Send Request')}
               </Button>
             </form>
           </Card>
@@ -205,10 +204,7 @@ export default function TestApiHarnessPage() {
           <Card className="flex flex-col space-y-4 border-slate-800/80 bg-[#090b14]/90 p-5">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
-                {t(
-                  'Server Response Payload',
-                  'ผลลัพธ์การตอบกลับจากเซิร์ฟเวอร์'
-                )}
+                {t('Server Response Payload')}
               </h3>
 
               {responseStatus !== null && (
@@ -239,8 +235,7 @@ export default function TestApiHarnessPage() {
               ) : (
                 <span className="text-slate-600">
                   {t(
-                    'No response recorded yet. Send a request above to inspect payloads.',
-                    'ยังไม่มีข้อมูลการตอบกลับ กรุณาส่งคำขอด้านซ้ายเพื่อดูผลลัพธ์'
+                    'No response recorded yet. Send a request above to inspect payloads.'
                   )}
                 </span>
               )}

@@ -35,17 +35,13 @@ export default function Verify2faPage() {
             <ShieldCheck className="h-6 w-6" />
           </div>
           <h2 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
-            {t('Two-Factor Authentication', 'การยืนยันตัวตนสองปัจจัย')}
+            {t('Two-Factor Authentication')}
           </h2>
           <p className="text-xs text-slate-400">
             {useBackup
-              ? t(
-                  'Enter one of your 8-digit emergency backup codes',
-                  'ป้อนรหัสสำรองฉุกเฉิน 8 หลักของคุณรหัสใดรหัสหนึ่ง'
-                )
+              ? t('Enter one of your 8-digit emergency backup codes')
               : t(
-                  'Enter the 6-digit verification code from your authenticator app',
-                  'ป้อนรหัสยืนยัน 6 หลักจากแอปพลิเคชันยืนยันตัวตนของคุณ'
+                  'Enter the 6-digit verification code from your authenticator app'
                 )}
           </p>
         </div>
@@ -53,9 +49,7 @@ export default function Verify2faPage() {
         <form onSubmit={handleVerify} className="space-y-4">
           <div className="space-y-1.5 text-center">
             <Label className="text-xs font-semibold text-slate-300">
-              {useBackup
-                ? t('Backup Code', 'รหัสสำรอง')
-                : t('6-Digit Security Code', 'รหัสความปลอดภัย 6 หลัก')}
+              {useBackup ? t('Backup Code') : t('6-Digit Security Code')}
             </Label>
             <Input
               type="text"
@@ -73,9 +67,7 @@ export default function Verify2faPage() {
             disabled={isLoading || !code.trim()}
             className="h-10 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
           >
-            {isLoading
-              ? t('Verifying...', 'กำลังตรวจสอบ...')
-              : t('Verify & Continue', 'ยืนยัน & ดำเนินการต่อ')}
+            {isLoading ? t('Verifying...') : t('Verify & Continue')}
           </Button>
         </form>
 
@@ -86,17 +78,14 @@ export default function Verify2faPage() {
             className="flex items-center gap-1 font-semibold text-amber-400 hover:underline"
           >
             <KeyRound className="h-3.5 w-3.5" />
-            {useBackup
-              ? t('Use Authenticator App', 'ใช้แอป Authenticator')
-              : t('Use Backup Code', 'ใช้รหัสสำรอง')}
+            {useBackup ? t('Use Authenticator App') : t('Use Backup Code')}
           </button>
 
           <Link
             href="/login"
             className="flex items-center gap-1 text-slate-400 hover:text-slate-200"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />{' '}
-            {t('Back to Login', 'กลับสู่หน้าเข้าสู่ระบบ')}
+            <ArrowLeft className="h-3.5 w-3.5" /> {t('Back to Login')}
           </Link>
         </div>
       </div>

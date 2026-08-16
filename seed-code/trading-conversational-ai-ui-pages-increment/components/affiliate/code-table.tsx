@@ -13,14 +13,14 @@ export default function CodeTable() {
   const codes = [
     {
       code: 'PRO20',
-      discount: t('20% Off First Month', 'ลด 20% เดือนแรก'),
+      discount: t('20% Off First Month'),
       redemptions: 34,
       status: 'Active',
       link: 'https://davintrade.app/register?ref=PRO20',
     },
     {
       code: 'DAVIN10',
-      discount: t('$10 Off Annual Plan', 'ส่วนลด ฿350 แผนรายปี'),
+      discount: t('$10 Off Annual Plan'),
       redemptions: 14,
       status: 'Active',
       link: 'https://davintrade.app/register?ref=DAVIN10',
@@ -82,7 +82,7 @@ export default function CodeTable() {
                 {copiedId === c.code ? (
                   <>
                     <CheckCircle2 className="mr-1 h-3 w-3 text-emerald-400" />{' '}
-                    {t('Copied Link', 'คัดลอกลิงก์แล้ว')}
+                    {t('Copied Link')}
                   </>
                 ) : (
                   <>

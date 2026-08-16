@@ -119,36 +119,22 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(
-          errData.message ||
-            t('Failed to update alert.', 'ไม่สามารถอัปเดตการแจ้งเตือนได้')
-        );
+        throw new Error(errData.message || t('Failed to update alert.'));
       }
 
-      setSuccess(
-        t('Alert updated successfully!', 'อัปเดตการแจ้งเตือนเรียบร้อยแล้ว!')
-      );
+      setSuccess(t('Alert updated successfully!'));
       setTimeout(() => {
         router.push('/alerts');
       }, 1500);
     } catch (err: any) {
-      setError(
-        err.message || t('Error updating alert.', 'เกิดข้อผิดพลาดในการบันทึก')
-      );
+      setError(err.message || t('Error updating alert.'));
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (
-      !confirm(
-        t(
-          'Are you sure you want to delete this alert?',
-          'คุณแน่ใจหรือไม่ว่าต้องการลบการแจ้งเตือนนี้?'
-        )
-      )
-    ) {
+    if (!confirm(t('Are you sure you want to delete this alert?'))) {
       return;
     }
 
@@ -159,16 +145,12 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
       });
 
       if (!res.ok) {
-        throw new Error(
-          t('Failed to delete alert.', 'ไม่สามารถลบการแจ้งเตือนได้')
-        );
+        throw new Error(t('Failed to delete alert.'));
       }
 
       router.push('/alerts');
     } catch (err: any) {
-      setError(
-        err.message || t('Error deleting alert.', 'เกิดข้อผิดพลาดในการลบ')
-      );
+      setError(err.message || t('Error deleting alert.'));
       setIsDeleting(false);
     }
   };
@@ -176,11 +158,8 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t('Edit Quantitative Alert', 'แก้ไขการแจ้งเตือนเชิงปริมาณ')}
-        subtitle={t(
-          `Configuring Trigger ID: ${alertId}`,
-          `กำลังตั้งค่าเงื่อนไขการแจ้งเตือนรหัส: ${alertId}`
-        )}
+        title={t('Edit Quantitative Alert')}
+        subtitle={t(`Configuring Trigger ID: ${alertId}`)}
       />
 
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-4 md:p-6">
@@ -190,9 +169,7 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
             className="flex items-center gap-2 text-xs font-semibold text-slate-400 transition-colors hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>
-              {t('Back to Alerts Management', 'กลับสู่การจัดการการแจ้งเตือน')}
-            </span>
+            <span>{t('Back to Alerts Management')}</span>
           </Link>
 
           <Button
@@ -203,9 +180,7 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
             className="text-rose-400 hover:bg-rose-950/40 hover:text-rose-300"
           >
             <Trash2 className="mr-1.5 h-4 w-4" />
-            {isDeleting
-              ? t('Deleting...', 'กำลังลบ...')
-              : t('Delete Alert', 'ลบการแจ้งเตือน')}
+            {isDeleting ? t('Deleting...') : t('Delete Alert')}
           </Button>
         </div>
 
@@ -227,10 +202,7 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
           <div className="space-y-3 py-20 text-center">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-amber-400" />
             <p className="text-xs text-slate-400">
-              {t(
-                'Loading alert parameters...',
-                'กำลังโหลดข้อมูลการแจ้งเตือน...'
-              )}
+              {t('Loading alert parameters...')}
             </p>
           </div>
         ) : (
@@ -243,24 +215,18 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-slate-100">
-                      {t(
-                        'Trigger Conditions & Thresholds',
-                        'เงื่อนไขและระดับราคาเป้าหมาย'
-                      )}
+                      {t('Trigger Conditions & Thresholds')}
                     </h3>
                     <p className="text-xs text-slate-400">
                       {t(
-                        'Define market price triggers and fractal confirmation filters.',
-                        'กำหนดราคาและตัวกรองการยืนยันแฟร็กทัล'
+                        'Define market price triggers and fractal confirmation filters.'
                       )}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400">
-                    {t('Active', 'เปิดใช้งาน')}
-                  </span>
+                  <span className="text-xs text-slate-400">{t('Active')}</span>
                   <Switch checked={isActive} onCheckedChange={setIsActive} />
                 </div>
               </div>
@@ -268,7 +234,7 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-slate-300">
-                    {t('Symbol', 'สินทรัพย์')}
+                    {t('Symbol')}
                   </Label>
                   <Select value={symbol} onValueChange={setSymbol}>
                     <SelectTrigger className="border-slate-800 bg-[#06080e] text-slate-200">
@@ -282,7 +248,7 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
 
                 <div className="space-y-1.5">
                   <Label className="text-xs text-slate-300">
-                    {t('Timeframe', 'กรอบเวลา')}
+                    {t('Timeframe')}
                   </Label>
                   <Select value={timeframe} onValueChange={setTimeframe}>
                     <SelectTrigger className="border-slate-800 bg-[#06080e] text-slate-200">
@@ -299,7 +265,7 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-slate-300">
-                    {t('Condition Direction', 'ทิศทางเงื่อนไข')}
+                    {t('Condition Direction')}
                   </Label>
                   <Select
                     value={direction}
@@ -324,7 +290,7 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
 
                 <div className="space-y-1.5">
                   <Label className="text-xs text-slate-300">
-                    {t('Target Price (USD)', 'ราคาเป้าหมาย (USD)')}
+                    {t('Target Price (USD)')}
                   </Label>
                   <Input
                     type="number"
@@ -340,15 +306,11 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
               <div className="flex items-center justify-between rounded-xl border border-slate-800/80 bg-[#06080e] p-3.5">
                 <div className="space-y-0.5">
                   <div className="text-xs font-bold text-slate-200">
-                    {t(
-                      'Require 5-Bar Fractal Confirmation',
-                      'ต้องมีการยืนยันจากแฟร็กทัล 5 แท่ง'
-                    )}
+                    {t('Require 5-Bar Fractal Confirmation')}
                   </div>
                   <p className="text-[11px] text-slate-400">
                     {t(
-                      'Suppresses false wick spikes during illiquid sessions.',
-                      'ช่วยลดสัญญาณหลอกในช่วงตลาดสภาพคล่องต่ำ'
+                      'Suppresses false wick spikes during illiquid sessions.'
                     )}
                   </p>
                 </div>
@@ -362,13 +324,13 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
             {/* Notification Channels */}
             <Card className="space-y-4 border-slate-800/80 bg-[#090b14]/90 p-6 backdrop-blur-xl">
               <h3 className="text-sm font-bold text-slate-100">
-                {t('Notification Delivery Channels', 'ช่องทางการรับแจ้งเตือน')}
+                {t('Notification Delivery Channels')}
               </h3>
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
                   <span className="text-xs text-slate-300">
-                    {t('In-App Push & Visual Banner', 'ป๊อปอัปแจ้งเตือนในแอป')}
+                    {t('In-App Push & Visual Banner')}
                   </span>
                   <Switch
                     checked={inAppNotify}
@@ -378,7 +340,7 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
 
                 <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
                   <span className="text-xs text-slate-300">
-                    {t('Audio Chime / Alert Sound', 'เสียงแจ้งเตือน')}
+                    {t('Audio Chime / Alert Sound')}
                   </span>
                   <Switch
                     checked={soundNotify}
@@ -389,7 +351,7 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
                 <div className="space-y-2 rounded-xl border border-slate-800 bg-[#06080e] p-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-slate-300">
-                      {t('Custom Webhook Endpoint', 'Webhook แบบกำหนดเอง')}
+                      {t('Custom Webhook Endpoint')}
                     </span>
                     <Switch
                       checked={webhookNotify}
@@ -415,7 +377,7 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
                   type="button"
                   className="border-slate-700 text-slate-300"
                 >
-                  {t('Cancel', 'ยกเลิก')}
+                  {t('Cancel')}
                 </Button>
               </Link>
               <Button
@@ -424,9 +386,7 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
                 className="bg-amber-500 px-6 font-bold text-slate-950 hover:bg-amber-400"
               >
                 <Save className="mr-2 h-4 w-4" />
-                {isSaving
-                  ? t('Saving Changes...', 'กำลังบันทึก...')
-                  : t('Save Alert Changes', 'บันทึกการเปลี่ยนแปลง')}
+                {isSaving ? t('Saving Changes...') : t('Save Alert Changes')}
               </Button>
             </div>
           </form>

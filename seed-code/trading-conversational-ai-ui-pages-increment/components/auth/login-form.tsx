@@ -66,12 +66,11 @@ export default function LoginForm() {
           />
         </div>
         <h2 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
-          {t('Sign in to DavinTrade', 'เข้าสู่ระบบ DavinTrade')}
+          {t('Sign in to DavinTrade')}
         </h2>
         <p className="text-xs text-slate-400">
           {t(
-            'Welcome back! Enter your credentials to access your trading workspace.',
-            'ยินดีต้อนรับกลับ! ป้อนข้อมูลของคุณเพื่อเข้าสู่พื้นที่ทำงานการเทรด'
+            'Welcome back! Enter your credentials to access your trading workspace.'
           )}
         </p>
       </div>
@@ -79,11 +78,9 @@ export default function LoginForm() {
       {/* Preset Test Credentials Helper */}
       <div className="space-y-2 rounded-xl border border-slate-800 bg-[#070910] p-3 text-xs">
         <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
-          <span>
-            ⚡ {t('Quick Test Credentials:', 'ข้อมูลทดสอบอย่างด่วน:')}
-          </span>
+          <span>⚡ {t('Quick Test Credentials:')}</span>
           <Badge className="border-amber-500/30 bg-amber-500/10 text-[9px] text-amber-400">
-            {t('Click to Autofill', 'คลิกเพื่อเติมข้อมูล')}
+            {t('Click to Autofill')}
           </Badge>
         </div>
         <div className="grid grid-cols-2 gap-1.5 font-mono text-[10px]">
@@ -94,7 +91,7 @@ export default function LoginForm() {
             }
             className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/5 p-1.5 text-amber-300 transition-colors hover:bg-amber-500/15"
           >
-            <span>{t('PRO User', 'ผู้ใช้ PRO')}</span>
+            <span>{t('PRO User')}</span>
             <CheckCircle2 className="h-3 w-3" />
           </button>
           <button
@@ -104,7 +101,7 @@ export default function LoginForm() {
             }
             className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/60 p-1.5 text-slate-300 transition-colors hover:bg-slate-800"
           >
-            <span>{t('FREE User', 'ผู้ใช้ FREE')}</span>
+            <span>{t('FREE User')}</span>
             <CheckCircle2 className="h-3 w-3" />
           </button>
         </div>
@@ -121,7 +118,7 @@ export default function LoginForm() {
       <form onSubmit={handleLogin} className="space-y-4">
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Email Address', 'ที่อยู่อีเมล')}
+            {t('Email Address')}
           </Label>
           <div className="relative">
             <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -139,13 +136,13 @@ export default function LoginForm() {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-semibold text-slate-300">
-              {t('Password', 'รหัสผ่าน')}
+              {t('Password')}
             </Label>
             <Link
               href="/forgot-password"
               className="text-[11px] font-semibold text-amber-400 hover:underline"
             >
-              {t('Forgot password?', 'ลืมรหัสผ่าน?')}
+              {t('Forgot password?')}
             </Link>
           </div>
           <div className="relative">
@@ -167,14 +164,14 @@ export default function LoginForm() {
               checked={rememberMe}
               onCheckedChange={(checked) => setRememberMe(!!checked)}
             />
-            <span>{t('Remember me', 'จดจำฉันไว้')}</span>
+            <span>{t('Remember me')}</span>
           </label>
           <Link
             href="/verify-2fa"
             className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-200"
           >
             <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />{' '}
-            {t('Two-Factor Authentication', 'ใช้ 2FA')}
+            {t('Two-Factor Authentication')}
           </Link>
         </div>
 
@@ -183,21 +180,19 @@ export default function LoginForm() {
           disabled={isLoading}
           className="h-10 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
         >
-          {isLoading
-            ? t('Authenticating...', 'กำลังตรวจสอบข้อมูล...')
-            : t('Sign In', 'เข้าสู่ระบบ')}
+          {isLoading ? t('Authenticating...') : t('Sign In')}
           {!isLoading && <ArrowRight className="ml-1.5 h-4 w-4" />}
         </Button>
       </form>
 
       {/* Footer Register Link */}
       <div className="border-t border-slate-800/80 pt-2 text-center text-xs text-slate-400">
-        {t("Don't have an account?", 'ยังไม่มีบัญชีใช่ไหม?')}{' '}
+        {t("Don't have an account?")}{' '}
         <Link
           href="/register"
           className="font-bold text-amber-400 hover:underline"
         >
-          {t('Sign up for FREE', 'สมัครใช้งานฟรี')}
+          {t('Sign up for FREE')}
         </Link>
       </div>
     </div>

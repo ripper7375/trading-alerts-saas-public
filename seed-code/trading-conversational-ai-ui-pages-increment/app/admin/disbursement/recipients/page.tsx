@@ -64,13 +64,9 @@ export default function AdminDisbursementRecipientsPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Disbursement: Validated Bank Recipients',
-          'การจ่ายเงิน: บัญชีผู้รับเงินที่ผ่านการยืนยัน'
-        )}
+        title={t('Admin Disbursement: Validated Bank Recipients')}
         subtitle={t(
-          'Wise Bank Account Tokens, Routing Codes & Recipient Validation Registry',
-          'โทเค็นบัญชีธนาคาร Wise รหัสสาขา และทะเบียนการตรวจสอบผู้รับเงิน'
+          'Wise Bank Account Tokens, Routing Codes & Recipient Validation Registry'
         )}
       />
 
@@ -81,10 +77,7 @@ export default function AdminDisbursementRecipientsPage() {
           <div className="relative max-w-xs">
             <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
             <Input
-              placeholder={t(
-                'Search recipient or partner...',
-                'ค้นหาผู้รับหรือพันธมิตร...'
-              )}
+              placeholder={t('Search recipient or partner...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
@@ -97,25 +90,25 @@ export default function AdminDisbursementRecipientsPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Recipient Token ID', 'รหัสโทเค็นผู้รับ')}
+                  {t('Recipient Token ID')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Partner Legal Name', 'ชื่อพันธมิตร')}
+                  {t('Partner Legal Name')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Bank / Institution', 'สถาบันการเงิน')}
+                  {t('Bank / Institution')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Account', 'เลขบัญชี')}
+                  {t('Account')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Currency', 'สกุลเงิน')}
+                  {t('Currency')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Country', 'ประเทศ')}
+                  {t('Country')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Verification', 'สถานะ')}
+                  {t('Verification')}
                 </TableHead>
               </TableRow>
             </TableHeader>

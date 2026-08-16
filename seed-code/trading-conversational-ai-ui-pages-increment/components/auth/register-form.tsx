@@ -46,12 +46,11 @@ export default function RegisterForm() {
           />
         </div>
         <h2 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
-          {t('Create your DavinTrade account', 'สร้างบัญชี DavinTrade ของคุณ')}
+          {t('Create your DavinTrade account')}
         </h2>
         <p className="text-xs text-slate-400">
           {t(
-            'Start analyzing charts with AI and setting server-side price alerts.',
-            'เริ่มต้นวิเคราะห์กราฟด้วย AI และตั้งค่าการแจ้งเตือนราคาฝั่งเซิร์ฟเวอร์'
+            'Start analyzing charts with AI and setting server-side price alerts.'
           )}
         </p>
       </div>
@@ -70,15 +69,12 @@ export default function RegisterForm() {
           <div className="flex w-full items-center justify-between text-xs font-bold">
             <span className="flex items-center gap-1">
               <Sparkles className="h-3.5 w-3.5 text-amber-400" />{' '}
-              {t('PRO Tier', 'แพ็กเกจ PRO')}
+              {t('PRO Tier')}
             </span>
             {tier === 'PRO' && <Check className="h-3.5 w-3.5 text-amber-400" />}
           </div>
           <span className="mt-1 text-[10px] text-slate-400">
-            {t(
-              'Full AI Models + 100 Alerts + MTF Overlay',
-              'โมเดล AI ทั้งหมด + 100 การแจ้งเตือน + เลเยอร์ MTF'
-            )}
+            {t('Full AI Models + 100 Alerts + MTF Overlay')}
           </span>
         </button>
 
@@ -92,16 +88,13 @@ export default function RegisterForm() {
           }`}
         >
           <div className="flex w-full items-center justify-between text-xs font-bold">
-            <span>{t('FREE Tier', 'แพ็กเกจ FREE')}</span>
+            <span>{t('FREE Tier')}</span>
             {tier === 'FREE' && (
               <Check className="h-3.5 w-3.5 text-slate-300" />
             )}
           </div>
           <span className="mt-1 text-[10px] text-slate-400">
-            {t(
-              'Basic Gemini Flash + Read-Only History',
-              'Gemini Flash พื้นฐาน + ประวัติอ่านอย่างเดียว'
-            )}
+            {t('Basic Gemini Flash + Read-Only History')}
           </span>
         </button>
       </div>
@@ -109,7 +102,7 @@ export default function RegisterForm() {
       <form onSubmit={handleRegister} className="space-y-4">
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Full Name', 'ชื่อ-นามสกุล')}
+            {t('Full Name')}
           </Label>
           <div className="relative">
             <User className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -126,7 +119,7 @@ export default function RegisterForm() {
 
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Email Address', 'ที่อยู่อีเมล')}
+            {t('Email Address')}
           </Label>
           <div className="relative">
             <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -143,7 +136,7 @@ export default function RegisterForm() {
 
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Password', 'รหัสผ่าน')}
+            {t('Password')}
           </Label>
           <div className="relative">
             <Lock className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -164,21 +157,21 @@ export default function RegisterForm() {
           className="h-10 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
         >
           {isLoading
-            ? t('Creating Account...', 'กำลังสร้างบัญชี...')
+            ? t('Creating Account...')
             : tier === 'PRO'
-              ? `${t('Proceed to Checkout', 'ไปที่หน้าชำระเงิน')} (${formatCurrency(49)}/${t('mo', 'เดือน')})`
-              : t('Get Started Free', 'เริ่มต้นใช้งานฟรี')}
+              ? `${t('Proceed to Checkout')} (${formatCurrency(49)}/${t('mo')})`
+              : t('Get Started Free')}
           {!isLoading && <ArrowRight className="ml-1.5 h-4 w-4" />}
         </Button>
       </form>
 
       <div className="border-t border-slate-800/80 pt-2 text-center text-xs text-slate-400">
-        {t('Already have an account?', 'มีบัญชีผู้ใช้อยู่แล้วใช่ไหม?')}{' '}
+        {t('Already have an account?')}{' '}
         <Link
           href="/login"
           className="font-bold text-amber-400 hover:underline"
         >
-          {t('Sign In', 'เข้าสู่ระบบ')}
+          {t('Sign In')}
         </Link>
       </div>
     </div>

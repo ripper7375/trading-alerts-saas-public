@@ -12,14 +12,14 @@ export default function AffiliateStats() {
       <StatsCard
         title={t('Total Commissions Earned')}
         value={formatCurrency(3840)}
-        change={`+${formatCurrency(680)} ${t('this month', 'เดือนนี้')}`}
+        change={`+${formatCurrency(680)} ${t('this month')}`}
         changeType="positive"
         icon={DollarSign}
-        description={t('30% Recurring Share', 'ส่วนแบ่งรายได้ต่อเนื่อง 30%')}
+        description={t('30% Recurring Share')}
       />
       <StatsCard
         title={t('Total Active Referrals')}
-        value={`48 ${t('Traders', 'เทรดเดอร์')}`}
+        value={`48 ${t('Traders')}`}
         change="82% PRO Conversion"
         changeType="positive"
         icon={Users}

@@ -10,11 +10,8 @@ export function PricingContent() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] select-none">
       <AppHeader
-        title={t('Tier Pricing & Plans', 'ราคาแพ็กเกจ & แผนสมาชิก')}
-        subtitle={t(
-          'Compare FREE vs PRO Tier Capabilities',
-          'เปรียบเทียบสิทธิ์การใช้งานแพ็กเกจ FREE และ PRO'
-        )}
+        title={t('Tier Pricing & Plans')}
+        subtitle={t('Compare FREE vs PRO Tier Capabilities')}
       />
       <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
         <TierComparison />

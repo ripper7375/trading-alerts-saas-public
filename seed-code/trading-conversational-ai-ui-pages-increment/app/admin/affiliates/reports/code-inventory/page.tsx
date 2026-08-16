@@ -55,13 +55,9 @@ export default function AdminReportCodeInventoryPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Report: Global Promo Code Inventory',
-          'รายงาน: คลังรหัสโปรโมชันส่วนกลาง'
-        )}
+        title={t('Admin Report: Global Promo Code Inventory')}
         subtitle={t(
-          'Master Pool Allocations, Stock Availability & Discount Quotas',
-          'การจัดสรรคลังรหัสหลัก จำนวนคงเหลือ และโควตาส่วนลด'
+          'Master Pool Allocations, Stock Availability & Discount Quotas'
         )}
       />
 
@@ -74,9 +70,7 @@ export default function AdminReportCodeInventoryPage() {
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>
-              {t('Back to Affiliates Directory', 'กลับสู่รายชื่อพันธมิตร')}
-            </span>
+            <span>{t('Back to Affiliates Directory')}</span>
           </Link>
         </div>
 
@@ -85,19 +79,19 @@ export default function AdminReportCodeInventoryPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Pool Name', 'ชื่อกลุ่มคลังรหัส')}
+                  {t('Pool Name')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Discount Rate', 'ส่วนลด')}
+                  {t('Discount Rate')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Total Minted', 'จำนวนสร้างทั้งหมด')}
+                  {t('Total Minted')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Assigned to Partners', 'จัดสรรให้พันธมิตรแล้ว')}
+                  {t('Assigned to Partners')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Available Stock', 'คงเหลือพร้อมจัดสรร')}
+                  {t('Available Stock')}
                 </TableHead>
               </TableRow>
             </TableHeader>

@@ -13,74 +13,47 @@ export default function TierComparison() {
 
   const features = [
     {
-      name: t(
-        'XAUUSD Real-Time M5/M15 Data Stream',
-        'สตรีมข้อมูล XAUUSD M5/M15 เรียลไทม์'
-      ),
+      name: t('XAUUSD Real-Time M5/M15 Data Stream'),
       free: true,
       pro: true,
     },
     {
-      name: t(
-        'AI Chart Analyst Quad-RAG Queries',
-        'การสอบถาม AI Chart Analyst Quad-RAG'
-      ),
-      free: t('Gemini 3.6 Flash Only', 'เฉพาะ Gemini 3.6 Flash'),
-      pro: t('All 6 Premium AI Models', 'โมเดล AI พรีเมียม ทั้ง 6 โมเดล'),
+      name: t('AI Chart Analyst Quad-RAG Queries'),
+      free: t('Gemini 3.6 Flash Only'),
+      pro: t('All 6 Premium AI Models'),
     },
     {
-      name: t('Interactive Prompt Input', 'การป้อนคำถามแบบโต้ตอบ'),
-      free: t(
-        'Disabled (Read-Only History)',
-        'ปิดใช้งาน (ประวัติแบบอ่านอย่างเดียว)'
-      ),
-      pro: t('Full Interactive Input', 'การป้อนคำถามโต้ตอบเต็มรูปแบบ'),
+      name: t('Interactive Prompt Input'),
+      free: t('Disabled (Read-Only History)'),
+      pro: t('Full Interactive Input'),
     },
     {
-      name: t(
-        'Server-Side Price & Line Alert Rules',
-        'กฎการแจ้งเตือนราคาและเส้นฝั่งเซิร์ฟเวอร์'
-      ),
-      free: t('0 Active Alerts', '0 กฎการแจ้งเตือน'),
-      pro: t('100 Active Alerts', '100 กฎการแจ้งเตือน'),
+      name: t('Server-Side Price & Line Alert Rules'),
+      free: t('0 Active Alerts'),
+      pro: t('100 Active Alerts'),
     },
     {
-      name: t(
-        'M5 Equal-Distance Centroid Channel Overlay',
-        'เลเยอร์ช่อง Centroid EDT M5'
-      ),
-      free: t(
-        'MTF Equal-Distance Overlay Locked',
-        'ลล็อกเลเยอร์ช่อง EDT หลายกรอบเวลา'
-      ),
-      pro: t('Full MTF Overlay', 'เลเยอร์ MTF เต็มรูปแบบ'),
+      name: t('M5 Equal-Distance Centroid Channel Overlay'),
+      free: t('MTF Equal-Distance Overlay Locked'),
+      pro: t('Full MTF Overlay'),
     },
     {
-      name: t(
-        'Live Market Comments & WebSocket Feed',
-        'ฟีดความคิดเห็นตลาดเรียลไทม์ผ่าน WebSocket'
-      ),
-      free: t('Glassmorphism Blur Gate', 'จำกัดการเข้าถึง'),
-      pro: t('Unrestricted Feed', 'ฟีดไม่จำกัด'),
+      name: t('Live Market Comments & WebSocket Feed'),
+      free: t('Glassmorphism Blur Gate'),
+      pro: t('Unrestricted Feed'),
     },
     {
-      name: t(
-        'Speedometer Gauges & Quality Metrics',
-        'มาตรวัดและตัวชี้วัดคุณภาพ EDT'
-      ),
-      free: t('Locked', 'ล็อก'),
-      pro: t('Full Access', 'เข้าถึงได้ทั้งหมด'),
+      name: t('Speedometer Gauges & Quality Metrics'),
+      free: t('Locked'),
+      pro: t('Full Access'),
     },
     {
-      name: t('Monthly AI Token Allocation', 'โควต้าโทเค็น AI ประจำเดือน'),
-      free: `50,000 ${t('Tokens', 'โทเค็น')}`,
-      pro: `500,000 ${t('Tokens', 'โทเค็น')}`,
+      name: t('Monthly AI Token Allocation'),
+      free: `50,000 ${t('Tokens')}`,
+      pro: `500,000 ${t('Tokens')}`,
     },
     {
-      name: t(
-        '24/7 Priority Support & VIP Discord',
-        'บริการช่วยเหลือ VIP 24/7'
-      ),
+      name: t('24/7 Priority Support & VIP Discord'),
       free: false,
       pro: true,
     },
@@ -91,17 +64,10 @@ export default function TierComparison() {
       {/* Billing Cycle Toggle */}
       <div className="flex flex-col items-center space-y-3 text-center">
         <Badge className="border-amber-500/40 bg-amber-500/10 px-3 py-1 font-mono text-xs text-amber-300">
-          ⚡{' '}
-          {t(
-            'PRO TIER UNLOCKS ALL AI MODELS & REAL-TIME FEEDS',
-            'แพ็กเกจ PRO ปลดล็อกโมเดล AI ทั้งหมด & สตรีมข้อมูลเรียลไทม์'
-          )}
+          ⚡ {t('PRO TIER UNLOCKS ALL AI MODELS & REAL-TIME FEEDS')}
         </Badge>
         <h1 className="text-2xl font-extrabold tracking-tight text-slate-100 sm:text-3xl">
-          {t(
-            'Flexible Pricing Built for Quantitative Traders',
-            'ราคาแพ็กเกจยืดหยุ่น สร้างขึ้นสำหรับเทรดเดอร์เชิงปริมาณ'
-          )}
+          {t('Flexible Pricing Built for Quantitative Traders')}
         </h1>
 
         <div className="flex items-center gap-3 rounded-xl border border-slate-800 bg-[#0b0e17] p-1">
@@ -114,7 +80,7 @@ export default function TierComparison() {
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            {t('Monthly Billing', 'ชำระรายเดือน')}
+            {t('Monthly Billing')}
           </button>
           <button
             type="button"
@@ -125,9 +91,9 @@ export default function TierComparison() {
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            {t('Annual Billing', 'ชำระรายปี')}
+            {t('Annual Billing')}
             <span className="rounded bg-amber-300 px-1.5 py-0.5 text-[9px] font-extrabold text-slate-950 uppercase">
-              {t('SAVE 20%', 'ประหยัด 20%')}
+              {t('SAVE 20%')}
             </span>
           </button>
         </div>
@@ -141,13 +107,10 @@ export default function TierComparison() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-slate-200">
-                  {t('FREE Tier', 'แพ็กเกจ FREE')}
+                  {t('FREE Tier')}
                 </h3>
                 <p className="text-xs text-slate-400">
-                  {t(
-                    'Basic market preview & past session viewer',
-                    'ดูตัวอย่างตลาดพื้นฐาน & ประวัติเซสชันย้อนหลัง'
-                  )}
+                  {t('Basic market preview & past session viewer')}
                 </p>
               </div>
               <Badge
@@ -162,9 +125,7 @@ export default function TierComparison() {
               <span className="font-mono text-3xl font-extrabold text-slate-100">
                 {formatCurrency(0)}
               </span>
-              <span className="text-xs text-slate-400">
-                / {t('forever', 'ตลอดไป')}
-              </span>
+              <span className="text-xs text-slate-400">/ {t('forever')}</span>
             </div>
 
             <Button
@@ -172,41 +133,30 @@ export default function TierComparison() {
               asChild
               className="border-slate-750 h-10 w-full bg-slate-800 text-xs font-bold text-slate-200"
             >
-              <Link href="/free">
-                {t('Access FREE Terminal', 'เข้าใช้งานเทอร์มินัล FREE')}
-              </Link>
+              <Link href="/free">{t('Access FREE Terminal')}</Link>
             </Button>
           </div>
 
           <div className="space-y-3 border-t border-slate-800/80 pt-4">
             <h4 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
-              {t('PLAN HIGHLIGHTS:', 'จุดเด่นของแผน:')}
+              {t('PLAN HIGHLIGHTS:')}
             </h4>
             <ul className="space-y-2 text-xs text-slate-400">
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-emerald-400" />{' '}
-                {t(
-                  'Real-Time M5/M15 XAUUSD Charts',
-                  'กราฟ XAUUSD M5/M15 เรียลไทม์'
-                )}
+                {t('Real-Time M5/M15 XAUUSD Charts')}
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-emerald-400" />{' '}
-                {t('Gemini 3.6 Flash AI Model', 'โมเดล AI Gemini 3.6 Flash')}
+                {t('Gemini 3.6 Flash AI Model')}
               </li>
               <li className="flex items-center gap-2 text-slate-500">
                 <X className="h-4 w-4 shrink-0 text-rose-500" />{' '}
-                {t(
-                  '0 Active Alerts (PRO Exclusive)',
-                  '0 กฎแจ้งเตือน (สิทธิ์เฉพาะ PRO)'
-                )}
+                {t('0 Active Alerts (PRO Exclusive)')}
               </li>
               <li className="flex items-center gap-2 text-slate-500">
                 <X className="h-4 w-4 shrink-0 text-rose-500" />{' '}
-                {t(
-                  'MTF Equal-Distance Overlay Locked',
-                  'ล็อกเลเยอร์ช่อง EDT หลายกรอบเวลา'
-                )}
+                {t('MTF Equal-Distance Overlay Locked')}
               </li>
             </ul>
           </div>
@@ -215,10 +165,7 @@ export default function TierComparison() {
         {/* PRO Tier Card */}
         <div className="relative flex flex-col justify-between space-y-6 rounded-2xl border-2 border-amber-500/60 bg-gradient-to-b from-[#0e121e] to-[#080a10] p-6 shadow-2xl">
           <div className="absolute -top-3 right-6 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-3 py-0.5 text-[10px] font-extrabold tracking-wider text-slate-950 uppercase shadow-md">
-            {t(
-              'MOST POPULAR FOR TRADERS',
-              'ได้รับความนิยมสูงสุดสำหรับเทรดเดอร์'
-            )}
+            {t('MOST POPULAR FOR TRADERS')}
           </div>
 
           <div className="space-y-4">
@@ -226,13 +173,10 @@ export default function TierComparison() {
               <div>
                 <h3 className="flex items-center gap-1.5 text-lg font-extrabold text-amber-300">
                   <Sparkles className="h-4 w-4 text-amber-400" />{' '}
-                  {t('PRO Tier', 'แพ็กเกจ PRO')}
+                  {t('PRO Tier')}
                 </h3>
                 <p className="text-xs text-slate-300">
-                  {t(
-                    'Complete AI quantitative analyst & 100 alerts',
-                    'นักวิเคราะห์ AI เชิงปริมาณครบวงจร & 100 กฎแจ้งเตือน'
-                  )}
+                  {t('Complete AI quantitative analyst & 100 alerts')}
                 </p>
               </div>
               <Badge className="border-amber-500/50 bg-amber-500/20 font-mono text-[10px] text-amber-300">
@@ -245,8 +189,7 @@ export default function TierComparison() {
                 {formatCurrency(isAnnual ? 39 : 49)}
               </span>
               <span className="text-xs text-slate-400">
-                / {t('month', 'เดือน')}{' '}
-                {isAnnual && t('(billed annually)', '(ชำระรายปี)')}
+                / {t('month')} {isAnnual && t('(billed annually)')}
               </span>
             </div>
 
@@ -255,7 +198,7 @@ export default function TierComparison() {
               className="h-10 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/25 hover:from-amber-400 hover:to-amber-500"
             >
               <Link href="/checkout">
-                {t('Upgrade to PRO Now', 'อัปเกรดเป็น PRO ตอนนี้')}{' '}
+                {t('Upgrade to PRO Now')}{' '}
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
@@ -263,46 +206,28 @@ export default function TierComparison() {
 
           <div className="space-y-3 border-t border-amber-500/30 pt-4">
             <h4 className="text-xs font-bold tracking-wider text-amber-300 uppercase">
-              {t(
-                'EVERYTHING IN FREE, PLUS:',
-                'ทุกอย่างในแพ็กเกจ FREE และเพิ่มเติม:'
-              )}
+              {t('EVERYTHING IN FREE, PLUS:')}
             </h4>
             <ul className="space-y-2 text-xs text-slate-200">
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
-                {t(
-                  '100 Server-Side Price & Line Alert Rules',
-                  '100 กฎการแจ้งเตือนราคาและเส้นฝั่งเซิร์ฟเวอร์'
-                )}
+                {t('100 Server-Side Price & Line Alert Rules')}
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
-                {t(
-                  'All 6 Premium AI Models (Claude Sonnet 5, GPT 5.6, etc.)',
-                  'โมเดล AI พรีเมียม ทั้ง 6 โมเดล (Claude Sonnet 5, GPT 5.6 ฯลฯ)'
-                )}
+                {t('All 6 Premium AI Models (Claude Sonnet 5, GPT 5.6, etc.)')}
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
-                {t(
-                  'M5 Equal-Distance Centroid Overlay on M15 Chart',
-                  'เลเยอร์ Centroid EDT M5 บนกราฟ M15'
-                )}
+                {t('M5 Equal-Distance Centroid Overlay on M15 Chart')}
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
-                {t(
-                  'Unrestricted Live Market Comments WebSocket Stream',
-                  'สตรีมความคิดเห็นตลาดเรียลไทม์ผ่าน WebSocket แบบไม่จำกัด'
-                )}
+                {t('Unrestricted Live Market Comments WebSocket Stream')}
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-amber-400" />{' '}
-                {t(
-                  '500,000 Monthly AI Token Quota',
-                  'โควต้าโทเค็น AI ประจำเดือน 500,000 โทเค็น'
-                )}
+                {t('500,000 Monthly AI Token Quota')}
               </li>
             </ul>
           </div>
@@ -313,10 +238,7 @@ export default function TierComparison() {
       <div className="overflow-hidden rounded-2xl border border-slate-800 bg-[#090c14] shadow-xl">
         <div className="border-b border-slate-800 bg-[#0d101a] p-4">
           <h3 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
-            {t(
-              'DETAILED TIER FEATURE COMPARISON MATRIX',
-              'ตารางเปรียบเทียบคุณสมบัติของแต่ละแพ็กเกจโดยละเอียด'
-            )}
+            {t('DETAILED TIER FEATURE COMPARISON MATRIX')}
           </h3>
         </div>
         <div className="divide-y divide-slate-800/60">

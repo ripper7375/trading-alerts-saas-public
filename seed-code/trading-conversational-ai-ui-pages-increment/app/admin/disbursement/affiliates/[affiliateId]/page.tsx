@@ -37,12 +37,7 @@ export default function AdminDisbursementAffiliateDetailPage({
     setIsSending(true);
     setTimeout(() => {
       setIsSending(false);
-      setSuccess(
-        t(
-          'Individual Wise transfer dispatched successfully.',
-          'ดำเนินการโอนเงินผ่าน Wise เรียบร้อยแล้ว'
-        )
-      );
+      setSuccess(t('Individual Wise transfer dispatched successfully.'));
       setTimeout(() => setSuccess(''), 4000);
     }, 800);
   };
@@ -50,14 +45,8 @@ export default function AdminDisbursementAffiliateDetailPage({
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Disbursement: Affiliate Payout Details',
-          'การจ่ายเงิน: รายละเอียดการโอนเงินของพันธมิตร'
-        )}
-        subtitle={t(
-          `Configuring Payout Target for Partner ID: ${affiliateId}`,
-          `กำลังตั้งค่าเป้าหมายการโอนเงินสำหรับรหัสพันธมิตร: ${affiliateId}`
-        )}
+        title={t('Admin Disbursement: Affiliate Payout Details')}
+        subtitle={t(`Configuring Payout Target for Partner ID: ${affiliateId}`)}
       />
 
       <AdminNav />
@@ -69,12 +58,7 @@ export default function AdminDisbursementAffiliateDetailPage({
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>
-              {t(
-                'Back to Disbursement Affiliates',
-                'กลับสู่รายชื่อการจ่ายเงินพันธมิตร'
-              )}
-            </span>
+            <span>{t('Back to Disbursement Affiliates')}</span>
           </Link>
 
           <Button
@@ -84,11 +68,8 @@ export default function AdminDisbursementAffiliateDetailPage({
           >
             <Send className="mr-1.5 h-4 w-4" />
             {isSending
-              ? t('Sending...', 'กำลังส่ง...')
-              : t(
-                  'Disburse Accrued Balance ($617.40)',
-                  'โอนเงินยอดสะสม ($617.40)'
-                )}
+              ? t('Sending...')
+              : t('Disburse Accrued Balance ($617.40)')}
           </Button>
         </div>
 
@@ -117,7 +98,7 @@ export default function AdminDisbursementAffiliateDetailPage({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1 rounded-xl border border-slate-800 bg-[#06080e] p-4">
               <div className="text-xs text-slate-400">
-                {t('Wise Recipient ID', 'รหัสผู้รับเงิน Wise')}
+                {t('Wise Recipient ID')}
               </div>
               <div className="font-mono text-sm font-bold text-slate-200">
                 wise_recp_98421098
@@ -129,7 +110,7 @@ export default function AdminDisbursementAffiliateDetailPage({
 
             <div className="space-y-1 rounded-xl border border-slate-800 bg-[#06080e] p-4">
               <div className="text-xs text-slate-400">
-                {t('Accrued Unpaid Commissions', 'ยอดคอมมิชชันค้างจ่าย')}
+                {t('Accrued Unpaid Commissions')}
               </div>
               <div className="font-mono text-2xl font-extrabold text-emerald-400">
                 $617.40

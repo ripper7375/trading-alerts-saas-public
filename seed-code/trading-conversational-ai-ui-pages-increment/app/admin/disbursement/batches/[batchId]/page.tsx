@@ -66,10 +66,7 @@ export default function AdminDisbursementBatchDetailPage({
     setTimeout(() => {
       setIsExecuting(false);
       setSuccess(
-        t(
-          'Disbursement batch executed successfully via Wise Business API!',
-          'ดำเนินการโอนเงินผ่าน Wise Business API เรียบร้อยแล้ว!'
-        )
+        t('Disbursement batch executed successfully via Wise Business API!')
       );
       setTimeout(() => setSuccess(''), 4000);
     }, 1000);
@@ -78,14 +75,8 @@ export default function AdminDisbursementBatchDetailPage({
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Disbursement: Batch Review & Execution',
-          'การจ่ายเงิน: ตรวจสอบและดำเนินการรอบโอนเงิน'
-        )}
-        subtitle={t(
-          `Inspecting Batch: ${batchId}`,
-          `กำลังตรวจสอบรอบโอนเงินรหัส: ${batchId}`
-        )}
+        title={t('Admin Disbursement: Batch Review & Execution')}
+        subtitle={t(`Inspecting Batch: ${batchId}`)}
       />
 
       <AdminNav />
@@ -97,9 +88,7 @@ export default function AdminDisbursementBatchDetailPage({
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>
-              {t('Back to Batches Roster', 'กลับสู่หน้ารายการรอบโอน')}
-            </span>
+            <span>{t('Back to Batches Roster')}</span>
           </Link>
 
           <Button
@@ -112,10 +101,7 @@ export default function AdminDisbursementBatchDetailPage({
             ) : (
               <Send className="mr-1.5 h-4 w-4" />
             )}
-            {t(
-              'Execute Batch Now ($1,029.00)',
-              'ดำเนินการโอนเงินทันที ($1,029.00)'
-            )}
+            {t('Execute Batch Now ($1,029.00)')}
           </Button>
         </div>
 
@@ -131,22 +117,22 @@ export default function AdminDisbursementBatchDetailPage({
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Partner', 'ชื่อพันธมิตร')}
+                  {t('Partner')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Wise Recipient ID', 'รหัสผู้รับเงิน')}
+                  {t('Wise Recipient ID')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Gross Amount', 'ยอดรวม')}
+                  {t('Gross Amount')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Fee', 'ค่าธรรมเนียม')}
+                  {t('Fee')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Net Transfer', 'ยอดโอนสุทธิ')}
+                  {t('Net Transfer')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Status', 'สถานะ')}
+                  {t('Status')}
                 </TableHead>
               </TableRow>
             </TableHeader>

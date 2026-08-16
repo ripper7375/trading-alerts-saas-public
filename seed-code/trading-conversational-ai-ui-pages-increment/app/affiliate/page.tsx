@@ -37,40 +37,30 @@ export default function AffiliateLandingPage() {
   const benefits = [
     {
       icon: Percent,
-      title: t(
-        '30% Lifetime Recurring Commission',
-        'รับค่าคอมมิชชัน 30% ตลอดชีพแบบต่อเนื่อง'
-      ),
+      title: t('30% Lifetime Recurring Commission'),
       desc: t(
-        'Earn 30% on every renewal as long as your referred trader maintains their PRO subscription.',
-        'รับ 30% จากทุกรอบการต่ออายุตราบเท่าที่ผู้ใช้ที่คุณแนะนำยังคงเป็นสมาชิก PRO'
+        'Earn 30% on every renewal as long as your referred trader maintains their PRO subscription.'
       ),
     },
     {
       icon: Landmark,
-      title: t(
-        'Automated Wise & RiseWorks Payouts',
-        'จ่ายเงินอัตโนมัติผ่าน Wise และ RiseWorks'
-      ),
+      title: t('Automated Wise & RiseWorks Payouts'),
       desc: t(
-        'Direct monthly disbursements in your preferred local currency with minimal gateway friction.',
-        'โอนเงินเข้าบัญชีท้องถิ่นของคุณทุกเดือนในสกุลเงินที่คุณต้องการ'
+        'Direct monthly disbursements in your preferred local currency with minimal gateway friction.'
       ),
     },
     {
       icon: Share2,
-      title: t('Custom Promo Code Engine', 'ระบบสร้างรหัสโปรโมชันเฉพาะตัว'),
+      title: t('Custom Promo Code Engine'),
       desc: t(
-        'Generate branded discount coupons that give your audience 10-20% off while securing your tracking attribution.',
-        'สร้างคูปองส่วนลดพิเศษ 10-20% สำหรับผู้ติดตามของคุณพร้อมระบบผูกบัญชีแนะนำที่แม่นยำ'
+        'Generate branded discount coupons that give your audience 10-20% off while securing your tracking attribution.'
       ),
     },
     {
       icon: Users,
-      title: t('Dedicated Partner Success Manager', 'ผู้ดูแลพันธมิตรส่วนตัว'),
+      title: t('Dedicated Partner Success Manager'),
       desc: t(
-        'Direct Telegram/Discord channel access, marketing banner packs, and high-converting video assets.',
-        'ติดต่อทีมงานโดยตรงผ่าน Telegram/Discord พร้อมรับสื่อการตลาดและวิดีโอแนะนำ'
+        'Direct Telegram/Discord channel access, marketing banner packs, and high-converting video assets.'
       ),
     },
   ];
@@ -85,20 +75,19 @@ export default function AffiliateLandingPage() {
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.15),transparent_60%)]" />
           <div className="relative container mx-auto max-w-5xl space-y-6 text-center">
             <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-400">
-              {t('DavinTrade Partner Program', 'โปรแกรมพันธมิตร DavinTrade')}
+              {t('DavinTrade Partner Program')}
             </Badge>
 
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
-              {t('Partner with the Leader in', 'ร่วมเป็นพันธมิตรกับผู้นำด้าน')}{' '}
+              {t('Partner with the Leader in')}{' '}
               <span className="bg-gradient-to-r from-amber-400 via-amber-200 to-yellow-500 bg-clip-text text-transparent">
-                {t('Quantitative AI Trading', 'การเทรดเชิงปริมาณด้วย AI')}
+                {t('Quantitative AI Trading')}
               </span>
             </h1>
 
             <p className="mx-auto max-w-2xl text-base leading-relaxed text-slate-400 md:text-lg">
               {t(
-                'Earn 30% recurring monthly revenue by introducing traders to DavinTrade AI precision fractal analytics and conversational copilots.',
-                'สร้างรายได้ต่อเนื่อง 30% ทุกเดือนด้วยการแนะนำนักเทรดสู่ระบบวิเคราะห์แฟร็กทัลและผู้ช่วย AI ของ DavinTrade'
+                'Earn 30% recurring monthly revenue by introducing traders to DavinTrade AI precision fractal analytics and conversational copilots.'
               )}
             </p>
 
@@ -106,7 +95,7 @@ export default function AffiliateLandingPage() {
               <Link href="/affiliate/register">
                 <Button className="bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-5 font-bold text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500">
                   <Sparkles className="mr-2 h-4 w-4" />
-                  {t('Join Affiliate Program', 'สมัครเข้าร่วมโปรแกรมพันธมิตร')}
+                  {t('Join Affiliate Program')}
                 </Button>
               </Link>
               <Link href="/affiliate/dashboard">
@@ -115,7 +104,7 @@ export default function AffiliateLandingPage() {
                   className="border-slate-700 bg-slate-900/60 px-6 py-5 text-slate-200 hover:bg-slate-800"
                 >
                   <Share2 className="mr-2 h-4 w-4 text-amber-400" />
-                  {t('Partner Login', 'เข้าสู่ระบบพันธมิตร')}
+                  {t('Partner Login')}
                 </Button>
               </Link>
             </div>
@@ -132,15 +121,11 @@ export default function AffiliateLandingPage() {
                 </div>
               </div>
               <h2 className="text-2xl font-bold text-slate-100">
-                {t(
-                  'Estimate Your Monthly Recurring Revenue',
-                  'คำนวณรายได้ต่อเนื่องรายเดือนของคุณ'
-                )}
+                {t('Estimate Your Monthly Recurring Revenue')}
               </h2>
               <p className="text-xs text-slate-400">
                 {t(
-                  'Based on active PRO subscriptions at $49/mo with 30% commission.',
-                  'คำนวณจากสมาชิก PRO ราคา $49/เดือน ที่ค่าคอมมิชชัน 30%'
+                  'Based on active PRO subscriptions at $49/mo with 30% commission.'
                 )}
               </p>
             </div>
@@ -149,10 +134,10 @@ export default function AffiliateLandingPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="font-semibold text-slate-300">
-                    {t('Active Referred Traders', 'จำนวนนักเทรดที่คุณแนะนำ')}:
+                    {t('Active Referred Traders')}:
                   </span>
                   <span className="font-mono text-lg font-bold text-amber-400">
-                    {referralsCount} {t('traders', 'คน')}
+                    {referralsCount} {t('traders')}
                   </span>
                 </div>
                 <Slider
@@ -168,7 +153,7 @@ export default function AffiliateLandingPage() {
               <div className="grid grid-cols-2 gap-4 rounded-2xl border border-slate-800 bg-[#06080e] p-6 text-center">
                 <div className="space-y-1">
                   <div className="text-xs font-medium text-slate-400">
-                    {t('Monthly Recurring', 'รายได้รายเดือน')}
+                    {t('Monthly Recurring')}
                   </div>
                   <div className="font-mono text-3xl font-extrabold text-emerald-400 md:text-4xl">
                     ${monthlyEarnings.toLocaleString()}
@@ -177,7 +162,7 @@ export default function AffiliateLandingPage() {
                 </div>
                 <div className="space-y-1 border-l border-slate-800">
                   <div className="text-xs font-medium text-slate-400">
-                    {t('Annual Potential', 'รายได้สะสมรายปี')}
+                    {t('Annual Potential')}
                   </div>
                   <div className="font-mono text-3xl font-extrabold text-amber-400 md:text-4xl">
                     ${annualEarnings.toLocaleString()}
@@ -189,7 +174,7 @@ export default function AffiliateLandingPage() {
               <div className="pt-2 text-center">
                 <Link href="/affiliate/register">
                   <Button className="w-full bg-amber-500 py-5 font-bold text-slate-950 hover:bg-amber-400">
-                    {t('Start Earning Today', 'เริ่มต้นรับรายได้วันนี้')}
+                    {t('Start Earning Today')}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -203,10 +188,7 @@ export default function AffiliateLandingPage() {
           <div className="container mx-auto max-w-6xl">
             <div className="mb-12 space-y-3 text-center">
               <h2 className="text-2xl font-extrabold text-slate-100 md:text-3xl">
-                {t(
-                  'Why Top Creators & Educators Choose DavinTrade',
-                  'เหตุผลที่ครีเอเตอร์และอาจารย์สอนเทรดเลือก DavinTrade'
-                )}
+                {t('Why Top Creators & Educators Choose DavinTrade')}
               </h2>
             </div>
 

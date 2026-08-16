@@ -16,10 +16,9 @@ export default function AdminDashboardPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] select-none">
       <AppHeader
-        title={t('Admin Platform Control', 'ระบบควบคุมผู้ดูแล')}
+        title={t('Admin Platform Control')}
         subtitle={t(
-          'Master System Telemetry, Fraud Warnings & Batch Disbursements',
-          'โทรมาตรระบบหลัก คำเตือนทุจริต และการถอนเงินแบบแบทช์'
+          'Master System Telemetry, Fraud Warnings & Batch Disbursements'
         )}
       />
 

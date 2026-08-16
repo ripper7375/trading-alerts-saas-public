@@ -61,13 +61,9 @@ export default function AdminDisbursementBatchesPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Disbursement: Payout Batches',
-          'การจ่ายเงิน: รอบการโอนเงิน (Batches)'
-        )}
+        title={t('Admin Disbursement: Payout Batches')}
         subtitle={t(
-          'Automated & Manual Monthly Payout Batches, Multi-Recipient Processing & Settlement History',
-          'รอบการโอนเงินประจำเดือนแบบอัตโนมัติและกำหนดเอง การประมวลผลหลายผู้รับ และประวัติการโอน'
+          'Automated & Manual Monthly Payout Batches, Multi-Recipient Processing & Settlement History'
         )}
       />
 
@@ -77,7 +73,7 @@ export default function AdminDisbursementBatchesPage() {
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex items-center gap-2">
             <Badge className="border-amber-500/40 bg-amber-500/20 text-xs text-amber-400">
-              {t('1 Batch Pending Execution', 'มี 1 รอบรอดำเนินการ')}
+              {t('1 Batch Pending Execution')}
             </Badge>
           </div>
 
@@ -86,7 +82,7 @@ export default function AdminDisbursementBatchesPage() {
             className="self-start bg-amber-500 font-bold text-slate-950 hover:bg-amber-400 sm:self-auto"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            {t('Generate New Payout Batch', 'สร้างรอบโอนเงินใหม่')}
+            {t('Generate New Payout Batch')}
           </Button>
         </div>
 
@@ -95,25 +91,25 @@ export default function AdminDisbursementBatchesPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Batch ID', 'รหัสรอบ')}
+                  {t('Batch ID')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Scheduled Execution', 'กำหนดโอน')}
+                  {t('Scheduled Execution')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Recipient Count', 'จำนวนผู้รับ')}
+                  {t('Recipient Count')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Total Disbursement', 'ยอดโอนรวม')}
+                  {t('Total Disbursement')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Gateway Method', 'ช่องทาง')}
+                  {t('Gateway Method')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Status', 'สถานะ')}
+                  {t('Status')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Action', 'จัดการ')}
+                  {t('Action')}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -157,7 +153,7 @@ export default function AdminDisbursementBatchesPage() {
                         className="text-xs text-amber-400 hover:bg-amber-500/10"
                       >
                         <Eye className="mr-1 h-3.5 w-3.5" />
-                        <span>{t('View Batch', 'ดูรอบโอน')}</span>
+                        <span>{t('View Batch')}</span>
                       </Button>
                     </Link>
                   </TableCell>

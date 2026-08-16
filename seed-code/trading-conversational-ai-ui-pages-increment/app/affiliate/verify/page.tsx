@@ -28,9 +28,7 @@ function AffiliateVerifyContent() {
   useEffect(() => {
     if (!token) {
       setStatus('error');
-      setErrorMsg(
-        t('No affiliate token provided.', 'ไม่พบโทเค็นสำหรับการยืนยันพันธมิตร')
-      );
+      setErrorMsg(t('No affiliate token provided.'));
       return;
     }
 
@@ -42,19 +40,13 @@ function AffiliateVerifyContent() {
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(
-            data.message ||
-              t(
-                'Invalid or expired partner verification link.',
-                'ลิงก์ยืนยันพันธมิตรไม่ถูกต้องหรือหมดอายุ'
-              )
+            data.message || t('Invalid or expired partner verification link.')
           );
         }
         setStatus('success');
       } catch (err: any) {
         setStatus('error');
-        setErrorMsg(
-          err.message || t('Verification failed.', 'การยืนยันไม่สำเร็จ')
-        );
+        setErrorMsg(err.message || t('Verification failed.'));
       }
     };
 
@@ -82,7 +74,7 @@ function AffiliateVerifyContent() {
           </span>
         </Link>
         <h1 className="text-2xl font-bold text-slate-100">
-          {t('Partner Verification', 'ยืนยันบัญชีพันธมิตร')}
+          {t('Partner Verification')}
         </h1>
       </div>
 
@@ -91,10 +83,7 @@ function AffiliateVerifyContent() {
           <div className="space-y-4 py-6">
             <Loader2 className="mx-auto h-10 w-10 animate-spin text-amber-400" />
             <p className="text-xs text-slate-400">
-              {t(
-                'Verifying your affiliate credentials...',
-                'กำลังตรวจสอบข้อมูลการเป็นพันธมิตรของคุณ...'
-              )}
+              {t('Verifying your affiliate credentials...')}
             </p>
           </div>
         )}
@@ -108,15 +97,11 @@ function AffiliateVerifyContent() {
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-bold text-emerald-300">
-                {t(
-                  'Partner Account Verified!',
-                  'ยืนยันบัญชีพันธมิตรเรียบร้อยแล้ว!'
-                )}
+                {t('Partner Account Verified!')}
               </h3>
               <p className="text-xs text-slate-400">
                 {t(
-                  'Your affiliate account is now fully approved. You can generate custom discount codes and track payouts.',
-                  'บัญชีพันธมิตรของคุณได้รับการอนุมัติแล้ว คุณสามารถสร้างรหัสโปรโมชันและติดตามการจ่ายเงินได้ทันที'
+                  'Your affiliate account is now fully approved. You can generate custom discount codes and track payouts.'
                 )}
               </p>
             </div>
@@ -125,7 +110,7 @@ function AffiliateVerifyContent() {
               <Link href="/affiliate/dashboard">
                 <Button className="w-full bg-amber-500 py-5 font-bold text-slate-950 hover:bg-amber-400">
                   <Share2 className="mr-2 h-4 w-4" />
-                  {t('Open Partner Dashboard', 'เปิดแดชบอร์ดพันธมิตร')}
+                  {t('Open Partner Dashboard')}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -142,21 +127,17 @@ function AffiliateVerifyContent() {
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-bold text-rose-300">
-                {t('Partner Verification Failed', 'การยืนยันไม่สำเร็จ')}
+                {t('Partner Verification Failed')}
               </h3>
               <p className="text-xs text-slate-400">
-                {errorMsg ||
-                  t(
-                    'The token might be expired or invalid.',
-                    'โทเค็นอาจหมดอายุหรือไม่ถูกต้อง'
-                  )}
+                {errorMsg || t('The token might be expired or invalid.')}
               </p>
             </div>
 
             <div className="pt-2">
               <Link href="/affiliate/register">
                 <Button className="w-full bg-amber-500 font-bold text-slate-950 hover:bg-amber-400">
-                  {t('Register Again', 'ลงทะเบียนใหม่อีกครั้ง')}
+                  {t('Register Again')}
                 </Button>
               </Link>
             </div>

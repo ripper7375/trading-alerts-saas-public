@@ -47,10 +47,9 @@ export default function AffiliateProfilePage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
       <AppHeader
-        title={t('Affiliate Partner Profile', 'โปรไฟล์พันธมิตร')}
+        title={t('Affiliate Partner Profile')}
         subtitle={t(
-          'Tax Information, Business Registration & Notification Preferences',
-          'ข้อมูลภาษี ข้อมูลนิติบุคคล และการตั้งค่าการรับการแจ้งเตือน'
+          'Tax Information, Business Registration & Notification Preferences'
         )}
       />
 
@@ -60,12 +59,7 @@ export default function AffiliateProfilePage() {
         {success && (
           <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
-            <span>
-              {t(
-                'Partner profile updated successfully!',
-                'อัปเดตข้อมูลโปรไฟล์พันธมิตรเรียบร้อยแล้ว!'
-              )}
-            </span>
+            <span>{t('Partner profile updated successfully!')}</span>
           </div>
         )}
 
@@ -78,26 +72,25 @@ export default function AffiliateProfilePage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-100">
-                    {t('Partner Identity & Contact', 'ข้อมูลตัวตนและการติดต่อ')}
+                    {t('Partner Identity & Contact')}
                   </h3>
                   <p className="text-xs text-slate-400">
                     {t(
-                      'Used for official revenue sharing contracts and Wise compliance.',
-                      'ใช้สำหรับสัญญาแบ่งรายได้และการปฏิบัติตามกฎหมาย Wise'
+                      'Used for official revenue sharing contracts and Wise compliance.'
                     )}
                   </p>
                 </div>
               </div>
 
               <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                {t('Verified Partner', 'พันธมิตรที่ยืนยันแล้ว')}
+                {t('Verified Partner')}
               </Badge>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t('Full Legal Name', 'ชื่อ-นามสกุลจริง')}
+                  {t('Full Legal Name')}
                 </Label>
                 <Input
                   value={partnerName}
@@ -109,7 +102,7 @@ export default function AffiliateProfilePage() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t('Email Address', 'อีเมลติดต่อ')}
+                  {t('Email Address')}
                 </Label>
                 <Input
                   type="email"
@@ -124,10 +117,7 @@ export default function AffiliateProfilePage() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t(
-                    'Business / Entity Name (Optional)',
-                    'ชื่อบริษัท/นิติบุคคล (ถ้ามี)'
-                  )}
+                  {t('Business / Entity Name (Optional)')}
                 </Label>
                 <Input
                   value={businessName}
@@ -138,7 +128,7 @@ export default function AffiliateProfilePage() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t('Tax ID / Social ID', 'เลขประจำตัวผู้เสียภาษี')}
+                  {t('Tax ID / Social ID')}
                 </Label>
                 <Input
                   value={taxId}
@@ -151,7 +141,7 @@ export default function AffiliateProfilePage() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t('Country of Residence', 'ประเทศที่พำนัก')}
+                  {t('Country of Residence')}
                 </Label>
                 <Input
                   value={country}
@@ -162,10 +152,7 @@ export default function AffiliateProfilePage() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t(
-                    'Social Channel / Community URL',
-                    'ช่องทางโซเชียล / ชุมชน'
-                  )}
+                  {t('Social Channel / Community URL')}
                 </Label>
                 <Input
                   value={website}
@@ -183,9 +170,7 @@ export default function AffiliateProfilePage() {
               className="bg-amber-500 px-6 font-bold text-slate-950 hover:bg-amber-400"
             >
               <Save className="mr-2 h-4 w-4" />
-              {isSaving
-                ? t('Saving...', 'กำลังบันทึก...')
-                : t('Save Profile Details', 'บันทึกข้อมูลโปรไฟล์')}
+              {isSaving ? t('Saving...') : t('Save Profile Details')}
             </Button>
           </div>
         </form>

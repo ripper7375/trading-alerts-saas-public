@@ -59,13 +59,9 @@ export default function AdminDisbursementAuditPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Disbursement: Security & Audit Trail',
-          'การจ่ายเงิน: บันทึกความปลอดภัยและการตรวจสอบ'
-        )}
+        title={t('Admin Disbursement: Security & Audit Trail')}
         subtitle={t(
-          'Immutable Event Logs, Approval Signoffs & Automated Ledger Audits',
-          'บันทึกเหตุการณ์ที่ไม่สามารถแก้ไขได้ การลงนามอนุมัติ และการตรวจสอบบัญชีอัตโนมัติ'
+          'Immutable Event Logs, Approval Signoffs & Automated Ledger Audits'
         )}
       />
 
@@ -78,9 +74,7 @@ export default function AdminDisbursementAuditPage() {
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>
-              {t('Back to Disbursement Batches', 'กลับสู่รอบการโอนเงิน')}
-            </span>
+            <span>{t('Back to Disbursement Batches')}</span>
           </Link>
         </div>
 
@@ -89,22 +83,22 @@ export default function AdminDisbursementAuditPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Audit ID', 'รหัสการตรวจสอบ')}
+                  {t('Audit ID')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Timestamp', 'เวลา')}
+                  {t('Timestamp')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Actor / Trigger', 'ผู้ดำเนินการ')}
+                  {t('Actor / Trigger')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Action Event', 'ประเภทการกระทำ')}
+                  {t('Action Event')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Details', 'รายละเอียด')}
+                  {t('Details')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('IP Source', 'ไอพีต้นทาง')}
+                  {t('IP Source')}
                 </TableHead>
               </TableRow>
             </TableHeader>

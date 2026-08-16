@@ -64,13 +64,9 @@ export default function AdminDisbursementAccountsPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Disbursement: Treasury & Payout Accounts',
-          'การจ่ายเงิน: บัญชีคลังและการโอน'
-        )}
+        title={t('Admin Disbursement: Treasury & Payout Accounts')}
         subtitle={t(
-          'Wise Business Floating Balances, RiseWorks Custodial Wallets & Banking Gateways',
-          'ยอดเงินคงเหลือในบัญชี Wise Business, กระเป๋าเงิน RiseWorks และเกตเวย์ธนาคาร'
+          'Wise Business Floating Balances, RiseWorks Custodial Wallets & Banking Gateways'
         )}
       />
 
@@ -80,10 +76,7 @@ export default function AdminDisbursementAccountsPage() {
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex items-center gap-2">
             <Badge className="border-emerald-500/40 bg-emerald-500/20 text-xs text-emerald-400">
-              {t(
-                'All Treasury Channels Connected',
-                'เชื่อมต่อบัญชีคลังทั้งหมดแล้ว'
-              )}
+              {t('All Treasury Channels Connected')}
             </Badge>
           </div>
 
@@ -92,7 +85,7 @@ export default function AdminDisbursementAccountsPage() {
             className="self-start bg-amber-500 font-bold text-slate-950 hover:bg-amber-400 sm:self-auto"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            {t('Add Treasury Account', 'เพิ่มบัญชีคลัง')}
+            {t('Add Treasury Account')}
           </Button>
         </div>
 
@@ -124,7 +117,7 @@ export default function AdminDisbursementAccountsPage() {
 
               <div>
                 <div className="text-[10px] tracking-wider text-slate-400 uppercase">
-                  {t('Available Floating Balance', 'ยอดคงเหลือพร้อมโอน')}
+                  {t('Available Floating Balance')}
                 </div>
                 <div className="mt-0.5 font-mono text-2xl font-extrabold text-slate-100">
                   {acc.currency === 'EUR' ? '€' : '$'}

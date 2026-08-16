@@ -76,10 +76,9 @@ export default function AffiliateStatementsPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
       <AppHeader
-        title={t('Affiliate Monthly Statements', 'ใบแจ้งยอดรายได้ประจำเดือน')}
+        title={t('Affiliate Monthly Statements')}
         subtitle={t(
-          'Official Tax Statements, Revenue Breakdown & PDF Download Archives',
-          'เอกสารใบแจ้งยอดทางการสำหรับภาษีและรายงานประวัติรายได้'
+          'Official Tax Statements, Revenue Breakdown & PDF Download Archives'
         )}
       />
 
@@ -91,28 +90,28 @@ export default function AffiliateStatementsPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Statement ID', 'เลขที่เอกสาร')}
+                  {t('Statement ID')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Billing Period', 'รอบเดือน')}
+                  {t('Billing Period')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Gross Referred Sales', 'ยอดขายรวม')}
+                  {t('Gross Referred Sales')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Earned Commission (30%)', 'ส่วนแบ่ง (30%)')}
+                  {t('Earned Commission (30%)')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Transfer Fee', 'ค่าธรรมเนียม')}
+                  {t('Transfer Fee')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Net Disbursed', 'ยอดสุทธิ')}
+                  {t('Net Disbursed')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Status', 'สถานะ')}
+                  {t('Status')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Document', 'เอกสาร')}
+                  {t('Document')}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -150,17 +149,12 @@ export default function AffiliateStatementsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() =>
-                        alert(
-                          t(
-                            'Downloading official PDF statement...',
-                            'กำลังดาวน์โหลดเอกสาร PDF...'
-                          )
-                        )
+                        alert(t('Downloading official PDF statement...'))
                       }
                       className="border-slate-700 bg-[#06080e] text-xs text-slate-300 hover:bg-slate-800 hover:text-amber-400"
                     >
                       <Download className="mr-1.5 h-3.5 w-3.5" />
-                      <span>{t('PDF', 'ดาวน์โหลด PDF')}</span>
+                      <span>{t('PDF')}</span>
                     </Button>
                   </TableCell>
                 </TableRow>

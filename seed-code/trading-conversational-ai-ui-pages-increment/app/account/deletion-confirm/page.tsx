@@ -22,9 +22,7 @@ function DeletionConfirmContent() {
   useEffect(() => {
     if (!token) {
       setStatus('error');
-      setMessage(
-        t('No confirmation token provided.', 'ไม่พบโทเค็นสำหรับการยืนยัน')
-      );
+      setMessage(t('No confirmation token provided.'));
       return;
     }
 
@@ -39,21 +37,14 @@ function DeletionConfirmContent() {
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(
-            data.message ||
-              t(
-                'Invalid or expired deletion confirmation link.',
-                'ลิงก์ยืนยันการลบบัญชีไม่ถูกต้องหรือหมดอายุแล้ว'
-              )
+            data.message || t('Invalid or expired deletion confirmation link.')
           );
         }
 
         setStatus('success');
       } catch (err: any) {
         setStatus('error');
-        setMessage(
-          err.message ||
-            t('Failed to delete account.', 'เกิดข้อผิดพลาดในการลบบัญชี')
-        );
+        setMessage(err.message || t('Failed to delete account.'));
       }
     };
 
@@ -81,7 +72,7 @@ function DeletionConfirmContent() {
           </span>
         </Link>
         <h1 className="text-2xl font-bold text-slate-100">
-          {t('Account Deletion Confirmation', 'การยืนยันการลบบัญชี')}
+          {t('Account Deletion Confirmation')}
         </h1>
       </div>
 
@@ -90,10 +81,7 @@ function DeletionConfirmContent() {
           <div className="space-y-4 py-6">
             <Loader2 className="mx-auto h-10 w-10 animate-spin text-rose-400" />
             <p className="text-xs text-slate-400">
-              {t(
-                'Executing permanent account deletion...',
-                'กำลังดำเนินการลบบัญชีถาวร...'
-              )}
+              {t('Executing permanent account deletion...')}
             </p>
           </div>
         )}
@@ -107,12 +95,11 @@ function DeletionConfirmContent() {
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-bold text-slate-100">
-                {t('Account Permanently Deleted', 'ลบบัญชีของคุณอย่างถาวรแล้ว')}
+                {t('Account Permanently Deleted')}
               </h3>
               <p className="text-xs text-slate-400">
                 {t(
-                  'Your profile data, authentication sessions, and saved settings have been securely purged.',
-                  'ข้อมูลโปรไฟล์ เซสชันการเข้าสู่ระบบ และการตั้งค่าทั้งหมดของคุณได้รับการลบออกจากระบบอย่างปลอดภัย'
+                  'Your profile data, authentication sessions, and saved settings have been securely purged.'
                 )}
               </p>
             </div>
@@ -121,7 +108,7 @@ function DeletionConfirmContent() {
               <Link href="/">
                 <Button className="w-full bg-slate-800 font-bold text-slate-200 hover:bg-slate-700">
                   <Home className="mr-2 h-4 w-4" />
-                  {t('Return to Homepage', 'กลับสู่หน้าหลัก')}
+                  {t('Return to Homepage')}
                 </Button>
               </Link>
             </div>
@@ -137,14 +124,10 @@ function DeletionConfirmContent() {
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-bold text-rose-300">
-                {t('Deletion Request Failed', 'การขอลบบัญชีไม่สำเร็จ')}
+                {t('Deletion Request Failed')}
               </h3>
               <p className="text-xs text-slate-400">
-                {message ||
-                  t(
-                    'The link is invalid or has expired.',
-                    'ลิงก์ไม่ถูกต้องหรือหมดอายุแล้ว'
-                  )}
+                {message || t('The link is invalid or has expired.')}
               </p>
             </div>
 
@@ -154,7 +137,7 @@ function DeletionConfirmContent() {
                   variant="outline"
                   className="w-full border-slate-800 text-slate-300"
                 >
-                  {t('Go to Login', 'ไปที่หน้าเข้าสู่ระบบ')}
+                  {t('Go to Login')}
                 </Button>
               </Link>
             </div>

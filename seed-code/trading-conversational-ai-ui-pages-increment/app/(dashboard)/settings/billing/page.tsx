@@ -10,11 +10,8 @@ export default function BillingSettingsPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] select-none">
       <AppHeader
-        title={t('nav.billing', 'การชำระเงินและใบเสร็จ')}
-        subtitle={t(
-          'Manage PRO Subscription, Invoices & Payment Methods',
-          'จัดการการสมัครสมาชิก PRO ใบเสร็จ และวิธีการชำระเงิน'
-        )}
+        title={t('nav.billing')}
+        subtitle={t('Manage PRO Subscription, Invoices & Payment Methods')}
       />
       <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
         <SubscriptionCard />

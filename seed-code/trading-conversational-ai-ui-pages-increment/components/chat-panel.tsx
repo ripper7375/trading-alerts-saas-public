@@ -124,8 +124,7 @@ export default function ChatPanel({
           return {
             ...msg,
             content: t(
-              'Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.',
-              'การประเมินทางเทคนิค XAUUSD แบบเรียลไทม์:\n\n- **โครงสร้าง M5**: การปฏิเสธไส้เทียนแบบ Double Bottom ที่ขอบล่างของ EDT ($2,634.50)\n- **ความชัน SSA M15**: แนวโน้มขาขึ้นพร้อมการขยายตัวของเทียน Z-score\n- **แผนกลยุทธ์**: แนะนำเข้าซื้อ BUY LIMIT ที่ $2,634.50 เป้าหมาย $2,648.00'
+              'Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.'
             ),
           };
         }
@@ -162,8 +161,7 @@ export default function ChatPanel({
           role: 'assistant',
           timestamp: Date.now(),
           content: t(
-            'Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.',
-            'การประเมินทางเทคนิค XAUUSD แบบเรียลไทม์:\n\n- **โครงสร้าง M5**: การปฏิเสธไส้เทียนแบบ Double Bottom ที่ขอบล่างของ EDT ($2,634.50)\n- **ความชัน SSA M15**: แนวโน้มขาขึ้นพร้อมการขยายตัวของเทียน Z-score\n- **แผนกลยุทธ์**: แนะนำเข้าซื้อ BUY LIMIT ที่ $2,634.50 เป้าหมาย $2,648.00'
+            'Real-time XAUUSD Technical Assessment:\n\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.'
           ),
         };
         setMessages((prev) => [...prev, aiResponse]);
@@ -230,7 +228,7 @@ export default function ChatPanel({
           </div>
           <div>
             <h2 className="flex items-center gap-1.5 text-xs font-extrabold tracking-tight text-slate-100">
-              {t('AI Chart Analyst', 'นักวิเคราะห์กราฟ AI')}
+              {t('AI Chart Analyst')}
             </h2>
           </div>
         </div>
@@ -238,9 +236,7 @@ export default function ChatPanel({
         <div className="flex items-center gap-1.5">
           <Select value={selectedModel} onValueChange={handleModelChange}>
             <SelectTrigger className="border-slate-750 h-7 w-[165px] bg-[#090b10] text-xs font-semibold text-slate-200 focus:ring-amber-500/30">
-              <SelectValue
-                placeholder={t('Select AI Model', 'เลือกโมเดล AI')}
-              />
+              <SelectValue placeholder={t('Select AI Model')} />
             </SelectTrigger>
             <SelectContent className="border-slate-750 bg-[#121622]">
               {ANALYST_MODELS.map((model) => (
@@ -281,8 +277,7 @@ export default function ChatPanel({
             <Info className="h-4 w-4 shrink-0 text-amber-400" />
             <span className="text-[11px] font-semibold">
               {t(
-                'Read-Only Session History (FREE Tier) — Upgrade to PRO to resume interactive AI Chart Analysis.',
-                'ประวัติเซสชันแบบอ่านอย่างเดียว (แพ็กเกจ FREE) — อัปเกรดเป็น PRO เพื่อกลับมาใช้การวิเคราะห์กราฟด้วย AI แบบโต้ตอบ'
+                'Read-Only Session History (FREE Tier) — Upgrade to PRO to resume interactive AI Chart Analysis.'
               )}
             </span>
           </div>
@@ -293,7 +288,7 @@ export default function ChatPanel({
             }
             className="h-6 bg-amber-500 px-2 text-[10px] font-extrabold text-slate-950 hover:bg-amber-400"
           >
-            {t('Upgrade', 'อัปเกรด')}
+            {t('Upgrade')}
           </Button>
         </div>
       )}
@@ -418,15 +413,11 @@ export default function ChatPanel({
               <Lock className="h-4 w-4 shrink-0 text-amber-400" />
               <div>
                 <div className="text-xs font-bold text-slate-100">
-                  {t(
-                    'Read-Only History (FREE Tier)',
-                    'ประวัติแบบอ่านอย่างเดียว (แพ็กเกจ FREE)'
-                  )}
+                  {t('Read-Only History (FREE Tier)')}
                 </div>
                 <div className="text-[11px] text-slate-400">
                   {t(
-                    'Upgrade to PRO to ask new questions or continue this session.',
-                    'อัปเกรดเป็น PRO เพื่อถามคำถามใหม่หรือใช้งานเซสชันนี้ต่อ'
+                    'Upgrade to PRO to ask new questions or continue this session.'
                   )}
                 </div>
               </div>
@@ -440,7 +431,7 @@ export default function ChatPanel({
               className="shrink-0 bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
             >
               <Sparkles className="mr-1.5 h-3.5 w-3.5 fill-black" />
-              {t('Upgrade to PRO', 'อัปเกรดเป็น PRO')}
+              {t('Upgrade to PRO')}
             </Button>
           </div>
         )}

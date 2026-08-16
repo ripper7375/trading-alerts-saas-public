@@ -36,12 +36,11 @@ export default function AffiliateRegisterPage() {
             <Share2 className="h-6 w-6" />
           </div>
           <h2 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
-            {t('Join Partner Program', 'เข้าร่วมโปรแกรมพันธมิตร')}
+            {t('Join Partner Program')}
           </h2>
           <p className="text-xs text-slate-400">
             {t(
-              'Earn 30% monthly recurring commission on every trader you refer',
-              'รับค่าคอมมิชชัน 30% ต่อเดือนอย่างต่อเนื่องจากเทรดเดอร์ทุกคนที่คุณแนะนำ'
+              'Earn 30% monthly recurring commission on every trader you refer'
             )}
           </p>
         </div>
@@ -49,24 +48,21 @@ export default function AffiliateRegisterPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-slate-300">
-              {t('Partner Name / Channel', 'ชื่อพันธมิตร / ช่องทาง')}
+              {t('Partner Name / Channel')}
             </Label>
             <Input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={t(
-                'e.g. Gold Traders Community',
-                'เช่น ชุมชนเทรดเดอร์ทองคำ'
-              )}
+              placeholder={t('e.g. Gold Traders Community')}
               className="border-slate-750 bg-[#06080e] text-xs text-slate-100"
             />
           </div>
 
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-slate-300">
-              {t('Business Email', 'อีเมลธุรกิจ')}
+              {t('Business Email')}
             </Label>
             <Input
               type="email"
@@ -80,10 +76,7 @@ export default function AffiliateRegisterPage() {
 
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-slate-300">
-              {t(
-                'Channel Link / Website (Optional)',
-                'ลิงก์ช่องทาง / เว็บไซต์ (ไม่บังคับ)'
-              )}
+              {t('Channel Link / Website (Optional)')}
             </Label>
             <Input
               type="url"
@@ -100,19 +93,19 @@ export default function AffiliateRegisterPage() {
             className="h-10 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
           >
             {isLoading
-              ? t('Creating Partner Account...', 'กำลังสร้างบัญชีพันธมิตร...')
-              : t('Apply for Partner Portal', 'สมัครเข้าใช้พอร์ตัลพันธมิตร')}
+              ? t('Creating Partner Account...')
+              : t('Apply for Partner Portal')}
             {!isLoading && <ArrowRight className="ml-1.5 h-4 w-4" />}
           </Button>
         </form>
 
         <div className="border-t border-slate-800/80 pt-2 text-center text-xs text-slate-400">
-          {t('Already registered?', 'ลงทะเบียนแล้วใช่หรือไม่?')}{' '}
+          {t('Already registered?')}{' '}
           <Link
             href="/affiliate/dashboard"
             className="font-bold text-amber-400 hover:underline"
           >
-            {t('Partner Dashboard', 'แดชบอร์ดพันธมิตร')}
+            {t('Partner Dashboard')}
           </Link>
         </div>
       </div>

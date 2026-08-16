@@ -14,22 +14,22 @@ export default function SubscriptionCard() {
       id: 'INV-2026-008',
       date: formatDate('2026-08-01'),
       amount: formatCurrency(49),
-      status: t('Paid', 'ชำระแล้ว'),
-      method: t('Visa ending in 8892', 'Visa ลงท้ายด้วย 8892'),
+      status: t('Paid'),
+      method: t('Visa ending in 8892'),
     },
     {
       id: 'INV-2026-007',
       date: formatDate('2026-07-01'),
       amount: formatCurrency(49),
-      status: t('Paid', 'ชำระแล้ว'),
-      method: t('Visa ending in 8892', 'Visa ลงท้ายด้วย 8892'),
+      status: t('Paid'),
+      method: t('Visa ending in 8892'),
     },
     {
       id: 'INV-2026-006',
       date: formatDate('2026-06-01'),
       amount: formatCurrency(49),
-      status: t('Paid', 'ชำระแล้ว'),
-      method: t('Visa ending in 8892', 'Visa ลงท้ายด้วย 8892'),
+      status: t('Paid'),
+      method: t('Visa ending in 8892'),
     },
   ];
 
@@ -41,17 +41,14 @@ export default function SubscriptionCard() {
           <div>
             <div className="flex items-center gap-2">
               <Badge className="border-amber-500/50 bg-amber-500/20 font-mono text-[10px] text-amber-300">
-                ⚡ {t('PRO PLAN ACTIVE', 'แพ็กเกจ PRO เปิดใช้งานอยู่')}
+                ⚡ {t('PRO PLAN ACTIVE')}
               </Badge>
               <span className="font-mono text-[11px] text-slate-400">
-                {t('Renews', 'ต่ออายุวันที่')} {formatDate('2026-09-01')}
+                {t('Renews')} {formatDate('2026-09-01')}
               </span>
             </div>
             <h2 className="mt-1 text-lg font-extrabold text-slate-100">
-              {t(
-                'DavinTrade PRO Tier Subscription',
-                'การสมัครสมาชิก DavinTrade PRO'
-              )}
+              {t('DavinTrade PRO Tier Subscription')}
             </h2>
           </div>
 
@@ -61,7 +58,7 @@ export default function SubscriptionCard() {
                 variant="outline"
                 className="h-8 border-amber-500/40 bg-amber-500/10 text-xs text-amber-300 hover:bg-amber-500/20"
               >
-                {t('Change Plan', 'เปลี่ยนแผนการใช้งาน')}
+                {t('Change Plan')}
               </Button>
             </Link>
           </div>
@@ -70,26 +67,26 @@ export default function SubscriptionCard() {
         <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-3">
           <div className="rounded-xl border border-slate-800 bg-[#06080e] p-3">
             <span className="text-[10px] text-slate-400">
-              {t('Current Billing Rate', 'อัตราค่าบริการปัจจุบัน')}
+              {t('Current Billing Rate')}
             </span>
             <div className="font-mono text-base font-extrabold text-amber-300">
-              {formatCurrency(49)} / {t('mo', 'เดือน')}
+              {formatCurrency(49)} / {t('mo')}
             </div>
           </div>
           <div className="rounded-xl border border-slate-800 bg-[#06080e] p-3">
             <span className="text-[10px] text-slate-400">
-              {t('Alert Rule Allocation', 'โควต้ากฎการแจ้งเตือน')}
+              {t('Alert Rule Allocation')}
             </span>
             <div className="font-mono text-base font-extrabold text-slate-100">
-              100 {t('Max Rules', 'กฎสูงสุด')}
+              100 {t('Max Rules')}
             </div>
           </div>
           <div className="rounded-xl border border-slate-800 bg-[#06080e] p-3">
             <span className="text-[10px] text-slate-400">
-              {t('Monthly AI Token Quota', 'โควต้าโทเค็นประจำเดือน')}
+              {t('Monthly AI Token Quota')}
             </span>
             <div className="font-mono text-base font-extrabold text-slate-100">
-              500,000 {t('Tokens', 'โทเค็น')}
+              500,000 {t('Tokens')}
             </div>
           </div>
         </div>
@@ -98,11 +95,9 @@ export default function SubscriptionCard() {
       {/* Invoice History Table */}
       <div className="space-y-3 overflow-hidden rounded-2xl border border-slate-800 bg-[#090c14] p-4 shadow-xl">
         <h3 className="flex items-center justify-between text-xs font-bold tracking-wider text-slate-200 uppercase">
-          <span>
-            {t('Billing & Payment History', 'ประวัติการชำระเงินและใบเสร็จ')}
-          </span>
+          <span>{t('Billing & Payment History')}</span>
           <span className="font-mono text-[10px] text-slate-400">
-            3 {t('Invoices', 'ใบเสร็จ')}
+            3 {t('Invoices')}
           </span>
         </h3>
 

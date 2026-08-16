@@ -28,37 +28,30 @@ export default function AboutPage() {
   const values = [
     {
       icon: Target,
-      title: t('Focus Over Feature-Bloat', 'มุ่งเน้นคุณภาพมากกว่าฟีเจอร์ล้น'),
+      title: t('Focus Over Feature-Bloat'),
       description: t(
-        'One primary asset, engineered with absolute mathematical depth. XAUUSD across M5 and M15 with full fractal analysis and quantitative harmonic models, instead of shallow alerts across hundreds of noisy symbols.',
-        'เน้นสินทรัพย์หลักหนึ่งเดียวด้วยความลึกซึ้งทางคณิตศาสตร์ XAUUSD ในกรอบ M5 และ M15 พร้อมการวิเคราะห์แฟร็กทัลและฮาร์มอนิกเชิงปริมาณ แทนที่จะเป็นการแจ้งเตือนแบบตื้นเขินในหลายร้อยคู่เงิน'
+        'One primary asset, engineered with absolute mathematical depth. XAUUSD across M5 and M15 with full fractal analysis and quantitative harmonic models, instead of shallow alerts across hundreds of noisy symbols.'
       ),
     },
     {
       icon: Zap,
-      title: t('Signal, Not Noise', 'สัญญาณคุณภาพ ปราศจากสัญญาณรบกวน'),
+      title: t('Signal, Not Noise'),
       description: t(
-        'Real-time automated validation filters every tick. Alerts trigger only when multi-timeframe fractal alignment, momentum exhaustion, and institutional volume thresholds are strictly satisfied.',
-        'ตัวกรองการตรวจสอบอัตโนมัติแบบเรียลไทม์จะประเมินทุกติ๊ก แจ้งเตือนเมื่อมีการยืนยันจากแฟร็กทัลหลายกรอบเวลา การหมดแรงของโมเมนตัม และวอลุ่มสถาบัน'
+        'Real-time automated validation filters every tick. Alerts trigger only when multi-timeframe fractal alignment, momentum exhaustion, and institutional volume thresholds are strictly satisfied.'
       ),
     },
     {
       icon: Brain,
-      title: t(
-        'Conversational Quantitative AI',
-        'ปัญญาประดิษฐ์เชิงปริมาณแบบสนทนา'
-      ),
+      title: t('Conversational Quantitative AI'),
       description: t(
-        'Ask Davin AI anything about current market structure, support/resistance clustering, macroeconomic calendar risks, or strategy setups in natural language 24/7.',
-        'สอบถาม Davin AI ได้ตลอด 24 ชั่วโมงเกี่ยวกับโครงสร้างตลาด แนวรับแนวต้าน ความเสี่ยงปฏิทินเศรษฐกิจ หรือกลยุทธ์การเทรดด้วยภาษาธรรมชาติ'
+        'Ask Davin AI anything about current market structure, support/resistance clustering, macroeconomic calendar risks, or strategy setups in natural language 24/7.'
       ),
     },
     {
       icon: ShieldCheck,
-      title: t('Total Transparency & Speed', 'ความโปร่งใสและความเร็วสูงสุด'),
+      title: t('Total Transparency & Speed'),
       description: t(
-        'Sub-millisecond MT5 execution pipes, zero black-box promises, clear risk-to-reward metrics, and verified public performance telemetry.',
-        'ท่อส่งข้อมูล MT5 ความเร็วต่ำกว่ามิลลิวินาที ไม่มีการโอ้อวดเกินจริง การคำนวณอัตราส่วนผลตอบแทนต่อความเสี่ยงที่ชัดเจน และโทรมาตรสาธารณะที่ตรวจสอบได้'
+        'Sub-millisecond MT5 execution pipes, zero black-box promises, clear risk-to-reward metrics, and verified public performance telemetry.'
       ),
     },
   ];
@@ -73,23 +66,19 @@ export default function AboutPage() {
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.15),transparent_60%)]" />
           <div className="relative container mx-auto max-w-5xl space-y-6 text-center">
             <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-400">
-              {t('About DavinTrade AI', 'เกี่ยวกับ DavinTrade AI')}
+              {t('About DavinTrade AI')}
             </Badge>
 
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
-              {t(
-                'Precision Gold Analytics Powered by',
-                'การวิเคราะห์ทองคำที่แม่นยำ ขับเคลื่อนด้วย'
-              )}{' '}
+              {t('Precision Gold Analytics Powered by')}{' '}
               <span className="bg-gradient-to-r from-amber-400 via-amber-200 to-yellow-500 bg-clip-text text-transparent">
-                {t('Conversational AI', 'ปัญญาประดิษฐ์แบบสนทนา')}
+                {t('Conversational AI')}
               </span>
             </h1>
 
             <p className="mx-auto max-w-2xl text-base leading-relaxed text-slate-400 md:text-lg">
               {t(
-                'We built DavinTrade because retail traders deserve the same quantitative rigor, real-time fractal signal precision, and sub-second execution telemetry that institutional desks use every day.',
-                'เราสร้าง DavinTrade ขึ้นมาเพราะนักเทรดรายย่อยคู่ควรกับความแม่นยำเชิงปริมาณ สัญญาณแฟร็กทัลแบบเรียลไทม์ และระบบโทรมาตรระดับสถาบัน'
+                'We built DavinTrade because retail traders deserve the same quantitative rigor, real-time fractal signal precision, and sub-second execution telemetry that institutional desks use every day.'
               )}
             </p>
 
@@ -97,7 +86,7 @@ export default function AboutPage() {
               <Link href="/register">
                 <Button className="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-5 font-bold text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500">
                   <Sparkles className="mr-2 h-4 w-4" />
-                  {t('Start Exploring Free', 'เริ่มต้นใช้งานฟรี')}
+                  {t('Start Exploring Free')}
                 </Button>
               </Link>
               <Link href="/terminal">
@@ -106,7 +95,7 @@ export default function AboutPage() {
                   className="border-slate-700 bg-slate-900/60 px-6 py-5 text-slate-200 hover:bg-slate-800"
                 >
                   <LineChart className="mr-2 h-4 w-4 text-amber-400" />
-                  {t('Open PRO Terminal', 'เปิดเทอร์มินัล PRO')}
+                  {t('Open PRO Terminal')}
                 </Button>
               </Link>
             </div>
@@ -117,12 +106,11 @@ export default function AboutPage() {
         <section className="container mx-auto max-w-6xl px-4 py-16 md:px-6">
           <div className="mb-12 space-y-3 text-center">
             <h2 className="text-2xl font-extrabold text-slate-100 md:text-3xl">
-              {t('Our Engineering Principles', 'หลักการทางวิศวกรรมของเรา')}
+              {t('Our Engineering Principles')}
             </h2>
             <p className="mx-auto max-w-xl text-sm text-slate-400">
               {t(
-                'How we design algorithmic tools that genuinely empower traders to make disciplined, high-probability decisions.',
-                'วิธีที่เราออกแบบเครื่องมืออัลกอริทึมที่ช่วยให้นักเทรดตัดสินใจได้อย่างมีวินัยและมีความน่าจะเป็นสูง'
+                'How we design algorithmic tools that genuinely empower traders to make disciplined, high-probability decisions.'
               )}
             </p>
           </div>
@@ -161,7 +149,7 @@ export default function AboutPage() {
                   &lt; 50ms
                 </div>
                 <div className="text-xs font-medium text-slate-400">
-                  {t('Tick Processing Latency', 'ความเร็วประมวลผลติ๊ก')}
+                  {t('Tick Processing Latency')}
                 </div>
               </div>
               <div className="space-y-1">
@@ -169,7 +157,7 @@ export default function AboutPage() {
                   99.98%
                 </div>
                 <div className="text-xs font-medium text-slate-400">
-                  {t('Platform Uptime', 'ความพร้อมใช้งานระบบ')}
+                  {t('Platform Uptime')}
                 </div>
               </div>
               <div className="space-y-1">
@@ -177,7 +165,7 @@ export default function AboutPage() {
                   24/7
                 </div>
                 <div className="text-xs font-medium text-slate-400">
-                  {t('AI Copilot Availability', 'ความพร้อมของ AI ผู้ช่วย')}
+                  {t('AI Copilot Availability')}
                 </div>
               </div>
               <div className="space-y-1">
@@ -185,7 +173,7 @@ export default function AboutPage() {
                   100%
                 </div>
                 <div className="text-xs font-medium text-slate-400">
-                  {t('Rule-Based Logic', 'ลอจิกตามกฎที่โปร่งใส')}
+                  {t('Rule-Based Logic')}
                 </div>
               </div>
             </div>

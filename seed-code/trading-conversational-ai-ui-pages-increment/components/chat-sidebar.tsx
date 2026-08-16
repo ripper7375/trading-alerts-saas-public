@@ -371,10 +371,7 @@ export function ChatSidebar({
                 {t('PNG Download')}
               </span>
               <span className="mt-0.5 truncate font-mono text-[9px] text-slate-400">
-                {t(
-                  'Matplotlib 3-Panel Vision Render',
-                  'ระบบแสดงผลภาพ Matplotlib 3-Panel'
-                )}
+                {t('Matplotlib 3-Panel Vision Render')}
               </span>
             </div>
           ) : (

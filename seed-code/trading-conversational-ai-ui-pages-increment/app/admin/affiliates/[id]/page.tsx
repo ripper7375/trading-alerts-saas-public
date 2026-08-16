@@ -48,9 +48,7 @@ export default function AdminAffiliateDetailPage({
   const handleToggleStatus = () => {
     const next = status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
     setStatus(next);
-    setSuccess(
-      t(`Partner status updated to ${next}`, `อัปเดตสถานะพันธมิตรเป็น ${next}`)
-    );
+    setSuccess(t(`Partner status updated to ${next}`));
     setTimeout(() => setSuccess(''), 3000);
   };
 
@@ -60,23 +58,15 @@ export default function AdminAffiliateDetailPage({
     setPromoCodes([...promoCodes, newCode.toUpperCase().trim()]);
     setNewCode('');
     setIsDistributing(false);
-    setSuccess(
-      t(
-        'Promo code allocated to partner!',
-        'จัดสรรรหัสโปรโมชันให้พันธมิตรเรียบร้อยแล้ว!'
-      )
-    );
+    setSuccess(t('Promo code allocated to partner!'));
     setTimeout(() => setSuccess(''), 3000);
   };
 
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t('Admin Partner Deep Dive', 'รายละเอียดเชิงลึกของพันธมิตร')}
-        subtitle={t(
-          `Managing Partner ID: ${affiliateId}`,
-          `กำลังจัดการข้อมูลพันธมิตรรหัส: ${affiliateId}`
-        )}
+        title={t('Admin Partner Deep Dive')}
+        subtitle={t(`Managing Partner ID: ${affiliateId}`)}
       />
 
       <AdminNav />
@@ -88,9 +78,7 @@ export default function AdminAffiliateDetailPage({
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>
-              {t('Back to Affiliates Directory', 'กลับสู่รายชื่อพันธมิตร')}
-            </span>
+            <span>{t('Back to Affiliates Directory')}</span>
           </Link>
 
           <Button
@@ -106,12 +94,12 @@ export default function AdminAffiliateDetailPage({
             {status === 'ACTIVE' ? (
               <>
                 <Ban className="mr-1.5 h-3.5 w-3.5" />
-                {t('Suspend Partner', 'ระงับการเป็นพันธมิตร')}
+                {t('Suspend Partner')}
               </>
             ) : (
               <>
                 <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
-                {t('Reactivate Partner', 'เปิดใช้งานพันธมิตร')}
+                {t('Reactivate Partner')}
               </>
             )}
           </Button>
@@ -154,7 +142,7 @@ export default function AdminAffiliateDetailPage({
 
             <div className="text-right">
               <div className="text-xs text-slate-400">
-                {t('Accrued Unpaid Commissions', 'ค่าคอมมิชชันค้างจ่าย')}
+                {t('Accrued Unpaid Commissions')}
               </div>
               <div className="font-mono text-2xl font-extrabold text-emerald-400">
                 $617.40
@@ -165,7 +153,7 @@ export default function AdminAffiliateDetailPage({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="rounded-xl border border-slate-800 bg-[#06080e] p-4">
               <div className="text-xs text-slate-400">
-                {t('Total Referrals', 'จำนวนการแนะนำ')}
+                {t('Total Referrals')}
               </div>
               <div className="mt-1 font-mono text-xl font-bold text-slate-200">
                 168 Signups
@@ -173,7 +161,7 @@ export default function AdminAffiliateDetailPage({
             </div>
             <div className="rounded-xl border border-slate-800 bg-[#06080e] p-4">
               <div className="text-xs text-slate-400">
-                {t('Active PRO Subscribers', 'สมาชิก PRO ปัจจุบัน')}
+                {t('Active PRO Subscribers')}
               </div>
               <div className="mt-1 font-mono text-xl font-bold text-emerald-400">
                 42 Traders
@@ -181,7 +169,7 @@ export default function AdminAffiliateDetailPage({
             </div>
             <div className="rounded-xl border border-slate-800 bg-[#06080e] p-4">
               <div className="text-xs text-slate-400">
-                {t('Lifetime Volume', 'ยอดขายสะสม')}
+                {t('Lifetime Volume')}
               </div>
               <div className="mt-1 font-mono text-xl font-bold text-cyan-400">
                 $8,232.00
@@ -193,7 +181,7 @@ export default function AdminAffiliateDetailPage({
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
-                {t('Assigned Promotional Codes', 'รหัสโปรโมชันที่จัดสรรให้')}
+                {t('Assigned Promotional Codes')}
               </h4>
               <Button
                 variant="outline"
@@ -202,7 +190,7 @@ export default function AdminAffiliateDetailPage({
                 className="border-slate-700 bg-[#06080e] text-xs text-amber-400 hover:bg-slate-800"
               >
                 <Plus className="mr-1 h-3.5 w-3.5" />
-                {t('Allocate Promo Code', 'จัดสรรรหัสใหม่')}
+                {t('Allocate Promo Code')}
               </Button>
             </div>
 
@@ -223,7 +211,7 @@ export default function AdminAffiliateDetailPage({
                   size="sm"
                   className="bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
                 >
-                  {t('Add', 'เพิ่ม')}
+                  {t('Add')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -232,7 +220,7 @@ export default function AdminAffiliateDetailPage({
                   onClick={() => setIsDistributing(false)}
                   className="text-slate-400"
                 >
-                  {t('Cancel', 'ยกเลิก')}
+                  {t('Cancel')}
                 </Button>
               </form>
             )}

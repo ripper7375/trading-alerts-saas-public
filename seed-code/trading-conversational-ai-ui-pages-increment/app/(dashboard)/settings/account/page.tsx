@@ -13,32 +13,25 @@ export default function AccountSettingsPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] select-none">
       <AppHeader
-        title={t('settings.nav.account', 'บัญชี & การลบ')}
-        subtitle={t(
-          'GDPR Data Export & 7-Day Account Grace Period Deletion',
-          'การส่งออกข้อมูลตาม GDPR และระยะเวลาผ่อนผันการลบบัญชี 7 วัน'
-        )}
+        title={t('settings.nav.account')}
+        subtitle={t('GDPR Data Export & 7-Day Account Grace Period Deletion')}
       />
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-4 md:p-6">
         {/* Data Export Box */}
         <div className="space-y-3 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
           <h2 className="text-sm font-extrabold text-slate-100">
-            {t(
-              'Download Account Data Package (GDPR)',
-              'ดาวน์โหลดแพ็กเกจข้อมูลบัญชี (GDPR)'
-            )}
+            {t('Download Account Data Package (GDPR)')}
           </h2>
           <p className="text-xs text-slate-400">
             {t(
-              'Export all your active alert rules, historical AI prompts, and billing logs in JSON format.',
-              'ส่งออกกฎแจ้งเตือนทั้งหมด ประวัติคำสั่ง AI และบันทึกการชำระเงินเป็นไฟล์ JSON'
+              'Export all your active alert rules, historical AI prompts, and billing logs in JSON format.'
             )}
           </p>
           <Button
             variant="outline"
             className="border-slate-750 h-8 bg-slate-800 text-xs text-slate-200"
           >
-            {t('Request Data Archive', 'ร้องขอคลังข้อมูล')}
+            {t('Request Data Archive')}
           </Button>
         </div>
 
@@ -47,10 +40,7 @@ export default function AccountSettingsPage() {
           <div className="flex items-center gap-2 border-b border-rose-500/30 pb-3 text-rose-400">
             <AlertTriangle className="h-5 w-5 shrink-0" />
             <h2 className="text-sm font-extrabold">
-              {t(
-                'Danger Zone: Account Deletion',
-                'พื้นที่อันตราย: การลบบัญชีผู้ใช้'
-              )}
+              {t('Danger Zone: Account Deletion')}
             </h2>
           </div>
 
@@ -58,18 +48,16 @@ export default function AccountSettingsPage() {
             <div className="space-y-3 text-xs text-slate-300">
               <p>
                 {t(
-                  'Initiating account deletion schedules your account for permanent erasure after a',
-                  'การเริ่มต้นลบบัญชีจะกำหนดเวลาให้บัญชีของคุณถูกลบอย่างถาวรหลังจาก'
+                  'Initiating account deletion schedules your account for permanent erasure after a'
                 )}{' '}
                 <strong className="text-amber-400">
-                  {t('7-day grace period', 'ระยะเวลาผ่อนผัน 7 วัน')}
+                  {t('7-day grace period')}
                 </strong>
                 .
               </p>
               <p className="text-slate-400">
                 {t(
-                  'During this period, you can log in anytime to cancel the deletion request.',
-                  'ในระหว่างช่วงเวลานี้ คุณสามารถเข้าสู่ระบบเพื่อยกเลิกการร้องขอลบได้ตลอดเวลา'
+                  'During this period, you can log in anytime to cancel the deletion request.'
                 )}
               </p>
 
@@ -77,33 +65,23 @@ export default function AccountSettingsPage() {
                 onClick={() => setIsRequested(true)}
                 className="h-9 bg-rose-600 text-xs font-extrabold text-white hover:bg-rose-500"
               >
-                {t(
-                  'Request Account Deletion (7-Day Grace)',
-                  'ร้องขอลบบัญชี (ผ่อนผัน 7 วัน)'
-                )}
+                {t('Request Account Deletion (7-Day Grace)')}
               </Button>
             </div>
           ) : (
             <div className="space-y-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-xs">
               <div className="flex items-center gap-2 font-bold text-amber-300">
                 <ShieldAlert className="h-4 w-4" />{' '}
-                {t(
-                  'Account Scheduled for Deletion',
-                  'บัญชีถูกกำหนดเวลารอลบบัญชี'
-                )}
+                {t('Account Scheduled for Deletion')}
               </div>
               <p className="text-slate-300">
-                {t(
-                  'Your account is scheduled to be erased in',
-                  'บัญชีของคุณมีกำหนดจะถูกลบในอีก'
-                )}{' '}
+                {t('Your account is scheduled to be erased in')}{' '}
                 <strong>
-                  6 {t('days', 'วัน')}, 23 {t('hours', 'ชั่วโมง')}
+                  6 {t('days')}, 23 {t('hours')}
                 </strong>
                 .{' '}
                 {t(
-                  'All active alert triggers will stop firing upon expiration.',
-                  'การทำงานของการแจ้งเตือนทั้งหมดจะหยุดทำงานทันทีเมื่อหมดเวลา'
+                  'All active alert triggers will stop firing upon expiration.'
                 )}
               </p>
               <Button
@@ -111,10 +89,7 @@ export default function AccountSettingsPage() {
                 className="h-8 bg-amber-500 text-xs font-extrabold text-slate-950 hover:bg-amber-400"
               >
                 <CheckCircle2 className="mr-1 h-3.5 w-3.5" />{' '}
-                {t(
-                  'Cancel Deletion Request & Keep Account',
-                  'ยกเลิกการร้องขอลบ & รักษาบัญชีไว้'
-                )}
+                {t('Cancel Deletion Request & Keep Account')}
               </Button>
             </div>
           )}

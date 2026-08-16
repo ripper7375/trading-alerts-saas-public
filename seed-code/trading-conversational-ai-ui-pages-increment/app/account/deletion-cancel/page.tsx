@@ -28,9 +28,7 @@ function DeletionCancelContent() {
   useEffect(() => {
     if (!token) {
       setStatus('error');
-      setMessage(
-        t('No cancellation token provided.', 'ไม่พบโทเค็นสำหรับการยกเลิก')
-      );
+      setMessage(t('No cancellation token provided.'));
       return;
     }
 
@@ -45,24 +43,14 @@ function DeletionCancelContent() {
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(
-            data.message ||
-              t(
-                'Invalid or expired cancellation link.',
-                'ลิงก์ยกเลิกไม่ถูกต้องหรือหมดอายุแล้ว'
-              )
+            data.message || t('Invalid or expired cancellation link.')
           );
         }
 
         setStatus('success');
       } catch (err: any) {
         setStatus('error');
-        setMessage(
-          err.message ||
-            t(
-              'Failed to cancel account deletion.',
-              'ไม่สามารถยกเลิกการขอลบบัญชีได้'
-            )
-        );
+        setMessage(err.message || t('Failed to cancel account deletion.'));
       }
     };
 
@@ -90,7 +78,7 @@ function DeletionCancelContent() {
           </span>
         </Link>
         <h1 className="text-2xl font-bold text-slate-100">
-          {t('Account Deletion Cancelled', 'ยกเลิกการลบบัญชีแล้ว')}
+          {t('Account Deletion Cancelled')}
         </h1>
       </div>
 
@@ -99,10 +87,7 @@ function DeletionCancelContent() {
           <div className="space-y-4 py-6">
             <Loader2 className="mx-auto h-10 w-10 animate-spin text-amber-400" />
             <p className="text-xs text-slate-400">
-              {t(
-                'Processing cancellation request...',
-                'กำลังดำเนินการยกเลิกคำขอลบบัญชี...'
-              )}
+              {t('Processing cancellation request...')}
             </p>
           </div>
         )}
@@ -116,15 +101,11 @@ function DeletionCancelContent() {
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-bold text-emerald-300">
-                {t(
-                  'Your Account Remains Active & Safe',
-                  'บัญชีของคุณยังคงปลอดภัยและใช้งานได้ตามปกติ'
-                )}
+                {t('Your Account Remains Active & Safe')}
               </h3>
               <p className="text-xs text-slate-400">
                 {t(
-                  'The scheduled deletion process has been terminated. All your workspaces and alert configurations are preserved.',
-                  'กระบวนการลบบัญชีที่กำหนดไว้ถูกยกเลิกแล้ว พื้นที่ทำงานและการตั้งค่าการแจ้งเตือนทั้งหมดของคุณยังคงอยู่ครบถ้วน'
+                  'The scheduled deletion process has been terminated. All your workspaces and alert configurations are preserved.'
                 )}
               </p>
             </div>
@@ -133,7 +114,7 @@ function DeletionCancelContent() {
               <Link href="/dashboard">
                 <Button className="w-full bg-amber-500 font-bold text-slate-950 hover:bg-amber-400">
                   <Home className="mr-2 h-4 w-4" />
-                  {t('Return to Dashboard', 'กลับสู่แดชบอร์ด')}
+                  {t('Return to Dashboard')}
                 </Button>
               </Link>
             </div>
@@ -149,14 +130,10 @@ function DeletionCancelContent() {
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-bold text-rose-300">
-                {t('Cancellation Failed', 'ไม่สามารถยกเลิกคำขอได้')}
+                {t('Cancellation Failed')}
               </h3>
               <p className="text-xs text-slate-400">
-                {message ||
-                  t(
-                    'The token might be invalid or expired.',
-                    'โทเค็นอาจไม่ถูกต้องหรือหมดอายุแล้ว'
-                  )}
+                {message || t('The token might be invalid or expired.')}
               </p>
             </div>
 
@@ -166,7 +143,7 @@ function DeletionCancelContent() {
                   variant="outline"
                   className="w-full border-slate-800 text-slate-300"
                 >
-                  {t('Go to Login', 'ไปที่หน้าเข้าสู่ระบบ')}
+                  {t('Go to Login')}
                 </Button>
               </Link>
             </div>

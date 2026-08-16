@@ -28,57 +28,57 @@ export function AdminNav() {
   const links = [
     {
       href: '/admin',
-      label: t('Executive', 'ภาพรวมบริหาร'),
+      label: t('Executive'),
       icon: ShieldAlert,
     },
     {
       href: '/admin/users',
-      label: t('Users', 'จัดการผู้ใช้'),
+      label: t('Users'),
       icon: Users,
     },
     {
       href: '/admin/affiliates',
-      label: t('Affiliates & Reports', 'พันธมิตรและรายงาน'),
+      label: t('Affiliates & Reports'),
       icon: Share2,
     },
     {
       href: '/admin/disbursement',
-      label: t('Disbursements', 'การจ่ายเงิน'),
+      label: t('Disbursements'),
       icon: Landmark,
     },
     {
       href: '/admin/fraud-alerts',
-      label: t('Fraud Detection', 'ตรวจจับทุจริต'),
+      label: t('Fraud Detection'),
       icon: AlertTriangle,
     },
     {
       href: '/admin/api-usage',
-      label: t('API & Telemetry', 'การใช้งาน API'),
+      label: t('API & Telemetry'),
       icon: Activity,
     },
     {
       href: '/admin/errors',
-      label: t('System Errors', 'บันทึกข้อผิดพลาด'),
+      label: t('System Errors'),
       icon: FileCode,
     },
     {
       href: '/admin/system/terminals',
-      label: t('MT5 Fleet', 'สถานะ MT5'),
+      label: t('MT5 Fleet'),
       icon: Terminal,
     },
     {
       href: '/admin/system/jobs',
-      label: t('Cron & Jobs', 'งานระบบ'),
+      label: t('Cron & Jobs'),
       icon: Server,
     },
     {
       href: '/admin/system/outbox',
-      label: t('Outbox Events', 'คิวเอาต์บ็อกซ์'),
+      label: t('Outbox Events'),
       icon: Layers,
     },
     {
       href: '/admin/notifications/broadcast',
-      label: t('Broadcast', 'ประกาศแจ้งเตือน'),
+      label: t('Broadcast'),
       icon: Radio,
     },
   ];

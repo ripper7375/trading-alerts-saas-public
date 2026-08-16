@@ -71,13 +71,9 @@ export default function AdminApiUsagePage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin API & Gateway Usage Telemetry',
-          'ปริมาณการเรียกใช้งาน API และเกตเวย์'
-        )}
+        title={t('Admin API & Gateway Usage Telemetry')}
         subtitle={t(
-          'Real-time Endpoint Load, Latency Profiles, Rate Limits & Token Consumptions',
-          'โหลดของระบบ ความหน่วง อัตราจำกัดการเรียก และปริมาณโทเค็นที่ใช้'
+          'Real-time Endpoint Load, Latency Profiles, Rate Limits & Token Consumptions'
         )}
       />
 
@@ -87,7 +83,7 @@ export default function AdminApiUsagePage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Badge className="border-emerald-500/40 bg-emerald-500/20 text-xs text-emerald-400">
-              {t('All API Endpoints Healthy', 'ระบบ API ทั้งหมดทำงานปกติ')}
+              {t('All API Endpoints Healthy')}
             </Badge>
           </div>
 
@@ -103,7 +99,7 @@ export default function AdminApiUsagePage() {
             <RefreshCw
               className={`mr-1.5 h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`}
             />
-            {t('Refresh Telemetry', 'รีเฟรชข้อมูล')}
+            {t('Refresh Telemetry')}
           </Button>
         </div>
 
@@ -111,7 +107,7 @@ export default function AdminApiUsagePage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
             <div className="text-xs font-medium text-slate-400">
-              {t('Total Requests (24h)', 'ปริมาณคำขอ (24 ชม.)')}
+              {t('Total Requests (24h)')}
             </div>
             <div className="mt-1 font-mono text-3xl font-extrabold text-cyan-400">
               1.84M
@@ -119,7 +115,7 @@ export default function AdminApiUsagePage() {
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
             <div className="text-xs font-medium text-slate-400">
-              {t('Global Median Latency', 'ความหน่วงเฉลี่ย')}
+              {t('Global Median Latency')}
             </div>
             <div className="mt-1 font-mono text-3xl font-extrabold text-emerald-400">
               14.2 ms
@@ -127,7 +123,7 @@ export default function AdminApiUsagePage() {
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
             <div className="text-xs font-medium text-slate-400">
-              {t('Peak Concurrent Connections', 'การเชื่อมต่อสูงสุด')}
+              {t('Peak Concurrent Connections')}
             </div>
             <div className="mt-1 font-mono text-3xl font-extrabold text-amber-400">
               1,248 Sockets
@@ -138,10 +134,7 @@ export default function AdminApiUsagePage() {
         {/* Breakdown List */}
         <div className="space-y-3">
           <h3 className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-            {t(
-              'Subsystem API Gateway Metrics',
-              'ตัวชี้วัดเกตเวย์ของแต่ละระบบย่อย'
-            )}
+            {t('Subsystem API Gateway Metrics')}
           </h3>
 
           <div className="space-y-3">
@@ -157,14 +150,14 @@ export default function AdminApiUsagePage() {
                     </h4>
                     <div className="mt-0.5 flex items-center gap-3 text-[11px] text-slate-400">
                       <span>
-                        {t('Throughput', 'ปริมาณ')}:{' '}
+                        {t('Throughput')}:{' '}
                         <strong className="font-mono text-slate-300">
                           {m.requests}
                         </strong>
                       </span>
                       <span>•</span>
                       <span>
-                        {t('Quota', 'โควตา')}:{' '}
+                        {t('Quota')}:{' '}
                         <strong className="text-slate-300">{m.quota}</strong>
                       </span>
                     </div>

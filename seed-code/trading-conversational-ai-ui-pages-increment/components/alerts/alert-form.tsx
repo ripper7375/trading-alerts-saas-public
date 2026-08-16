@@ -65,10 +65,7 @@ export default function AlertForm() {
             required
             value={ruleName}
             onChange={(e) => setRuleName(e.target.value)}
-            placeholder={t(
-              'e.g. XAUUSD M5 EDT Channel Retest',
-              'เช่น XAUUSD M5 การทดสอบช่อง EDT'
-            )}
+            placeholder={t('e.g. XAUUSD M5 EDT Channel Retest')}
             className="border-slate-750 bg-[#06080e] text-xs text-slate-100"
           />
         </div>
@@ -80,14 +77,10 @@ export default function AlertForm() {
             </Label>
             <Select value={symbol} onValueChange={setSymbol}>
               <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs">
-                <SelectValue
-                  placeholder={t('Select symbol', 'เลือกสัญลักษณ์')}
-                />
+                <SelectValue placeholder={t('Select symbol')} />
               </SelectTrigger>
               <SelectContent className="border-slate-750 bg-[#0f1420]">
-                <SelectItem value="XAUUSD">
-                  {t('XAUUSD (Gold)', 'XAUUSD (ทองคำ)')}
-                </SelectItem>
+                <SelectItem value="XAUUSD">{t('XAUUSD (Gold)')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -98,17 +91,11 @@ export default function AlertForm() {
             </Label>
             <Select value={timeframe} onValueChange={setTimeframe}>
               <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs">
-                <SelectValue
-                  placeholder={t('Select timeframe', 'เลือกกรอบเวลา')}
-                />
+                <SelectValue placeholder={t('Select timeframe')} />
               </SelectTrigger>
               <SelectContent className="border-slate-750 bg-[#0f1420]">
-                <SelectItem value="M5">
-                  {t('M5 (5-Minute)', 'M5 (5 นาที)')}
-                </SelectItem>
-                <SelectItem value="M15">
-                  {t('M15 (15-Minute)', 'M15 (15 นาที)')}
-                </SelectItem>
+                <SelectItem value="M5">{t('M5 (5-Minute)')}</SelectItem>
+                <SelectItem value="M15">{t('M15 (15-Minute)')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -120,31 +107,20 @@ export default function AlertForm() {
           </Label>
           <Select value={alertType} onValueChange={setAlertType}>
             <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs">
-              <SelectValue
-                placeholder={t('Select condition type', 'เลือกประเภทเงื่อนไข')}
-              />
+              <SelectValue placeholder={t('Select condition type')} />
             </SelectTrigger>
             <SelectContent className="border-slate-750 bg-[#0f1420]">
               <SelectItem value="EDT Channel Breach">
-                {t(
-                  'EDT Equal-Distance Channel Breach',
-                  'การทะลุช่องทางระยะเท่า EDT'
-                )}
+                {t('EDT Equal-Distance Channel Breach')}
               </SelectItem>
               <SelectItem value="SSA Z-Score Rejection">
-                {t(
-                  'SSA Z-Score Rejection ($2.0+)',
-                  'การปฏิเสธ SSA Z-Score ($2.0+)'
-                )}
+                {t('SSA Z-Score Rejection ($2.0+)')}
               </SelectItem>
               <SelectItem value="Price Threshold Crossing">
-                {t('Price Threshold Crossing', 'การตัดผ่านขอบเขตราคา')}
+                {t('Price Threshold Crossing')}
               </SelectItem>
               <SelectItem value="Drawing Line Alert">
-                {t(
-                  'Custom Drawing Tool Line Breach',
-                  'การทะลุเส้นเครื่องมือวาดภาพ custom'
-                )}
+                {t('Custom Drawing Tool Line Breach')}
               </SelectItem>
             </SelectContent>
           </Select>

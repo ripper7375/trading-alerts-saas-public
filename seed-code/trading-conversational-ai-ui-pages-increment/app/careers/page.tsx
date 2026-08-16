@@ -24,42 +24,30 @@ export default function CareersPage() {
 
   const openings = [
     {
-      title: t(
-        'Senior Quantitative Engineer (Rust / Python)',
-        'วิศวกรเชิงปริมาณอาวุโส (Rust / Python)'
-      ),
+      title: t('Senior Quantitative Engineer (Rust / Python)'),
       department: 'Engineering',
       location: 'Remote (Global)',
       type: 'Full-Time',
       description: t(
-        'Architect high-throughput MT5 tick processing pipelines and real-time mathematical fractal engines.',
-        'ออกแบบระบบประมวลผลข้อมูลติ๊ก MT5 ความเร็วสูงและเครื่องมือคำนวณแฟร็กทัลแบบเรียลไทม์'
+        'Architect high-throughput MT5 tick processing pipelines and real-time mathematical fractal engines.'
       ),
     },
     {
-      title: t(
-        'AI / LLM Financial Systems Researcher',
-        'นักวิจัยระบบการเงิน AI / LLM'
-      ),
+      title: t('AI / LLM Financial Systems Researcher'),
       department: 'AI Research',
       location: 'Remote',
       type: 'Full-Time',
       description: t(
-        'Train and fine-tune specialized financial reasoning agents for natural language market telemetry.',
-        'เทรนและปรับแต่งโมเดลภาษาขนาดใหญ่สำหรับการวิเคราะห์ตลาดและการสนทนาเชิงปริมาณ'
+        'Train and fine-tune specialized financial reasoning agents for natural language market telemetry.'
       ),
     },
     {
-      title: t(
-        'Full-Stack Next.js / TypeScript Engineer',
-        'วิศวกร Full-Stack Next.js / TypeScript'
-      ),
+      title: t('Full-Stack Next.js / TypeScript Engineer'),
       department: 'Product',
       location: 'Remote',
       type: 'Full-Time',
       description: t(
-        'Build high-performance web workspaces, canvas charting overlays, and localized fintech billing flows.',
-        'พัฒนาพื้นที่ทำงานบนเว็บความเร็วสูง กราฟการเทรดแบบ Canvas และระบบชำระเงินฟินเทค'
+        'Build high-performance web workspaces, canvas charting overlays, and localized fintech billing flows.'
       ),
     },
   ];
@@ -72,25 +60,21 @@ export default function CareersPage() {
         <div className="space-y-10">
           <div className="mx-auto max-w-2xl space-y-4 text-center">
             <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-400">
-              {t('Careers at DavinTrade AI', 'ร่วมงานกับ DavinTrade AI')}
+              {t('Careers at DavinTrade AI')}
             </Badge>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-100 md:text-5xl">
-              {t(
-                'Build the Future of Quantitative Trading Intelligence',
-                'ร่วมสร้างอนาคตของระบบข่าวกรองการเทรดเชิงปริมาณ'
-              )}
+              {t('Build the Future of Quantitative Trading Intelligence')}
             </h1>
             <p className="text-sm text-slate-400">
               {t(
-                'We are a fully remote, global team obsessed with high-speed systems, mathematical elegance, and frictionless UX.',
-                'เราเป็นทีมทำงานทางไกลระดับสากลที่มุ่งมั่นสร้างระบบความเร็วสูง ความสง่างามทางคณิตศาสตร์ และประสบการณ์ใช้งานที่ราบรื่น'
+                'We are a fully remote, global team obsessed with high-speed systems, mathematical elegance, and frictionless UX.'
               )}
             </p>
           </div>
 
           <div className="space-y-4">
             <h2 className="text-lg font-bold text-slate-200">
-              {t('Open Positions', 'ตำแหน่งที่เปิดรับ')}
+              {t('Open Positions')}
             </h2>
 
             <div className="grid gap-4">
@@ -132,7 +116,7 @@ export default function CareersPage() {
                       }}
                       className="shrink-0 bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
                     >
-                      <span>{t('Apply Now', 'สมัครทันที')}</span>
+                      <span>{t('Apply Now')}</span>
                       <ArrowRight className="ml-1.5 h-4 w-4" />
                     </Button>
                   </div>

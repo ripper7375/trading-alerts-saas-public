@@ -62,12 +62,7 @@ export default function AdminSystemTerminalsPage() {
     setRestartingId(id);
     setTimeout(() => {
       setRestartingId(null);
-      setSuccess(
-        t(
-          `Terminal instance [${id}] rebooted successfully.`,
-          `รีสตาร์ทเทอร์มินัลอินสแตนซ์ [${id}] สำเร็จแล้ว`
-        )
-      );
+      setSuccess(t(`Terminal instance [${id}] rebooted successfully.`));
       setTimeout(() => setSuccess(''), 3000);
     }, 1500);
   };
@@ -75,13 +70,9 @@ export default function AdminSystemTerminalsPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin System: MetaTrader 5 Terminal Cluster',
-          'ระบบ: คลัสเตอร์เทอร์มินัล MetaTrader 5'
-        )}
+        title={t('Admin System: MetaTrader 5 Terminal Cluster')}
         subtitle={t(
-          'Live Socket Nodes, Broker Feed Connections & Sub-Millisecond Heartbeats',
-          'โหนดการเชื่อมต่อสด ฟีดราคาจากโบรกเกอร์ และสัญญาณชีพจรความเร็วสูง'
+          'Live Socket Nodes, Broker Feed Connections & Sub-Millisecond Heartbeats'
         )}
       />
 
@@ -122,33 +113,25 @@ export default function AdminSystemTerminalsPage() {
 
               <div className="space-y-1.5 border-t border-b border-slate-800/80 py-3 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">
-                    {t('Server Pool', 'กลุ่มเซิร์ฟเวอร์')}:
-                  </span>
+                  <span className="text-slate-400">{t('Server Pool')}:</span>
                   <span className="font-semibold text-slate-200">
                     {node.server}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">
-                    {t('Ping Latency', 'ความหน่วง')}:
-                  </span>
+                  <span className="text-slate-400">{t('Ping Latency')}:</span>
                   <span className="font-mono font-bold text-emerald-400">
                     {node.ping}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">
-                    {t('Resource Load', 'การใช้ทรัพยากร')}:
-                  </span>
+                  <span className="text-slate-400">{t('Resource Load')}:</span>
                   <span className="font-mono text-slate-300">
                     {node.cpu} CPU / {node.ram}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">
-                    {t('Node Uptime', 'เวลาทำงานต่อเนื่อง')}:
-                  </span>
+                  <span className="text-slate-400">{t('Node Uptime')}:</span>
                   <span className="font-mono text-slate-300">
                     {node.uptime}
                   </span>
@@ -166,8 +149,8 @@ export default function AdminSystemTerminalsPage() {
                   className={`mr-1.5 h-3.5 w-3.5 ${restartingId === node.id ? 'animate-spin' : ''}`}
                 />
                 {restartingId === node.id
-                  ? t('Restarting Node...', 'กำลังรีสตาร์ท...')
-                  : t('Soft Reboot Terminal Node', 'รีสตาร์ทโหนด')}
+                  ? t('Restarting Node...')
+                  : t('Soft Reboot Terminal Node')}
               </Button>
             </Card>
           ))}

@@ -120,10 +120,9 @@ export default function AffiliateCodesPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
       <AppHeader
-        title={t('Affiliate Promo Codes', 'รหัสโปรโมชันพันธมิตร')}
+        title={t('Affiliate Promo Codes')}
         subtitle={t(
-          'Manage Referral Discount Coupons, Tracking Links & Conversion Telemetry',
-          'จัดการคูปองส่วนลด ลิงก์ติดตาม และสถิติการเปลี่ยนเป็นสมาชิก'
+          'Manage Referral Discount Coupons, Tracking Links & Conversion Telemetry'
         )}
       />
 
@@ -135,7 +134,7 @@ export default function AffiliateCodesPage() {
           <div className="relative max-w-xs">
             <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
             <Input
-              placeholder={t('Search promo code...', 'ค้นหารหัสโปรโมชัน...')}
+              placeholder={t('Search promo code...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
@@ -147,14 +146,14 @@ export default function AffiliateCodesPage() {
             className="self-start bg-amber-500 font-bold text-slate-950 hover:bg-amber-400 sm:self-auto"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            {t('Create New Promo Code', 'สร้างรหัสโปรโมชันใหม่')}
+            {t('Create New Promo Code')}
           </Button>
         </div>
 
         {isCreating && (
           <Card className="space-y-4 border-amber-500/40 bg-[#090c18] p-5">
             <h3 className="text-sm font-bold text-slate-100">
-              {t('New Promo Code Generator', 'สร้างรหัสส่วนลดใหม่')}
+              {t('New Promo Code Generator')}
             </h3>
             <form
               onSubmit={handleCreateCode}
@@ -172,7 +171,7 @@ export default function AffiliateCodesPage() {
                   type="submit"
                   className="bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
                 >
-                  {t('Generate', 'สร้างรหัส')}
+                  {t('Generate')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -180,7 +179,7 @@ export default function AffiliateCodesPage() {
                   onClick={() => setIsCreating(false)}
                   className="text-slate-400"
                 >
-                  {t('Cancel', 'ยกเลิก')}
+                  {t('Cancel')}
                 </Button>
               </div>
             </form>
@@ -193,28 +192,28 @@ export default function AffiliateCodesPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Code', 'รหัส')}
+                  {t('Code')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Discount', 'ส่วนลด')}
+                  {t('Discount')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Clicks', 'คลิก')}
+                  {t('Clicks')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Signups', 'ลงทะเบียน')}
+                  {t('Signups')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Conversions', 'ซื้อสำเร็จ')}
+                  {t('Conversions')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Total Earnings', 'รายได้สะสม')}
+                  {t('Total Earnings')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Status', 'สถานะ')}
+                  {t('Status')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Action', 'จัดการ')}
+                  {t('Action')}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -268,12 +267,12 @@ export default function AffiliateCodesPage() {
                       {copiedCode === c.code ? (
                         <>
                           <Check className="mr-1 h-3.5 w-3.5 text-emerald-400" />
-                          <span>{t('Copied Link', 'คัดลอกแล้ว')}</span>
+                          <span>{t('Copied Link')}</span>
                         </>
                       ) : (
                         <>
                           <Copy className="mr-1 h-3.5 w-3.5" />
-                          <span>{t('Copy Link', 'คัดลอกลิงก์')}</span>
+                          <span>{t('Copy Link')}</span>
                         </>
                       )}
                     </Button>

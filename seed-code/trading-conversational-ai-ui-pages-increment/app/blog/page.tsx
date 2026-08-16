@@ -37,12 +37,10 @@ export default function BlogPage() {
     {
       id: 1,
       title: t(
-        'Decoding Gold Fractal Geometry: Multi-Timeframe Alignment on M5 and M15',
-        'ถอดรหัสเรขาคณิตแฟร็กทัลทองคำ: การประสานกรอบเวลา M5 และ M15'
+        'Decoding Gold Fractal Geometry: Multi-Timeframe Alignment on M5 and M15'
       ),
       excerpt: t(
-        'How 5-bar mathematical pivot structures identify liquidity sweeps before institutional breakout extensions materialize.',
-        'โครงสร้างจุดหมุนทางคณิตศาสตร์ 5 แท่งช่วยตรวจจับการกวาดสภาพคล่องก่อนการเบรกเอาต์ระดับสถาบันได้อย่างไร'
+        'How 5-bar mathematical pivot structures identify liquidity sweeps before institutional breakout extensions materialize.'
       ),
       category: 'Fractal Models',
       date: 'Aug 14, 2026',
@@ -52,12 +50,10 @@ export default function BlogPage() {
     {
       id: 2,
       title: t(
-        'Conversational Quantitative Copilots: Transforming Raw Tick Feeds into Natural Insights',
-        'AI ผู้ช่วยสนทนาเชิงปริมาณ: แปลงข้อมูลติ๊กดิบเป็นข้อมูลเชิงลึกที่เข้าใจง่าย'
+        'Conversational Quantitative Copilots: Transforming Raw Tick Feeds into Natural Insights'
       ),
       excerpt: t(
-        'Why LLMs combined with sub-millisecond MT5 tick feeds give retail traders real-time statistical confidence without cluttered screen fatigue.',
-        'เหตุใดการผสาน LLM เข้ากับฟีดติ๊กความเร็วสูงจึงมอบความมั่นใจทางสถิติแก่นักเทรดรายย่อย'
+        'Why LLMs combined with sub-millisecond MT5 tick feeds give retail traders real-time statistical confidence without cluttered screen fatigue.'
       ),
       category: 'AI Research',
       date: 'Aug 10, 2026',
@@ -67,12 +63,10 @@ export default function BlogPage() {
     {
       id: 3,
       title: t(
-        'Asymmetric Risk-to-Reward: Surviving Gold Volatility During Macroeconomic Releases',
-        'ผลตอบแทนต่อความเสี่ยงแบบอสมมาตร: เอาตัวรอดจากความผันผวนของทองคำช่วงข่าวเศรษฐกิจ'
+        'Asymmetric Risk-to-Reward: Surviving Gold Volatility During Macroeconomic Releases'
       ),
       excerpt: t(
-        'Quantitative risk rules for managing position sizing and volatility expansion around CPI and FOMC announcements.',
-        'กฎการบริหารความเสี่ยงเชิงปริมาณสำหรับการคำนวณขนาดการเทรดช่วงประกาศตัวเลขเงินเฟ้อและอัตราดอกเบี้ย'
+        'Quantitative risk rules for managing position sizing and volatility expansion around CPI and FOMC announcements.'
       ),
       category: 'Risk Management',
       date: 'Aug 04, 2026',
@@ -94,18 +88,14 @@ export default function BlogPage() {
         <div className="space-y-10">
           <div className="mx-auto max-w-2xl space-y-4 text-center">
             <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-400">
-              {t(
-                'DavinTrade Research & Insights',
-                'งานวิจัยและบทความ DavinTrade'
-              )}
+              {t('DavinTrade Research & Insights')}
             </Badge>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-100 md:text-5xl">
-              {t('Trading Intelligence Blog', 'บล็อกข่าวกรองการเทรด')}
+              {t('Trading Intelligence Blog')}
             </h1>
             <p className="text-sm text-slate-400">
               {t(
-                'Deep dives into quantitative trading, fractal market structures, and conversational AI architecture.',
-                'เจาะลึกการเทรดเชิงปริมาณ โครงสร้างตลาดแบบแฟร็กทัล และสถาปัตยกรรม AI สำหรับตลาดการเงิน'
+                'Deep dives into quantitative trading, fractal market structures, and conversational AI architecture.'
               )}
             </p>
 
@@ -161,7 +151,7 @@ export default function BlogPage() {
                       href="/terminal"
                       className="flex items-center gap-1 font-semibold text-amber-400 hover:text-amber-300"
                     >
-                      <span>{t('Read in Terminal', 'อ่านในเทอร์มินัล')}</span>
+                      <span>{t('Read in Terminal')}</span>
                       <ArrowRight className="h-3 w-3" />
                     </Link>
                   </div>
@@ -173,24 +163,20 @@ export default function BlogPage() {
           {/* Newsletter Box */}
           <div className="mx-auto max-w-2xl space-y-4 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-[#0d101a] to-[#090b14] p-8 text-center">
             <h3 className="text-lg font-bold text-slate-100">
-              {t(
-                'Get Weekly Quantitative Alpha Directly to Your Inbox',
-                'รับบทวิเคราะห์เชิงปริมาณรายสัปดาห์ส่งตรงถึงคุณ'
-              )}
+              {t('Get Weekly Quantitative Alpha Directly to Your Inbox')}
             </h3>
             <p className="text-xs text-slate-400">
               {t(
-                'Zero spam. Strictly fractal levels, volatility previews, and AI signal recaps.',
-                'ไม่มีสแปม มีเพียงระดับแนวรับแนวต้าน ความผันผวน และสรุปสัญญาณ AI'
+                'Zero spam. Strictly fractal levels, volatility previews, and AI signal recaps.'
               )}
             </p>
             <div className="mx-auto flex max-w-md gap-2">
               <Input
-                placeholder={t('Enter your email', 'กรอกอีเมลของคุณ')}
+                placeholder={t('Enter your email')}
                 className="border-slate-800 bg-[#06080e] text-slate-200"
               />
               <Button className="shrink-0 bg-amber-500 font-bold text-slate-950 hover:bg-amber-400">
-                {t('Subscribe', 'ติดตาม')}
+                {t('Subscribe')}
               </Button>
             </div>
           </div>

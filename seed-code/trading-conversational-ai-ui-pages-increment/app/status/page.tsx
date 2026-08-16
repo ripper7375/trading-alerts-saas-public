@@ -36,57 +36,42 @@ export default function StatusPage() {
 
   const components: ComponentHealth[] = [
     {
-      name: t(
-        'MetaTrader 5 (MT5) Feed Gateway',
-        'เกตเวย์ฟีด MetaTrader 5 (MT5)'
-      ),
+      name: t('MetaTrader 5 (MT5) Feed Gateway'),
       status: 'OPERATIONAL',
       latency: '24ms',
       uptime: '99.99%',
       icon: Terminal,
     },
     {
-      name: t(
-        'Real-Time WebSocket Pipeline',
-        'ระบบไปป์ไลน์ WebSocket เรียลไทม์'
-      ),
+      name: t('Real-Time WebSocket Pipeline'),
       status: 'OPERATIONAL',
       latency: '18ms',
       uptime: '99.98%',
       icon: Radio,
     },
     {
-      name: t('Davin AI Conversational Engine', 'เครื่องมือประมวลผล Davin AI'),
+      name: t('Davin AI Conversational Engine'),
       status: 'OPERATIONAL',
       latency: '120ms',
       uptime: '99.95%',
       icon: Activity,
     },
     {
-      name: t(
-        'PostgreSQL & TimescaleDB Clusters',
-        'คลัสเตอร์ฐานข้อมูล PostgreSQL'
-      ),
+      name: t('PostgreSQL & TimescaleDB Clusters'),
       status: 'OPERATIONAL',
       latency: '8ms',
       uptime: '100.0%',
       icon: Database,
     },
     {
-      name: t(
-        'Stripe & dLocal Billing Webhooks',
-        'ระบบชำระเงิน Stripe และ dLocal'
-      ),
+      name: t('Stripe & dLocal Billing Webhooks'),
       status: 'OPERATIONAL',
       latency: '45ms',
       uptime: '99.99%',
       icon: CreditCard,
     },
     {
-      name: t(
-        'Wise & RiseWorks Disbursement Queues',
-        'คิวการจ่ายเงิน Wise & RiseWorks'
-      ),
+      name: t('Wise & RiseWorks Disbursement Queues'),
       status: 'OPERATIONAL',
       latency: '32ms',
       uptime: '100.0%',
@@ -110,18 +95,15 @@ export default function StatusPage() {
         <div className="space-y-8">
           <div className="space-y-3">
             <Badge className="border-emerald-500/40 bg-emerald-500/15 px-3 py-1 font-mono text-xs text-emerald-400">
-              {t('Live Telemetry Monitor', 'ระบบตรวจวัดโทรมาตรสด')}
+              {t('Live Telemetry Monitor')}
             </Badge>
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <div>
                 <h1 className="text-3xl font-extrabold tracking-tight text-slate-100 md:text-4xl">
-                  {t(
-                    'DavinTrade System Status',
-                    'สถานะการทำงานของระบบ DavinTrade'
-                  )}
+                  {t('DavinTrade System Status')}
                 </h1>
                 <p className="mt-1 text-sm text-slate-400">
-                  {t('Last updated', 'อัปเดตล่าสุด')}: {lastCheck}
+                  {t('Last updated')}: {lastCheck}
                 </p>
               </div>
               <Button
@@ -134,7 +116,7 @@ export default function StatusPage() {
                 <RefreshCw
                   className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
                 />
-                {t('Refresh Status', 'รีเฟรชสถานะ')}
+                {t('Refresh Status')}
               </Button>
             </div>
           </div>
@@ -148,12 +130,11 @@ export default function StatusPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-emerald-200">
-                    {t('All Systems Operational', 'ระบบทั้งหมดทำงานตามปกติ')}
+                    {t('All Systems Operational')}
                   </h3>
                   <p className="text-xs text-slate-400">
                     {t(
-                      'No outages or degraded performance detected in the past 90 days.',
-                      'ไม่พบปัญหาการหยุดทำงานหรือประสิทธิภาพลดลงในช่วง 90 วันที่ผ่านมา'
+                      'No outages or degraded performance detected in the past 90 days.'
                     )}
                   </p>
                 </div>
@@ -163,7 +144,7 @@ export default function StatusPage() {
                   99.98%
                 </div>
                 <div className="text-[11px] text-slate-500">
-                  {t('90-day avg uptime', 'ความพร้อมใช้งานเฉลี่ย')}
+                  {t('90-day avg uptime')}
                 </div>
               </div>
             </CardContent>
@@ -172,7 +153,7 @@ export default function StatusPage() {
           {/* Component List */}
           <div className="space-y-3">
             <h3 className="text-sm font-bold tracking-wider text-slate-300 uppercase">
-              {t('Subsystem Health', 'สถานะระบบย่อย')}
+              {t('Subsystem Health')}
             </h3>
 
             <div className="space-y-2">
@@ -194,14 +175,14 @@ export default function StatusPage() {
                           </div>
                           <div className="flex items-center gap-3 text-xs text-slate-500">
                             <span>
-                              {t('Latency', 'ความหน่วง')}:{' '}
+                              {t('Latency')}:{' '}
                               <strong className="text-slate-400">
                                 {comp.latency}
                               </strong>
                             </span>
                             <span>•</span>
                             <span>
-                              {t('Uptime', 'ความพร้อม')}:{' '}
+                              {t('Uptime')}:{' '}
                               <strong className="text-slate-400">
                                 {comp.uptime}
                               </strong>
@@ -216,7 +197,7 @@ export default function StatusPage() {
                           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
                         </span>
                         <span className="text-xs font-semibold text-emerald-400">
-                          {t('Operational', 'ปกติ')}
+                          {t('Operational')}
                         </span>
                       </div>
                     </div>

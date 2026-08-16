@@ -79,51 +79,26 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
         body: JSON.stringify({ name, email, tier, role, status }),
       }).catch(() => null);
 
-      setSuccess(
-        t(
-          'User account parameters updated successfully!',
-          'อัปเดตข้อมูลผู้ใช้เรียบร้อยแล้ว!'
-        )
-      );
+      setSuccess(t('User account parameters updated successfully!'));
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
-      setError(
-        err.message || t('Error updating user.', 'เกิดข้อผิดพลาดในการอัปเดต')
-      );
+      setError(err.message || t('Error updating user.'));
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleResetPassword = async () => {
-    if (
-      confirm(
-        t(
-          'Send password reset email to this user?',
-          'ส่งอีเมลรีเซ็ตรหัสผ่านไปยังผู้ใช้นี้?'
-        )
-      )
-    ) {
-      alert(
-        t(
-          'Password reset email dispatched to user.',
-          'ส่งอีเมลรีเซ็ตรหัสผ่านเรียบร้อยแล้ว'
-        )
-      );
+    if (confirm(t('Send password reset email to this user?'))) {
+      alert(t('Password reset email dispatched to user.'));
     }
   };
 
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin User Detail & Governance',
-          'รายละเอียดผู้ใช้และการจัดการสิทธิ์'
-        )}
-        subtitle={t(
-          `Inspecting Account UID: ${userId}`,
-          `กำลังตรวจสอบบัญชีผู้ใช้รหัส: ${userId}`
-        )}
+        title={t('Admin User Detail & Governance')}
+        subtitle={t(`Inspecting Account UID: ${userId}`)}
       />
 
       <AdminNav />
@@ -135,9 +110,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>
-              {t('Back to User Management', 'กลับสู่หน้ารายชื่อผู้ใช้')}
-            </span>
+            <span>{t('Back to User Management')}</span>
           </Link>
 
           <div className="flex items-center gap-2">
@@ -148,7 +121,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
               className="border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
             >
               <KeyRound className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
-              {t('Trigger Password Reset', 'ส่งรีเซ็ตรหัสผ่าน')}
+              {t('Trigger Password Reset')}
             </Button>
           </div>
         </div>
@@ -207,11 +180,11 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
 
               <div className="text-right text-xs text-slate-400">
                 <div>
-                  {t('Registered', 'วันที่ลงทะเบียน')}:{' '}
+                  {t('Registered')}:{' '}
                   <strong className="text-slate-200">{createdAt}</strong>
                 </div>
                 <div>
-                  {t('Last Active', 'เข้าใช้งานล่าสุด')}:{' '}
+                  {t('Last Active')}:{' '}
                   <strong className="text-slate-200">{lastLogin}</strong>
                 </div>
               </div>
@@ -220,7 +193,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t('Full Name', 'ชื่อ-นามสกุล')}
+                  {t('Full Name')}
                 </Label>
                 <Input
                   value={name}
@@ -232,7 +205,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
 
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t('Email Address', 'อีเมล')}
+                  {t('Email Address')}
                 </Label>
                 <Input
                   type="email"
@@ -247,7 +220,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t('Subscription Tier', 'ระดับสมาชิก')}
+                  {t('Subscription Tier')}
                 </Label>
                 <Select value={tier} onValueChange={(v: any) => setTier(v)}>
                   <SelectTrigger className="border-slate-800 bg-[#06080e] text-slate-200">
@@ -262,7 +235,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
 
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t('Platform Role', 'สิทธิ์ในระบบ')}
+                  {t('Platform Role')}
                 </Label>
                 <Select value={role} onValueChange={(v: any) => setRole(v)}>
                   <SelectTrigger className="border-slate-800 bg-[#06080e] text-slate-200">
@@ -279,7 +252,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
 
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t('Account Status', 'สถานะบัญชี')}
+                  {t('Account Status')}
                 </Label>
                 <Select value={status} onValueChange={(v: any) => setStatus(v)}>
                   <SelectTrigger className="border-slate-800 bg-[#06080e] text-slate-200">
@@ -304,15 +277,10 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
               <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
                 <div className="space-y-0.5">
                   <div className="text-xs font-bold text-slate-200">
-                    {t(
-                      'Two-Factor Authentication (2FA)',
-                      'การยืนยันตัวตน 2 ขั้นตอน (2FA)'
-                    )}
+                    {t('Two-Factor Authentication (2FA)')}
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    {twoFactorEnabled
-                      ? t('Enabled (TOTP App)', 'เปิดใช้งานแล้ว')
-                      : t('Disabled', 'ปิดใช้งาน')}
+                    {twoFactorEnabled ? t('Enabled (TOTP App)') : t('Disabled')}
                   </p>
                 </div>
                 <Switch
@@ -324,7 +292,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
               <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
                 <div className="space-y-0.5">
                   <div className="text-xs font-bold text-slate-200">
-                    {t('Attributed Referral Code', 'รหัสพันธมิตรที่ผูก')}
+                    {t('Attributed Referral Code')}
                   </div>
                   <p className="font-mono text-[11px] text-amber-400">
                     {affiliateCode || 'None (Direct Signup)'}
@@ -347,9 +315,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
               className="bg-amber-500 px-6 font-bold text-slate-950 hover:bg-amber-400"
             >
               <Save className="mr-2 h-4 w-4" />
-              {isSaving
-                ? t('Saving...', 'กำลังบันทึก...')
-                : t('Save User Modifications', 'บันทึกการเปลี่ยนแปลง')}
+              {isSaving ? t('Saving...') : t('Save User Modifications')}
             </Button>
           </div>
         </form>

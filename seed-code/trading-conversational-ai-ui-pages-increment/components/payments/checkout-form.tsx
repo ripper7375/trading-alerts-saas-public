@@ -67,16 +67,10 @@ export default function CheckoutForm() {
           <div>
             <h2 className="flex items-center gap-2 text-base font-extrabold text-slate-100">
               <Lock className="h-4 w-4 text-amber-400" />{' '}
-              {t(
-                'Secure Subscription Checkout',
-                'ชำระเงินสมัครสมาชิกอย่างปลอดภัย'
-              )}
+              {t('Secure Subscription Checkout')}
             </h2>
             <p className="text-[11px] text-slate-400">
-              {t(
-                'Upgrade to DavinTrade PRO Tier Annual / Monthly Plan',
-                'อัปเกรดเป็นแพ็กเกจ DavinTrade PRO รายปี / รายเดือน'
-              )}
+              {t('Upgrade to DavinTrade PRO Tier Annual / Monthly Plan')}
             </p>
           </div>
           <Badge className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300">
@@ -87,7 +81,7 @@ export default function CheckoutForm() {
         {/* Payment Method Selector */}
         <div className="space-y-2">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Select Payment Method', 'เลือกวิธีการชำระเงิน')}
+            {t('Select Payment Method')}
           </Label>
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -101,7 +95,7 @@ export default function CheckoutForm() {
             >
               <div className="flex items-center gap-2 text-xs font-bold">
                 <CreditCard className="h-4 w-4 text-amber-400" />{' '}
-                {t('Credit / Debit Card', 'บัตรเครดิต / เดบิต')}
+                {t('Credit / Debit Card')}
               </div>
               {paymentMethod === 'card' && (
                 <CheckCircle2 className="h-4 w-4 text-amber-400" />
@@ -119,10 +113,7 @@ export default function CheckoutForm() {
             >
               <div className="flex items-center gap-2 text-xs font-bold">
                 <Globe className="h-4 w-4 text-amber-400" />{' '}
-                {t(
-                  'dLocal (LATAM / APAC)',
-                  'dLocal (ละตินอเมริกา / เอเชียแปซิฟิก)'
-                )}
+                {t('dLocal (LATAM / APAC)')}
               </div>
               {paymentMethod === 'dlocal' && (
                 <CheckCircle2 className="h-4 w-4 text-amber-400" />
@@ -134,11 +125,11 @@ export default function CheckoutForm() {
         {/* Billing Country Selector */}
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Billing Country', 'ประเทศที่เรียกเก็บเงิน')}
+            {t('Billing Country')}
           </Label>
           <Select value={country} onValueChange={setCountry}>
             <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs">
-              <SelectValue placeholder={t('Select country', 'เลือกประเทศ')} />
+              <SelectValue placeholder={t('Select country')} />
             </SelectTrigger>
             <SelectContent className="border-slate-750 bg-[#0f1420] text-xs">
               <SelectItem value="TH">🇹🇭 {t('Thailand')}</SelectItem>
@@ -160,7 +151,7 @@ export default function CheckoutForm() {
         <form onSubmit={handleCheckout} className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-slate-300">
-              {t('Card Number', 'หมายเลขบัตร')}
+              {t('Card Number')}
             </Label>
             <Input
               type="text"
@@ -175,7 +166,7 @@ export default function CheckoutForm() {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-300">
-                {t('Expiration Date', 'วันหมดอายุ')}
+                {t('Expiration Date')}
               </Label>
               <Input
                 type="text"
@@ -189,7 +180,7 @@ export default function CheckoutForm() {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-300">
-                {t('Security CVC', 'รหัสความปลอดภัย CVC')}
+                {t('Security CVC')}
               </Label>
               <Input
                 type="text"
@@ -205,7 +196,7 @@ export default function CheckoutForm() {
           {/* Discount Code Input */}
           <div className="space-y-1.5 border-t border-slate-800/80 pt-2">
             <Label className="text-xs font-semibold text-slate-300">
-              {t('Promo / Discount Code', 'รหัสโปรโมชัน / ส่วนลด')}
+              {t('Promo / Discount Code')}
             </Label>
             <div className="flex gap-2">
               <Input
@@ -221,13 +212,12 @@ export default function CheckoutForm() {
                 variant="outline"
                 className="border-slate-750 bg-slate-800 px-4 text-xs text-slate-200"
               >
-                {t('Apply', 'ใช้งาน')}
+                {t('Apply')}
               </Button>
             </div>
             {discountApplied && (
               <p className="flex items-center gap-1 text-[11px] font-bold text-emerald-400">
-                <CheckCircle2 className="h-3 w-3" />{' '}
-                {t('Discount Applied', 'ใช้ส่วนลดแล้ว')}:{' '}
+                <CheckCircle2 className="h-3 w-3" /> {t('Discount Applied')}:{' '}
                 {discountCode.toUpperCase()}
               </p>
             )}
@@ -239,8 +229,8 @@ export default function CheckoutForm() {
             className="h-11 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
           >
             {isLoading
-              ? t('Processing Payment...', 'กำลังดำเนินการชำระเงิน...')
-              : `${t('Complete Order & Unlock PRO', 'สั่งซื้อสมบูรณ์ & ปลดล็อก PRO')} (${formatCurrency(finalPrice)})`}
+              ? t('Processing Payment...')
+              : `${t('Complete Order & Unlock PRO')} (${formatCurrency(finalPrice)})`}
             {!isLoading && <ArrowRight className="ml-1.5 h-4 w-4" />}
           </Button>
         </form>
@@ -250,23 +240,18 @@ export default function CheckoutForm() {
       <div className="space-y-4">
         <div className="space-y-4 rounded-2xl border border-amber-500/40 bg-gradient-to-b from-[#0e121e] to-[#080a10] p-5 shadow-2xl">
           <h3 className="border-b border-amber-500/30 pb-2 text-xs font-bold tracking-wider text-amber-300 uppercase">
-            {t('ORDER SUMMARY', 'สรุปการสั่งซื้อ')}
+            {t('ORDER SUMMARY')}
           </h3>
 
           <div className="space-y-2 text-xs">
             <div className="flex justify-between font-medium text-slate-300">
-              <span>
-                {t(
-                  'DavinTrade PRO Subscription',
-                  'การสมัครสมาชิก DavinTrade PRO'
-                )}
-              </span>
+              <span>{t('DavinTrade PRO Subscription')}</span>
               <span className="font-mono">{formatCurrency(basePrice)}</span>
             </div>
 
             {discountApplied && (
               <div className="flex justify-between font-medium text-emerald-400">
-                <span>{t('Promo Code Discount', 'ส่วนลดโปรโมชัน')}</span>
+                <span>{t('Promo Code Discount')}</span>
                 <span className="font-mono">
                   -{formatCurrency(discountAmount)}
                 </span>
@@ -274,12 +259,12 @@ export default function CheckoutForm() {
             )}
 
             <div className="flex justify-between text-[11px] text-slate-400">
-              <span>{t('Billing Cycle', 'รอบการชำระเงิน')}</span>
-              <span>{t('Monthly Recurring', 'ต่ออายุรายเดือน')}</span>
+              <span>{t('Billing Cycle')}</span>
+              <span>{t('Monthly Recurring')}</span>
             </div>
 
             <div className="flex justify-between border-t border-slate-800 pt-2 text-sm font-bold text-slate-100">
-              <span>{t('Total Due Now', 'ยอดรวมที่ต้องชำระทันที')}</span>
+              <span>{t('Total Due Now')}</span>
               <span className="font-mono text-amber-300">
                 {formatCurrency(finalPrice)}
               </span>
@@ -289,17 +274,9 @@ export default function CheckoutForm() {
           <div className="space-y-1 pt-2 text-[10px] leading-relaxed text-slate-400">
             <p className="flex items-center gap-1">
               <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />{' '}
-              {t(
-                'Cancel anytime from Settings',
-                'ยกเลิกได้ตลอดเวลาจากการตั้งค่า'
-              )}
+              {t('Cancel anytime from Settings')}
             </p>
-            <p>
-              {t(
-                'Instant activation upon payment processing.',
-                'เปิดใช้งานทันทีเมื่อดำเนินการชำระเงินสำเร็จ'
-              )}
-            </p>
+            <p>{t('Instant activation upon payment processing.')}</p>
           </div>
         </div>
       </div>

@@ -25,47 +25,47 @@ export function AffiliateNav() {
   const links = [
     {
       href: '/affiliate/dashboard',
-      label: t('Dashboard', 'แดชบอร์ด'),
+      label: t('Dashboard'),
       icon: LayoutDashboard,
     },
     {
       href: '/affiliate/dashboard/codes',
-      label: t('Promo Codes', 'รหัสโปรโมชัน'),
+      label: t('Promo Codes'),
       icon: QrCode,
     },
     {
       href: '/affiliate/dashboard/code-inventory',
-      label: t('Inventory', 'คลังรหัส'),
+      label: t('Inventory'),
       icon: Layers,
     },
     {
       href: '/affiliate/dashboard/commissions',
-      label: t('Commissions', 'ค่าคอมมิชชัน'),
+      label: t('Commissions'),
       icon: Percent,
     },
     {
       href: '/affiliate/dashboard/payouts',
-      label: t('Payouts', 'ประวัติถอนเงิน'),
+      label: t('Payouts'),
       icon: Landmark,
     },
     {
       href: '/affiliate/dashboard/statements',
-      label: t('Statements', 'ใบแจ้งยอด'),
+      label: t('Statements'),
       icon: FileSpreadsheet,
     },
     {
       href: '/affiliate/resources',
-      label: t('Media Kit', 'สื่อการตลาด'),
+      label: t('Media Kit'),
       icon: FolderDown,
     },
     {
       href: '/affiliate/dashboard/profile',
-      label: t('Partner Profile', 'โปรไฟล์พันธมิตร'),
+      label: t('Partner Profile'),
       icon: User,
     },
     {
       href: '/affiliate/settings/payout',
-      label: t('Payout Settings', 'ตั้งค่าการรับเงิน'),
+      label: t('Payout Settings'),
       icon: CreditCard,
     },
   ];

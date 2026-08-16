@@ -30,26 +30,21 @@ export default function WelcomePage() {
   const steps = [
     {
       step: 1,
-      title: t('Welcome to DavinTrade AI', 'ยินดีต้อนรับสู่ DavinTrade AI'),
+      title: t('Welcome to DavinTrade AI'),
       subtitle: t(
-        'Your quantitative AI copilot for XAUUSD fractal market intelligence is ready.',
-        'ผู้ช่วย AI เชิงปริมาณสำหรับการวิเคราะห์แฟร็กทัลทองคำของคุณพร้อมแล้ว'
+        'Your quantitative AI copilot for XAUUSD fractal market intelligence is ready.'
       ),
     },
     {
       step: 2,
-      title: t('Choose Your Preferred Theme Accent', 'เลือกสีธีมที่คุณชื่นชอบ'),
-      subtitle: t(
-        'Customize your charting accents and workspace aesthetics.',
-        'ปรับแต่งสีสันของกราฟและพื้นที่ทำงานของคุณ'
-      ),
+      title: t('Choose Your Preferred Theme Accent'),
+      subtitle: t('Customize your charting accents and workspace aesthetics.'),
     },
     {
       step: 3,
-      title: t('Launch Your First Workspace', 'เปิดพื้นที่ทำงานแรกของคุณ'),
+      title: t('Launch Your First Workspace'),
       subtitle: t(
-        'Select whether you want to explore the Free Workspace or enter the PRO Terminal.',
-        'เลือกว่าคุณต้องการเริ่มด้วยพื้นที่ทำงานฟรี หรือเข้าสู่เทอร์มินัล PRO'
+        'Select whether you want to explore the Free Workspace or enter the PRO Terminal.'
       ),
     },
   ];
@@ -112,16 +107,10 @@ export default function WelcomePage() {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-slate-200">
-                    {t(
-                      'Real-Time XAUUSD M5/M15 Fractal Feeds',
-                      'ฟีดข้อมูลแฟร็กทัลทองคำ M5/M15 เรียลไทม์'
-                    )}
+                    {t('Real-Time XAUUSD M5/M15 Fractal Feeds')}
                   </h4>
                   <p className="text-[11px] text-slate-400">
-                    {t(
-                      'Multi-timeframe liquidity detection.',
-                      'ตรวจจับสภาพคล่องหลายกรอบเวลา'
-                    )}
+                    {t('Multi-timeframe liquidity detection.')}
                   </p>
                 </div>
               </div>
@@ -132,16 +121,10 @@ export default function WelcomePage() {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-slate-200">
-                    {t(
-                      'Davin AI Quantitative Chat Copilot',
-                      'AI ผู้ช่วยสนทนาเชิงปริมาณ 24/7'
-                    )}
+                    {t('Davin AI Quantitative Chat Copilot')}
                   </h4>
                   <p className="text-[11px] text-slate-400">
-                    {t(
-                      'Instant market context via floating widget.',
-                      'วิเคราะห์โครงสร้างตลาดผ่านวิดเจ็ตอัจฉริยะ'
-                    )}
+                    {t('Instant market context via floating widget.')}
                   </p>
                 </div>
               </div>
@@ -150,7 +133,7 @@ export default function WelcomePage() {
                 onClick={() => setStep(2)}
                 className="mt-4 w-full bg-amber-500 py-5 font-bold text-slate-950 hover:bg-amber-400"
               >
-                <span>{t('Continue', 'ดำเนินการต่อ')}</span>
+                <span>{t('Continue')}</span>
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -194,13 +177,13 @@ export default function WelcomePage() {
                   onClick={() => setStep(1)}
                   className="flex-1 border-slate-700 text-slate-300"
                 >
-                  {t('Back', 'ย้อนกลับ')}
+                  {t('Back')}
                 </Button>
                 <Button
                   onClick={() => setStep(3)}
                   className="flex-1 bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
                 >
-                  <span>{t('Next', 'ถัดไป')}</span>
+                  <span>{t('Next')}</span>
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
@@ -219,10 +202,7 @@ export default function WelcomePage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="text-sm font-bold text-slate-100">
-                            {t(
-                              'PRO Terminal Workspace',
-                              'พื้นที่ทำงาน PRO Terminal'
-                            )}
+                            {t('PRO Terminal Workspace')}
                           </h4>
                           <Badge className="bg-amber-500 text-[10px] font-bold text-slate-950">
                             RECOMMENDED
@@ -230,8 +210,7 @@ export default function WelcomePage() {
                         </div>
                         <p className="text-[11px] text-slate-400">
                           {t(
-                            'Real-time zero latency, conversational AI, full indicators.',
-                            'ข้อมูลสดความเร็วสูง, AI เต็มรูปแบบ, อินดิเคเตอร์ครบครัน'
+                            'Real-time zero latency, conversational AI, full indicators.'
                           )}
                         </p>
                       </div>
@@ -248,12 +227,11 @@ export default function WelcomePage() {
                       </div>
                       <div>
                         <h4 className="text-sm font-bold text-slate-200">
-                          {t('Free Workspace Overview', 'พื้นที่ทำงานฟรี')}
+                          {t('Free Workspace Overview')}
                         </h4>
                         <p className="text-[11px] text-slate-400">
                           {t(
-                            'Explore delayed sample charts and baseline telemetry.',
-                            'สำรวจกราฟตัวอย่างและข้อมูลเบื้องต้น'
+                            'Explore delayed sample charts and baseline telemetry.'
                           )}
                         </p>
                       </div>
@@ -268,10 +246,7 @@ export default function WelcomePage() {
                   href="/dashboard"
                   className="text-xs text-slate-500 underline underline-offset-4 hover:text-amber-400"
                 >
-                  {t(
-                    'Or go straight to User Dashboard',
-                    'หรือไปที่แดชบอร์ดหลัก'
-                  )}
+                  {t('Or go straight to User Dashboard')}
                 </Link>
               </div>
             </div>

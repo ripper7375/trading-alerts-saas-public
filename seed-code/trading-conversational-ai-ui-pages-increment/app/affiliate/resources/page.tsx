@@ -32,17 +32,11 @@ export default function AffiliateResourcesPage() {
 
   const copyTexts = [
     {
-      title: t(
-        'Telegram / Discord Alert Hook',
-        'ข้อความโปรโมทสำหรับ Telegram / Discord'
-      ),
+      title: t('Telegram / Discord Alert Hook'),
       text: '⚡ Just tested DavinTrade AI for Gold (XAUUSD) M5/M15 fractal setups. Sub-millisecond tick detection and the AI copilot gives instant support/resistance analysis. Use my exclusive code for 20% OFF: https://davintrade.com/checkout?ref=GOLDPRO20',
     },
     {
-      title: t(
-        'YouTube / Video Description Copy',
-        'คำอธิบายใต้คลิปวิดีโอ YouTube'
-      ),
+      title: t('YouTube / Video Description Copy'),
       text: '🚀 Level up your Gold trading with quantitative AI precision. Get 20% discount on DavinTrade AI using promo code GOLDPRO20: https://davintrade.com/checkout?ref=GOLDPRO20 #Forex #GoldTrading #XAUUSD #TradingAI',
     },
   ];
@@ -50,13 +44,9 @@ export default function AffiliateResourcesPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Affiliate Marketing Resources & Media Kit',
-          'สื่อการตลาดและชุดเครื่องมือสำหรับพันธมิตร'
-        )}
+        title={t('Affiliate Marketing Resources & Media Kit')}
         subtitle={t(
-          'Official DavinTrade AI Logos, Mascot Assets, Ad Banners & Copywriting Swipe Files',
-          'โลโก้ทางการ รูปภาพมาสคอต แบนเนอร์โฆษณา และเทมเพลตข้อความโปรโมท'
+          'Official DavinTrade AI Logos, Mascot Assets, Ad Banners & Copywriting Swipe Files'
         )}
       />
 
@@ -68,10 +58,7 @@ export default function AffiliateResourcesPage() {
           <div className="flex items-center gap-2">
             <ImageIcon className="h-5 w-5 text-amber-400" />
             <h2 className="text-base font-bold text-slate-100">
-              {t(
-                'Official Brand Assets & AI Mascots',
-                'โลโก้ทางการและรูปภาพมาสคอต AI'
-              )}
+              {t('Official Brand Assets & AI Mascots')}
             </h2>
           </div>
 
@@ -91,16 +78,10 @@ export default function AffiliateResourcesPage() {
               </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-200">
-                  {t(
-                    'Davin AI App Icon (512x512 PNG)',
-                    'ไอคอนแอป Davin AI (512x512 PNG)'
-                  )}
+                  {t('Davin AI App Icon (512x512 PNG)')}
                 </h4>
                 <p className="text-[11px] text-slate-400">
-                  {t(
-                    'High resolution icon with transparent background',
-                    'ไอคอนความละเอียดสูงพร้อมพื้นหลังโปร่งใส'
-                  )}
+                  {t('High resolution icon with transparent background')}
                 </p>
               </div>
               <a href="/davintrade-ai-icon.png" download>
@@ -110,7 +91,7 @@ export default function AffiliateResourcesPage() {
                   className="w-full border-slate-700 text-xs"
                 >
                   <Download className="mr-1.5 h-3.5 w-3.5" />
-                  {t('Download PNG', 'ดาวน์โหลด PNG')}
+                  {t('Download PNG')}
                 </Button>
               </a>
             </Card>
@@ -130,16 +111,10 @@ export default function AffiliateResourcesPage() {
               </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-200">
-                  {t(
-                    'DavinTrade Full Brand Logo',
-                    'โลโก้แบรนด์ DavinTrade เต็มรูปแบบ'
-                  )}
+                  {t('DavinTrade Full Brand Logo')}
                 </h4>
                 <p className="text-[11px] text-slate-400">
-                  {t(
-                    'Official horizontal banner brand logo',
-                    'โลโก้แบรนด์แนวนอนสำหรับแบนเนอร์'
-                  )}
+                  {t('Official horizontal banner brand logo')}
                 </p>
               </div>
               <a href="/DavinTrade_Logo.jpg" download>
@@ -149,7 +124,7 @@ export default function AffiliateResourcesPage() {
                   className="w-full border-slate-700 text-xs"
                 >
                   <Download className="mr-1.5 h-3.5 w-3.5" />
-                  {t('Download JPG', 'ดาวน์โหลด JPG')}
+                  {t('Download JPG')}
                 </Button>
               </a>
             </Card>
@@ -165,13 +140,10 @@ export default function AffiliateResourcesPage() {
               </div>
               <div>
                 <h4 className="text-xs font-bold text-slate-200">
-                  {t('Vector SVG Icon Pack', 'ชุดไอคอนเวกเตอร์ SVG')}
+                  {t('Vector SVG Icon Pack')}
                 </h4>
                 <p className="text-[11px] text-slate-400">
-                  {t(
-                    'Scalable vector graphics for web and video',
-                    'ไฟล์กราฟิกแบบเวกเตอร์สำหรับเว็บและวิดีโอ'
-                  )}
+                  {t('Scalable vector graphics for web and video')}
                 </p>
               </div>
               <a href="/icon.svg" download>
@@ -181,7 +153,7 @@ export default function AffiliateResourcesPage() {
                   className="w-full border-slate-700 text-xs"
                 >
                   <Download className="mr-1.5 h-3.5 w-3.5" />
-                  {t('Download SVG', 'ดาวน์โหลด SVG')}
+                  {t('Download SVG')}
                 </Button>
               </a>
             </Card>
@@ -193,10 +165,7 @@ export default function AffiliateResourcesPage() {
           <div className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-amber-400" />
             <h2 className="text-base font-bold text-slate-100">
-              {t(
-                'High-Converting Copywriting Swipes',
-                'เทมเพลตข้อความโปรโมทที่ผ่านการทดสอบแล้ว'
-              )}
+              {t('High-Converting Copywriting Swipes')}
             </h2>
           </div>
 
@@ -219,12 +188,12 @@ export default function AffiliateResourcesPage() {
                     {copiedIndex === idx ? (
                       <>
                         <Check className="mr-1 h-3.5 w-3.5 text-emerald-400" />
-                        <span>{t('Copied', 'คัดลอกแล้ว')}</span>
+                        <span>{t('Copied')}</span>
                       </>
                     ) : (
                       <>
                         <Copy className="mr-1 h-3.5 w-3.5" />
-                        <span>{t('Copy Text', 'คัดลอกข้อความ')}</span>
+                        <span>{t('Copy Text')}</span>
                       </>
                     )}
                   </Button>

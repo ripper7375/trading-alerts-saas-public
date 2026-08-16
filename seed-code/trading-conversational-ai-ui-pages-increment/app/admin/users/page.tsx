@@ -10,11 +10,8 @@ export default function AdminUsersPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] select-none">
       <AppHeader
-        title={t('User Directory Management', 'การจัดการไดเรกทอรีผู้ใช้')}
-        subtitle={t(
-          'System Account Oversight, Role Assignment & Account Bans',
-          'การกำกับดูแลบัญชีระบบ การกำหนดบทบาท & การระงับบัญชี'
-        )}
+        title={t('User Directory Management')}
+        subtitle={t('System Account Oversight, Role Assignment & Account Bans')}
       />
       <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
         <UserTable />

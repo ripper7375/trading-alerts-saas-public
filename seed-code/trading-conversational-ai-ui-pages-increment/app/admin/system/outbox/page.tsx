@@ -64,13 +64,9 @@ export default function AdminSystemOutboxPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin System: Transactional Outbox Queue',
-          'ระบบ: คิวการส่งข้อความและอีเมล (Outbox)'
-        )}
+        title={t('Admin System: Transactional Outbox Queue')}
         subtitle={t(
-          'Transactional Email Deliveries, Telegram Bot Payloads & Retry Telemetry',
-          'การส่งอีเมลแจ้งเตือน บันทึกการส่งข้อความ Telegram และสถิติการลองส่งใหม่'
+          'Transactional Email Deliveries, Telegram Bot Payloads & Retry Telemetry'
         )}
       />
 
@@ -81,10 +77,7 @@ export default function AdminSystemOutboxPage() {
           <div className="relative max-w-xs">
             <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
             <Input
-              placeholder={t(
-                'Search outbox queue...',
-                'ค้นหาคิวการส่งข้อความ...'
-              )}
+              placeholder={t('Search outbox queue...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
@@ -97,25 +90,25 @@ export default function AdminSystemOutboxPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Outbox ID', 'รหัสข้อความ')}
+                  {t('Outbox ID')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Channel', 'ช่องทาง')}
+                  {t('Channel')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Recipient Target', 'ผู้รับ')}
+                  {t('Recipient Target')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Subject / Event', 'หัวข้อ / เหตุการณ์')}
+                  {t('Subject / Event')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Attempts', 'จำนวนครั้ง')}
+                  {t('Attempts')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Last Attempt', 'ส่งล่าสุด')}
+                  {t('Last Attempt')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Status', 'สถานะ')}
+                  {t('Status')}
                 </TableHead>
               </TableRow>
             </TableHeader>

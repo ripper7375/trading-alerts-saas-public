@@ -104,36 +104,32 @@ export default function AdminAffiliatesDirectoryPage() {
   const reportsNav = [
     {
       href: '/admin/affiliates/reports/code-flows',
-      label: t('Code Flows', 'การไหลของรหัส'),
+      label: t('Code Flows'),
     },
     {
       href: '/admin/affiliates/reports/code-inventory',
-      label: t('Code Inventory', 'คลังรหัส'),
+      label: t('Code Inventory'),
     },
     {
       href: '/admin/affiliates/reports/commission-owings',
-      label: t('Commission Owings', 'ยอดค้างจ่าย'),
+      label: t('Commission Owings'),
     },
     {
       href: '/admin/affiliates/reports/profit-loss',
-      label: t('P&L Breakdown', 'กำไร-ขาดทุน'),
+      label: t('P&L Breakdown'),
     },
     {
       href: '/admin/affiliates/reports/sales-performance',
-      label: t('Sales Performance', 'ประสิทธิภาพยอดขาย'),
+      label: t('Sales Performance'),
     },
   ];
 
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Affiliates Directory & Reports',
-          'รายชื่อพันธมิตรและรายงาน'
-        )}
+        title={t('Admin Affiliates Directory & Reports')}
         subtitle={t(
-          'Master Partner Accounts, Commission Ledgers & Promotional Telemetry',
-          'จัดการบัญชีพันธมิตร บัญชีแยกประเภทค่าคอมมิชชัน และสถิติโปรโมชัน'
+          'Master Partner Accounts, Commission Ledgers & Promotional Telemetry'
         )}
       />
 
@@ -142,7 +138,7 @@ export default function AdminAffiliatesDirectoryPage() {
       {/* Reports Sub-Bar */}
       <div className="flex items-center gap-1.5 overflow-x-auto border-b border-slate-800 bg-[#06080e] px-4 py-2 text-xs md:px-6">
         <span className="mr-2 text-[11px] font-bold tracking-wider text-slate-500 uppercase">
-          {t('Reports', 'รายงาน')}:
+          {t('Reports')}:
         </span>
         {reportsNav.map((rep) => (
           <Link
@@ -160,7 +156,7 @@ export default function AdminAffiliatesDirectoryPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
             <div className="text-xs font-medium text-slate-400">
-              {t('Total Partners', 'พันธมิตรทั้งหมด')}
+              {t('Total Partners')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-amber-400">
               {affiliates.length}
@@ -168,7 +164,7 @@ export default function AdminAffiliatesDirectoryPage() {
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
             <div className="text-xs font-medium text-slate-400">
-              {t('Referred Subscriptions', 'สมาชิกที่แนะนำ')}
+              {t('Referred Subscriptions')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-400">
               78
@@ -176,7 +172,7 @@ export default function AdminAffiliatesDirectoryPage() {
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
             <div className="text-xs font-medium text-slate-400">
-              {t('Gross Partner Volume', 'ยอดขายจากพันธมิตร')}
+              {t('Gross Partner Volume')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-400">
               $13,524.00
@@ -184,7 +180,7 @@ export default function AdminAffiliatesDirectoryPage() {
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
             <div className="text-xs font-medium text-slate-400">
-              {t('Total Unpaid Owings', 'ค่าคอมมิชชันค้างจ่าย')}
+              {t('Total Unpaid Owings')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-rose-400">
               $1,146.60
@@ -197,10 +193,7 @@ export default function AdminAffiliatesDirectoryPage() {
           <div className="relative max-w-xs">
             <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
             <Input
-              placeholder={t(
-                'Search partner, code, email...',
-                'ค้นหาพันธมิตร, รหัส, อีเมล...'
-              )}
+              placeholder={t('Search partner, code, email...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
@@ -232,31 +225,31 @@ export default function AdminAffiliatesDirectoryPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Partner ID', 'รหัสพันธมิตร')}
+                  {t('Partner ID')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Name & Email', 'ชื่อและอีเมล')}
+                  {t('Name & Email')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Code', 'รหัสโปรโมชัน')}
+                  {t('Code')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Active Traders', 'สมาชิกที่ใช้งาน')}
+                  {t('Active Traders')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Gross Volume', 'ยอดขายสะสม')}
+                  {t('Gross Volume')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Unpaid Owings', 'ยอดค้างจ่าย')}
+                  {t('Unpaid Owings')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Payout Method', 'ช่องทางรับเงิน')}
+                  {t('Payout Method')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Status', 'สถานะ')}
+                  {t('Status')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Action', 'จัดการ')}
+                  {t('Action')}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -311,7 +304,7 @@ export default function AdminAffiliatesDirectoryPage() {
                         className="text-xs text-amber-400 hover:bg-amber-500/10"
                       >
                         <Eye className="mr-1 h-3.5 w-3.5" />
-                        <span>{t('Inspect', 'ตรวจสอบ')}</span>
+                        <span>{t('Inspect')}</span>
                       </Button>
                     </Link>
                   </TableCell>

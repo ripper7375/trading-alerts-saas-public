@@ -26,26 +26,19 @@ export default function ChangelogPage() {
       version: 'v2.4.0',
       date: 'August 16, 2026',
       badge: 'Latest Release',
-      title: t(
-        'Conversational AI Copilot & Unified Multi-Language Workspaces',
-        'AI ผู้ช่วยสนทนาและพื้นที่ทำงานหลายภาษาระดับสากล'
-      ),
+      title: t('Conversational AI Copilot & Unified Multi-Language Workspaces'),
       items: [
         t(
-          'Integrated 24/7 Davin AI conversational widget across all terminals and settings pages.',
-          'รวมวิดเจ็ต AI สนทนา Davin AI 24/7 ในทุกหน้าจอและเทอร์มินัล'
+          'Integrated 24/7 Davin AI conversational widget across all terminals and settings pages.'
         ),
         t(
-          'Full 12-language localization engine with real-time currency formatting.',
-          'ระบบแปลภาษา 12 ภาษาสมบูรณ์แบบพร้อมการแสดงผลสกุลเงินท้องถิ่น'
+          'Full 12-language localization engine with real-time currency formatting.'
         ),
         t(
-          'New /terminal workspace for PRO users and /free workspace for exploring users.',
-          'เปิดตัวพื้นที่ทำงานใหม่ /terminal สำหรับผู้ใช้ PRO และ /free สำหรับผู้ใช้ทั่วไป'
+          'New /terminal workspace for PRO users and /free workspace for exploring users.'
         ),
         t(
-          'Dynamic theme accent switching (Amber, Emerald, Sapphire, Amethyst).',
-          'ระบบปรับเปลี่ยนสีธีมแบบไดนามิก (อำพัน, มรกต, ไพลิน, อเมทิสต์)'
+          'Dynamic theme accent switching (Amber, Emerald, Sapphire, Amethyst).'
         ),
       ],
     },
@@ -53,45 +46,25 @@ export default function ChangelogPage() {
       version: 'v2.2.0',
       date: 'July 28, 2026',
       badge: 'Major Update',
-      title: t(
-        'Automated Wise & RiseWorks Partner Disbursements',
-        'ระบบจ่ายเงินพันธมิตรอัตโนมัติผ่าน Wise และ RiseWorks'
-      ),
+      title: t('Automated Wise & RiseWorks Partner Disbursements'),
       items: [
         t(
-          'Automated batch payout scheduler with recipient bank account pre-validation.',
-          'ระบบกำหนดการจ่ายเงินอัตโนมัติแบบกลุ่มพร้อมตรวจสอบความถูกต้องของบัญชีผู้รับ'
+          'Automated batch payout scheduler with recipient bank account pre-validation.'
         ),
-        t(
-          'Promotional discount code generator with click tracking telemetry.',
-          'เครื่องมือสร้างรหัสโปรโมชันพร้อมระบบตรวจวัดสถิติการคลิก'
-        ),
-        t(
-          'Detailed commission statements with PDF/CSV export support.',
-          'ใบแจ้งยอดค่าคอมมิชชันพร้อมรองรับการดาวน์โหลด PDF/CSV'
-        ),
+        t('Promotional discount code generator with click tracking telemetry.'),
+        t('Detailed commission statements with PDF/CSV export support.'),
       ],
     },
     {
       version: 'v2.0.0',
       date: 'June 15, 2026',
       badge: 'Architecture',
-      title: t(
-        'Sub-Millisecond MT5 WebSocket Telemetry Engine',
-        'เครื่องมือส่งข้อมูลโทรมาตร MT5 ความเร็วระดับมิลลิวินาที'
-      ),
+      title: t('Sub-Millisecond MT5 WebSocket Telemetry Engine'),
       items: [
+        t('Redesigned low-latency tick pipeline for Spot Gold (XAUUSD).'),
+        t('Multi-timeframe fractal detection across M5 and M15 charts.'),
         t(
-          'Redesigned low-latency tick pipeline for Spot Gold (XAUUSD).',
-          'ปรับปรุงระบบท่อส่งข้อมูลติ๊กความหน่วงต่ำสำหรับทองคำ (XAUUSD)'
-        ),
-        t(
-          'Multi-timeframe fractal detection across M5 and M15 charts.',
-          'ระบบตรวจจับแฟร็กทัลหลายกรอบเวลาในกราฟ M5 และ M15'
-        ),
-        t(
-          'Multi-channel alert dispatch (In-app, Telegram bot, custom Webhooks).',
-          'ระบบส่งการแจ้งเตือนหลายช่องทาง (ในแอป, Telegram, Webhook)'
+          'Multi-channel alert dispatch (In-app, Telegram bot, custom Webhooks).'
         ),
       ],
     },
@@ -105,18 +78,14 @@ export default function ChangelogPage() {
         <div className="space-y-10">
           <div className="mx-auto max-w-2xl space-y-4 text-center">
             <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-400">
-              {t(
-                'Product Updates & Release Notes',
-                'อัปเดตผลิตภัณฑ์และบันทึกประจำรุ่น'
-              )}
+              {t('Product Updates & Release Notes')}
             </Badge>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-100 md:text-5xl">
-              {t('DavinTrade Changelog', 'บันทึกการเปลี่ยนแปลง DavinTrade')}
+              {t('DavinTrade Changelog')}
             </h1>
             <p className="text-sm text-slate-400">
               {t(
-                'Follow the evolution of our quantitative AI trading platform, feature rollouts, and infrastructure enhancements.',
-                'ติดตามการพัฒนาของแพลตฟอร์ม ฟีเจอร์ใหม่ และการปรับปรุงโครงสร้างพื้นฐาน'
+                'Follow the evolution of our quantitative AI trading platform, feature rollouts, and infrastructure enhancements.'
               )}
             </p>
           </div>

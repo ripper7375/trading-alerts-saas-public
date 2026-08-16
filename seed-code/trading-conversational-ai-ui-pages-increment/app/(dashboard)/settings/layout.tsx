@@ -112,8 +112,7 @@ export default function SettingsLayout({
       <AppHeader
         title={`${t('breadcrumb.settings', 'Settings')}: ${activeTabLabel}`}
         subtitle={t(
-          'Manage your DavinTrade account preferences, security & quantitative terminal configurations',
-          'จัดการการตั้งค่าบัญชี DavinTrade ความปลอดภัย และการกำหนดค่าเทอร์มินัลเชิงปริมาณ'
+          'Manage your DavinTrade account preferences, security & quantitative terminal configurations'
         )}
       />
 

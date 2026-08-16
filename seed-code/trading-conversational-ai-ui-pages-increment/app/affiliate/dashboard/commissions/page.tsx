@@ -133,10 +133,9 @@ export default function AffiliateCommissionsPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
       <AppHeader
-        title={t('Affiliate Commissions Ledger', 'บัญชีค่าคอมมิชชันพันธมิตร')}
+        title={t('Affiliate Commissions Ledger')}
         subtitle={t(
-          'Detailed Revenue Share Breakdown, Conversion Timelines & Settlement Status',
-          'แจกแจงส่วนแบ่งรายได้ ประวัติการซื้อ และสถานะการชำระเงิน'
+          'Detailed Revenue Share Breakdown, Conversion Timelines & Settlement Status'
         )}
       />
 
@@ -147,7 +146,7 @@ export default function AffiliateCommissionsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
             <div className="text-xs font-medium text-slate-400">
-              {t('Total Commissions Generated', 'ค่าคอมมิชชันรวมที่ได้รับ')}
+              {t('Total Commissions Generated')}
             </div>
             <div className="mt-1 font-mono text-3xl font-extrabold text-emerald-400">
               ${totalEarned.toFixed(2)}
@@ -156,7 +155,7 @@ export default function AffiliateCommissionsPage() {
 
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
             <div className="text-xs font-medium text-slate-400">
-              {t('Pending August Disbursement', 'ยอดรอโอนรอบสิ้นเดือนสิงหาคม')}
+              {t('Pending August Disbursement')}
             </div>
             <div className="mt-1 font-mono text-3xl font-extrabold text-amber-400">
               ${pendingEarned.toFixed(2)}
@@ -165,7 +164,7 @@ export default function AffiliateCommissionsPage() {
 
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
             <div className="text-xs font-medium text-slate-400">
-              {t('Active Commission Rate', 'อัตราส่วนแบ่งปัจจุบัน')}
+              {t('Active Commission Rate')}
             </div>
             <div className="mt-1 font-mono text-3xl font-extrabold text-cyan-400">
               30.0%
@@ -178,10 +177,7 @@ export default function AffiliateCommissionsPage() {
           <div className="relative max-w-xs">
             <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
             <Input
-              placeholder={t(
-                'Search transaction or user...',
-                'ค้นหาธุรกรรมหรือผู้ใช้...'
-              )}
+              placeholder={t('Search transaction or user...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
@@ -195,7 +191,7 @@ export default function AffiliateCommissionsPage() {
             className="self-start border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800 sm:self-auto"
           >
             <Download className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
-            {t('Export CSV Report', 'ส่งออกรายงาน CSV')}
+            {t('Export CSV Report')}
           </Button>
         </div>
 
@@ -205,28 +201,28 @@ export default function AffiliateCommissionsPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Tx ID', 'รหัส')}
+                  {t('Tx ID')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Date', 'วันที่')}
+                  {t('Date')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Referred Trader', 'ผู้ใช้ที่แนะนำ')}
+                  {t('Referred Trader')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Purchased Plan', 'แพ็กเกจที่ซื้อ')}
+                  {t('Purchased Plan')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Gross Payment', 'ยอดชำระ')}
+                  {t('Gross Payment')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Rate', 'อัตรา')}
+                  {t('Rate')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Commission Earned', 'ค่าคอมมิชชัน')}
+                  {t('Commission Earned')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Status', 'สถานะ')}
+                  {t('Status')}
                 </TableHead>
               </TableRow>
             </TableHeader>

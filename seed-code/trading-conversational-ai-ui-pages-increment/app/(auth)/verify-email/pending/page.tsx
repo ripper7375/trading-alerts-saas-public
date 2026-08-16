@@ -39,20 +39,13 @@ export default function VerifyEmailPendingPage() {
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(
-          data.message ||
-            t(
-              'Failed to send verification email.',
-              'ไม่สามารถส่งอีเมลยืนยันได้'
-            )
+          data.message || t('Failed to send verification email.')
         );
       }
 
       setSent(true);
     } catch (err: any) {
-      setError(
-        err.message ||
-          t('Error sending verification email.', 'เกิดข้อผิดพลาดในการส่งอีเมล')
-      );
+      setError(err.message || t('Error sending verification email.'));
     } finally {
       setIsSending(false);
     }
@@ -80,13 +73,10 @@ export default function VerifyEmailPendingPage() {
             </span>
           </Link>
           <h1 className="text-2xl font-bold text-slate-100">
-            {t('Check Your Email', 'ตรวจสอบกล่องข้อความของคุณ')}
+            {t('Check Your Email')}
           </h1>
           <p className="text-xs text-slate-400">
-            {t(
-              'We sent a verification link to your registered email address.',
-              'เราได้ส่งลิงก์ยืนยันตัวตนไปยังที่อยู่อีเมลที่คุณลงทะเบียนไว้'
-            )}
+            {t('We sent a verification link to your registered email address.')}
           </p>
         </div>
 
@@ -99,12 +89,11 @@ export default function VerifyEmailPendingPage() {
 
           <div className="space-y-2">
             <h3 className="text-sm font-bold text-slate-200">
-              {t('Verification Link Sent', 'ส่งลิงก์ยืนยันเรียบร้อยแล้ว')}
+              {t('Verification Link Sent')}
             </h3>
             <p className="text-xs leading-relaxed text-slate-400">
               {t(
-                'Please click the link in your email to activate your account. If you do not see it within a few minutes, check your spam or junk folder.',
-                'กรุณาคลิกลิงก์ในอีเมลเพื่อเปิดใช้งานบัญชี หากไม่พบข้อความภายใน 2-3 นาที กรุณาตรวจสอบในโฟลเดอร์สแปมหรืออีเมลขยะ'
+                'Please click the link in your email to activate your account. If you do not see it within a few minutes, check your spam or junk folder.'
               )}
             </p>
           </div>
@@ -113,15 +102,10 @@ export default function VerifyEmailPendingPage() {
             <div className="space-y-1 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-4 text-xs text-emerald-300">
               <div className="flex items-center justify-center gap-1.5 font-bold">
                 <CheckCircle2 className="h-4 w-4" />
-                <span>
-                  {t('New Link Dispatched!', 'ส่งลิงก์ใหม่เรียบร้อยแล้ว!')}
-                </span>
+                <span>{t('New Link Dispatched!')}</span>
               </div>
               <p className="text-[11px] text-slate-400">
-                {t(
-                  'Please check your inbox again.',
-                  'กรุณาตรวจสอบกล่องข้อความอีกครั้ง'
-                )}
+                {t('Please check your inbox again.')}
               </p>
             </div>
           ) : (
@@ -139,7 +123,7 @@ export default function VerifyEmailPendingPage() {
                 <Label className="text-xs text-slate-300">
                   {t(
                     "Didn't receive it? Enter email to resend",
-                    'ยังไม่ได้รับอีเมล? กรอกอีเมลเพื่อส่งใหม่'
+                    "Didn't receive an email? Enter your email to resend"
                   )}
                 </Label>
                 <Input
@@ -159,9 +143,7 @@ export default function VerifyEmailPendingPage() {
                 <RefreshCw
                   className={`mr-2 h-4 w-4 ${isSending ? 'animate-spin' : ''}`}
                 />
-                {isSending
-                  ? t('Sending...', 'กำลังส่ง...')
-                  : t('Resend Verification Email', 'ส่งอีเมลยืนยันอีกครั้ง')}
+                {isSending ? t('Sending...') : t('Resend Verification Email')}
               </Button>
             </form>
           )}
@@ -171,7 +153,7 @@ export default function VerifyEmailPendingPage() {
               href="/login"
               className="text-xs text-slate-400 transition-colors hover:text-amber-400"
             >
-              ← {t('Back to Login', 'กลับไปหน้าเข้าสู่ระบบ')}
+              ← {t('Back to Login')}
             </Link>
           </div>
         </Card>

@@ -65,13 +65,9 @@ export default function AdminReportSalesPerformancePage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Report: Affiliate Sales Performance Leaderboard',
-          'รายงาน: สถิติและอันดับยอดขายของพันธมิตร'
-        )}
+        title={t('Admin Report: Affiliate Sales Performance Leaderboard')}
         subtitle={t(
-          'Top Performing Affiliates, Conversion Velocity & Channel Attribution Metrics',
-          'อันดับพันธมิตรยอดเยี่ยม อัตราการเปลี่ยนเป็นสมาชิก และช่องทางการตลาด'
+          'Top Performing Affiliates, Conversion Velocity & Channel Attribution Metrics'
         )}
       />
 
@@ -84,9 +80,7 @@ export default function AdminReportSalesPerformancePage() {
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>
-              {t('Back to Affiliates Directory', 'กลับสู่รายชื่อพันธมิตร')}
-            </span>
+            <span>{t('Back to Affiliates Directory')}</span>
           </Link>
 
           <Button
@@ -96,7 +90,7 @@ export default function AdminReportSalesPerformancePage() {
             className="border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
           >
             <Download className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
-            {t('Export Leaderboard CSV', 'ส่งออกรายงาน CSV')}
+            {t('Export Leaderboard CSV')}
           </Button>
         </div>
 
@@ -105,28 +99,28 @@ export default function AdminReportSalesPerformancePage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Rank', 'อันดับ')}
+                  {t('Rank')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Partner Name', 'ชื่อพันธมิตร')}
+                  {t('Partner Name')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Attributed Channel', 'ช่องทางการตลาด')}
+                  {t('Attributed Channel')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Total Signups', 'ยอดลงทะเบียน')}
+                  {t('Total Signups')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('PRO Upgrades', 'อัปเกรด PRO')}
+                  {t('PRO Upgrades')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Conversion %', 'อัตราการซื้อ')}
+                  {t('Conversion %')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Gross Revenue', 'ยอดขายรวม')}
+                  {t('Gross Revenue')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Commissions Paid', 'คอมมิชชันที่จ่ายแล้ว')}
+                  {t('Commissions Paid')}
                 </TableHead>
               </TableRow>
             </TableHeader>

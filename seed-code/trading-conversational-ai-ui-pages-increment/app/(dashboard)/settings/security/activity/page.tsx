@@ -43,7 +43,7 @@ export default function SecurityActivityPage() {
       os: 'Windows 11',
       ip: '171.96.120.45',
       location: 'Bangkok, Thailand',
-      lastActive: t('Active Now', 'ใช้งานอยู่ตอนนี้'),
+      lastActive: t('Active Now'),
       isCurrent: true,
       type: 'desktop',
     },
@@ -81,9 +81,7 @@ export default function SecurityActivityPage() {
         () => {}
       );
       setSessions((prev) => prev.filter((s) => s.id !== id));
-      setSuccessMessage(
-        t('Session terminated successfully.', 'เพิกถอนเซสชันเรียบร้อยแล้ว')
-      );
+      setSuccessMessage(t('Session terminated successfully.'));
       setTimeout(() => setSuccessMessage(''), 3000);
     } finally {
       setRevokingId(null);
@@ -91,25 +89,13 @@ export default function SecurityActivityPage() {
   };
 
   const handleRevokeAllOther = async () => {
-    if (
-      !confirm(
-        t(
-          'Terminate all other login sessions across all devices?',
-          'ต้องการออกจากระบบบนอุปกรณ์อื่นทั้งหมดหรือไม่?'
-        )
-      )
-    ) {
+    if (!confirm(t('Terminate all other login sessions across all devices?'))) {
       return;
     }
     try {
       await fetch('/api/user/sessions', { method: 'DELETE' }).catch(() => {});
       setSessions((prev) => prev.filter((s) => s.isCurrent));
-      setSuccessMessage(
-        t(
-          'All other sessions terminated.',
-          'ออกจากระบบบนอุปกรณ์อื่นทั้งหมดเรียบร้อยแล้ว'
-        )
-      );
+      setSuccessMessage(t('All other sessions terminated.'));
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (e) {}
   };
@@ -122,9 +108,7 @@ export default function SecurityActivityPage() {
           className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 transition-colors hover:text-amber-400"
         >
           <ArrowLeft className="h-4 w-4" />
-          <span>
-            {t('Back to Security & 2FA', 'กลับสู่หน้าความปลอดภัยและ 2FA')}
-          </span>
+          <span>{t('Back to Security & 2FA')}</span>
         </Link>
 
         {sessions.length > 1 && (
@@ -135,22 +119,18 @@ export default function SecurityActivityPage() {
             className="border-rose-500/30 bg-rose-950/20 text-xs text-rose-300 hover:bg-rose-950/50"
           >
             <LogOut className="mr-1.5 h-3.5 w-3.5" />
-            {t('Revoke All Other Sessions', 'ออกจากระบบอุปกรณ์อื่นทั้งหมด')}
+            {t('Revoke All Other Sessions')}
           </Button>
         )}
       </div>
 
       <div className="space-y-1">
         <h2 className="text-xl font-bold text-slate-100">
-          {t(
-            'Active Sessions & Device Activity',
-            'เซสชันการใช้งานและกิจกรรมอุปกรณ์'
-          )}
+          {t('Active Sessions & Device Activity')}
         </h2>
         <p className="text-xs text-slate-400">
           {t(
-            'Review all active browser sessions currently authenticated with your DavinTrade account.',
-            'ตรวจสอบเซสชันเบราว์เซอร์ทั้งหมดที่กำลังเข้าสู่ระบบบัญชี DavinTrade ของคุณ'
+            'Review all active browser sessions currently authenticated with your DavinTrade account.'
           )}
         </p>
       </div>
@@ -193,7 +173,7 @@ export default function SecurityActivityPage() {
                       </h4>
                       {sess.isCurrent && (
                         <Badge className="border-emerald-500/40 bg-emerald-500/20 py-0 text-[10px] text-emerald-400">
-                          {t('Current Session', 'เซสชันปัจจุบัน')}
+                          {t('Current Session')}
                         </Badge>
                       )}
                     </div>
@@ -220,9 +200,7 @@ export default function SecurityActivityPage() {
                     className="self-start text-xs text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 sm:self-center"
                   >
                     <LogOut className="mr-1.5 h-3.5 w-3.5" />
-                    {revokingId === sess.id
-                      ? t('Revoking...', 'กำลังเพิกถอน...')
-                      : t('Revoke', 'เพิกถอน')}
+                    {revokingId === sess.id ? t('Revoking...') : t('Revoke')}
                   </Button>
                 )}
               </div>

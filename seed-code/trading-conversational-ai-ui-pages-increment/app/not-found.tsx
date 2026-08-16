@@ -19,10 +19,10 @@ export default function NotFound() {
             404
           </h1>
           <h2 className="text-base font-extrabold text-slate-100">
-            {t('Page Not Found', 'ไม่พบหน้านี้')}
+            {t('Page Not Found')}
           </h2>
           <p className="text-xs text-slate-400">
-            {t('This page could not be found.', 'ไม่พบหน้าที่คุณกำลังค้นหา')}
+            {t('This page could not be found.')}
           </p>
         </div>
         <Button
@@ -31,7 +31,7 @@ export default function NotFound() {
         >
           <Link href="/">
             <Home className="mr-1.5 h-4 w-4" />
-            {t('Return to Home', 'กลับสู่หน้าหลัก')}
+            {t('Return to Home')}
           </Link>
         </Button>
       </div>

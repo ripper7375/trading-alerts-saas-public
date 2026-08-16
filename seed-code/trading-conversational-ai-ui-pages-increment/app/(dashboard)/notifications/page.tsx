@@ -39,13 +39,9 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
       id: 'notif-1',
-      title: t(
-        'XAUUSD M5 Bullish Fractal Confirmed',
-        'ยืนยันสัญญาณแฟร็กทัลขาขึ้น XAUUSD M5'
-      ),
+      title: t('XAUUSD M5 Bullish Fractal Confirmed'),
       message: t(
-        'Price broke above 2,420.50 with multi-timeframe volume confirmation.',
-        'ราคาทะลุ 2,420.50 พร้อมการยืนยันวอลุ่มหลายกรอบเวลา'
+        'Price broke above 2,420.50 with multi-timeframe volume confirmation.'
       ),
       category: 'ALERT',
       timestamp: '5m ago',
@@ -54,13 +50,9 @@ export default function NotificationsPage() {
     },
     {
       id: 'notif-2',
-      title: t(
-        'Davin AI Copilot v2.4 Active',
-        'Davin AI Copilot v2.4 พร้อมใช้งาน'
-      ),
+      title: t('Davin AI Copilot v2.4 Active'),
       message: t(
-        'New conversational market reasoning models are now live on your terminal.',
-        'แบบจำลอง AI วิเคราะห์ตลาดเวอร์ชันใหม่เปิดให้ใช้งานแล้วในเทอร์มินัลของคุณ'
+        'New conversational market reasoning models are now live on your terminal.'
       ),
       category: 'SYSTEM',
       timestamp: '2h ago',
@@ -69,10 +61,9 @@ export default function NotificationsPage() {
     },
     {
       id: 'notif-3',
-      title: t('PRO Subscription Active', 'แพ็กเกจ PRO เปิดใช้งานแล้ว'),
+      title: t('PRO Subscription Active'),
       message: t(
-        'Your monthly invoice has been processed securely via Stripe.',
-        'ใบเสร็จรายเดือนของคุณได้รับการประมวลผลผ่าน Stripe เรียบร้อยแล้ว'
+        'Your monthly invoice has been processed securely via Stripe.'
       ),
       category: 'BILLING',
       timestamp: '1d ago',
@@ -81,14 +72,8 @@ export default function NotificationsPage() {
     },
     {
       id: 'notif-4',
-      title: t(
-        'New Login from Chrome on Windows',
-        'การเข้าสู่ระบบใหม่จาก Chrome บน Windows'
-      ),
-      message: t(
-        'New active session detected in Bangkok, Thailand.',
-        'ตรวจพบเซสชันใหม่ที่กรุงเทพฯ ประเทศไทย'
-      ),
+      title: t('New Login from Chrome on Windows'),
+      message: t('New active session detected in Bangkok, Thailand.'),
       category: 'SECURITY',
       timestamp: '2d ago',
       read: true,
@@ -118,10 +103,9 @@ export default function NotificationsPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t('Notifications Centre', 'ศูนย์การแจ้งเตือน')}
+        title={t('Notifications Centre')}
         subtitle={t(
-          'Live Signal Alerts, System Announcements & Security Events',
-          'สัญญาณแจ้งเตือน ประกาศระบบ และเหตุการณ์ความปลอดภัยแบบเรียลไทม์'
+          'Live Signal Alerts, System Announcements & Security Events'
         )}
       />
 
@@ -130,13 +114,13 @@ export default function NotificationsPage() {
           {/* Tabs */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             {[
-              { id: 'ALL', label: t('All', 'ทั้งหมด') },
+              { id: 'ALL', label: t('All') },
               {
                 id: 'UNREAD',
-                label: `${t('Unread', 'ยังไม่อ่าน')} (${unreadCount})`,
+                label: `${t('Unread')} (${unreadCount})`,
               },
-              { id: 'ALERTS', label: t('Signals', 'สัญญาณ') },
-              { id: 'SYSTEM', label: t('System', 'ระบบ') },
+              { id: 'ALERTS', label: t('Signals') },
+              { id: 'SYSTEM', label: t('System') },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -160,7 +144,7 @@ export default function NotificationsPage() {
               className="self-start border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
             >
               <CheckCheck className="mr-1.5 h-3.5 w-3.5 text-emerald-400" />
-              {t('Mark all as read', 'ทำเครื่องหมายอ่านแล้วทั้งหมด')}
+              {t('Mark all as read')}
             </Button>
           )}
         </div>
@@ -171,13 +155,10 @@ export default function NotificationsPage() {
             <Card className="border-slate-800 bg-[#090b14]/80 p-12 text-center">
               <Bell className="mx-auto mb-3 h-10 w-10 text-slate-600" />
               <h3 className="text-sm font-bold text-slate-300">
-                {t('No notifications found', 'ไม่มีการแจ้งเตือน')}
+                {t('No notifications found')}
               </h3>
               <p className="mt-1 text-xs text-slate-500">
-                {t(
-                  'You are all caught up with your alert telemetry.',
-                  'คุณติดตามข้อมูลทั้งหมดครบถ้วนแล้ว'
-                )}
+                {t('You are all caught up with your alert telemetry.')}
               </p>
             </Card>
           ) : (
@@ -244,7 +225,7 @@ export default function NotificationsPage() {
                           size="sm"
                           className="px-2.5 text-xs text-amber-400 hover:bg-amber-500/10"
                         >
-                          <span>{t('View', 'ดู')}</span>
+                          <span>{t('View')}</span>
                           <ArrowRight className="ml-1 h-3.5 w-3.5" />
                         </Button>
                       </Link>

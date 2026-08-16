@@ -87,13 +87,9 @@ export default function AffiliatePayoutsPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Affiliate Payouts & Disbursement History',
-          'ประวัติการถอนเงินและรอบการจ่ายพันธมิตร'
-        )}
+        title={t('Affiliate Payouts & Disbursement History')}
         subtitle={t(
-          'Wise Business Automated Transfers, RiseWorks Treasury & Threshold Telemetry',
-          'การโอนเงินอัตโนมัติผ่าน Wise, RiseWorks และการติดตามยอดขั้นต่ำ'
+          'Wise Business Automated Transfers, RiseWorks Treasury & Threshold Telemetry'
         )}
       />
 
@@ -110,13 +106,10 @@ export default function AffiliatePayoutsPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-100">
-                    {t('Next Scheduled Disbursement', 'รอบการจ่ายเงินถัดไป')}
+                    {t('Next Scheduled Disbursement')}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    {t(
-                      'Scheduled: September 1, 2026 via Wise',
-                      'กำหนดโอน: 1 กันยายน 2026 ผ่าน Wise'
-                    )}
+                    {t('Scheduled: September 1, 2026 via Wise')}
                   </p>
                 </div>
               </div>
@@ -126,21 +119,16 @@ export default function AffiliatePayoutsPage() {
                   ${currentBalance.toFixed(2)}
                 </div>
                 <div className="text-[10px] tracking-wider text-slate-500 uppercase">
-                  {t('Accrued Unpaid Balance', 'ยอดรอโอนสะสม')}
+                  {t('Accrued Unpaid Balance')}
                 </div>
               </div>
             </div>
 
             <div className="space-y-1.5 pt-2">
               <div className="flex justify-between text-xs text-slate-400">
-                <span>
-                  {t(
-                    'Payout Threshold Progress ($50.00 Minimum)',
-                    'ความคืบหน้าถึงเกณฑ์ขั้นต่ำ ($50.00)'
-                  )}
-                </span>
+                <span>{t('Payout Threshold Progress ($50.00 Minimum)')}</span>
                 <span className="font-bold text-emerald-400">
-                  {t('Threshold Reached', 'ถึงเกณฑ์แล้ว')} (100%)
+                  {t('Threshold Reached')} (100%)
                 </span>
               </div>
               <Progress value={progress} className="h-2 bg-slate-800" />
@@ -152,7 +140,7 @@ export default function AffiliatePayoutsPage() {
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-emerald-400" />
                 <h4 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
-                  {t('Primary Payout Account', 'บัญชีรับเงินหลัก')}
+                  {t('Primary Payout Account')}
                 </h4>
               </div>
               <p className="text-xs font-medium text-slate-300">
@@ -169,7 +157,7 @@ export default function AffiliatePayoutsPage() {
                 size="sm"
                 className="w-full border-slate-700 text-xs text-slate-300 hover:bg-slate-800"
               >
-                {t('Change Payout Method', 'เปลี่ยนวิธีรับเงิน')}
+                {t('Change Payout Method')}
               </Button>
             </Link>
           </Card>
@@ -181,28 +169,28 @@ export default function AffiliatePayoutsPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Disbursement Batch', 'รอบการโอน')}
+                  {t('Disbursement Batch')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Date Executed', 'วันที่โอน')}
+                  {t('Date Executed')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Method', 'ช่องทาง')}
+                  {t('Method')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Gross Amount', 'ยอดรวม')}
+                  {t('Gross Amount')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Fee', 'ค่าธรรมเนียม')}
+                  {t('Fee')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Net Received', 'ยอดสุทธิ')}
+                  {t('Net Received')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Reference / Tracking', 'เลขอ้างอิง')}
+                  {t('Reference / Tracking')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Status', 'สถานะ')}
+                  {t('Status')}
                 </TableHead>
               </TableRow>
             </TableHeader>

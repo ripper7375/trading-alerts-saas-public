@@ -33,22 +33,22 @@ export default function AffiliateCodeInventoryPage() {
 
   const stats = [
     {
-      label: t('Total Allocated Codes', 'จำนวนรหัสทั้งหมด'),
+      label: t('Total Allocated Codes'),
       value: '15',
       color: 'text-amber-400',
     },
     {
-      label: t('Active & Redeemable', 'รหัสที่ใช้งานได้'),
+      label: t('Active & Redeemable'),
       value: '12',
       color: 'text-emerald-400',
     },
     {
-      label: t('Redemption Rate', 'อัตราการใช้รหัส'),
+      label: t('Redemption Rate'),
       value: '64.8%',
       color: 'text-cyan-400',
     },
     {
-      label: t('Expired / Inactive', 'หมดอายุ / ปิดใช้งาน'),
+      label: t('Expired / Inactive'),
       value: '3',
       color: 'text-slate-500',
     },
@@ -87,10 +87,9 @@ export default function AffiliateCodeInventoryPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
       <AppHeader
-        title={t('Affiliate Code Inventory', 'คลังรหัสส่วนลดพันธมิตร')}
+        title={t('Affiliate Code Inventory')}
         subtitle={t(
-          'Batch Allocations, Tier Quotas & Code Redemption Capacity',
-          'โควตารหัสส่วนลด ระดับส่วนแบ่ง และจำนวนการใช้งานคงเหลือ'
+          'Batch Allocations, Tier Quotas & Code Redemption Capacity'
         )}
       />
 
@@ -119,25 +118,25 @@ export default function AffiliateCodeInventoryPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Promo Code', 'รหัสโปรโมชัน')}
+                  {t('Promo Code')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Discount', 'ส่วนลด')}
+                  {t('Discount')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Allocation Pool', 'กลุ่มโควตา')}
+                  {t('Allocation Pool')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Allocated', 'จัดสรร')}
+                  {t('Allocated')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Claimed', 'ใช้แล้ว')}
+                  {t('Claimed')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Remaining', 'คงเหลือ')}
+                  {t('Remaining')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Expiration', 'วันหมดอายุ')}
+                  {t('Expiration')}
                 </TableHead>
               </TableRow>
             </TableHeader>

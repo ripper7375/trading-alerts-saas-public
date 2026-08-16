@@ -71,10 +71,7 @@ export default function AdminReportCommissionOwingsPage() {
         () => {}
       );
       setSuccess(
-        t(
-          'Disbursement batch successfully queued for Wise execution.',
-          'สร้างและจัดคิวรอบการโอนเงินผ่าน Wise สำเร็จแล้ว'
-        )
+        t('Disbursement batch successfully queued for Wise execution.')
       );
       setTimeout(() => setSuccess(''), 4000);
     } finally {
@@ -85,13 +82,9 @@ export default function AdminReportCommissionOwingsPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Report: Affiliate Commission Liabilities & Owings',
-          'รายงาน: หนี้สินและยอดค้างจ่ายค่าคอมมิชชันพันธมิตร'
-        )}
+        title={t('Admin Report: Affiliate Commission Liabilities & Owings')}
         subtitle={t(
-          'Accrued Liabilities, Threshold Validations & Single/Bulk Payout Queues',
-          'ยอดค้างจ่ายสะสม ตรวจสอบเกณฑ์ขั้นต่ำ และคิวการจ่ายเงินเดี่ยว/กลุ่ม'
+          'Accrued Liabilities, Threshold Validations & Single/Bulk Payout Queues'
         )}
       />
 
@@ -104,9 +97,7 @@ export default function AdminReportCommissionOwingsPage() {
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>
-              {t('Back to Affiliates Directory', 'กลับสู่รายชื่อพันธมิตร')}
-            </span>
+            <span>{t('Back to Affiliates Directory')}</span>
           </Link>
 
           <Button
@@ -119,10 +110,7 @@ export default function AdminReportCommissionOwingsPage() {
             ) : (
               <Send className="mr-1.5 h-4 w-4" />
             )}
-            {t(
-              'Queue Wise Disbursement Batch ($1,029.00)',
-              'สร้างรอบโอนเงิน Wise ($1,029.00)'
-            )}
+            {t('Queue Wise Disbursement Batch ($1,029.00)')}
           </Button>
         </div>
 
@@ -138,16 +126,10 @@ export default function AdminReportCommissionOwingsPage() {
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
               <h3 className="text-sm font-bold text-slate-100">
-                {t(
-                  'Total Accrued Commission Liabilities',
-                  'ยอดหนี้สินค่าคอมมิชชันค้างจ่ายรวม'
-                )}
+                {t('Total Accrued Commission Liabilities')}
               </h3>
               <p className="text-xs text-slate-400">
-                {t(
-                  'Pending payout approval for active month end settlement.',
-                  'รอดำเนินการอนุมัติโอนเงินในรอบสิ้นเดือน'
-                )}
+                {t('Pending payout approval for active month end settlement.')}
               </p>
             </div>
             <div className="font-mono text-3xl font-extrabold text-rose-400">
@@ -162,22 +144,22 @@ export default function AdminReportCommissionOwingsPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Partner ID', 'รหัสพันธมิตร')}
+                  {t('Partner ID')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Partner Name & Email', 'ชื่อและอีเมล')}
+                  {t('Partner Name & Email')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Unpaid Owings', 'ยอดค้างจ่าย')}
+                  {t('Unpaid Owings')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Banking Method', 'ช่องทางธนาคาร')}
+                  {t('Banking Method')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Threshold ($50)', 'เกณฑ์ขั้นต่ำ ($50)')}
+                  {t('Threshold ($50)')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Batch Status', 'สถานะในรอบโอน')}
+                  {t('Batch Status')}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -204,7 +186,7 @@ export default function AdminReportCommissionOwingsPage() {
                   </TableCell>
                   <TableCell>
                     <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                      {t('Met', 'ผ่านเกณฑ์')}
+                      {t('Met')}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -215,9 +197,7 @@ export default function AdminReportCommissionOwingsPage() {
                           : 'border-rose-500/40 bg-rose-500/20 text-rose-400'
                       }`}
                     >
-                      {o.readyForBatch
-                        ? t('Ready for Batch', 'พร้อมโอน')
-                        : t('On Hold', 'พักการโอน')}
+                      {o.readyForBatch ? t('Ready for Batch') : t('On Hold')}
                     </Badge>
                   </TableCell>
                 </TableRow>

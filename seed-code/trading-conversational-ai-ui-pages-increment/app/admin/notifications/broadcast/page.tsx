@@ -54,12 +54,7 @@ export default function AdminNotificationsBroadcastPage() {
     setIsSending(true);
     setTimeout(() => {
       setIsSending(false);
-      setSuccess(
-        t(
-          'Global system broadcast successfully delivered!',
-          'ส่งการแจ้งเตือนไปยังผู้ใช้เรียบร้อยแล้ว!'
-        )
-      );
+      setSuccess(t('Global system broadcast successfully delivered!'));
       setTitle('');
       setMessage('');
       setTimeout(() => setSuccess(''), 4000);
@@ -69,13 +64,9 @@ export default function AdminNotificationsBroadcastPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Notification Broadcast Center',
-          'ศูนย์ส่งการแจ้งเตือนทั่วทั้งระบบ'
-        )}
+        title={t('Admin Notification Broadcast Center')}
         subtitle={t(
-          'Instant Push Announcements, Sound Chimes & Targeted Audience Messaging',
-          'ส่งข้อความประกาศทันที เสียงแจ้งเตือน และการส่งข้อความตามกลุ่มเป้าหมาย'
+          'Instant Push Announcements, Sound Chimes & Targeted Audience Messaging'
         )}
       />
 
@@ -92,13 +83,13 @@ export default function AdminNotificationsBroadcastPage() {
         <form onSubmit={handleBroadcast} className="space-y-6">
           <Card className="space-y-5 border-slate-800/80 bg-[#090b14]/90 p-6">
             <h3 className="border-b border-slate-800 pb-3 text-sm font-bold text-slate-100">
-              {t('Broadcast Parameters & Content', 'เนื้อหาและกลุ่มเป้าหมาย')}
+              {t('Broadcast Parameters & Content')}
             </h3>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t('Target Audience', 'กลุ่มเป้าหมาย')}
+                  {t('Target Audience')}
                 </Label>
                 <Select
                   value={audience}
@@ -126,7 +117,7 @@ export default function AdminNotificationsBroadcastPage() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t('Action Link (Optional)', 'ลิงก์การดำเนินการ (ถ้ามี)')}
+                  {t('Action Link (Optional)')}
                 </Label>
                 <Input
                   value={targetLink}
@@ -139,7 +130,7 @@ export default function AdminNotificationsBroadcastPage() {
 
             <div className="space-y-1.5">
               <Label className="text-xs text-slate-300">
-                {t('Broadcast Headline', 'หัวข้อการแจ้งเตือน')}
+                {t('Broadcast Headline')}
               </Label>
               <Input
                 value={title}
@@ -152,7 +143,7 @@ export default function AdminNotificationsBroadcastPage() {
 
             <div className="space-y-1.5">
               <Label className="text-xs text-slate-300">
-                {t('Broadcast Body Text', 'เนื้อหาข้อความ')}
+                {t('Broadcast Body Text')}
               </Label>
               <Textarea
                 value={message}
@@ -168,20 +159,14 @@ export default function AdminNotificationsBroadcastPage() {
             <div className="space-y-3 pt-2">
               <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
                 <span className="text-xs text-slate-300">
-                  {t(
-                    'In-App Notification Centre Push',
-                    'แสดงในศูนย์การแจ้งเตือน'
-                  )}
+                  {t('In-App Notification Centre Push')}
                 </span>
                 <Switch checked={inAppPush} onCheckedChange={setInAppPush} />
               </div>
 
               <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
                 <span className="text-xs text-slate-300">
-                  {t(
-                    'Trigger Audio Chime / Visual Banner on Active Terminals',
-                    'เล่นเสียงแจ้งเตือนและแบนเนอร์สด'
-                  )}
+                  {t('Trigger Audio Chime / Visual Banner on Active Terminals')}
                 </span>
                 <Switch
                   checked={playAudioChime}
@@ -191,10 +176,7 @@ export default function AdminNotificationsBroadcastPage() {
 
               <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
                 <span className="text-xs text-slate-300">
-                  {t(
-                    'Dispatch Bulk Email Blast via AWS SES',
-                    'ส่งอีเมลแจ้งเตือนผ่าน AWS SES'
-                  )}
+                  {t('Dispatch Bulk Email Blast via AWS SES')}
                 </span>
                 <Switch checked={emailBlast} onCheckedChange={setEmailBlast} />
               </div>
@@ -209,8 +191,8 @@ export default function AdminNotificationsBroadcastPage() {
             >
               <Send className="mr-2 h-4 w-4" />
               {isSending
-                ? t('Broadcasting...', 'กำลังส่ง...')
-                : t('Dispatch Global Broadcast', 'ส่งการแจ้งเตือนทันที')}
+                ? t('Broadcasting...')
+                : t('Dispatch Global Broadcast')}
             </Button>
           </div>
         </form>

@@ -57,13 +57,9 @@ export default function AdminSystemConfigHistoryPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin System: Configuration Audit History',
-          'ระบบ: ประวัติการแก้ไขการตั้งค่า'
-        )}
+        title={t('Admin System: Configuration Audit History')}
         subtitle={t(
-          'Version Controlled System Flag Modifications, Dynamic Config Deltas & Operator Audit',
-          'ประวัติการแก้ไขค่าคอนฟิกของระบบ การเปลี่ยนแปลงค่าตัวแปร และการตรวจสอบผู้ดำเนินการ'
+          'Version Controlled System Flag Modifications, Dynamic Config Deltas & Operator Audit'
         )}
       />
 
@@ -75,22 +71,22 @@ export default function AdminSystemConfigHistoryPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Version ID', 'รหัสเวอร์ชัน')}
+                  {t('Version ID')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Timestamp', 'เวลา')}
+                  {t('Timestamp')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Admin Operator', 'ผู้แก้ไข')}
+                  {t('Admin Operator')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Config Key', 'ตัวแปรที่แก้ไข')}
+                  {t('Config Key')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Old Value', 'ค่าเดิม')}
+                  {t('Old Value')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('New Value', 'ค่าใหม่')}
+                  {t('New Value')}
                 </TableHead>
               </TableRow>
             </TableHeader>

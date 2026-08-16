@@ -34,40 +34,32 @@ export default function WiseRecipientForm() {
         <div className="flex items-center gap-2">
           <Landmark className="h-5 w-5 text-amber-400" />
           <h2 className="text-sm font-extrabold text-slate-100">
-            {t('Payout Account Configuration', 'การตั้งค่าบัญชีการถอนเงิน')}
+            {t('Payout Account Configuration')}
           </h2>
         </div>
         <Badge className="border-emerald-500/40 bg-emerald-500/15 font-mono text-[9px] text-emerald-300">
-          {t('AUTO-DISBURSEMENT', 'การโอนเงินอัตโนมัติ')}
+          {t('AUTO-DISBURSEMENT')}
         </Badge>
       </div>
 
       <form onSubmit={handleSave} className="space-y-4">
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Disbursement Provider', 'ผู้ให้บริการการโอนเงิน')}
+            {t('Disbursement Provider')}
           </Label>
           <Select
             value={provider}
             onValueChange={(val: any) => setProvider(val)}
           >
             <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs">
-              <SelectValue
-                placeholder={t('Select provider', 'เลือกผู้ให้บริการ')}
-              />
+              <SelectValue placeholder={t('Select provider')} />
             </SelectTrigger>
             <SelectContent className="border-slate-750 bg-[#0f1420] text-xs">
               <SelectItem value="wise">
-                {t(
-                  'Wise Business (Direct Bank Transfer)',
-                  'Wise Business (โอนผ่านธนาคารโดยตรง)'
-                )}
+                {t('Wise Business (Direct Bank Transfer)')}
               </SelectItem>
               <SelectItem value="rise">
-                {t(
-                  'RiseWorks (Crypto / SIWE Wallet Payout)',
-                  'RiseWorks (การถอนเงินเข้ากระเป๋า คริปโท / SIWE)'
-                )}
+                {t('RiseWorks (Crypto / SIWE Wallet Payout)')}
               </SelectItem>
             </SelectContent>
           </Select>
@@ -77,7 +69,7 @@ export default function WiseRecipientForm() {
           <>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-300">
-                {t('Wise Account Email', 'อีเมลบัญชี Wise')}
+                {t('Wise Account Email')}
               </Label>
               <Input
                 type="email"
@@ -88,10 +80,7 @@ export default function WiseRecipientForm() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-300">
-                {t(
-                  'Bank IBAN / Account Number',
-                  'เลข IBAN / เลขที่บัญชีธนาคาร'
-                )}
+                {t('Bank IBAN / Account Number')}
               </Label>
               <Input
                 type="text"
@@ -104,10 +93,7 @@ export default function WiseRecipientForm() {
         ) : (
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-slate-300">
-              {t(
-                'RiseWorks EVM Wallet Address',
-                'ที่อยู่กระเป๋าเงิน RiseWorks EVM'
-              )}
+              {t('RiseWorks EVM Wallet Address')}
             </Label>
             <Input
               type="text"
@@ -121,9 +107,7 @@ export default function WiseRecipientForm() {
           type="submit"
           className="h-9 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 hover:from-amber-400 hover:to-amber-500"
         >
-          {isSaved
-            ? t('Payout Details Updated!', 'อัปเดตรายละเอียดการถอนเงินแล้ว!')
-            : t('Save Payout Details', 'บันทึกรายละเอียดการถอนเงิน')}
+          {isSaved ? t('Payout Details Updated!') : t('Save Payout Details')}
         </Button>
       </form>
     </div>

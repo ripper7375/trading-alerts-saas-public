@@ -62,13 +62,9 @@ export default function AdminReportCodeFlowsPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Report: Promotional Code Flows',
-          'รายงาน: การไหลและการใช้รหัสโปรโมชัน'
-        )}
+        title={t('Admin Report: Promotional Code Flows')}
         subtitle={t(
-          'Redemption Velocity, Conversion Lag & Attribution Flow Analytics',
-          'ความเร็วในการใช้รหัส อัตราการเปลี่ยนเป็นสมาชิก และการวิเคราะห์การไหลของข้อมูล'
+          'Redemption Velocity, Conversion Lag & Attribution Flow Analytics'
         )}
       />
 
@@ -81,9 +77,7 @@ export default function AdminReportCodeFlowsPage() {
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>
-              {t('Back to Affiliates Directory', 'กลับสู่รายชื่อพันธมิตร')}
-            </span>
+            <span>{t('Back to Affiliates Directory')}</span>
           </Link>
 
           <Button
@@ -93,7 +87,7 @@ export default function AdminReportCodeFlowsPage() {
             className="border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
           >
             <Download className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
-            {t('Export CSV Report', 'ส่งออกรายงาน CSV')}
+            {t('Export CSV Report')}
           </Button>
         </div>
 
@@ -102,25 +96,25 @@ export default function AdminReportCodeFlowsPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Promo Code', 'รหัสโปรโมชัน')}
+                  {t('Promo Code')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Assigned Partner', 'พันธมิตร')}
+                  {t('Assigned Partner')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Issued Date', 'วันที่สร้าง')}
+                  {t('Issued Date')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('First Redeemed', 'ใช้ครั้งแรก')}
+                  {t('First Redeemed')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Redemption Velocity', 'อัตราการใช้ต่อวัน')}
+                  {t('Redemption Velocity')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Total Redemptions', 'ยอดใช้รวม')}
+                  {t('Total Redemptions')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Active Retention', 'สมาชิกคงอยู่')}
+                  {t('Active Retention')}
                 </TableHead>
               </TableRow>
             </TableHeader>

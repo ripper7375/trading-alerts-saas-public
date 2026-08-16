@@ -89,13 +89,9 @@ export default function AdminErrorsLogPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin System Exception & Error Logs',
-          'บันทึกข้อผิดพลาดและข้อยกเว้นของระบบ'
-        )}
+        title={t('Admin System Exception & Error Logs')}
         subtitle={t(
-          'Diagnostic Telemetry, Stack Traces, Gateway Timeouts & Exception Clustering',
-          'การตรวจวัดเพื่อวินิจฉัย สแตกเทรซ การหมดเวลาของเกตเวย์ และการรวมกลุ่มข้อยกเว้น'
+          'Diagnostic Telemetry, Stack Traces, Gateway Timeouts & Exception Clustering'
         )}
       />
 
@@ -106,10 +102,7 @@ export default function AdminErrorsLogPage() {
           <div className="relative max-w-xs">
             <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
             <Input
-              placeholder={t(
-                'Search error logs...',
-                'ค้นหาบันทึกข้อผิดพลาด...'
-              )}
+              placeholder={t('Search error logs...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
@@ -197,7 +190,7 @@ export default function AdminErrorsLogPage() {
           <div>
             <Card className="sticky top-6 space-y-4 border-slate-800/80 bg-[#090b14]/90 p-5">
               <h3 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
-                {t('Stack Trace & Diagnostics', 'สแตกเทรซและการวินิจฉัย')}
+                {t('Stack Trace & Diagnostics')}
               </h3>
 
               {selectedError ? (
@@ -224,8 +217,7 @@ export default function AdminErrorsLogPage() {
               ) : (
                 <div className="py-12 text-center text-xs text-slate-500">
                   {t(
-                    'Select an exception log from the left to inspect full payload.',
-                    'เลือกรายการข้อผิดพลาดด้านซ้ายเพื่อดูรายละเอียด'
+                    'Select an exception log from the left to inspect full payload.'
                   )}
                 </div>
               )}

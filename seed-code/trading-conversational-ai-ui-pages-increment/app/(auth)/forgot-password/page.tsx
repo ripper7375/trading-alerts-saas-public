@@ -33,13 +33,10 @@ export default function ForgotPasswordPage() {
             />
           </div>
           <h2 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
-            {t('Reset Password', 'รีเซ็ตรหัสผ่าน')}
+            {t('Reset Password')}
           </h2>
           <p className="text-xs text-slate-400">
-            {t(
-              'Enter your account email to receive reset instructions',
-              'ป้อนอีเมลบัญชีของคุณเพื่อรับคำแนะนำในการรีเซ็ต'
-            )}
+            {t('Enter your account email to receive reset instructions')}
           </p>
         </div>
 
@@ -49,34 +46,29 @@ export default function ForgotPasswordPage() {
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <h3 className="text-sm font-bold text-slate-100">
-              {t('Check Your Email', 'ตรวจสอบอีเมลของคุณ')}
+              {t('Check Your Email')}
             </h3>
             <p className="text-xs text-slate-400">
               {t(
                 "We've sent a password reset link to",
-                'เราได้ส่งลิงก์รีเซ็ตรหัสผ่านไปยัง'
+                'We have sent a password reset link to'
               )}{' '}
               <strong className="text-slate-200">{email}</strong>.{' '}
-              {t(
-                'Please follow the instructions in the email.',
-                'โปรดปฏิบัติตามคำแนะนำในอีเมล'
-              )}
+              {t('Please follow the instructions in the email.')}
             </p>
             <Button
               variant="outline"
               asChild
               className="border-slate-750 h-9 w-full bg-slate-800 text-xs text-slate-200"
             >
-              <Link href="/login">
-                {t('Return to Sign In', 'กลับสู่หน้าเข้าสู่ระบบ')}
-              </Link>
+              <Link href="/login">{t('Return to Sign In')}</Link>
             </Button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-300">
-                {t('Email Address', 'ที่อยู่อีเมล')}
+                {t('Email Address')}
               </Label>
               <div className="relative">
                 <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -95,7 +87,7 @@ export default function ForgotPasswordPage() {
               type="submit"
               className="h-10 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
             >
-              {t('Send Reset Instructions', 'ส่งคำแนะนำการรีเซ็ต')}
+              {t('Send Reset Instructions')}
             </Button>
           </form>
         )}
@@ -105,8 +97,7 @@ export default function ForgotPasswordPage() {
             href="/login"
             className="inline-flex items-center text-xs font-semibold text-amber-400 hover:underline"
           >
-            <ArrowLeft className="mr-1 h-3.5 w-3.5" />{' '}
-            {t('Back to Sign In', 'กลับสู่หน้าเข้าสู่ระบบ')}
+            <ArrowLeft className="mr-1 h-3.5 w-3.5" /> {t('Back to Sign In')}
           </Link>
         </div>
       </div>

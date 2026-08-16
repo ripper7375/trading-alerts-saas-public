@@ -34,7 +34,7 @@ export default function LanguageSettingsPage() {
   const languages = [
     { code: 'en-GB', name: 'English (UK) 🇬🇧 - Tier-1 Primary', flag: '🇬🇧' },
     { code: 'en-US', name: 'English (US) 🇺🇸', flag: '🇺🇸' },
-    { code: 'th', name: 'Thai (ไทย) 🇹🇭 - dLocal APAC', flag: '🇹🇭' },
+    { code: 'th', name: 'Thai 🇹🇭 - dLocal APAC', flag: '🇹🇭' },
     { code: 'hi', name: 'Hindi (हिंदी) 🇮🇳 - dLocal APAC', flag: '🇮🇳' },
     {
       code: 'vi',

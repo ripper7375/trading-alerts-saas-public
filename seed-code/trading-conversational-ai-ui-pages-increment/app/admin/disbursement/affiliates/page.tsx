@@ -65,13 +65,9 @@ export default function AdminDisbursementAffiliatesPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Disbursement: Affiliates Roster',
-          'การจ่ายเงิน: บัญชีพันธมิตรและสถานะการโอน'
-        )}
+        title={t('Admin Disbursement: Affiliates Roster')}
         subtitle={t(
-          'Individual Affiliate Payout Readiness, Accumulated Accruals & Payment Details',
-          'ความพร้อมในการรับเงินของแต่ละพันธมิตร ยอดสะสม และรายละเอียดการชำระเงิน'
+          'Individual Affiliate Payout Readiness, Accumulated Accruals & Payment Details'
         )}
       />
 
@@ -82,7 +78,7 @@ export default function AdminDisbursementAffiliatesPage() {
           <div className="relative max-w-xs">
             <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
             <Input
-              placeholder={t('Search affiliate...', 'ค้นหาพันธมิตร...')}
+              placeholder={t('Search affiliate...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
@@ -95,25 +91,25 @@ export default function AdminDisbursementAffiliatesPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Affiliate ID', 'รหัสพันธมิตร')}
+                  {t('Affiliate ID')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Partner', 'ชื่อพันธมิตร')}
+                  {t('Partner')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Pending Payout', 'ยอดรอโอน')}
+                  {t('Pending Payout')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Lifetime Paid', 'ยอดโอนแล้วทั้งหมด')}
+                  {t('Lifetime Paid')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Disbursement Method', 'ช่องทางการโอน')}
+                  {t('Disbursement Method')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Readiness', 'ความพร้อม')}
+                  {t('Readiness')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Action', 'จัดการ')}
+                  {t('Action')}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -162,7 +158,7 @@ export default function AdminDisbursementAffiliatesPage() {
                         className="text-xs text-amber-400 hover:bg-amber-500/10"
                       >
                         <Eye className="mr-1 h-3.5 w-3.5" />
-                        <span>{t('Manage', 'จัดการ')}</span>
+                        <span>{t('Manage')}</span>
                       </Button>
                     </Link>
                   </TableCell>

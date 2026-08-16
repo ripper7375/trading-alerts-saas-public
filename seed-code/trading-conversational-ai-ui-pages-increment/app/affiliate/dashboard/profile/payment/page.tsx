@@ -25,13 +25,9 @@ export default function AffiliateProfilePaymentPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Affiliate Payout & Banking Setup',
-          'ตั้งค่าบัญชีรับเงินและธนาคารพันธมิตร'
-        )}
+        title={t('Affiliate Payout & Banking Setup')}
         subtitle={t(
-          'Connect Your Wise Recipient or RiseWorks Account for Automated Payouts',
-          'เชื่อมต่อบัญชี Wise หรือ RiseWorks เพื่อรับเงินส่วนแบ่งอัตโนมัติ'
+          'Connect Your Wise Recipient or RiseWorks Account for Automated Payouts'
         )}
       />
 
@@ -44,9 +40,7 @@ export default function AffiliateProfilePaymentPage() {
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>
-              {t('Back to Partner Profile', 'กลับสู่โปรไฟล์พันธมิตร')}
-            </span>
+            <span>{t('Back to Partner Profile')}</span>
           </Link>
         </div>
 

@@ -181,15 +181,13 @@ export default function MarketCommentsPanel({
       case 'SELL':
         return (
           <Badge className="shrink-0 border-rose-500/50 bg-rose-500/20 px-1.5 py-0 font-mono text-[9px] text-rose-300 shadow-xs">
-            <TrendingDown className="mr-0.5 inline h-2.5 w-2.5" />{' '}
-            {t('SELL', 'ขาย')}
+            <TrendingDown className="mr-0.5 inline h-2.5 w-2.5" /> {t('SELL')}
           </Badge>
         );
       default:
         return (
           <Badge className="shrink-0 border-slate-500/50 bg-slate-500/20 px-1.5 py-0 font-mono text-[9px] text-slate-300 shadow-xs">
-            <Minus className="mr-0.5 inline h-2.5 w-2.5" />{' '}
-            {t('NEUTRAL', 'เป็นกลาง')}
+            <Minus className="mr-0.5 inline h-2.5 w-2.5" /> {t('NEUTRAL')}
           </Badge>
         );
     }
@@ -266,7 +264,7 @@ export default function MarketCommentsPanel({
               {tier === 'PRO' && (
                 <span className="flex items-center gap-1.5 font-mono text-xs font-bold text-emerald-400">
                   <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400" />
-                  {t('LIVE', 'สด')}
+                  {t('LIVE')}
                 </span>
               )}
             </h2>
@@ -327,7 +325,7 @@ export default function MarketCommentsPanel({
           <div className="mb-1.5 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-sm font-black">
               <span className="text-base">🇬🇧</span>
-              <span>{t('GB London Session', 'เซสชันลอนดอน GB')}</span>
+              <span>{t('GB London Session')}</span>
             </div>
             <div className="flex items-center gap-1 text-[11px] font-bold opacity-90">
               <span title={t('Sydney')}>🇦🇺</span>
@@ -356,17 +354,17 @@ export default function MarketCommentsPanel({
       <div className="mx-3 shrink-0 rounded-xl border border-emerald-900/40 bg-[#0a0f0c] py-3 shadow-md">
         <div className="grid grid-cols-3 gap-2">
           <RenderGaugeDial
-            label={t('M15 EDT Stochastic', 'M15 EDT สโตแคสติก')}
+            label={t('M15 EDT Stochastic')}
             value={85}
             color="#38bdf8"
           />
           <RenderGaugeDial
-            label={t('M15 SSA Deviation', 'ค่าความเบี่ยงเบน M15 SSA')}
+            label={t('M15 SSA Deviation')}
             value={72}
             color="#38bdf8"
           />
           <RenderGaugeDial
-            label={t('M15 Market Momentum', 'โมเมนตัมตลาด M15')}
+            label={t('M15 Market Momentum')}
             value={61}
             color="#38bdf8"
           />
@@ -413,8 +411,8 @@ export default function MarketCommentsPanel({
               )}
             >
               {tradeSetup.direction === 'BUY'
-                ? t('BUY LIMIT', 'ซื้อแบบตั้งราคา')
-                : t('SELL LIMIT', 'ขายแบบตั้งราคา')}{' '}
+                ? t('BUY LIMIT')
+                : t('SELL LIMIT')}{' '}
               @ ${tradeSetup.entryPrice.toFixed(2)}
             </Badge>
           </div>
@@ -422,7 +420,7 @@ export default function MarketCommentsPanel({
           <div className="grid grid-cols-3 gap-2 rounded-lg border border-slate-800 bg-black/60 p-2.5 font-mono text-[11px]">
             <div>
               <div className="text-[9px] font-bold text-slate-400 uppercase">
-                {t('Take Profit', 'จุดทำกำไร')}
+                {t('Take Profit')}
               </div>
               <div className="text-xs font-extrabold text-emerald-400">
                 ${tradeSetup.takeProfit.toFixed(2)}
@@ -430,7 +428,7 @@ export default function MarketCommentsPanel({
             </div>
             <div>
               <div className="text-[9px] font-bold text-slate-400 uppercase">
-                {t('Stop Loss', 'จุดตัดขาดทุน')}
+                {t('Stop Loss')}
               </div>
               <div className="text-xs font-extrabold text-rose-400">
                 ${tradeSetup.stopLoss.toFixed(2)}
@@ -438,7 +436,7 @@ export default function MarketCommentsPanel({
             </div>
             <div>
               <div className="text-[9px] font-bold text-slate-400 uppercase">
-                {t('Risk / Reward', 'ความเสี่ยง / ผลตอบแทน')}
+                {t('Risk / Reward')}
               </div>
               <div className="text-xs font-extrabold text-amber-400">
                 {tradeSetup.riskReward}
@@ -469,7 +467,7 @@ export default function MarketCommentsPanel({
                 {t('comments.bar_coverage', 'Bar Coverage')}
               </span>
               <span className="font-bold text-emerald-400">
-                {t('Excellent', 'ดีเยี่ยม')} {METRICS_DATA.barCoverage}%
+                {t('Excellent')} {METRICS_DATA.barCoverage}%
               </span>
             </div>
             <Progress
@@ -485,7 +483,7 @@ export default function MarketCommentsPanel({
                 {t('comments.regression_r2', 'Regression R²')}
               </span>
               <span className="font-bold text-amber-400">
-                {t('Fair', 'ปานกลาง')} {METRICS_DATA.regressionR2}%
+                {t('Fair')} {METRICS_DATA.regressionR2}%
               </span>
             </div>
             <Progress
@@ -501,7 +499,7 @@ export default function MarketCommentsPanel({
                 {t('comments.edt_fitness', 'EDT Fitness')}
               </span>
               <span className="font-bold text-rose-400">
-                {t('Underfit', 'ต่ำกว่าเกณฑ์')} {METRICS_DATA.edtFitness}%
+                {t('Underfit')} {METRICS_DATA.edtFitness}%
               </span>
             </div>
             <Progress
@@ -517,8 +515,7 @@ export default function MarketCommentsPanel({
                 {t('comments.baseline_symmetry', 'Baseline Symmetry')}
               </span>
               <span className="font-bold text-cyan-400">
-                {t(METRICS_DATA.symmetryBias, 'เอียงทาง LOEDT')}{' '}
-                {METRICS_DATA.baselineSymmetry}%
+                {METRICS_DATA.symmetryBias} {METRICS_DATA.baselineSymmetry}%
               </span>
             </div>
             <Progress
@@ -539,18 +536,14 @@ export default function MarketCommentsPanel({
             variant="outline"
             className="mb-2 border-amber-500/50 bg-amber-500/10 font-mono text-[10px] text-amber-400"
           >
-            🔒 {t('PRO Subscriber Feature', 'คุณสมบัติสมาชิก PRO')}
+            🔒 {t('PRO Subscriber Feature')}
           </Badge>
           <h3 className="mb-1 text-base font-bold text-slate-100">
-            {t(
-              'Live Feeds & Quality Metrics',
-              'ฟีดเรียลไทม์และตัวชี้วัดคุณภาพ'
-            )}
+            {t('Live Feeds & Quality Metrics')}
           </h3>
           <p className="mb-4 max-w-xs text-xs leading-relaxed text-slate-400">
             {t(
-              'Live Market Comments, Session Countdowns, Gauges, and EDT Quality Metrics require a PRO subscription. Upgrade to unlock real-time WebSocket feeds for XAUUSD.',
-              'ความคิดเห็นตลาดเรียลไทม์ การนับถอยหลังเซสชัน เกจวัด และตัวชี้วัดคุณภาพ EDT ต้องใช้การสมัครสมาชิก PRO อัปเกรดเพื่อปลดล็อกฟีด WebSocket เรียลไทม์สำหรับ XAUUSD'
+              'Live Market Comments, Session Countdowns, Gauges, and EDT Quality Metrics require a PRO subscription. Upgrade to unlock real-time WebSocket feeds for XAUUSD.'
             )}
           </p>
           <Button
@@ -562,7 +555,7 @@ export default function MarketCommentsPanel({
             className="bg-gradient-to-r from-amber-500 to-amber-600 font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
           >
             <Sparkles className="mr-1.5 h-3.5 w-3.5 fill-black" />
-            {t('Upgrade to PRO', 'อัปเกรดเป็น PRO')}
+            {t('Upgrade to PRO')}
           </Button>
         </div>
       )}

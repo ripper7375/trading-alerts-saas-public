@@ -39,37 +39,21 @@ export default function AdminFraudAlertDetailPage({
 
   const handleFreeze = () => {
     setStatus('FROZEN');
-    setSuccess(
-      t(
-        'Affiliate account and pending payouts have been frozen.',
-        'ระงับบัญชีพันธมิตรและระงับการโอนเงินชั่วคราวแล้ว'
-      )
-    );
+    setSuccess(t('Affiliate account and pending payouts have been frozen.'));
     setTimeout(() => setSuccess(''), 3000);
   };
 
   const handleDismiss = () => {
     setStatus('DISMISSED');
-    setSuccess(
-      t(
-        'Fraud alert dismissed as false positive.',
-        'ปิดการแจ้งเตือนเนื่องจากเป็นสัญญาณหลอก'
-      )
-    );
+    setSuccess(t('Fraud alert dismissed as false positive.'));
     setTimeout(() => setSuccess(''), 3000);
   };
 
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Fraud & Abuse Incident Review',
-          'ตรวจสอบเหตุการณ์ฉ้อโกงและความผิดปกติ'
-        )}
-        subtitle={t(
-          `Investigating Incident Alert ID: ${alertId}`,
-          `กำลังตรวจสอบการแจ้งเตือนความผิดปกติรหัส: ${alertId}`
-        )}
+        title={t('Admin Fraud & Abuse Incident Review')}
+        subtitle={t(`Investigating Incident Alert ID: ${alertId}`)}
       />
 
       <AdminNav />
@@ -81,9 +65,7 @@ export default function AdminFraudAlertDetailPage({
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>
-              {t('Back to Fraud Alerts', 'กลับสู่รายการแจ้งเตือนการฉ้อโกง')}
-            </span>
+            <span>{t('Back to Fraud Alerts')}</span>
           </Link>
 
           <div className="flex items-center gap-2">
@@ -94,7 +76,7 @@ export default function AdminFraudAlertDetailPage({
               className="border-slate-700 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
             >
               <CheckCircle2 className="mr-1.5 h-3.5 w-3.5 text-emerald-400" />
-              {t('Dismiss Alert', 'ยกเลิกการแจ้งเตือน')}
+              {t('Dismiss Alert')}
             </Button>
             <Button
               size="sm"
@@ -102,7 +84,7 @@ export default function AdminFraudAlertDetailPage({
               className="bg-rose-500 font-bold text-slate-950 hover:bg-rose-400"
             >
               <Ban className="mr-1.5 h-3.5 w-3.5" />
-              {t('Freeze Affiliate Account', 'ระงับบัญชีพันธมิตร')}
+              {t('Freeze Affiliate Account')}
             </Button>
           </div>
         </div>
@@ -123,10 +105,7 @@ export default function AdminFraudAlertDetailPage({
               </div>
               <div>
                 <h3 className="text-base font-bold text-rose-200">
-                  {t(
-                    'Self-Referral & Fingerprint Collision Detected',
-                    'ตรวจพบการแนะนำตัวเองและการชนกันของลายนิ้วมืออุปกรณ์'
-                  )}
+                  {t('Self-Referral & Fingerprint Collision Detected')}
                 </h3>
                 <p className="text-xs text-slate-400">
                   Risk Severity:{' '}
@@ -152,9 +131,7 @@ export default function AdminFraudAlertDetailPage({
 
           <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-3">
             <div className="space-y-1 rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
-              <span className="text-slate-400">
-                {t('Suspect Affiliate', 'พันธมิตรที่ถูกสงสัย')}
-              </span>
+              <span className="text-slate-400">{t('Suspect Affiliate')}</span>
               <div className="font-bold text-slate-200">
                 Elena Rostova (aff-103)
               </div>
@@ -165,7 +142,7 @@ export default function AdminFraudAlertDetailPage({
 
             <div className="space-y-1 rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
               <span className="text-slate-400">
-                {t('Colliding User Accounts', 'บัญชีผู้ใช้ที่ตรงกัน')}
+                {t('Colliding User Accounts')}
               </span>
               <div className="font-bold text-rose-300">usr_481 & usr_912</div>
               <div className="text-[11px] text-slate-400">
@@ -174,9 +151,7 @@ export default function AdminFraudAlertDetailPage({
             </div>
 
             <div className="space-y-1 rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
-              <span className="text-slate-400">
-                {t('Telemetry Anomaly', 'ความผิดปกติของการตรวจวัด')}
-              </span>
+              <span className="text-slate-400">{t('Telemetry Anomaly')}</span>
               <div className="font-bold text-slate-200">
                 Shared IP 185.220.101.5
               </div>

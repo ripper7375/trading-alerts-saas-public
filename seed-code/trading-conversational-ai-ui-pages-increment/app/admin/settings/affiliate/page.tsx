@@ -38,12 +38,7 @@ export default function AdminSettingsAffiliatePage() {
     setIsSaving(true);
     setTimeout(() => {
       setIsSaving(false);
-      setSuccess(
-        t(
-          'Affiliate global system settings saved successfully.',
-          'บันทึกการตั้งค่าระบบพันธมิตรเรียบร้อยแล้ว'
-        )
-      );
+      setSuccess(t('Affiliate global system settings saved successfully.'));
       setTimeout(() => setSuccess(''), 3000);
     }, 500);
   };
@@ -51,13 +46,9 @@ export default function AdminSettingsAffiliatePage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Settings: Affiliate Program Engine',
-          'ตั้งค่าระบบ: โครงสร้างโปรแกรมพันธมิตร'
-        )}
+        title={t('Admin Settings: Affiliate Program Engine')}
         subtitle={t(
-          'Commission Tiers, Attribution Windows, Cookie Life & Anti-Self-Referral Controls',
-          'อัตราค่าคอมมิชชัน ระยะเวลาคุกกี้ และการป้องกันการแนะนำตัวเอง'
+          'Commission Tiers, Attribution Windows, Cookie Life & Anti-Self-Referral Controls'
         )}
       />
 
@@ -74,19 +65,13 @@ export default function AdminSettingsAffiliatePage() {
         <form onSubmit={handleSave} className="space-y-6">
           <Card className="space-y-5 border-slate-800/80 bg-[#090b14]/90 p-6">
             <h3 className="border-b border-slate-800 pb-3 text-sm font-bold text-slate-100">
-              {t(
-                'Attribution & Commission Rules',
-                'กฎการระบุที่มาและค่าคอมมิชชัน'
-              )}
+              {t('Attribution & Commission Rules')}
             </h3>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t(
-                    'Default Recurring Commission Rate (%)',
-                    'อัตราค่าคอมมิชชันเริ่มต้น (%)'
-                  )}
+                  {t('Default Recurring Commission Rate (%)')}
                 </Label>
                 <Input
                   type="number"
@@ -99,10 +84,7 @@ export default function AdminSettingsAffiliatePage() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t(
-                    'Referral Cookie Lifespan (Days)',
-                    'อายุของคุกกี้ติดตาม (วัน)'
-                  )}
+                  {t('Referral Cookie Lifespan (Days)')}
                 </Label>
                 <Input
                   type="number"
@@ -118,15 +100,11 @@ export default function AdminSettingsAffiliatePage() {
               <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
                 <div className="space-y-0.5">
                   <div className="text-xs font-bold text-slate-200">
-                    {t(
-                      'Auto-Approve Verified Partner Applications',
-                      'อนุมัติการสมัครพันธมิตรอัตโนมัติ'
-                    )}
+                    {t('Auto-Approve Verified Partner Applications')}
                   </div>
                   <p className="text-[11px] text-slate-400">
                     {t(
-                      'Instantly unlocks referral codes upon email verification.',
-                      'เปิดใช้งานรหัสแนะนำทันทีหลังยืนยันอีเมล'
+                      'Instantly unlocks referral codes upon email verification.'
                     )}
                   </p>
                 </div>
@@ -139,15 +117,11 @@ export default function AdminSettingsAffiliatePage() {
               <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
                 <div className="space-y-0.5">
                   <div className="text-xs font-bold text-slate-200">
-                    {t(
-                      'Enable Anti-Self-Referral Machine Learning Guardian',
-                      'เปิดใช้งานระบบ AI ตรวจจับการแนะนำตัวเอง'
-                    )}
+                    {t('Enable Anti-Self-Referral Machine Learning Guardian')}
                   </div>
                   <p className="text-[11px] text-slate-400">
                     {t(
-                      'Flags credit card fingerprints and IP subnet collisions automatically.',
-                      'ตรวจจับลายนิ้วมือบัตรเครดิตและไอพีซ้ำซ้อนอัตโนมัติ'
+                      'Flags credit card fingerprints and IP subnet collisions automatically.'
                     )}
                   </p>
                 </div>
@@ -166,9 +140,7 @@ export default function AdminSettingsAffiliatePage() {
               className="bg-amber-500 px-6 font-bold text-slate-950 hover:bg-amber-400"
             >
               <Save className="mr-2 h-4 w-4" />
-              {isSaving
-                ? t('Saving...', 'กำลังบันทึก...')
-                : t('Save Global Settings', 'บันทึกการตั้งค่า')}
+              {isSaving ? t('Saving...') : t('Save Global Settings')}
             </Button>
           </div>
         </form>

@@ -71,13 +71,9 @@ export default function AdminReportProfitLossPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Report: SaaS Profit & Loss Breakdown',
-          'รายงาน: สรุปผลกำไร-ขาดทุน (P&L)'
-        )}
+        title={t('Admin Report: SaaS Profit & Loss Breakdown')}
         subtitle={t(
-          'Gross Revenue, Gateway Costs, Affiliate Commission Expense & Net SaaS Margin',
-          'รายได้รวม ค่าธรรมเนียมเกตเวย์ ค่าใช้จ่ายคอมมิชชัน และกำไรสุทธิ'
+          'Gross Revenue, Gateway Costs, Affiliate Commission Expense & Net SaaS Margin'
         )}
       />
 
@@ -90,9 +86,7 @@ export default function AdminReportProfitLossPage() {
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>
-              {t('Back to Affiliates Directory', 'กลับสู่รายชื่อพันธมิตร')}
-            </span>
+            <span>{t('Back to Affiliates Directory')}</span>
           </Link>
 
           <Button
@@ -102,7 +96,7 @@ export default function AdminReportProfitLossPage() {
             className="border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
           >
             <Download className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
-            {t('Export CSV Report', 'ส่งออกรายงาน CSV')}
+            {t('Export CSV Report')}
           </Button>
         </div>
 
@@ -110,7 +104,7 @@ export default function AdminReportProfitLossPage() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
             <div className="text-xs font-medium text-slate-400">
-              {t('Gross Revenue (90d)', 'รายได้รวม (90 วัน)')}
+              {t('Gross Revenue (90d)')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-400">
               $64,850.00
@@ -118,7 +112,7 @@ export default function AdminReportProfitLossPage() {
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
             <div className="text-xs font-medium text-slate-400">
-              {t('Affiliate Expense', 'ค่าคอมมิชชันพันธมิตร')}
+              {t('Affiliate Expense')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-amber-400">
               $10,610.00
@@ -126,7 +120,7 @@ export default function AdminReportProfitLossPage() {
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
             <div className="text-xs font-medium text-slate-400">
-              {t('Net Operating Profit', 'กำไรสุทธิจากการดำเนินงาน')}
+              {t('Net Operating Profit')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-400">
               $51,399.35
@@ -134,7 +128,7 @@ export default function AdminReportProfitLossPage() {
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
             <div className="text-xs font-medium text-slate-400">
-              {t('Average Net Margin', 'อัตรากำไรสุทธิเฉลี่ย')}
+              {t('Average Net Margin')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-purple-400">
               79.2%
@@ -148,25 +142,25 @@ export default function AdminReportProfitLossPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Month Period', 'รอบเดือน')}
+                  {t('Month Period')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Gross Revenue', 'รายได้รวม')}
+                  {t('Gross Revenue')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Payment Gateway Fees (2.9%)', 'ค่าธรรมเนียมเกตเวย์')}
+                  {t('Payment Gateway Fees (2.9%)')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Affiliate Commissions (30%)', 'ค่าคอมมิชชัน')}
+                  {t('Affiliate Commissions (30%)')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Infrastructure Cost', 'ค่าเซิร์ฟเวอร์')}
+                  {t('Infrastructure Cost')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Net Profit', 'กำไรสุทธิ')}
+                  {t('Net Profit')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Net Margin', 'อัตรากำไร')}
+                  {t('Net Margin')}
                 </TableHead>
               </TableRow>
             </TableHeader>

@@ -39,17 +39,12 @@ function ResetPasswordForm() {
     setError('');
 
     if (password.length < 8) {
-      setError(
-        t(
-          'Password must be at least 8 characters long.',
-          'รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร'
-        )
-      );
+      setError(t('Password must be at least 8 characters long.'));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError(t('Passwords do not match.', 'รหัสผ่านทั้งสองช่องไม่ตรงกัน'));
+      setError(t('Passwords do not match.'));
       return;
     }
 
@@ -63,13 +58,7 @@ function ResetPasswordForm() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(
-          data.message ||
-            t(
-              'Invalid or expired reset token.',
-              'ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือหมดอายุแล้ว'
-            )
-        );
+        throw new Error(data.message || t('Invalid or expired reset token.'));
       }
 
       setIsSuccess(true);
@@ -77,10 +66,7 @@ function ResetPasswordForm() {
         router.push('/login?reset=success');
       }, 2500);
     } catch (err: any) {
-      setError(
-        err.message ||
-          t('Failed to reset password.', 'ไม่สามารถรีเซ็ตรหัสผ่านได้')
-      );
+      setError(err.message || t('Failed to reset password.'));
     } finally {
       setIsLoading(false);
     }
@@ -107,13 +93,10 @@ function ResetPasswordForm() {
           </span>
         </Link>
         <h1 className="text-2xl font-bold text-slate-100">
-          {t('Set New Password', 'ตั้งรหัสผ่านใหม่')}
+          {t('Set New Password')}
         </h1>
         <p className="text-xs text-slate-400">
-          {t(
-            'Enter your new secure account password below.',
-            'กรอกรหัสผ่านใหม่ที่ปลอดภัยสำหรับบัญชีของคุณ'
-          )}
+          {t('Enter your new secure account password below.')}
         </p>
       </div>
 
@@ -126,13 +109,10 @@ function ResetPasswordForm() {
               </div>
             </div>
             <h3 className="text-base font-bold text-emerald-200">
-              {t('Password Reset Successfully!', 'รีเซ็ตรหัสผ่านสำเร็จ!')}
+              {t('Password Reset Successfully!')}
             </h3>
             <p className="text-xs text-slate-400">
-              {t(
-                'Redirecting you to login portal...',
-                'กำลังนำคุณไปยังหน้าเข้าสู่ระบบ...'
-              )}
+              {t('Redirecting you to login portal...')}
             </p>
           </div>
         ) : (
@@ -146,7 +126,7 @@ function ResetPasswordForm() {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-300">
-                {t('New Password', 'รหัสผ่านใหม่')}
+                {t('New Password')}
               </Label>
               <div className="relative">
                 <KeyRound className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -174,7 +154,7 @@ function ResetPasswordForm() {
 
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-slate-300">
-                {t('Confirm New Password', 'ยืนยันรหัสผ่านใหม่')}
+                {t('Confirm New Password')}
               </Label>
               <div className="relative">
                 <Lock className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
@@ -195,10 +175,10 @@ function ResetPasswordForm() {
               className="w-full bg-amber-500 py-5 font-bold text-slate-950 hover:bg-amber-400"
             >
               {isLoading ? (
-                <span>{t('Resetting...', 'กำลังรีเซ็ต...')}</span>
+                <span>{t('Resetting...')}</span>
               ) : (
                 <span className="flex items-center gap-1.5">
-                  {t('Update Password', 'บันทึกรหัสผ่านใหม่')}
+                  {t('Update Password')}
                   <ArrowRight className="h-4 w-4" />
                 </span>
               )}
@@ -211,7 +191,7 @@ function ResetPasswordForm() {
             href="/login"
             className="text-xs text-slate-400 transition-colors hover:text-amber-400"
           >
-            ← {t('Back to Login', 'กลับไปหน้าเข้าสู่ระบบ')}
+            ← {t('Back to Login')}
           </Link>
         </div>
       </Card>

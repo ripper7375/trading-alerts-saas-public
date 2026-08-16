@@ -68,13 +68,9 @@ export default function AdminDisbursementTransactionsPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin Disbursement: Bank Transfer Transactions',
-          'การจ่ายเงิน: บันทึกรายการโอนเงินธนาคาร'
-        )}
+        title={t('Admin Disbursement: Bank Transfer Transactions')}
         subtitle={t(
-          'Individual Bank Transfer Receipts, Settlement Confirmations & Fee Deductions',
-          'ใบเสร็จการโอนเงินธนาคารแต่ละรายการ การยืนยันการตัดรอบ และค่าธรรมเนียม'
+          'Individual Bank Transfer Receipts, Settlement Confirmations & Fee Deductions'
         )}
       />
 
@@ -85,7 +81,7 @@ export default function AdminDisbursementTransactionsPage() {
           <div className="relative max-w-xs">
             <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
             <Input
-              placeholder={t('Search transaction...', 'ค้นหารายการ...')}
+              placeholder={t('Search transaction...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
@@ -99,7 +95,7 @@ export default function AdminDisbursementTransactionsPage() {
             className="self-start border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800 sm:self-auto"
           >
             <Download className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
-            {t('Export CSV Ledger', 'ส่งออกรายงาน CSV')}
+            {t('Export CSV Ledger')}
           </Button>
         </div>
 
@@ -108,28 +104,28 @@ export default function AdminDisbursementTransactionsPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Transaction ID', 'รหัสรายการ')}
+                  {t('Transaction ID')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Date & Time', 'วันเวลา')}
+                  {t('Date & Time')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Partner', 'ชื่อพันธมิตร')}
+                  {t('Partner')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Gross', 'ยอดรวม')}
+                  {t('Gross')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Gateway Fee', 'ค่าธรรมเนียม')}
+                  {t('Gateway Fee')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Net Disbursed', 'ยอดโอนสุทธิ')}
+                  {t('Net Disbursed')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Batch Ref', 'อ้างอิงรอบ')}
+                  {t('Batch Ref')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Status', 'สถานะ')}
+                  {t('Status')}
                 </TableHead>
               </TableRow>
             </TableHeader>

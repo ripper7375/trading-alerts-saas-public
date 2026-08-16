@@ -31,9 +31,7 @@ function VerifyEmailContent() {
   useEffect(() => {
     if (!token) {
       setStatus('error');
-      setErrorMessage(
-        t('No verification token provided.', 'ไม่พบโทเค็นสำหรับการยืนยัน')
-      );
+      setErrorMessage(t('No verification token provided.'));
       return;
     }
 
@@ -49,21 +47,14 @@ function VerifyEmailContent() {
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(
-            data.message ||
-              t(
-                'Verification token is invalid or expired.',
-                'โทเค็นยืนยันไม่ถูกต้องหรือหมดอายุแล้ว'
-              )
+            data.message || t('Verification token is invalid or expired.')
           );
         }
 
         setStatus('success');
       } catch (err: any) {
         setStatus('error');
-        setErrorMessage(
-          err.message ||
-            t('Failed to verify email.', 'เกิดข้อผิดพลาดในการยืนยันอีเมล')
-        );
+        setErrorMessage(err.message || t('Failed to verify email.'));
       }
     };
 
@@ -91,7 +82,7 @@ function VerifyEmailContent() {
           </span>
         </Link>
         <h1 className="text-2xl font-bold text-slate-100">
-          {t('Email Verification', 'การยืนยันอีเมล')}
+          {t('Email Verification')}
         </h1>
       </div>
 
@@ -102,16 +93,10 @@ function VerifyEmailContent() {
               <Loader2 className="h-10 w-10 animate-spin text-amber-400" />
             </div>
             <h3 className="text-base font-bold text-slate-200">
-              {t(
-                'Verifying your email address...',
-                'กำลังตรวจสอบและยืนยันอีเมลของคุณ...'
-              )}
+              {t('Verifying your email address...')}
             </h3>
             <p className="text-xs text-slate-400">
-              {t(
-                'Please hold on while we activate your account permissions.',
-                'กรุณารอสักครู่เพื่อเปิดใช้งานสิทธิ์บัญชี'
-              )}
+              {t('Please hold on while we activate your account permissions.')}
             </p>
           </div>
         )}
@@ -125,21 +110,18 @@ function VerifyEmailContent() {
             </div>
             <div className="space-y-1">
               <h3 className="text-lg font-bold text-emerald-300">
-                {t('Email Successfully Verified!', 'ยืนยันอีเมลเรียบร้อยแล้ว!')}
+                {t('Email Successfully Verified!')}
               </h3>
               <p className="text-xs text-slate-400">
                 {t(
-                  'Your DavinTrade account is fully verified and ready for live market telemetry.',
-                  'บัญชี DavinTrade ของคุณได้รับการยืนยันและพร้อมใช้งานแล้ว'
+                  'Your DavinTrade account is fully verified and ready for live market telemetry.'
                 )}
               </p>
             </div>
 
             <Link href="/welcome" className="block pt-2">
               <Button className="w-full bg-amber-500 py-5 font-bold text-slate-950 hover:bg-amber-400">
-                <span>
-                  {t('Continue to Onboarding', 'ดำเนินการต่อไปยังหน้าเริ่มต้น')}
-                </span>
+                <span>{t('Continue to Onboarding')}</span>
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -155,14 +137,11 @@ function VerifyEmailContent() {
             </div>
             <div className="space-y-1">
               <h3 className="text-lg font-bold text-rose-300">
-                {t('Verification Failed', 'การยืนยันไม่สำเร็จ')}
+                {t('Verification Failed')}
               </h3>
               <p className="text-xs text-slate-400">
                 {errorMessage ||
-                  t(
-                    'The token might be expired or already used.',
-                    'โทเค็นอาจหมดอายุหรือถูกใช้งานไปแล้ว'
-                  )}
+                  t('The token might be expired or already used.')}
               </p>
             </div>
 
@@ -170,10 +149,7 @@ function VerifyEmailContent() {
               <Link href="/verify-email/pending">
                 <Button className="w-full bg-amber-500 font-bold text-slate-950 hover:bg-amber-400">
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  {t(
-                    'Request New Verification Link',
-                    'ขอลิงก์ยืนยันใหม่อีกครั้ง'
-                  )}
+                  {t('Request New Verification Link')}
                 </Button>
               </Link>
               <Link href="/login">
@@ -181,7 +157,7 @@ function VerifyEmailContent() {
                   variant="outline"
                   className="w-full border-slate-800 text-slate-300"
                 >
-                  {t('Back to Login', 'กลับไปหน้าเข้าสู่ระบบ')}
+                  {t('Back to Login')}
                 </Button>
               </Link>
             </div>

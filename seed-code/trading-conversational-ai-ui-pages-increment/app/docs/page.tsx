@@ -40,148 +40,105 @@ export default function DocsPage() {
   const docSections = [
     {
       icon: Rocket,
-      title: t('1. Getting Started & Setup', '1. เริ่มต้นใช้งานและการตั้งค่า'),
+      title: t('1. Getting Started & Setup'),
       summary: t(
-        'Account creation, tier activation, and connecting to DavinTrade AI workspaces.',
-        'การสร้างบัญชี การเปิดใช้งานแผนสมาชิก และการเชื่อมต่อพื้นที่ทำงาน DavinTrade AI'
+        'Account creation, tier activation, and connecting to DavinTrade AI workspaces.'
       ),
       content: [
         t(
-          'Create an account via /register using email or Google single sign-on.',
-          'สร้างบัญชีผ่าน /register ด้วยอีเมลหรือ Google SSO'
+          'Create an account via /register using email or Google single sign-on.'
         ),
         t(
-          'Configure appearance themes, chart candlestick colors, and language in Settings.',
-          'ตั้งค่าธีม สีแท่งเทียนกราฟ และภาษาได้ที่เมนู Settings'
+          'Configure appearance themes, chart candlestick colors, and language in Settings.'
         ),
         t(
-          'Launch the Free Workspace (/free) or PRO Terminal (/terminal) to begin real-time quantitative monitoring.',
-          'เปิดพื้นที่ทำงานฟรี (/free) หรือ PRO Terminal (/terminal) เพื่อเริ่มวิเคราะห์เชิงปริมาณแบบเรียลไทม์'
+          'Launch the Free Workspace (/free) or PRO Terminal (/terminal) to begin real-time quantitative monitoring.'
         ),
       ],
     },
     {
       icon: Brain,
-      title: t(
-        '2. Conversational AI Copilot',
-        '2. ปัญญาประดิษฐ์ผู้ช่วยสนทนา (Davin AI)'
-      ),
+      title: t('2. Conversational AI Copilot'),
       summary: t(
-        'How to interact with Davin AI for market structure queries, harmonic levels, and risk calculations.',
-        'วิธีพูดคุยกับ Davin AI เพื่อถามโครงสร้างตลาด ระดับฮาร์มอนิก และการคำนวณความเสี่ยง'
+        'How to interact with Davin AI for market structure queries, harmonic levels, and risk calculations.'
       ),
       content: [
         t(
-          'Click the AI Mascot chat trigger at the bottom right of any workspace or terminal.',
-          'คลิกที่ไอคอนมาสคอต AI ด้านล่างขวาของทุกหน้าจอเพื่อเปิดหน้าต่างสนทนา'
+          'Click the AI Mascot chat trigger at the bottom right of any workspace or terminal.'
         ),
         t(
-          'Ask prompts such as "Summarize current XAUUSD M15 fractal structure" or "What is today\'s key liquidity pool?".',
-          'ถามคำถาม เช่น "สรุปโครงสร้างแฟร็กทัล XAUUSD M15 ตอนนี้" หรือ "แนวรับแนวต้านสำคัญวันนี้คืออะไร"'
+          'Ask prompts such as "Summarize current XAUUSD M15 fractal structure" or "What is today\'s key liquidity pool?".'
         ),
         t(
-          'Davin AI references live order flow, MT5 tick feeds, and historical volatility matrices.',
-          'Davin AI อ้างอิงข้อมูลคำสั่งซื้อขายสด ฟีดติ๊ก MT5 และเมทริกซ์ความผันผวนย้อนหลัง'
+          'Davin AI references live order flow, MT5 tick feeds, and historical volatility matrices.'
         ),
       ],
     },
     {
       icon: LineChart,
-      title: t(
-        '3. Fractal Analysis & Multi-Timeframe Signals',
-        '3. การวิเคราะห์แฟร็กทัลและสัญญาณหลายกรอบเวลา'
-      ),
+      title: t('3. Fractal Analysis & Multi-Timeframe Signals'),
       summary: t(
-        'Understanding M5/M15 fractal markers, liquidity sweeps, and trend alignment metrics.',
-        'ทำความเข้าใจเครื่องหมายแฟร็กทัล M5/M15 การกวาดสภาพคล่อง และการยืนยันแนวโน้ม'
+        'Understanding M5/M15 fractal markers, liquidity sweeps, and trend alignment metrics.'
       ),
       content: [
         t(
-          'High & Low fractals indicate key structural pivots identified by 5-bar mathematical models.',
-          'แฟร็กทัลบน/ล่างระบุจุดกลับตัวเชิงโครงสร้างที่คำนวณจากแบบจำลองคณิตศาสตร์ 5 แท่ง'
+          'High & Low fractals indicate key structural pivots identified by 5-bar mathematical models.'
         ),
         t(
-          'Multi-timeframe confirmation: M15 sets the macro trend bias, while M5 provides precision tactical trigger points.',
-          'การยืนยันหลายกรอบเวลา: M15 กำหนดแนวโน้มหลัก ขณะที่ M5 ให้จุดเข้าเทรดที่แม่นยำ'
+          'Multi-timeframe confirmation: M15 sets the macro trend bias, while M5 provides precision tactical trigger points.'
         ),
         t(
-          'Candle color synchronization dynamically updates charts across your selected DavinTrade theme.',
-          'ระบบสีแท่งเทียนจะซิงค์อัตโนมัติตามธีมสีที่คุณเลือกไว้ใน DavinTrade'
+          'Candle color synchronization dynamically updates charts across your selected DavinTrade theme.'
         ),
       ],
     },
     {
       icon: Bell,
-      title: t(
-        '4. Real-Time Alert Engine',
-        '4. เครื่องมือการแจ้งเตือนแบบเรียลไทม์'
-      ),
+      title: t('4. Real-Time Alert Engine'),
       summary: t(
-        'Creating custom price triggers, fractal breach alerts, and webhook notifications.',
-        'การสร้างการแจ้งเตือนราคา สัญญาณทะลุแฟร็กทัล และการเชื่อมต่อ Webhook'
+        'Creating custom price triggers, fractal breach alerts, and webhook notifications.'
       ),
       content: [
+        t('Navigate to /alerts/new to build conditional trigger logic.'),
         t(
-          'Navigate to /alerts/new to build conditional trigger logic.',
-          'ไปที่ /alerts/new เพื่อสร้างเงื่อนไขการแจ้งเตือนตามต้องการ'
+          'Select delivery methods: In-app real-time popups, sound pings, Telegram bot, or custom webhook JSON payloads.'
         ),
         t(
-          'Select delivery methods: In-app real-time popups, sound pings, Telegram bot, or custom webhook JSON payloads.',
-          'เลือกช่องทางรับการแจ้งเตือน: ป๊อปอัปในแอป, เสียงแจ้งเตือน, บอท Telegram หรือ Webhook JSON'
-        ),
-        t(
-          'Monitor alert execution velocity and historical triggers in /alerts.',
-          'ตรวจสอบประวัติการแจ้งเตือนและสถิติการทำงานได้ที่ /alerts'
+          'Monitor alert execution velocity and historical triggers in /alerts.'
         ),
       ],
     },
     {
       icon: CreditCard,
-      title: t(
-        '5. Subscriptions, Invoicing & dLocal/Stripe Billing',
-        '5. การสมัครสมาชิก ใบเสร็จ และระบบชำระเงิน'
-      ),
+      title: t('5. Subscriptions, Invoicing & dLocal/Stripe Billing'),
       summary: t(
-        'Managing PRO access, localized payment gateways, and recurring invoices.',
-        'การจัดการสถานะ PRO เกตเวย์การชำระเงินท้องถิ่น และใบเสร็จรับเงิน'
+        'Managing PRO access, localized payment gateways, and recurring invoices.'
       ),
       content: [
         t(
-          'Upgrade seamlessly through /checkout supporting Credit Cards, PromptPay, Pix, and regional bank transfers via dLocal & Stripe.',
-          'อัปเกรดง่ายๆ ผ่าน /checkout รองรับบัตรเครดิต, พร้อมเพย์, Pix และโอนผ่านธนาคาร'
+          'Upgrade seamlessly through /checkout supporting Credit Cards, PromptPay, Pix, and regional bank transfers via dLocal & Stripe.'
         ),
         t(
-          'Download official PDF invoices and change payment methods under /settings/billing.',
-          'ดาวน์โหลดใบเสร็จรับเงิน PDF และเปลี่ยนวิธีชำระเงินได้ที่ /settings/billing'
+          'Download official PDF invoices and change payment methods under /settings/billing.'
         ),
         t(
-          'Manage auto-renewals or cancel subscription at any time with zero lock-in.',
-          'จัดการการต่ออายุอัตโนมัติหรือยกเลิกแพ็กเกจได้ทุกเมื่อโดยไม่มีข้อผูกมัด'
+          'Manage auto-renewals or cancel subscription at any time with zero lock-in.'
         ),
       ],
     },
     {
       icon: Users,
-      title: t(
-        '6. Affiliate Partner Program & Wise Payouts',
-        '6. โปรแกรมพันธมิตรและการรับเงินผ่าน Wise'
-      ),
+      title: t('6. Affiliate Partner Program & Wise Payouts'),
       summary: t(
-        'Referral code generation, commission tracking, and automated disbursement batches.',
-        'การสร้างรหัสแนะนำ การติดตามค่าคอมมิชชัน และการจ่ายเงินอัตโนมัติ'
+        'Referral code generation, commission tracking, and automated disbursement batches.'
       ),
       content: [
+        t('Register as an affiliate partner at /affiliate/register.'),
         t(
-          'Register as an affiliate partner at /affiliate/register.',
-          'สมัครเป็นพันธมิตรได้ที่ /affiliate/register'
+          'Create custom discount promo codes for your audience in /affiliate/dashboard/codes.'
         ),
         t(
-          'Create custom discount promo codes for your audience in /affiliate/dashboard/codes.',
-          'สร้างรหัสโปรโมชันส่วนลดพิเศษสำหรับผู้ติดตามของคุณได้ที่ /affiliate/dashboard/codes'
-        ),
-        t(
-          'Receive 30% recurring commissions disbursed directly to your Wise or RiseWorks account.',
-          'รับค่าคอมมิชชัน 30% แบบต่อเนื่อง จ่ายตรงเข้าบัญชี Wise หรือ RiseWorks ของคุณ'
+          'Receive 30% recurring commissions disbursed directly to your Wise or RiseWorks account.'
         ),
       ],
     },
@@ -201,18 +158,14 @@ export default function DocsPage() {
         <div className="space-y-8">
           <div className="mx-auto max-w-2xl space-y-4 text-center">
             <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-400">
-              {t('DavinTrade AI Knowledge Hub', 'คลังความรู้ DavinTrade AI')}
+              {t('DavinTrade AI Knowledge Hub')}
             </Badge>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-100 md:text-5xl">
-              {t(
-                'Documentation & Platform Guides',
-                'เอกสารคู่มือและวิธีใช้งานแพลตฟอร์ม'
-              )}
+              {t('Documentation & Platform Guides')}
             </h1>
             <p className="text-sm text-slate-400">
               {t(
-                'Complete reference for trading workspaces, algorithmic signals, conversational AI, billing, and API endpoints.',
-                'คู่มือฉบับสมบูรณ์สำหรับพื้นที่ทำงาน สัญญาณอัลกอริทึม ระบบ AI สนทนา การเรียกเก็บเงิน และ API'
+                'Complete reference for trading workspaces, algorithmic signals, conversational AI, billing, and API endpoints.'
               )}
             </p>
 
@@ -220,10 +173,7 @@ export default function DocsPage() {
             <div className="relative mx-auto max-w-md pt-2">
               <Search className="absolute top-5 left-3.5 h-4 w-4 text-slate-400" />
               <Input
-                placeholder={t(
-                  'Search topics, signals, webhooks...',
-                  'ค้นหาหัวข้อ, สัญญาณ, webhook...'
-                )}
+                placeholder={t('Search topics, signals, webhooks...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-11 border-slate-800 bg-[#090b14] pl-10 text-slate-200 focus:border-amber-500/60"

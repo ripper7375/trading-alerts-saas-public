@@ -78,12 +78,7 @@ export default function AdminSystemJobsPage() {
     setRunningJob(id);
     setTimeout(() => {
       setRunningJob(null);
-      setSuccess(
-        t(
-          `Cron job [${name}] executed successfully!`,
-          `ประมวลผลงาน [${name}] เรียบร้อยแล้ว!`
-        )
-      );
+      setSuccess(t(`Cron job [${name}] executed successfully!`));
       setTimeout(() => setSuccess(''), 3000);
     }, 1200);
   };
@@ -91,13 +86,9 @@ export default function AdminSystemJobsPage() {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
-        title={t(
-          'Admin System: Background Cron Jobs',
-          'ระบบ: งานประมวลผลเบื้องหลัง (Cron Jobs)'
-        )}
+        title={t('Admin System: Background Cron Jobs')}
         subtitle={t(
-          'Automated Workflows, Market Aggregation Workers & Outbox Queue Handlers',
-          'เวิร์กโฟลว์อัตโนมัติ ตัวประมวลผลรวมข้อมูลตลาด และคิวการส่งข้อความ'
+          'Automated Workflows, Market Aggregation Workers & Outbox Queue Handlers'
         )}
       />
 
@@ -116,25 +107,25 @@ export default function AdminSystemJobsPage() {
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Job ID', 'รหัสงาน')}
+                  {t('Job ID')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Job Routine Name', 'ชื่องานประมวลผล')}
+                  {t('Job Routine Name')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Cron Schedule', 'ตารางเวลา')}
+                  {t('Cron Schedule')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Last Run', 'รอบล่าสุด')}
+                  {t('Last Run')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Duration', 'ระยะเวลา')}
+                  {t('Duration')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Status', 'สถานะ')}
+                  {t('Status')}
                 </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Manual Run', 'สั่งทำงาน')}
+                  {t('Manual Run')}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -182,9 +173,7 @@ export default function AdminSystemJobsPage() {
                         className={`mr-1 h-3.5 w-3.5 ${runningJob === j.id ? 'animate-spin' : ''}`}
                       />
                       <span>
-                        {runningJob === j.id
-                          ? t('Running...', 'กำลังทำ...')
-                          : t('Trigger', 'สั่งทำงาน')}
+                        {runningJob === j.id ? t('Running...') : t('Trigger')}
                       </span>
                     </Button>
                   </TableCell>

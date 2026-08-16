@@ -34,8 +34,7 @@ export function MarketingFooter() {
             </Link>
             <p className="max-w-sm text-xs leading-relaxed text-slate-400">
               {t(
-                'Next-generation conversational AI trading intelligence for Gold (XAUUSD) fractal analytics and precision algorithmic execution.',
-                'ระบบข่าวกรองการเทรดด้วย AI แบบสนทนายุคใหม่สำหรับการวิเคราะห์แฟร็กทัลทองคำ (XAUUSD) และการเทรดอัลกอริทึมที่แม่นยำ'
+                'Next-generation conversational AI trading intelligence for Gold (XAUUSD) fractal analytics and precision algorithmic execution.'
               )}
             </p>
             <div className="flex items-center gap-2 text-[11px] text-slate-500">
@@ -48,7 +47,7 @@ export function MarketingFooter() {
           {/* Col 1: Product */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
-              {t('Product', 'ผลิตภัณฑ์')}
+              {t('Product')}
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
@@ -56,7 +55,7 @@ export function MarketingFooter() {
                   href="/terminal"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('PRO Terminal', 'เทอร์มินัล PRO')}
+                  {t('PRO Terminal')}
                 </Link>
               </li>
               <li>
@@ -64,7 +63,7 @@ export function MarketingFooter() {
                   href="/free"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('Free Workspace', 'พื้นที่ทำงานฟรี')}
+                  {t('Free Workspace')}
                 </Link>
               </li>
               <li>
@@ -72,7 +71,7 @@ export function MarketingFooter() {
                   href="/pricing"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('Pricing & Plans', 'ราคาและแผนสมาชิก')}
+                  {t('Pricing & Plans')}
                 </Link>
               </li>
               <li>
@@ -80,7 +79,7 @@ export function MarketingFooter() {
                   href="/changelog"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('Changelog', 'ประวัติการอัปเดต')}
+                  {t('Changelog')}
                 </Link>
               </li>
               <li>
@@ -88,7 +87,7 @@ export function MarketingFooter() {
                   href="/status"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('System Status', 'สถานะระบบ')}
+                  {t('System Status')}
                 </Link>
               </li>
             </ul>
@@ -97,7 +96,7 @@ export function MarketingFooter() {
           {/* Col 2: Resources & Legal */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
-              {t('Resources', 'ทรัพยากร')}
+              {t('Resources')}
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
@@ -105,7 +104,7 @@ export function MarketingFooter() {
                   href="/docs"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('Documentation', 'เอกสารคู่มือ')}
+                  {t('Documentation')}
                 </Link>
               </li>
               <li>
@@ -113,7 +112,7 @@ export function MarketingFooter() {
                   href="/blog"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('Trading Insights Blog', 'บล็อกบทความ')}
+                  {t('Trading Insights Blog')}
                 </Link>
               </li>
               <li>
@@ -121,7 +120,7 @@ export function MarketingFooter() {
                   href="/help"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('Help & Support', 'ศูนย์ช่วยเหลือ')}
+                  {t('Help & Support')}
                 </Link>
               </li>
               <li>
@@ -129,7 +128,7 @@ export function MarketingFooter() {
                   href="/affiliate"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('Affiliate Program', 'โปรแกรมพันธมิตร')}
+                  {t('Affiliate Program')}
                 </Link>
               </li>
               <li>
@@ -137,7 +136,7 @@ export function MarketingFooter() {
                   href="/careers"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('Careers', 'ร่วมงานกับเรา')}
+                  {t('Careers')}
                 </Link>
               </li>
             </ul>
@@ -146,7 +145,7 @@ export function MarketingFooter() {
           {/* Col 3: Legal */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
-              {t('Legal', 'ข้อกำหนดและกฎหมาย')}
+              {t('Legal')}
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
@@ -154,7 +153,7 @@ export function MarketingFooter() {
                   href="/privacy"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('Privacy Policy', 'นโยบายความเป็นส่วนตัว')}
+                  {t('Privacy Policy')}
                 </Link>
               </li>
               <li>
@@ -162,7 +161,7 @@ export function MarketingFooter() {
                   href="/terms"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('Terms of Service', 'ข้อกำหนดการให้บริการ')}
+                  {t('Terms of Service')}
                 </Link>
               </li>
               <li>
@@ -170,7 +169,7 @@ export function MarketingFooter() {
                   href="/disclaimer"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('Risk Disclaimer', 'คำเตือนความเสี่ยง')}
+                  {t('Risk Disclaimer')}
                 </Link>
               </li>
               <li>
@@ -178,7 +177,7 @@ export function MarketingFooter() {
                   href="/about"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('About DavinTrade', 'เกี่ยวกับ DavinTrade')}
+                  {t('About DavinTrade')}
                 </Link>
               </li>
             </ul>
@@ -189,8 +188,7 @@ export function MarketingFooter() {
         <div className="mt-10 border-t border-slate-800/60 pt-6 text-center text-[11px] leading-relaxed text-slate-500">
           <p className="mx-auto max-w-4xl">
             {t(
-              'Risk Disclosure: Trading Forex, CFDs, and precious metals on margin carries high risk and may not be suitable for all investors. DavinTrade provides algorithmic and quantitative analysis tools for informational purposes and does not provide financial or investment advice.',
-              'คำเตือนความเสี่ยง: การซื้อขายฟอเร็กซ์ CFD และโลหะมีค่าด้วยมาร์จินมีความเสี่ยงสูงและอาจไม่เหมาะสำหรับนักลงทุนทุกคน DavinTrade นำเสนอเครื่องมือวิเคราะห์ทางสถิติและอัลกอริทึมเพื่อการให้ข้อมูลเท่านั้น และมิได้ให้คำแนะนำทางการเงินหรือการลงทุน'
+              'Risk Disclosure: Trading Forex, CFDs, and precious metals on margin carries high risk and may not be suitable for all investors. DavinTrade provides algorithmic and quantitative analysis tools for informational purposes and does not provide financial or investment advice.'
             )}
           </p>
         </div>

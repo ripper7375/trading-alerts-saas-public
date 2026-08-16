@@ -34,11 +34,11 @@ export function MarketingNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: '/#features', label: t('Features', 'คุณสมบัติ') },
-    { href: '/pricing', label: t('Pricing', 'ราคา') },
-    { href: '/docs', label: t('Docs', 'เอกสาร') },
-    { href: '/blog', label: t('Blog', 'บล็อก') },
-    { href: '/affiliate', label: t('Affiliates', 'พันธมิตร') },
+    { href: '/#features', label: t('Features') },
+    { href: '/pricing', label: t('Pricing') },
+    { href: '/docs', label: t('Docs') },
+    { href: '/blog', label: t('Blog') },
+    { href: '/affiliate', label: t('Affiliates') },
   ];
 
   return (
@@ -94,7 +94,7 @@ export function MarketingNavbar() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-1 text-slate-300 transition-colors hover:text-amber-400 focus:outline-none">
-                <span>{t('More', 'เพิ่มเติม')}</span>
+                <span>{t('More')}</span>
                 <ChevronDown className="h-3.5 w-3.5" />
               </button>
             </DropdownMenuTrigger>
@@ -108,7 +108,7 @@ export function MarketingNavbar() {
                   className="flex cursor-pointer items-center gap-2 text-slate-200 hover:text-amber-400"
                 >
                   <Layers className="h-4 w-4 text-amber-400" />
-                  <span>{t('About Us', 'เกี่ยวกับเรา')}</span>
+                  <span>{t('About Us')}</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -117,7 +117,7 @@ export function MarketingNavbar() {
                   className="flex cursor-pointer items-center gap-2 text-slate-200 hover:text-amber-400"
                 >
                   <Activity className="h-4 w-4 text-emerald-400" />
-                  <span>{t('System Status', 'สถานะระบบ')}</span>
+                  <span>{t('System Status')}</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -126,7 +126,7 @@ export function MarketingNavbar() {
                   className="flex cursor-pointer items-center gap-2 text-slate-200 hover:text-amber-400"
                 >
                   <Sparkles className="h-4 w-4 text-amber-400" />
-                  <span>{t('Changelog', 'ประวัติการอัปเดต')}</span>
+                  <span>{t('Changelog')}</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -135,7 +135,7 @@ export function MarketingNavbar() {
                   className="flex cursor-pointer items-center gap-2 text-slate-200 hover:text-amber-400"
                 >
                   <HelpCircle className="h-4 w-4 text-cyan-400" />
-                  <span>{t('Help Centre', 'ศูนย์ช่วยเหลือ')}</span>
+                  <span>{t('Help Centre')}</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-slate-800" />
@@ -145,7 +145,7 @@ export function MarketingNavbar() {
                   className="flex cursor-pointer items-center gap-2 text-xs text-slate-400 hover:text-slate-200"
                 >
                   <Shield className="h-3.5 w-3.5" />
-                  <span>{t('Risk Disclaimer', 'คำเตือนความเสี่ยง')}</span>
+                  <span>{t('Risk Disclaimer')}</span>
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -159,13 +159,13 @@ export function MarketingNavbar() {
               variant="ghost"
               className="text-slate-300 hover:bg-slate-800/60 hover:text-slate-100"
             >
-              {t('Log In', 'เข้าสู่ระบบ')}
+              {t('Log In')}
             </Button>
           </Link>
           <Link href="/register">
             <Button className="bg-gradient-to-r from-amber-500 to-amber-600 font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500">
               <Sparkles className="mr-1.5 h-4 w-4" />
-              {t('Get Started', 'เริ่มต้นใช้งาน')}
+              {t('Get Started')}
             </Button>
           </Link>
         </div>
@@ -203,21 +203,21 @@ export function MarketingNavbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="text-sm text-slate-300 hover:text-amber-400"
               >
-                {t('About Us', 'เกี่ยวกับเรา')}
+                {t('About Us')}
               </Link>
               <Link
                 href="/status"
                 onClick={() => setMobileMenuOpen(false)}
                 className="text-sm text-slate-300 hover:text-amber-400"
               >
-                {t('System Status', 'สถานะระบบ')}
+                {t('System Status')}
               </Link>
               <Link
                 href="/help"
                 onClick={() => setMobileMenuOpen(false)}
                 className="text-sm text-slate-300 hover:text-amber-400"
               >
-                {t('Help Centre', 'ศูนย์ช่วยเหลือ')}
+                {t('Help Centre')}
               </Link>
             </div>
             <div className="flex flex-col gap-2 border-t border-slate-800/80 pt-4">
@@ -226,12 +226,12 @@ export function MarketingNavbar() {
                   variant="outline"
                   className="w-full border-slate-700 text-slate-200"
                 >
-                  {t('Log In', 'เข้าสู่ระบบ')}
+                  {t('Log In')}
                 </Button>
               </Link>
               <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full bg-amber-500 font-bold text-slate-950 hover:bg-amber-400">
-                  {t('Get Started Free', 'เริ่มต้นใช้งานฟรี')}
+                  {t('Get Started Free')}
                 </Button>
               </Link>
             </div>

@@ -110,27 +110,23 @@ export function AppearanceForm() {
           <div>
             <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-100">
               <Palette className="h-4 w-4 text-amber-400" />{' '}
-              {t(
-                'Terminal Appearance & Chart Color Scheme',
-                'รูปลักษณ์เทอร์มินัลและโทนสีกราฟ'
-              )}
+              {t('Terminal Appearance & Chart Color Scheme')}
             </h2>
             <p className="text-[11px] text-slate-400">
               {t(
-                'Customise dark trading themes, accent highlights, and candlestick styles',
-                'ปรับแต่งธีมการเทรดแบบมืด โทนสีไฮไลต์ และสไตล์แท่งเทียน'
+                'Customise dark trading themes, accent highlights, and candlestick styles'
               )}
             </p>
           </div>
           <Badge className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300">
-            {t('LIVE PREVIEW', 'แสดงตัวอย่างสด')}
+            {t('LIVE PREVIEW')}
           </Badge>
         </div>
 
         {/* Theme Selection */}
         <div className="space-y-3">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Theme Mode', 'โหมดธีม')}
+            {t('Theme Mode')}
           </Label>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {themeOptions.map((option) => {
@@ -154,10 +150,10 @@ export function AppearanceForm() {
                       {t(
                         option.label,
                         option.label === 'Dark Trading Terminal'
-                          ? 'เทอร์มินัลการเทรดแบบมืด'
+                          ? 'Dark Trading Terminal'
                           : option.label === 'Light Clean Mode'
-                            ? 'โหมดสว่างสะอาดตา'
-                            : 'ซิงค์ตามระบบ'
+                            ? 'Clean Light Mode'
+                            : 'System Synchronized'
                       )}
                     </span>
                     {isSelected && <Check className="h-4 w-4 text-amber-400" />}
@@ -166,10 +162,10 @@ export function AppearanceForm() {
                     {t(
                       option.description,
                       option.label === 'Dark Trading Terminal'
-                        ? 'ธีมสีเข้มความคมชัดสูง เหมาะสำหรับการเทรดระยะยาว'
+                        ? 'High-contrast dark theme optimized for long trading sessions'
                         : option.label === 'Light Clean Mode'
-                          ? 'อินเทอร์เฟซสว่างมองเห็นชัดเจนสำหรับการวิเคราะห์ในเวลากลางวัน'
-                          : 'ปรับตามการตั้งค่าธีมของระบบปฏิบัติการโดยอัตโนมัติ'
+                          ? 'Crisp light interface for daytime analysis'
+                          : 'Automatically adapts to operating system preferences'
                     )}
                   </p>
                 </button>
@@ -183,7 +179,7 @@ export function AppearanceForm() {
         {/* Accent Color Scheme */}
         <div className="space-y-3">
           <Label className="text-xs font-semibold text-slate-300">
-            {t('Accent Color Scheme', 'โทนสีไฮไลต์')}
+            {t('Accent Color Scheme')}
           </Label>
           <div className="flex items-center gap-3">
             {accentOptions.map((opt) => {
@@ -207,12 +203,12 @@ export function AppearanceForm() {
                     {t(
                       opt.label,
                       opt.name === 'amber'
-                        ? 'ทองแอมเบอร์'
+                        ? 'Amber Gold'
                         : opt.name === 'emerald'
-                          ? 'เขียวมรกต'
+                          ? 'Emerald Green'
                           : opt.name === 'blue'
-                            ? 'น้ำเงินไพลิน'
-                            : 'ม่วงอเมทิสต์'
+                            ? 'Sapphire Blue'
+                            : 'Amethyst Purple'
                     )}
                   </span>
                 </button>
@@ -227,10 +223,7 @@ export function AppearanceForm() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-semibold text-slate-300">
-              {t(
-                'Chart Candlestick & Grid Customization',
-                'การปรับแต่งแท่งเทียนและเส้นตารางกราฟ'
-              )}
+              {t('Chart Candlestick & Grid Customization')}
             </Label>
             <Button
               type="button"
@@ -250,7 +243,7 @@ export function AppearanceForm() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
               <span className="text-xs font-medium text-slate-300">
-                {t('Bullish Up Candle', 'แท่งเทียนขาขึ้น (Bullish)')}
+                {t('Bullish Up Candle')}
               </span>
               <div className="flex items-center gap-2">
                 <input
@@ -272,7 +265,7 @@ export function AppearanceForm() {
 
             <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
               <span className="text-xs font-medium text-slate-300">
-                {t('Bearish Down Candle', 'แท่งเทียนขาลง (Bearish)')}
+                {t('Bearish Down Candle')}
               </span>
               <div className="flex items-center gap-2">
                 <input
@@ -295,9 +288,7 @@ export function AppearanceForm() {
 
           <div className="space-y-2 rounded-xl border border-slate-800 bg-[#06080e] p-3">
             <div className="flex justify-between text-xs font-semibold">
-              <span className="text-slate-300">
-                {t('Chart Grid Opacity', 'ความโปร่งแสงของเส้นตารางกราฟ')}
-              </span>
+              <span className="text-slate-300">{t('Chart Grid Opacity')}</span>
               <span className="font-mono text-amber-300">
                 {settings.gridOpacity}%
               </span>
@@ -441,12 +432,12 @@ export function AppearanceForm() {
             {isSaving ? (
               <span className="flex items-center gap-1.5">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                {t('Saving...', 'กำลังบันทึก...')}
+                {t('Saving...')}
               </span>
             ) : isSaved ? (
-              t('Preferences Saved!', 'บันทึกการตั้งค่าแล้ว!')
+              t('Preferences Saved!')
             ) : (
-              t('Apply Appearance Settings', 'ปรับใช้การตั้งค่ารูปลักษณ์')
+              t('Apply Appearance Settings')
             )}
           </Button>
         </div>
