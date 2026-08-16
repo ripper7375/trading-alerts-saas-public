@@ -253,14 +253,14 @@ export default function TradingChart({
     // M5 Upper EDT Line (Gold)
     const upperEdtM5 = chartM5.addSeries(LineSeries, {
       color: '#eab308',
-      lineWidth: 1.5,
+      lineWidth: 1,
     });
     upperEdtM5.setData(generateLineData(dataM5, 12));
 
     // M5 Lower EDT Line (Gold)
     const lowerEdtM5 = chartM5.addSeries(LineSeries, {
       color: '#eab308',
-      lineWidth: 1.5,
+      lineWidth: 1,
     });
     lowerEdtM5.setData(generateLineData(dataM5, -12));
 
@@ -332,13 +332,13 @@ export default function TradingChart({
 
       const upperEdtM15 = chartM15.addSeries(LineSeries, {
         color: '#f59e0b',
-        lineWidth: 1.5,
+        lineWidth: 1,
       });
       upperEdtM15.setData(generateLineData(dataM15, 18));
 
       const lowerEdtM15 = chartM15.addSeries(LineSeries, {
         color: '#f59e0b',
-        lineWidth: 1.5,
+        lineWidth: 1,
       });
       lowerEdtM15.setData(generateLineData(dataM15, -18));
     } else {

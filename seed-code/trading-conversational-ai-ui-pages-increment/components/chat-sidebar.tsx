@@ -16,6 +16,7 @@ import {
   Sparkles,
   Lock,
   LineChart,
+  Home,
   CreditCard,
   Settings,
   Users,
@@ -44,7 +45,7 @@ interface ChatSidebarProps {
   onToggleCollapse?: () => void;
   tier?: Tier;
   onTierChange?: (tier: Tier) => void;
-  onNavigate?: (page: string) => void;
+  onNavigate?: (page: any) => void;
   onOpenUpgradeModal?: (featureName: string) => void;
   activePage?: string;
   unreadAlertsCount?: number;
@@ -57,7 +58,7 @@ export function ChatSidebar({
   onTierChange,
   onNavigate,
   onOpenUpgradeModal,
-  activePage = 'AI Chart Analyst',
+  activePage = 'Home Page',
   unreadAlertsCount = 3,
 }: ChatSidebarProps) {
   const pathname = usePathname();
@@ -90,9 +91,9 @@ export function ChatSidebar({
       icon: LayoutDashboard,
     },
     {
-      label: t('nav.ai_workspace', 'AI Chart Analyst'),
-      href: currentTier === 'FREE' ? '/free' : '/',
-      icon: LineChart,
+      label: t('nav.home', 'Home Page'),
+      href: '/',
+      icon: Home,
     },
     {
       label: t('nav.alerts', 'Real-Time Alerts'),
@@ -101,11 +102,15 @@ export function ChatSidebar({
       badge: currentTier === 'FREE' ? 'PRO' : unreadAlertsCount,
       isProGated: currentTier === 'FREE',
     },
-    {
-      label: t('nav.pricing', 'Pricing & Upgrade'),
-      href: '/pricing',
-      icon: CreditCard,
-    },
+    ...(currentTier === 'FREE'
+      ? [
+          {
+            label: t('nav.pro_upgrade', 'PRO Upgrade'),
+            href: '/pricing',
+            icon: CreditCard,
+          },
+        ]
+      : []),
   ];
 
   const managementNavItems = [
@@ -118,11 +123,6 @@ export function ChatSidebar({
       label: t('nav.affiliate', 'Affiliate Portal'),
       href: '/affiliate/dashboard',
       icon: Share2,
-    },
-    {
-      label: t('nav.admin', 'Admin Control'),
-      href: '/admin',
-      icon: ShieldAlert,
     },
   ];
 
@@ -172,7 +172,7 @@ export function ChatSidebar({
                 <DropdownMenuContent className="border-slate-750 w-36 bg-[#0f1420] text-xs text-slate-200">
                   <DropdownMenuItem asChild>
                     <Link
-                      href="/"
+                      href="/terminal"
                       className="flex cursor-pointer items-center justify-between font-bold text-amber-300 hover:bg-amber-500/20"
                     >
                       <span>{t('⚡ PRO Tier Page')}</span>

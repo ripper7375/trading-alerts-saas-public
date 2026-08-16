@@ -43,6 +43,20 @@ export const ANALYST_MODELS = [
   { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash', proOnly: true },
 ];
 
+export interface ChatPanelProps {
+  tier: Tier;
+  symbol: Symbol;
+  timeframe: Timeframe;
+  onSymbolChange?: (symbol: Symbol) => void;
+  onTimeframeChange?: (timeframe: Timeframe) => void;
+  isSidebarCollapsed?: boolean;
+  onToggleSidebar?: () => void;
+  onCollapsePanel?: () => void;
+  onOpenUpgradeModal?: (featureName: string) => void;
+  predeterminedQuestion?: string | null;
+  onClearPredeterminedQuestion?: () => void;
+}
+
 export default function ChatPanel({
   tier,
   symbol,
