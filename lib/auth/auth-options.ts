@@ -209,6 +209,37 @@ export const authOptions: NextAuthOptions = {
               },
             });
 
+            if (fixed.isAffiliate) {
+              const existingProfile = await prisma.affiliateProfile.findUnique({
+                where: { userId: dbUser.id },
+              });
+              if (!existingProfile) {
+                const code = email.includes('pro') ? 'PROTESTAFF' : 'TESTAFF10';
+                await prisma.affiliateProfile.create({
+                  data: {
+                    userId: dbUser.id,
+                    fullName: fixed.name,
+                    country: 'US',
+                    paymentMethod: 'PAYPAL',
+                    paymentDetails: {},
+                    status: 'ACTIVE',
+                    verifiedAt: new Date(),
+                    affiliateCodes: {
+                      create: {
+                        code,
+                        discountPercent: 10,
+                        commissionPercent: 15,
+                        status: 'ACTIVE',
+                        expiresAt: new Date(
+                          Date.now() + 365 * 24 * 60 * 60 * 1000
+                        ),
+                      },
+                    },
+                  },
+                });
+              }
+            }
+
             return {
               id: dbUser.id,
               email: dbUser.email,

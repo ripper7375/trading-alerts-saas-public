@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   HelpCircle,
   Languages,
-  FileText,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -378,22 +377,6 @@ export default function SettingsPage(): React.ReactElement {
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Choose your preferred display language
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/settings/terms">
-          <Card className="cursor-pointer transition-shadow hover:shadow-md">
-            <CardContent className="flex items-start gap-3 p-4">
-              <FileText className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" />
-              <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">
-                  Terms of Service
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Review the terms governing your use of this platform
                 </p>
               </div>
             </CardContent>

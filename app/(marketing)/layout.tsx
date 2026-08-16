@@ -149,11 +149,6 @@ export default function MarketingLayout({
                     Changelog
                   </Link>
                 </li>
-                <li>
-                  <Link href="/status" className="hover:text-foreground">
-                    System Status
-                  </Link>
-                </li>
               </ul>
             </div>
 

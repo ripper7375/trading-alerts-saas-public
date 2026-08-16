@@ -163,9 +163,52 @@ export async function getAffiliateProfile(): Promise<AffiliateProfile | null> {
     }
 
     // Fetch affiliate profile from database
-    const affiliateProfile = await prisma.affiliateProfile.findUnique({
+    let affiliateProfile = await prisma.affiliateProfile.findUnique({
       where: { userId: session.user.id },
     });
+
+    if (!affiliateProfile) {
+      try {
+        affiliateProfile = await prisma.affiliateProfile.create({
+          data: {
+            userId: session.user.id,
+            fullName: session.user.name || 'Affiliate Partner',
+            country: 'US',
+            paymentMethod: 'PAYPAL',
+            paymentDetails: {},
+            status: 'ACTIVE',
+            verifiedAt: new Date(),
+          },
+        });
+
+        // Also create a default affiliate referral code if none exists
+        const baseCode = (
+          session.user.name ||
+          session.user.email?.split('@')[0] ||
+          'AFF'
+        )
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, '')
+          .slice(0, 6);
+        const code = `${baseCode}${Math.floor(100 + Math.random() * 900)}`;
+
+        await prisma.affiliateCode.create({
+          data: {
+            affiliateProfileId: affiliateProfile.id,
+            code,
+            discountPercent: 10,
+            commissionPercent: 15,
+            status: 'ACTIVE',
+            expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          },
+        });
+      } catch (createErr) {
+        console.warn(
+          '[Session] Auto-creating affiliate profile fallback:',
+          createErr
+        );
+      }
+    }
 
     if (!affiliateProfile) {
       return null;

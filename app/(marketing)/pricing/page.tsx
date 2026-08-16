@@ -268,8 +268,44 @@ function PricingPageContent(): React.ReactElement {
     }
   };
 
+  // Already PRO / Admin notification
+  if (userTier === 'PRO' || session?.user?.role === 'ADMIN') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-lg">
+          <Card className="p-8 text-center shadow-lg">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+              <Check className="h-7 w-7" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">
+              You&apos;re Already a PRO Member
+            </h1>
+            <p className="mt-2 text-muted-foreground">
+              Your account currently has active access to all PRO features,
+              indicators, drawing engine alerts, and real-time streams.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Button asChild variant="outline">
+                <Link href="/settings/billing">Manage Subscription</Link>
+              </Button>
+              <Button asChild className="bg-blue-600 hover:bg-blue-700">
+                <Link
+                  href={
+                    session?.user?.role === 'ADMIN' ? '/admin' : '/dashboard'
+                  }
+                >
+                  Go to Dashboard
+                </Link>
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background px-4 py-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         {/* Breadcrumb */}
         <nav className="mb-8 text-sm text-muted-foreground">
@@ -277,8 +313,8 @@ function PricingPageContent(): React.ReactElement {
         </nav>
 
         {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-foreground mb-4">
+        <div className="mb-16 text-center">
+          <h1 className="mb-4 text-5xl font-bold text-foreground">
             Choose Your Plan
           </h1>
           <p className="text-xl text-muted-foreground">
@@ -293,7 +329,7 @@ function PricingPageContent(): React.ReactElement {
             <div className="mx-auto mb-8 max-w-4xl">
               <Card className="border-2 border-purple-500 bg-gradient-to-r from-purple-50 to-blue-50">
                 <CardContent className="p-6">
-                  <div className="flex flex-col md:flex-row items-center gap-6">
+                  <div className="flex flex-col items-center gap-6 md:flex-row">
                     <div className="flex-shrink-0">
                       <div className="flex h-16 w-16 items-center justify-center rounded-full bg-purple-100">
                         <Clock className="h-8 w-8 text-purple-600" />
@@ -303,10 +339,10 @@ function PricingPageContent(): React.ReactElement {
                       <Badge className="mb-2 bg-purple-600 text-white">
                         One-Time Offer for {COUNTRY_NAMES[detectedCountry]}
                       </Badge>
-                      <h3 className="text-2xl font-bold mb-2">
+                      <h3 className="mb-2 text-2xl font-bold">
                         Try PRO for Just ${PRICING.THREE_DAY_USD}
                       </h3>
-                      <p className="text-muted-foreground mb-4">
+                      <p className="mb-4 text-muted-foreground">
                         Get 3 days of full PRO access to test all features
                         before committing. Pay with local payment methods like{' '}
                         {detectedCountry === 'IN' && 'UPI, Paytm, PhonePe'}
@@ -340,7 +376,7 @@ function PricingPageContent(): React.ReactElement {
           <Card className="flex flex-col">
             <CardHeader>
               <Badge className="w-fit bg-green-500 text-white">FREE TIER</Badge>
-              <CardTitle className="flex items-baseline gap-2 mt-4">
+              <CardTitle className="mt-4 flex items-baseline gap-2">
                 <span className="text-6xl font-bold">$0</span>
                 <span className="text-xl text-muted-foreground">/month</span>
               </CardTitle>
@@ -350,7 +386,7 @@ function PricingPageContent(): React.ReactElement {
               <ul className="space-y-3">
                 {FREE_TIER.features.map((feature) => (
                   <li key={feature.name} className="flex items-start gap-2">
-                    <Check className="h-5 w-5 mt-0.5 flex-shrink-0 text-green-500" />
+                    <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-500" />
                     <div>
                       <div className="font-medium">{feature.name}</div>
                       {feature.detail && (
@@ -365,7 +401,7 @@ function PricingPageContent(): React.ReactElement {
             </CardContent>
             <CardFooter className="flex flex-col gap-2">
               <Button
-                className="w-full py-6 text-lg bg-green-600 hover:bg-green-700"
+                className="w-full bg-green-600 py-6 text-lg hover:bg-green-700"
                 onClick={handleFreeSignup}
               >
                 {isAuthenticated && userTier === 'FREE'
@@ -381,7 +417,7 @@ function PricingPageContent(): React.ReactElement {
           {/* PRO TIER */}
           <Card className="relative flex flex-col border-4 border-blue-600">
             {/* Most Popular Ribbon */}
-            <div className="absolute top-0 right-0 bg-blue-600 text-white px-4 py-1 rounded-bl-lg text-sm font-medium">
+            <div className="absolute right-0 top-0 rounded-bl-lg bg-blue-600 px-4 py-1 text-sm font-medium text-white">
               MOST POPULAR
             </div>
 
@@ -390,7 +426,7 @@ function PricingPageContent(): React.ReactElement {
 
               {/* Affiliate Discount Banner */}
               {affiliateCode && (
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mt-4 rounded-lg">
+                <div className="mt-4 rounded-lg border-l-4 border-yellow-400 bg-yellow-50 p-3">
                   <div className="flex items-start gap-2">
                     <span className="text-xl">🎉</span>
                     <div className="flex-1">
@@ -409,7 +445,7 @@ function PricingPageContent(): React.ReactElement {
               )}
 
               {/* Price Display */}
-              <CardTitle className="flex flex-wrap items-baseline gap-2 mt-4">
+              <CardTitle className="mt-4 flex flex-wrap items-baseline gap-2">
                 {affiliateCode && (
                   <span className="text-3xl text-muted-foreground line-through">
                     ${PRO_PRICE}
@@ -424,11 +460,11 @@ function PricingPageContent(): React.ReactElement {
               </CardTitle>
 
               {affiliateCode ? (
-                <p className="text-sm font-medium text-green-600 mt-2">
+                <p className="mt-2 text-sm font-medium text-green-600">
                   Save ${savings.toFixed(2)}/month with affiliate code!
                 </p>
               ) : (
-                <p className="text-sm text-muted-foreground mt-2">
+                <p className="mt-2 text-sm text-muted-foreground">
                   {PRO_TIER.description}
                 </p>
               )}
@@ -438,7 +474,7 @@ function PricingPageContent(): React.ReactElement {
               <ul className="space-y-3">
                 {PRO_TIER.features.map((feature) => (
                   <li key={feature.name} className="flex items-start gap-2">
-                    <Check className="h-5 w-5 mt-0.5 flex-shrink-0 text-blue-600" />
+                    <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
                     <div>
                       <div className="font-medium">{feature.name}</div>
                       {feature.detail && (
@@ -454,15 +490,13 @@ function PricingPageContent(): React.ReactElement {
 
             <CardFooter className="flex flex-col gap-2">
               <Button
-                className="w-full py-6 text-lg bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-blue-600 py-6 text-lg hover:bg-blue-700"
                 onClick={handleUpgrade}
-                disabled={isLoading || userTier === 'PRO'}
+                disabled={isLoading}
               >
                 {isLoading
                   ? 'Loading...'
-                  : userTier === 'PRO'
-                    ? 'Current Plan'
-                    : `${PRO_TIER.buttonText}${affiliateCode ? ` (${discountPercent}% Off)` : ''}`}
+                  : `${PRO_TIER.buttonText}${affiliateCode ? ` (${discountPercent}% Off)` : ''}`}
               </Button>
               <p
                 className={`text-center text-sm ${affiliateCode ? 'text-green-600' : 'text-muted-foreground'}`}
@@ -471,7 +505,7 @@ function PricingPageContent(): React.ReactElement {
                 {affiliateCode ? discountedPrice.toFixed(2) : PRO_PRICE}/month
               </p>
               {/* dLocal option for supported countries */}
-              {isDLocalCountry && userTier !== 'PRO' && (
+              {isDLocalCountry && (
                 <Link
                   href={`/checkout?country=${detectedCountry}&plan=MONTHLY${affiliateCode ? `&ref=${affiliateCode}` : ''}`}
                   className="mt-2 flex items-center justify-center gap-2 text-sm text-purple-600 hover:underline"
@@ -493,7 +527,7 @@ function PricingPageContent(): React.ReactElement {
                   </Badge>
                   <Globe className="h-4 w-4 text-purple-600" />
                 </div>
-                <CardTitle className="flex items-baseline gap-2 mt-4">
+                <CardTitle className="mt-4 flex items-baseline gap-2">
                   <span className="text-4xl font-bold text-purple-600">
                     ${PRO_PRICE}
                   </span>
@@ -568,13 +602,8 @@ function PricingPageContent(): React.ReactElement {
                   href={`/checkout?country=${detectedCountry}&plan=MONTHLY`}
                   className="w-full"
                 >
-                  <Button
-                    className="w-full py-6 text-lg bg-purple-600 hover:bg-purple-700"
-                    disabled={userTier === 'PRO'}
-                  >
-                    {userTier === 'PRO'
-                      ? 'Current Plan'
-                      : 'Pay with Local Methods'}
+                  <Button className="w-full bg-purple-600 py-6 text-lg hover:bg-purple-700">
+                    Pay with Local Methods
                   </Button>
                 </Link>
                 <p className="text-center text-sm text-muted-foreground">
@@ -586,11 +615,11 @@ function PricingPageContent(): React.ReactElement {
         </div>
 
         {/* Affiliate Program Banner */}
-        <div className="border-2 border-green-300 bg-green-50 rounded-xl p-6 mb-12 max-w-4xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center gap-4">
+        <div className="mx-auto mb-12 max-w-4xl rounded-xl border-2 border-green-300 bg-green-50 p-6">
+          <div className="flex flex-col items-center gap-4 md:flex-row">
             <span className="text-3xl">🤝</span>
             <div className="flex-1 text-center md:text-left">
-              <h3 className="text-2xl font-bold mb-2">
+              <h3 className="mb-2 text-2xl font-bold">
                 Have an affiliate code?
               </h3>
               <p className="text-foreground/80 mb-4">
@@ -609,13 +638,13 @@ function PricingPageContent(): React.ReactElement {
 
         {/* Comparison Table */}
         <div className="mb-16">
-          <h2 className="text-3xl font-bold text-center mb-8">
+          <h2 className="mb-8 text-center text-3xl font-bold">
             Detailed Feature Comparison
           </h2>
           <div className="overflow-x-auto rounded-lg border">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b-2 bg-muted/50">
+                <tr className="bg-muted/50 border-b-2">
                   <th className="p-4 text-left font-semibold">Feature</th>
                   <th className="p-4 text-center font-semibold">FREE</th>
                   <th className="p-4 text-center font-semibold">PRO</th>
@@ -625,7 +654,7 @@ function PricingPageContent(): React.ReactElement {
                 {COMPARISON_FEATURES.map((feature, index) => (
                   <tr
                     key={feature.name}
-                    className={`border-b hover:bg-muted/50 transition-colors ${
+                    className={`hover:bg-muted/50 border-b transition-colors ${
                       index % 2 === 1 ? 'bg-muted/30' : ''
                     }`}
                   >
@@ -633,9 +662,9 @@ function PricingPageContent(): React.ReactElement {
                     <td className="p-4 text-center">
                       {typeof feature.free === 'boolean' ? (
                         feature.free ? (
-                          <Check className="h-5 w-5 text-green-600 mx-auto" />
+                          <Check className="mx-auto h-5 w-5 text-green-600" />
                         ) : (
-                          <X className="h-5 w-5 text-red-500 mx-auto" />
+                          <X className="mx-auto h-5 w-5 text-red-500" />
                         )
                       ) : (
                         feature.free
@@ -644,9 +673,9 @@ function PricingPageContent(): React.ReactElement {
                     <td className="p-4 text-center">
                       {typeof feature.pro === 'boolean' ? (
                         feature.pro ? (
-                          <Check className="h-5 w-5 text-green-600 mx-auto" />
+                          <Check className="mx-auto h-5 w-5 text-green-600" />
                         ) : (
-                          <X className="h-5 w-5 text-red-500 mx-auto" />
+                          <X className="mx-auto h-5 w-5 text-red-500" />
                         )
                       ) : (
                         feature.pro
@@ -660,17 +689,17 @@ function PricingPageContent(): React.ReactElement {
         </div>
 
         {/* FAQ Section */}
-        <div className="mb-16 max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-8">
+        <div className="mx-auto mb-16 max-w-3xl">
+          <h2 className="mb-8 text-center text-3xl font-bold">
             Frequently Asked Questions
           </h2>
           <div className="space-y-4">
             {FAQ_ITEMS.map((item) => (
               <details
                 key={item.question}
-                className="group rounded-lg bg-muted/30 overflow-hidden"
+                className="bg-muted/30 group overflow-hidden rounded-lg"
               >
-                <summary className="flex cursor-pointer items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+                <summary className="hover:bg-muted/50 flex cursor-pointer items-center justify-between p-4 transition-colors">
                   <h3 className="font-medium">{item.question}</h3>
                   <span className="ml-1.5 flex-shrink-0">
                     <svg
@@ -695,14 +724,14 @@ function PricingPageContent(): React.ReactElement {
         </div>
 
         {/* Final CTA */}
-        <div className="rounded-xl bg-muted/50 p-12 text-center">
-          <h2 className="text-3xl font-bold mb-4">Ready to get started?</h2>
-          <p className="text-xl text-muted-foreground mb-8">
+        <div className="bg-muted/50 rounded-xl p-12 text-center">
+          <h2 className="mb-4 text-3xl font-bold">Ready to get started?</h2>
+          <p className="mb-8 text-xl text-muted-foreground">
             Join thousands of traders using our platform
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Button
-              className="px-8 py-6 text-lg bg-green-600 hover:bg-green-700"
+              className="bg-green-600 px-8 py-6 text-lg hover:bg-green-700"
               onClick={handleFreeSignup}
             >
               Start Free
@@ -735,7 +764,7 @@ export default function PricingPage(): React.ReactElement {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="flex min-h-screen items-center justify-center">
           <div className="text-center">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
             <p className="mt-4 text-muted-foreground">Loading pricing...</p>

@@ -32,6 +32,11 @@ export default async function AffiliateSettingsLayout({
     redirect('/login?callbackUrl=/affiliate/settings/payout');
   }
 
+  // Redirect admin users to Admin Executive Dashboard
+  if (session.user.role === 'ADMIN') {
+    redirect('/admin');
+  }
+
   if (!session.user.isAffiliate) {
     redirect('/affiliate/register');
   }

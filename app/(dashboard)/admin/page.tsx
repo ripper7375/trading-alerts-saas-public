@@ -340,14 +340,6 @@ export default function AdminDashboardPage(): React.ReactElement {
                 event outbox queue
               </CardDescription>
             </div>
-            <a
-              href="/status"
-              className="inline-flex items-center text-xs font-medium text-blue-400 hover:text-blue-300"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Public Status View ↗
-            </a>
           </div>
         </CardHeader>
         <CardContent>

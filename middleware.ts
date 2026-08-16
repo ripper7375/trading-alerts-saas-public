@@ -43,14 +43,16 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     });
 
     if (!token) {
-      const loginPath =
+      if (
         pathname.startsWith('/affiliate/dashboard') ||
-        pathname.startsWith('/affiliate/settings')
-          ? '/affiliate/login'
-          : '/login';
-      const loginUrl = new URL(loginPath, request.url);
-      loginUrl.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(loginUrl);
+        pathname.startsWith('/affiliate/settings') ||
+        !pathname.startsWith('/affiliate')
+      ) {
+        const loginUrl = new URL('/login', request.url);
+        loginUrl.searchParams.set('callbackUrl', pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+      return NextResponse.next();
     }
 
     // Role-based Edge Guard: Admin routes
@@ -58,6 +60,11 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       const dashboardUrl = new URL('/dashboard', request.url);
       dashboardUrl.searchParams.set('error', 'admin_required');
       return NextResponse.redirect(dashboardUrl);
+    }
+
+    // Role-based Edge Guard: Admin visiting affiliate routes redirected to Admin Executive Dashboard
+    if (pathname.startsWith('/affiliate') && token.role === 'ADMIN') {
+      return NextResponse.redirect(new URL('/admin', request.url));
     }
 
     return NextResponse.next();
@@ -79,7 +86,6 @@ export const config = {
     '/settings/:path*',
     '/admin/:path*',
     '/notifications/:path*',
-    '/affiliate/dashboard/:path*',
-    '/affiliate/settings/:path*',
+    '/affiliate/:path*',
   ],
 };

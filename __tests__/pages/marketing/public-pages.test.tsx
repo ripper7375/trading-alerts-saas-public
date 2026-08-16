@@ -143,10 +143,6 @@ describe('Public marketing content pages', () => {
       'href',
       '/docs'
     );
-    expect(screen.getByRole('link', { name: /System Status/ })).toHaveAttribute(
-      'href',
-      '/status'
-    );
 
     const question = screen.getByRole('button', {
       name: /Do I need a card to start\?/,

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Book, Mail, LineChart, ChevronDown, ChevronUp } from 'lucide-react';
+import { Book, Mail, ChevronDown, ChevronUp } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -67,7 +67,7 @@ export default function PublicHelpPage(): React.ReactElement {
           </p>
         </div>
 
-        <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="mb-10">
           <Link href="/docs">
             <Card className="h-full transition-colors hover:border-primary">
               <CardContent className="flex items-start gap-4 p-5">
@@ -76,30 +76,11 @@ export default function PublicHelpPage(): React.ReactElement {
                 </div>
                 <div>
                   <h2 className="font-semibold text-foreground">
-                    Documentation
+                    Documentation & Guides
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    Guides on alerts, charts, billing, and the API
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/status">
-            <Card className="h-full transition-colors hover:border-primary">
-              <CardContent className="flex items-start gap-4 p-5">
-                <div className="bg-primary/10 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg">
-                  <LineChart
-                    className="h-5 w-5 text-primary"
-                    aria-hidden="true"
-                  />
-                </div>
-                <div>
-                  <h2 className="font-semibold text-foreground">
-                    System Status
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Live status of the API, database, and payments
+                    Comprehensive guides on alerts, chart indicators, billing,
+                    and the API
                   </p>
                 </div>
               </CardContent>

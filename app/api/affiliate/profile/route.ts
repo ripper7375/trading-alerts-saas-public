@@ -163,3 +163,5 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     );
   }
 }
+
+export const PATCH = PUT;

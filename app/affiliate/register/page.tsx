@@ -9,9 +9,14 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { CheckCircle2, ShieldCheck } from 'lucide-react';
 
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
@@ -42,6 +47,13 @@ interface FormData {
  */
 export default function AffiliateRegisterPage(): React.ReactElement {
   const router = useRouter();
+  const { data: session } = useSession();
+
+  useEffect(() => {
+    if (session?.user?.role === 'ADMIN') {
+      router.push('/admin');
+    }
+  }, [session, router]);
 
   // Fetch dynamic config from SystemConfig
   const { discountPercent, commissionPercent, codesPerMonth } =
@@ -122,10 +134,62 @@ export default function AffiliateRegisterPage(): React.ReactElement {
     }
   };
 
+  if (session?.user?.role === 'ADMIN') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+        <Card className="w-full max-w-lg p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/30">
+            <ShieldCheck className="h-7 w-7" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Administrator Hub
+          </h1>
+          <p className="mt-2 text-gray-600">
+            You are signed in with System Administrator privileges. Affiliate
+            program oversight is managed from the Admin console.
+          </p>
+          <div className="mt-6">
+            <Button asChild className="w-full bg-blue-600 hover:bg-blue-700">
+              <Link href="/admin">Go to Admin Executive Dashboard</Link>
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (session?.user?.isAffiliate) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+        <Card className="w-full max-w-lg p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30">
+            <CheckCircle2 className="h-7 w-7" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            You&apos;re Already an Affiliate Partner
+          </h1>
+          <p className="mt-2 text-gray-600">
+            Your account is already active in our Affiliate Partner Program. You
+            can access your referral codes, earnings, and promotional resources
+            below.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button asChild className="bg-blue-600 hover:bg-blue-700">
+              <Link href="/affiliate/dashboard">Go to Affiliate Dashboard</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/dashboard">Go to Trading Dashboard</Link>
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
+    <div className="min-h-screen bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-2xl">
+        <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-gray-900">
             Become an Affiliate
           </h1>
@@ -135,18 +199,18 @@ export default function AffiliateRegisterPage(): React.ReactElement {
         </div>
 
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
             {error}
           </div>
         )}
 
         <form
           onSubmit={handleSubmit}
-          className="bg-white p-8 rounded-lg shadow-md space-y-6"
+          className="space-y-6 rounded-lg bg-white p-8 shadow-md"
         >
           {/* Personal Information */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Personal Information
             </h2>
 
@@ -154,7 +218,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
               <div>
                 <label
                   htmlFor="fullName"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="mb-1 block text-sm font-medium text-gray-700"
                 >
                   Full Name *
                 </label>
@@ -166,7 +230,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                   onChange={handleInputChange}
                   required
                   minLength={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                   placeholder="John Doe"
                 />
               </div>
@@ -174,7 +238,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
               <div>
                 <label
                   htmlFor="country"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="mb-1 block text-sm font-medium text-gray-700"
                 >
                   Country Code *
                 </label>
@@ -187,7 +251,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                   required
                   maxLength={2}
                   pattern="[A-Za-z]{2}"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                   placeholder="US"
                 />
                 <p className="mt-1 text-xs text-gray-500">
@@ -199,7 +263,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
 
           {/* Payment Information */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Payment Information
             </h2>
 
@@ -207,7 +271,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
               <div>
                 <label
                   htmlFor="paymentMethod"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="mb-1 block text-sm font-medium text-gray-700"
                 >
                   Payment Method *
                 </label>
@@ -216,7 +280,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                   name="paymentMethod"
                   value={formData.paymentMethod}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                 >
                   {AFFILIATE_CONFIG.PAYMENT_METHODS.map((method) => (
                     <option key={method} value={method}>
@@ -231,7 +295,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                 <div>
                   <label
                     htmlFor="paypalEmail"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="mb-1 block text-sm font-medium text-gray-700"
                   >
                     PayPal Email *
                   </label>
@@ -243,7 +307,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                       handlePaymentDetailChange('email', e.target.value)
                     }
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                     placeholder="your@paypal.com"
                   />
                 </div>
@@ -255,7 +319,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                   <div>
                     <label
                       htmlFor="bankName"
-                      className="block text-sm font-medium text-gray-700 mb-1"
+                      className="mb-1 block text-sm font-medium text-gray-700"
                     >
                       Bank Name *
                     </label>
@@ -267,13 +331,13 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                         handlePaymentDetailChange('bankName', e.target.value)
                       }
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
                   <div>
                     <label
                       htmlFor="accountNumber"
-                      className="block text-sm font-medium text-gray-700 mb-1"
+                      className="mb-1 block text-sm font-medium text-gray-700"
                     >
                       Account Number *
                     </label>
@@ -288,7 +352,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                         )
                       }
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
                 </>
@@ -299,7 +363,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                 <div>
                   <label
                     htmlFor="walletAddress"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="mb-1 block text-sm font-medium text-gray-700"
                   >
                     Wallet Address (USDT/BTC) *
                   </label>
@@ -311,7 +375,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                       handlePaymentDetailChange('walletAddress', e.target.value)
                     }
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                     placeholder="Your crypto wallet address"
                   />
                 </div>
@@ -322,7 +386,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                 <div>
                   <label
                     htmlFor="wiseEmail"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="mb-1 block text-sm font-medium text-gray-700"
                   >
                     Wise Email *
                   </label>
@@ -334,7 +398,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                       handlePaymentDetailChange('email', e.target.value)
                     }
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                     placeholder="your@wise.com"
                   />
                 </div>
@@ -344,18 +408,18 @@ export default function AffiliateRegisterPage(): React.ReactElement {
 
           {/* Social Media (Optional) */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Social Media (Optional)
             </h2>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="mb-4 text-sm text-gray-500">
               Add your social media profiles to help us verify your identity
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label
                   htmlFor="twitterUrl"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="mb-1 block text-sm font-medium text-gray-700"
                 >
                   Twitter/X
                 </label>
@@ -365,7 +429,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                   name="twitterUrl"
                   value={formData.twitterUrl}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                   placeholder="https://twitter.com/username"
                 />
               </div>
@@ -373,7 +437,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
               <div>
                 <label
                   htmlFor="youtubeUrl"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="mb-1 block text-sm font-medium text-gray-700"
                 >
                   YouTube
                 </label>
@@ -383,7 +447,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                   name="youtubeUrl"
                   value={formData.youtubeUrl}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                   placeholder="https://youtube.com/@channel"
                 />
               </div>
@@ -391,7 +455,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
               <div>
                 <label
                   htmlFor="instagramUrl"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="mb-1 block text-sm font-medium text-gray-700"
                 >
                   Instagram
                 </label>
@@ -401,7 +465,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                   name="instagramUrl"
                   value={formData.instagramUrl}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                   placeholder="https://instagram.com/username"
                 />
               </div>
@@ -409,7 +473,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
               <div>
                 <label
                   htmlFor="tiktokUrl"
-                  className="block text-sm font-medium text-gray-700 mb-1"
+                  className="mb-1 block text-sm font-medium text-gray-700"
                 >
                   TikTok
                 </label>
@@ -419,7 +483,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                   name="tiktokUrl"
                   value={formData.tiktokUrl}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
                   placeholder="https://tiktok.com/@username"
                 />
               </div>
@@ -427,7 +491,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
           </div>
 
           {/* Terms and Conditions */}
-          <div className="pt-4 border-t border-gray-200">
+          <div className="border-t border-gray-200 pt-4">
             <label className="flex items-start">
               <input
                 type="checkbox"
@@ -435,7 +499,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
                 checked={formData.terms}
                 onChange={handleInputChange}
                 required
-                className="mt-1 mr-3 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="mr-3 mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <span className="text-sm text-gray-600">
                 I agree to the affiliate program terms and conditions. I
@@ -451,18 +515,18 @@ export default function AffiliateRegisterPage(): React.ReactElement {
             <button
               type="submit"
               disabled={loading || !formData.terms}
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-md font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-md bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? 'Submitting...' : 'Register as Affiliate'}
             </button>
           </div>
 
           {/* Benefits Section */}
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">
+          <div className="mt-8 border-t border-gray-200 pt-6">
+            <h3 className="mb-3 text-sm font-semibold text-gray-900">
               Affiliate Benefits:
             </h3>
-            <ul className="text-sm text-gray-600 space-y-2">
+            <ul className="space-y-2 text-sm text-gray-600">
               <li>
                 - Earn {commissionPercent}% commission on every successful
                 referral
