@@ -127,11 +127,22 @@ export async function requireAffiliate(): Promise<Session> {
     const session = await requireAuth();
 
     if (!session.user?.isAffiliate) {
-      throw new AuthError(
-        'You must be an affiliate to access this resource',
-        'AFFILIATE_REQUIRED',
-        403
-      );
+      // Check database directly to eliminate JWT stale session race condition
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { id: true, isAffiliate: true, role: true, tier: true },
+      });
+
+      if (!dbUser?.isAffiliate) {
+        throw new AuthError(
+          'You must be an affiliate to access this resource',
+          'AFFILIATE_REQUIRED',
+          403
+        );
+      }
+
+      // Update session user in-memory
+      session.user.isAffiliate = true;
     }
 
     return session;
@@ -158,32 +169,46 @@ export async function getAffiliateProfile(): Promise<AffiliateProfile | null> {
   try {
     const session = await getSession();
 
-    if (!session?.user?.id || !session.user?.isAffiliate) {
+    if (!session?.user?.id) {
       return null;
     }
 
+    let isAff = Boolean(session.user.isAffiliate);
+
+    // Verify against DB to resolve any JWT token latency / race condition
+    let dbUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, isAffiliate: true, name: true, email: true },
+    });
+
+    if (!dbUser && session.user.email) {
+      dbUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true, isAffiliate: true, name: true, email: true },
+      });
+    }
+
+    if (dbUser?.isAffiliate) {
+      isAff = true;
+    }
+
+    if (!isAff) {
+      return null;
+    }
+
+    const userId = dbUser?.id || session.user.id;
+
     // Fetch affiliate profile from database
     let affiliateProfile = await prisma.affiliateProfile.findUnique({
-      where: { userId: session.user.id },
+      where: { userId },
     });
 
     if (!affiliateProfile) {
       try {
-        affiliateProfile = await prisma.affiliateProfile.create({
-          data: {
-            userId: session.user.id,
-            fullName: session.user.name || 'Affiliate Partner',
-            country: 'US',
-            paymentMethod: 'PAYPAL',
-            paymentDetails: {},
-            status: 'ACTIVE',
-            verifiedAt: new Date(),
-          },
-        });
-
-        // Also create a default affiliate referral code if none exists
         const baseCode = (
+          dbUser?.name ||
           session.user.name ||
+          dbUser?.email?.split('@')[0] ||
           session.user.email?.split('@')[0] ||
           'AFF'
         )
@@ -192,14 +217,28 @@ export async function getAffiliateProfile(): Promise<AffiliateProfile | null> {
           .slice(0, 6);
         const code = `${baseCode}${Math.floor(100 + Math.random() * 900)}`;
 
-        await prisma.affiliateCode.create({
-          data: {
-            affiliateProfileId: affiliateProfile.id,
-            code,
-            discountPercent: 10,
-            commissionPercent: 15,
+        affiliateProfile = await prisma.affiliateProfile.upsert({
+          where: { userId },
+          update: {
             status: 'ACTIVE',
-            expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          },
+          create: {
+            userId,
+            fullName: dbUser?.name || session.user.name || 'Affiliate Partner',
+            country: 'US',
+            paymentMethod: 'PAYPAL',
+            paymentDetails: {},
+            status: 'ACTIVE',
+            verifiedAt: new Date(),
+            affiliateCodes: {
+              create: {
+                code,
+                discountPercent: 10,
+                commissionPercent: 15,
+                status: 'ACTIVE',
+                expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+              },
+            },
           },
         });
       } catch (createErr) {
@@ -216,7 +255,9 @@ export async function getAffiliateProfile(): Promise<AffiliateProfile | null> {
 
     return {
       ...affiliateProfile,
-      totalEarnings: Number(affiliateProfile.totalEarnings),
+      totalEarnings: Number(affiliateProfile.totalEarnings ?? 0),
+      pendingCommissions: Number(affiliateProfile.pendingCommissions ?? 0),
+      paidCommissions: Number(affiliateProfile.paidCommissions ?? 0),
     } as unknown as AffiliateProfile;
   } catch (error) {
     console.error('Failed to fetch affiliate profile:', error);

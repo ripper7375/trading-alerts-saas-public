@@ -28,14 +28,46 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     const profile = await getAffiliateProfile();
 
     if (!profile) {
-      return NextResponse.json(
-        {
-          error: 'Profile not found',
-          message: 'Affiliate profile not found',
-          code: 'PROFILE_NOT_FOUND',
+      const session = await requireAffiliate();
+      const baseCode = (
+        session.user.name ||
+        session.user.email?.split('@')[0] ||
+        'AFF'
+      )
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '')
+        .slice(0, 6);
+      const code = `${baseCode}${Math.floor(100 + Math.random() * 900)}`;
+
+      const created = await prisma.affiliateProfile.upsert({
+        where: { userId: session.user.id },
+        update: { status: 'ACTIVE' },
+        create: {
+          userId: session.user.id,
+          fullName: session.user.name || 'Affiliate Partner',
+          country: 'US',
+          paymentMethod: 'PAYPAL',
+          paymentDetails: {},
+          status: 'ACTIVE',
+          verifiedAt: new Date(),
+          affiliateCodes: {
+            create: {
+              code,
+              discountPercent: 10,
+              commissionPercent: 15,
+              status: 'ACTIVE',
+              expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+            },
+          },
         },
-        { status: 404 }
-      );
+      });
+
+      return NextResponse.json({
+        ...created,
+        totalEarnings: Number(created.totalEarnings ?? 0),
+        pendingCommissions: Number(created.pendingCommissions ?? 0),
+        paidCommissions: Number(created.paidCommissions ?? 0),
+      });
     }
 
     return NextResponse.json(profile);
@@ -120,12 +152,27 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     }
 
     // Update profile
-    const updated = await prisma.affiliateProfile.update({
-      where: { id: profile.id },
-      data: validation.data,
+    const updated = await prisma.affiliateProfile.upsert({
+      where: { userId: profile.userId },
+      update: validation.data,
+      create: {
+        userId: profile.userId,
+        fullName:
+          validation.data.fullName || profile.fullName || 'Affiliate Partner',
+        country: validation.data.country || profile.country || 'US',
+        paymentMethod: 'PAYPAL',
+        paymentDetails: {},
+        status: 'ACTIVE',
+        ...validation.data,
+      },
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({
+      ...updated,
+      totalEarnings: Number(updated.totalEarnings ?? 0),
+      pendingCommissions: Number(updated.pendingCommissions ?? 0),
+      paidCommissions: Number(updated.paidCommissions ?? 0),
+    });
   } catch (error) {
     console.error('[Affiliate Profile PUT] Error:', error);
 
