@@ -138,6 +138,17 @@ wasn't force-changed into a dead-end redirect — flagging for Davin's call, fol
 row-86 (`/test-api`) precedent of flagging retirement candidates rather than unilaterally
 deciding. **Same pattern recurs at row 43 (`/affiliate/join`)** — see below.
 
+**Resolved (Davin's decision, 2026-08-17): converted to a redirect, matching C1.** Re-checked
+first and found the "reachable from Partner Profile → Payment Setup" premise above was
+slightly off — `app/affiliate/dashboard/profile/page.tsx`'s "Manage Payout Settings" button
+already links directly to `/affiliate/settings/payout`, not to this route (confirmed via a
+repo-wide grep for `profile/payment` — zero internal references). So converting this to a
+pure `redirect('/affiliate/settings/payout')`, mirroring C1's file exactly, left no dangling
+nav link anywhere; it only affects stale bookmarks/external links, which now resolve
+correctly instead of hitting a duplicate page. Row 43 (`/affiliate/join`) was deliberately
+**not** changed the same way — see its own note below, the two rows aren't actually the same
+situation despite the shared pattern description above.
+
 **Field-set gap (fixed)**: batch note asked to compare `wise-recipient-form.tsx`'s field
 set against Codebase 1's real form carefully. C1's real form (`components/affiliate/
 wise-recipient-form.tsx` in Codebase 1) is a multi-step, schema-driven Wise onboarding
@@ -192,6 +203,13 @@ page here instead, which funnels correctly to `/affiliate/register` via its own 
 Flagged only, not changed — nothing is missing (C2 has strictly more content), and this
 is the second occurrence of the same "C1 retired X in favour of Y, C2 kept X as a live
 page" pattern, worth Davin's attention as a recurring theme across this batch.
+
+**Resolved (Davin's decision, 2026-08-17): kept live, deliberately not converted to a
+redirect like row 39.** Unlike row 39's exact duplicate, this page has real, distinct
+marketing value C1 never had (C1 only ever had a bare redirect — zero content to lose by
+diverging). It's a legitimate DavinTrade-only funnel page, consistent with
+`00-MASTER-PLAN.md` §1's "superset, not a stripped-down replica" philosophy. No code
+change made; closing this as an intentional divergence rather than a gap.
 
 ### Row 44 — Partner Registration (`app/affiliate/register/page.tsx`)
 

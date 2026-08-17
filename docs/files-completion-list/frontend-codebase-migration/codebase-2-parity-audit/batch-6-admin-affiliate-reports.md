@@ -132,6 +132,13 @@ control seemed worse than flagging the underlying data-model gap; this needs a p
 decision (does Codebase 2 want per-code inventory tracking, or does the pool model replace it
 outright?) before it can be built correctly.
 
+**Resolved (Davin's decision, 2026-08-17): keep the pool model as the permanent design.**
+Codebase 1's per-code period selector, status/reason breakdown, expiring-soon alerts, and
+Cancel-a-Code widget are intentionally superseded by Codebase 2's pool-based tracking, not
+missing. This finding is closed — no further build work planned against it. If per-code
+tracking is ever wanted, it should be scoped as new product work against a real backend, not
+retrofitted onto this mock-data page.
+
 **File(s):** `app/admin/affiliates/reports/code-inventory/page.tsx`
 
 ### Row 8 — `/admin/affiliates/reports/commission-owings` (Commission Owings report)
@@ -164,6 +171,19 @@ $128,900.00 gross revenue vs. the "3 Months" default of $64,850.00), with the "G
 / net / average ticket) and Commission Breakdown (paid / approved / pending split) cards have
 no equivalent in Codebase 2 — flagged rather than built, given the proportionate scope of this
 pass and that the period selector was the higher-value, explicitly-called-out gap.
+
+**Resolved (2026-08-17): both breakdown cards added.** Extended `SUMMARY_BY_PERIOD` with
+`discountPercent`/`discounts`/`netRevenue`/`totalSales`/`averageTicket` and
+`paidCommissions`/`approvedCommissions`/`pendingCommissions` per period (all figures derived
+consistently from the existing `grossRevenue`/`affiliateExpense` values already in this file —
+5% discount rate, 70/20/10 paid/approved/pending split, and `averageTicket` fixed at
+`lib/tier-config.ts`'s real `PRO_MONTHLY_PRICE` ($29) rather than an arbitrary number, so
+`totalSales` backs out cleanly). Added the two card sections in the same
+`border-slate-800/80 bg-[#090b14]/90` styling already used by this page's summary cards, sums
+verified to tie out exactly to the existing Gross Revenue / Affiliate Expense figures at all 3
+period selections. `tsc --noEmit` and `next build` clean.
+
+**File(s):** `app/admin/affiliates/reports/profit-loss/page.tsx`
 
 **File(s):** `app/admin/affiliates/reports/profit-loss/page.tsx`
 

@@ -33,6 +33,15 @@ const SUMMARY_BY_PERIOD: Record<
     affiliateExpense: number;
     netOperatingProfit: number;
     averageNetMargin: number;
+    // Revenue Breakdown (matches Codebase 1's Revenue Breakdown card)
+    discountPercent: number;
+    discounts: number;
+    netRevenue: number;
+    totalSales: number;
+    // Commission Breakdown (matches Codebase 1's Commission Breakdown card)
+    paidCommissions: number;
+    approvedCommissions: number;
+    pendingCommissions: number;
   }
 > = {
   '3months': {
@@ -40,20 +49,44 @@ const SUMMARY_BY_PERIOD: Record<
     affiliateExpense: 10610.0,
     netOperatingProfit: 51399.35,
     averageNetMargin: 79.2,
+    discountPercent: 5,
+    discounts: 3242.5,
+    netRevenue: 61607.5,
+    totalSales: 2236,
+    paidCommissions: 7427.0,
+    approvedCommissions: 2122.0,
+    pendingCommissions: 1061.0,
   },
   '6months': {
     grossRevenue: 128900.0,
     affiliateExpense: 21240.0,
     netOperatingProfit: 101780.5,
     averageNetMargin: 79.0,
+    discountPercent: 5,
+    discounts: 6445.0,
+    netRevenue: 122455.0,
+    totalSales: 4445,
+    paidCommissions: 14868.0,
+    approvedCommissions: 4248.0,
+    pendingCommissions: 2124.0,
   },
   '1year': {
     grossRevenue: 253600.0,
     affiliateExpense: 41850.0,
     netOperatingProfit: 198760.75,
     averageNetMargin: 78.4,
+    discountPercent: 5,
+    discounts: 12680.0,
+    netRevenue: 240920.0,
+    totalSales: 8745,
+    paidCommissions: 29295.0,
+    approvedCommissions: 8370.0,
+    pendingCommissions: 4185.0,
   },
 };
+
+const formatUSD = (amount: number): string =>
+  `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function AdminReportProfitLossPage() {
   const { t } = useLocale();
@@ -196,6 +229,90 @@ export default function AdminReportProfitLossPage() {
             <div className="mt-1 font-mono text-2xl font-extrabold text-purple-400">
               {summary.averageNetMargin.toFixed(1)}%
             </div>
+          </Card>
+        </div>
+
+        {/* Revenue Breakdown & Commission Breakdown (matches Codebase 1's Detailed Breakdown section) */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Card className="border-slate-800/80 bg-[#090b14]/90 p-6">
+            <h2 className="mb-4 text-sm font-bold text-slate-200">
+              {t('Revenue Breakdown')}
+            </h2>
+            <dl className="space-y-3 text-xs">
+              <div className="flex justify-between">
+                <dt className="text-slate-400">
+                  {t('Gross Revenue')} (
+                  {summary.totalSales.toLocaleString('en-US')} {t('sales')}{' '}
+                  &times; {formatUSD(summary.grossRevenue / summary.totalSales)}
+                  )
+                </dt>
+                <dd className="font-mono font-semibold text-slate-200">
+                  {formatUSD(summary.grossRevenue)}
+                </dd>
+              </div>
+              <div className="flex justify-between text-red-400">
+                <dt>
+                  {t('Less: Discounts')} ({summary.discountPercent}%)
+                </dt>
+                <dd className="font-mono font-semibold">
+                  -{formatUSD(summary.discounts)}
+                </dd>
+              </div>
+              <div className="flex justify-between border-t border-slate-800 pt-3">
+                <dt className="font-bold text-slate-200">{t('Net Revenue')}</dt>
+                <dd className="font-mono text-sm font-bold text-emerald-400">
+                  {formatUSD(summary.netRevenue)}
+                </dd>
+              </div>
+              <div className="flex justify-between text-slate-500">
+                <dt>{t('Average Ticket')}</dt>
+                <dd className="font-mono">
+                  {formatUSD(summary.grossRevenue / summary.totalSales)}
+                </dd>
+              </div>
+            </dl>
+          </Card>
+
+          <Card className="border-slate-800/80 bg-[#090b14]/90 p-6">
+            <h2 className="mb-4 text-sm font-bold text-slate-200">
+              {t('Commission Breakdown')}
+            </h2>
+            <dl className="space-y-3 text-xs">
+              <div className="flex justify-between">
+                <dt className="text-slate-400">{t('Paid Commissions')}</dt>
+                <dd className="font-mono font-semibold text-emerald-400">
+                  {formatUSD(summary.paidCommissions)}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-slate-400">
+                  {t('Approved (Awaiting Payment)')}
+                </dt>
+                <dd className="font-mono font-semibold text-cyan-400">
+                  {formatUSD(summary.approvedCommissions)}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-slate-400">{t('Pending Approval')}</dt>
+                <dd className="font-mono font-semibold text-amber-400">
+                  {formatUSD(summary.pendingCommissions)}
+                </dd>
+              </div>
+              <div className="flex justify-between border-t border-slate-800 pt-3">
+                <dt className="font-bold text-slate-200">
+                  {t('Total Commissions')}
+                </dt>
+                <dd className="font-mono text-sm font-bold text-slate-100">
+                  {formatUSD(summary.affiliateExpense)}
+                </dd>
+              </div>
+              <div className="flex justify-between text-slate-500">
+                <dt>{t('Average Commission')}</dt>
+                <dd className="font-mono">
+                  {formatUSD(summary.affiliateExpense / summary.totalSales)}
+                </dd>
+              </div>
+            </dl>
           </Card>
         </div>
 

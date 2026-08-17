@@ -205,6 +205,15 @@ aria-live="assertive"`, "Back to Checkout" / "Go to Dashboard" buttons). The exi
   content, not less/broken), but it does contradict that established precedent — flagging for
   Davin rather than unilaterally rewriting page content outside this audit's Rule-1/Rule-2
   scope.
+
+  **Resolved (Davin's decision, 2026-08-17): fixed to match C1's precedent.** Replaced the 3
+  invented job listings and their `mailto:` Apply buttons with C1's actual "No open positions
+  right now" content and a general `careers@davintrade.com` contact line, restyled in
+  DavinTrade's dark theme/tokens (not a revert to C1's plain light styling — satisfies both
+  Rule 1's content-state parity and Rule 2's brand-token compliance at once). Removed the
+  now-unused `Briefcase`/`Sparkles`/`ShieldCheck`/`Heart` icon imports and the `Link` import
+  that were only used by the deleted listings grid. `tsc --noEmit` and `next build` clean.
+
 - **Row 54 — Changelog (`app/changelog/page.tsx`):** Structurally compliant (dated entries,
   most-recent-first). Same category of observation as Careers: several v2.x entries describe
   specific capabilities (e.g. "12-language localization engine," "Telegram bot" alert delivery)

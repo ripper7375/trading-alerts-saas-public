@@ -6,6 +6,17 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "davintrade-ui",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "-C",
+        "seed-code/trading-conversational-ai-ui-pages-increment",
+        "run",
+        "dev"
+      ],
+      "port": 3009
     }
   ]
 }
