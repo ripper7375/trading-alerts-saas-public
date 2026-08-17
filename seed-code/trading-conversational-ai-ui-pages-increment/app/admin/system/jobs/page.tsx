@@ -24,6 +24,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useLocale } from '@/lib/context/locale-context';
 
 export default function AdminSystemJobsPage() {
@@ -162,20 +173,48 @@ export default function AdminSystemJobsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleTrigger(j.id, j.name)}
-                      disabled={runningJob === j.id}
-                      className="border-slate-700 bg-[#06080e] text-xs text-slate-300 hover:bg-slate-800 hover:text-amber-400"
-                    >
-                      <Play
-                        className={`mr-1 h-3.5 w-3.5 ${runningJob === j.id ? 'animate-spin' : ''}`}
-                      />
-                      <span>
-                        {runningJob === j.id ? t('Running...') : t('Trigger')}
-                      </span>
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={runningJob === j.id}
+                          className="border-slate-700 bg-[#06080e] text-xs text-slate-300 hover:bg-slate-800 hover:text-amber-400"
+                        >
+                          <Play
+                            className={`mr-1 h-3.5 w-3.5 ${runningJob === j.id ? 'animate-spin' : ''}`}
+                          />
+                          <span>
+                            {runningJob === j.id
+                              ? t('Running...')
+                              : t('Trigger')}
+                          </span>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="border-slate-800 bg-[#090b14] text-slate-100">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            {t('Run')} {j.name}?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription className="text-slate-400">
+                            {t(
+                              'This triggers the exact same job code the scheduler runs automatically, right now, for real. Only proceed if you intend a real, immediate execution.'
+                            )}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="border-slate-700 bg-[#06080e] text-slate-200 hover:bg-slate-800">
+                            {t('Cancel')}
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleTrigger(j.id, j.name)}
+                            className="bg-amber-500 text-slate-950 hover:bg-amber-400"
+                          >
+                            {t('Run now')}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}

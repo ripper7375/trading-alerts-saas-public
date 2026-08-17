@@ -1,6 +1,7 @@
 'use client';
 
 import AppHeader from '@/components/layout/app-header';
+import { AdminNav } from '@/components/admin/admin-nav';
 import AdminStats from '@/components/admin/admin-stats';
 import UserTable from '@/components/admin/user-table';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,6 +22,8 @@ export default function AdminDashboardPage() {
           'Master System Telemetry, Fraud Warnings & Batch Disbursements'
         )}
       />
+
+      <AdminNav />
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">
         <div className="flex items-center justify-between rounded-2xl border border-rose-500/30 bg-gradient-to-r from-rose-950/40 via-[#0d0f1a] to-[#090b14] p-4">

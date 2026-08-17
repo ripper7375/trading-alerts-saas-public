@@ -86,6 +86,15 @@ export default function AdminErrorsLogPage() {
     }
   };
 
+  const filteredErrors = errors.filter((err) => {
+    const q = search.toLowerCase();
+    return (
+      err.source.toLowerCase().includes(q) ||
+      err.message.toLowerCase().includes(q) ||
+      err.id.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
@@ -113,77 +122,83 @@ export default function AdminErrorsLogPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Error List */}
           <div className="space-y-3 lg:col-span-2">
-            {errors.map((err) => (
-              <Card
-                key={err.id}
-                onClick={() => setSelectedError(err)}
-                className={`cursor-pointer border p-4 transition-all ${
-                  selectedError?.id === err.id
-                    ? 'border-amber-500/40 bg-[#0d1020]'
-                    : err.resolved
-                      ? 'border-slate-800/60 bg-[#070912]/80 opacity-70'
-                      : 'border-rose-500/30 bg-[#0a0d18]'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
-                        err.level === 'ERROR'
-                          ? 'border border-rose-500/40 bg-rose-500/20 text-rose-400'
-                          : 'border border-amber-500/40 bg-amber-500/20 text-amber-400'
-                      }`}
-                    >
-                      <AlertOctagon className="h-4 w-4" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-slate-200">
-                          {err.source}
-                        </span>
-                        <Badge
-                          className={`py-0 text-[10px] ${err.level === 'ERROR' ? 'bg-rose-950 text-rose-300' : 'bg-amber-950 text-amber-300'}`}
-                        >
-                          {err.level}
-                        </Badge>
-                        {err.count > 1 && (
-                          <span className="py-0.2 rounded bg-slate-800 px-1.5 font-mono text-[10px] text-slate-400">
-                            x{err.count}
-                          </span>
-                        )}
-                      </div>
-                      <p className="font-mono text-xs leading-relaxed text-slate-300">
-                        {err.message}
-                      </p>
-                      <div className="font-mono text-[10px] text-slate-500">
-                        {err.timestamp}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    {err.resolved ? (
-                      <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                        Resolved
-                      </Badge>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleResolve(err.id);
-                        }}
-                        className="text-xs text-emerald-400 hover:bg-emerald-950/30"
+            {filteredErrors.length === 0 ? (
+              <div className="py-12 text-center text-xs text-slate-500">
+                {t('No error logs match your search.')}
+              </div>
+            ) : (
+              filteredErrors.map((err) => (
+                <Card
+                  key={err.id}
+                  onClick={() => setSelectedError(err)}
+                  className={`cursor-pointer border p-4 transition-all ${
+                    selectedError?.id === err.id
+                      ? 'border-amber-500/40 bg-[#0d1020]'
+                      : err.resolved
+                        ? 'border-slate-800/60 bg-[#070912]/80 opacity-70'
+                        : 'border-rose-500/30 bg-[#0a0d18]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                          err.level === 'ERROR'
+                            ? 'border border-rose-500/40 bg-rose-500/20 text-rose-400'
+                            : 'border border-amber-500/40 bg-amber-500/20 text-amber-400'
+                        }`}
                       >
-                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                        Resolve
-                      </Button>
-                    )}
+                        <AlertOctagon className="h-4 w-4" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-slate-200">
+                            {err.source}
+                          </span>
+                          <Badge
+                            className={`py-0 text-[10px] ${err.level === 'ERROR' ? 'bg-rose-950 text-rose-300' : 'bg-amber-950 text-amber-300'}`}
+                          >
+                            {err.level}
+                          </Badge>
+                          {err.count > 1 && (
+                            <span className="py-0.2 rounded bg-slate-800 px-1.5 font-mono text-[10px] text-slate-400">
+                              x{err.count}
+                            </span>
+                          )}
+                        </div>
+                        <p className="font-mono text-xs leading-relaxed text-slate-300">
+                          {err.message}
+                        </p>
+                        <div className="font-mono text-[10px] text-slate-500">
+                          {err.timestamp}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      {err.resolved ? (
+                        <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
+                          Resolved
+                        </Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleResolve(err.id);
+                          }}
+                          className="text-xs text-emerald-400 hover:bg-emerald-950/30"
+                        >
+                          <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                          Resolve
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              ))
+            )}
           </div>
 
           {/* Error Detail Panel */}

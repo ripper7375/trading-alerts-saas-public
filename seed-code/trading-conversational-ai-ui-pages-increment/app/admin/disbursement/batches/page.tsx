@@ -1,23 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import {
-  Layers,
-  Send,
-  CheckCircle2,
-  Clock,
-  Eye,
-  Plus,
-  Landmark,
-  Download,
-  AlertTriangle,
-} from 'lucide-react';
-import AppHeader from '@/components/layout/app-header';
-import { AdminNav } from '@/components/admin/admin-nav';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Plus, RefreshCw } from 'lucide-react';
+
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Table,
   TableBody,
@@ -26,143 +39,457 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  BatchStatusBadge,
+  type BatchStatus,
+} from '@/components/disbursement/status-badge';
 import { useLocale } from '@/lib/context/locale-context';
 
-export default function AdminDisbursementBatchesPage() {
-  const { t } = useLocale();
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TYPES & SEED DATA
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  const batches = [
-    {
-      id: 'BATCH-2026-08',
-      date: '2026-08-31',
-      partnerCount: 2,
-      totalAmount: 1029.0,
-      method: 'Wise Business',
-      status: 'QUEUED',
-    },
-    {
-      id: 'BATCH-2026-07',
-      date: '2026-07-31',
-      partnerCount: 3,
-      totalAmount: 960.4,
-      method: 'Wise Business',
-      status: 'SETTLED',
-    },
-    {
-      id: 'BATCH-2026-06',
-      date: '2026-06-30',
-      partnerCount: 2,
-      totalAmount: 519.4,
-      method: 'Wise Business',
-      status: 'SETTLED',
-    },
-  ];
+interface PaymentBatch {
+  id: string;
+  batchNumber: string;
+  paymentCount: number;
+  totalAmount: number;
+  provider: 'WISE' | 'RISE' | 'MOCK';
+  status: BatchStatus;
+  createdAt: string;
+}
+
+const INITIAL_BATCHES: PaymentBatch[] = [
+  {
+    id: 'batch-2026-08a',
+    batchNumber: 'BATCH-2026-08A',
+    paymentCount: 18,
+    totalAmount: 14250.0,
+    provider: 'WISE',
+    status: 'PENDING',
+    createdAt: '2026-08-15T09:00:00Z',
+  },
+  {
+    id: 'batch-2026-07b',
+    batchNumber: 'BATCH-2026-07B',
+    paymentCount: 9,
+    totalAmount: 8400.0,
+    provider: 'RISE',
+    status: 'COMPLETED',
+    createdAt: '2026-07-31T00:05:00Z',
+  },
+  {
+    id: 'batch-2026-06',
+    batchNumber: 'BATCH-2026-06',
+    paymentCount: 7,
+    totalAmount: 5194.0,
+    provider: 'WISE',
+    status: 'COMPLETED',
+    createdAt: '2026-06-30T00:05:00Z',
+  },
+];
+
+interface BatchPreviewItem {
+  affiliateId: string;
+  affiliateName: string;
+  commissionCount: number;
+  totalAmount: number;
+  eligible: boolean;
+  reason?: string;
+}
+
+const BATCH_PREVIEW: BatchPreviewItem[] = [
+  {
+    affiliateId: 'aff-101',
+    affiliateName: 'Alex Morgan',
+    commissionCount: 6,
+    totalAmount: 617.4,
+    eligible: true,
+  },
+  {
+    affiliateId: 'aff-102',
+    affiliateName: 'Marcus Vance',
+    commissionCount: 4,
+    totalAmount: 411.6,
+    eligible: true,
+  },
+  {
+    affiliateId: 'aff-103',
+    affiliateName: 'Elena Rostova',
+    commissionCount: 2,
+    totalAmount: 32.5,
+    eligible: false,
+    reason: 'Below $50.00 minimum threshold',
+  },
+];
+
+const STATUS_OPTIONS: Array<BatchStatus | 'ALL'> = [
+  'ALL',
+  'PENDING',
+  'QUEUED',
+  'PROCESSING',
+  'COMPLETED',
+  'FAILED',
+  'CANCELLED',
+];
+
+export default function PaymentBatchesPage() {
+  const { t, formatCurrency, formatDate } = useLocale();
+
+  const [batches, setBatches] = useState<PaymentBatch[]>(INITIAL_BATCHES);
+  const [statusFilter, setStatusFilter] = useState<BatchStatus | 'ALL'>('ALL');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
+  const eligiblePreview = BATCH_PREVIEW.filter((item) => item.eligible);
+  const previewTotal = eligiblePreview.reduce(
+    (sum, item) => sum + item.totalAmount,
+    0
+  );
+
+  const filteredBatches =
+    statusFilter === 'ALL'
+      ? batches
+      : batches.filter((b) => b.status === statusFilter);
+
+  const handleCreateBatch = (): void => {
+    setIsProcessing(true);
+    setTimeout(() => {
+      const newBatch: PaymentBatch = {
+        id: `batch-${Date.now()}`,
+        batchNumber: `BATCH-2026-09-${String(batches.length + 1).padStart(2, '0')}`,
+        paymentCount: eligiblePreview.length,
+        totalAmount: previewTotal,
+        provider: 'WISE',
+        status: 'PENDING',
+        createdAt: new Date().toISOString(),
+      };
+      setBatches((prev) => [newBatch, ...prev]);
+      setIsProcessing(false);
+      setShowCreateDialog(false);
+      setSuccessMessage(`Batch created: ${newBatch.batchNumber}`);
+      setTimeout(() => setSuccessMessage(null), 4000);
+    }, 900);
+  };
+
+  const handleExecuteBatch = (batchId: string): void => {
+    setIsProcessing(true);
+    setTimeout(() => {
+      setBatches((prev) =>
+        prev.map((b) =>
+          b.id === batchId ? { ...b, status: 'COMPLETED' as BatchStatus } : b
+        )
+      );
+      setIsProcessing(false);
+      setSuccessMessage('Batch executed: all payments succeeded');
+      setTimeout(() => setSuccessMessage(null), 4000);
+    }, 1000);
+  };
+
+  const handleDeleteBatch = (): void => {
+    if (!deleteTargetId) return;
+    setBatches((prev) => prev.filter((b) => b.id !== deleteTargetId));
+    setDeleteTargetId(null);
+    setSuccessMessage('Batch deleted successfully');
+    setTimeout(() => setSuccessMessage(null), 4000);
+  };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
-      <AppHeader
-        title={t('Admin Disbursement: Payout Batches')}
-        subtitle={t(
-          'Automated & Manual Monthly Payout Batches, Multi-Recipient Processing & Settlement History'
-        )}
-      />
-
-      <AdminNav />
-
-      <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-2">
-            <Badge className="border-amber-500/40 bg-amber-500/20 text-xs text-amber-400">
-              {t('1 Batch Pending Execution')}
-            </Badge>
-          </div>
-
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-100 sm:text-3xl">
+            {t('Payment Batches')}
+          </h1>
+          <p className="mt-1 text-sm text-slate-400">
+            {t('Manage and execute payment batches')}
+          </p>
+        </div>
+        <div className="flex gap-2">
           <Button
-            onClick={() => alert('Create new disbursement batch')}
-            className="self-start bg-amber-500 font-bold text-slate-950 hover:bg-amber-400 sm:self-auto"
+            variant="outline"
+            className="border-slate-800 bg-[#090c14] text-slate-300 hover:bg-slate-800"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+            {t('Refresh')}
+          </Button>
+          <Button
+            onClick={() => setShowCreateDialog(true)}
+            className="bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            {t('Generate New Payout Batch')}
+            {t('Create Batch')}
           </Button>
         </div>
+      </div>
 
+      {successMessage && (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
+          {t(successMessage)}
+        </div>
+      )}
+
+      {/* Status Filter */}
+      <Card className="border-slate-800/80 bg-[#090c14]">
+        <CardContent className="flex flex-wrap gap-2 py-4">
+          {STATUS_OPTIONS.map((status) => (
+            <Button
+              key={status}
+              size="sm"
+              variant={statusFilter === status ? 'default' : 'outline'}
+              onClick={() => setStatusFilter(status)}
+              className={
+                statusFilter === status
+                  ? 'bg-amber-500 font-bold text-slate-950 hover:bg-amber-400'
+                  : 'border-slate-800 bg-transparent text-xs text-slate-300 hover:bg-slate-800'
+              }
+            >
+              {status === 'ALL' ? t('All Batches') : status}
+            </Button>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Batches Table */}
+      {filteredBatches.length > 0 ? (
         <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
           <Table>
             <TableHeader className="bg-[#06080e]">
               <TableRow className="border-slate-800 hover:bg-transparent">
                 <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Batch ID')}
-                </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Scheduled Execution')}
-                </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Recipient Count')}
-                </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Total Disbursement')}
-                </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
-                  {t('Gateway Method')}
+                  {t('Batch #')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
                   {t('Status')}
                 </TableHead>
+                <TableHead className="text-xs font-bold text-slate-300">
+                  {t('Payments')}
+                </TableHead>
+                <TableHead className="text-xs font-bold text-slate-300">
+                  {t('Amount')}
+                </TableHead>
+                <TableHead className="text-xs font-bold text-slate-300">
+                  {t('Provider')}
+                </TableHead>
+                <TableHead className="text-xs font-bold text-slate-300">
+                  {t('Created')}
+                </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
-                  {t('Action')}
+                  {t('Actions')}
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {batches.map((b) => (
+              {filteredBatches.map((batch) => (
                 <TableRow
-                  key={b.id}
+                  key={batch.id}
                   className="border-slate-800/60 hover:bg-slate-800/30"
                 >
-                  <TableCell className="font-mono text-xs font-bold text-slate-200">
-                    {b.id}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-400">
-                    {b.date}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-300">
-                    {b.partnerCount} Partners
-                  </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-emerald-400">
-                    ${b.totalAmount.toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-xs text-slate-300">
-                    {b.method}
+                  <TableCell>
+                    <Link
+                      href={`/admin/disbursement/batches/${batch.id}`}
+                      className="font-mono text-xs font-bold text-amber-400 hover:text-amber-300"
+                    >
+                      {batch.batchNumber}
+                    </Link>
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      className={`text-[10px] ${
-                        b.status === 'SETTLED'
-                          ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-400'
-                          : 'border-amber-500/40 bg-amber-500/20 text-amber-400'
-                      }`}
-                    >
-                      {b.status}
+                    <BatchStatusBadge status={batch.status} />
+                  </TableCell>
+                  <TableCell className="text-xs text-slate-300">
+                    {batch.paymentCount}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs font-bold text-emerald-400">
+                    {formatCurrency(batch.totalAmount)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge className="border-slate-600/40 bg-slate-600/15 text-[10px] text-slate-300">
+                      {batch.provider}
                     </Badge>
                   </TableCell>
+                  <TableCell className="font-mono text-xs text-slate-400">
+                    {formatDate(batch.createdAt)}
+                  </TableCell>
                   <TableCell className="text-right">
-                    <Link href={`/admin/disbursement/batches/${b.id}`}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs text-amber-400 hover:bg-amber-500/10"
-                      >
-                        <Eye className="mr-1 h-3.5 w-3.5" />
-                        <span>{t('View Batch')}</span>
-                      </Button>
-                    </Link>
+                    <div className="flex justify-end gap-2">
+                      {batch.status === 'PENDING' && (
+                        <Button
+                          size="sm"
+                          disabled={isProcessing}
+                          onClick={() => handleExecuteBatch(batch.id)}
+                          className="h-7 bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-500"
+                        >
+                          {t('Execute')}
+                        </Button>
+                      )}
+                      {(batch.status === 'PENDING' ||
+                        batch.status === 'CANCELLED' ||
+                        batch.status === 'FAILED') && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={isProcessing}
+                          onClick={() => setDeleteTargetId(batch.id)}
+                          className="h-7 text-xs"
+                        >
+                          {t('Delete')}
+                        </Button>
+                      )}
+                      <Link href={`/admin/disbursement/batches/${batch.id}`}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 border-slate-800 bg-transparent text-xs text-slate-300 hover:bg-slate-800"
+                        >
+                          {t('Details')}
+                        </Button>
+                      </Link>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </Card>
-      </main>
+      ) : (
+        <Card className="border-slate-800/80 bg-[#090c14]">
+          <CardContent className="py-12 text-center text-sm text-slate-400">
+            {t('No batches found.')}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Create Batch Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="max-h-[80vh] max-w-2xl overflow-auto border-slate-800 bg-[#0b0e17] text-slate-100">
+          <DialogHeader>
+            <DialogTitle>{t('Create Payment Batch')}</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {t('Review the batch preview before creating')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="rounded-lg bg-slate-800/50 p-3">
+              <p className="text-xs text-slate-400">{t('Total Affiliates')}</p>
+              <p className="text-xl font-bold text-slate-100">
+                {BATCH_PREVIEW.length}
+              </p>
+            </div>
+            <div className="rounded-lg bg-slate-800/50 p-3">
+              <p className="text-xs text-slate-400">{t('Eligible')}</p>
+              <p className="text-xl font-bold text-emerald-400">
+                {eligiblePreview.length}
+              </p>
+            </div>
+            <div className="rounded-lg bg-slate-800/50 p-3">
+              <p className="text-xs text-slate-400">{t('Total Amount')}</p>
+              <p className="text-xl font-bold text-emerald-400">
+                {formatCurrency(previewTotal)}
+              </p>
+            </div>
+          </div>
+
+          <div className="max-h-60 overflow-auto rounded-lg border border-slate-800">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-[#06080e]">
+                <tr className="border-b border-slate-800 text-slate-400">
+                  <th className="px-3 py-2 text-left font-medium">
+                    {t('Affiliate')}
+                  </th>
+                  <th className="px-3 py-2 text-left font-medium">
+                    {t('Commissions')}
+                  </th>
+                  <th className="px-3 py-2 text-left font-medium">
+                    {t('Amount')}
+                  </th>
+                  <th className="px-3 py-2 text-left font-medium">
+                    {t('Eligible')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {BATCH_PREVIEW.map((item) => (
+                  <tr
+                    key={item.affiliateId}
+                    className="border-b border-slate-800/50 last:border-0"
+                  >
+                    <td className="px-3 py-2 text-slate-200">
+                      {item.affiliateName}
+                    </td>
+                    <td className="px-3 py-2 text-slate-300">
+                      {item.commissionCount}
+                    </td>
+                    <td className="px-3 py-2 font-mono text-emerald-400">
+                      {formatCurrency(item.totalAmount)}
+                    </td>
+                    <td className="px-3 py-2">
+                      {item.eligible ? (
+                        <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[9px] text-emerald-300">
+                          {t('Yes')}
+                        </Badge>
+                      ) : (
+                        <Badge className="border-rose-500/40 bg-rose-500/15 text-[9px] text-rose-300">
+                          {item.reason || t('No')}
+                        </Badge>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              className="border-slate-800 bg-transparent text-slate-300 hover:bg-slate-800"
+              onClick={() => setShowCreateDialog(false)}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              disabled={isProcessing || eligiblePreview.length === 0}
+              onClick={handleCreateBatch}
+              className="bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
+            >
+              {isProcessing ? t('Creating...') : t('Create Batch')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog
+        open={deleteTargetId !== null}
+        onOpenChange={(open) => !open && setDeleteTargetId(null)}
+      >
+        <AlertDialogContent className="border-slate-800 bg-[#0b0e17] text-slate-100">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('Delete this batch?')}</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              {t(
+                'This permanently removes the batch and cannot be undone. Only pending, cancelled, or failed batches can be deleted.'
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-slate-800 bg-transparent text-slate-300 hover:bg-slate-800">
+              {t('Cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteBatch}
+              className="bg-rose-600 text-white hover:bg-rose-500"
+            >
+              {t('Delete Batch')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

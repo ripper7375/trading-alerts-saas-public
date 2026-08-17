@@ -1,15 +1,25 @@
 'use client';
 
+import { useState } from 'react';
+import Link from 'next/link';
 import AppHeader from '@/components/layout/app-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, AlertTriangle, CheckCircle2, Ban } from 'lucide-react';
+import {
+  ShieldAlert,
+  AlertTriangle,
+  CheckCircle2,
+  Ban,
+  ChevronRight,
+} from 'lucide-react';
 import { useLocale } from '@/lib/context/locale-context';
+
+type FraudItemStatus = 'ACTION_REQUIRED' | 'BLOCKED' | 'DISMISSED';
 
 export default function FraudAlertsPage() {
   const { t } = useLocale();
 
-  const fraudItems = [
+  const [fraudItems, setFraudItems] = useState([
     {
       id: 'FRAUD-101',
       pattern: t('IP Multi-Account Velocity'),
@@ -19,7 +29,7 @@ export default function FraudAlertsPage() {
       details: t(
         '15 trial accounts created in 5 minutes using temporary email domains.'
       ),
-      status: t('Action Required'),
+      status: 'ACTION_REQUIRED' as FraudItemStatus,
     },
     {
       id: 'FRAUD-102',
@@ -30,9 +40,21 @@ export default function FraudAlertsPage() {
       details: t(
         'Commission code used by account sharing identical payout bank details.'
       ),
-      status: t('Action Required'),
+      status: 'ACTION_REQUIRED' as FraudItemStatus,
     },
-  ];
+  ]);
+
+  const setItemStatus = (id: string, status: FraudItemStatus) => {
+    setFraudItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, status } : item))
+    );
+  };
+
+  const statusLabel: Record<FraudItemStatus, string> = {
+    ACTION_REQUIRED: t('Action Required'),
+    BLOCKED: t('Blocked'),
+    DISMISSED: t('Dismissed'),
+  };
 
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] select-none">
@@ -73,8 +95,16 @@ export default function FraudAlertsPage() {
                       {item.pattern}
                     </span>
                   </div>
-                  <Badge className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300">
-                    {item.status}
+                  <Badge
+                    className={
+                      item.status === 'BLOCKED'
+                        ? 'border-rose-500/40 bg-rose-500/15 font-mono text-[9px] text-rose-300'
+                        : item.status === 'DISMISSED'
+                          ? 'border-emerald-500/40 bg-emerald-500/15 font-mono text-[9px] text-emerald-300'
+                          : 'border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300'
+                    }
+                  >
+                    {statusLabel[item.status]}
                   </Badge>
                 </div>
 
@@ -83,10 +113,12 @@ export default function FraudAlertsPage() {
                   {t('User:')} {item.user} • {t('Target IP:')} {item.ip}
                 </div>
 
-                <div className="flex gap-2 pt-2">
+                <div className="flex flex-wrap gap-2 pt-2">
                   <Button
                     size="sm"
-                    className="h-7 bg-rose-600 text-[10px] font-bold text-white hover:bg-rose-500"
+                    disabled={item.status !== 'ACTION_REQUIRED'}
+                    onClick={() => setItemStatus(item.id, 'BLOCKED')}
+                    className="h-7 bg-rose-600 text-[10px] font-bold text-white hover:bg-rose-500 disabled:opacity-40"
                   >
                     <Ban className="mr-1 h-3 w-3" />{' '}
                     {t('Suspend Account & Block IP')}
@@ -94,10 +126,22 @@ export default function FraudAlertsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-slate-750 h-7 text-[10px] text-slate-300"
+                    disabled={item.status !== 'ACTION_REQUIRED'}
+                    onClick={() => setItemStatus(item.id, 'DISMISSED')}
+                    className="border-slate-750 h-7 text-[10px] text-slate-300 disabled:opacity-40"
                   >
                     {t('Dismiss as False Positive')}
                   </Button>
+                  <Link href={`/admin/fraud-alerts/${item.id}`}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 border-amber-500/30 bg-amber-500/5 text-[10px] text-amber-300 hover:bg-amber-500/15"
+                    >
+                      {t('View & Investigate')}
+                      <ChevronRight className="ml-1 h-3 w-3" />
+                    </Button>
+                  </Link>
                 </div>
               </div>
             ))}

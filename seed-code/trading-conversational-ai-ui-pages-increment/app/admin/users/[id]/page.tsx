@@ -65,6 +65,40 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
   const [affiliateCode, setAffiliateCode] = useState('GOLDPRO20');
   const [createdAt, setCreatedAt] = useState('2026-06-12');
   const [lastLogin, setLastLogin] = useState('10 minutes ago');
+  const [emailVerified] = useState(true);
+  const [activeSessions] = useState(2);
+
+  // Subscription & Billing (read-only summary, matches Codebase 1's
+  // Subscription & Billing card)
+  const subscription = {
+    status: 'ACTIVE',
+    provider: 'Stripe',
+    subscriptionId: 'sub_1PXk2LGoldPro',
+    plan: 'MONTHLY',
+    periodEnd: '2026-09-12',
+    trialStatus: 'CONVERTED',
+  };
+
+  // Fraud alerts attributed to this user (read-only summary, matches
+  // Codebase 1's per-user Fraud Alerts card)
+  const userFraudAlerts = [
+    {
+      id: 'FRAUD-102',
+      pattern: t('Affiliate Self-Referral'),
+      severity: 'HIGH' as const,
+      status: t('Action Required'),
+      createdAt: '2026-08-10',
+    },
+  ];
+
+  // Affiliate & code stats (read-only summary, matches Codebase 1's
+  // Affiliate & Code Info card)
+  const affiliateStats = {
+    status: 'ACTIVE',
+    codesDistributed: 3,
+    totalEarnings: 1240.5,
+    pendingCommissions: 185.0,
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,6 +205,17 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                     >
                       {role}
                     </Badge>
+                    <Badge
+                      variant="outline"
+                      className={
+                        emailVerified
+                          ? 'border-emerald-500/30 text-[10px] text-emerald-400'
+                          : 'border-slate-700 text-[10px] text-slate-400'
+                      }
+                    >
+                      <Mail className="mr-1 h-3 w-3" />
+                      {emailVerified ? t('Verified') : t('Unverified')}
+                    </Badge>
                   </div>
                   <p className="text-xs text-slate-400">
                     {email} • UID: {userId}
@@ -273,7 +318,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 pt-2 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 pt-2 md:grid-cols-3">
               <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
                 <div className="space-y-0.5">
                   <div className="text-xs font-bold text-slate-200">
@@ -287,6 +332,21 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                   checked={twoFactorEnabled}
                   onCheckedChange={setTwoFactorEnabled}
                 />
+              </div>
+
+              <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
+                <div className="space-y-0.5">
+                  <div className="text-xs font-bold text-slate-200">
+                    {t('Active Sessions')}
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    {t('Signed in on')} {activeSessions}{' '}
+                    {activeSessions === 1 ? t('device') : t('devices')}
+                  </p>
+                </div>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-[#090b14] text-sm font-bold text-slate-200">
+                  {activeSessions}
+                </div>
               </div>
 
               <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
@@ -307,6 +367,136 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
               </div>
             </div>
           </Card>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {/* Subscription & Billing */}
+            <Card className="space-y-3 border-slate-800/80 bg-[#090b14]/90 p-5 backdrop-blur-xl">
+              <div className="flex items-center gap-2 border-b border-slate-800/80 pb-3">
+                <CreditCard className="h-4 w-4 text-amber-400" />
+                <h4 className="text-xs font-bold text-slate-200">
+                  {t('Subscription & Billing')}
+                </h4>
+              </div>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">{t('Status')}</span>
+                  <Badge className="bg-emerald-500 text-[10px] font-bold text-slate-950">
+                    {subscription.status}
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">{t('Provider')}</span>
+                  <span className="text-slate-200">
+                    {subscription.provider}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">{t('Subscription ID')}</span>
+                  <span className="font-mono text-[11px] text-slate-300">
+                    {subscription.subscriptionId}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">{t('Plan')}</span>
+                  <span className="text-slate-200">{subscription.plan}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">{t('Period End')}</span>
+                  <span className="text-slate-200">
+                    {subscription.periodEnd}
+                  </span>
+                </div>
+                <div className="flex justify-between border-t border-slate-800 pt-2">
+                  <span className="text-slate-400">{t('Trial Status')}</span>
+                  <span className="text-slate-200">
+                    {subscription.trialStatus}
+                  </span>
+                </div>
+              </div>
+            </Card>
+
+            {/* Fraud Alerts */}
+            <Card className="space-y-3 border-slate-800/80 bg-[#090b14]/90 p-5 backdrop-blur-xl">
+              <div className="flex items-center gap-2 border-b border-slate-800/80 pb-3">
+                <ShieldAlert className="h-4 w-4 text-rose-400" />
+                <h4 className="text-xs font-bold text-slate-200">
+                  {t('Fraud Alerts')}
+                </h4>
+                {userFraudAlerts.length > 0 && (
+                  <Badge className="bg-rose-600 text-[9px] text-white">
+                    {userFraudAlerts.length}
+                  </Badge>
+                )}
+              </div>
+              {userFraudAlerts.length === 0 ? (
+                <p className="text-xs text-slate-400">
+                  {t('No fraud alerts on record.')}
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {userFraudAlerts.map((alert) => (
+                    <li key={alert.id}>
+                      <Link
+                        href={`/admin/fraud-alerts/${alert.id}`}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-slate-800 bg-[#06080e] p-2.5 text-xs hover:border-rose-500/40"
+                      >
+                        <div>
+                          <div className="font-semibold text-slate-100">
+                            {alert.pattern}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            {alert.createdAt}
+                          </div>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className="border-rose-500/40 text-[9px] text-rose-300"
+                        >
+                          {alert.severity}
+                        </Badge>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+
+            {/* Affiliate & Code Info */}
+            <Card className="space-y-3 border-slate-800/80 bg-[#090b14]/90 p-5 backdrop-blur-xl lg:col-span-2">
+              <div className="flex items-center gap-2 border-b border-slate-800/80 pb-3">
+                <Layers className="h-4 w-4 text-amber-400" />
+                <h4 className="text-xs font-bold text-slate-200">
+                  {t('Affiliate & Code Info')}
+                </h4>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4">
+                <div>
+                  <p className="text-slate-400">{t('Status')}</p>
+                  <Badge className="mt-1 bg-emerald-500 text-[10px] font-bold text-slate-950">
+                    {affiliateStats.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-slate-400">{t('Codes Distributed')}</p>
+                  <p className="mt-1 text-base font-bold text-slate-100">
+                    {affiliateStats.codesDistributed}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-slate-400">{t('Total Earnings')}</p>
+                  <p className="mt-1 text-base font-bold text-slate-100">
+                    ${affiliateStats.totalEarnings.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-slate-400">{t('Pending Commissions')}</p>
+                  <p className="mt-1 text-base font-bold text-amber-400">
+                    ${affiliateStats.pendingCommissions.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
 
           <div className="flex justify-end gap-3">
             <Button

@@ -30,8 +30,10 @@ import { useLocale } from '@/lib/context/locale-context';
 export default function AdminSystemOutboxPage() {
   const { t } = useLocale();
   const [search, setSearch] = useState('');
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [success, setSuccess] = useState('');
 
-  const outboxMessages = [
+  const [outboxMessages, setOutboxMessages] = useState([
     {
       id: 'OUT-9982',
       recipient: 'sarah.j@trademail.com',
@@ -40,6 +42,7 @@ export default function AdminSystemOutboxPage() {
       attempts: 1,
       lastAttempt: '10m ago',
       status: 'SENT',
+      lastError: null as string | null,
     },
     {
       id: 'OUT-9981',
@@ -49,6 +52,7 @@ export default function AdminSystemOutboxPage() {
       attempts: 1,
       lastAttempt: '2h ago',
       status: 'SENT',
+      lastError: null as string | null,
     },
     {
       id: 'OUT-9980',
@@ -58,8 +62,55 @@ export default function AdminSystemOutboxPage() {
       attempts: 1,
       lastAttempt: '5h ago',
       status: 'SENT',
+      lastError: null as string | null,
     },
-  ];
+    {
+      id: 'OUT-9979',
+      recipient: 'trader.mike@protonmail.com',
+      channel: 'EMAIL_SES',
+      subject: 'Password Reset Requested',
+      attempts: 3,
+      lastAttempt: '22m ago',
+      status: 'FAILED',
+      lastError: 'SES throttling: Maximum sending rate exceeded',
+    },
+  ]);
+
+  const filteredMessages = outboxMessages.filter((m) => {
+    const q = search.toLowerCase();
+    return (
+      m.id.toLowerCase().includes(q) ||
+      m.recipient.toLowerCase().includes(q) ||
+      m.subject.toLowerCase().includes(q)
+    );
+  });
+
+  const statusCounts = {
+    SENT: outboxMessages.filter((m) => m.status === 'SENT').length,
+    PENDING: outboxMessages.filter((m) => m.status === 'PENDING').length,
+    FAILED: outboxMessages.filter((m) => m.status === 'FAILED').length,
+  };
+
+  const handleRetryFailed = () => {
+    setIsRetrying(true);
+    setTimeout(() => {
+      setOutboxMessages((prev) =>
+        prev.map((m) =>
+          m.status === 'FAILED'
+            ? {
+                ...m,
+                status: 'SENT',
+                lastAttempt: t('Just now'),
+                lastError: null,
+              }
+            : m
+        )
+      );
+      setIsRetrying(false);
+      setSuccess(t('Failed outbox events re-queued and delivered.'));
+      setTimeout(() => setSuccess(''), 3000);
+    }, 900);
+  };
 
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
@@ -73,7 +124,14 @@ export default function AdminSystemOutboxPage() {
       <AdminNav />
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">
-        <div className="flex items-center justify-between">
+        {success && (
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span>{success}</span>
+          </div>
+        )}
+
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div className="relative max-w-xs">
             <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
             <Input
@@ -83,6 +141,51 @@ export default function AdminSystemOutboxPage() {
               className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
             />
           </div>
+
+          <Button
+            size="sm"
+            disabled={statusCounts.FAILED === 0 || isRetrying}
+            onClick={handleRetryFailed}
+            className="border-rose-500/30 bg-rose-500/10 text-xs text-rose-300 hover:bg-rose-500/20 disabled:opacity-40"
+            variant="outline"
+          >
+            <RefreshCw
+              className={`mr-1.5 h-3.5 w-3.5 ${isRetrying ? 'animate-spin' : ''}`}
+            />
+            {isRetrying ? t('Retrying...') : t('Retry Failed Events')}
+            {statusCounts.FAILED > 0 && (
+              <Badge className="ml-1.5 border-rose-500/40 bg-rose-500/20 text-[10px] text-rose-300">
+                {statusCounts.FAILED}
+              </Badge>
+            )}
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
+            <div className="text-xs font-medium text-slate-400">
+              {t('SENT')}
+            </div>
+            <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-400">
+              {statusCounts.SENT}
+            </div>
+          </Card>
+          <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
+            <div className="text-xs font-medium text-slate-400">
+              {t('PENDING')}
+            </div>
+            <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-400">
+              {statusCounts.PENDING}
+            </div>
+          </Card>
+          <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
+            <div className="text-xs font-medium text-slate-400">
+              {t('FAILED')}
+            </div>
+            <div className="mt-1 font-mono text-2xl font-extrabold text-rose-400">
+              {statusCounts.FAILED}
+            </div>
+          </Card>
         </div>
 
         <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
@@ -107,47 +210,72 @@ export default function AdminSystemOutboxPage() {
                 <TableHead className="text-xs font-bold text-slate-300">
                   {t('Last Attempt')}
                 </TableHead>
+                <TableHead className="text-xs font-bold text-slate-300">
+                  {t('Last Error')}
+                </TableHead>
                 <TableHead className="text-right text-xs font-bold text-slate-300">
                   {t('Status')}
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {outboxMessages.map((m) => (
-                <TableRow
-                  key={m.id}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
-                >
-                  <TableCell className="font-mono text-xs text-slate-400">
-                    {m.id}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className="border-cyan-500/30 bg-cyan-500/10 font-mono text-[10px] text-cyan-400"
-                    >
-                      {m.channel}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-200">
-                    {m.recipient}
-                  </TableCell>
-                  <TableCell className="text-xs text-slate-300">
-                    {m.subject}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-400">
-                    {m.attempts}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-500">
-                    {m.lastAttempt}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                      {m.status}
-                    </Badge>
+              {filteredMessages.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={8}
+                    className="py-8 text-center text-xs text-slate-500"
+                  >
+                    {t('No outbox events match your search.')}
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredMessages.map((m) => (
+                  <TableRow
+                    key={m.id}
+                    className="border-slate-800/60 hover:bg-slate-800/30"
+                  >
+                    <TableCell className="font-mono text-xs text-slate-400">
+                      {m.id}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className="border-cyan-500/30 bg-cyan-500/10 font-mono text-[10px] text-cyan-400"
+                      >
+                        {m.channel}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-slate-200">
+                      {m.recipient}
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-300">
+                      {m.subject}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-slate-400">
+                      {m.attempts}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-slate-500">
+                      {m.lastAttempt}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate font-mono text-[11px] text-rose-400">
+                      {m.lastError ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge
+                        className={
+                          m.status === 'FAILED'
+                            ? 'border-rose-500/40 bg-rose-500/20 text-[10px] text-rose-400'
+                            : m.status === 'PENDING'
+                              ? 'border-cyan-500/40 bg-cyan-500/20 text-[10px] text-cyan-400'
+                              : 'border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400'
+                        }
+                      >
+                        {m.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </Card>

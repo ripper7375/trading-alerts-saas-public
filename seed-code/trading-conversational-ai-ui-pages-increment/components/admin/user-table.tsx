@@ -1,10 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Ban, UserCheck } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Search, Ban, UserCheck, ChevronRight } from 'lucide-react';
 import { useLocale } from '@/lib/context/locale-context';
 
 interface UserRecord {
@@ -60,6 +68,9 @@ export default function UserTable() {
   ]);
 
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'ALL' | UserRecord['role']>(
+    'ALL'
+  );
 
   const toggleUserStatus = (id: string) => {
     setUsers((prev) =>
@@ -73,25 +84,46 @@ export default function UserTable() {
 
   const filteredUsers = users.filter(
     (u) =>
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase())
+      (roleFilter === 'ALL' || u.role === roleFilter) &&
+      (u.name.toLowerCase().includes(search.toLowerCase()) ||
+        u.email.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
     <div className="space-y-4 overflow-hidden rounded-2xl border border-slate-800 bg-[#090c14] p-4 shadow-xl select-none">
       <div className="flex flex-col items-start justify-between gap-3 border-b border-slate-800 pb-3 sm:flex-row sm:items-center">
         <h3 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
-          {t('USER ACCOUNT DIRECTORY (4)')} ({users.length})
+          {t('User Account Directory')} ({filteredUsers.length})
         </h3>
 
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute top-2.5 left-2.5 h-3.5 w-3.5 text-slate-500" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('Search users by email...')}
-            className="border-slate-750 h-8 bg-[#06080e] pl-8 text-xs text-slate-200"
-          />
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute top-2.5 left-2.5 h-3.5 w-3.5 text-slate-500" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('Search users by email...')}
+              className="border-slate-750 h-8 bg-[#06080e] pl-8 text-xs text-slate-200"
+            />
+          </div>
+
+          <Select
+            value={roleFilter}
+            onValueChange={(v) =>
+              setRoleFilter(v as 'ALL' | UserRecord['role'])
+            }
+          >
+            <SelectTrigger className="border-slate-750 h-8 w-full bg-[#06080e] text-xs text-slate-200 sm:w-36">
+              <SelectValue placeholder={t('Role')} />
+            </SelectTrigger>
+            <SelectContent className="border-slate-800 bg-[#090b14] text-slate-200">
+              <SelectItem value="ALL">{t('All Roles')}</SelectItem>
+              <SelectItem value="FREE">{t('FREE')}</SelectItem>
+              <SelectItem value="PRO">{t('PRO')}</SelectItem>
+              <SelectItem value="ADMIN">{t('ADMIN')}</SelectItem>
+              <SelectItem value="AFFILIATE">{t('AFFILIATE')}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -103,7 +135,10 @@ export default function UserTable() {
           >
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-100">
+                <Link
+                  href={`/admin/users/${user.id}`}
+                  className="font-bold text-slate-100 hover:text-amber-400 hover:underline"
+                >
                   {t(
                     user.name,
                     user.name === 'PRO Test User'
@@ -114,7 +149,7 @@ export default function UserTable() {
                           ? 'Master Administrator'
                           : 'Referral Partner'
                   )}
-                </span>
+                </Link>
                 <Badge
                   className={
                     user.role === 'PRO'
@@ -129,9 +164,12 @@ export default function UserTable() {
                   {user.role}
                 </Badge>
               </div>
-              <div className="font-mono text-[11px] text-slate-400">
+              <Link
+                href={`/admin/users/${user.id}`}
+                className="font-mono text-[11px] text-slate-400 hover:text-amber-400"
+              >
                 {user.email} • {t('Joined')} {formatDate(user.joinedAt)}
-              </div>
+              </Link>
             </div>
 
             <div className="flex w-full items-center justify-between gap-4 text-right sm:w-auto sm:justify-end">
@@ -158,6 +196,17 @@ export default function UserTable() {
                 )}
                 {user.status === 'Active' ? t('Suspend') : t('Reactivate')}
               </Button>
+
+              <Link href={`/admin/users/${user.id}`}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-slate-750 h-7 bg-[#06080e] text-[10px] text-slate-300 hover:bg-slate-800"
+                >
+                  {t('Inspect')}
+                  <ChevronRight className="ml-1 h-3 w-3" />
+                </Button>
+              </Link>
             </div>
           </div>
         ))}

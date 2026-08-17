@@ -17,6 +17,7 @@ import {
   History,
   Terminal,
   Layers,
+  Gauge,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLocale } from '@/lib/context/locale-context';
@@ -47,6 +48,11 @@ export function AdminNav() {
       icon: Landmark,
     },
     {
+      href: '/admin/settings/affiliate',
+      label: t('Affiliate Settings'),
+      icon: Settings,
+    },
+    {
       href: '/admin/fraud-alerts',
       label: t('Fraud Detection'),
       icon: AlertTriangle,
@@ -62,6 +68,11 @@ export function AdminNav() {
       icon: FileCode,
     },
     {
+      href: '/status',
+      label: t('System Status'),
+      icon: Gauge,
+    },
+    {
       href: '/admin/system/terminals',
       label: t('MT5 Fleet'),
       icon: Terminal,
@@ -75,6 +86,11 @@ export function AdminNav() {
       href: '/admin/system/outbox',
       label: t('Outbox Events'),
       icon: Layers,
+    },
+    {
+      href: '/admin/system/config-history',
+      label: t('Config History'),
+      icon: History,
     },
     {
       href: '/admin/notifications/broadcast',
