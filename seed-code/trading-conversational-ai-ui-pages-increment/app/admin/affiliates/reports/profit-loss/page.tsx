@@ -1,20 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import {
-  TrendingUp,
-  ArrowLeft,
-  DollarSign,
-  Download,
-  Calendar,
-  Layers,
-  Percent,
-} from 'lucide-react';
+import { ArrowLeft, Download, Calendar } from 'lucide-react';
 import AppHeader from '@/components/layout/app-header';
 import { AdminNav } from '@/components/admin/admin-nav';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -26,8 +18,47 @@ import {
 } from '@/components/ui/table';
 import { useLocale } from '@/lib/context/locale-context';
 
+type Period = '3months' | '6months' | '1year';
+
+const PERIOD_LABELS: Record<Period, string> = {
+  '3months': '3 Months',
+  '6months': '6 Months',
+  '1year': '1 Year',
+};
+
+const SUMMARY_BY_PERIOD: Record<
+  Period,
+  {
+    grossRevenue: number;
+    affiliateExpense: number;
+    netOperatingProfit: number;
+    averageNetMargin: number;
+  }
+> = {
+  '3months': {
+    grossRevenue: 64850.0,
+    affiliateExpense: 10610.0,
+    netOperatingProfit: 51399.35,
+    averageNetMargin: 79.2,
+  },
+  '6months': {
+    grossRevenue: 128900.0,
+    affiliateExpense: 21240.0,
+    netOperatingProfit: 101780.5,
+    averageNetMargin: 79.0,
+  },
+  '1year': {
+    grossRevenue: 253600.0,
+    affiliateExpense: 41850.0,
+    netOperatingProfit: 198760.75,
+    averageNetMargin: 78.4,
+  },
+};
+
 export default function AdminReportProfitLossPage() {
   const { t } = useLocale();
+  const [period, setPeriod] = useState<Period>('3months');
+  const summary = SUMMARY_BY_PERIOD[period];
 
   const pnlMonthly = [
     {
@@ -100,14 +131,38 @@ export default function AdminReportProfitLossPage() {
           </Button>
         </div>
 
+        {/* Period Selector */}
+        <div className="flex items-center gap-2">
+          <Calendar className="h-3.5 w-3.5 text-slate-400" />
+          <div className="inline-flex overflow-hidden rounded-lg border border-slate-800">
+            {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-4 py-1.5 text-xs font-medium ${
+                  period === p
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'bg-[#090b14] text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                {t(PERIOD_LABELS[p])}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* 4 Summary Cards */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
             <div className="text-xs font-medium text-slate-400">
-              {t('Gross Revenue (90d)')}
+              {t(`Gross Revenue (${PERIOD_LABELS[period]})`)}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-400">
-              $64,850.00
+              $
+              {summary.grossRevenue.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </div>
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
@@ -115,7 +170,11 @@ export default function AdminReportProfitLossPage() {
               {t('Affiliate Expense')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-amber-400">
-              $10,610.00
+              $
+              {summary.affiliateExpense.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </div>
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
@@ -123,7 +182,11 @@ export default function AdminReportProfitLossPage() {
               {t('Net Operating Profit')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-400">
-              $51,399.35
+              $
+              {summary.netOperatingProfit.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </div>
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
@@ -131,7 +194,7 @@ export default function AdminReportProfitLossPage() {
               {t('Average Net Margin')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-purple-400">
-              79.2%
+              {summary.averageNetMargin.toFixed(1)}%
             </div>
           </Card>
         </div>

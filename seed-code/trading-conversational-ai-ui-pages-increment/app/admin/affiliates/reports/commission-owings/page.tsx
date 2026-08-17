@@ -3,19 +3,17 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import {
-  DollarSign,
   ArrowLeft,
-  Landmark,
   CheckCircle2,
-  AlertTriangle,
   Download,
   Send,
   Loader2,
+  Eye,
 } from 'lucide-react';
 import AppHeader from '@/components/layout/app-header';
 import { AdminNav } from '@/components/admin/admin-nav';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -27,42 +25,51 @@ import {
 } from '@/components/ui/table';
 import { useLocale } from '@/lib/context/locale-context';
 
+const MIN_PAYOUT_THRESHOLD = 50;
+
+const OWINGS = [
+  {
+    id: 'aff-101',
+    partner: 'Alex Morgan',
+    email: 'alex.trader@gmail.com',
+    country: 'US',
+    unpaidAmount: 617.4,
+    bankMethod: 'Wise (USD)',
+    thresholdMet: true,
+    readyForBatch: true,
+  },
+  {
+    id: 'aff-102',
+    partner: 'Marcus Vance',
+    email: 'marcus.fx@capital.io',
+    country: 'DE',
+    unpaidAmount: 411.6,
+    bankMethod: 'Wise (EUR)',
+    thresholdMet: true,
+    readyForBatch: true,
+  },
+  {
+    id: 'aff-103',
+    partner: 'Elena Rostova',
+    email: 'elena@quantumforex.ru',
+    country: 'RU',
+    unpaidAmount: 117.6,
+    bankMethod: 'RiseWorks',
+    thresholdMet: true,
+    readyForBatch: false,
+  },
+];
+
 export default function AdminReportCommissionOwingsPage() {
   const { t } = useLocale();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [payingId, setPayingId] = useState<string | null>(null);
   const [success, setSuccess] = useState('');
 
-  const owings = [
-    {
-      id: 'aff-101',
-      partner: 'Alex Morgan',
-      email: 'alex.trader@gmail.com',
-      unpaidAmount: 617.4,
-      bankMethod: 'Wise (USD)',
-      thresholdMet: true,
-      readyForBatch: true,
-    },
-    {
-      id: 'aff-102',
-      partner: 'Marcus Vance',
-      email: 'marcus.fx@capital.io',
-      unpaidAmount: 411.6,
-      bankMethod: 'Wise (EUR)',
-      thresholdMet: true,
-      readyForBatch: true,
-    },
-    {
-      id: 'aff-103',
-      partner: 'Elena Rostova',
-      email: 'elena@quantumforex.ru',
-      unpaidAmount: 117.6,
-      bankMethod: 'RiseWorks',
-      thresholdMet: true,
-      readyForBatch: false,
-    },
-  ];
-
+  const owings = OWINGS;
   const totalOwings = owings.reduce((sum, o) => sum + o.unpaidAmount, 0);
+  const affiliatesOwed = owings.length;
+  const readyForPayoutCount = owings.filter((o) => o.readyForBatch).length;
 
   const handlePayBatch = async () => {
     setIsProcessing(true);
@@ -76,6 +83,26 @@ export default function AdminReportCommissionOwingsPage() {
       setTimeout(() => setSuccess(''), 4000);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handlePayOne = async (affiliateId: string, partner: string) => {
+    const reference = window.prompt(
+      t('Enter payment reference/transaction ID:')
+    );
+    if (!reference) return;
+
+    setPayingId(affiliateId);
+    try {
+      await fetch('/api/admin/commissions/pay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ affiliateId, reference }),
+      }).catch(() => {});
+      setSuccess(t(`Successfully paid commissions to ${partner}`));
+      setTimeout(() => setSuccess(''), 4000);
+    } finally {
+      setPayingId(null);
     }
   };
 
@@ -100,18 +127,29 @@ export default function AdminReportCommissionOwingsPage() {
             <span>{t('Back to Affiliates Directory')}</span>
           </Link>
 
-          <Button
-            onClick={handlePayBatch}
-            disabled={isProcessing}
-            className="self-start bg-amber-500 font-bold text-slate-950 hover:bg-amber-400 sm:self-auto"
-          >
-            {isProcessing ? (
-              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="mr-1.5 h-4 w-4" />
-            )}
-            {t('Queue Wise Disbursement Batch ($1,029.00)')}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => alert('Exporting Commission Owings CSV...')}
+              className="border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
+            >
+              <Download className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
+              {t('Export CSV Report')}
+            </Button>
+            <Button
+              onClick={handlePayBatch}
+              disabled={isProcessing}
+              className="bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
+            >
+              {isProcessing ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="mr-1.5 h-4 w-4" />
+              )}
+              {t('Queue Wise Disbursement Batch ($1,029.00)')}
+            </Button>
+          </div>
         </div>
 
         {success && (
@@ -120,6 +158,34 @@ export default function AdminReportCommissionOwingsPage() {
             <span>{success}</span>
           </div>
         )}
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
+            <div className="text-xs font-medium text-slate-400">
+              {t('Affiliates Owed')}
+            </div>
+            <div className="mt-1 font-mono text-2xl font-extrabold text-slate-200">
+              {affiliatesOwed}
+            </div>
+          </Card>
+          <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
+            <div className="text-xs font-medium text-slate-400">
+              {t('Ready for Payout')}
+            </div>
+            <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-400">
+              {readyForPayoutCount}
+            </div>
+          </Card>
+          <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
+            <div className="text-xs font-medium text-slate-400">
+              {t('Min Payout Threshold')}
+            </div>
+            <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-400">
+              ${MIN_PAYOUT_THRESHOLD.toFixed(2)}
+            </div>
+          </Card>
+        </div>
 
         {/* Overview Box */}
         <Card className="border-rose-500/30 bg-gradient-to-r from-rose-950/30 via-[#0d0f1a] to-[#090b14] p-6">
@@ -150,6 +216,9 @@ export default function AdminReportCommissionOwingsPage() {
                   {t('Partner Name & Email')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
+                  {t('Country')}
+                </TableHead>
+                <TableHead className="text-xs font-bold text-slate-300">
                   {t('Unpaid Owings')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-300">
@@ -158,8 +227,11 @@ export default function AdminReportCommissionOwingsPage() {
                 <TableHead className="text-xs font-bold text-slate-300">
                   {t('Threshold ($50)')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-300">
                   {t('Batch Status')}
+                </TableHead>
+                <TableHead className="text-right text-xs font-bold text-slate-300">
+                  {t('Actions')}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -178,6 +250,9 @@ export default function AdminReportCommissionOwingsPage() {
                     </div>
                     <div className="text-[11px] text-slate-400">{o.email}</div>
                   </TableCell>
+                  <TableCell className="text-xs text-slate-300">
+                    {o.country}
+                  </TableCell>
                   <TableCell className="font-mono text-xs font-bold text-emerald-400">
                     ${o.unpaidAmount.toFixed(2)}
                   </TableCell>
@@ -189,7 +264,7 @@ export default function AdminReportCommissionOwingsPage() {
                       {t('Met')}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell>
                     <Badge
                       className={`text-[10px] ${
                         o.readyForBatch
@@ -199,6 +274,31 @@ export default function AdminReportCommissionOwingsPage() {
                     >
                       {o.readyForBatch ? t('Ready for Batch') : t('On Hold')}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Link href={`/admin/affiliates/${o.id}`}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-amber-400 hover:bg-amber-500/10"
+                        >
+                          <Eye className="mr-1 h-3.5 w-3.5" />
+                          {t('View')}
+                        </Button>
+                      </Link>
+                      {o.readyForBatch && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={payingId === o.id}
+                          onClick={() => handlePayOne(o.id, o.partner)}
+                          className="text-xs text-emerald-400 hover:bg-emerald-500/10"
+                        >
+                          {payingId === o.id ? t('Processing...') : t('Pay')}
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
