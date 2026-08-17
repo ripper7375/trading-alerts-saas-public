@@ -6,7 +6,6 @@ import {
   Shield,
   Laptop,
   Smartphone,
-  Globe,
   MapPin,
   Clock,
   LogOut,
@@ -14,6 +13,8 @@ import {
   CheckCircle2,
   ArrowLeft,
   KeyRound,
+  ShieldCheck,
+  ShieldOff,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,6 +32,75 @@ interface Session {
   isCurrent: boolean;
   type: 'desktop' | 'mobile';
 }
+
+type SecurityEventType =
+  | 'NEW_DEVICE_LOGIN'
+  | 'PASSWORD_CHANGED'
+  | 'TWO_FACTOR_ENABLED'
+  | 'TWO_FACTOR_DISABLED'
+  | 'SUSPICIOUS_LOGIN';
+
+interface SecurityEvent {
+  id: string;
+  type: SecurityEventType;
+  title: string;
+  message: string;
+  location: string;
+  createdAt: string;
+}
+
+const SECURITY_EVENT_META: Record<
+  SecurityEventType,
+  { icon: React.ComponentType<{ className?: string }>; badgeClass: string }
+> = {
+  NEW_DEVICE_LOGIN: {
+    icon: Shield,
+    badgeClass: 'border-blue-500/40 bg-blue-500/15 text-blue-400',
+  },
+  PASSWORD_CHANGED: {
+    icon: KeyRound,
+    badgeClass: 'border-purple-500/40 bg-purple-500/15 text-purple-400',
+  },
+  TWO_FACTOR_ENABLED: {
+    icon: ShieldCheck,
+    badgeClass: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-400',
+  },
+  TWO_FACTOR_DISABLED: {
+    icon: ShieldOff,
+    badgeClass: 'border-orange-500/40 bg-orange-500/15 text-orange-400',
+  },
+  SUSPICIOUS_LOGIN: {
+    icon: AlertTriangle,
+    badgeClass: 'border-rose-500/40 bg-rose-500/15 text-rose-400',
+  },
+};
+
+const SECURITY_EVENTS: SecurityEvent[] = [
+  {
+    id: 'evt-1',
+    type: 'NEW_DEVICE_LOGIN',
+    title: 'New Device Login',
+    message: 'Signed in from a new device: iPhone 15 Pro (Safari Mobile).',
+    location: 'Bangkok, Thailand',
+    createdAt: '4 hours ago',
+  },
+  {
+    id: 'evt-2',
+    type: 'PASSWORD_CHANGED',
+    title: 'Password Changed',
+    message: 'Your account password was changed successfully.',
+    location: 'Bangkok, Thailand',
+    createdAt: '2 days ago',
+  },
+  {
+    id: 'evt-3',
+    type: 'TWO_FACTOR_ENABLED',
+    title: '2FA Enabled',
+    message: 'Two-factor authentication was enabled on your account.',
+    location: 'Bangkok, Thailand',
+    createdAt: '5 days ago',
+  },
+];
 
 export default function SecurityActivityPage() {
   const { t } = useLocale();
@@ -203,6 +273,54 @@ export default function SecurityActivityPage() {
                     {revokingId === sess.id ? t('Revoking...') : t('Revoke')}
                   </Button>
                 )}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Security Event Log */}
+      <div className="space-y-1 pt-4">
+        <h2 className="text-xl font-bold text-slate-100">
+          {t('Security Event Log')}
+        </h2>
+        <p className="text-xs text-slate-400">
+          {t(
+            'A full record of security events on your account: password changes, two-factor changes, and new-device alerts.'
+          )}
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {SECURITY_EVENTS.map((event) => {
+          const meta = SECURITY_EVENT_META[event.type];
+          const Icon = meta.icon;
+          return (
+            <Card
+              key={event.id}
+              className="border border-slate-800 bg-[#080a12]/80 p-4"
+            >
+              <div className="flex items-start gap-3.5">
+                <div
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${meta.badgeClass}`}
+                >
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <h4 className="text-xs font-bold text-slate-200">
+                    {t(event.title)}
+                  </h4>
+                  <p className="text-[11px] text-slate-400">
+                    {t(event.message)}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-500">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {event.location}
+                    </span>
+                    <span>{event.createdAt}</span>
+                  </div>
+                </div>
               </div>
             </Card>
           );

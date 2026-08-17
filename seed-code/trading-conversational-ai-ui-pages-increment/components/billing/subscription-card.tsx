@@ -1,12 +1,34 @@
 'use client';
 
 import Link from 'next/link';
-import { Download } from 'lucide-react';
+import { Download, CheckCircle2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLocale } from '@/lib/context/locale-context';
 
-export default function SubscriptionCard() {
+interface SubscriptionCardProps {
+  /**
+   * DavinTrade has no client-visible session/tier signal on the shared
+   * `/settings/*` route tree (unlike `/free` vs `/dashboard`, which are
+   * separate routes) -- defaults to 'PRO' to preserve prior behavior.
+   * Pass 'FREE' to render the upgrade-prompt view Codebase 1 shows its
+   * FREE-tier users instead of a fabricated active PRO subscription.
+   */
+  tier?: 'FREE' | 'PRO';
+}
+
+const FREE_FEATURES = [
+  'XAUUSD (Gold) — M5 & M15 real-time alerts',
+  'Full market data & AI chart indicators',
+  '100 price alerts (vs. 0 on Free)',
+  'Drawing Engine line alerts',
+  'Multi-timeframe visualization overlays',
+  '500,000 monthly AI token quota',
+];
+
+export default function SubscriptionCard({
+  tier = 'PRO',
+}: SubscriptionCardProps) {
   const { t, formatCurrency, formatDate } = useLocale();
 
   const invoices = [
@@ -32,6 +54,59 @@ export default function SubscriptionCard() {
       method: t('Visa ending in 8892'),
     },
   ];
+
+  if (tier === 'FREE') {
+    return (
+      <div className="mx-auto max-w-4xl space-y-6 select-none">
+        <div className="space-y-4 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
+          <div className="flex flex-col items-start justify-between gap-4 border-b border-slate-800 pb-4 sm:flex-row sm:items-center">
+            <div>
+              <Badge className="border-slate-700 bg-slate-800 font-mono text-[10px] text-slate-300">
+                🔒 {t('FREE PLAN')}
+              </Badge>
+              <h2 className="mt-1 text-lg font-extrabold text-slate-100">
+                {t('DavinTrade Free Tier')}
+              </h2>
+              <p className="mt-1 text-xs text-slate-400">
+                {t('Free Forever')} — {t('no active subscription')}
+              </p>
+            </div>
+            <Link href="/pricing">
+              <Button className="h-9 bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 hover:from-amber-400 hover:to-amber-500">
+                <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                {t('Upgrade to PRO')}
+              </Button>
+            </Link>
+          </div>
+
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+            <h3 className="mb-3 text-xs font-extrabold text-amber-300">
+              {t('Unlock More with PRO')} — {formatCurrency(49)}/{t('mo')}
+            </h3>
+            <ul className="space-y-2">
+              {FREE_FEATURES.map((feature) => (
+                <li
+                  key={feature}
+                  className="flex items-center gap-2 text-xs text-slate-300"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                  {t(feature)}
+                </li>
+              ))}
+            </ul>
+            <Link href="/pricing">
+              <Button
+                variant="outline"
+                className="mt-4 w-full border-amber-500/40 bg-amber-500/10 text-xs text-amber-300 hover:bg-amber-500/20"
+              >
+                {t('Start 7-Day Free Trial')}
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 select-none">
