@@ -10,6 +10,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
+  Check,
+  X,
   Eye,
   EyeOff,
   KeyRound,
@@ -30,9 +32,18 @@ function ResetPasswordForm() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
+
+  const passwordValidation = {
+    minLength: password.length >= 8,
+    hasUppercase: /[A-Z]/.test(password),
+    hasLowercase: /[a-z]/.test(password),
+    hasNumber: /[0-9]/.test(password),
+    hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,6 +153,9 @@ function ResetPasswordForm() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute top-3 right-3 text-slate-500 hover:text-slate-300"
+                  aria-label={
+                    showPassword ? t('Hide password') : t('Show password')
+                  }
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -150,6 +164,45 @@ function ResetPasswordForm() {
                   )}
                 </button>
               </div>
+
+              {password && (
+                <div className="mt-2 space-y-1 rounded-lg border border-slate-800 bg-[#070910] p-2.5">
+                  {[
+                    { key: 'minLength', label: t('At least 8 characters') },
+                    { key: 'hasUppercase', label: t('One uppercase letter') },
+                    { key: 'hasLowercase', label: t('One lowercase letter') },
+                    { key: 'hasNumber', label: t('One number') },
+                    {
+                      key: 'hasSpecial',
+                      label: t('One special character (!@#$%^&*)'),
+                    },
+                  ].map(({ key, label }) => {
+                    const passed =
+                      passwordValidation[
+                        key as keyof typeof passwordValidation
+                      ];
+                    return (
+                      <div
+                        key={key}
+                        className="flex items-center gap-1.5 text-[11px]"
+                      >
+                        {passed ? (
+                          <Check className="h-3 w-3 text-emerald-400" />
+                        ) : (
+                          <X className="h-3 w-3 text-slate-600" />
+                        )}
+                        <span
+                          className={
+                            passed ? 'text-emerald-400' : 'text-slate-500'
+                          }
+                        >
+                          {label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -159,14 +212,36 @@ function ResetPasswordForm() {
               <div className="relative">
                 <Lock className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
                 <Input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="border-slate-800 bg-[#06080e] pl-9 text-slate-200 focus:border-amber-500"
+                  className="border-slate-800 bg-[#06080e] pr-10 pl-9 text-slate-200 focus:border-amber-500"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute top-3 right-3 text-slate-500 hover:text-slate-300"
+                  aria-label={
+                    showConfirmPassword
+                      ? t('Hide password confirmation')
+                      : t('Show password confirmation')
+                  }
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
+              {confirmPassword && confirmPassword !== password && (
+                <p className="flex items-center gap-1 text-[11px] text-rose-400">
+                  <X className="h-3 w-3" />
+                  {t('Passwords do not match')}
+                </p>
+              )}
             </div>
 
             <Button

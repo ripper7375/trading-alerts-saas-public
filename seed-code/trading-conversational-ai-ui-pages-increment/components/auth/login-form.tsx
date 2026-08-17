@@ -11,6 +11,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,12 +21,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { useLocale } from '@/lib/context/locale-context';
 
+import SocialAuthButtons from './social-auth-buttons';
+
 export default function LoginForm() {
   const router = useRouter();
   const { t } = useLocale();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -148,13 +153,27 @@ export default function LoginForm() {
           <div className="relative">
             <Lock className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
             <Input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••••••"
-              className="border-slate-750 bg-[#06080e] pl-10 text-xs text-slate-100 placeholder:text-slate-500 focus:border-amber-500/60 focus:ring-amber-500/20"
+              className="border-slate-750 bg-[#06080e] pr-10 pl-10 text-xs text-slate-100 placeholder:text-slate-500 focus:border-amber-500/60 focus:ring-amber-500/20"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute top-3 right-3 text-slate-500 transition-colors hover:text-slate-300"
+              aria-label={
+                showPassword ? t('Hide password') : t('Show password')
+              }
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
           </div>
         </div>
 
@@ -184,6 +203,19 @@ export default function LoginForm() {
           {!isLoading && <ArrowRight className="ml-1.5 h-4 w-4" />}
         </Button>
       </form>
+
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-slate-800/80" />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-[#0b0e17] px-3 text-slate-500">{t('OR')}</span>
+        </div>
+      </div>
+
+      {/* Social Sign In */}
+      <SocialAuthButtons redirectTo="/dashboard" />
 
       {/* Footer Register Link */}
       <div className="border-t border-slate-800/80 pt-2 text-center text-xs text-slate-400">

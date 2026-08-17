@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Mail, ArrowLeft, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,10 +13,21 @@ export default function ForgotPasswordPage() {
   const { t } = useLocale();
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitted(true);
+  };
+
+  const handleResend = (): void => {
+    setIsResending(true);
+    setTimeout(() => setIsResending(false), 1000);
+  };
+
+  const handleTryAnother = (): void => {
+    setIsSubmitted(false);
+    setEmail('');
   };
 
   return (
@@ -56,6 +67,28 @@ export default function ForgotPasswordPage() {
               <strong className="text-slate-200">{email}</strong>.{' '}
               {t('Please follow the instructions in the email.')}
             </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleResend}
+                disabled={isResending}
+                className="border-slate-750 h-9 flex-1 bg-slate-800 text-xs text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <RefreshCw
+                  className={`mr-1.5 h-3.5 w-3.5 ${isResending ? 'animate-spin' : ''}`}
+                />
+                {isResending ? t('Resending...') : t('Resend Email')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleTryAnother}
+                className="border-slate-750 h-9 flex-1 bg-transparent text-xs text-slate-300"
+              >
+                {t('Try Another Email')}
+              </Button>
+            </div>
             <Button
               variant="outline"
               asChild

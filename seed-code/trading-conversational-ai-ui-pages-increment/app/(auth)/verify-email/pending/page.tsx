@@ -1,27 +1,33 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import {
-  Mail,
-  RefreshCw,
-  ArrowRight,
-  CheckCircle2,
-  AlertCircle,
-} from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Mail, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLocale } from '@/lib/context/locale-context';
 
-export default function VerifyEmailPendingPage() {
+function VerifyEmailPendingContent() {
   const { t } = useLocale();
-  const [email, setEmail] = useState('');
+  const searchParams = useSearchParams();
+  const emailFromUrl = decodeURIComponent(searchParams.get('email') || '');
+
+  const [email, setEmail] = useState(emailFromUrl);
+  const [showEmailInput, setShowEmailInput] = useState(!emailFromUrl);
   const [isSending, setIsSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (emailFromUrl) {
+      setEmail(emailFromUrl);
+      setShowEmailInput(false);
+    }
+  }, [emailFromUrl]);
 
   const handleResend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,11 +97,29 @@ export default function VerifyEmailPendingPage() {
             <h3 className="text-sm font-bold text-slate-200">
               {t('Verification Link Sent')}
             </h3>
-            <p className="text-xs leading-relaxed text-slate-400">
-              {t(
-                'Please click the link in your email to activate your account. If you do not see it within a few minutes, check your spam or junk folder.'
-              )}
-            </p>
+            {!showEmailInput && email ? (
+              <div>
+                <p className="text-xs leading-relaxed text-slate-400">
+                  {t("We've sent a verification link to:")}
+                </p>
+                <p className="mt-1 font-semibold break-all text-amber-400">
+                  {email}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowEmailInput(true)}
+                  className="mt-1 text-[11px] text-slate-500 hover:text-slate-300"
+                >
+                  {t('Wrong email?')}
+                </button>
+              </div>
+            ) : (
+              <p className="text-xs leading-relaxed text-slate-400">
+                {t(
+                  'Please click the link in your email to activate your account. If you do not see it within a few minutes, check your spam or junk folder.'
+                )}
+              </p>
+            )}
           </div>
 
           {sent ? (
@@ -119,26 +143,28 @@ export default function VerifyEmailPendingPage() {
                   <span>{error}</span>
                 </div>
               )}
-              <div className="space-y-1">
-                <Label className="text-xs text-slate-300">
-                  {t(
-                    "Didn't receive it? Enter email to resend",
-                    "Didn't receive an email? Enter your email to resend"
-                  )}
-                </Label>
-                <Input
-                  type="email"
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="border-slate-800 bg-[#06080e] text-slate-200"
-                  required
-                />
-              </div>
+              {(showEmailInput || !email) && (
+                <div className="space-y-1">
+                  <Label className="text-xs text-slate-300">
+                    {t(
+                      "Didn't receive it? Enter email to resend",
+                      "Didn't receive an email? Enter your email to resend"
+                    )}
+                  </Label>
+                  <Input
+                    type="email"
+                    placeholder="name@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="border-slate-800 bg-[#06080e] text-slate-200"
+                    required
+                  />
+                </div>
+              )}
               <Button
                 type="submit"
-                disabled={isSending}
-                className="w-full bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
+                disabled={isSending || !email}
+                className="w-full bg-amber-500 font-bold text-slate-950 hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <RefreshCw
                   className={`mr-2 h-4 w-4 ${isSending ? 'animate-spin' : ''}`}
@@ -148,16 +174,33 @@ export default function VerifyEmailPendingPage() {
             </form>
           )}
 
-          <div className="border-t border-slate-800/80 pt-3 text-center">
+          <div className="space-y-1.5 border-t border-slate-800/80 pt-3 text-center">
+            <p className="text-xs text-slate-400">
+              {t('Already verified?')}{' '}
+              <Link
+                href="/login"
+                className="font-semibold text-amber-400 hover:underline"
+              >
+                {t('Sign in')}
+              </Link>
+            </p>
             <Link
-              href="/login"
-              className="text-xs text-slate-400 transition-colors hover:text-amber-400"
+              href="/register"
+              className="block text-[11px] text-slate-500 hover:text-slate-300"
             >
-              ← {t('Back to Login')}
+              {t('Need to register with a different address?')}
             </Link>
           </div>
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPendingPage() {
+  return (
+    <Suspense fallback={null}>
+      <VerifyEmailPendingContent />
+    </Suspense>
   );
 }
