@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Compass, Home } from 'lucide-react';
+import { Compass, Home, LayoutDashboard, ArrowLeft } from 'lucide-react';
 import { useLocale } from '@/lib/context/locale-context';
 
 export default function NotFound() {
   const { t } = useLocale();
+  const router = useRouter();
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#07090e] p-4 text-center select-none">
@@ -25,15 +27,35 @@ export default function NotFound() {
             {t('This page could not be found.')}
           </p>
         </div>
-        <Button
-          asChild
-          className="mt-2 h-9 w-full bg-amber-500 text-xs font-extrabold text-slate-950 hover:bg-amber-400"
-        >
-          <Link href="/">
-            <Home className="mr-1.5 h-4 w-4" />
-            {t('Return to Home')}
-          </Link>
-        </Button>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <Button
+            onClick={() => router.back()}
+            variant="outline"
+            className="h-9 w-full border-slate-700 bg-transparent text-xs font-bold text-slate-300 hover:bg-slate-800 sm:w-auto"
+          >
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
+            {t('Go Back')}
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="h-9 w-full border-slate-700 bg-transparent text-xs font-bold text-slate-300 hover:bg-slate-800 sm:w-auto"
+          >
+            <Link href="/dashboard">
+              <LayoutDashboard className="mr-1.5 h-4 w-4" />
+              {t('Dashboard')}
+            </Link>
+          </Button>
+          <Button
+            asChild
+            className="h-9 w-full bg-amber-500 text-xs font-extrabold text-slate-950 hover:bg-amber-400 sm:w-auto"
+          >
+            <Link href="/">
+              <Home className="mr-1.5 h-4 w-4" />
+              {t('Return to Home')}
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );

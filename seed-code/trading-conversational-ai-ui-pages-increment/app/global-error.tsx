@@ -59,6 +59,17 @@ export default function GlobalError({
               </Button>
             </Link>
           </div>
+
+          <p className="text-[11px] text-slate-500">
+            If the problem persists, please{' '}
+            <a
+              href="mailto:support@davintrade.com"
+              className="text-amber-400 underline underline-offset-4 hover:text-amber-300"
+            >
+              contact support
+            </a>
+            .
+          </p>
         </Card>
       </body>
     </html>
