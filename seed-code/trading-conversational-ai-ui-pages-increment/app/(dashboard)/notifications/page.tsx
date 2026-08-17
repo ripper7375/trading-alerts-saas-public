@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Bell,
@@ -14,6 +14,7 @@ import {
   Clock,
   Sparkles,
   ArrowRight,
+  Undo2,
 } from 'lucide-react';
 import AppHeader from '@/components/layout/app-header';
 import { Button } from '@/components/ui/button';
@@ -31,11 +32,22 @@ interface NotificationItem {
   link?: string;
 }
 
+type FilterValue =
+  | 'ALL'
+  | 'UNREAD'
+  | 'READ'
+  | 'ALERT'
+  | 'SYSTEM'
+  | 'BILLING'
+  | 'SECURITY';
+
 export default function NotificationsPage() {
   const { t } = useLocale();
-  const [filter, setFilter] = useState<'ALL' | 'UNREAD' | 'ALERTS' | 'SYSTEM'>(
-    'ALL'
-  );
+  const [filter, setFilter] = useState<FilterValue>('ALL');
+  const [deletedNotification, setDeletedNotification] =
+    useState<NotificationItem | null>(null);
+  const [showUndo, setShowUndo] = useState(false);
+  const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
       id: 'notif-1',
@@ -91,10 +103,48 @@ export default function NotificationsPage() {
     );
   };
 
+  const deleteNotification = (id: string) => {
+    const notification = notifications.find((n) => n.id === id);
+    if (!notification) return;
+
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+    }
+
+    setDeletedNotification(notification);
+    setShowUndo(true);
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+
+    undoTimeoutRef.current = setTimeout(() => {
+      setShowUndo(false);
+      setDeletedNotification(null);
+    }, 5000);
+  };
+
+  const undoDelete = () => {
+    if (!deletedNotification) return;
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+    }
+    setNotifications((prev) => [...prev, deletedNotification]);
+    setShowUndo(false);
+    setDeletedNotification(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const filtered = notifications.filter((n) => {
     if (filter === 'UNREAD') return !n.read;
-    if (filter === 'ALERTS') return n.category === 'ALERT';
-    if (filter === 'SYSTEM') return n.category === 'SYSTEM';
+    if (filter === 'READ') return n.read;
+    if (filter === 'ALERT' || filter === 'SYSTEM') return n.category === filter;
+    if (filter === 'BILLING') return n.category === 'BILLING';
+    if (filter === 'SECURITY') return n.category === 'SECURITY';
     return true;
   });
 
@@ -119,8 +169,11 @@ export default function NotificationsPage() {
                 id: 'UNREAD',
                 label: `${t('Unread')} (${unreadCount})`,
               },
-              { id: 'ALERTS', label: t('Signals') },
+              { id: 'READ', label: t('Read') },
+              { id: 'ALERT', label: t('Signals') },
               { id: 'SYSTEM', label: t('System') },
+              { id: 'BILLING', label: t('Billing') },
+              { id: 'SECURITY', label: t('Security') },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -148,6 +201,25 @@ export default function NotificationsPage() {
             </Button>
           )}
         </div>
+
+        {/* Undo Delete Banner */}
+        {showUndo && deletedNotification && (
+          <div className="animate-in slide-in-from-top-2 flex items-center justify-between rounded-xl bg-slate-800 px-4 py-3 text-slate-100">
+            <span className="text-xs">
+              {t('Notification')} &quot;{deletedNotification.title}&quot;{' '}
+              {t('deleted')}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={undoDelete}
+              className="text-xs text-slate-100 hover:bg-slate-700 hover:text-white"
+            >
+              <Undo2 className="mr-2 h-3.5 w-3.5" />
+              {t('Undo')}
+            </Button>
+          </div>
+        )}
 
         {/* Notifications Feed */}
         <div className="space-y-3">
@@ -218,18 +290,32 @@ export default function NotificationsPage() {
                       </div>
                     </div>
 
-                    {item.link && (
-                      <Link href={item.link} className="shrink-0 self-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="px-2.5 text-xs text-amber-400 hover:bg-amber-500/10"
-                        >
-                          <span>{t('View')}</span>
-                          <ArrowRight className="ml-1 h-3.5 w-3.5" />
-                        </Button>
-                      </Link>
-                    )}
+                    <div className="flex shrink-0 items-center gap-1 self-center">
+                      {item.link && (
+                        <Link href={item.link}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="px-2.5 text-xs text-amber-400 hover:bg-amber-500/10"
+                          >
+                            <span>{t('View')}</span>
+                            <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                          </Button>
+                        </Link>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={t('Delete notification')}
+                        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                          e.stopPropagation();
+                          deleteNotification(item.id);
+                        }}
+                        className="h-8 w-8 text-slate-500 hover:bg-rose-500/20 hover:text-rose-300"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );

@@ -2,11 +2,21 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Bell, Plus, Trash2, Filter } from 'lucide-react';
+import { Bell, Plus, Trash2, Filter, Pencil, LineChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useLocale } from '@/lib/context/locale-context';
 
 interface AlertItem {
@@ -68,6 +78,7 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
   const [alerts, setAlerts] = useState<AlertItem[]>(SEED_ALERTS);
 
   const [filterQuery, setFilterQuery] = useState('');
+  const [alertToDelete, setAlertToDelete] = useState<AlertItem | null>(null);
 
   const toggleAlertActive = (id: string) => {
     setAlerts((prev) =>
@@ -75,8 +86,10 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
     );
   };
 
-  const deleteAlert = (id: string) => {
-    setAlerts((prev) => prev.filter((a) => a.id !== id));
+  const confirmDeleteAlert = () => {
+    if (!alertToDelete) return;
+    setAlerts((prev) => prev.filter((a) => a.id !== alertToDelete.id));
+    setAlertToDelete(null);
   };
 
   const filteredAlerts = alerts.filter((a) => {
@@ -193,10 +206,33 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
                 </div>
 
                 <div className="flex items-center gap-1">
+                  <Link href="/terminal">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={t('View chart')}
+                      className="h-8 w-8 text-slate-400 hover:bg-slate-700/40 hover:text-slate-200"
+                    >
+                      <LineChart className="h-4 w-4" />
+                    </Button>
+                  </Link>
+
+                  <Link href={`/alerts/${alert.id}/edit`}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`${t('Edit')} ${t(alert.name)}`}
+                      className="h-8 w-8 text-slate-400 hover:bg-slate-700/40 hover:text-slate-200"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </Link>
+
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => deleteAlert(alert.id)}
+                    onClick={() => setAlertToDelete(alert)}
+                    aria-label={`${t('Delete')} ${t(alert.name)}`}
                     className="h-8 w-8 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -207,6 +243,35 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
           ))}
         </div>
       </div>
+
+      <AlertDialog
+        open={alertToDelete !== null}
+        onOpenChange={(open) => !open && setAlertToDelete(null)}
+      >
+        <AlertDialogContent className="border-slate-800/80 bg-[#0b0e17] text-slate-100">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-rose-400">
+              {t('Delete Alert Rule?')}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              {t('Are you sure you want to delete')} &quot;
+              {alertToDelete ? t(alertToDelete.name) : ''}&quot;?{' '}
+              {t('This action cannot be undone.')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800 hover:text-slate-100">
+              {t('Cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteAlert}
+              className="bg-rose-600 text-white hover:bg-rose-500"
+            >
+              {t('Delete Alert')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

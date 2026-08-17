@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Receipt,
   MessageSquare,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -21,6 +22,12 @@ import { useLocale } from '@/lib/context/locale-context';
 
 export default function UpgradeSuccessPage() {
   const { t } = useLocale();
+  const [isConfirming, setIsConfirming] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsConfirming(false), 900);
+    return () => clearTimeout(timer);
+  }, []);
 
   const unlockedFeatures = [
     {
@@ -48,6 +55,19 @@ export default function UpgradeSuccessPage() {
       ),
     },
   ];
+
+  if (isConfirming) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#050609] p-4 text-slate-100">
+        <div className="space-y-3 text-center">
+          <Loader2 className="mx-auto h-10 w-10 animate-spin text-amber-400" />
+          <p className="text-sm text-slate-400">
+            {t('Confirming your upgrade...')}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#050609] p-4 text-slate-100">
