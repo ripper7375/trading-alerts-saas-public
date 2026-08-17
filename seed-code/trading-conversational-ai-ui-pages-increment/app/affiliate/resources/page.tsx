@@ -12,6 +12,8 @@ import {
   Sparkles,
   ExternalLink,
   Check,
+  Link2,
+  HelpCircle,
 } from 'lucide-react';
 import AppHeader from '@/components/layout/app-header';
 import { AffiliateNav } from '@/components/affiliate/affiliate-nav';
@@ -20,9 +22,31 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLocale } from '@/lib/context/locale-context';
 
+interface ActiveReferralCode {
+  code: string;
+  discount: number;
+}
+
+const ACTIVE_REFERRAL_CODES: ActiveReferralCode[] = [
+  { code: 'GOLDPRO20', discount: 20 },
+  { code: 'DAVINVIP10', discount: 10 },
+];
+
 export default function AffiliateResourcesPage() {
   const { t } = useLocale();
   const [copiedIndex, setCopiedIndex] = React.useState<number | null>(null);
+  const [copiedLinkKey, setCopiedLinkKey] = React.useState<string | null>(null);
+  const [origin, setOrigin] = React.useState('');
+
+  React.useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  const copyLink = (key: string, value: string) => {
+    navigator.clipboard.writeText(value);
+    setCopiedLinkKey(key);
+    setTimeout(() => setCopiedLinkKey(null), 2000);
+  };
 
   const copySwipe = (text: string, idx: number) => {
     navigator.clipboard.writeText(text);
@@ -53,6 +77,59 @@ export default function AffiliateResourcesPage() {
       <AffiliateNav />
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-8 p-4 md:p-6">
+        {/* Your Referral Links */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Link2 className="h-5 w-5 text-amber-400" />
+            <h2 className="text-base font-bold text-slate-100">
+              {t('Your Referral Links')}
+            </h2>
+          </div>
+
+          <Card className="space-y-3 border-slate-800/80 bg-[#090b14]/90 p-5">
+            {ACTIVE_REFERRAL_CODES.map((c) => {
+              const link = `${origin}/register?ref=${c.code}`;
+              return (
+                <div
+                  key={c.code}
+                  className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-800 bg-[#06080e] p-3.5"
+                >
+                  <Badge
+                    variant="outline"
+                    className="border-amber-500/30 bg-amber-500/10 font-mono text-[11px] text-amber-400"
+                  >
+                    {c.code} · {c.discount}% {t('OFF')}
+                  </Badge>
+                  <input
+                    readOnly
+                    value={link}
+                    onFocus={(e) => e.target.select()}
+                    aria-label={`Referral link for code ${c.code}`}
+                    className="min-w-[220px] flex-1 rounded-lg border border-slate-800 bg-[#05060a] px-2.5 py-1.5 font-mono text-xs text-slate-300"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => copyLink(`link-${c.code}`, link)}
+                    className="bg-amber-500 text-xs font-bold text-slate-950 hover:bg-amber-400"
+                  >
+                    {copiedLinkKey === `link-${c.code}` ? (
+                      <>
+                        <Check className="mr-1 h-3.5 w-3.5" />
+                        <span>{t('Copied!')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="mr-1 h-3.5 w-3.5" />
+                        <span>{t('Copy Link')}</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              );
+            })}
+          </Card>
+        </div>
+
         {/* Logos & Mascot Assets */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
@@ -204,6 +281,60 @@ export default function AffiliateResourcesPage() {
               </Card>
             ))}
           </div>
+        </div>
+
+        {/* FAQ */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <HelpCircle className="h-5 w-5 text-amber-400" />
+            <h2 className="text-base font-bold text-slate-100">
+              {t('Frequently Asked Questions')}
+            </h2>
+          </div>
+
+          <Card className="divide-y divide-slate-800/80 border-slate-800/80 bg-[#090b14]/90 p-0">
+            <div className="space-y-1 p-5">
+              <h4 className="text-xs font-bold text-slate-200">
+                {t('How much do I earn per referral?')}
+              </h4>
+              <p className="text-[11px] text-slate-400">
+                {t(
+                  'You earn 30% of net recurring revenue on every PRO-tier subscriber you refer, for as long as they stay subscribed.'
+                )}
+              </p>
+            </div>
+            <div className="space-y-1 p-5">
+              <h4 className="text-xs font-bold text-slate-200">
+                {t('When do I get paid?')}
+              </h4>
+              <p className="text-[11px] text-slate-400">
+                {t(
+                  'Payouts run automatically via Wise/Rise on the 1st of every month. Track the status of each batch on the'
+                )}{' '}
+                <Link
+                  href="/affiliate/dashboard/payouts"
+                  className="text-amber-400 hover:underline"
+                >
+                  {t('Payouts')}
+                </Link>{' '}
+                {t('page.')}
+              </p>
+            </div>
+            <div className="space-y-1 p-5">
+              <h4 className="text-xs font-bold text-slate-200">
+                {t('Where do I set up how I get paid?')}
+              </h4>
+              <p className="text-[11px] text-slate-400">
+                <Link
+                  href="/affiliate/settings/payout"
+                  className="text-amber-400 hover:underline"
+                >
+                  {t('Payout Settings')}
+                </Link>{' '}
+                {t('is the single place to configure your Wise bank details.')}
+              </p>
+            </div>
+          </Card>
         </div>
       </main>
     </div>

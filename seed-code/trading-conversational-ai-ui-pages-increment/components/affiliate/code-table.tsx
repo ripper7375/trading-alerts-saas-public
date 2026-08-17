@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Copy, CheckCircle2, Tag, Plus } from 'lucide-react';
@@ -41,12 +42,14 @@ export default function CodeTable() {
           {t('ACTIVE PROMO CODES & REFERRAL LINKS')}
         </h3>
 
-        <Button
-          size="sm"
-          className="h-7 bg-amber-500 text-xs font-bold text-slate-950 hover:bg-amber-400"
-        >
-          <Plus className="mr-1 h-3.5 w-3.5" /> {t('Request Custom Code')}
-        </Button>
+        <Link href="/affiliate/dashboard/codes">
+          <Button
+            size="sm"
+            className="h-7 bg-amber-500 text-xs font-bold text-slate-950 hover:bg-amber-400"
+          >
+            <Plus className="mr-1 h-3.5 w-3.5" /> {t('Request Custom Code')}
+          </Button>
+        </Link>
       </div>
 
       <div className="divide-y divide-slate-800/60">

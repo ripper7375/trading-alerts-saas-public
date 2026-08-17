@@ -11,6 +11,12 @@ import {
   CheckCircle2,
   AlertTriangle,
   Shield,
+  BarChart3,
+  Landmark,
+  Twitter,
+  Youtube,
+  Instagram,
+  Facebook,
 } from 'lucide-react';
 import AppHeader from '@/components/layout/app-header';
 import { AffiliateNav } from '@/components/affiliate/affiliate-nav';
@@ -21,6 +27,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLocale } from '@/lib/context/locale-context';
 
+const ACCOUNT_STATS = [
+  { label: 'Codes Distributed', value: '15' },
+  { label: 'Codes Used', value: '12' },
+  { label: 'Total Earnings', value: '$958.10' },
+  { label: 'Pending', value: '$176.40' },
+  { label: 'Paid', value: '$781.70' },
+];
+
 export default function AffiliateProfilePage() {
   const { t } = useLocale();
 
@@ -29,7 +43,11 @@ export default function AffiliateProfilePage() {
   const [businessName, setBusinessName] = useState('Alpha Traders Group LLC');
   const [taxId, setTaxId] = useState('XX-XXXX912');
   const [country, setCountry] = useState('Thailand');
-  const [website, setWebsite] = useState('https://t.me/alphagoldtraders');
+  const [twitterUrl, setTwitterUrl] = useState('https://x.com/alphagoldtrade');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [tiktokUrl, setTiktokUrl] = useState('');
 
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -152,15 +170,113 @@ export default function AffiliateProfilePage() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs text-slate-300">
-                  {t('Social Channel / Community URL')}
+                  {t('Twitter / X')}
                 </Label>
                 <Input
-                  value={website}
-                  onChange={(e) => setWebsite(e.target.value)}
+                  value={twitterUrl}
+                  onChange={(e) => setTwitterUrl(e.target.value)}
+                  placeholder="https://x.com/username"
                   className="border-slate-800 bg-[#06080e] text-slate-200"
                 />
               </div>
             </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-300">{t('YouTube')}</Label>
+                <Input
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  placeholder="https://youtube.com/@username"
+                  className="border-slate-800 bg-[#06080e] text-slate-200"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-300">
+                  {t('Instagram')}
+                </Label>
+                <Input
+                  value={instagramUrl}
+                  onChange={(e) => setInstagramUrl(e.target.value)}
+                  placeholder="https://instagram.com/username"
+                  className="border-slate-800 bg-[#06080e] text-slate-200"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-300">
+                  {t('Facebook')}
+                </Label>
+                <Input
+                  value={facebookUrl}
+                  onChange={(e) => setFacebookUrl(e.target.value)}
+                  placeholder="https://facebook.com/username"
+                  className="border-slate-800 bg-[#06080e] text-slate-200"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-300">{t('TikTok')}</Label>
+                <Input
+                  value={tiktokUrl}
+                  onChange={(e) => setTiktokUrl(e.target.value)}
+                  placeholder="https://tiktok.com/@username"
+                  className="border-slate-800 bg-[#06080e] text-slate-200"
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* Account Statistics */}
+          <Card className="space-y-4 border-slate-800/80 bg-[#090b14]/90 p-6">
+            <div className="flex items-center gap-3 border-b border-slate-800/80 pb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400">
+                <BarChart3 className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-100">
+                {t('Account Statistics')}
+              </h3>
+            </div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+              {ACCOUNT_STATS.map((stat) => (
+                <div key={stat.label}>
+                  <p className="text-[11px] text-slate-400">{t(stat.label)}</p>
+                  <p className="mt-1 font-mono text-lg font-bold text-slate-100">
+                    {stat.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Payout Settings quick link */}
+          <Card className="flex flex-wrap items-center justify-between gap-4 border-slate-800/80 bg-[#090b14]/90 p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-400">
+                <Landmark className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-100">
+                  {t('Payout Settings')}
+                </h3>
+                <p className="text-xs text-slate-400">
+                  {t(
+                    'Manage the bank details your commissions are paid out to'
+                  )}
+                </p>
+              </div>
+            </div>
+            <Link href="/affiliate/settings/payout">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-slate-700 text-xs text-slate-300 hover:bg-slate-800"
+              >
+                {t('Manage Payout Settings')}
+              </Button>
+            </Link>
           </Card>
 
           <div className="flex justify-end gap-3">

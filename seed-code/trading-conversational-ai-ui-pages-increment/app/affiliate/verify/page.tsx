@@ -10,25 +10,28 @@ import {
   Loader2,
   Share2,
   ArrowRight,
+  Mail,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLocale } from '@/lib/context/locale-context';
+import { useRouter } from 'next/navigation';
 
 function AffiliateVerifyContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const { t } = useLocale();
 
-  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>(
-    token ? 'verifying' : 'error'
-  );
+  const [status, setStatus] = useState<
+    'pending' | 'verifying' | 'success' | 'error'
+  >(token ? 'verifying' : 'pending');
   const [errorMsg, setErrorMsg] = useState('');
+  const [resent, setResent] = useState(false);
 
   useEffect(() => {
     if (!token) {
-      setStatus('error');
-      setErrorMsg(t('No affiliate token provided.'));
+      setStatus('pending');
       return;
     }
 
@@ -52,6 +55,14 @@ function AffiliateVerifyContent() {
 
     verifyPartner();
   }, [token, t]);
+
+  useEffect(() => {
+    if (status !== 'success') return;
+    const redirect = setTimeout(() => {
+      router.push('/affiliate/dashboard');
+    }, 3000);
+    return () => clearTimeout(redirect);
+  }, [status, router]);
 
   return (
     <div className="w-full max-w-md space-y-6">
@@ -79,6 +90,44 @@ function AffiliateVerifyContent() {
       </div>
 
       <Card className="space-y-6 border-slate-800/80 bg-[#090b14]/95 p-6 text-center shadow-2xl backdrop-blur-2xl md:p-8">
+        {status === 'pending' && (
+          <div className="space-y-4 py-4">
+            <div className="flex justify-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-400">
+                <Mail className="h-8 w-8" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-slate-100">
+                {t('Check Your Inbox')}
+              </h3>
+              <p className="text-xs text-slate-400">
+                {t(
+                  "We've sent a verification link to your inbox. Click it to activate your partner account."
+                )}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-[11px] text-amber-300/90">
+              {t("Didn't receive the email? Check your spam folder or")}{' '}
+              <button
+                type="button"
+                onClick={() => setResent(true)}
+                className="font-semibold underline hover:text-amber-200"
+              >
+                {resent ? t('Email resent!') : t('click here to resend')}
+              </button>
+            </div>
+
+            <Link
+              href="/affiliate/register"
+              className="inline-block text-xs text-slate-400 hover:text-amber-400"
+            >
+              {t('← Back to registration')}
+            </Link>
+          </div>
+        )}
+
         {status === 'verifying' && (
           <div className="space-y-4 py-6">
             <Loader2 className="mx-auto h-10 w-10 animate-spin text-amber-400" />
@@ -103,6 +152,9 @@ function AffiliateVerifyContent() {
                 {t(
                   'Your affiliate account is now fully approved. You can generate custom discount codes and track payouts.'
                 )}
+              </p>
+              <p className="text-[11px] text-slate-500">
+                {t('Redirecting to your dashboard...')}
               </p>
             </div>
 

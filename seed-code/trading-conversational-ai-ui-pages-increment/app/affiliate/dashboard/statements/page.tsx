@@ -73,12 +73,47 @@ export default function AffiliateStatementsPage() {
     },
   ];
 
+  const downloadStatement = (st: Statement) => {
+    const header = [
+      'Statement ID',
+      'Billing Period',
+      'Gross Referred Sales',
+      'Earned Commission',
+      'Transfer Fee',
+      'Net Disbursed',
+      'Status',
+    ];
+    const row = [
+      st.id,
+      st.month,
+      st.grossSales.toFixed(2),
+      st.commission.toFixed(2),
+      st.fees.toFixed(2),
+      st.netPayout.toFixed(2),
+      st.status,
+    ];
+    const csv = [header, row]
+      .map((cells) =>
+        cells.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')
+      )
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${st.id}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
       <AppHeader
         title={t('Affiliate Monthly Statements')}
         subtitle={t(
-          'Official Tax Statements, Revenue Breakdown & PDF Download Archives'
+          'Official Tax Statements, Revenue Breakdown & CSV Download Archives'
         )}
       />
 
@@ -148,19 +183,29 @@ export default function AffiliateStatementsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() =>
-                        alert(t('Downloading official PDF statement...'))
-                      }
+                      onClick={() => downloadStatement(st)}
                       className="border-slate-700 bg-[#06080e] text-xs text-slate-300 hover:bg-slate-800 hover:text-amber-400"
                     >
                       <Download className="mr-1.5 h-3.5 w-3.5" />
-                      <span>{t('PDF')}</span>
+                      <span>{t('CSV')}</span>
                     </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+        </Card>
+
+        {/* Tax Summary Note */}
+        <Card className="border-slate-800/80 bg-[#090b14]/90 p-6">
+          <h3 className="mb-2 text-sm font-bold text-slate-100">
+            {t('Tax Summary Note')}
+          </h3>
+          <p className="text-xs leading-relaxed text-slate-400">
+            {t(
+              'These statements summarize commission activity and are not official tax documents. Amounts shown are in USD before any local withholding or currency-conversion fees applied by our payout provider. Consult a tax advisor in your jurisdiction to determine your reporting obligations.'
+            )}
+          </p>
         </Card>
       </main>
     </div>

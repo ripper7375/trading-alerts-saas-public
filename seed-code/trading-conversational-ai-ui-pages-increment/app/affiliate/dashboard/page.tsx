@@ -3,6 +3,7 @@
 import AppHeader from '@/components/layout/app-header';
 import AffiliateStats from '@/components/affiliate/affiliate-stats';
 import CodeTable from '@/components/affiliate/code-table';
+import { AffiliateNav } from '@/components/affiliate/affiliate-nav';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Share2, Landmark } from 'lucide-react';
@@ -19,6 +20,9 @@ export default function AffiliateDashboardPage() {
           'Track Referral Commissions, Conversion Analytics & Wise/Rise Payouts'
         )}
       />
+
+      <AffiliateNav />
+
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">
         <div className="flex items-center justify-between rounded-2xl border border-amber-500/30 bg-gradient-to-r from-[#0c0f18] via-[#121624] to-[#0d0f17] p-4">
           <div className="flex items-center gap-3">

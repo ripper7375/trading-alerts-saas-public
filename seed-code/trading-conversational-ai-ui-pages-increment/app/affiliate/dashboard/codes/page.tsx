@@ -42,10 +42,13 @@ interface PromoCode {
   created: string;
 }
 
+type StatusFilter = 'ALL' | PromoCode['status'];
+
 export default function AffiliateCodesPage() {
   const { t } = useLocale();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [newCodeName, setNewCodeName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
@@ -113,9 +116,9 @@ export default function AffiliateCodesPage() {
     setIsCreating(false);
   };
 
-  const filtered = codes.filter((c) =>
-    c.code.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = codes
+    .filter((c) => c.code.toLowerCase().includes(search.toLowerCase()))
+    .filter((c) => statusFilter === 'ALL' || c.status === statusFilter);
 
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
@@ -131,14 +134,30 @@ export default function AffiliateCodesPage() {
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">
         {/* Top Action Bar */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div className="relative max-w-xs">
-            <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder={t('Search promo code...')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
-            />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative max-w-xs">
+              <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder={t('Search promo code...')}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              className="h-9 rounded-md border border-slate-800 bg-[#090b14] px-3 text-xs text-slate-200"
+            >
+              <option value="ALL">{t('All Codes')}</option>
+              <option value="ACTIVE">{t('Active')}</option>
+              <option value="EXPIRED">{t('Expired')}</option>
+              <option value="PAUSED">{t('Paused')}</option>
+            </select>
+            <span className="text-xs text-slate-500">
+              {t('Showing')} {filtered.length} {t('of')} {codes.length}{' '}
+              {t('codes')}
+            </span>
           </div>
 
           <Button
@@ -281,6 +300,39 @@ export default function AffiliateCodesPage() {
               ))}
             </TableBody>
           </Table>
+        </Card>
+
+        {/* Code Status Guide */}
+        <Card className="border-slate-800/80 bg-[#090b14]/90 p-6">
+          <h3 className="mb-3 text-sm font-bold text-slate-100">
+            {t('Code Status Guide')}
+          </h3>
+          <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-3">
+            <div className="flex items-center gap-2">
+              <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
+                ACTIVE
+              </Badge>
+              <span className="text-slate-400">
+                {t('Ready to share and earn')}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="border-slate-700 bg-slate-800 text-[10px] text-slate-400">
+                EXPIRED
+              </Badge>
+              <span className="text-slate-400">
+                {t('Past its expiration date')}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="border-slate-700 bg-slate-800 text-[10px] text-slate-400">
+                PAUSED
+              </Badge>
+              <span className="text-slate-400">
+                {t('Temporarily disabled by you')}
+              </span>
+            </div>
+          </div>
         </Card>
       </main>
     </div>

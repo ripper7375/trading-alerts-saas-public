@@ -39,9 +39,12 @@ interface CommissionRecord {
   status: 'PAID' | 'PENDING' | 'HOLD';
 }
 
+type StatusFilter = 'ALL' | CommissionRecord['status'];
+
 export default function AffiliateCommissionsPage() {
   const { t } = useLocale();
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
 
   const records: CommissionRecord[] = [
     {
@@ -111,6 +114,18 @@ export default function AffiliateCommissionsPage() {
     .filter((r) => r.status === 'PENDING')
     .reduce((sum, r) => sum + r.earned, 0);
 
+  const filtered = records
+    .filter((r) => statusFilter === 'ALL' || r.status === statusFilter)
+    .filter((r) => {
+      const q = search.toLowerCase();
+      return (
+        q === '' ||
+        r.id.toLowerCase().includes(q) ||
+        r.userMask.toLowerCase().includes(q) ||
+        r.plan.toLowerCase().includes(q)
+      );
+    });
+
   const exportCSV = () => {
     const csvContent =
       'data:text/csv;charset=utf-8,' +
@@ -174,14 +189,27 @@ export default function AffiliateCommissionsPage() {
 
         {/* Filter bar */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div className="relative max-w-xs">
-            <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder={t('Search transaction or user...')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
-            />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative max-w-xs">
+              <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder={t('Search transaction or user...')}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
+              />
+            </div>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              className="h-9 rounded-md border border-slate-800 bg-[#090b14] px-3 text-xs text-slate-200"
+            >
+              <option value="ALL">{t('All Status')}</option>
+              <option value="PENDING">{t('Pending')}</option>
+              <option value="PAID">{t('Paid')}</option>
+              <option value="HOLD">{t('Hold')}</option>
+            </select>
           </div>
 
           <Button
@@ -227,7 +255,17 @@ export default function AffiliateCommissionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {records.map((r) => (
+              {filtered.length === 0 && (
+                <TableRow className="border-slate-800/60 hover:bg-transparent">
+                  <TableCell
+                    colSpan={8}
+                    className="py-8 text-center text-xs text-slate-500"
+                  >
+                    {t('No commissions match this search or filter.')}
+                  </TableCell>
+                </TableRow>
+              )}
+              {filtered.map((r) => (
                 <TableRow
                   key={r.id}
                   className="border-slate-800/60 hover:bg-slate-800/30"
@@ -268,6 +306,37 @@ export default function AffiliateCommissionsPage() {
               ))}
             </TableBody>
           </Table>
+        </Card>
+
+        {/* Commission Status Guide */}
+        <Card className="border-slate-800/80 bg-[#090b14]/90 p-6">
+          <h3 className="mb-3 text-sm font-bold text-slate-100">
+            {t('Commission Status Guide')}
+          </h3>
+          <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-3">
+            <div className="flex items-center gap-2">
+              <Badge className="border-amber-500/40 bg-amber-500/20 text-[10px] text-amber-400">
+                PENDING
+              </Badge>
+              <span className="text-slate-400">
+                {t('Awaiting the next payout cycle')}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
+                PAID
+              </Badge>
+              <span className="text-slate-400">{t('Settled via payout')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="border-slate-700 bg-slate-800 text-[10px] text-slate-400">
+                HOLD
+              </Badge>
+              <span className="text-slate-400">
+                {t('Under fraud/compliance review')}
+              </span>
+            </div>
+          </div>
         </Card>
       </main>
     </div>

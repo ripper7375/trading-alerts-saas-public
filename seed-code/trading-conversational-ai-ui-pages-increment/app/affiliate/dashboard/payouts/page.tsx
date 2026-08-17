@@ -231,6 +231,39 @@ export default function AffiliatePayoutsPage() {
             </TableBody>
           </Table>
         </Card>
+
+        {/* Payout Batch Status Guide */}
+        <Card className="border-slate-800/80 bg-[#090b14]/90 p-6">
+          <h3 className="mb-3 text-sm font-bold text-slate-100">
+            {t('Payout Batch Status Guide')}
+          </h3>
+          <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-3">
+            <div className="flex items-center gap-2">
+              <Badge className="border-slate-700 bg-slate-800 text-[10px] text-slate-400">
+                SCHEDULED
+              </Badge>
+              <span className="text-slate-400">
+                {t('Queued for the next disbursement run')}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="border-cyan-500/40 bg-cyan-500/20 text-[10px] text-cyan-400">
+                PROCESSING
+              </Badge>
+              <span className="text-slate-400">
+                {t('Transfer initiated with the payout provider')}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
+                COMPLETED
+              </Badge>
+              <span className="text-slate-400">
+                {t('Funds delivered to your payout account')}
+              </span>
+            </div>
+          </div>
+        </Card>
       </main>
     </div>
   );

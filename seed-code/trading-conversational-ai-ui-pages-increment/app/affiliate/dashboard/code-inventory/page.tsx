@@ -27,9 +27,18 @@ import {
 } from '@/components/ui/table';
 import { useLocale } from '@/lib/context/locale-context';
 
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
 export default function AffiliateCodeInventoryPage() {
   const { t } = useLocale();
   const [search, setSearch] = useState('');
+
+  const today = new Date();
+  const sixMonthsOut = new Date(today.getTime() + 180 * 24 * 60 * 60 * 1000);
+  const [startDate, setStartDate] = useState(isoDate(today));
+  const [endDate, setEndDate] = useState(isoDate(sixMonthsOut));
 
   const stats = [
     {
@@ -84,6 +93,10 @@ export default function AffiliateCodeInventoryPage() {
     },
   ];
 
+  const visibleInventory = inventory
+    .filter((item) => item.code.toLowerCase().includes(search.toLowerCase()))
+    .filter((item) => item.expiry >= startDate && item.expiry <= endDate);
+
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
       <AppHeader
@@ -96,6 +109,56 @@ export default function AffiliateCodeInventoryPage() {
       <AffiliateNav />
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">
+        {/* Filters */}
+        <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="relative max-w-xs flex-1">
+              <label className="mb-1 block text-xs font-medium text-slate-400">
+                {t('Search Code')}
+              </label>
+              <Search className="absolute top-[34px] left-3 h-4 w-4 text-slate-500" />
+              <Input
+                placeholder={t('Search promo code...')}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-9 border-slate-800 bg-[#06080e] pl-9 text-xs text-slate-200"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="startDate"
+                className="mb-1 block text-xs font-medium text-slate-400"
+              >
+                {t('Start Date')}
+              </label>
+              <input
+                id="startDate"
+                type="date"
+                value={startDate}
+                max={endDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="h-9 rounded-md border border-slate-800 bg-[#06080e] px-3 text-xs text-slate-200"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="endDate"
+                className="mb-1 block text-xs font-medium text-slate-400"
+              >
+                {t('End Date')}
+              </label>
+              <input
+                id="endDate"
+                type="date"
+                value={endDate}
+                min={startDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="h-9 rounded-md border border-slate-800 bg-[#06080e] px-3 text-xs text-slate-200"
+              />
+            </div>
+          </div>
+        </Card>
+
         {/* KPI Stats */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {stats.map((st, idx) => (
@@ -141,7 +204,17 @@ export default function AffiliateCodeInventoryPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {inventory.map((item, idx) => (
+              {visibleInventory.length === 0 && (
+                <TableRow className="border-slate-800/60 hover:bg-transparent">
+                  <TableCell
+                    colSpan={7}
+                    className="py-8 text-center text-xs text-slate-500"
+                  >
+                    {t('No codes match this search or date range.')}
+                  </TableCell>
+                </TableRow>
+              )}
+              {visibleInventory.map((item, idx) => (
                 <TableRow
                   key={idx}
                   className="border-slate-800/60 hover:bg-slate-800/30"
