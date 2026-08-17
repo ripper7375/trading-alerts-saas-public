@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   ArrowRight,
   ShieldCheck,
@@ -27,12 +28,16 @@ function CheckoutReturnContent() {
   const statusParam = searchParams.get('status') || '';
   const { t } = useLocale();
 
-  const [status, setStatus] = useState<'SUCCESS' | 'PENDING' | 'FAILED'>(
-    statusParam.toUpperCase() === 'FAILED'
-      ? 'FAILED'
-      : statusParam.toUpperCase() === 'PENDING'
-        ? 'PENDING'
-        : 'SUCCESS'
+  const [status, setStatus] = useState<
+    'SUCCESS' | 'PENDING' | 'FAILED' | 'NO_REFERENCE'
+  >(
+    !paymentId
+      ? 'NO_REFERENCE'
+      : statusParam.toUpperCase() === 'FAILED'
+        ? 'FAILED'
+        : statusParam.toUpperCase() === 'PENDING'
+          ? 'PENDING'
+          : 'SUCCESS'
   );
   const [isLoading, setIsLoading] = useState(false);
 
@@ -98,6 +103,40 @@ function CheckoutReturnContent() {
             <p className="text-xs text-slate-400">
               {t('Verifying payment with gateway...')}
             </p>
+          </div>
+        ) : status === 'NO_REFERENCE' ? (
+          <div className="space-y-5">
+            <div className="flex justify-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-400">
+                <AlertTriangle className="h-9 w-9" />
+              </div>
+            </div>
+            <div className="space-y-1" role="alert" aria-live="assertive">
+              <h3 className="text-xl font-extrabold text-slate-100">
+                {t('Unable to Show Payment Status')}
+              </h3>
+              <p className="text-xs text-slate-400">
+                {t(
+                  'No payment reference was provided in the return URL, so we cannot confirm whether a payment was made.'
+                )}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <Link href="/checkout">
+                <Button className="w-full bg-amber-500 font-bold text-slate-950 hover:bg-amber-400">
+                  {t('Back to Checkout')}
+                </Button>
+              </Link>
+              <Link href="/dashboard">
+                <Button
+                  variant="ghost"
+                  className="text-xs text-slate-400 hover:text-slate-200"
+                >
+                  {t('Go to Dashboard')}
+                </Button>
+              </Link>
+            </div>
           </div>
         ) : status === 'SUCCESS' ? (
           <div className="space-y-5">

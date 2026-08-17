@@ -206,6 +206,20 @@ export default function StatusPage() {
               })}
             </div>
           </div>
+
+          <div className="rounded-xl border border-slate-800/80 bg-[#090b14]/80 p-4 text-center">
+            <p className="text-sm text-slate-400">
+              {t(
+                'MT5 terminal health, scheduled jobs, and queue diagnostics are managed in the Admin Panel.'
+              )}
+            </p>
+            <Link
+              href="/admin/system/terminals"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-amber-400 hover:text-amber-300 hover:underline"
+            >
+              {t('Go to Admin System Panel')} →
+            </Link>
+          </div>
         </div>
       </main>
 

@@ -95,6 +95,111 @@ export default function PrivacyPage() {
                 )}
               </p>
             </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-100">
+                4. {t('How We Share Your Information')}
+              </h2>
+              <p>
+                {t(
+                  'We do not sell your personal information. We share data only with:'
+                )}
+              </p>
+              <ul className="list-disc space-y-1 pl-5 text-xs text-slate-400 md:text-sm">
+                <li>
+                  <strong className="text-slate-200">
+                    {t('Payment processors')}
+                  </strong>{' '}
+                  {t(
+                    '(dLocal, Stripe) — to process your subscription payment.'
+                  )}
+                </li>
+                <li>
+                  <strong className="text-slate-200">
+                    {t('Infrastructure providers')}
+                  </strong>{' '}
+                  {t(
+                    '(hosting, database, email delivery) — solely to operate the platform.'
+                  )}
+                </li>
+                <li>
+                  <strong className="text-slate-200">
+                    {t('Affiliate partners')}
+                  </strong>{' '}
+                  {t(
+                    '— only an anonymized referral code and commission amount, if you signed up through an affiliate link.'
+                  )}
+                </li>
+                <li>
+                  <strong className="text-slate-200">
+                    {t('Law enforcement')}
+                  </strong>{' '}
+                  {t(
+                    '— when required by law, subpoena, or to protect the rights and safety of our users.'
+                  )}
+                </li>
+              </ul>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-100">
+                5. {t('Cookies & Session Data')}
+              </h2>
+              <p>
+                {t(
+                  'We use essential cookies to keep you signed in and remember your preferences, such as theme accent and appearance settings. We do not use third-party advertising or cross-site tracking cookies.'
+                )}
+              </p>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-100">
+                6. {t('Data Retention & Security')}
+              </h2>
+              <p>
+                {t(
+                  'We retain your account data for as long as your account is active, or as needed to comply with legal obligations, resolve disputes, and enforce our agreements. We use industry-standard technical and organizational measures — encryption in transit and at rest, hashed credentials, and access controls — to protect your data. No method of transmission or storage is 100% secure, and we cannot guarantee absolute security.'
+                )}
+              </p>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-100">
+                7. {t("Children's Privacy")}
+              </h2>
+              <p>
+                {t(
+                  'DavinTrade AI is not directed to individuals under 18. We do not knowingly collect personal information from children. If you believe a child has provided us with personal data, please contact us and we will delete it.'
+                )}
+              </p>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-100">
+                8. {t('Changes to This Policy')}
+              </h2>
+              <p>
+                {t(
+                  'We may update this Privacy Policy from time to time. We will notify you of material changes by posting the new policy on this page and updating the "Effective Date" above.'
+                )}
+              </p>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-100">
+                9. {t('Contact Us')}
+              </h2>
+              <p>
+                {t('Questions about this Privacy Policy? Contact us at')}{' '}
+                <a
+                  href="mailto:privacy@davintrade.com"
+                  className="text-amber-400 underline hover:text-amber-300"
+                >
+                  privacy@davintrade.com
+                </a>
+                .
+              </p>
+            </section>
           </div>
         </div>
       </main>

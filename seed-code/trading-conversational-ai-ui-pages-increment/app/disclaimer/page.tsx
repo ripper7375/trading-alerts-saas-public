@@ -90,6 +90,42 @@ export default function DisclaimerPage() {
                 )}
               </p>
             </section>
+
+            <section className="space-y-2">
+              <h2 className="text-lg font-bold text-slate-100">
+                5. {t('No Guarantee of Results')}
+              </h2>
+              <p>
+                {t(
+                  'DavinTrade AI makes no representation or warranty, express or implied, that any alert, fractal marker, AI conversational output, or drawing produced by the platform will be profitable or will not result in losses. Any testimonials, examples, or case studies presented represent exceptional results and are not intended to represent or guarantee that anyone will achieve the same or similar results.'
+                )}
+              </p>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-lg font-bold text-slate-100">
+                6. {t('Acknowledgment')}
+              </h2>
+              <p>
+                {t(
+                  'By using DavinTrade AI, you acknowledge that you have read and understood this disclaimer and that you are solely responsible for your own trading decisions. This disclaimer should be read alongside our'
+                )}{' '}
+                <Link
+                  href="/terms"
+                  className="text-amber-400 underline hover:text-amber-300"
+                >
+                  {t('Terms of Service')}
+                </Link>{' '}
+                {t('and')}{' '}
+                <Link
+                  href="/privacy"
+                  className="text-amber-400 underline hover:text-amber-300"
+                >
+                  {t('Privacy Policy')}
+                </Link>
+                .
+              </p>
+            </section>
           </div>
         </div>
       </main>

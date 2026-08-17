@@ -9,6 +9,7 @@ import {
   ArrowRight,
   CheckCircle2,
   ShieldCheck,
+  Building2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,34 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useLocale } from '@/lib/context/locale-context';
+
+const COUNTRY_LABELS: Record<string, string> = {
+  TH: 'Thailand',
+  GB: 'United Kingdom',
+  VN: 'Vietnam',
+  IN: 'India',
+  ID: 'Indonesia',
+  PK: 'Pakistan',
+  NG: 'Nigeria',
+  ZA: 'South Africa',
+  TR: 'Turkey',
+  US: 'United States',
+  JP: 'Japan',
+};
+
+const LOCAL_PAYMENT_METHODS: Record<string, string[]> = {
+  TH: ['TrueMoney Wallet', 'Thai QR Payment', 'Bank Transfer'],
+  IN: ['UPI', 'Paytm', 'PhonePe', 'Net Banking'],
+  ID: ['GoPay', 'OVO', 'Dana'],
+  NG: ['Bank Transfer', 'USSD', 'Paystack'],
+  VN: ['MoMo', 'ZaloPay', 'Bank Transfer'],
+  PK: ['JazzCash', 'EasyPaisa', 'Bank Transfer'],
+  ZA: ['Instant EFT', 'Bank Transfer'],
+  TR: ['Bank Transfer', 'Papara'],
+  GB: ['Bank Transfer', 'Open Banking'],
+  US: ['ACH Bank Transfer'],
+  JP: ['Konbini', 'Bank Transfer'],
+};
 
 export default function CheckoutForm() {
   const router = useRouter();
@@ -149,49 +178,78 @@ export default function CheckoutForm() {
 
         {/* Card Details Form */}
         <form onSubmit={handleCheckout} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-300">
-              {t('Card Number')}
-            </Label>
-            <Input
-              type="text"
-              required
-              placeholder="4532 •••• •••• 8892"
-              value={cardNumber}
-              onChange={(e) => setCardNumber(e.target.value)}
-              className="border-slate-750 bg-[#06080e] font-mono text-xs text-slate-100"
-            />
-          </div>
+          {paymentMethod === 'card' ? (
+            <>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-slate-300">
+                  {t('Card Number')}
+                </Label>
+                <Input
+                  type="text"
+                  required
+                  placeholder="4532 •••• •••• 8892"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value)}
+                  className="border-slate-750 bg-[#06080e] font-mono text-xs text-slate-100"
+                />
+              </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-300">
-                {t('Expiration Date')}
-              </Label>
-              <Input
-                type="text"
-                required
-                placeholder="MM/YY"
-                value={expiry}
-                onChange={(e) => setExpiry(e.target.value)}
-                className="border-slate-750 bg-[#06080e] font-mono text-xs text-slate-100"
-              />
-            </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-300">
+                    {t('Expiration Date')}
+                  </Label>
+                  <Input
+                    type="text"
+                    required
+                    placeholder="MM/YY"
+                    value={expiry}
+                    onChange={(e) => setExpiry(e.target.value)}
+                    className="border-slate-750 bg-[#06080e] font-mono text-xs text-slate-100"
+                  />
+                </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-300">
-                {t('Security CVC')}
-              </Label>
-              <Input
-                type="text"
-                required
-                placeholder="123"
-                value={cvc}
-                onChange={(e) => setCvc(e.target.value)}
-                className="border-slate-750 bg-[#06080e] font-mono text-xs text-slate-100"
-              />
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-300">
+                    {t('Security CVC')}
+                  </Label>
+                  <Input
+                    type="text"
+                    required
+                    placeholder="123"
+                    value={cvc}
+                    onChange={(e) => setCvc(e.target.value)}
+                    className="border-slate-750 bg-[#06080e] font-mono text-xs text-slate-100"
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-2 rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
+                <Building2 className="h-4 w-4 text-amber-400" />
+                {t('Available local methods for')}{' '}
+                {COUNTRY_LABELS[country] || country}
+              </div>
+              <ul className="space-y-1 pl-1 text-xs text-slate-400">
+                {(
+                  LOCAL_PAYMENT_METHODS[country] || [
+                    'Local bank transfer & e-wallets',
+                  ]
+                ).map((method) => (
+                  <li key={method} className="flex items-center gap-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                    {t(method)}
+                  </li>
+                ))}
+              </ul>
+              <p className="pt-1 text-[11px] text-slate-500">
+                {t(
+                  "You'll be redirected to dLocal's secure page to complete payment with your selected method."
+                )}
+              </p>
             </div>
-          </div>
+          )}
 
           {/* Discount Code Input */}
           <div className="space-y-1.5 border-t border-slate-800/80 pt-2">
