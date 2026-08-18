@@ -322,16 +322,19 @@ export default function AffiliateResourcesPage() {
             </div>
             <div className="space-y-1 p-5">
               <h4 className="text-xs font-bold text-slate-200">
-                {t('Where do I set up how I get paid?')}
+                {t('How are my payouts set up and paid?')}
               </h4>
               <p className="text-[11px] text-slate-400">
+                {t(
+                  'Payout configurations and disbursements are handled directly by the Admin Disbursement Team via Wise and RiseWorks. You can view your payment records anytime in'
+                )}{' '}
                 <Link
-                  href="/affiliate/settings/payout"
+                  href="/affiliate/dashboard/payouts"
                   className="text-amber-400 hover:underline"
                 >
-                  {t('Payout Settings')}
-                </Link>{' '}
-                {t('is the single place to configure your Wise bank details.')}
+                  {t('Payouts')}
+                </Link>
+                .
               </p>
             </div>
           </Card>

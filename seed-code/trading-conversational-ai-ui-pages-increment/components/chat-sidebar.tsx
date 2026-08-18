@@ -23,6 +23,7 @@ import {
   Share2,
   LogOut,
   ShieldAlert,
+  Inbox,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -101,6 +102,11 @@ export function ChatSidebar({
       icon: Bell,
       badge: currentTier === 'FREE' ? 'PRO' : unreadAlertsCount,
       isProGated: currentTier === 'FREE',
+    },
+    {
+      label: t('nav.notifications', 'Notifications'),
+      href: '/notifications',
+      icon: Inbox,
     },
     ...(currentTier === 'FREE'
       ? [

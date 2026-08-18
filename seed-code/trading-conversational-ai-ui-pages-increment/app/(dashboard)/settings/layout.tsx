@@ -4,14 +4,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AppHeader from '@/components/layout/app-header';
 import {
+  LayoutDashboard,
   User,
   Palette,
   Shield,
+  Activity,
   CreditCard,
   Eye,
   Globe,
   HelpCircle,
-  FileText,
   Lock,
   ChevronRight,
 } from 'lucide-react';
@@ -24,10 +25,19 @@ interface SettingsTab {
   translationKey: string;
   defaultLabel: string;
   href: string;
+  exact?: boolean;
   badge?: string;
 }
 
 const settingsTabs: SettingsTab[] = [
+  {
+    id: 'overview',
+    icon: LayoutDashboard,
+    translationKey: 'settings.nav.overview',
+    defaultLabel: 'Overview',
+    href: '/settings',
+    exact: true,
+  },
   {
     id: 'profile',
     icon: User,
@@ -48,6 +58,14 @@ const settingsTabs: SettingsTab[] = [
     translationKey: 'settings.nav.security',
     defaultLabel: 'Security & 2FA',
     href: '/settings/security',
+    exact: true,
+  },
+  {
+    id: 'security-activity',
+    icon: Activity,
+    translationKey: 'settings.nav.security_activity',
+    defaultLabel: 'Security Activities',
+    href: '/settings/security/activity',
   },
   {
     id: 'billing',
@@ -79,13 +97,6 @@ const settingsTabs: SettingsTab[] = [
     href: '/settings/help',
   },
   {
-    id: 'terms',
-    icon: FileText,
-    translationKey: 'settings.nav.terms',
-    defaultLabel: 'Terms & Disclosures',
-    href: '/settings/terms',
-  },
-  {
     id: 'account',
     icon: Lock,
     translationKey: 'settings.nav.account',
@@ -93,6 +104,12 @@ const settingsTabs: SettingsTab[] = [
     href: '/settings/account',
   },
 ];
+
+function isTabActive(tab: SettingsTab, pathname: string | null): boolean {
+  if (!pathname) return false;
+  if (tab.exact) return pathname === tab.href;
+  return pathname.startsWith(tab.href);
+}
 
 export default function SettingsLayout({
   children,
@@ -103,8 +120,7 @@ export default function SettingsLayout({
   const { t } = useLocale();
 
   const activeTab =
-    settingsTabs.find((tab) => pathname.startsWith(tab.href)) ||
-    settingsTabs[0];
+    settingsTabs.find((tab) => isTabActive(tab, pathname)) || settingsTabs[0];
   const activeTabLabel = t(activeTab.translationKey, activeTab.defaultLabel);
 
   return (
@@ -120,14 +136,14 @@ export default function SettingsLayout({
         {/* Breadcrumb Navigation */}
         <div className="mb-6 flex items-center gap-2 font-mono text-xs text-slate-400">
           <Link
-            href="/dashboard"
+            href="/terminal"
             className="transition-colors hover:text-amber-300"
           >
-            {t('breadcrumb.dashboard', 'Dashboard')}
+            {t('breadcrumb.workbench', 'Workbench')}
           </Link>
           <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
           <Link
-            href="/settings/profile"
+            href="/settings"
             className="transition-colors hover:text-amber-300"
           >
             {t('breadcrumb.settings', 'Settings')}
@@ -147,7 +163,7 @@ export default function SettingsLayout({
               <nav className="grid gap-1">
                 {settingsTabs.map((tab) => {
                   const Icon = tab.icon;
-                  const isActive = pathname.startsWith(tab.href);
+                  const isActive = isTabActive(tab, pathname);
                   const label = t(tab.translationKey, tab.defaultLabel);
 
                   return (
@@ -187,7 +203,7 @@ export default function SettingsLayout({
             <div className="flex gap-2">
               {settingsTabs.map((tab) => {
                 const Icon = tab.icon;
-                const isActive = pathname.startsWith(tab.href);
+                const isActive = isTabActive(tab, pathname);
                 const label = t(tab.translationKey, tab.defaultLabel);
 
                 return (

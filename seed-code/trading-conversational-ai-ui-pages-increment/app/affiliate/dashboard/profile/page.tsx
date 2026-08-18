@@ -258,23 +258,23 @@ export default function AffiliateProfilePage() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-slate-100">
-                  {t('Payout Settings')}
+                  {t('Payout & Banking Configuration')}
                 </h3>
                 <p className="text-xs text-slate-400">
                   {t(
-                    'Manage the bank details your commissions are paid out to'
+                    'Disbursement accounts and bank details are reviewed & configured by Admin'
                   )}
                 </p>
               </div>
             </div>
-            <Link href="/affiliate/settings/payout">
+            <Link href="/affiliate/dashboard/payouts">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="border-slate-700 text-xs text-slate-300 hover:bg-slate-800"
+                className="border-slate-750 text-xs text-slate-300 hover:bg-slate-800"
               >
-                {t('Manage Payout Settings')}
+                {t('View Payout History')}
               </Button>
             </Link>
           </Card>

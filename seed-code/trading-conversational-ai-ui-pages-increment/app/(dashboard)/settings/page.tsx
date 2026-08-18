@@ -7,11 +7,11 @@ import {
   User,
   Palette,
   Shield,
+  Activity,
   CreditCard,
   Eye,
   Globe,
   HelpCircle,
-  FileText,
   Lock,
   Sparkles,
 } from 'lucide-react';
@@ -34,7 +34,15 @@ const QUICK_LINKS = [
     href: '/settings/security',
     icon: Shield,
     title: 'Security & 2FA',
-    description: 'Two-factor authentication, password, and active sessions',
+    description:
+      'Two-factor authentication, password, and security preferences',
+  },
+  {
+    href: '/settings/security/activity',
+    icon: Activity,
+    title: 'Security Activities',
+    description:
+      'Active login sessions, authorized devices, and security audit log',
   },
   {
     href: '/settings/billing',
@@ -59,12 +67,6 @@ const QUICK_LINKS = [
     icon: HelpCircle,
     title: 'Help & Support',
     description: 'Get help, contact support, or browse FAQs',
-  },
-  {
-    href: '/settings/terms',
-    icon: FileText,
-    title: 'Terms & Disclosures',
-    description: 'Legal agreements and risk disclosure statements',
   },
   {
     href: '/settings/account',

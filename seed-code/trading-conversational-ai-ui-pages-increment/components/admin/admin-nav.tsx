@@ -18,6 +18,7 @@ import {
   Terminal,
   Layers,
   Gauge,
+  FolderDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLocale } from '@/lib/context/locale-context';
@@ -51,6 +52,11 @@ export function AdminNav() {
       href: '/admin/settings/affiliate',
       label: t('Affiliate Settings'),
       icon: Settings,
+    },
+    {
+      href: '/admin/resources',
+      label: t('Marketing Resources'),
+      icon: FolderDown,
     },
     {
       href: '/admin/fraud-alerts',

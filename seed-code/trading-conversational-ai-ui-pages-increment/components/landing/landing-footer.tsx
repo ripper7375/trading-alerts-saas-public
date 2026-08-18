@@ -70,13 +70,29 @@ export function LandingFooter() {
                   Pricing Matrix
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/docs"
+                  className="transition-colors hover:text-amber-400"
+                >
+                  Documentation
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/changelog"
+                  className="transition-colors hover:text-amber-400"
+                >
+                  Changelog
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Col 3: Account & Settings */}
+          {/* Col 3: Account & Resources */}
           <div className="space-y-2">
             <div className="mb-2 text-xs font-bold tracking-wider text-slate-200 uppercase">
-              Account & Security
+              Account & Company
             </div>
             <ul className="space-y-1.5">
               <li>
@@ -97,18 +113,26 @@ export function LandingFooter() {
               </li>
               <li>
                 <Link
-                  href="/settings/security"
+                  href="/blog"
                   className="transition-colors hover:text-amber-400"
                 >
-                  Security & 2FA
+                  Trading Blog
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/settings/language"
+                  href="/careers"
                   className="transition-colors hover:text-amber-400"
                 >
-                  Regional & Timezone Settings
+                  Careers
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/settings/security"
+                  className="transition-colors hover:text-amber-400"
+                >
+                  Security & 2FA
                 </Link>
               </li>
               <li>
@@ -130,7 +154,23 @@ export function LandingFooter() {
             <ul className="space-y-1.5">
               <li>
                 <Link
-                  href="/settings/terms"
+                  href="/terms"
+                  className="transition-colors hover:text-amber-400"
+                >
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/privacy"
+                  className="transition-colors hover:text-amber-400"
+                >
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/disclaimer"
                   className="transition-colors hover:text-amber-400"
                 >
                   Financial Risk Disclaimer
@@ -138,15 +178,7 @@ export function LandingFooter() {
               </li>
               <li>
                 <Link
-                  href="/settings/privacy"
-                  className="transition-colors hover:text-amber-400"
-                >
-                  Privacy Policy & Data Preferences
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/settings/help"
+                  href="/help"
                   className="transition-colors hover:text-amber-400"
                 >
                   Help Center & Support Tickets

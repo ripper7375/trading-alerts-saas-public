@@ -58,10 +58,10 @@ const disbursementTabs: DisbursementTab[] = [
     href: '/admin/disbursement/transactions',
   },
   {
-    id: 'recipients',
+    id: 'accounts',
     icon: Landmark,
     label: 'Payout Accounts',
-    href: '/admin/disbursement/recipients',
+    href: '/admin/disbursement/accounts',
   },
   {
     id: 'audit',
@@ -80,6 +80,12 @@ const disbursementTabs: DisbursementTab[] = [
 function isTabActive(tab: DisbursementTab, pathname: string | null): boolean {
   if (!pathname) return false;
   if (tab.exact) return pathname === tab.href;
+  if (tab.id === 'accounts') {
+    return (
+      pathname.startsWith('/admin/disbursement/accounts') ||
+      pathname.startsWith('/admin/disbursement/recipients')
+    );
+  }
   return pathname.startsWith(tab.href);
 }
 

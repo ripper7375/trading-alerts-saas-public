@@ -35,19 +35,20 @@ export function LandingNavbar() {
         </Link>
 
         {/* Center Nav Links */}
-        <nav className="hidden items-center space-x-8 md:flex">
+        <nav className="hidden items-center space-x-6 md:flex">
           <a
             href="#features"
             className="text-sm font-medium text-slate-300 transition-colors hover:text-amber-400"
           >
             Features
           </a>
-          <a
-            href="#preview"
-            className="text-sm font-medium text-slate-300 transition-colors hover:text-amber-400"
+          <Link
+            href="/terminal"
+            className="inline-flex items-center rounded-full bg-gradient-to-r from-amber-500 to-amber-600 px-3.5 py-1 text-xs font-bold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:scale-[1.03] hover:from-amber-400 hover:to-amber-500"
           >
+            <Sparkles className="mr-1 h-3.5 w-3.5 fill-slate-950" />
             AI Workbench
-          </a>
+          </Link>
           <Link
             href="/pricing"
             className="text-sm font-medium text-slate-300 transition-colors hover:text-amber-400"
@@ -66,6 +67,12 @@ export function LandingNavbar() {
             className="text-sm font-medium text-slate-300 transition-colors hover:text-amber-400"
           >
             Affiliates
+          </Link>
+          <Link
+            href="/status"
+            className="text-sm font-medium text-slate-300 transition-colors hover:text-amber-400"
+          >
+            System Status
           </Link>
         </nav>
 

@@ -39,13 +39,13 @@ export default function AffiliateDashboardPage() {
             </div>
           </div>
 
-          <Link href="/affiliate/settings/payout">
+          <Link href="/affiliate/dashboard/payouts">
             <Button
               size="sm"
               variant="outline"
               className="h-8 border-amber-500/40 bg-amber-500/10 text-xs text-amber-300 hover:bg-amber-500/20"
             >
-              <Landmark className="mr-1 h-3.5 w-3.5" /> {t('Payout Settings')}
+              <Landmark className="mr-1 h-3.5 w-3.5" /> {t('View Payouts')}
             </Button>
           </Link>
         </div>

@@ -461,9 +461,12 @@ export default function RegisterForm() {
         <div>
           <Link
             href="/affiliate/register"
-            className="text-[11px] text-slate-500 hover:text-amber-400 hover:underline"
+            className="text-[11px] text-slate-400 transition-colors hover:text-slate-200"
           >
-            {t("Don't have a referral code? Join our Affiliate Program")}
+            {t('Join our')}{' '}
+            <strong className="font-bold text-amber-400 hover:underline">
+              {t('Affiliate Program')}
+            </strong>
           </Link>
         </div>
       </div>

@@ -63,11 +63,6 @@ export function AffiliateNav() {
       label: t('Partner Profile'),
       icon: User,
     },
-    {
-      href: '/affiliate/settings/payout',
-      label: t('Payout Settings'),
-      icon: CreditCard,
-    },
   ];
 
   return (

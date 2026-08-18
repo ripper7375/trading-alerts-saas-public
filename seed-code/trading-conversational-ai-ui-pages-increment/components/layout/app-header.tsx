@@ -104,18 +104,18 @@ export default function AppHeader({
             {t('nav.dashboard', 'Dashboard')}
           </Button>
         </Link>
-        <Link href={currentTier === 'FREE' ? '/free' : '/'}>
+        <Link href={currentTier === 'FREE' ? '/free' : '/terminal'}>
           <Button
             variant="ghost"
             size="sm"
             className={`h-7 px-3 text-xs font-medium ${
-              pathname === '/' || pathname === '/free'
+              pathname === '/terminal' || pathname === '/free'
                 ? 'border border-[var(--primary)]/30 bg-[var(--primary)]/20 font-bold text-[var(--primary)]'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <LineChart className="mr-1.5 h-3.5 w-3.5 text-[var(--primary)]" />
-            {t('nav.ai_workspace', 'AI Analyst Workspace')}
+            {t('nav.ai_workbench', 'AI Analyst Workbench')}
           </Button>
         </Link>
         <Link href="/alerts">

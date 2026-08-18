@@ -54,10 +54,10 @@ export function DashboardContent() {
             </div>
 
             <div className="flex shrink-0 items-center gap-2">
-              <Link href="/">
+              <Link href="/terminal">
                 <Button className="h-9 bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500">
                   <LineChart className="mr-1.5 h-4 w-4" />{' '}
-                  {t('Launch AI Analyst Workspace')}
+                  {t('Launch AI Analyst Workbench')}
                 </Button>
               </Link>
             </div>
@@ -127,7 +127,7 @@ export function DashboardContent() {
                     </Button>
                   </Link>
 
-                  <Link href="/">
+                  <Link href="/terminal">
                     <Button
                       variant="outline"
                       className="border-slate-750 w-full justify-between bg-[#06080f] text-xs text-slate-200 hover:bg-slate-800"

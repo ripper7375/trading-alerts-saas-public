@@ -15,5 +15,5 @@
 import { redirect } from 'next/navigation';
 
 export default function AffiliatePaymentPageRedirect(): never {
-  redirect('/affiliate/settings/payout');
+  redirect('/affiliate/dashboard/payouts');
 }

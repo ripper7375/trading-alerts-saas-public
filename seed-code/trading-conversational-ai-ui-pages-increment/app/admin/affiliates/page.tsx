@@ -136,6 +136,10 @@ export default function AdminAffiliatesDirectoryPage() {
       href: '/admin/affiliates/reports/sales-performance',
       label: t('Sales Performance'),
     },
+    {
+      href: '/admin/resources',
+      label: t('Marketing Media Kit'),
+    },
   ];
 
   return (

@@ -147,17 +147,17 @@ export default function AffiliatePayoutsPage() {
                 Wise Recipient •••• 4912
               </p>
               <p className="text-[11px] text-slate-500">
-                Currency: USD • Status: Verified
+                {t('Managed & verified by Admin Disbursement Team')}
               </p>
             </div>
 
-            <Link href="/affiliate/settings/payout">
+            <Link href="/help">
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full border-slate-700 text-xs text-slate-300 hover:bg-slate-800"
+                className="border-slate-750 w-full text-xs text-slate-300 hover:bg-slate-800"
               >
-                {t('Change Payout Method')}
+                {t('Contact Admin to Update Bank Details')}
               </Button>
             </Link>
           </Card>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import AppHeader from '@/components/layout/app-header';
+import { AdminNav } from '@/components/admin/admin-nav';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -64,6 +65,7 @@ export default function FraudAlertsPage() {
           'Anomalous IP Login Patterns & Affiliate Code Abuse Monitoring'
         )}
       />
+      <AdminNav />
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 md:p-6">
         <div className="space-y-4 rounded-2xl border border-rose-500/40 bg-[#090c14] p-6 shadow-xl">
           <div className="flex items-center justify-between border-b border-rose-500/30 pb-3">
