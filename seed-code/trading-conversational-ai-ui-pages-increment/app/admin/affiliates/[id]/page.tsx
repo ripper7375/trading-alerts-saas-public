@@ -34,14 +34,29 @@ interface AdminAffiliateDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
+// Mirrors the backend `AffiliateCode` model + POST
+// /api/admin/affiliates/[id]/distribute-codes (lib/admin/code-distribution.ts,
+// lib/affiliate/code-generator.ts). Admin-distributed codes are ALWAYS
+// tagged distributionReason='ADMIN_BONUS' server-side -- the free-text
+// "reason" the admin types in the modal is an audit note for the request,
+// not a value stored on the code record itself.
+type DistributionReason = 'INITIAL' | 'MONTHLY' | 'ADMIN_BONUS';
+
 interface AffiliateCodeDetail {
   code: string;
-  status: 'ACTIVE' | 'USED' | 'EXPIRED';
-  reason: string;
+  status: 'ACTIVE' | 'USED' | 'EXPIRED' | 'CANCELLED';
+  distributionReason: DistributionReason;
   distributedAt: string;
   expiresAt: string;
   usedAt: string | null;
+  cancelledAt: string | null;
 }
+
+const REASON_LABEL: Record<DistributionReason, string> = {
+  INITIAL: 'Initial partner onboarding',
+  MONTHLY: 'Monthly allocation',
+  ADMIN_BONUS: 'Admin bonus',
+};
 
 interface CommissionEntry {
   id: string;
@@ -61,38 +76,55 @@ const PROFILE = {
 const PENDING_COMMISSIONS = 617.4;
 const PAID_COMMISSIONS = 460.0;
 
+// Codes always expire at 23:59:59 on the last day of the month they were
+// distributed in (lib/affiliate/code-generator.ts's calculateEndOfMonth()) --
+// never a fixed 6/12-month window, and the code text is random, not a
+// vanity name the affiliate or admin chose.
 const INITIAL_CODE_DETAILS: AffiliateCodeDetail[] = [
   {
-    code: 'GOLDPRO20',
+    code: '7F3A9B2C',
     status: 'ACTIVE',
-    reason: 'Initial partner onboarding',
-    distributedAt: '2025-11-05',
-    expiresAt: '2026-11-05',
+    distributionReason: 'MONTHLY',
+    distributedAt: '2026-08-01',
+    expiresAt: '2026-08-31',
     usedAt: null,
+    cancelledAt: null,
   },
   {
-    code: 'DAVINVIP10',
+    code: 'D91C4E08',
     status: 'ACTIVE',
-    reason: 'Q1 growth bonus',
-    distributedAt: '2026-01-10',
-    expiresAt: '2027-01-10',
+    distributionReason: 'ADMIN_BONUS',
+    distributedAt: '2026-08-05',
+    expiresAt: '2026-08-31',
     usedAt: null,
+    cancelledAt: null,
   },
   {
-    code: 'WELCOME5',
+    code: 'A2E77F14',
     status: 'USED',
-    reason: 'Initial partner onboarding',
+    distributionReason: 'INITIAL',
     distributedAt: '2025-11-05',
-    expiresAt: '2026-05-05',
-    usedAt: '2025-12-01',
+    expiresAt: '2025-11-30',
+    usedAt: '2025-11-18',
+    cancelledAt: null,
   },
   {
-    code: 'SPRINGPROMO',
+    code: '5B0D3A6C',
     status: 'EXPIRED',
-    reason: 'Seasonal campaign',
-    distributedAt: '2025-06-01',
-    expiresAt: '2025-09-01',
+    distributionReason: 'MONTHLY',
+    distributedAt: '2026-06-01',
+    expiresAt: '2026-06-30',
     usedAt: null,
+    cancelledAt: null,
+  },
+  {
+    code: 'C4F821D9',
+    status: 'CANCELLED',
+    distributionReason: 'MONTHLY',
+    distributedAt: '2026-07-01',
+    expiresAt: '2026-07-31',
+    usedAt: null,
+    cancelledAt: '2026-07-15',
   },
 ];
 
@@ -144,10 +176,30 @@ const getCodeStatusBadgeClass = (
       return 'border-emerald-500/40 bg-emerald-500/20 text-emerald-400';
     case 'USED':
       return 'border-blue-500/40 bg-blue-500/20 text-blue-400';
+    case 'CANCELLED':
+      return 'border-rose-500/40 bg-rose-500/20 text-rose-400';
     case 'EXPIRED':
     default:
       return 'border-slate-500/40 bg-slate-500/20 text-slate-400';
   }
+};
+
+/** 8-char uppercase hex, matching generateUniqueCode()'s crypto.randomBytes(6) output. */
+const generateMockCode = (): string =>
+  Array.from({ length: 6 }, () =>
+    Math.floor(Math.random() * 256)
+      .toString(16)
+      .padStart(2, '0')
+  )
+    .join('')
+    .toUpperCase()
+    .slice(0, 8);
+
+const calculateEndOfMonth = (): Date => {
+  const now = new Date();
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  endOfMonth.setHours(23, 59, 59, 999);
+  return endOfMonth;
 };
 
 export default function AdminAffiliateDetailPage({
@@ -161,7 +213,11 @@ export default function AdminAffiliateDetailPage({
   const [suspensionReason, setSuspensionReason] = useState('');
   const [codeDetails, setCodeDetails] =
     useState<AffiliateCodeDetail[]>(INITIAL_CODE_DETAILS);
-  const [newCode, setNewCode] = useState('');
+  // Matches POST /api/admin/affiliates/[id]/distribute-codes's real body
+  // shape: { count: 1-50, reason: non-empty string } -- the backend
+  // generates `count` random codes, it never accepts admin-chosen code text.
+  const [distributeCount, setDistributeCount] = useState(15);
+  const [distributeReason, setDistributeReason] = useState('');
   const [isDistributing, setIsDistributing] = useState(false);
   const [success, setSuccess] = useState('');
 
@@ -187,26 +243,64 @@ export default function AdminAffiliateDetailPage({
     setTimeout(() => setSuccess(''), 3000);
   };
 
-  const handleAddCode = (e: React.FormEvent) => {
+  const handleDistributeCodes = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCode.trim()) return;
+    if (distributeCount < 1 || distributeCount > 50) return;
+    if (!distributeReason.trim()) return;
+
     const today = new Date();
-    const expiry = new Date(today);
-    expiry.setFullYear(expiry.getFullYear() + 1);
-    setCodeDetails([
-      ...codeDetails,
-      {
-        code: newCode.toUpperCase().trim(),
+    const expiry = calculateEndOfMonth();
+    const newCodes: AffiliateCodeDetail[] = Array.from(
+      { length: distributeCount },
+      () => ({
+        code: generateMockCode(),
         status: 'ACTIVE',
-        reason: 'Manual allocation',
+        distributionReason: 'ADMIN_BONUS',
         distributedAt: toLocalDateString(today),
         expiresAt: toLocalDateString(expiry),
         usedAt: null,
-      },
-    ]);
-    setNewCode('');
+        cancelledAt: null,
+      })
+    );
+
+    setCodeDetails([...newCodes, ...codeDetails]);
+    setDistributeCount(15);
+    setDistributeReason('');
     setIsDistributing(false);
-    setSuccess(t('Promo code allocated to partner!'));
+    setSuccess(
+      t(
+        `${distributeCount} promo code${distributeCount === 1 ? '' : 's'} distributed to partner!`
+      )
+    );
+    setTimeout(() => setSuccess(''), 3000);
+  };
+
+  // Matches POST /api/admin/codes/[code]/cancel -- admin-only, and the
+  // backend only allows cancelling a code that is still ACTIVE (a USED or
+  // already-CANCELLED code is rejected with 400).
+  const handleCancelCode = (code: string) => {
+    const target = codeDetails.find((c) => c.code === code);
+    if (!target || target.status !== 'ACTIVE') return;
+
+    const confirmed = window.confirm(
+      t(
+        `Cancel code ${code}? It will no longer be redeemable at checkout. This cannot be undone.`
+      )
+    );
+    if (!confirmed) return;
+
+    setCodeDetails((prev) =>
+      prev.map((c) =>
+        c.code === code
+          ? {
+              ...c,
+              status: 'CANCELLED',
+              cancelledAt: toLocalDateString(new Date()),
+            }
+          : c
+      )
+    );
+    setSuccess(t(`Code ${code} cancelled.`));
     setTimeout(() => setSuccess(''), 3000);
   };
 
@@ -436,38 +530,50 @@ export default function AdminAffiliateDetailPage({
               className="border-slate-700 bg-[#06080e] text-xs text-amber-400 hover:bg-slate-800"
             >
               <Plus className="mr-1 h-3.5 w-3.5" />
-              {t('Allocate Promo Code')}
+              {t('Distribute Codes')}
             </Button>
           </div>
 
           {isDistributing && (
             <form
-              onSubmit={handleAddCode}
-              className="flex gap-2 border-b border-slate-800 bg-[#06080e] p-3"
+              onSubmit={handleDistributeCodes}
+              className="flex flex-col gap-2 border-b border-slate-800 bg-[#06080e] p-3 sm:flex-row"
             >
               <Input
-                placeholder="NEWCODE10"
-                value={newCode}
-                onChange={(e) => setNewCode(e.target.value)}
-                className="border-slate-700 bg-[#090b14] font-mono text-xs uppercase"
+                type="number"
+                min={1}
+                max={50}
+                placeholder={t('Count (1-50)')}
+                value={distributeCount}
+                onChange={(e) => setDistributeCount(Number(e.target.value))}
+                className="border-slate-700 bg-[#090b14] text-xs sm:w-28"
                 required
               />
-              <Button
-                type="submit"
-                size="sm"
-                className="bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
-              >
-                {t('Add')}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                type="button"
-                onClick={() => setIsDistributing(false)}
-                className="text-slate-400"
-              >
-                {t('Cancel')}
-              </Button>
+              <Input
+                placeholder={t('Reason (e.g. Q3 growth bonus)')}
+                value={distributeReason}
+                onChange={(e) => setDistributeReason(e.target.value)}
+                className="border-slate-700 bg-[#090b14] text-xs"
+                required
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
+                >
+                  {t('Distribute')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  type="button"
+                  onClick={() => setIsDistributing(false)}
+                  className="text-slate-400"
+                >
+                  {t('Cancel')}
+                </Button>
+              </div>
             </form>
           )}
 
@@ -492,6 +598,12 @@ export default function AdminAffiliateDetailPage({
                 <TableHead className="text-xs font-bold text-slate-300">
                   {t('Used')}
                 </TableHead>
+                <TableHead className="text-xs font-bold text-slate-300">
+                  {t('Cancelled')}
+                </TableHead>
+                <TableHead className="text-right text-xs font-bold text-slate-300">
+                  {t('Action')}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -512,7 +624,7 @@ export default function AdminAffiliateDetailPage({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs text-slate-400">
-                    {c.reason}
+                    {t(REASON_LABEL[c.distributionReason])}
                   </TableCell>
                   <TableCell className="text-xs text-slate-300">
                     {formatDate(c.distributedAt)}
@@ -522,6 +634,24 @@ export default function AdminAffiliateDetailPage({
                   </TableCell>
                   <TableCell className="text-xs text-slate-300">
                     {formatDate(c.usedAt)}
+                  </TableCell>
+                  <TableCell className="text-xs text-slate-300">
+                    {formatDate(c.cancelledAt)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {c.status === 'ACTIVE' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCancelCode(c.code)}
+                        className="border-rose-500/30 bg-[#06080e] text-xs text-rose-400 hover:bg-rose-950/40"
+                      >
+                        <Ban className="mr-1 h-3.5 w-3.5" />
+                        {t('Cancel')}
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-slate-600">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
