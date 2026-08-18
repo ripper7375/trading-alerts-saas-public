@@ -6,8 +6,10 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
+import { usePathname } from 'next/navigation';
 import { SUPPORTED_COUNTRIES, getCountryByCode } from '@/lib/country-config';
 import type { CountryConfig } from '@/lib/country-config';
 import {
@@ -15,18 +17,29 @@ import {
   LOCALE_STORAGE_KEY,
   defaultPreferences,
   localeCookieString,
+  preferencesForCountryPrefix,
   preferencesFromCountry,
   type LocalePreferences,
 } from '@/lib/i18n/locale-resolver';
 
+import thDict from '@/lib/i18n/dictionaries/th.json';
 import enGBDict from '@/lib/i18n/dictionaries/en-GB.json';
+import enUSDict from '@/lib/i18n/dictionaries/en-US.json';
 
+/**
+ * Dictionaries bundled synchronously so the very first render — server AND
+ * client — already has the real translations. An async `import()` inside an
+ * effect would leave the first paint in English no matter how correct the
+ * resolved language was.
+ */
 const staticDictionaries: Record<string, Record<string, string>> = {
+  th: thDict,
   'en-GB': enGBDict,
+  'en-US': enUSDict,
 };
 
-function dictionaryFor(_language: string): Record<string, string> {
-  return enGBDict;
+function dictionaryFor(language: string): Record<string, string> {
+  return staticDictionaries[language] || staticDictionaries['en-GB'] || {};
 }
 
 export type { LocalePreferences };
@@ -59,6 +72,12 @@ function readStoredPreferences(): LocalePreferences | null {
   }
 }
 
+function readLocaleCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp(`${LOCALE_COOKIE}=([^;]+)`));
+  return match?.[1] ?? null;
+}
+
 function persistPreferences(preferences: LocalePreferences): void {
   try {
     localStorage.setItem(LOCALE_STORAGE_KEY, JSON.stringify(preferences));
@@ -87,9 +106,13 @@ export function LocaleProvider({
   initialLocale,
 }: {
   children: React.ReactNode;
+  /** Full preference set resolved on the server in `app/layout.tsx`. */
   initialPreferences?: LocalePreferences;
+  /** @deprecated language-only entry point, kept for backwards compatibility. */
   initialLocale?: string;
 }) {
+  const pathname = usePathname();
+
   const serverPreferences = useMemo<LocalePreferences>(() => {
     if (initialPreferences) return initialPreferences;
     if (initialLocale) {
@@ -101,10 +124,22 @@ export function LocaleProvider({
     return defaultPreferences;
   }, [initialPreferences, initialLocale]);
 
+  /**
+   * Seeded from the server's resolution ONLY — deliberately not from
+   * localStorage. Reading storage here made the client's first render disagree
+   * with the streamed HTML, so React hydrated over mismatched text and every
+   * label visibly flipped to the stored language. Storage is reconciled after
+   * hydration instead (see the effect below), which in the normal case is a
+   * no-op because the cookie and storage are written together.
+   */
   const [preferences, setPreferences] =
     useState<LocalePreferences>(serverPreferences);
 
-  const [dictionary] = useState<Record<string, string>>(() => enGBDict);
+  const [dictionary, setDictionary] = useState<Record<string, string>>(() =>
+    dictionaryFor(serverPreferences.language)
+  );
+
+  const geoLookupAttempted = useRef(false);
 
   const applyPreferences = useCallback(
     (next: LocalePreferences, options?: { persist?: boolean }) => {
@@ -114,16 +149,94 @@ export function LocaleProvider({
     []
   );
 
+  // `<html lang>` is stamped by the server and by the inline script in
+  // `app/layout.tsx`, neither of which sees a later language change. Without
+  // this, switching language in Settings (or the storage reconciliation below)
+  // left the document advertising the previous language to screen readers and
+  // to the browser's hyphenation/font fallback.
   useEffect(() => {
-    document.documentElement.lang = 'en-GB';
-  }, []);
+    if (preferences.language) {
+      document.documentElement.lang = preferences.language;
+    }
+  }, [preferences.language]);
+
+  // Keep the dictionary in lockstep with the language. Static dictionaries are
+  // applied synchronously; anything else falls back to English while it loads.
+  useEffect(() => {
+    const language = preferences.language || 'en-GB';
+    if (staticDictionaries[language]) {
+      setDictionary(staticDictionaries[language]);
+      return;
+    }
+
+    let cancelled = false;
+    import(`@/lib/i18n/dictionaries/${language}.json`)
+      .then((mod) => {
+        if (!cancelled) setDictionary(mod.default || {});
+      })
+      .catch(() => {
+        if (!cancelled) setDictionary(dictionaryFor('en-GB'));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [preferences.language]);
 
   useEffect(() => {
+    if (!pathname) return;
+    const firstSegment = pathname.split('/').filter(Boolean)[0]?.toLowerCase();
+
+    // 1. Country prefix in the URL wins. On a full page load the server already
+    //    resolved this (via the middleware header) so `applyPreferences` bails
+    //    out as a no-op; this branch matters for client-side navigation between
+    //    prefixes, where the root layout does not re-run.
+    const fromUrl = preferencesForCountryPrefix(firstSegment);
+    if (fromUrl) {
+      applyPreferences(fromUrl, { persist: true });
+      return;
+    }
+
+    // 2. An explicit stored choice. Normally identical to what the server used,
+    //    so this is a no-op; it only bites when the cookie was cleared while
+    //    localStorage survived, and the inline script in `app/layout.tsx` has
+    //    already rewritten the cookie so the next load renders correctly.
     const stored = readStoredPreferences();
     if (stored) {
       applyPreferences(stored);
+      return;
     }
-  }, [applyPreferences]);
+
+    // 3. A cookie without storage is still an explicit choice the server
+    //    honoured — never let geo detection override it.
+    if (readLocaleCookie()) return;
+
+    // 4. First-ever visit with no preference at all: detect once, then persist
+    //    so every subsequent request is server-rendered in that language.
+    if (geoLookupAttempted.current) return;
+    geoLookupAttempted.current = true;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('https://ipapi.co/json/', {
+          cache: 'no-store',
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const detected = preferencesForCountryPrefix(data.country_code);
+        if (detected && !cancelled) {
+          applyPreferences(detected, { persist: true });
+        }
+      } catch {
+        // Fallback safely to UK English default
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, applyPreferences]);
 
   const setCountryCode = useCallback(
     (code: string) => {
@@ -204,7 +317,7 @@ export function LocaleProvider({
       try {
         const config = getCountryByCode(preferences.countryCode);
         const convertedAmount = amountInUSD * (config.exchangeRate || 1.0);
-        return new Intl.NumberFormat('en-GB', {
+        return new Intl.NumberFormat(preferences.language || 'en-GB', {
           style: 'currency',
           currency: preferences.currency || 'GBP',
           maximumFractionDigits: convertedAmount >= 1000 ? 0 : 2,

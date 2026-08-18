@@ -6,7 +6,13 @@ import { ThemeProvider } from './providers';
 import { ThemeSync } from '@/components/theme-sync';
 import ClientProviders from '@/components/providers/client-providers';
 
-import { defaultPreferences } from '@/lib/i18n/locale-resolver';
+import { cookies, headers } from 'next/headers';
+import {
+  COUNTRY_HEADER,
+  LOCALE_COOKIE,
+  LOCALE_STORAGE_KEY,
+  resolvePreferences,
+} from '@/lib/i18n/locale-resolver';
 import { getServerAppearance } from '@/lib/appearance/server-appearance';
 
 export const metadata: Metadata = {
@@ -36,11 +42,25 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const initialAppearance = await getServerAppearance();
+  const [initialAppearance, cookieStore, headerStore] = await Promise.all([
+    getServerAppearance(),
+    cookies(),
+    headers(),
+  ]);
+
+  // Resolve the FULL preference set (language + timezone + date/time format +
+  // currency) on the server, mirroring `getServerAppearance()` above — a
+  // Thai user must not be server-rendered with GBP/Europe-London defaults
+  // that flip to Baht/Bangkok after hydration.
+  const initialPreferences = resolvePreferences({
+    countryPrefix: headerStore.get(COUNTRY_HEADER),
+    cookieLanguage: cookieStore.get(LOCALE_COOKIE)?.value,
+  });
+  const initialLocale = initialPreferences.language;
 
   return (
     <html
-      lang="en-GB"
+      lang={initialLocale}
       suppressHydrationWarning
       data-accent={initialAppearance.accent}
       style={{
@@ -75,7 +95,27 @@ export default async function RootLayout({
                   d.style.colorScheme = t;
                   document.cookie = 'davintrade-theme=' + t + '; path=/; max-age=31536000; SameSite=Lax';
                   localStorage.setItem('davintrade-theme', t);
-                  d.lang = 'en-GB';
+
+                  // The server already resolved this render's language from the
+                  // URL prefix / cookie, so keep <html lang> matching the HTML
+                  // that was actually streamed instead of racing localStorage.
+                  var lang = '${initialLocale}';
+                  d.lang = lang;
+
+                  // Self-heal a diverged cookie: if localStorage still holds an
+                  // explicit choice but the cookie was cleared or expired, the
+                  // server had no way to know and rendered the default. Write the
+                  // cookie back now so the NEXT request server-renders correctly.
+                  var lc = document.cookie.match(/${LOCALE_COOKIE}=([^;]+)/);
+                  var ls = localStorage.getItem('${LOCALE_STORAGE_KEY}');
+                  if (ls) {
+                    try {
+                      var saved = JSON.parse(ls).language;
+                      if (saved && (!lc || lc[1] !== saved)) {
+                        document.cookie = '${LOCALE_COOKIE}=' + saved + '; path=/; max-age=31536000; SameSite=Lax';
+                      }
+                    } catch (e) {}
+                  }
                 } catch (e) {}
               })();
             `,
@@ -93,7 +133,7 @@ export default async function RootLayout({
             <ThemeSync />
           </Suspense>
           <ClientProviders
-            initialPreferences={defaultPreferences}
+            initialPreferences={initialPreferences}
             initialAppearance={initialAppearance}
           >
             {children}
