@@ -51,7 +51,7 @@ export default function AppHeader({
     <header className="z-20 flex h-14 w-full shrink-0 items-center justify-between border-b border-slate-800/80 bg-[#090b11] px-4 shadow-sm select-none">
       {/* Left: Brand Logo & Current Section Title */}
       <div className="flex items-center gap-3">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-lg ring-1 ring-amber-500/40">
             <Image
               src="/DavinTrade_Logo.jpg"

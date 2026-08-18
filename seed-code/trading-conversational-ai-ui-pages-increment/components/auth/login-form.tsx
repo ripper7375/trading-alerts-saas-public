@@ -61,18 +61,20 @@ export default function LoginForm() {
     <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-800/80 bg-[#0b0e17] p-8 shadow-2xl backdrop-blur-xl">
       {/* Brand Header */}
       <div className="flex flex-col items-center space-y-2 text-center">
-        <div className="relative h-12 w-12 overflow-hidden rounded-xl shadow-lg ring-2 shadow-amber-500/10 ring-amber-500/40">
-          <Image
-            src="/DavinTrade_Logo.jpg"
-            alt="DavinTrade Logo"
-            fill
-            className="object-cover"
-            priority
-          />
-        </div>
-        <h2 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
-          {t('Sign in to DavinTrade')}
-        </h2>
+        <Link href="/" className="group flex flex-col items-center space-y-2">
+          <div className="relative h-12 w-12 overflow-hidden rounded-xl shadow-lg ring-2 shadow-amber-500/10 ring-amber-500/40 transition-transform group-hover:scale-105">
+            <Image
+              src="/DavinTrade_Logo.jpg"
+              alt="DavinTrade Logo"
+              fill
+              className="object-cover"
+              priority
+            />
+          </div>
+          <h2 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
+            {t('Sign in to DavinTrade')}
+          </h2>
+        </Link>
         <p className="text-xs text-slate-400">
           {t(
             'Welcome back! Enter your credentials to access your trading workspace.'

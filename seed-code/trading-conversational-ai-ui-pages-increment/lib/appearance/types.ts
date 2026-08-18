@@ -12,9 +12,9 @@ export interface AppearanceSettings {
 export const DEFAULT_APPEARANCE_SETTINGS: AppearanceSettings = {
   theme: 'dark',
   accent: 'amber',
-  chartUpColor: '#10b981',
-  chartDownColor: '#ef4444',
-  gridOpacity: 25,
+  chartUpColor: '#00fbff',
+  chartDownColor: '#fb00ff',
+  gridOpacity: 0,
 };
 
 export const APPEARANCE_COOKIE_NAME = 'davintrade-appearance';
