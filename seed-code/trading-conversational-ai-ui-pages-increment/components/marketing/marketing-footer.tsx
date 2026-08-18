@@ -55,15 +55,7 @@ export function MarketingFooter() {
                   href="/terminal"
                   className="transition-colors hover:text-amber-400"
                 >
-                  {t('PRO Terminal')}
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/free"
-                  className="transition-colors hover:text-amber-400"
-                >
-                  {t('Free Workspace')}
+                  {t('AI Workbench')}
                 </Link>
               </li>
               <li>
@@ -129,6 +121,14 @@ export function MarketingFooter() {
                   className="transition-colors hover:text-amber-400"
                 >
                   {t('Affiliate Program')}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/about"
+                  className="transition-colors hover:text-amber-400"
+                >
+                  {t('About Us')}
                 </Link>
               </li>
               <li>

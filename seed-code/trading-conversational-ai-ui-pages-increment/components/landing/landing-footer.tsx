@@ -35,15 +35,7 @@ export function LandingFooter() {
                   href="/terminal"
                   className="transition-colors hover:text-amber-400"
                 >
-                  PRO AI Analyst Terminal
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/free"
-                  className="transition-colors hover:text-amber-400"
-                >
-                  FREE Tier Terminal
+                  AI Workbench
                 </Link>
               </li>
               <li>
@@ -141,6 +133,14 @@ export function LandingFooter() {
                   className="transition-colors hover:text-amber-400"
                 >
                   Affiliate Program
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/about"
+                  className="transition-colors hover:text-amber-400"
+                >
+                  About Us
                 </Link>
               </li>
             </ul>
