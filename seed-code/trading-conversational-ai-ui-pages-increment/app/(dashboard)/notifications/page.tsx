@@ -42,7 +42,7 @@ type FilterValue =
   | 'SECURITY';
 
 export default function NotificationsPage() {
-  const { t } = useLocale();
+  const { t, formatRelativeTime } = useLocale();
   const [filter, setFilter] = useState<FilterValue>('ALL');
   const [deletedNotification, setDeletedNotification] =
     useState<NotificationItem | null>(null);
@@ -56,7 +56,7 @@ export default function NotificationsPage() {
         'Price broke above 2,420.50 with multi-timeframe volume confirmation.'
       ),
       category: 'ALERT',
-      timestamp: '5m ago',
+      timestamp: formatRelativeTime(5),
       read: false,
       link: '/terminal',
     },
@@ -67,7 +67,7 @@ export default function NotificationsPage() {
         'New conversational market reasoning models are now live on your terminal.'
       ),
       category: 'SYSTEM',
-      timestamp: '2h ago',
+      timestamp: formatRelativeTime(120),
       read: false,
       link: '/changelog',
     },
@@ -78,7 +78,7 @@ export default function NotificationsPage() {
         'Your monthly invoice has been processed securely via Stripe.'
       ),
       category: 'BILLING',
-      timestamp: '1d ago',
+      timestamp: formatRelativeTime(1440),
       read: true,
       link: '/settings/billing',
     },
@@ -87,7 +87,7 @@ export default function NotificationsPage() {
       title: t('New Login from Chrome on Windows'),
       message: t('New active session detected in Bangkok, Thailand.'),
       category: 'SECURITY',
-      timestamp: '2d ago',
+      timestamp: formatRelativeTime(2880),
       read: true,
       link: '/settings/security/activity',
     },
@@ -284,7 +284,7 @@ export default function NotificationsPage() {
                           </span>
                           <span>•</span>
                           <span className="font-semibold tracking-wider uppercase">
-                            {item.category}
+                            {t(item.category)}
                           </span>
                         </div>
                       </div>

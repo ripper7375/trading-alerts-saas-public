@@ -25,7 +25,7 @@ export default function ChangelogPage() {
     {
       version: 'v2.4.0',
       date: 'August 16, 2026',
-      badge: 'Latest Release',
+      badge: t('Latest Release'),
       title: t('Conversational AI Copilot & Unified Multi-Language Workspaces'),
       items: [
         t(
@@ -45,7 +45,7 @@ export default function ChangelogPage() {
     {
       version: 'v2.2.0',
       date: 'July 28, 2026',
-      badge: 'Major Update',
+      badge: t('Major Update'),
       title: t('Automated Wise & RiseWorks Partner Disbursements'),
       items: [
         t(
@@ -58,7 +58,7 @@ export default function ChangelogPage() {
     {
       version: 'v2.0.0',
       date: 'June 15, 2026',
-      badge: 'Architecture',
+      badge: t('Architecture'),
       title: t('Sub-Millisecond MT5 WebSocket Telemetry Engine'),
       items: [
         t('Redesigned low-latency tick pipeline for Spot Gold (XAUUSD).'),

@@ -42,7 +42,7 @@ interface CommissionRecord {
 type StatusFilter = 'ALL' | CommissionRecord['status'];
 
 export default function AffiliateCommissionsPage() {
-  const { t } = useLocale();
+  const { t, formatCurrency, formatDate } = useLocale();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
 
@@ -164,7 +164,7 @@ export default function AffiliateCommissionsPage() {
               {t('Total Commissions Generated')}
             </div>
             <div className="mt-1 font-mono text-3xl font-extrabold text-emerald-400">
-              ${totalEarned.toFixed(2)}
+              {formatCurrency(totalEarned)}
             </div>
           </Card>
 
@@ -173,7 +173,7 @@ export default function AffiliateCommissionsPage() {
               {t('Pending August Disbursement')}
             </div>
             <div className="mt-1 font-mono text-3xl font-extrabold text-amber-400">
-              ${pendingEarned.toFixed(2)}
+              {formatCurrency(pendingEarned)}
             </div>
           </Card>
 
@@ -274,22 +274,22 @@ export default function AffiliateCommissionsPage() {
                     {r.id}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-400">
-                    {r.date}
+                    {formatDate(r.date)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-300">
                     {r.userMask}
                   </TableCell>
                   <TableCell className="text-xs text-slate-200">
-                    {r.plan}
+                    {t(r.plan)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-300">
-                    ${r.amount.toFixed(2)}
+                    {formatCurrency(r.amount)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-amber-400">
                     {r.rate}%
                   </TableCell>
                   <TableCell className="font-mono text-xs font-bold text-emerald-400">
-                    ${r.earned.toFixed(2)}
+                    {formatCurrency(r.earned)}
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge
@@ -299,7 +299,7 @@ export default function AffiliateCommissionsPage() {
                           : 'border-amber-500/40 bg-amber-500/20 text-amber-400'
                       }`}
                     >
-                      {r.status}
+                      {t(r.status)}
                     </Badge>
                   </TableCell>
                 </TableRow>
@@ -316,7 +316,7 @@ export default function AffiliateCommissionsPage() {
           <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-3">
             <div className="flex items-center gap-2">
               <Badge className="border-amber-500/40 bg-amber-500/20 text-[10px] text-amber-400">
-                PENDING
+                {t('PENDING')}
               </Badge>
               <span className="text-slate-400">
                 {t('Awaiting the next payout cycle')}
@@ -324,13 +324,13 @@ export default function AffiliateCommissionsPage() {
             </div>
             <div className="flex items-center gap-2">
               <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                PAID
+                {t('PAID')}
               </Badge>
               <span className="text-slate-400">{t('Settled via payout')}</span>
             </div>
             <div className="flex items-center gap-2">
               <Badge className="border-slate-700 bg-slate-800 text-[10px] text-slate-400">
-                HOLD
+                {t('HOLD')}
               </Badge>
               <span className="text-slate-400">
                 {t('Under fraud/compliance review')}

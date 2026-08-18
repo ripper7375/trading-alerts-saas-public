@@ -161,7 +161,7 @@ export default function UserTable() {
                           : 'border-slate-700 bg-slate-800 font-mono text-[9px] text-slate-400'
                   }
                 >
-                  {user.role}
+                  {t(user.role)}
                 </Badge>
               </div>
               <Link

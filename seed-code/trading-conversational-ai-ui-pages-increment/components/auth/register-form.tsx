@@ -197,7 +197,7 @@ export default function RegisterForm() {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="John Trader"
+              placeholder={t('John Trader')}
               className="border-slate-750 bg-[#06080e] pl-10 text-xs text-slate-100 placeholder:text-slate-500"
             />
           </div>

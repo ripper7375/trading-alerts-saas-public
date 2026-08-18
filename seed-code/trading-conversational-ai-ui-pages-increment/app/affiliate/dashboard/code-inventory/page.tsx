@@ -32,7 +32,7 @@ function isoDate(d: Date): string {
 }
 
 export default function AffiliateCodeInventoryPage() {
-  const { t } = useLocale();
+  const { t, formatDate } = useLocale();
   const [search, setSearch] = useState('');
 
   const today = new Date();
@@ -231,7 +231,7 @@ export default function AffiliateCodeInventoryPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs text-slate-300">
-                    {item.pool}
+                    {t(item.pool)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-300">
                     {item.allocated}
@@ -243,7 +243,7 @@ export default function AffiliateCodeInventoryPage() {
                     {item.remaining}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-400">
-                    {item.expiry}
+                    {formatDate(item.expiry)}
                   </TableCell>
                 </TableRow>
               ))}

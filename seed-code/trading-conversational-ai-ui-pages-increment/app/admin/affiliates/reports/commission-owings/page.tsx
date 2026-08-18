@@ -61,7 +61,7 @@ const OWINGS = [
 ];
 
 export default function AdminReportCommissionOwingsPage() {
-  const { t } = useLocale();
+  const { t, formatCurrency } = useLocale();
   const [isProcessing, setIsProcessing] = useState(false);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [success, setSuccess] = useState('');
@@ -131,7 +131,7 @@ export default function AdminReportCommissionOwingsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => alert('Exporting Commission Owings CSV...')}
+              onClick={() => alert(t('Exporting Commission Owings CSV...'))}
               className="border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
             >
               <Download className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
@@ -182,7 +182,7 @@ export default function AdminReportCommissionOwingsPage() {
               {t('Min Payout Threshold')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-400">
-              ${MIN_PAYOUT_THRESHOLD.toFixed(2)}
+              {formatCurrency(MIN_PAYOUT_THRESHOLD)}
             </div>
           </Card>
         </div>
@@ -199,7 +199,7 @@ export default function AdminReportCommissionOwingsPage() {
               </p>
             </div>
             <div className="font-mono text-3xl font-extrabold text-rose-400">
-              ${totalOwings.toFixed(2)}
+              {formatCurrency(totalOwings)}
             </div>
           </div>
         </Card>
@@ -254,7 +254,7 @@ export default function AdminReportCommissionOwingsPage() {
                     {o.country}
                   </TableCell>
                   <TableCell className="font-mono text-xs font-bold text-emerald-400">
-                    ${o.unpaidAmount.toFixed(2)}
+                    {formatCurrency(o.unpaidAmount)}
                   </TableCell>
                   <TableCell className="text-xs text-slate-300">
                     {o.bankMethod}

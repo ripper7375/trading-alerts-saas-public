@@ -46,7 +46,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
   const router = useRouter();
   const resolvedParams = use(params);
   const userId = resolvedParams.id;
-  const { t } = useLocale();
+  const { t, formatCurrency, formatDate, formatRelativeTime } = useLocale();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -64,7 +64,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [affiliateCode, setAffiliateCode] = useState('GOLDPRO20');
   const [createdAt, setCreatedAt] = useState('2026-06-12');
-  const [lastLogin, setLastLogin] = useState('10 minutes ago');
+  const [lastLogin, setLastLogin] = useState(() => formatRelativeTime(10));
   const [emailVerified] = useState(true);
   const [activeSessions] = useState(2);
 
@@ -132,7 +132,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
         title={t('Admin User Detail & Governance')}
-        subtitle={t(`Inspecting Account UID: ${userId}`)}
+        subtitle={`${t('Inspecting Account UID:')} ${userId}`}
       />
 
       <AdminNav />
@@ -197,13 +197,13 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                           : 'bg-slate-800 text-[10px] text-slate-400'
                       }
                     >
-                      {tier}
+                      {t(tier)}
                     </Badge>
                     <Badge
                       variant="outline"
                       className="border-rose-500/30 text-[10px] text-rose-400"
                     >
-                      {role}
+                      {t(role)}
                     </Badge>
                     <Badge
                       variant="outline"
@@ -218,7 +218,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                     </Badge>
                   </div>
                   <p className="text-xs text-slate-400">
-                    {email} • UID: {userId}
+                    {email} • {t('UID:')} {userId}
                   </p>
                 </div>
               </div>
@@ -226,7 +226,9 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
               <div className="text-right text-xs text-slate-400">
                 <div>
                   {t('Registered')}:{' '}
-                  <strong className="text-slate-200">{createdAt}</strong>
+                  <strong className="text-slate-200">
+                    {formatDate(createdAt)}
+                  </strong>
                 </div>
                 <div>
                   {t('Last Active')}:{' '}
@@ -272,8 +274,10 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="border-slate-800 bg-[#090b14]">
-                    <SelectItem value="FREE">FREE Workspace</SelectItem>
-                    <SelectItem value="PRO">PRO Terminal ($49/mo)</SelectItem>
+                    <SelectItem value="FREE">{t('FREE Workspace')}</SelectItem>
+                    <SelectItem value="PRO">
+                      {t('PRO Terminal ($49/mo)')}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -287,9 +291,11 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="border-slate-800 bg-[#090b14]">
-                    <SelectItem value="USER">USER (Standard Trader)</SelectItem>
+                    <SelectItem value="USER">
+                      {t('USER (Standard Trader)')}
+                    </SelectItem>
                     <SelectItem value="ADMIN">
-                      ADMIN (Platform Operator)
+                      {t('ADMIN (Platform Operator)')}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -305,13 +311,13 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                   </SelectTrigger>
                   <SelectContent className="border-slate-800 bg-[#090b14]">
                     <SelectItem value="ACTIVE">
-                      ACTIVE (Normal Access)
+                      {t('ACTIVE (Normal Access)')}
                     </SelectItem>
                     <SelectItem value="SUSPENDED">
-                      SUSPENDED (Temporary Hold)
+                      {t('SUSPENDED (Temporary Hold)')}
                     </SelectItem>
                     <SelectItem value="BANNED">
-                      BANNED (Permanent Lockout)
+                      {t('BANNED (Permanent Lockout)')}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -355,14 +361,14 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                     {t('Attributed Referral Code')}
                   </div>
                   <p className="font-mono text-[11px] text-amber-400">
-                    {affiliateCode || 'None (Direct Signup)'}
+                    {affiliateCode || t('None (Direct Signup)')}
                   </p>
                 </div>
                 <Badge
                   variant="outline"
                   className="border-amber-500/30 text-[10px] text-amber-400"
                 >
-                  30% RevShare
+                  {t('30% RevShare')}
                 </Badge>
               </div>
             </div>
@@ -381,7 +387,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                 <div className="flex justify-between">
                   <span className="text-slate-400">{t('Status')}</span>
                   <Badge className="bg-emerald-500 text-[10px] font-bold text-slate-950">
-                    {subscription.status}
+                    {t(subscription.status)}
                   </Badge>
                 </div>
                 <div className="flex justify-between">
@@ -398,18 +404,18 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">{t('Plan')}</span>
-                  <span className="text-slate-200">{subscription.plan}</span>
+                  <span className="text-slate-200">{t(subscription.plan)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">{t('Period End')}</span>
                   <span className="text-slate-200">
-                    {subscription.periodEnd}
+                    {formatDate(subscription.periodEnd)}
                   </span>
                 </div>
                 <div className="flex justify-between border-t border-slate-800 pt-2">
                   <span className="text-slate-400">{t('Trial Status')}</span>
                   <span className="text-slate-200">
-                    {subscription.trialStatus}
+                    {t(subscription.trialStatus)}
                   </span>
                 </div>
               </div>
@@ -445,14 +451,14 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                             {alert.pattern}
                           </div>
                           <div className="text-[10px] text-slate-400">
-                            {alert.createdAt}
+                            {formatDate(alert.createdAt)}
                           </div>
                         </div>
                         <Badge
                           variant="outline"
                           className="border-rose-500/40 text-[9px] text-rose-300"
                         >
-                          {alert.severity}
+                          {t(alert.severity)}
                         </Badge>
                       </Link>
                     </li>
@@ -473,7 +479,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                 <div>
                   <p className="text-slate-400">{t('Status')}</p>
                   <Badge className="mt-1 bg-emerald-500 text-[10px] font-bold text-slate-950">
-                    {affiliateStats.status}
+                    {t(affiliateStats.status)}
                   </Badge>
                 </div>
                 <div>
@@ -485,13 +491,13 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                 <div>
                   <p className="text-slate-400">{t('Total Earnings')}</p>
                   <p className="mt-1 text-base font-bold text-slate-100">
-                    ${affiliateStats.totalEarnings.toFixed(2)}
+                    {formatCurrency(affiliateStats.totalEarnings)}
                   </p>
                 </div>
                 <div>
                   <p className="text-slate-400">{t('Pending Commissions')}</p>
                   <p className="mt-1 text-base font-bold text-amber-400">
-                    ${affiliateStats.pendingCommissions.toFixed(2)}
+                    {formatCurrency(affiliateStats.pendingCommissions)}
                   </p>
                 </div>
               </div>

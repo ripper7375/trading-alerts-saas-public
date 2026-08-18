@@ -30,9 +30,9 @@ interface ComponentHealth {
 }
 
 export default function StatusPage() {
-  const { t } = useLocale();
+  const { t, formatTimestamp } = useLocale();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastCheck, setLastCheck] = useState('Just now');
+  const [lastCheck, setLastCheck] = useState(t('Just now'));
 
   const components: ComponentHealth[] = [
     {
@@ -83,7 +83,7 @@ export default function StatusPage() {
     setIsRefreshing(true);
     setTimeout(() => {
       setIsRefreshing(false);
-      setLastCheck(new Date().toLocaleTimeString());
+      setLastCheck(formatTimestamp(new Date()));
     }, 600);
   };
 

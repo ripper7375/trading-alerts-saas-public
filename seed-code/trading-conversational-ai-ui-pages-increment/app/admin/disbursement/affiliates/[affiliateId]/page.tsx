@@ -293,7 +293,7 @@ export default function AffiliateDisbursementDetailPage({
             <Badge
               className={`text-[10px] ${STATUS_BADGE_TONE[detail.status]}`}
             >
-              {detail.status}
+              {t(detail.status)}
             </Badge>
             {detail.readyForPayout && (
               <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-300">

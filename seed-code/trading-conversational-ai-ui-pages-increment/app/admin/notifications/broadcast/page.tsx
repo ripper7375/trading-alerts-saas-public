@@ -100,16 +100,16 @@ export default function AdminNotificationsBroadcastPage() {
                   </SelectTrigger>
                   <SelectContent className="border-slate-800 bg-[#090b14]">
                     <SelectItem value="ALL">
-                      All Registered Users (1,420 traders)
+                      {t('All Registered Users (1,420 traders)')}
                     </SelectItem>
                     <SelectItem value="PRO">
-                      PRO Subscribers Only (280 traders)
+                      {t('PRO Subscribers Only (280 traders)')}
                     </SelectItem>
                     <SelectItem value="FREE">
-                      Free Workspace Users (1,140 traders)
+                      {t('Free Workspace Users (1,140 traders)')}
                     </SelectItem>
                     <SelectItem value="AFFILIATES">
-                      Approved Affiliates Only (45 partners)
+                      {t('Approved Affiliates Only (45 partners)')}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -135,7 +135,9 @@ export default function AdminNotificationsBroadcastPage() {
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Scheduled MT5 Maintenance Completed / New Fractal Models Live"
+                placeholder={t(
+                  'e.g. Scheduled MT5 Maintenance Completed / New Fractal Models Live'
+                )}
                 className="border-slate-800 bg-[#06080e] text-slate-200"
                 required
               />
@@ -148,7 +150,7 @@ export default function AdminNotificationsBroadcastPage() {
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type your system announcement message here..."
+                placeholder={t('Type your system announcement message here...')}
                 rows={4}
                 className="border-slate-800 bg-[#06080e] text-xs text-slate-200"
                 required

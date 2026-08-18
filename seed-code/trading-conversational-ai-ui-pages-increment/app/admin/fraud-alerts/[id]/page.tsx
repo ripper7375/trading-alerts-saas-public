@@ -37,6 +37,15 @@ export default function AdminFraudAlertDetailPage({
   >('ACTIVE_INVESTIGATION');
   const [success, setSuccess] = useState('');
 
+  const statusLabel: Record<
+    'ACTIVE_INVESTIGATION' | 'FROZEN' | 'DISMISSED',
+    string
+  > = {
+    ACTIVE_INVESTIGATION: t('Active Investigation'),
+    FROZEN: t('Frozen'),
+    DISMISSED: t('Dismissed'),
+  };
+
   const handleFreeze = () => {
     setStatus('FROZEN');
     setSuccess(t('Affiliate account and pending payouts have been frozen.'));
@@ -53,7 +62,7 @@ export default function AdminFraudAlertDetailPage({
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
         title={t('Admin Fraud & Abuse Incident Review')}
-        subtitle={t(`Investigating Incident Alert ID: ${alertId}`)}
+        subtitle={`${t('Investigating Incident Alert ID:')} ${alertId}`}
       />
 
       <AdminNav />
@@ -108,9 +117,9 @@ export default function AdminFraudAlertDetailPage({
                   {t('Self-Referral & Fingerprint Collision Detected')}
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Risk Severity:{' '}
+                  {t('Risk Severity:')}{' '}
                   <strong className="text-rose-400">
-                    CRITICAL (Risk Score 94/100)
+                    {t('CRITICAL (Risk Score 94/100)')}
                   </strong>
                 </p>
               </div>
@@ -125,7 +134,7 @@ export default function AdminFraudAlertDetailPage({
                     : 'bg-amber-500 text-[10px] font-bold text-slate-950'
               }
             >
-              {status}
+              {statusLabel[status]}
             </Badge>
           </div>
 
@@ -136,7 +145,7 @@ export default function AdminFraudAlertDetailPage({
                 Elena Rostova (aff-103)
               </div>
               <div className="font-mono text-[11px] text-amber-400">
-                Code: SUMMERTRADER
+                {t('Code:')} SUMMERTRADER
               </div>
             </div>
 
@@ -146,17 +155,17 @@ export default function AdminFraudAlertDetailPage({
               </span>
               <div className="font-bold text-rose-300">usr_481 & usr_912</div>
               <div className="text-[11px] text-slate-400">
-                Same Credit Card Fingerprint
+                {t('Same Credit Card Fingerprint')}
               </div>
             </div>
 
             <div className="space-y-1 rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
               <span className="text-slate-400">{t('Telemetry Anomaly')}</span>
               <div className="font-bold text-slate-200">
-                Shared IP 185.220.101.5
+                {t('Shared IP')} 185.220.101.5
               </div>
               <div className="text-[11px] text-slate-400">
-                TOR Exit Node / Datacenter ASN
+                {t('TOR Exit Node / Datacenter ASN')}
               </div>
             </div>
           </div>

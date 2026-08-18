@@ -110,17 +110,12 @@ const MOCK_CODES: AffiliateCode[] = [
   },
 ];
 
-const formatDate = (date: string | null): string => {
-  if (!date) return '-';
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-};
-
 export default function AffiliateCodesPage() {
-  const { t } = useLocale();
+  const { t, formatDate: formatLocaleDate } = useLocale();
+  const formatDate = (date: string | null): string => {
+    if (!date) return '-';
+    return formatLocaleDate(date);
+  };
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
@@ -248,7 +243,7 @@ export default function AffiliateCodesPage() {
                         variant="outline"
                         className="border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-400"
                       >
-                        {c.discountPercent}% OFF
+                        {c.discountPercent}% {t('OFF')}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-slate-400">
@@ -267,7 +262,7 @@ export default function AffiliateCodesPage() {
                       <Badge
                         className={`text-[10px] ${STATUS_BADGE_CLASS[c.status]}`}
                       >
-                        {c.status}
+                        {t(c.status)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -306,7 +301,7 @@ export default function AffiliateCodesPage() {
           <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-2 lg:grid-cols-4">
             <div className="flex items-center gap-2">
               <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                ACTIVE
+                {t('ACTIVE')}
               </Badge>
               <span className="text-slate-400">
                 {t('Ready to share and earn')}
@@ -314,7 +309,7 @@ export default function AffiliateCodesPage() {
             </div>
             <div className="flex items-center gap-2">
               <Badge className="border-blue-500/40 bg-blue-500/20 text-[10px] text-blue-400">
-                USED
+                {t('USED')}
               </Badge>
               <span className="text-slate-400">
                 {t('Successfully redeemed')}
@@ -322,7 +317,7 @@ export default function AffiliateCodesPage() {
             </div>
             <div className="flex items-center gap-2">
               <Badge className="border-slate-700 bg-slate-800 text-[10px] text-slate-400">
-                EXPIRED
+                {t('EXPIRED')}
               </Badge>
               <span className="text-slate-400">
                 {t('Past its expiration date')}
@@ -330,7 +325,7 @@ export default function AffiliateCodesPage() {
             </div>
             <div className="flex items-center gap-2">
               <Badge className="border-rose-500/40 bg-rose-500/20 text-[10px] text-rose-400">
-                CANCELLED
+                {t('CANCELLED')}
               </Badge>
               <span className="text-slate-400">
                 {t('Manually cancelled by DavinTrade')}

@@ -231,7 +231,7 @@ function TransactionsPageContent() {
                   : 'border-slate-800 bg-transparent text-xs text-slate-300 hover:bg-slate-800'
               }
             >
-              {status === 'ALL' ? t('All Transactions') : status}
+              {status === 'ALL' ? t('All Transactions') : t(status)}
             </Button>
           ))}
         </CardContent>
@@ -286,7 +286,7 @@ function TransactionsPageContent() {
                   </TableCell>
                   <TableCell>
                     <Badge className="border-slate-600/40 bg-slate-600/15 text-[10px] text-slate-300">
-                      {tx.provider}
+                      {t(tx.provider)}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-400">
@@ -376,7 +376,9 @@ function TransactionsPageContent() {
                       {formatDate(tx.createdAt)}
                     </span>
                   </div>
-                  <p className="text-xs text-rose-300">{tx.errorMessage}</p>
+                  <p className="text-xs text-rose-300">
+                    {tx.errorMessage && t(tx.errorMessage)}
+                  </p>
                   {tx.retryCount > 0 && (
                     <p className="mt-1 text-[11px] text-amber-400">
                       {t('Retried')} {tx.retryCount} {t('times')}

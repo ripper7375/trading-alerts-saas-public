@@ -30,7 +30,7 @@ export default function RecentAlerts() {
       id: '2',
       symbol: 'XAUUSD',
       type: t('SSA Z-Score Spike'),
-      condition: 'Z-Score > +2.5',
+      condition: t('Z-Score > +2.5'),
       timeframe: 'M15',
       triggeredAt: formatRelativeTime(18),
       direction: 'SELL',

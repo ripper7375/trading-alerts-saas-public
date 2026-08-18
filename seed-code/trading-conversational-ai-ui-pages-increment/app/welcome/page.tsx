@@ -143,16 +143,24 @@ export default function WelcomePage() {
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { id: 'amber', label: 'Gold Amber', color: 'bg-amber-500' },
+                  {
+                    id: 'amber',
+                    label: t('Gold Amber'),
+                    color: 'bg-amber-500',
+                  },
                   {
                     id: 'emerald',
-                    label: 'Emerald Green',
+                    label: t('Emerald Green'),
                     color: 'bg-emerald-500',
                   },
-                  { id: 'blue', label: 'Sapphire Blue', color: 'bg-blue-500' },
+                  {
+                    id: 'blue',
+                    label: t('Sapphire Blue'),
+                    color: 'bg-blue-500',
+                  },
                   {
                     id: 'purple',
-                    label: 'Amethyst Purple',
+                    label: t('Amethyst Purple'),
                     color: 'bg-purple-500',
                   },
                 ].map((acc) => (
@@ -205,7 +213,7 @@ export default function WelcomePage() {
                             {t('PRO Terminal Workspace')}
                           </h4>
                           <Badge className="bg-amber-500 text-[10px] font-bold text-slate-950">
-                            RECOMMENDED
+                            {t('RECOMMENDED')}
                           </Badge>
                         </div>
                         <p className="text-[11px] text-slate-400">

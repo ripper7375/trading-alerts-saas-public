@@ -92,7 +92,7 @@ export default function ProfileSettingsPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value.toLowerCase())}
                 className="border-slate-750 bg-[#06080e] pl-6 text-xs text-slate-100"
-                placeholder="username"
+                placeholder={t('username')}
               />
             </div>
           </div>

@@ -104,7 +104,7 @@ export default function AffiliateResourcesPage() {
                     readOnly
                     value={link}
                     onFocus={(e) => e.target.select()}
-                    aria-label={`Referral link for code ${c.code}`}
+                    aria-label={t(`Referral link for code ${c.code}`)}
                     className="min-w-[220px] flex-1 rounded-lg border border-slate-800 bg-[#05060a] px-2.5 py-1.5 font-mono text-xs text-slate-300"
                   />
                   <Button
@@ -276,7 +276,7 @@ export default function AffiliateResourcesPage() {
                   </Button>
                 </div>
                 <div className="rounded-xl border border-slate-800 bg-[#06080e] p-3 font-mono text-xs leading-relaxed text-slate-300 select-all">
-                  {copy.text}
+                  {t(copy.text)}
                 </div>
               </Card>
             ))}

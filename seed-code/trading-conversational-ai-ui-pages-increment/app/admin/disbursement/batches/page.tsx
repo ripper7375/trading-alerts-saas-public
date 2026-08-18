@@ -169,7 +169,7 @@ export default function PaymentBatchesPage() {
       setBatches((prev) => [newBatch, ...prev]);
       setIsProcessing(false);
       setShowCreateDialog(false);
-      setSuccessMessage(`Batch created: ${newBatch.batchNumber}`);
+      setSuccessMessage(`${t('Batch created:')} ${newBatch.batchNumber}`);
       setTimeout(() => setSuccessMessage(null), 4000);
     }, 900);
   };
@@ -248,7 +248,7 @@ export default function PaymentBatchesPage() {
                   : 'border-slate-800 bg-transparent text-xs text-slate-300 hover:bg-slate-800'
               }
             >
-              {status === 'ALL' ? t('All Batches') : status}
+              {status === 'ALL' ? t('All Batches') : t(status)}
             </Button>
           ))}
         </CardContent>
@@ -308,7 +308,7 @@ export default function PaymentBatchesPage() {
                   </TableCell>
                   <TableCell>
                     <Badge className="border-slate-600/40 bg-slate-600/15 text-[10px] text-slate-300">
-                      {batch.provider}
+                      {t(batch.provider)}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-400">
@@ -434,7 +434,7 @@ export default function PaymentBatchesPage() {
                         </Badge>
                       ) : (
                         <Badge className="border-rose-500/40 bg-rose-500/15 text-[9px] text-rose-300">
-                          {item.reason || t('No')}
+                          {item.reason ? t(item.reason) : t('No')}
                         </Badge>
                       )}
                     </td>

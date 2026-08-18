@@ -79,7 +79,7 @@ export default function AccountSettingsPage() {
       id: 'sess-2',
       device: 'iPhone 15 Pro — Safari Mobile',
       location: 'Bangkok, Thailand',
-      lastActive: '4 hours ago',
+      lastActive: t('4 hours ago'),
       isCurrent: false,
       type: 'mobile',
     },
@@ -143,8 +143,8 @@ export default function AccountSettingsPage() {
                 onClick={() => setShowCurrent((v) => !v)}
                 aria-label={
                   showCurrent
-                    ? 'Hide current password'
-                    : 'Show current password'
+                    ? t('Hide current password')
+                    : t('Show current password')
                 }
                 className="absolute top-1/2 right-2.5 -translate-y-1/2 text-slate-500 hover:text-slate-300"
               >
@@ -172,7 +172,9 @@ export default function AccountSettingsPage() {
               <button
                 type="button"
                 onClick={() => setShowNew((v) => !v)}
-                aria-label={showNew ? 'Hide new password' : 'Show new password'}
+                aria-label={
+                  showNew ? t('Hide new password') : t('Show new password')
+                }
                 className="absolute top-1/2 right-2.5 -translate-y-1/2 text-slate-500 hover:text-slate-300"
               >
                 {showNew ? (

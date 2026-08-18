@@ -40,7 +40,7 @@ export function MarketingFooter() {
             <div className="flex items-center gap-2 text-[11px] text-slate-500">
               <span>© {new Date().getFullYear()} DavinTrade AI, Inc.</span>
               <span>•</span>
-              <span>All rights reserved.</span>
+              <span>{t('All rights reserved.')}</span>
             </div>
           </div>
 

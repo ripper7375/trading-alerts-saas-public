@@ -242,23 +242,23 @@ export default function AdminSystemOutboxPage() {
                         variant="outline"
                         className="border-cyan-500/30 bg-cyan-500/10 font-mono text-[10px] text-cyan-400"
                       >
-                        {m.channel}
+                        {t(m.channel)}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-slate-200">
                       {m.recipient}
                     </TableCell>
                     <TableCell className="text-xs text-slate-300">
-                      {m.subject}
+                      {t(m.subject)}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-slate-400">
                       {m.attempts}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-slate-500">
-                      {m.lastAttempt}
+                      {t(m.lastAttempt)}
                     </TableCell>
                     <TableCell className="max-w-xs truncate font-mono text-[11px] text-rose-400">
-                      {m.lastError ?? '—'}
+                      {m.lastError ? t(m.lastError) : '—'}
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge
@@ -270,7 +270,7 @@ export default function AdminSystemOutboxPage() {
                               : 'border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400'
                         }
                       >
-                        {m.status}
+                        {t(m.status)}
                       </Badge>
                     </TableCell>
                   </TableRow>

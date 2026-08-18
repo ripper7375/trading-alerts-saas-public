@@ -159,7 +159,7 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
       <AppHeader
         title={t('Edit Quantitative Alert')}
-        subtitle={t(`Configuring Trigger ID: ${alertId}`)}
+        subtitle={`${t('Configuring Trigger ID:')} ${alertId}`}
       />
 
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 p-4 md:p-6">
@@ -238,10 +238,12 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
                   </Label>
                   <Select value={symbol} onValueChange={setSymbol}>
                     <SelectTrigger className="border-slate-800 bg-[#06080e] text-slate-200">
-                      <SelectValue placeholder="Symbol" />
+                      <SelectValue placeholder={t('Symbol')} />
                     </SelectTrigger>
                     <SelectContent className="border-slate-800 bg-[#090b14]">
-                      <SelectItem value="XAUUSD">XAUUSD (Spot Gold)</SelectItem>
+                      <SelectItem value="XAUUSD">
+                        {t('XAUUSD (Spot Gold)')}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -252,11 +254,13 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
                   </Label>
                   <Select value={timeframe} onValueChange={setTimeframe}>
                     <SelectTrigger className="border-slate-800 bg-[#06080e] text-slate-200">
-                      <SelectValue placeholder="Timeframe" />
+                      <SelectValue placeholder={t('Timeframe')} />
                     </SelectTrigger>
                     <SelectContent className="border-slate-800 bg-[#090b14]">
-                      <SelectItem value="M5">M5 (5 Minutes)</SelectItem>
-                      <SelectItem value="M15">M15 (15 Minutes)</SelectItem>
+                      <SelectItem value="M5">{t('M5 (5 Minutes)')}</SelectItem>
+                      <SelectItem value="M15">
+                        {t('M15 (15 Minutes)')}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -276,13 +280,13 @@ export default function EditAlertPage({ params }: EditAlertPageProps) {
                     </SelectTrigger>
                     <SelectContent className="border-slate-800 bg-[#090b14]">
                       <SelectItem value="ABOVE">
-                        Price Crosses Above (&gt;=)
+                        {t('Price Crosses Above (>=)')}
                       </SelectItem>
                       <SelectItem value="BELOW">
-                        Price Crosses Below (&lt;=)
+                        {t('Price Crosses Below (<=)')}
                       </SelectItem>
                       <SelectItem value="CROSS">
-                        Fractal Breakout Confirmation
+                        {t('Fractal Breakout Confirmation')}
                       </SelectItem>
                     </SelectContent>
                   </Select>

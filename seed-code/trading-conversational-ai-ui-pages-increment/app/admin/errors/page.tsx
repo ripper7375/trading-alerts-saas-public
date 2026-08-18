@@ -158,7 +158,7 @@ export default function AdminErrorsLogPage() {
                           <Badge
                             className={`py-0 text-[10px] ${err.level === 'ERROR' ? 'bg-rose-950 text-rose-300' : 'bg-amber-950 text-amber-300'}`}
                           >
-                            {err.level}
+                            {t(err.level)}
                           </Badge>
                           {err.count > 1 && (
                             <span className="py-0.2 rounded bg-slate-800 px-1.5 font-mono text-[10px] text-slate-400">
@@ -178,7 +178,7 @@ export default function AdminErrorsLogPage() {
                     <div>
                       {err.resolved ? (
                         <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                          Resolved
+                          {t('Resolved')}
                         </Badge>
                       ) : (
                         <Button
@@ -191,7 +191,7 @@ export default function AdminErrorsLogPage() {
                           className="text-xs text-emerald-400 hover:bg-emerald-950/30"
                         >
                           <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                          Resolve
+                          {t('Resolve')}
                         </Button>
                       )}
                     </div>
@@ -212,13 +212,13 @@ export default function AdminErrorsLogPage() {
                 <div className="space-y-3">
                   <div className="font-mono text-xs text-slate-400">
                     <div>
-                      Error ID:{' '}
+                      {t('Error ID:')}{' '}
                       <strong className="text-slate-200">
                         {selectedError.id}
                       </strong>
                     </div>
                     <div>
-                      Source:{' '}
+                      {t('Source:')}{' '}
                       <strong className="text-amber-400">
                         {selectedError.source}
                       </strong>

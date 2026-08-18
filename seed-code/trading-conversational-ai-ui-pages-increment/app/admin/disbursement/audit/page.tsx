@@ -198,7 +198,7 @@ export default function AdminDisbursementAuditPage() {
                   <AuditStatusBadge status={ev.status} />
                 </TableCell>
                 <TableCell className="text-xs text-slate-300">
-                  {ev.details}
+                  {t(ev.details)}
                 </TableCell>
                 <TableCell className="text-right font-mono text-xs text-slate-500">
                   {ev.ip}

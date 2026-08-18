@@ -27,10 +27,10 @@ const initialWelcomeMessages: ChatMessage[] = [
     id: 'welcome-1',
     sender: 'bot',
     text: 'Welcome to DavinTrade Support Centre! How can our AI Quantitative Team assist you today?',
-    timestamp: new Date().toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    }),
+    // Raw ISO timestamp — formatted for display at render time via
+    // useLocale()'s formatTimestamp(), since this module-level array is
+    // built outside any component and cannot call useLocale() itself.
+    timestamp: new Date().toISOString(),
   },
 ];
 

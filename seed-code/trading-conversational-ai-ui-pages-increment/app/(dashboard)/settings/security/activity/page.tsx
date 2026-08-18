@@ -46,7 +46,7 @@ interface SecurityEvent {
   title: string;
   message: string;
   location: string;
-  createdAt: string;
+  minutesAgo: number;
 }
 
 const SECURITY_EVENT_META: Record<
@@ -82,7 +82,7 @@ const SECURITY_EVENTS: SecurityEvent[] = [
     title: 'New Device Login',
     message: 'Signed in from a new device: iPhone 15 Pro (Safari Mobile).',
     location: 'Bangkok, Thailand',
-    createdAt: '4 hours ago',
+    minutesAgo: 240,
   },
   {
     id: 'evt-2',
@@ -90,7 +90,7 @@ const SECURITY_EVENTS: SecurityEvent[] = [
     title: 'Password Changed',
     message: 'Your account password was changed successfully.',
     location: 'Bangkok, Thailand',
-    createdAt: '2 days ago',
+    minutesAgo: 2880,
   },
   {
     id: 'evt-3',
@@ -98,12 +98,12 @@ const SECURITY_EVENTS: SecurityEvent[] = [
     title: '2FA Enabled',
     message: 'Two-factor authentication was enabled on your account.',
     location: 'Bangkok, Thailand',
-    createdAt: '5 days ago',
+    minutesAgo: 7200,
   },
 ];
 
 export default function SecurityActivityPage() {
-  const { t } = useLocale();
+  const { t, formatRelativeTime } = useLocale();
 
   const [sessions, setSessions] = useState<Session[]>([
     {
@@ -124,7 +124,7 @@ export default function SecurityActivityPage() {
       os: 'iOS 18.2',
       ip: '171.96.120.88',
       location: 'Bangkok, Thailand',
-      lastActive: '4 hours ago',
+      lastActive: formatRelativeTime(240),
       isCurrent: false,
       type: 'mobile',
     },
@@ -135,7 +135,7 @@ export default function SecurityActivityPage() {
       os: 'macOS Sonoma',
       ip: '49.228.105.12',
       location: 'Chiang Mai, Thailand',
-      lastActive: '2 days ago',
+      lastActive: formatRelativeTime(2880),
       isCurrent: false,
       type: 'desktop',
     },
@@ -318,7 +318,7 @@ export default function SecurityActivityPage() {
                       <MapPin className="h-3 w-3" />
                       {event.location}
                     </span>
-                    <span>{event.createdAt}</span>
+                    <span>{formatRelativeTime(event.minutesAgo)}</span>
                   </div>
                 </div>
               </div>

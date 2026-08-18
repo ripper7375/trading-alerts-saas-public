@@ -14,6 +14,7 @@ import {
   Maximize2,
   Paperclip,
 } from 'lucide-react';
+import { useLocale } from '@/lib/context/locale-context';
 
 const topicOptions = [
   'Product Info',
@@ -35,6 +36,7 @@ export function SupportChatWidget() {
     setActiveTopic,
   } = useSupportChat();
 
+  const { t, formatTimestamp } = useLocale();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -75,7 +77,7 @@ export function SupportChatWidget() {
           <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-amber-500/40 bg-amber-500/10">
             <Image
               src="/davintrade-ai-icon.png"
-              alt="Davin Support Mascot"
+              alt={t('Davin Support Mascot')}
               width={32}
               height={32}
               className="h-full w-full object-cover"
@@ -83,14 +85,14 @@ export function SupportChatWidget() {
           </div>
           <div className="flex flex-col">
             <div className="flex items-center space-x-1.5 text-sm font-bold text-white">
-              <span>Support Centre</span>
+              <span>{t('Support Centre')}</span>
               <span className="py-0.2 rounded bg-amber-500/20 px-1.5 text-[9px] font-bold text-amber-300">
-                AI SaaS
+                {t('AI SaaS')}
               </span>
             </div>
             <div className="flex items-center space-x-1 text-[10px] font-medium text-emerald-400">
               <span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-400" />
-              <span>Online 24/7 • Sub-2min Response</span>
+              <span>{t('Online 24/7 • Sub-2min Response')}</span>
             </div>
           </div>
         </div>
@@ -135,7 +137,7 @@ export function SupportChatWidget() {
                     <div className="mb-1 flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md border border-amber-500/30 bg-amber-500/20">
                       <Image
                         src="/davintrade-ai-icon.png"
-                        alt="Davin Mascot"
+                        alt={t('Davin Mascot')}
                         width={24}
                         height={24}
                         className="h-full w-full object-cover"
@@ -150,12 +152,12 @@ export function SupportChatWidget() {
                         : 'rounded-bl-none border border-slate-800 bg-[#121726] text-slate-200 shadow-sm'
                     }`}
                   >
-                    {msg.text}
+                    {t(msg.text)}
                   </div>
                 </div>
 
                 <span className="mt-1 px-1 font-mono text-[10px] text-slate-400">
-                  {msg.timestamp}
+                  {formatTimestamp(msg.timestamp)}
                 </span>
               </div>
             ))}
@@ -163,7 +165,7 @@ export function SupportChatWidget() {
             {isTyping && (
               <div className="flex items-center space-x-2 font-mono text-xs text-amber-400/90 italic">
                 <Sparkles className="h-3.5 w-3.5 animate-spin" />
-                <span>Davin Support AI is typing response...</span>
+                <span>{t('Davin Support AI is typing response...')}</span>
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -181,7 +183,7 @@ export function SupportChatWidget() {
                     : 'border-slate-800 bg-[#0e121e] text-slate-400 hover:border-slate-700 hover:text-slate-200'
                 }`}
               >
-                {topic}
+                {t(topic)}
               </button>
             ))}
           </div>
@@ -199,7 +201,7 @@ export function SupportChatWidget() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="User type inquiry here..."
+                placeholder={t('User type inquiry here...')}
                 className="flex-1 rounded-xl border border-slate-800 bg-[#060810] px-3 py-2 text-xs font-medium text-white placeholder:text-slate-500 focus:border-amber-500/60 focus:outline-none"
               />
               <Button

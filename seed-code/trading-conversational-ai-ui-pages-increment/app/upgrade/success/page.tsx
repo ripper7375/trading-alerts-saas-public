@@ -100,7 +100,7 @@ export default function UpgradeSuccessPage() {
               </div>
             </div>
             <Badge className="bg-amber-500 px-3 py-1 text-xs font-bold text-slate-950">
-              PRO TIER ACTIVATED
+              {t('PRO TIER ACTIVATED')}
             </Badge>
             <h1 className="text-2xl font-extrabold text-slate-100 md:text-3xl">
               {t('Welcome to DavinTrade PRO!')}

@@ -77,7 +77,7 @@ export function DashboardContent() {
           <StatsCard
             title={t('M5 EDT Channel Status')}
             value={t('Bullish Retest')}
-            change="Z-Score +1.8"
+            change={t('Z-Score +1.8')}
             changeType="positive"
             icon={Activity}
             description={t('Support $2,634.50 Confirmed')}

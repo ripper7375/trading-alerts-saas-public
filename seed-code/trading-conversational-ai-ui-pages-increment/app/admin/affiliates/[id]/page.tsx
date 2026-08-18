@@ -152,15 +152,6 @@ const COMMISSIONS: CommissionEntry[] = [
   },
 ];
 
-const formatDate = (date: string | null): string => {
-  if (!date) return '-';
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-};
-
 const toLocalDateString = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -207,7 +198,12 @@ export default function AdminAffiliateDetailPage({
 }: AdminAffiliateDetailPageProps) {
   const resolvedParams = use(params);
   const affiliateId = resolvedParams.id;
-  const { t } = useLocale();
+  const { t, formatCurrency, formatDate: formatDateLocale } = useLocale();
+
+  const formatDate = (date: string | null): string => {
+    if (!date) return '-';
+    return formatDateLocale(date);
+  };
 
   const [status, setStatus] = useState<'ACTIVE' | 'SUSPENDED'>('ACTIVE');
   const [suspensionReason, setSuspensionReason] = useState('');
@@ -373,11 +369,11 @@ export default function AdminAffiliateDetailPage({
                         : 'border-rose-500/40 bg-rose-500/20 text-rose-400'
                     }
                   >
-                    {status}
+                    {t(status)}
                   </Badge>
                 </div>
                 <p className="text-xs text-slate-400">
-                  alex.trader@gmail.com • ID: {affiliateId}
+                  alex.trader@gmail.com • {t('ID:')} {affiliateId}
                 </p>
               </div>
             </div>
@@ -387,7 +383,7 @@ export default function AdminAffiliateDetailPage({
                 {t('Accrued Unpaid Commissions')}
               </div>
               <div className="font-mono text-2xl font-extrabold text-emerald-400">
-                ${PENDING_COMMISSIONS.toFixed(2)}
+                {formatCurrency(PENDING_COMMISSIONS)}
               </div>
             </div>
           </div>
@@ -398,7 +394,7 @@ export default function AdminAffiliateDetailPage({
                 {t('Total Referrals')}
               </div>
               <div className="mt-1 font-mono text-xl font-bold text-slate-200">
-                168 Signups
+                168 {t('Signups')}
               </div>
             </div>
             <div className="rounded-xl border border-slate-800 bg-[#06080e] p-4">
@@ -406,7 +402,7 @@ export default function AdminAffiliateDetailPage({
                 {t('Active PRO Subscribers')}
               </div>
               <div className="mt-1 font-mono text-xl font-bold text-emerald-400">
-                42 Traders
+                42 {t('Traders')}
               </div>
             </div>
             <div className="rounded-xl border border-slate-800 bg-[#06080e] p-4">
@@ -414,7 +410,7 @@ export default function AdminAffiliateDetailPage({
                 {t('Lifetime Volume')}
               </div>
               <div className="mt-1 font-mono text-xl font-bold text-cyan-400">
-                $8,232.00
+                {formatCurrency(8232)}
               </div>
             </div>
           </div>
@@ -431,7 +427,7 @@ export default function AdminAffiliateDetailPage({
               <div className="flex items-center justify-between">
                 <dt className="text-slate-400">{t('Country')}</dt>
                 <dd className="font-semibold text-slate-200">
-                  {PROFILE.country}
+                  {t(PROFILE.country)}
                 </dd>
               </div>
               <div className="flex items-center justify-between">
@@ -479,19 +475,19 @@ export default function AdminAffiliateDetailPage({
               <div className="flex items-center justify-between">
                 <dt className="text-slate-400">{t('Total Earnings')}</dt>
                 <dd className="font-mono font-bold text-slate-200">
-                  ${totalEarnings.toFixed(2)}
+                  {formatCurrency(totalEarnings)}
                 </dd>
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-slate-400">{t('Pending Commissions')}</dt>
                 <dd className="font-mono font-bold text-amber-400">
-                  ${PENDING_COMMISSIONS.toFixed(2)}
+                  {formatCurrency(PENDING_COMMISSIONS)}
                 </dd>
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-slate-400">{t('Paid Commissions')}</dt>
                 <dd className="font-mono font-bold text-emerald-400">
-                  ${PAID_COMMISSIONS.toFixed(2)}
+                  {formatCurrency(PAID_COMMISSIONS)}
                 </dd>
               </div>
               <div className="flex items-center justify-between border-t border-slate-800 pt-3">
@@ -620,7 +616,7 @@ export default function AdminAffiliateDetailPage({
                     <Badge
                       className={`text-[10px] ${getCodeStatusBadgeClass(c.status)}`}
                     >
-                      {c.status}
+                      {t(c.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs text-slate-400">
@@ -691,7 +687,7 @@ export default function AdminAffiliateDetailPage({
                   className="border-slate-800/60 hover:bg-slate-800/30"
                 >
                   <TableCell className="font-mono text-xs font-bold text-slate-200">
-                    ${c.amount.toFixed(2)}
+                    {formatCurrency(c.amount)}
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -701,7 +697,7 @@ export default function AdminAffiliateDetailPage({
                           : 'border-amber-500/40 bg-amber-500/20 text-amber-400'
                       }`}
                     >
-                      {c.status}
+                      {t(c.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-xs text-slate-300">

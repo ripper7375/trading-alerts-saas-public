@@ -175,7 +175,7 @@ export default function MarketCommentsPanel({
       case 'BUY':
         return (
           <Badge className="shrink-0 border-emerald-500/50 bg-emerald-500/20 px-1.5 py-0 font-mono text-[9px] text-emerald-300 shadow-xs">
-            <TrendingUp className="mr-0.5 inline h-2.5 w-2.5" /> BUY
+            <TrendingUp className="mr-0.5 inline h-2.5 w-2.5" /> {t('BUY')}
           </Badge>
         );
       case 'SELL':
@@ -239,7 +239,7 @@ export default function MarketCommentsPanel({
               {value}
             </span>
             <span className="font-mono text-[8px] text-slate-400 uppercase">
-              pts
+              {t('pts')}
             </span>
           </div>
         </div>
@@ -307,7 +307,7 @@ export default function MarketCommentsPanel({
                       {comment.timestamp}
                     </span>
                     <span className="truncate text-[11px] font-semibold text-slate-200">
-                      {comment.shortComment}
+                      {t(comment.shortComment)}
                     </span>
                   </div>
                 </div>
@@ -515,7 +515,8 @@ export default function MarketCommentsPanel({
                 {t('comments.baseline_symmetry', 'Baseline Symmetry')}
               </span>
               <span className="font-bold text-cyan-400">
-                {METRICS_DATA.symmetryBias} {METRICS_DATA.baselineSymmetry}%
+                {t(METRICS_DATA.symmetryBias)}{' '}
+                {`${METRICS_DATA.baselineSymmetry}%`}
               </span>
             </div>
             <Progress

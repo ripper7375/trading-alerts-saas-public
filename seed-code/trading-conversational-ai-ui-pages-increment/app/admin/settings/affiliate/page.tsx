@@ -22,7 +22,20 @@ import { Switch } from '@/components/ui/switch';
 import { useLocale } from '@/lib/context/locale-context';
 
 export default function AdminSettingsAffiliatePage() {
-  const { t } = useLocale();
+  const { t, language } = useLocale();
+
+  // These figures configure the platform's actual USD-denominated pricing
+  // (see the "($)" labels on the inputs below) — they are an internal admin
+  // config value, not a customer-facing amount to be converted into the
+  // admin operator's own locale currency. `formatCurrency()` would convert
+  // via the admin's exchange rate and desync the preview from the raw "$"
+  // figures the admin is directly typing, so only number GROUPING is
+  // localized here, deliberately keeping the "$"/USD denomination fixed.
+  const formatUsd = (amount: number) =>
+    amount.toLocaleString(language, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
 
   const [defaultRate, setDefaultRate] = useState('30');
   const [cookieDays, setCookieDays] = useState('60');
@@ -262,7 +275,7 @@ export default function AdminSettingsAffiliatePage() {
                 <div className="flex justify-between">
                   <span className="text-slate-400">{t('Regular Price')}</span>
                   <span className="font-mono text-slate-200">
-                    ${basePrice.toFixed(2)}
+                    ${formatUsd(basePrice)}
                   </span>
                 </div>
                 <div className="flex justify-between text-amber-400">
@@ -270,13 +283,13 @@ export default function AdminSettingsAffiliatePage() {
                     {t('Discount')} ({discountPercent}%)
                   </span>
                   <span className="font-mono">
-                    -${((basePrice * discountPercent) / 100).toFixed(2)}
+                    -${formatUsd((basePrice * discountPercent) / 100)}
                   </span>
                 </div>
                 <div className="flex justify-between border-t border-slate-800 pt-2">
                   <span className="text-slate-400">{t('Customer Pays')}</span>
                   <span className="font-mono font-semibold text-slate-100">
-                    ${exampleNetPrice.toFixed(2)}
+                    ${formatUsd(exampleNetPrice)}
                   </span>
                 </div>
                 <div className="flex justify-between text-emerald-400">
@@ -284,13 +297,13 @@ export default function AdminSettingsAffiliatePage() {
                     {t('Affiliate Earns')} ({commissionPercent}%)
                   </span>
                   <span className="font-mono font-semibold">
-                    ${exampleCommission.toFixed(2)}
+                    ${formatUsd(exampleCommission)}
                   </span>
                 </div>
                 <div className="flex justify-between border-t border-slate-800 pt-2 text-cyan-400">
                   <span>{t('Company Revenue')}</span>
                   <span className="font-mono font-semibold">
-                    ${(exampleNetPrice - exampleCommission).toFixed(2)}
+                    ${formatUsd(exampleNetPrice - exampleCommission)}
                   </span>
                 </div>
               </div>

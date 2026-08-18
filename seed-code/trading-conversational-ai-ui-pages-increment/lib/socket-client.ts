@@ -6,6 +6,12 @@ export interface ChatMessage {
   id: string;
   sender: 'user' | 'bot' | 'agent';
   text: string;
+  /**
+   * Raw ISO-8601 timestamp (from `new Date().toISOString()`). Stored raw
+   * because this class is a plain TS module (no React/useLocale access) —
+   * consumers must format it for display via useLocale()'s
+   * formatTimestamp() at render time, not here.
+   */
   timestamp: string;
   topic?: string;
 }
@@ -59,10 +65,7 @@ class ChatSocketManager {
       id: `usr-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       sender: 'user',
       text,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      timestamp: new Date().toISOString(),
       topic,
     };
 
@@ -129,10 +132,7 @@ class ChatSocketManager {
       id: `bot-${Date.now()}`,
       sender: 'bot',
       text: replyText,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      timestamp: new Date().toISOString(),
       topic,
     };
   }

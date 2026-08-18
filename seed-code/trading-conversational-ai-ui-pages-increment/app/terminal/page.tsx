@@ -27,8 +27,10 @@ import MarketCommentsPanel from '@/components/market-comments-panel';
 import { ChatSidebar } from '@/components/chat-sidebar';
 import { PanelLeftOpen, PanelRightOpen } from 'lucide-react';
 import type { Symbol, Timeframe, Tier } from '@/lib/types';
+import { useLocale } from '@/lib/context/locale-context';
 
 export default function TerminalPage() {
+  const { t } = useLocale();
   const [symbol, setSymbol] = useState<Symbol>('XAUUSD');
   const [timeframe, setTimeframe] = useState<Timeframe>('M5');
 
@@ -79,7 +81,7 @@ export default function TerminalPage() {
                   onClick={() => setIsPanel1Collapsed(false)}
                 >
                   <PanelLeftOpen className="mr-1 h-3 w-3" />
-                  Show AI Analyst
+                  {t('Show AI Analyst')}
                 </Button>
               )}
             </div>
@@ -93,7 +95,7 @@ export default function TerminalPage() {
                   onClick={() => setIsPanel3Collapsed(false)}
                 >
                   <PanelRightOpen className="mr-1 h-3 w-3" />
-                  Show Comments
+                  {t('Show Comments')}
                 </Button>
               )}
             </div>

@@ -73,7 +73,7 @@ const LEADERBOARD = [
 ];
 
 export default function AdminReportSalesPerformancePage() {
-  const { t } = useLocale();
+  const { t, formatCurrency } = useLocale();
   const [period, setPeriod] = useState<Period>('3months');
   const leaderboard = LEADERBOARD;
 
@@ -115,7 +115,7 @@ export default function AdminReportSalesPerformancePage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => alert('Downloading Leaderboard CSV...')}
+            onClick={() => alert(t('Downloading Leaderboard CSV...'))}
             className="border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
           >
             <Download className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
@@ -165,7 +165,7 @@ export default function AdminReportSalesPerformancePage() {
               {t('Total Commissions')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-400">
-              ${totalCommissions.toFixed(2)}
+              {formatCurrency(totalCommissions)}
             </div>
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
@@ -236,7 +236,7 @@ export default function AdminReportSalesPerformancePage() {
                     {item.country}
                   </TableCell>
                   <TableCell className="text-xs text-slate-400">
-                    {item.channel}
+                    {t(item.channel)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-300">
                     {item.signups}
@@ -248,10 +248,10 @@ export default function AdminReportSalesPerformancePage() {
                     {item.conversionRate}
                   </TableCell>
                   <TableCell className="font-mono text-xs font-bold text-slate-200">
-                    ${item.grossSales.toFixed(2)}
+                    {formatCurrency(item.grossSales)}
                   </TableCell>
                   <TableCell className="font-mono text-xs font-bold text-emerald-400">
-                    ${item.commissionPaid.toFixed(2)}
+                    {formatCurrency(item.commissionPaid)}
                   </TableCell>
                   <TableCell className="text-right">
                     <Link href={`/admin/affiliates/${item.id}`}>

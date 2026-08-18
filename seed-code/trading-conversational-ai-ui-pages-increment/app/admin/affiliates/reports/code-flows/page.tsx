@@ -65,7 +65,7 @@ function defaultReportRange(): { start: string; end: string } {
 }
 
 export default function AdminReportCodeFlowsPage() {
-  const { t } = useLocale();
+  const { t, formatDate } = useLocale();
   const defaultRange = defaultReportRange();
   const [start, setStart] = useState(defaultRange.start);
   const [end, setEnd] = useState(defaultRange.end);
@@ -131,7 +131,7 @@ export default function AdminReportCodeFlowsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => alert('Exporting Code Flows CSV...')}
+              onClick={() => alert(t('Exporting Code Flows CSV...'))}
               className="border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
             >
               <Download className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
@@ -141,7 +141,7 @@ export default function AdminReportCodeFlowsPage() {
         </div>
 
         <div className="rounded-lg border border-slate-800 bg-[#090b14]/60 px-4 py-2.5 text-xs text-slate-400">
-          {t('Period')}: {start} &ndash; {end} &middot;{' '}
+          {t('Period')}: {formatDate(start)} &ndash; {formatDate(end)} &middot;{' '}
           <strong className="text-slate-200">{flows.length}</strong>{' '}
           {t('codes issued in this window')}
         </div>
@@ -196,20 +196,20 @@ export default function AdminReportCodeFlowsPage() {
                     {f.partner}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-400">
-                    {f.generatedDate}
+                    {formatDate(f.generatedDate)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-400">
-                    {f.firstRedeemed}
+                    {formatDate(f.firstRedeemed)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-cyan-400">
-                    {f.velocity}
+                    {t(f.velocity)}
                   </TableCell>
                   <TableCell className="font-mono text-xs font-bold text-slate-200">
                     {f.totalUsed}
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                      {f.activeUsers} Active
+                      {f.activeUsers} {t('Active')}
                     </Badge>
                   </TableCell>
                 </TableRow>

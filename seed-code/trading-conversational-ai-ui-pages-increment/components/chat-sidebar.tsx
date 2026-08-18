@@ -170,7 +170,7 @@ export function ChatSidebar({
                           : 'border-slate-700 bg-slate-800 text-slate-300'
                       )}
                     >
-                      {currentTier === 'PRO' ? '⚡ PRO' : '🔒 FREE'}
+                      {currentTier === 'PRO' ? t('⚡ PRO') : t('🔒 FREE')}
                     </Badge>
                     <ChevronDown className="ml-0.5 h-3 w-3 text-slate-400" />
                   </Button>

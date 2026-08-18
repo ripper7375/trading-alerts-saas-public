@@ -44,7 +44,7 @@ export default function BlogPage() {
       ),
       category: 'Fractal Models',
       date: 'Aug 14, 2026',
-      readTime: '6 min read',
+      readTime: t('6 min read'),
       badge: 'Featured',
     },
     {
@@ -57,7 +57,7 @@ export default function BlogPage() {
       ),
       category: 'AI Research',
       date: 'Aug 10, 2026',
-      readTime: '8 min read',
+      readTime: t('8 min read'),
       badge: 'Engineering',
     },
     {
@@ -70,7 +70,7 @@ export default function BlogPage() {
       ),
       category: 'Risk Management',
       date: 'Aug 04, 2026',
-      readTime: '5 min read',
+      readTime: t('5 min read'),
       badge: 'Strategy',
     },
   ];
@@ -111,7 +111,7 @@ export default function BlogPage() {
                       : 'border border-slate-800 bg-slate-900/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
                   }`}
                 >
-                  {cat}
+                  {t(cat)}
                 </button>
               ))}
             </div>
@@ -128,7 +128,7 @@ export default function BlogPage() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <Badge className="border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-400">
-                        {post.category}
+                        {t(post.category)}
                       </Badge>
                       <div className="flex items-center gap-1 text-[11px] text-slate-500">
                         <Clock className="h-3 w-3" />

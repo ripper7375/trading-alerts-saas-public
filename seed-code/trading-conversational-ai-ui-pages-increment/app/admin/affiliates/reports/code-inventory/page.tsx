@@ -43,7 +43,7 @@ const INVENTORY = [
 ];
 
 export default function AdminReportCodeInventoryPage() {
-  const { t } = useLocale();
+  const { t, language } = useLocale();
   const inventory = INVENTORY;
 
   const totalMinted = inventory.reduce((sum, p) => sum + p.totalIssued, 0);
@@ -76,7 +76,7 @@ export default function AdminReportCodeInventoryPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => alert('Exporting Code Inventory CSV...')}
+            onClick={() => alert(t('Exporting Code Inventory CSV...'))}
             className="border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
           >
             <Download className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
@@ -91,7 +91,7 @@ export default function AdminReportCodeInventoryPage() {
               {t('Total Minted')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-slate-200">
-              {totalMinted.toLocaleString()}
+              {totalMinted.toLocaleString(language)}
             </div>
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
@@ -99,7 +99,7 @@ export default function AdminReportCodeInventoryPage() {
               {t('Assigned to Partners')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-400">
-              {totalAssigned.toLocaleString()}
+              {totalAssigned.toLocaleString(language)}
             </div>
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
@@ -107,7 +107,7 @@ export default function AdminReportCodeInventoryPage() {
               {t('Available Stock')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-400">
-              {totalAvailable.toLocaleString()}
+              {totalAvailable.toLocaleString(language)}
             </div>
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
@@ -148,7 +148,7 @@ export default function AdminReportCodeInventoryPage() {
                   className="border-slate-800/60 hover:bg-slate-800/30"
                 >
                   <TableCell className="text-xs font-bold text-slate-200">
-                    {inv.poolName}
+                    {t(inv.poolName)}
                   </TableCell>
                   <TableCell className="text-xs">
                     <Badge

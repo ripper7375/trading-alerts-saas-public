@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { useLocale } from '@/lib/context/locale-context';
 
 interface TickerItem {
   symbol: string;
@@ -71,6 +72,7 @@ const initialTickers: TickerItem[] = [
 ];
 
 export function TickerTape() {
+  const { language } = useLocale();
   const [tickers, setTickers] = useState<TickerItem[]>(initialTickers);
 
   // Simulate subtle real-time price fluctuation
@@ -93,7 +95,7 @@ export function TickerTape() {
               ...item,
               price:
                 item.symbol.includes('BTC') || item.symbol.includes('XAU')
-                  ? Number(newPrice).toLocaleString('en-US', {
+                  ? Number(newPrice).toLocaleString(language, {
                       minimumFractionDigits: 2,
                     })
                   : newPrice,
@@ -105,7 +107,7 @@ export function TickerTape() {
     }, 2000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [language]);
 
   return (
     <div className="w-full overflow-hidden border-y border-slate-800/80 bg-[#06080e]/90 py-2.5 backdrop-blur-md">

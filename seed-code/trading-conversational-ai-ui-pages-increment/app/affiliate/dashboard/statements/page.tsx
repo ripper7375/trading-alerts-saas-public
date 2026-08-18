@@ -38,7 +38,7 @@ interface Statement {
 }
 
 export default function AffiliateStatementsPage() {
-  const { t } = useLocale();
+  const { t, formatCurrency } = useLocale();
 
   const statements: Statement[] = [
     {
@@ -160,23 +160,23 @@ export default function AffiliateStatementsPage() {
                     {st.id}
                   </TableCell>
                   <TableCell className="text-xs font-semibold text-slate-300">
-                    {st.month}
+                    {t(st.month)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-300">
-                    ${st.grossSales.toFixed(2)}
+                    {formatCurrency(st.grossSales)}
                   </TableCell>
                   <TableCell className="font-mono text-xs font-bold text-emerald-400">
-                    ${st.commission.toFixed(2)}
+                    {formatCurrency(st.commission)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-500">
-                    ${st.fees.toFixed(2)}
+                    {formatCurrency(st.fees)}
                   </TableCell>
                   <TableCell className="font-mono text-xs font-bold text-emerald-300">
-                    ${st.netPayout.toFixed(2)}
+                    {formatCurrency(st.netPayout)}
                   </TableCell>
                   <TableCell>
                     <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                      {st.status}
+                      {t(st.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">

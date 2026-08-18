@@ -40,7 +40,7 @@ export default function AdminDisbursementSettingsPage() {
               </Badge>
             </div>
             <p className="text-xs text-slate-400">
-              Wise Recipient •••• 4912 · USD · {t('Last verified')}{' '}
+              {t('Wise Recipient')} •••• 4912 · USD · {t('Last verified')}{' '}
               {lastVerified}
             </p>
           </div>

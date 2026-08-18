@@ -62,7 +62,9 @@ export default function AdminSystemTerminalsPage() {
     setRestartingId(id);
     setTimeout(() => {
       setRestartingId(null);
-      setSuccess(t(`Terminal instance [${id}] rebooted successfully.`));
+      setSuccess(
+        `${t('Terminal instance')} [${id}] ${t('rebooted successfully.')}`
+      );
       setTimeout(() => setSuccess(''), 3000);
     }, 1500);
   };
@@ -107,7 +109,7 @@ export default function AdminSystemTerminalsPage() {
                   </div>
                 </div>
                 <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                  {node.status}
+                  {t(node.status)}
                 </Badge>
               </div>
 
@@ -115,7 +117,7 @@ export default function AdminSystemTerminalsPage() {
                 <div className="flex justify-between">
                   <span className="text-slate-400">{t('Server Pool')}:</span>
                   <span className="font-semibold text-slate-200">
-                    {node.server}
+                    {t(node.server)}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -127,7 +129,7 @@ export default function AdminSystemTerminalsPage() {
                 <div className="flex justify-between">
                   <span className="text-slate-400">{t('Resource Load')}:</span>
                   <span className="font-mono text-slate-300">
-                    {node.cpu} CPU / {node.ram}
+                    {node.cpu} {t('CPU')} / {node.ram}
                   </span>
                 </div>
                 <div className="flex justify-between">

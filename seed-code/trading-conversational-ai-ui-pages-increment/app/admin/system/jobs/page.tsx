@@ -89,7 +89,9 @@ export default function AdminSystemJobsPage() {
     setRunningJob(id);
     setTimeout(() => {
       setRunningJob(null);
-      setSuccess(t(`Cron job [${name}] executed successfully!`));
+      setSuccess(
+        `${t('Cron job')} [${t(name)}] ${t('executed successfully!')}`
+      );
       setTimeout(() => setSuccess(''), 3000);
     }, 1200);
   };
@@ -150,13 +152,13 @@ export default function AdminSystemJobsPage() {
                     {j.id}
                   </TableCell>
                   <TableCell className="text-xs font-bold text-slate-200">
-                    {j.name}
+                    {t(j.name)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-amber-400">
-                    {j.schedule}
+                    {t(j.schedule)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-400">
-                    {j.lastRun}
+                    {t(j.lastRun)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-400">
                     {j.duration}
@@ -169,7 +171,7 @@ export default function AdminSystemJobsPage() {
                           : 'border-emerald-500/40 bg-emerald-500/20 text-emerald-400'
                       }`}
                     >
-                      {j.status}
+                      {t(j.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -194,7 +196,7 @@ export default function AdminSystemJobsPage() {
                       <AlertDialogContent className="border-slate-800 bg-[#090b14] text-slate-100">
                         <AlertDialogHeader>
                           <AlertDialogTitle>
-                            {t('Run')} {j.name}?
+                            {t('Run')} {t(j.name)}?
                           </AlertDialogTitle>
                           <AlertDialogDescription className="text-slate-400">
                             {t(

@@ -66,7 +66,7 @@ export default function ChatPanel({
   predeterminedQuestion,
   onClearPredeterminedQuestion,
 }: ChatPanelProps) {
-  const { t } = useLocale();
+  const { t, language } = useLocale();
   const [selectedModel, setSelectedModel] = useState('gemini-3-6-flash');
   const [tokensUsed, setTokensUsed] = useState(42500);
   const monthlyQuota = PRO_TIER_CONFIG.aiMonthlyTokenQuota; // 500,000
@@ -248,7 +248,7 @@ export default function ChatPanel({
                   <span>{model.name}</span>
                   {tier === 'FREE' && model.proOnly && (
                     <Badge className="ml-1.5 h-3.5 border-amber-500/40 bg-amber-500/20 font-mono text-[8px] text-amber-300">
-                      🔒 PRO
+                      {t('🔒 PRO')}
                     </Badge>
                   )}
                 </SelectItem>
@@ -329,10 +329,11 @@ export default function ChatPanel({
                   {message.role === 'assistant' && (
                     <div className="mb-1.5 flex items-center justify-between border-b border-slate-800/80 pb-1 text-[10px] font-extrabold tracking-wider text-amber-400 uppercase">
                       <span>
-                        DAVINTRADE AI • {activeModelObj?.name.split(' ')[0]}
+                        {t('DAVINTRADE AI')} •{' '}
+                        {activeModelObj?.name.split(' ')[0]}
                       </span>
                       <span className="font-mono text-[9px] font-normal text-slate-400">
-                        SUB-500MS QUAD-RAG
+                        {t('SUB-500MS QUAD-RAG')}
                       </span>
                     </div>
                   )}
@@ -351,8 +352,9 @@ export default function ChatPanel({
                 <AvatarImage src="/DavinTrade_Logo.jpg" />
               </Avatar>
               <span className="animate-pulse font-mono text-[11px] text-amber-300">
-                {activeModelObj?.name.split(' ')[0]} is processing market
-                analysis...
+                {t(
+                  `${activeModelObj?.name.split(' ')[0]} is processing market analysis...`
+                )}
               </span>
             </div>
           )}
@@ -368,8 +370,10 @@ export default function ChatPanel({
             {t('chat.monthly_token_quota', 'Monthly Token Quota')}
           </span>
           <span className="font-mono text-[10px] font-bold text-amber-400">
-            {tokensUsed.toLocaleString()} /{' '}
-            {tier === 'PRO' ? monthlyQuota.toLocaleString() : '50,000'}
+            {tokensUsed.toLocaleString(language)} /{' '}
+            {tier === 'PRO'
+              ? monthlyQuota.toLocaleString(language)
+              : (50000).toLocaleString(language)}
           </span>
         </div>
         <Progress
@@ -391,7 +395,7 @@ export default function ChatPanel({
                   handleSendMessage();
                 }
               }}
-              placeholder={`Ask ${activeModelObj?.name.split(' ')[0]}...`}
+              placeholder={t(`Ask ${activeModelObj?.name.split(' ')[0]}...`)}
               className="border-slate-750 min-h-[58px] w-full resize-none rounded-xl border bg-[#07090f] py-3.5 pr-12 pl-4 text-sm text-slate-100 shadow-inner placeholder:text-base placeholder:font-medium placeholder:text-slate-500 focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/30 focus:outline-none"
               rows={2}
             />

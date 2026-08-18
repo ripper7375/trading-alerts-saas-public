@@ -177,7 +177,7 @@ export default function AlertForm() {
             disabled={isLoading}
             className="bg-gradient-to-r from-amber-500 to-amber-600 px-6 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
           >
-            {isLoading ? 'Saving...' : t('Save & Activate Alert')}
+            {isLoading ? t('Saving...') : t('Save & Activate Alert')}
           </Button>
         </div>
       </form>

@@ -42,7 +42,7 @@ interface PayoutBatchItem {
 }
 
 export default function AffiliatePayoutsPage() {
-  const { t } = useLocale();
+  const { t, formatCurrency, formatDate } = useLocale();
 
   const [currentBalance, setCurrentBalance] = useState(176.4);
   const minThreshold = 50.0;
@@ -116,7 +116,7 @@ export default function AffiliatePayoutsPage() {
 
               <div className="text-right">
                 <div className="font-mono text-2xl font-extrabold text-emerald-400">
-                  ${currentBalance.toFixed(2)}
+                  {formatCurrency(currentBalance)}
                 </div>
                 <div className="text-[10px] tracking-wider text-slate-500 uppercase">
                   {t('Accrued Unpaid Balance')}
@@ -144,7 +144,7 @@ export default function AffiliatePayoutsPage() {
                 </h4>
               </div>
               <p className="text-xs font-medium text-slate-300">
-                Wise Recipient •••• 4912
+                {t('Wise Recipient')} •••• 4912
               </p>
               <p className="text-[11px] text-slate-500">
                 {t('Managed & verified by Admin Disbursement Team')}
@@ -204,26 +204,26 @@ export default function AffiliatePayoutsPage() {
                     {p.id}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-400">
-                    {p.date}
+                    {formatDate(p.date)}
                   </TableCell>
                   <TableCell className="text-xs text-slate-200">
-                    {p.method}
+                    {t(p.method)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-300">
-                    ${p.amount.toFixed(2)}
+                    {formatCurrency(p.amount)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-500">
-                    ${p.fee.toFixed(2)}
+                    {formatCurrency(p.fee)}
                   </TableCell>
                   <TableCell className="font-mono text-xs font-bold text-emerald-400">
-                    ${p.netPayout.toFixed(2)}
+                    {formatCurrency(p.netPayout)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-amber-400">
                     {p.reference}
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                      {p.status}
+                      {t(p.status)}
                     </Badge>
                   </TableCell>
                 </TableRow>
@@ -240,7 +240,7 @@ export default function AffiliatePayoutsPage() {
           <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-3">
             <div className="flex items-center gap-2">
               <Badge className="border-slate-700 bg-slate-800 text-[10px] text-slate-400">
-                SCHEDULED
+                {t('SCHEDULED')}
               </Badge>
               <span className="text-slate-400">
                 {t('Queued for the next disbursement run')}
@@ -248,7 +248,7 @@ export default function AffiliatePayoutsPage() {
             </div>
             <div className="flex items-center gap-2">
               <Badge className="border-cyan-500/40 bg-cyan-500/20 text-[10px] text-cyan-400">
-                PROCESSING
+                {t('PROCESSING')}
               </Badge>
               <span className="text-slate-400">
                 {t('Transfer initiated with the payout provider')}
@@ -256,7 +256,7 @@ export default function AffiliatePayoutsPage() {
             </div>
             <div className="flex items-center gap-2">
               <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                COMPLETED
+                {t('COMPLETED')}
               </Badge>
               <span className="text-slate-400">
                 {t('Funds delivered to your payout account')}

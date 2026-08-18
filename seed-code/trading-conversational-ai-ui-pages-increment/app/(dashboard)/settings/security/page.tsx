@@ -35,7 +35,7 @@ interface LoginHistoryEntry {
   status: 'SUCCESS' | 'FAILED' | 'BLOCKED';
   device: string;
   location: string;
-  createdAt: string;
+  minutesAgo: number;
 }
 
 const LOGIN_HISTORY: LoginHistoryEntry[] = [
@@ -44,21 +44,21 @@ const LOGIN_HISTORY: LoginHistoryEntry[] = [
     status: 'SUCCESS',
     device: 'Chrome on Windows 11',
     location: 'Bangkok, Thailand',
-    createdAt: '2 hours ago',
+    minutesAgo: 120,
   },
   {
     id: 'lh-2',
     status: 'SUCCESS',
     device: 'Safari Mobile on iOS 18.2',
     location: 'Bangkok, Thailand',
-    createdAt: '1 day ago',
+    minutesAgo: 1440,
   },
   {
     id: 'lh-3',
     status: 'FAILED',
     device: 'Unknown Browser on Linux',
     location: 'Unknown Location',
-    createdAt: '3 days ago',
+    minutesAgo: 4320,
   },
 ];
 
@@ -297,7 +297,7 @@ export default function SecuritySettingsPage() {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleRevokeSession(session.id)}
-                  aria-label={`Revoke session on ${session.device}`}
+                  aria-label={`${t('Revoke session on')} ${session.device}`}
                   className="h-7 w-7 text-rose-400 hover:bg-rose-500/20"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -353,7 +353,7 @@ export default function SecuritySettingsPage() {
                     <MapPin className="h-3 w-3" />
                     {entry.location}
                   </span>
-                  <span>{entry.createdAt}</span>
+                  <span>{formatRelativeTime(entry.minutesAgo)}</span>
                 </div>
               </div>
             </div>

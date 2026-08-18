@@ -294,7 +294,7 @@ export default function BatchDetailsPage({ params }: BatchDetailPageProps) {
       }));
       setIsProcessing(false);
       setSuccessMessage(
-        `Batch executed: ${batch.transactions.length} succeeded, 0 failed`
+        `${t('Batch executed:')} ${batch.transactions.length} ${t('succeeded, 0 failed')}`
       );
       setTimeout(() => setSuccessMessage(null), 4000);
     }, 1200);
@@ -437,7 +437,7 @@ export default function BatchDetailsPage({ params }: BatchDetailPageProps) {
           <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
             <div>
               <p className="text-slate-400">{t('Provider')}</p>
-              <p className="mt-0.5 text-slate-200">{batch.provider}</p>
+              <p className="mt-0.5 text-slate-200">{t(batch.provider)}</p>
             </div>
             <div>
               <p className="text-slate-400">{t('Currency')}</p>
@@ -462,7 +462,7 @@ export default function BatchDetailsPage({ params }: BatchDetailPageProps) {
             {batch.errorMessage && (
               <div className="sm:col-span-2">
                 <p className="text-slate-400">{t('Error Message')}</p>
-                <p className="mt-0.5 text-rose-400">{batch.errorMessage}</p>
+                <p className="mt-0.5 text-rose-400">{t(batch.errorMessage)}</p>
               </div>
             )}
           </div>
@@ -580,7 +580,9 @@ export default function BatchDetailsPage({ params }: BatchDetailPageProps) {
                   <p className="text-xs font-semibold text-slate-200">
                     {log.action}
                   </p>
-                  <p className="text-[11px] text-slate-400">by {log.actor}</p>
+                  <p className="text-[11px] text-slate-400">
+                    {t('by')} {log.actor}
+                  </p>
                 </div>
                 <span className="text-[11px] text-slate-500">
                   {formatDate(log.createdAt)}

@@ -110,7 +110,7 @@ export default function AdminApiUsagePage() {
               {t('Total Requests (24h)')}
             </div>
             <div className="mt-1 font-mono text-3xl font-extrabold text-cyan-400">
-              1.84M
+              {t('1.84M')}
             </div>
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
@@ -118,7 +118,7 @@ export default function AdminApiUsagePage() {
               {t('Global Median Latency')}
             </div>
             <div className="mt-1 font-mono text-3xl font-extrabold text-emerald-400">
-              14.2 ms
+              {t('14.2 ms')}
             </div>
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
@@ -126,7 +126,7 @@ export default function AdminApiUsagePage() {
               {t('Peak Concurrent Connections')}
             </div>
             <div className="mt-1 font-mono text-3xl font-extrabold text-amber-400">
-              1,248 Sockets
+              {t('1,248 Sockets')}
             </div>
           </Card>
         </div>
@@ -146,36 +146,36 @@ export default function AdminApiUsagePage() {
                 <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                   <div>
                     <h4 className="text-xs font-bold text-slate-200">
-                      {m.name}
+                      {t(m.name)}
                     </h4>
                     <div className="mt-0.5 flex items-center gap-3 text-[11px] text-slate-400">
                       <span>
                         {t('Throughput')}:{' '}
                         <strong className="font-mono text-slate-300">
-                          {m.requests}
+                          {t(m.requests)}
                         </strong>
                       </span>
                       <span>•</span>
                       <span>
                         {t('Quota')}:{' '}
-                        <strong className="text-slate-300">{m.quota}</strong>
+                        <strong className="text-slate-300">{t(m.quota)}</strong>
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 self-start sm:self-center">
                     <span className="font-mono text-xs font-bold text-amber-400">
-                      {m.latency}
+                      {t(m.latency)}
                     </span>
                     <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                      {m.status}
+                      {t(m.status)}
                     </Badge>
                   </div>
                 </div>
 
                 <div className="space-y-1">
                   <div className="flex justify-between font-mono text-[10px] text-slate-500">
-                    <span>Capacity Allocated</span>
+                    <span>{t('Capacity Allocated')}</span>
                     <span>{m.usagePct}%</span>
                   </div>
                   <Progress value={m.usagePct} className="h-1.5 bg-slate-800" />

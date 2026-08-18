@@ -27,16 +27,22 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLocale } from '@/lib/context/locale-context';
 
-const ACCOUNT_STATS = [
+interface AccountStat {
+  label: string;
+  value: string | number;
+  currency?: boolean;
+}
+
+const ACCOUNT_STATS: AccountStat[] = [
   { label: 'Codes Distributed', value: '15' },
   { label: 'Codes Used', value: '12' },
-  { label: 'Total Earnings', value: '$958.10' },
-  { label: 'Pending', value: '$176.40' },
-  { label: 'Paid', value: '$781.70' },
+  { label: 'Total Earnings', value: 958.1, currency: true },
+  { label: 'Pending', value: 176.4, currency: true },
+  { label: 'Paid', value: 781.7, currency: true },
 ];
 
 export default function AffiliateProfilePage() {
-  const { t } = useLocale();
+  const { t, formatCurrency } = useLocale();
 
   const [partnerName, setPartnerName] = useState('Alex Morgan');
   const [partnerEmail, setPartnerEmail] = useState('alex.trader@gmail.com');
@@ -243,7 +249,9 @@ export default function AffiliateProfilePage() {
                 <div key={stat.label}>
                   <p className="text-[11px] text-slate-400">{t(stat.label)}</p>
                   <p className="mt-1 font-mono text-lg font-bold text-slate-100">
-                    {stat.value}
+                    {stat.currency
+                      ? formatCurrency(stat.value as number)
+                      : stat.value}
                   </p>
                 </div>
               ))}

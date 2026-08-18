@@ -10,6 +10,7 @@ import {
   Layers,
   Cpu,
 } from 'lucide-react';
+import { useLocale } from '@/lib/context/locale-context';
 
 const features = [
   {
@@ -55,6 +56,8 @@ const features = [
 ];
 
 export function LandingFeatures() {
+  const { t } = useLocale();
+
   return (
     <section id="features" className="relative bg-[#06070a] py-20">
       <div className="container mx-auto px-4 md:px-6">
@@ -62,15 +65,15 @@ export function LandingFeatures() {
         <div className="mx-auto mb-16 max-w-3xl space-y-4 text-center">
           <div className="inline-flex items-center space-x-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 text-xs font-bold text-amber-300">
             <Cpu className="h-3.5 w-3.5" />
-            <span>POWERFUL QUANTITATIVE STACK</span>
+            <span>{t('POWERFUL QUANTITATIVE STACK')}</span>
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-            Engineered for Precision Traders & Analysts
+            {t('Engineered for Precision Traders & Analysts')}
           </h2>
           <p className="text-base text-slate-400 sm:text-lg">
-            DavinTrade combines ultra-low latency price monitoring with
-            cutting-edge conversational AI models to give you an unshakeable
-            market edge.
+            {t(
+              'DavinTrade combines ultra-low latency price monitoring with cutting-edge conversational AI models to give you an unshakeable market edge.'
+            )}
           </p>
         </div>
 
@@ -92,15 +95,15 @@ export function LandingFeatures() {
                     </div>
                   </div>
                   <span className="rounded-full border border-slate-700 bg-slate-800/80 px-2.5 py-0.5 text-[10px] font-bold text-slate-300">
-                    {item.badge}
+                    {t(item.badge)}
                   </span>
                 </div>
 
                 <h3 className="mb-2 text-xl font-bold text-white transition-colors group-hover:text-amber-300">
-                  {item.title}
+                  {t(item.title)}
                 </h3>
                 <p className="text-sm leading-relaxed text-slate-400">
-                  {item.description}
+                  {t(item.description)}
                 </p>
               </div>
             );

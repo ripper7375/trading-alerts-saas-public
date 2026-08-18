@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useSupportChat } from '@/components/chat-widget/chat-context';
+import { useLocale } from '@/lib/context/locale-context';
 import {
   Sparkles,
   ArrowRight,
@@ -15,7 +16,8 @@ import {
 } from 'lucide-react';
 
 export function LandingHero() {
-  const [prompt, setPrompt] = useState('How can I help you today ?');
+  const { t } = useLocale();
+  const [prompt, setPrompt] = useState(t('How can I help you today ?'));
   const router = useRouter();
   const { openChatWithMessage } = useSupportChat();
 
@@ -23,13 +25,16 @@ export function LandingHero() {
     if (prompt.trim()) {
       openChatWithMessage(prompt);
     } else {
-      openChatWithMessage('How can I help you today ?');
+      openChatWithMessage(t('How can I help you today ?'));
     }
   };
 
   const handleChipClick = (topicText: string) => {
-    setPrompt(`Tell me more about ${topicText}...`);
-    openChatWithMessage(`I have a question about ${topicText}...`, topicText);
+    setPrompt(t(`Tell me more about ${topicText}...`));
+    openChatWithMessage(
+      t(`I have a question about ${topicText}...`),
+      topicText
+    );
   };
 
   return (
@@ -47,23 +52,22 @@ export function LandingHero() {
             <div className="inline-flex items-center space-x-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 backdrop-blur-md">
               <Sparkles className="h-4 w-4 animate-pulse text-amber-400" />
               <span className="text-xs font-bold tracking-wide text-amber-300 uppercase">
-                Next-Gen AI Trading Intelligence
+                {t('Next-Gen AI Trading Intelligence')}
               </span>
             </div>
 
             {/* Main Headline */}
             <div className="space-y-4">
               <h1 className="text-4xl leading-[1.1] font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
-                Trade Smarter with{' '}
+                {t('Trade Smarter with')}{' '}
                 <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 bg-clip-text text-transparent">
-                  Davin AI
+                  {t('Davin AI')}
                 </span>
               </h1>
               <p className="text-lg leading-relaxed font-normal text-slate-300">
-                Your 24/7 Quantitative Analyst. Real-time chart pattern
-                recognition, multi-model signal verification, sub-500ms alerts,
-                and institutional order management for Forex, Commodities &
-                Crypto.
+                {t(
+                  'Your 24/7 Quantitative Analyst. Real-time chart pattern recognition, multi-model signal verification, sub-500ms alerts, and institutional order management for Forex, Commodities & Crypto.'
+                )}
               </p>
             </div>
 
@@ -72,7 +76,7 @@ export function LandingHero() {
               {/* Header Badge "Support Centre" */}
               <div className="mb-2 flex items-center space-x-2 border-b border-slate-800/60 px-3 py-1 pb-2 text-xs font-semibold text-amber-400/90">
                 <Headphones className="h-3.5 w-3.5 text-amber-400" />
-                <span>Support Centre</span>
+                <span>{t('Support Centre')}</span>
               </div>
 
               {/* Textarea content */}
@@ -86,7 +90,7 @@ export function LandingHero() {
                   }
                 }}
                 rows={2}
-                placeholder="How can I help you today ?"
+                placeholder={t('How can I help you today ?')}
                 className="w-full resize-none bg-transparent px-3 py-1 text-sm font-medium text-slate-100 placeholder:text-slate-500 focus:outline-none"
               />
 
@@ -98,28 +102,28 @@ export function LandingHero() {
                     onClick={() => handleChipClick('Product Info')}
                     className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition-colors hover:bg-amber-500/20 hover:text-amber-300"
                   >
-                    Product Info
+                    {t('Product Info')}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleChipClick('Technical Support')}
                     className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition-colors hover:bg-amber-500/20 hover:text-amber-300"
                   >
-                    Technical Support
+                    {t('Technical Support')}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleChipClick('PRO Subscription')}
                     className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition-colors hover:bg-amber-500/20 hover:text-amber-300"
                   >
-                    PRO Subscription
+                    {t('PRO Subscription')}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleChipClick('Billing')}
                     className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition-colors hover:bg-amber-500/20 hover:text-amber-300"
                   >
-                    Billing
+                    {t('Billing')}
                   </button>
                 </div>
 
@@ -129,7 +133,7 @@ export function LandingHero() {
                   size="sm"
                   className="h-9 shrink-0 bg-gradient-to-r from-amber-500 to-amber-600 font-bold text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
                 >
-                  Ask Customer Support
+                  {t('Ask Customer Support')}
                   <ArrowRight className="ml-1.5 h-4 w-4" />
                 </Button>
               </div>
@@ -142,7 +146,7 @@ export function LandingHero() {
                   &lt;500ms
                 </div>
                 <div className="text-[11px] font-medium text-slate-400">
-                  Alert Trigger Time
+                  {t('Alert Trigger Time')}
                 </div>
               </div>
               <div className="rounded-xl border border-slate-800/80 bg-[#0c101a]/70 p-3 text-center">
@@ -150,7 +154,7 @@ export function LandingHero() {
                   94.8%
                 </div>
                 <div className="text-[11px] font-medium text-slate-400">
-                  Signal Confluence Rate
+                  {t('Signal Confluence Rate')}
                 </div>
               </div>
               <div className="rounded-xl border border-slate-800/80 bg-[#0c101a]/70 p-3 text-center">
@@ -158,7 +162,7 @@ export function LandingHero() {
                   24/7
                 </div>
                 <div className="text-[11px] font-medium text-slate-400">
-                  Multi-Model Oversight
+                  {t('Multi-Model Oversight')}
                 </div>
               </div>
             </div>
@@ -175,7 +179,9 @@ export function LandingHero() {
                 <div className="relative overflow-hidden rounded-2xl border border-slate-800">
                   <Image
                     src="/davintrade-landing-page_home.png"
-                    alt="DavinTrade AI Wall Street Analyst Mascot and Majors Ticker"
+                    alt={t(
+                      'DavinTrade AI Wall Street Analyst Mascot and Majors Ticker'
+                    )}
                     width={1200}
                     height={750}
                     priority
@@ -186,20 +192,20 @@ export function LandingHero() {
                   <div className="absolute top-4 left-4 rounded-xl border border-amber-500/40 bg-[#0c0f17]/90 px-3.5 py-2 shadow-lg backdrop-blur-md">
                     <div className="flex items-center space-x-2 text-xs font-bold text-amber-300">
                       <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400" />
-                      <span>LIVE SIGNAL VERIFIED</span>
+                      <span>{t('LIVE SIGNAL VERIFIED')}</span>
                     </div>
                     <div className="mt-0.5 font-mono text-[11px] text-slate-300">
-                      XAUUSD M5 • Confluence Score 94%
+                      {t('XAUUSD M5 • Confluence Score 94%')}
                     </div>
                   </div>
 
                   <div className="absolute right-4 bottom-4 rounded-xl border border-emerald-500/40 bg-[#0c0f17]/90 px-3.5 py-2 shadow-lg backdrop-blur-md">
                     <div className="flex items-center space-x-2 text-xs font-bold text-emerald-400">
                       <CheckCircle2 className="h-3.5 w-3.5" />
-                      <span>ORDER BLOCK BREACH</span>
+                      <span>{t('ORDER BLOCK BREACH')}</span>
                     </div>
                     <div className="mt-0.5 font-mono text-[11px] text-slate-300">
-                      EURUSD Target 1.08850 Reached
+                      {t('EURUSD Target 1.08850 Reached')}
                     </div>
                   </div>
                 </div>
@@ -208,11 +214,11 @@ export function LandingHero() {
                 <div className="mt-3 flex items-center justify-between rounded-xl border border-slate-800 bg-[#070910] px-3 py-2 text-xs">
                   <div className="flex items-center space-x-2 text-slate-300">
                     <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                    <span>Multi-Market Forex, Commodities & Crypto</span>
+                    <span>{t('Multi-Market Forex, Commodities & Crypto')}</span>
                   </div>
                   <Link href="/terminal">
                     <span className="flex cursor-pointer items-center gap-1 font-bold text-amber-400 hover:underline">
-                      Enter Workbench <ArrowRight className="h-3 w-3" />
+                      {t('Enter Workbench')} <ArrowRight className="h-3 w-3" />
                     </span>
                   </Link>
                 </div>

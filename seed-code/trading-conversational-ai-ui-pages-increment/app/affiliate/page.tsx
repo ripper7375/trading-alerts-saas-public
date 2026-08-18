@@ -25,7 +25,7 @@ import { MarketingFooter } from '@/components/marketing/marketing-footer';
 import { useLocale } from '@/lib/context/locale-context';
 
 export default function AffiliateLandingPage() {
-  const { t } = useLocale();
+  const { t, formatCurrency } = useLocale();
   const [referralsCount, setReferralsCount] = useState(50);
   const planPrice = 49; // $49/mo
   const commissionRate = 0.3; // 30%
@@ -156,18 +156,22 @@ export default function AffiliateLandingPage() {
                     {t('Monthly Recurring')}
                   </div>
                   <div className="font-mono text-3xl font-extrabold text-emerald-400 md:text-4xl">
-                    ${monthlyEarnings.toLocaleString()}
+                    {formatCurrency(monthlyEarnings)}
                   </div>
-                  <div className="text-[11px] text-slate-500">/ month</div>
+                  <div className="text-[11px] text-slate-500">
+                    {t('/ month')}
+                  </div>
                 </div>
                 <div className="space-y-1 border-l border-slate-800">
                   <div className="text-xs font-medium text-slate-400">
                     {t('Annual Potential')}
                   </div>
                   <div className="font-mono text-3xl font-extrabold text-amber-400 md:text-4xl">
-                    ${annualEarnings.toLocaleString()}
+                    {formatCurrency(annualEarnings)}
                   </div>
-                  <div className="text-[11px] text-slate-500">/ year</div>
+                  <div className="text-[11px] text-slate-500">
+                    {t('/ year')}
+                  </div>
                 </div>
               </div>
 

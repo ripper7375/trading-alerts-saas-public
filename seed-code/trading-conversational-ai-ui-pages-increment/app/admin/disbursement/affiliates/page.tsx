@@ -169,7 +169,7 @@ export default function PayableAffiliatesPage() {
     setTimeout(() => {
       setIsCreatingBatch(false);
       setSuccessMessage(
-        `Batch created for ${selected.size} affiliate${selected.size === 1 ? '' : 's'}!`
+        `${t('Batch created for')} ${selected.size} ${selected.size === 1 ? t('affiliate') : t('affiliates')}!`
       );
       setSelected(new Set());
       setTimeout(() => setSuccessMessage(null), 4000);
@@ -327,7 +327,7 @@ export default function PayableAffiliatesPage() {
                     <Checkbox
                       checked={selected.has(affiliate.id)}
                       onCheckedChange={() => toggleSelected(affiliate.id)}
-                      aria-label={`Select ${affiliate.name}`}
+                      aria-label={`${t('Select')} ${affiliate.name}`}
                     />
                   </TableCell>
                   <TableCell>
@@ -445,7 +445,9 @@ export default function PayableAffiliatesPage() {
                     <KycStatusBadge status={affiliate.kycStatus} />
                   </TableCell>
                   <TableCell className="text-xs text-slate-400">
-                    {affiliate.notReadyReason}
+                    {affiliate.notReadyReason
+                      ? t(affiliate.notReadyReason)
+                      : null}
                   </TableCell>
                   <TableCell className="text-right">
                     <Link

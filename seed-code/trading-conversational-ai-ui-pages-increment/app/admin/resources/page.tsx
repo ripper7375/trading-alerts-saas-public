@@ -56,7 +56,7 @@ interface MarketingAsset {
 }
 
 export default function AdminMarketingResourcesPage() {
-  const { t } = useLocale();
+  const { t, formatDate, language } = useLocale();
 
   const [assets, setAssets] = useState<MarketingAsset[]>([
     {
@@ -276,7 +276,7 @@ export default function AdminMarketingResourcesPage() {
                   {t('Partner Downloads')}
                 </p>
                 <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-400">
-                  {totalDownloads.toLocaleString()}
+                  {totalDownloads.toLocaleString(language)}
                 </div>
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
@@ -389,7 +389,7 @@ export default function AdminMarketingResourcesPage() {
                   </Label>
                   <Input
                     required
-                    placeholder="e.g. Davin AI Mascot 3D High-Res Pack"
+                    placeholder={t('e.g. Davin AI Mascot 3D High-Res Pack')}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="border-slate-800 bg-[#06080e] text-xs text-slate-200"
@@ -428,7 +428,7 @@ export default function AdminMarketingResourcesPage() {
                     {t('File Format')}
                   </Label>
                   <Input
-                    placeholder="e.g. PNG / SVG / JPG / MP4"
+                    placeholder={t('e.g. PNG / SVG / JPG / MP4')}
                     value={format}
                     onChange={(e) => setFormat(e.target.value.toUpperCase())}
                     className="border-slate-800 bg-[#06080e] font-mono text-xs text-slate-200 uppercase"
@@ -440,7 +440,7 @@ export default function AdminMarketingResourcesPage() {
                     {t('Resolution / Dimensions')}
                   </Label>
                   <Input
-                    placeholder="e.g. 512x512 or 1920x1080"
+                    placeholder={t('e.g. 512x512 or 1920x1080')}
                     value={resolution}
                     onChange={(e) => setResolution(e.target.value)}
                     className="border-slate-800 bg-[#06080e] font-mono text-xs text-slate-200"
@@ -455,7 +455,9 @@ export default function AdminMarketingResourcesPage() {
                   </Label>
                   <Textarea
                     rows={4}
-                    placeholder="Write the swipe copy template with tracking parameters..."
+                    placeholder={t(
+                      'Write the swipe copy template with tracking parameters...'
+                    )}
                     value={copyTextContent}
                     onChange={(e) => setCopyTextContent(e.target.value)}
                     className="border-slate-800 bg-[#06080e] font-mono text-xs text-slate-200"
@@ -534,7 +536,7 @@ export default function AdminMarketingResourcesPage() {
                         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-800 bg-[#06080e]">
                           <Image
                             src={asset.previewUrl}
-                            alt={asset.title}
+                            alt={t(asset.title)}
                             fill
                             className="object-contain p-1"
                           />
@@ -546,10 +548,10 @@ export default function AdminMarketingResourcesPage() {
                       )}
                       <div>
                         <div className="text-xs font-bold text-slate-200">
-                          {asset.title}
+                          {t(asset.title)}
                         </div>
                         <div className="text-[10px] text-slate-500">
-                          {t('Updated')}: {asset.updatedAt}
+                          {t('Updated')}: {formatDate(asset.updatedAt)}
                         </div>
                       </div>
                     </div>
@@ -559,7 +561,7 @@ export default function AdminMarketingResourcesPage() {
                       variant="outline"
                       className="border-slate-700 bg-slate-800/60 text-[10px] text-slate-300"
                     >
-                      {asset.category}
+                      {t(asset.category)}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs font-bold text-amber-400">
@@ -569,11 +571,11 @@ export default function AdminMarketingResourcesPage() {
                     {asset.resolution} • {asset.size}
                   </TableCell>
                   <TableCell className="font-mono text-xs font-bold text-emerald-400">
-                    {asset.downloadCount.toLocaleString()}
+                    {asset.downloadCount.toLocaleString(language)}
                   </TableCell>
                   <TableCell>
                     <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                      {asset.status}
+                      {t(asset.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">

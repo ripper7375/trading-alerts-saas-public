@@ -69,7 +69,7 @@ export function MarketingNavbar() {
               </Badge>
             </div>
             <span className="text-[10px] font-medium text-slate-400">
-              Conversational Quantitative SaaS
+              {t('Conversational Quantitative SaaS')}
             </span>
           </div>
         </Link>

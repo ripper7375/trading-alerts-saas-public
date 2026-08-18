@@ -5,7 +5,7 @@ import StatsCard from '@/components/dashboard/stats-card';
 import { useLocale } from '@/lib/context/locale-context';
 
 export default function AffiliateStats() {
-  const { t, formatCurrency, formatDate } = useLocale();
+  const { t, formatCurrency, formatDate, language } = useLocale();
 
   return (
     <div className="grid grid-cols-1 gap-4 select-none sm:grid-cols-2 lg:grid-cols-4">
@@ -20,15 +20,15 @@ export default function AffiliateStats() {
       <StatsCard
         title={t('Total Active Referrals')}
         value={`48 ${t('Traders')}`}
-        change="82% PRO Conversion"
+        change={t('82% PRO Conversion')}
         changeType="positive"
         icon={Users}
-        description="42 PRO / 6 FREE"
+        description={t('42 PRO / 6 FREE')}
       />
       <StatsCard
         title={t('Referral Link Clicks')}
-        value="1,240"
-        change="3.8% Conv Rate"
+        value={(1240).toLocaleString(language)}
+        change={t('3.8% Conv Rate')}
         changeType="neutral"
         icon={Link2}
         description={t('Unique Visitor Clicks')}

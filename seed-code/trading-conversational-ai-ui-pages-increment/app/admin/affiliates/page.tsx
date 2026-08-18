@@ -42,7 +42,7 @@ const STATUS_FILTERS = [
 ] as const;
 
 export default function AdminAffiliatesDirectoryPage() {
-  const { t } = useLocale();
+  const { t, formatCurrency } = useLocale();
   const [search, setSearch] = useState('');
   const [country, setCountry] = useState('');
   const [statusFilter, setStatusFilter] =
@@ -193,7 +193,7 @@ export default function AdminAffiliatesDirectoryPage() {
               {t('Gross Partner Volume')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-400">
-              $13,524.00
+              {formatCurrency(13524)}
             </div>
           </Card>
           <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
@@ -201,7 +201,7 @@ export default function AdminAffiliatesDirectoryPage() {
               {t('Total Unpaid Owings')}
             </div>
             <div className="mt-1 font-mono text-2xl font-extrabold text-rose-400">
-              $1,146.60
+              {formatCurrency(1146.6)}
             </div>
           </Card>
         </div>
@@ -254,7 +254,7 @@ export default function AdminAffiliatesDirectoryPage() {
                     : 'border-slate-800 text-slate-400 hover:bg-slate-800'
                 }`}
               >
-                {s.replace('_', ' ')}
+                {t(s.replace('_', ' '))}
               </Button>
             ))}
           </div>
@@ -334,10 +334,10 @@ export default function AdminAffiliatesDirectoryPage() {
                       {aff.activeSubscribers}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-slate-300">
-                      ${aff.totalVolume.toFixed(2)}
+                      {formatCurrency(aff.totalVolume)}
                     </TableCell>
                     <TableCell className="font-mono text-xs font-bold text-rose-400">
-                      ${aff.unpaidCommission.toFixed(2)}
+                      {formatCurrency(aff.unpaidCommission)}
                     </TableCell>
                     <TableCell className="text-xs text-slate-300">
                       {aff.payoutMethod}
@@ -346,7 +346,7 @@ export default function AdminAffiliatesDirectoryPage() {
                       <Badge
                         className={`text-[10px] ${getStatusBadgeClass(aff.status)}`}
                       >
-                        {aff.status.replace('_', ' ')}
+                        {t(aff.status.replace('_', ' '))}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">

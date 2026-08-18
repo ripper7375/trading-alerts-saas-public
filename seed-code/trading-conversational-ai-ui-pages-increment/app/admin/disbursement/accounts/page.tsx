@@ -16,7 +16,7 @@ import {
 import { useLocale } from '@/lib/context/locale-context';
 
 export default function AdminDisbursementAccountsPage() {
-  const { t } = useLocale();
+  const { t, formatCurrency } = useLocale();
 
   const accounts = [
     {
@@ -69,7 +69,7 @@ export default function AdminDisbursementAccountsPage() {
         </div>
 
         <Button
-          onClick={() => alert('Connect new corporate treasury account')}
+          onClick={() => alert(t('Connect new corporate treasury account'))}
           className="self-start bg-amber-500 font-bold text-slate-950 hover:bg-amber-400 sm:self-auto"
         >
           <Plus className="mr-1.5 h-4 w-4" />
@@ -91,7 +91,7 @@ export default function AdminDisbursementAccountsPage() {
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-slate-200">
-                    {acc.provider}
+                    {t(acc.provider)}
                   </h4>
                   <p className="text-[10px] text-slate-400">
                     {acc.accountNumber}
@@ -99,7 +99,7 @@ export default function AdminDisbursementAccountsPage() {
                 </div>
               </div>
               <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
-                {acc.status}
+                {t(acc.status)}
               </Badge>
             </div>
 
@@ -108,15 +108,12 @@ export default function AdminDisbursementAccountsPage() {
                 {t('Available Floating Balance')}
               </div>
               <div className="mt-0.5 font-mono text-2xl font-extrabold text-slate-100">
-                {acc.currency === 'EUR' ? '€' : '$'}
-                {acc.balance.toLocaleString('en-US', {
-                  minimumFractionDigits: 2,
-                })}
+                {formatCurrency(acc.balance)}
               </div>
             </div>
 
             <div className="border-t border-slate-800 pt-2 text-[11px] text-slate-500">
-              {acc.type}
+              {t(acc.type)}
             </div>
           </Card>
         ))}

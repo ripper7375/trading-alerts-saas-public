@@ -232,7 +232,9 @@ export default function AdminDisbursementRecipientsPage() {
                   <SelectContent>
                     {STATUS_FILTERS.map((s) => (
                       <SelectItem key={s} value={s}>
-                        {s === 'ALL' ? t('All statuses') : s.replace('_', ' ')}
+                        {s === 'ALL'
+                          ? t('All statuses')
+                          : t(s.replace('_', ' '))}
                       </SelectItem>
                     ))}
                   </SelectContent>
