@@ -137,10 +137,10 @@ export function LandingFooter() {
               </li>
               <li>
                 <Link
-                  href="/affiliate/dashboard"
+                  href="/affiliate"
                   className="transition-colors hover:text-amber-400"
                 >
-                  Affiliate Partner Portal
+                  Affiliate Program
                 </Link>
               </li>
             </ul>
