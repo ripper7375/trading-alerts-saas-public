@@ -63,7 +63,7 @@ export function LandingNavbar() {
             Live Alerts
           </Link>
           <Link
-            href="/affiliate/dashboard"
+            href="/admin/affiliates"
             className="text-sm font-medium text-slate-300 transition-colors hover:text-amber-400"
           >
             Affiliates

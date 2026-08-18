@@ -8,6 +8,7 @@ import {
   Package,
   ArrowLeftRight,
   Landmark,
+  CreditCard,
   ClipboardList,
   Settings2,
   ChevronRight,
@@ -27,10 +28,7 @@ interface DisbursementTab {
 
 // Mirrors Codebase 1's `app/(dashboard)/admin/disbursement/layout.tsx`
 // sidebar nav (Overview / Payable Affiliates / Payment Batches /
-// Transactions / Payout Accounts / Audit Logs / Configuration) — that
-// section-specific navigation had no Codebase 2 equivalent at all, so
-// every disbursement sub-page was previously a dead end reachable only
-// by typing a URL directly.
+// Transactions / Payout Accounts / Payout Settings / Audit Logs / Configuration)
 const disbursementTabs: DisbursementTab[] = [
   {
     id: 'overview',
@@ -62,6 +60,12 @@ const disbursementTabs: DisbursementTab[] = [
     icon: Landmark,
     label: 'Payout Accounts',
     href: '/admin/disbursement/accounts',
+  },
+  {
+    id: 'settings',
+    icon: CreditCard,
+    label: 'Payout Settings',
+    href: '/admin/disbursement/settings',
   },
   {
     id: 'audit',
