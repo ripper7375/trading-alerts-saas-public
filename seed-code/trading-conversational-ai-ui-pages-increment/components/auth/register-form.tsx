@@ -111,7 +111,7 @@ export default function RegisterForm() {
   const discountedPrice = REGULAR_PRICE * (1 - DISCOUNT_PERCENT / 100);
 
   return (
-    <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-800/80 bg-[#0b0e17] p-8 shadow-2xl backdrop-blur-xl">
+    <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
       <div className="flex flex-col items-center space-y-2 text-center">
         <Link href="/" className="group flex flex-col items-center space-y-2">
           <div className="relative h-12 w-12 overflow-hidden rounded-xl shadow-lg ring-2 shadow-amber-500/10 ring-amber-500/40 transition-transform group-hover:scale-105">
@@ -127,7 +127,7 @@ export default function RegisterForm() {
             {t('Create your DavinTrade account')}
           </h2>
         </Link>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           {t(
             'Start analyzing charts with AI and setting server-side price alerts.'
           )}
@@ -135,24 +135,26 @@ export default function RegisterForm() {
       </div>
 
       {/* Tier Selection Radio Toggle */}
-      <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-800 bg-[#06080e] p-1">
+      <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-800 dark:bg-[#06080e]">
         <button
           type="button"
           onClick={() => setTier('PRO')}
           className={`flex flex-col items-start rounded-lg border p-2.5 text-left transition-all ${
             tier === 'PRO'
-              ? 'border-amber-500/60 bg-amber-500/15 text-amber-300 shadow-sm'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-amber-500/60 bg-amber-500/15 text-amber-700 shadow-sm dark:text-amber-300'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
           }`}
         >
           <div className="flex w-full items-center justify-between text-xs font-bold">
             <span className="flex items-center gap-1">
-              <Sparkles className="h-3.5 w-3.5 text-amber-400" />{' '}
+              <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />{' '}
               {t('PRO Tier')}
             </span>
-            {tier === 'PRO' && <Check className="h-3.5 w-3.5 text-amber-400" />}
+            {tier === 'PRO' && (
+              <Check className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+            )}
           </div>
-          <span className="mt-1 text-[10px] text-slate-400">
+          <span className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
             {t('Full AI Models + 100 Alerts + MTF Overlay')}
           </span>
         </button>
@@ -162,24 +164,24 @@ export default function RegisterForm() {
           onClick={() => setTier('FREE')}
           className={`flex flex-col items-start rounded-lg border p-2.5 text-left transition-all ${
             tier === 'FREE'
-              ? 'border-slate-600 bg-slate-800 text-slate-200 shadow-sm'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-slate-600 bg-slate-100 text-slate-800 shadow-sm dark:bg-slate-800 dark:text-slate-200'
+              : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
           }`}
         >
           <div className="flex w-full items-center justify-between text-xs font-bold">
             <span>{t('FREE Tier')}</span>
             {tier === 'FREE' && (
-              <Check className="h-3.5 w-3.5 text-slate-300" />
+              <Check className="h-3.5 w-3.5 text-slate-700 dark:text-slate-300" />
             )}
           </div>
-          <span className="mt-1 text-[10px] text-slate-400">
+          <span className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">
             {t('Basic Gemini Flash + Read-Only History')}
           </span>
         </button>
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-300">
+        <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-700 dark:text-rose-300">
           <X className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -187,57 +189,57 @@ export default function RegisterForm() {
 
       <form onSubmit={handleRegister} className="space-y-4">
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-300">
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             {t('Full Name')}
           </Label>
           <div className="relative">
-            <User className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
+            <User className="absolute top-3 left-3 h-4 w-4 text-slate-600 dark:text-slate-500" />
             <Input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t('John Trader')}
-              className="border-slate-750 bg-[#06080e] pl-10 text-xs text-slate-100 placeholder:text-slate-500"
+              className="dark:border-slate-750 border-slate-200 bg-white pl-10 text-xs text-slate-900 placeholder:text-slate-500 dark:bg-[#06080e] dark:text-slate-100"
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-300">
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             {t('Email Address')}
           </Label>
           <div className="relative">
-            <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
+            <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-600 dark:text-slate-500" />
             <Input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="user@example.com"
-              className="border-slate-750 bg-[#06080e] pl-10 text-xs text-slate-100 placeholder:text-slate-500"
+              className="dark:border-slate-750 border-slate-200 bg-white pl-10 text-xs text-slate-900 placeholder:text-slate-500 dark:bg-[#06080e] dark:text-slate-100"
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-300">
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             {t('Password')}
           </Label>
           <div className="relative">
-            <Lock className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
+            <Lock className="absolute top-3 left-3 h-4 w-4 text-slate-600 dark:text-slate-500" />
             <Input
               type={showPassword ? 'text' : 'password'}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••••••"
-              className="border-slate-750 bg-[#06080e] pr-10 pl-10 text-xs text-slate-100 placeholder:text-slate-500"
+              className="dark:border-slate-750 border-slate-200 bg-white pr-10 pl-10 text-xs text-slate-900 placeholder:text-slate-500 dark:bg-[#06080e] dark:text-slate-100"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute top-3 right-3 text-slate-500 transition-colors hover:text-slate-300"
+              className="absolute top-3 right-3 text-slate-600 transition-colors hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300"
               aria-label={
                 showPassword ? t('Hide password') : t('Show password')
               }
@@ -251,7 +253,7 @@ export default function RegisterForm() {
           </div>
 
           {password && (
-            <div className="mt-2 space-y-1 rounded-lg border border-slate-800 bg-[#070910] p-2.5">
+            <div className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-white p-2.5 dark:border-slate-800 dark:bg-[#070910]">
               {[
                 { key: 'minLength', label: t('At least 8 characters') },
                 { key: 'hasUppercase', label: t('One uppercase letter') },
@@ -270,12 +272,16 @@ export default function RegisterForm() {
                     className="flex items-center gap-1.5 text-[11px]"
                   >
                     {passed ? (
-                      <Check className="h-3 w-3 text-emerald-400" />
+                      <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                     ) : (
-                      <X className="h-3 w-3 text-slate-600" />
+                      <X className="h-3 w-3 text-slate-400 dark:text-slate-600" />
                     )}
                     <span
-                      className={passed ? 'text-emerald-400' : 'text-slate-500'}
+                      className={
+                        passed
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-slate-600 dark:text-slate-500'
+                      }
                     >
                       {label}
                     </span>
@@ -287,23 +293,23 @@ export default function RegisterForm() {
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-300">
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             {t('Confirm Password')}
           </Label>
           <div className="relative">
-            <Lock className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
+            <Lock className="absolute top-3 left-3 h-4 w-4 text-slate-600 dark:text-slate-500" />
             <Input
               type={showConfirmPassword ? 'text' : 'password'}
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="••••••••••••"
-              className="border-slate-750 bg-[#06080e] pr-10 pl-10 text-xs text-slate-100 placeholder:text-slate-500"
+              className="dark:border-slate-750 border-slate-200 bg-white pr-10 pl-10 text-xs text-slate-900 placeholder:text-slate-500 dark:bg-[#06080e] dark:text-slate-100"
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute top-3 right-3 text-slate-500 transition-colors hover:text-slate-300"
+              className="absolute top-3 right-3 text-slate-600 transition-colors hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300"
               aria-label={
                 showConfirmPassword
                   ? t('Hide password confirmation')
@@ -317,11 +323,11 @@ export default function RegisterForm() {
               )}
             </button>
             {confirmPassword && confirmPassword === password && (
-              <Check className="absolute top-3 right-10 h-4 w-4 text-emerald-400" />
+              <Check className="absolute top-3 right-10 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             )}
           </div>
           {confirmPassword && confirmPassword !== password && (
-            <p className="flex items-center gap-1 text-[11px] text-rose-400">
+            <p className="flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400">
               <X className="h-3 w-3" />
               {t('Passwords do not match')}
             </p>
@@ -330,10 +336,10 @@ export default function RegisterForm() {
 
         {/* Referral Code */}
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-300">
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             {t('Referral Code (Optional)')}
           </Label>
-          <p className="text-[11px] text-amber-400">
+          <p className="text-[11px] text-amber-600 dark:text-amber-400">
             {t('Have an affiliate code? Get')} {DISCOUNT_PERCENT}%{' '}
             {t('off this month!')}
           </p>
@@ -352,7 +358,7 @@ export default function RegisterForm() {
                   }
                 }}
                 placeholder="REF-ABC123XYZ"
-                className={`border-slate-750 bg-[#06080e] pr-9 text-xs text-slate-100 placeholder:text-slate-500 ${
+                className={`dark:border-slate-750 border-slate-200 bg-white pr-9 text-xs text-slate-900 placeholder:text-slate-500 dark:bg-[#06080e] dark:text-slate-100 ${
                   isCodeValid
                     ? 'border-emerald-500/60'
                     : codeError
@@ -361,17 +367,17 @@ export default function RegisterForm() {
                 }`}
               />
               {isCodeValid && (
-                <Check className="absolute top-3 right-3 h-4 w-4 text-emerald-400" />
+                <Check className="absolute top-3 right-3 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               )}
               {codeError && (
-                <X className="absolute top-3 right-3 h-4 w-4 text-rose-400" />
+                <X className="absolute top-3 right-3 h-4 w-4 text-rose-600 dark:text-rose-400" />
               )}
             </div>
             <button
               type="button"
               onClick={() => verifyCode(referralCode)}
               disabled={referralCode.length < 6 || isVerifying}
-              className="border-slate-750 rounded-lg border bg-slate-800/60 px-3 py-2 text-xs font-semibold text-slate-200 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="dark:border-slate-750 rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-800 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-800/60 dark:text-slate-200 dark:hover:bg-slate-800"
             >
               {isVerifying ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -381,7 +387,7 @@ export default function RegisterForm() {
             </button>
           </div>
           {isCodeValid && (
-            <p className="flex items-center gap-1 text-[11px] text-emerald-400">
+            <p className="flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400">
               <Check className="h-3 w-3 shrink-0" />
               {t('Valid code! You will get')} {DISCOUNT_PERCENT}% {t('off PRO')}{' '}
               ({formatCurrency(discountedPrice)}/{t('mo')} {t('instead of')}{' '}
@@ -389,7 +395,7 @@ export default function RegisterForm() {
             </p>
           )}
           {codeError && (
-            <p className="flex items-center gap-1 text-[11px] text-rose-400">
+            <p className="flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400">
               <X className="h-3 w-3" />
               {codeError}
             </p>
@@ -397,7 +403,7 @@ export default function RegisterForm() {
         </div>
 
         {/* Terms Checkbox */}
-        <label className="flex items-start gap-2.5 text-[11px] leading-relaxed text-slate-400">
+        <label className="flex items-start gap-2.5 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
           <Checkbox
             checked={agreedToTerms}
             onCheckedChange={(checked) => setAgreedToTerms(!!checked)}
@@ -407,14 +413,14 @@ export default function RegisterForm() {
             {t('I agree to the')}{' '}
             <Link
               href="/terms"
-              className="text-amber-400 underline hover:text-amber-300"
+              className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
             >
               {t('Terms of Service')}
             </Link>{' '}
             {t('and')}{' '}
             <Link
               href="/privacy"
-              className="text-amber-400 underline hover:text-amber-300"
+              className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
             >
               {t('Privacy Policy')}
             </Link>
@@ -438,10 +444,10 @@ export default function RegisterForm() {
       {/* Divider */}
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-800/80" />
+          <div className="w-full border-t border-slate-200 dark:border-slate-800/80" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-[#0b0e17] px-3 text-slate-500">
+          <span className="bg-white px-3 text-slate-600 dark:bg-[#0b0e17] dark:text-slate-500">
             {t('Or register with')}
           </span>
         </div>
@@ -450,12 +456,12 @@ export default function RegisterForm() {
       {/* Social Sign Up */}
       <SocialAuthButtons redirectTo={tier === 'PRO' ? '/checkout' : '/free'} />
 
-      <div className="space-y-1.5 border-t border-slate-800/80 pt-2 text-center text-xs text-slate-400">
+      <div className="space-y-1.5 border-t border-slate-200 pt-2 text-center text-xs text-slate-500 dark:border-slate-800/80 dark:text-slate-400">
         <div>
           {t('Already have an account?')}{' '}
           <Link
             href="/login"
-            className="font-bold text-amber-400 hover:underline"
+            className="font-bold text-amber-600 hover:underline dark:text-amber-400"
           >
             {t('Sign In')}
           </Link>
@@ -463,10 +469,10 @@ export default function RegisterForm() {
         <div>
           <Link
             href="/affiliate/register"
-            className="text-[11px] text-slate-400 transition-colors hover:text-slate-200"
+            className="text-[11px] text-slate-500 transition-colors hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
           >
             {t('Join our')}{' '}
-            <strong className="font-bold text-amber-400 hover:underline">
+            <strong className="font-bold text-amber-600 hover:underline dark:text-amber-400">
               {t('Affiliate Program')}
             </strong>
           </Link>

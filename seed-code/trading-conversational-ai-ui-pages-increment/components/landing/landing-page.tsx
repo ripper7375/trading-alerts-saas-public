@@ -9,7 +9,7 @@ import { LandingFooter } from '@/components/landing/landing-footer';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen w-full bg-[#06070a] font-sans text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950">
+    <div className="min-h-screen w-full bg-slate-50 font-sans text-slate-900 antialiased selection:bg-amber-500 selection:text-slate-950 dark:bg-[#06070a] dark:text-slate-100">
       <LandingNavbar />
       <TickerTape />
       <main>

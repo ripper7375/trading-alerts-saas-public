@@ -424,6 +424,44 @@ hardcoded value pixel-for-pixel. `npm run build` — `✓ Compiled
 successfully`, zero errors. seed-code has no test suite to run (reference/
 mockup frontend, not production-tested).
 
+### Found and fixed in a third follow-up: the appearance settings form itself, plus marketing/auth pages
+
+Two more gaps surfaced from continued user testing against the deployed
+preview:
+
+1. **`_components/appearance-form.tsx`** — the settings SHELL
+   (`app/(dashboard)/settings/layout.tsx`) had been fixed, but the actual
+   appearance FORM content is a separate file under
+   `app/(dashboard)/settings/appearance/_components/`, never named in the
+   original five-file list, so the earlier pass missed it entirely — the
+   settings sidebar was correctly white while the form card sat inside it
+   still solid black. Same `dark:` pairing treatment (44 replacements);
+   verified live (`bg-white` in light, `#090c14` pixel-exact in dark).
+
+2. **Marketing homepage + auth pages** — the original hand-off spec's own
+   §3 file list literally named `app/page.tsx`, which this task's earlier
+   passes had dropped when scoping to just the five dashboard/terminal
+   components. Confirmed with the user before expanding scope this far
+   (this is a materially bigger surface — 8 landing components, ~1,266
+   lines — plus the login/register/forgot-password flow, ~962 lines, never
+   mentioned in the spec at all but sharing the same shell so fixing one
+   without the other would leave a jarring inconsistency). User chose to
+   fix both rather than leave marketing/auth permanently dark.
+   Applied the same mechanical conversion (339 replacements across 12
+   files), plus one hand-edited gradient (`landing-pricing.tsx`'s featured
+   PRO-tier card: `from-[#131826] to-[#0c0f18]` → light
+   `from-amber-50 to-white`, dark preserved behind `dark:`).
+
+**Verified live**: homepage sections/footer resolve to `slate-50`
+backgrounds, the amber gradient-clipped brand heading (`bg-clip-text
+text-transparent`) renders correctly in both themes (its `color` reading
+as transparent is expected — the visible color comes from
+`background-image`, not `color` — confirmed via `backgroundClip: 'text'`
+and a real `linear-gradient(...)` in `backgroundImage`, not a contrast
+bug), and the login card resolves to white in light mode / `#0b0e17`
+pixel-exact in dark mode. `npm run build` — `✓ Compiled successfully`,
+zero errors.
+
 ### Files changed (seed-code)
 
 - `components/chat-sidebar.tsx`
@@ -433,6 +471,13 @@ mockup frontend, not production-tested).
 - `components/trading-chart.tsx` (chart overlay chrome, second follow-up)
 - `app/(dashboard)/settings/layout.tsx`
 - `app/layout.tsx` (stale-cookie fix, follow-up commit)
+- `app/(dashboard)/settings/appearance/_components/appearance-form.tsx`
+  (third follow-up)
+- `components/landing/{landing-hero,landing-navbar,landing-features,
+landing-pricing,landing-footer,landing-terminal-preview,ticker-tape,
+landing-page}.tsx` (third follow-up)
+- `components/auth/{login-form,register-form,social-auth-buttons}.tsx`,
+  `app/(auth)/forgot-password/page.tsx` (third follow-up)
 
 Committed to the seed-code repo and pushed — this triggers a new Vercel
 deployment of `trading-conversational-ai-ui-pages.vercel.app`.

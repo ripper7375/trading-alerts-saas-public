@@ -10,7 +10,7 @@ export function LandingNavbar() {
   const { t } = useLocale();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-[#06070a]/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-slate-50/85 backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#06070a]/85">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         {/* Brand Logo with Davin AI Icon (Annotation 1) */}
         <Link href="/" className="group flex items-center space-x-3">
@@ -26,12 +26,13 @@ export function LandingNavbar() {
           </div>
           <div className="flex flex-col">
             <span className="flex items-center gap-1.5 text-lg font-black tracking-tight text-white">
-              Davin<span className="text-amber-400">Trade</span>
-              <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-amber-300 uppercase">
+              Davin
+              <span className="text-amber-600 dark:text-amber-400">Trade</span>
+              <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-amber-700 uppercase dark:text-amber-300">
                 {t('AI SaaS')}
               </span>
             </span>
-            <span className="text-[10px] font-medium text-slate-400">
+            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
               {t('Quantitative Conversational Intelligence')}
             </span>
           </div>
@@ -41,7 +42,7 @@ export function LandingNavbar() {
         <nav className="hidden items-center space-x-6 md:flex">
           <a
             href="#features"
-            className="text-sm font-medium text-slate-300 transition-colors hover:text-amber-400"
+            className="text-sm font-medium text-slate-700 transition-colors hover:text-amber-600 dark:text-slate-300 dark:hover:text-amber-400"
           >
             {t('Features')}
           </a>
@@ -54,26 +55,26 @@ export function LandingNavbar() {
           </Link>
           <Link
             href="/pricing"
-            className="text-sm font-medium text-slate-300 transition-colors hover:text-amber-400"
+            className="text-sm font-medium text-slate-700 transition-colors hover:text-amber-600 dark:text-slate-300 dark:hover:text-amber-400"
           >
             {t('Pricing')}
           </Link>
           <Link
             href="/alerts"
-            className="flex items-center gap-1 text-sm font-medium text-slate-300 transition-colors hover:text-amber-400"
+            className="flex items-center gap-1 text-sm font-medium text-slate-700 transition-colors hover:text-amber-600 dark:text-slate-300 dark:hover:text-amber-400"
           >
-            <Zap className="h-3.5 w-3.5 text-amber-400" />
+            <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
             {t('Live Alerts')}
           </Link>
           <Link
             href="/affiliate"
-            className="text-sm font-medium text-slate-300 transition-colors hover:text-amber-400"
+            className="text-sm font-medium text-slate-700 transition-colors hover:text-amber-600 dark:text-slate-300 dark:hover:text-amber-400"
           >
             {t('Affiliates')}
           </Link>
           <Link
             href="/status"
-            className="text-sm font-medium text-slate-300 transition-colors hover:text-amber-400"
+            className="text-sm font-medium text-slate-700 transition-colors hover:text-amber-600 dark:text-slate-300 dark:hover:text-amber-400"
           >
             {t('System Status')}
           </Link>
@@ -85,9 +86,9 @@ export function LandingNavbar() {
             <Button
               variant="outline"
               size="sm"
-              className="hidden h-9 border-slate-800 bg-[#0d111c] text-xs font-semibold text-slate-300 hover:border-amber-500/40 hover:bg-slate-800 sm:flex"
+              className="hidden h-9 border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:border-amber-500/40 hover:bg-slate-100 sm:flex dark:border-slate-800 dark:bg-[#0d111c] dark:text-slate-300 dark:hover:bg-slate-800"
             >
-              <Globe className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
+              <Globe className="mr-1.5 h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
               {t('en-GB (£)')}
             </Button>
           </Link>
@@ -96,7 +97,7 @@ export function LandingNavbar() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-9 text-xs font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white"
+              className="h-9 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-white dark:text-slate-300 dark:hover:bg-slate-800/80"
             >
               {t('Sign In')}
             </Button>

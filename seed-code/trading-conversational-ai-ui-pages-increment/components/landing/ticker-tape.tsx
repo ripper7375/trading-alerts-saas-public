@@ -110,23 +110,25 @@ export function TickerTape() {
   }, [language]);
 
   return (
-    <div className="w-full overflow-hidden border-y border-slate-800/80 bg-[#06080e]/90 py-2.5 backdrop-blur-md">
+    <div className="w-full overflow-hidden border-y border-slate-200 bg-white/90 py-2.5 backdrop-blur-md dark:border-slate-800/80 dark:bg-[#06080e]/90">
       <div className="animate-marquee flex w-max space-x-8 px-4">
         {[...tickers, ...tickers].map((item, idx) => (
           <div
             key={`${item.symbol}-${idx}`}
-            className="flex items-center space-x-3 rounded-lg border border-slate-800/60 bg-[#0c101a]/70 px-3.5 py-1.5 text-xs transition-colors hover:border-amber-500/40"
+            className="flex items-center space-x-3 rounded-lg border border-slate-200 bg-white/70 px-3.5 py-1.5 text-xs transition-colors hover:border-amber-500/40 dark:border-slate-800/60 dark:bg-[#0c101a]/70"
           >
-            <div className="flex items-center space-x-1.5 font-bold text-slate-200">
-              <Activity className="h-3 w-3 text-amber-400" />
+            <div className="flex items-center space-x-1.5 font-bold text-slate-800 dark:text-slate-200">
+              <Activity className="h-3 w-3 text-amber-600 dark:text-amber-400" />
               <span>{item.symbol}</span>
             </div>
-            <span className="font-mono font-semibold text-slate-300">
+            <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">
               {item.price}
             </span>
             <span
               className={`flex items-center font-mono font-medium ${
-                item.isPositive ? 'text-emerald-400' : 'text-rose-400'
+                item.isPositive
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-rose-600 dark:text-rose-400'
               }`}
             >
               {item.isPositive ? (

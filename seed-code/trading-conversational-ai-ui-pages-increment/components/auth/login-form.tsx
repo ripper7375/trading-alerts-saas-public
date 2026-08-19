@@ -58,7 +58,7 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-800/80 bg-[#0b0e17] p-8 shadow-2xl backdrop-blur-xl">
+    <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
       {/* Brand Header */}
       <div className="flex flex-col items-center space-y-2 text-center">
         <Link href="/" className="group flex flex-col items-center space-y-2">
@@ -75,7 +75,7 @@ export default function LoginForm() {
             {t('Sign in to DavinTrade')}
           </h2>
         </Link>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           {t(
             'Welcome back! Enter your credentials to access your trading workspace.'
           )}
@@ -83,10 +83,10 @@ export default function LoginForm() {
       </div>
 
       {/* Preset Test Credentials Helper */}
-      <div className="space-y-2 rounded-xl border border-slate-800 bg-[#070910] p-3 text-xs">
-        <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
+      <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-3 text-xs dark:border-slate-800 dark:bg-[#070910]">
+        <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 dark:text-slate-300">
           <span>⚡ {t('Quick Test Credentials:')}</span>
-          <Badge className="border-amber-500/30 bg-amber-500/10 text-[9px] text-amber-400">
+          <Badge className="border-amber-500/30 bg-amber-500/10 text-[9px] text-amber-600 dark:text-amber-400">
             {t('Click to Autofill')}
           </Badge>
         </div>
@@ -96,7 +96,7 @@ export default function LoginForm() {
             onClick={() =>
               handleQuickPreset('pro-test@trading-alerts.test', 'PRO')
             }
-            className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/5 p-1.5 text-amber-300 transition-colors hover:bg-amber-500/15"
+            className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/5 p-1.5 text-amber-700 transition-colors hover:bg-amber-500/15 dark:text-amber-300"
           >
             <span>{t('PRO User')}</span>
             <CheckCircle2 className="h-3 w-3" />
@@ -106,7 +106,7 @@ export default function LoginForm() {
             onClick={() =>
               handleQuickPreset('free-test@trading-alerts.test', 'FREE')
             }
-            className="flex items-center justify-between rounded-lg border border-slate-700 bg-slate-800/60 p-1.5 text-slate-300 transition-colors hover:bg-slate-800"
+            className="flex items-center justify-between rounded-lg border border-slate-300 bg-slate-100 p-1.5 text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <span>{t('FREE User')}</span>
             <CheckCircle2 className="h-3 w-3" />
@@ -115,7 +115,7 @@ export default function LoginForm() {
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-300">
+        <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-700 dark:text-rose-300">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -124,48 +124,48 @@ export default function LoginForm() {
       {/* Form Fields */}
       <form onSubmit={handleLogin} className="space-y-4">
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-300">
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             {t('Email Address')}
           </Label>
           <div className="relative">
-            <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
+            <Mail className="absolute top-3 left-3 h-4 w-4 text-slate-600 dark:text-slate-500" />
             <Input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="user@example.com"
-              className="border-slate-750 bg-[#06080e] pl-10 text-xs text-slate-100 placeholder:text-slate-500 focus:border-amber-500/60 focus:ring-amber-500/20"
+              className="dark:border-slate-750 border-slate-200 bg-white pl-10 text-xs text-slate-900 placeholder:text-slate-500 focus:border-amber-500/60 focus:ring-amber-500/20 dark:bg-[#06080e] dark:text-slate-100"
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <Label className="text-xs font-semibold text-slate-300">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('Password')}
             </Label>
             <Link
               href="/forgot-password"
-              className="text-[11px] font-semibold text-amber-400 hover:underline"
+              className="text-[11px] font-semibold text-amber-600 hover:underline dark:text-amber-400"
             >
               {t('Forgot password?')}
             </Link>
           </div>
           <div className="relative">
-            <Lock className="absolute top-3 left-3 h-4 w-4 text-slate-500" />
+            <Lock className="absolute top-3 left-3 h-4 w-4 text-slate-600 dark:text-slate-500" />
             <Input
               type={showPassword ? 'text' : 'password'}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••••••"
-              className="border-slate-750 bg-[#06080e] pr-10 pl-10 text-xs text-slate-100 placeholder:text-slate-500 focus:border-amber-500/60 focus:ring-amber-500/20"
+              className="dark:border-slate-750 border-slate-200 bg-white pr-10 pl-10 text-xs text-slate-900 placeholder:text-slate-500 focus:border-amber-500/60 focus:ring-amber-500/20 dark:bg-[#06080e] dark:text-slate-100"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute top-3 right-3 text-slate-500 transition-colors hover:text-slate-300"
+              className="absolute top-3 right-3 text-slate-600 transition-colors hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300"
               aria-label={
                 showPassword ? t('Hide password') : t('Show password')
               }
@@ -180,7 +180,7 @@ export default function LoginForm() {
         </div>
 
         <div className="flex items-center justify-between pt-1 text-xs">
-          <label className="flex cursor-pointer items-center gap-2 text-slate-400">
+          <label className="flex cursor-pointer items-center gap-2 text-slate-500 dark:text-slate-400">
             <Checkbox
               checked={rememberMe}
               onCheckedChange={(checked) => setRememberMe(!!checked)}
@@ -189,9 +189,9 @@ export default function LoginForm() {
           </label>
           <Link
             href="/verify-2fa"
-            className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-slate-200"
+            className="flex items-center gap-1 text-[11px] text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
           >
-            <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />{' '}
+            <ShieldCheck className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />{' '}
             {t('Two-Factor Authentication')}
           </Link>
         </div>
@@ -209,10 +209,12 @@ export default function LoginForm() {
       {/* Divider */}
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-800/80" />
+          <div className="w-full border-t border-slate-200 dark:border-slate-800/80" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-[#0b0e17] px-3 text-slate-500">{t('OR')}</span>
+          <span className="bg-white px-3 text-slate-600 dark:bg-[#0b0e17] dark:text-slate-500">
+            {t('OR')}
+          </span>
         </div>
       </div>
 
@@ -220,11 +222,11 @@ export default function LoginForm() {
       <SocialAuthButtons redirectTo="/dashboard" />
 
       {/* Footer Register Link */}
-      <div className="border-t border-slate-800/80 pt-2 text-center text-xs text-slate-400">
+      <div className="border-t border-slate-200 pt-2 text-center text-xs text-slate-500 dark:border-slate-800/80 dark:text-slate-400">
         {t("Don't have an account?")}{' '}
         <Link
           href="/register"
-          className="font-bold text-amber-400 hover:underline"
+          className="font-bold text-amber-600 hover:underline dark:text-amber-400"
         >
           {t('Sign up for FREE')}
         </Link>

@@ -50,8 +50,8 @@ export function LandingHero() {
           <div className="space-y-8 lg:col-span-6">
             {/* Top Pill */}
             <div className="inline-flex items-center space-x-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 backdrop-blur-md">
-              <Sparkles className="h-4 w-4 animate-pulse text-amber-400" />
-              <span className="text-xs font-bold tracking-wide text-amber-300 uppercase">
+              <Sparkles className="h-4 w-4 animate-pulse text-amber-600 dark:text-amber-400" />
+              <span className="text-xs font-bold tracking-wide text-amber-700 uppercase dark:text-amber-300">
                 {t('Next-Gen AI Trading Intelligence')}
               </span>
             </div>
@@ -64,7 +64,7 @@ export function LandingHero() {
                   {t('Davin AI')}
                 </span>
               </h1>
-              <p className="text-lg leading-relaxed font-normal text-slate-300">
+              <p className="text-lg leading-relaxed font-normal text-slate-700 dark:text-slate-300">
                 {t(
                   'Your 24/7 Quantitative Analyst. Real-time chart pattern recognition, multi-model signal verification, sub-500ms alerts, and institutional order management for Forex, Commodities & Crypto.'
                 )}
@@ -72,10 +72,10 @@ export function LandingHero() {
             </div>
 
             {/* Support Centre Input Sandbox */}
-            <div className="relative rounded-2xl border border-slate-700/80 bg-[#0d111c]/90 p-2.5 shadow-2xl shadow-black/80 backdrop-blur-xl transition-all focus-within:border-amber-500/60 focus-within:ring-1 focus-within:ring-amber-500/30">
+            <div className="relative rounded-2xl border border-slate-700/80 bg-white/90 p-2.5 shadow-2xl shadow-black/80 backdrop-blur-xl transition-all focus-within:border-amber-500/60 focus-within:ring-1 focus-within:ring-amber-500/30 dark:bg-[#0d111c]/90">
               {/* Header Badge "Support Centre" */}
-              <div className="mb-2 flex items-center space-x-2 border-b border-slate-800/60 px-3 py-1 pb-2 text-xs font-semibold text-amber-400/90">
-                <Headphones className="h-3.5 w-3.5 text-amber-400" />
+              <div className="mb-2 flex items-center space-x-2 border-b border-slate-200 px-3 py-1 pb-2 text-xs font-semibold text-amber-400/90 dark:border-slate-800/60">
+                <Headphones className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                 <span>{t('Support Centre')}</span>
               </div>
 
@@ -91,37 +91,37 @@ export function LandingHero() {
                 }}
                 rows={2}
                 placeholder={t('How can I help you today ?')}
-                className="w-full resize-none bg-transparent px-3 py-1 text-sm font-medium text-slate-100 placeholder:text-slate-500 focus:outline-none"
+                className="w-full resize-none bg-transparent px-3 py-1 text-sm font-medium text-slate-900 placeholder:text-slate-500 focus:outline-none dark:text-slate-100"
               />
 
-              <div className="flex flex-col justify-between gap-3 border-t border-slate-800/60 px-2 pt-2 sm:flex-row sm:items-center">
+              <div className="flex flex-col justify-between gap-3 border-t border-slate-200 px-2 pt-2 sm:flex-row sm:items-center dark:border-slate-800/60">
                 {/* Quick Chips "Product Info | Technical Support | PRO Subscription | Billing" */}
-                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+                <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                   <button
                     type="button"
                     onClick={() => handleChipClick('Product Info')}
-                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition-colors hover:bg-amber-500/20 hover:text-amber-300"
+                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-amber-500/20 hover:text-amber-700 dark:text-slate-300 dark:hover:text-amber-300"
                   >
                     {t('Product Info')}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleChipClick('Technical Support')}
-                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition-colors hover:bg-amber-500/20 hover:text-amber-300"
+                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-amber-500/20 hover:text-amber-700 dark:text-slate-300 dark:hover:text-amber-300"
                   >
                     {t('Technical Support')}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleChipClick('PRO Subscription')}
-                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition-colors hover:bg-amber-500/20 hover:text-amber-300"
+                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-amber-500/20 hover:text-amber-700 dark:text-slate-300 dark:hover:text-amber-300"
                   >
                     {t('PRO Subscription')}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleChipClick('Billing')}
-                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-300 transition-colors hover:bg-amber-500/20 hover:text-amber-300"
+                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-amber-500/20 hover:text-amber-700 dark:text-slate-300 dark:hover:text-amber-300"
                   >
                     {t('Billing')}
                   </button>
@@ -141,27 +141,27 @@ export function LandingHero() {
 
             {/* Metric Trust Indicators */}
             <div className="grid grid-cols-3 gap-4 pt-2">
-              <div className="rounded-xl border border-slate-800/80 bg-[#0c101a]/70 p-3 text-center">
-                <div className="font-mono text-2xl font-extrabold text-amber-400">
+              <div className="rounded-xl border border-slate-200 bg-white/70 p-3 text-center dark:border-slate-800/80 dark:bg-[#0c101a]/70">
+                <div className="font-mono text-2xl font-extrabold text-amber-600 dark:text-amber-400">
                   &lt;500ms
                 </div>
-                <div className="text-[11px] font-medium text-slate-400">
+                <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                   {t('Alert Trigger Time')}
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-800/80 bg-[#0c101a]/70 p-3 text-center">
-                <div className="font-mono text-2xl font-extrabold text-emerald-400">
+              <div className="rounded-xl border border-slate-200 bg-white/70 p-3 text-center dark:border-slate-800/80 dark:bg-[#0c101a]/70">
+                <div className="font-mono text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
                   94.8%
                 </div>
-                <div className="text-[11px] font-medium text-slate-400">
+                <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                   {t('Signal Confluence Rate')}
                 </div>
               </div>
-              <div className="rounded-xl border border-slate-800/80 bg-[#0c101a]/70 p-3 text-center">
+              <div className="rounded-xl border border-slate-200 bg-white/70 p-3 text-center dark:border-slate-800/80 dark:bg-[#0c101a]/70">
                 <div className="font-mono text-2xl font-extrabold text-cyan-400">
                   24/7
                 </div>
-                <div className="text-[11px] font-medium text-slate-400">
+                <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                   {t('Multi-Model Oversight')}
                 </div>
               </div>
@@ -175,8 +175,8 @@ export function LandingHero() {
               <div className="absolute -inset-1 animate-pulse rounded-3xl bg-gradient-to-r from-amber-500 via-emerald-500 to-cyan-500 opacity-30 blur-xl" />
 
               {/* Main Container Card */}
-              <div className="relative rounded-3xl border border-slate-700/80 bg-[#0b0e17] p-3 shadow-2xl shadow-black">
-                <div className="relative overflow-hidden rounded-2xl border border-slate-800">
+              <div className="relative rounded-3xl border border-slate-700/80 bg-white p-3 shadow-2xl shadow-black dark:bg-[#0b0e17]">
+                <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
                   <Image
                     src="/davintrade-landing-page_home.png"
                     alt={t(
@@ -189,35 +189,35 @@ export function LandingHero() {
                   />
 
                   {/* Overlaid Live AI Signal Pills */}
-                  <div className="absolute top-4 left-4 rounded-xl border border-amber-500/40 bg-[#0c0f17]/90 px-3.5 py-2 shadow-lg backdrop-blur-md">
-                    <div className="flex items-center space-x-2 text-xs font-bold text-amber-300">
+                  <div className="absolute top-4 left-4 rounded-xl border border-amber-500/40 bg-white/90 px-3.5 py-2 shadow-lg backdrop-blur-md dark:bg-[#0c0f17]/90">
+                    <div className="flex items-center space-x-2 text-xs font-bold text-amber-700 dark:text-amber-300">
                       <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400" />
                       <span>{t('LIVE SIGNAL VERIFIED')}</span>
                     </div>
-                    <div className="mt-0.5 font-mono text-[11px] text-slate-300">
+                    <div className="mt-0.5 font-mono text-[11px] text-slate-700 dark:text-slate-300">
                       {t('XAUUSD M5 • Confluence Score 94%')}
                     </div>
                   </div>
 
-                  <div className="absolute right-4 bottom-4 rounded-xl border border-emerald-500/40 bg-[#0c0f17]/90 px-3.5 py-2 shadow-lg backdrop-blur-md">
-                    <div className="flex items-center space-x-2 text-xs font-bold text-emerald-400">
+                  <div className="absolute right-4 bottom-4 rounded-xl border border-emerald-500/40 bg-white/90 px-3.5 py-2 shadow-lg backdrop-blur-md dark:bg-[#0c0f17]/90">
+                    <div className="flex items-center space-x-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       <span>{t('ORDER BLOCK BREACH')}</span>
                     </div>
-                    <div className="mt-0.5 font-mono text-[11px] text-slate-300">
+                    <div className="mt-0.5 font-mono text-[11px] text-slate-700 dark:text-slate-300">
                       {t('EURUSD Target 1.08850 Reached')}
                     </div>
                   </div>
                 </div>
 
                 {/* Floating Bottom Quick Bar */}
-                <div className="mt-3 flex items-center justify-between rounded-xl border border-slate-800 bg-[#070910] px-3 py-2 text-xs">
-                  <div className="flex items-center space-x-2 text-slate-300">
-                    <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                <div className="mt-3 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-800 dark:bg-[#070910]">
+                  <div className="flex items-center space-x-2 text-slate-700 dark:text-slate-300">
+                    <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                     <span>{t('Multi-Market Forex, Commodities & Crypto')}</span>
                   </div>
                   <Link href="/terminal">
-                    <span className="flex cursor-pointer items-center gap-1 font-bold text-amber-400 hover:underline">
+                    <span className="flex cursor-pointer items-center gap-1 font-bold text-amber-600 hover:underline dark:text-amber-400">
                       {t('Enter Workbench')} <ArrowRight className="h-3 w-3" />
                     </span>
                   </Link>
