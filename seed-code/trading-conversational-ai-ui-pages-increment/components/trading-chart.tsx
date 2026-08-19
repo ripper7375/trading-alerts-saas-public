@@ -421,23 +421,23 @@ export default function TradingChart({
     // `animate-in fade-in` crossfades the real chart over the ChartSkeleton it
     // replaces. The two share an identical outer box, so this is a pure opacity
     // transition with no layout shift.
-    <div className="animate-in fade-in relative flex h-full flex-col overflow-hidden border-x border-slate-800/80 bg-[#06070b] shadow-2xl duration-500 ease-out select-none">
+    <div className="animate-in fade-in relative flex h-full flex-col overflow-hidden border-x border-slate-200 bg-slate-50 shadow-2xl duration-500 ease-out select-none dark:border-slate-800/80 dark:bg-[#06070b]">
       {/* C2: Top Header Toolbar */}
-      <div className="flex h-14 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-800/90 bg-[#11141e] px-3.5 shadow-xs">
+      <div className="flex h-14 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3.5 shadow-xs dark:border-slate-800/90 dark:bg-[#11141e]">
         <div className="flex items-center gap-2">
           <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs font-bold text-amber-400 shadow-xs">
             XAUUSD
           </Badge>
 
-          <div className="border-slate-750 flex items-center gap-1 rounded-lg border bg-[#090b10] p-1 shadow-inner">
+          <div className="dark:border-slate-750 flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-inner dark:bg-[#090b10]">
             <Button
               variant={m15ViewMode === 'SSA_EDT' ? 'secondary' : 'ghost'}
               size="sm"
               className={cn(
-                'h-7 px-3 text-xs font-semibold text-slate-200 transition-all hover:bg-slate-800/60 hover:text-slate-100',
+                'h-7 px-3 text-xs font-semibold text-slate-800 transition-all hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/60 dark:hover:text-slate-100',
                 m15ViewMode === 'SSA_EDT'
                   ? 'border border-[var(--primary)]/50 bg-[var(--primary)]/20 font-bold text-[var(--primary)] shadow-[var(--primary)]/20 shadow-sm'
-                  : 'text-slate-300'
+                  : 'text-slate-700 dark:text-slate-300'
               )}
               onClick={() => setM15ViewMode('SSA_EDT')}
             >
@@ -449,10 +449,10 @@ export default function TradingChart({
               variant={m15ViewMode === 'ZIGZAG' ? 'secondary' : 'ghost'}
               size="sm"
               className={cn(
-                'h-7 px-3 text-xs font-semibold text-slate-200 transition-all hover:bg-slate-800/60 hover:text-slate-100',
+                'h-7 px-3 text-xs font-semibold text-slate-800 transition-all hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800/60 dark:hover:text-slate-100',
                 m15ViewMode === 'ZIGZAG'
-                  ? 'border border-purple-500/50 bg-purple-600/30 font-bold text-purple-300 shadow-sm shadow-purple-500/20'
-                  : 'text-slate-300'
+                  ? 'border border-purple-500/50 bg-purple-600/30 font-bold text-purple-700 shadow-sm shadow-purple-500/20 dark:text-purple-300'
+                  : 'text-slate-700 dark:text-slate-300'
               )}
               onClick={() => setM15ViewMode('ZIGZAG')}
             >
@@ -468,7 +468,7 @@ export default function TradingChart({
               'flex items-center gap-2 rounded-lg border px-3 py-1 text-xs shadow-xs transition-all',
               isM5OnM15 && tier === 'PRO'
                 ? 'border-cyan-500/60 bg-cyan-500/15 text-cyan-200 shadow-cyan-500/10'
-                : 'border-slate-800 bg-[#090b10] text-slate-300'
+                : 'border-slate-200 bg-white text-slate-700 dark:border-slate-800 dark:bg-[#090b10] dark:text-slate-300'
             )}
           >
             <Switch
@@ -479,7 +479,7 @@ export default function TradingChart({
             />
             <label
               htmlFor="m5-on-m15-toggle"
-              className="flex cursor-pointer items-center gap-1.5 text-xs font-bold tracking-tight text-slate-200"
+              className="flex cursor-pointer items-center gap-1.5 text-xs font-bold tracking-tight text-slate-800 dark:text-slate-200"
             >
               <span>{t('chart.ms_on_m15', 'M5 on M15')}</span>
               {tier === 'FREE' && (
@@ -491,7 +491,7 @@ export default function TradingChart({
           <Button
             variant="outline"
             size="sm"
-            className="border-slate-750 h-8 bg-[#090b10] text-xs font-medium text-slate-200 hover:bg-slate-800 hover:text-slate-100"
+            className="dark:border-slate-750 h-8 border-slate-200 bg-white text-xs font-medium text-slate-800 hover:bg-slate-100 hover:text-slate-900 dark:bg-[#090b10] dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-slate-100"
           >
             <RefreshCw className="mr-1.5 h-3.5 w-3.5 text-emerald-400" />
             {t('chart.auto_refresh', 'Auto-Refresh')}
@@ -502,22 +502,22 @@ export default function TradingChart({
       {/* C4: Dual Stacked Chart Canvases with Horizontal Reciprocal Drag-Resizable Divider */}
       <ResizablePanelGroup
         direction="vertical"
-        className="flex-1 overflow-hidden bg-black/80 p-1"
+        className="flex-1 overflow-hidden bg-slate-100 p-1 dark:bg-black/80"
       >
         {/* C3: Upper Window: XAUUSD, M5 */}
         <ResizablePanel defaultSize={50} minSize={20}>
           <div className="relative h-full w-full overflow-hidden rounded-lg border border-blue-900/40 shadow-lg shadow-blue-950/20">
             {/* Left Vertical Drawing Toolbar Strip */}
-            <div className="absolute top-12 left-2 z-20 flex flex-col gap-0.5 rounded-lg border border-slate-800 bg-[#090c14]/90 p-0.5 shadow-lg backdrop-blur-md">
+            <div className="absolute top-12 left-2 z-20 flex flex-col gap-0.5 rounded-lg border border-slate-200 bg-white/90 p-0.5 shadow-lg backdrop-blur-md dark:border-slate-800 dark:bg-[#090c14]/90">
               {drawingTools.map((tool) => (
                 <Button
                   key={tool.id}
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    'h-7 w-7 rounded-md text-slate-400 hover:bg-slate-800/80 hover:text-slate-100',
+                    'h-7 w-7 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/80 dark:hover:text-slate-100',
                     activeTool === tool.id &&
-                      'border border-blue-500/50 bg-blue-600/30 font-bold text-blue-300'
+                      'border border-blue-500/50 bg-blue-600/30 font-bold text-blue-700 dark:text-blue-300'
                   )}
                   onClick={() => setActiveTool(tool.id)}
                   title={tool.label}
@@ -529,23 +529,24 @@ export default function TradingChart({
 
             {/* Top Left Badge Overlay */}
             <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-2">
-              <Badge className="border border-blue-500/50 bg-[#080b12]/90 px-2.5 py-1 font-mono text-[11px] text-blue-300 shadow-md backdrop-blur-md">
+              <Badge className="border border-blue-500/50 bg-white/90 px-2.5 py-1 font-mono text-[11px] text-blue-700 shadow-md backdrop-blur-md dark:bg-[#080b12]/90 dark:text-blue-300">
                 🟢 XAUUSD,M5
               </Badge>
-              <span className="rounded border border-blue-900/60 bg-[#080b12]/80 px-2 py-0.5 font-mono text-[10px] text-blue-300/80 backdrop-blur-xs">
+              <span className="rounded border border-blue-200 bg-white/80 px-2 py-0.5 font-mono text-[10px] text-blue-700/80 backdrop-blur-xs dark:border-blue-900/60 dark:bg-[#080b12]/80 dark:text-blue-300/80">
                 {t('M5 SSA & EDT Channel Canvas')}
               </span>
             </div>
 
             {/* Top Right Controls: EDT Configuration + 3 Price View Modes */}
-            <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 rounded-lg border border-slate-800 bg-[#080b12]/90 p-1 shadow-md backdrop-blur-md">
-              <div className="border-slate-750 flex items-center rounded border bg-black/40 p-0.5">
+            <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white/90 p-1 shadow-md backdrop-blur-md dark:border-slate-800 dark:bg-[#080b12]/90">
+              <div className="dark:border-slate-750 flex items-center rounded border border-slate-200 bg-slate-100 p-0.5 dark:bg-black/40">
                 <Button
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    'h-6 w-6 text-slate-400 hover:text-slate-100',
-                    m5PriceMode === 'BAR' && 'bg-blue-600/30 text-blue-300'
+                    'h-6 w-6 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100',
+                    m5PriceMode === 'BAR' &&
+                      'bg-blue-600/30 text-blue-700 dark:text-blue-300'
                   )}
                   onClick={() => setM5PriceMode('BAR')}
                   title={t('Show Price Bar')}
@@ -556,8 +557,9 @@ export default function TradingChart({
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    'h-6 w-6 text-slate-400 hover:text-slate-100',
-                    m5PriceMode === 'CANDLE' && 'bg-blue-600/30 text-blue-300'
+                    'h-6 w-6 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100',
+                    m5PriceMode === 'CANDLE' &&
+                      'bg-blue-600/30 text-blue-700 dark:text-blue-300'
                   )}
                   onClick={() => setM5PriceMode('CANDLE')}
                   title={t('Show Price Candle')}
@@ -568,7 +570,7 @@ export default function TradingChart({
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    'h-6 w-6 text-slate-400 hover:text-slate-100',
+                    'h-6 w-6 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100',
                     m5PriceMode === 'HIDE' && 'bg-rose-600/30 text-rose-300'
                   )}
                   onClick={() => setM5PriceMode('HIDE')}
@@ -582,14 +584,14 @@ export default function TradingChart({
                 <PopoverTrigger asChild>
                   <Button
                     size="sm"
-                    className="h-7 border border-slate-700 bg-slate-800/80 text-[11px] font-bold text-slate-200 hover:bg-slate-700"
+                    className="h-7 border border-slate-300 bg-slate-100 text-[11px] font-bold text-slate-800 hover:bg-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200"
                   >
                     <Sliders className="mr-1 h-3 w-3 text-amber-400" />
                     {t('EDT Configuration')}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="border-slate-750 w-64 space-y-2 bg-[#121622] p-3 text-xs text-slate-200">
-                  <div className="border-b border-slate-800 pb-1 font-bold text-amber-400">
+                <PopoverContent className="dark:border-slate-750 w-64 space-y-2 border-slate-200 bg-white p-3 text-xs text-slate-800 dark:bg-[#121622] dark:text-slate-200">
+                  <div className="border-b border-slate-200 pb-1 font-bold text-amber-400 dark:border-slate-800">
                     {t('M5 EDT Parameters')}
                   </div>
                   <div className="flex justify-between text-[11px]">
@@ -613,7 +615,7 @@ export default function TradingChart({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 gap-2 rounded-full border-amber-500/50 bg-[#090d16]/95 px-3 text-[11px] font-bold text-amber-300 shadow-xl backdrop-blur-md transition-all hover:border-amber-400 hover:bg-amber-500/30 hover:text-amber-200"
+                className="h-7 gap-2 rounded-full border-amber-500/50 bg-white/95 px-3 text-[11px] font-bold text-amber-300 shadow-xl backdrop-blur-md transition-all hover:border-amber-400 hover:bg-amber-500/30 hover:text-amber-200 dark:bg-[#090d16]/95"
                 onClick={() => {
                   if (onAskAiFromChart) {
                     onAskAiFromChart(
@@ -638,23 +640,23 @@ export default function TradingChart({
         {/* C4: Reciprocal Drag-Resizable Horizontal Divider Handle */}
         <ResizableHandle
           withHandle
-          className="my-0.5 cursor-row-resize border-y border-amber-500/40 bg-[#101522] shadow-lg hover:bg-amber-500/60"
+          className="my-0.5 cursor-row-resize border-y border-amber-500/40 bg-white shadow-lg hover:bg-amber-500/60 dark:bg-[#101522]"
         />
 
         {/* C5: Lower Window: XAUUSD, M15 */}
         <ResizablePanel defaultSize={50} minSize={20}>
           <div className="relative h-full w-full overflow-hidden rounded-lg border border-purple-900/40 shadow-lg shadow-purple-950/20">
             {/* Left Vertical Drawing Toolbar Strip */}
-            <div className="absolute top-12 left-2 z-20 flex flex-col gap-0.5 rounded-lg border border-slate-800 bg-[#0f0a17]/90 p-0.5 shadow-lg backdrop-blur-md">
+            <div className="absolute top-12 left-2 z-20 flex flex-col gap-0.5 rounded-lg border border-slate-200 bg-white/90 p-0.5 shadow-lg backdrop-blur-md dark:border-slate-800 dark:bg-[#0f0a17]/90">
               {drawingTools.map((tool) => (
                 <Button
                   key={tool.id}
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    'h-7 w-7 rounded-md text-slate-400 hover:bg-slate-800/80 hover:text-slate-100',
+                    'h-7 w-7 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/80 dark:hover:text-slate-100',
                     activeTool === tool.id &&
-                      'border border-purple-500/50 bg-purple-600/30 font-bold text-purple-300'
+                      'border border-purple-500/50 bg-purple-600/30 font-bold text-purple-700 dark:text-purple-300'
                   )}
                   onClick={() => setActiveTool(tool.id)}
                   title={tool.label}
@@ -666,11 +668,11 @@ export default function TradingChart({
 
             {/* Top Left Badge Overlay */}
             <div className="absolute top-2.5 left-2.5 z-10 flex items-center gap-2">
-              <Badge className="border border-purple-500/50 bg-[#0f0a17]/90 px-2.5 py-1 font-mono text-[11px] text-purple-300 shadow-md backdrop-blur-md">
+              <Badge className="border border-purple-500/50 bg-white/90 px-2.5 py-1 font-mono text-[11px] text-purple-700 shadow-md backdrop-blur-md dark:bg-[#0f0a17]/90 dark:text-purple-300">
                 🟢 XAUUSD,M15
               </Badge>
 
-              <span className="rounded border border-purple-900/60 bg-[#0f0a17]/80 px-2 py-0.5 font-mono text-[10px] text-purple-300/80 backdrop-blur-xs">
+              <span className="rounded border border-purple-200 bg-white/80 px-2 py-0.5 font-mono text-[10px] text-purple-700/80 backdrop-blur-xs dark:border-purple-900/60 dark:bg-[#0f0a17]/80 dark:text-purple-300/80">
                 {m15ViewMode === 'SSA_EDT'
                   ? t('M15 SSA & EDT Channel')
                   : t('M15 ZigZag Polyline')}
@@ -687,14 +689,15 @@ export default function TradingChart({
             </div>
 
             {/* Top Right Controls: EDT Configuration + 3 Price View Modes */}
-            <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 rounded-lg border border-slate-800 bg-[#0f0a17]/90 p-1 shadow-md backdrop-blur-md">
-              <div className="border-slate-750 flex items-center rounded border bg-black/40 p-0.5">
+            <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white/90 p-1 shadow-md backdrop-blur-md dark:border-slate-800 dark:bg-[#0f0a17]/90">
+              <div className="dark:border-slate-750 flex items-center rounded border border-slate-200 bg-slate-100 p-0.5 dark:bg-black/40">
                 <Button
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    'h-6 w-6 text-slate-400 hover:text-slate-100',
-                    m15PriceMode === 'BAR' && 'bg-purple-600/30 text-purple-300'
+                    'h-6 w-6 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100',
+                    m15PriceMode === 'BAR' &&
+                      'bg-purple-600/30 text-purple-700 dark:text-purple-300'
                   )}
                   onClick={() => setM15PriceMode('BAR')}
                   title={t('Show Price Bar')}
@@ -705,9 +708,9 @@ export default function TradingChart({
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    'h-6 w-6 text-slate-400 hover:text-slate-100',
+                    'h-6 w-6 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100',
                     m15PriceMode === 'CANDLE' &&
-                      'bg-purple-600/30 text-purple-300'
+                      'bg-purple-600/30 text-purple-700 dark:text-purple-300'
                   )}
                   onClick={() => setM15PriceMode('CANDLE')}
                   title={t('Show Price Candle')}
@@ -718,7 +721,7 @@ export default function TradingChart({
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    'h-6 w-6 text-slate-400 hover:text-slate-100',
+                    'h-6 w-6 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100',
                     m15PriceMode === 'HIDE' && 'bg-rose-600/30 text-rose-300'
                   )}
                   onClick={() => setM15PriceMode('HIDE')}
@@ -732,14 +735,14 @@ export default function TradingChart({
                 <PopoverTrigger asChild>
                   <Button
                     size="sm"
-                    className="h-7 border border-slate-700 bg-slate-800/80 text-[11px] font-bold text-slate-200 hover:bg-slate-700"
+                    className="h-7 border border-slate-300 bg-slate-100 text-[11px] font-bold text-slate-800 hover:bg-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200"
                   >
                     <Sliders className="mr-1 h-3 w-3 text-amber-400" />
                     {t('EDT Configuration')}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="border-slate-750 w-64 space-y-2 bg-[#121622] p-3 text-xs text-slate-200">
-                  <div className="border-b border-slate-800 pb-1 font-bold text-amber-400">
+                <PopoverContent className="dark:border-slate-750 w-64 space-y-2 border-slate-200 bg-white p-3 text-xs text-slate-800 dark:bg-[#121622] dark:text-slate-200">
+                  <div className="border-b border-slate-200 pb-1 font-bold text-amber-400 dark:border-slate-800">
                     {t('M15 EDT Parameters')}
                   </div>
                   <div className="flex justify-between text-[11px]">
@@ -763,7 +766,7 @@ export default function TradingChart({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-7 gap-2 rounded-full border-amber-500/50 bg-[#0e0817]/95 px-3 text-[11px] font-bold text-amber-300 shadow-xl backdrop-blur-md transition-all hover:border-amber-400 hover:bg-amber-500/30 hover:text-amber-200"
+                className="h-7 gap-2 rounded-full border-amber-500/50 bg-white/95 px-3 text-[11px] font-bold text-amber-300 shadow-xl backdrop-blur-md transition-all hover:border-amber-400 hover:bg-amber-500/30 hover:text-amber-200 dark:bg-[#0e0817]/95"
                 onClick={() => {
                   if (onAskAiFromChart) {
                     onAskAiFromChart(

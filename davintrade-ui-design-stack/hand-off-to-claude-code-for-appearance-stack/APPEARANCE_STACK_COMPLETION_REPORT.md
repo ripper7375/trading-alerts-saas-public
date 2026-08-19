@@ -396,12 +396,41 @@ cookie's `light`). Repeated in reverse (light → hard reload, cookie stale
 at `dark`) — `<html>` class correctly stayed `light`. `npm run build` —
 `✓ Compiled successfully`, zero errors.
 
+### Found and fixed in a second follow-up: `trading-chart.tsx` was never touched
+
+The user then checked `/terminal` again and pointed out the sidebar/header/
+panels were correctly light now, but the chart's own overlay chrome — the
+floating drawing-tool toolbar, the symbol/timeframe pills, the "EDT
+Configuration" button, the model-selector-style tab bar — was still solid
+black. Root cause: this control chrome lives inside
+`components/trading-chart.tsx` (853 lines), which was never in the
+original five-file list from the hand-off spec's §3, so the earlier pass
+never touched it. Same failure mode as the rest of this task: every
+background/border/text color hardcoded to a literal dark hex/slate shade,
+with `dark:` variants entirely absent.
+
+Reused the same conversion script (extended with this file's own
+hex+opacity tokens, e.g. `bg-[#090c14]/90` → `bg-white/90`, and
+`text-blue-300`/`text-purple-300` accent-badge text → `text-blue-700`/
+`text-purple-700`) — 88 mechanical replacements, zero hand-edits needed
+this time (no one-off gradients like the trade-setup card had).
+
+**Verified live**: forced `light` class, confirmed the chart header, both
+floating toolbar overlays, and the top-right control cluster all resolved
+to white/`white/90` backgrounds via `getComputedStyle()` (not just visual
+inspection); forced back to `dark` and confirmed the chart header reads
+back as `rgb(17, 20, 30)` = `#11141e` exactly, matching the original
+hardcoded value pixel-for-pixel. `npm run build` — `✓ Compiled
+successfully`, zero errors. seed-code has no test suite to run (reference/
+mockup frontend, not production-tested).
+
 ### Files changed (seed-code)
 
 - `components/chat-sidebar.tsx`
 - `components/layout/app-header.tsx`
 - `components/chat-panel.tsx`
 - `components/market-comments-panel.tsx`
+- `components/trading-chart.tsx` (chart overlay chrome, second follow-up)
 - `app/(dashboard)/settings/layout.tsx`
 - `app/layout.tsx` (stale-cookie fix, follow-up commit)
 
