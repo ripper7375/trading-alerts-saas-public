@@ -87,35 +87,35 @@ function CheckoutReturnContent() {
               }}
             />
           </div>
-          <span className="bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-xl font-black text-transparent">
+          <span className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 bg-clip-text text-xl font-black text-transparent dark:from-amber-400 dark:to-amber-200">
             DavinTrade AI
           </span>
         </Link>
-        <h1 className="text-2xl font-bold text-slate-100">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
           {t('Payment Confirmation')}
         </h1>
       </div>
 
-      <Card className="space-y-6 border-slate-800/80 bg-[#090b14]/95 p-6 text-center shadow-2xl backdrop-blur-2xl md:p-8">
+      <Card className="space-y-6 border-slate-200 bg-white p-6 text-center shadow-2xl md:p-8 dark:border-slate-800/80 dark:bg-[#090b14]/95">
         {isLoading ? (
           <div className="space-y-4 py-8">
-            <Loader2 className="mx-auto h-10 w-10 animate-spin text-amber-400" />
-            <p className="text-xs text-slate-400">
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-amber-600 dark:text-amber-400" />
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {t('Verifying payment with gateway...')}
             </p>
           </div>
         ) : status === 'NO_REFERENCE' ? (
           <div className="space-y-5">
             <div className="flex justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-400">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-600 dark:text-amber-400">
                 <AlertTriangle className="h-9 w-9" />
               </div>
             </div>
             <div className="space-y-1" role="alert" aria-live="assertive">
-              <h3 className="text-xl font-extrabold text-slate-100">
+              <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
                 {t('Unable to Show Payment Status')}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {t(
                   'No payment reference was provided in the return URL, so we cannot confirm whether a payment was made.'
                 )}
@@ -131,7 +131,7 @@ function CheckoutReturnContent() {
               <Link href="/dashboard">
                 <Button
                   variant="ghost"
-                  className="text-xs text-slate-400 hover:text-slate-200"
+                  className="text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
                 >
                   {t('Go to Dashboard')}
                 </Button>
@@ -141,15 +141,15 @@ function CheckoutReturnContent() {
         ) : status === 'SUCCESS' ? (
           <div className="space-y-5">
             <div className="flex justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/20 text-emerald-400">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-9 w-9" />
               </div>
             </div>
             <div className="space-y-1">
-              <h3 className="text-xl font-extrabold text-emerald-300">
+              <h3 className="text-xl font-extrabold text-emerald-700 dark:text-emerald-300">
                 {t('Payment Successful!')}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {t(
                   'Your PRO subscription is activated. You now have full zero-latency access to the PRO Terminal and conversational AI models.'
                 )}
@@ -157,9 +157,9 @@ function CheckoutReturnContent() {
             </div>
 
             {paymentId && (
-              <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3 font-mono text-xs text-slate-400">
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 font-mono text-xs text-slate-600 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-400">
                 <span>{t('Transaction ID')}:</span>
-                <span className="font-semibold text-slate-200">
+                <span className="font-semibold text-slate-900 dark:text-slate-200">
                   {paymentId}
                 </span>
               </div>
@@ -175,7 +175,7 @@ function CheckoutReturnContent() {
               <Link href="/settings/billing">
                 <Button
                   variant="ghost"
-                  className="text-xs text-slate-400 hover:text-slate-200"
+                  className="text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
                 >
                   <Receipt className="mr-1.5 h-3.5 w-3.5" />
                   {t('View Invoices & Billing Details')}
@@ -186,15 +186,15 @@ function CheckoutReturnContent() {
         ) : status === 'PENDING' ? (
           <div className="space-y-5">
             <div className="flex justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-400">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-600 dark:text-amber-400">
                 <Clock className="h-9 w-9" />
               </div>
             </div>
             <div className="space-y-1">
-              <h3 className="text-xl font-extrabold text-amber-300">
+              <h3 className="text-xl font-extrabold text-amber-700 dark:text-amber-300">
                 {t('Payment Pending Processing')}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {t(
                   'Your bank transfer or local payment is being cleared. Your account will automatically upgrade once payment is confirmed.'
                 )}
@@ -202,7 +202,7 @@ function CheckoutReturnContent() {
             </div>
 
             <Link href="/dashboard">
-              <Button className="w-full bg-slate-800 font-bold text-slate-200 hover:bg-slate-700">
+              <Button className="w-full bg-slate-900 font-bold text-white hover:bg-slate-800 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
                 {t('Return to Dashboard')}
               </Button>
             </Link>
@@ -210,15 +210,15 @@ function CheckoutReturnContent() {
         ) : (
           <div className="space-y-5">
             <div className="flex justify-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/20 text-rose-400">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/20 text-rose-600 dark:text-rose-400">
                 <AlertCircle className="h-9 w-9" />
               </div>
             </div>
             <div className="space-y-1">
-              <h3 className="text-xl font-extrabold text-rose-300">
+              <h3 className="text-xl font-extrabold text-rose-700 dark:text-rose-300">
                 {t('Payment Unsuccessful')}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 {t(
                   'The transaction was cancelled or declined by your financial institution.'
                 )}
@@ -234,7 +234,7 @@ function CheckoutReturnContent() {
               <Link href="/pricing">
                 <Button
                   variant="ghost"
-                  className="text-xs text-slate-400 hover:text-slate-200"
+                  className="text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
                 >
                   {t('Review Plans')}
                 </Button>
@@ -249,7 +249,7 @@ function CheckoutReturnContent() {
 
 export default function CheckoutReturnPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#050609] p-4 text-slate-100">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <Suspense fallback={null}>
         <CheckoutReturnContent />
       </Suspense>

@@ -146,7 +146,7 @@ export default function AffiliateCommissionsPage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#06070a] dark:text-slate-100">
       <AppHeader
         title={t('Affiliate Commissions Ledger')}
         subtitle={t(
@@ -159,29 +159,29 @@ export default function AffiliateCommissionsPage() {
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">
         {/* KPI Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
-            <div className="text-xs font-medium text-slate-400">
+          <Card className="border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               {t('Total Commissions Generated')}
             </div>
-            <div className="mt-1 font-mono text-3xl font-extrabold text-emerald-400">
+            <div className="mt-1 font-mono text-3xl font-extrabold text-emerald-700 dark:text-emerald-400">
               {formatCurrency(totalEarned)}
             </div>
           </Card>
 
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
-            <div className="text-xs font-medium text-slate-400">
+          <Card className="border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               {t('Pending August Disbursement')}
             </div>
-            <div className="mt-1 font-mono text-3xl font-extrabold text-amber-400">
+            <div className="mt-1 font-mono text-3xl font-extrabold text-amber-700 dark:text-amber-400">
               {formatCurrency(pendingEarned)}
             </div>
           </Card>
 
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
-            <div className="text-xs font-medium text-slate-400">
+          <Card className="border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               {t('Active Commission Rate')}
             </div>
-            <div className="mt-1 font-mono text-3xl font-extrabold text-cyan-400">
+            <div className="mt-1 font-mono text-3xl font-extrabold text-cyan-700 dark:text-cyan-400">
               30.0%
             </div>
           </Card>
@@ -196,14 +196,14 @@ export default function AffiliateCommissionsPage() {
                 placeholder={t('Search transaction or user...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
+                className="h-9 border-slate-200 bg-white pl-9 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200"
               />
             </div>
 
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              className="h-9 rounded-md border border-slate-800 bg-[#090b14] px-3 text-xs text-slate-200"
+              className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200"
             >
               <option value="ALL">{t('All Status')}</option>
               <option value="PENDING">{t('Pending')}</option>
@@ -216,47 +216,47 @@ export default function AffiliateCommissionsPage() {
             variant="outline"
             size="sm"
             onClick={exportCSV}
-            className="self-start border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800 sm:self-auto"
+            className="self-start border-slate-300 bg-white text-xs text-slate-800 hover:bg-slate-100 sm:self-auto dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-300 dark:hover:bg-slate-800"
           >
-            <Download className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
+            <Download className="mr-1.5 h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
             {t('Export CSV Report')}
           </Button>
         </div>
 
         {/* Ledger Table */}
-        <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Tx ID')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Date')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Referred Trader')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Purchased Plan')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Gross Payment')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Rate')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Commission Earned')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Status')}
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 && (
-                <TableRow className="border-slate-800/60 hover:bg-transparent">
+                <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800/60">
                   <TableCell
                     colSpan={8}
                     className="py-8 text-center text-xs text-slate-500"
@@ -268,35 +268,35 @@ export default function AffiliateCommissionsPage() {
               {filtered.map((r) => (
                 <TableRow
                   key={r.id}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
-                  <TableCell className="font-mono text-xs text-slate-400">
+                  <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                     {r.id}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-400">
+                  <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                     {formatDate(r.date)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-300">
+                  <TableCell className="font-mono text-xs text-slate-700 dark:text-slate-300">
                     {r.userMask}
                   </TableCell>
-                  <TableCell className="text-xs text-slate-200">
+                  <TableCell className="text-xs text-slate-900 dark:text-slate-200">
                     {t(r.plan)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-300">
+                  <TableCell className="font-mono text-xs text-slate-700 dark:text-slate-300">
                     {formatCurrency(r.amount)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-amber-400">
+                  <TableCell className="font-mono text-xs text-amber-700 dark:text-amber-400">
                     {r.rate}%
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-emerald-400">
+                  <TableCell className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     {formatCurrency(r.earned)}
                   </TableCell>
                   <TableCell className="text-right">
                     <Badge
                       className={`text-[10px] ${
                         r.status === 'PAID'
-                          ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-400'
-                          : 'border-amber-500/40 bg-amber-500/20 text-amber-400'
+                          ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
+                          : 'border-amber-500/40 bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
                       }`}
                     >
                       {t(r.status)}
@@ -309,30 +309,32 @@ export default function AffiliateCommissionsPage() {
         </Card>
 
         {/* Commission Status Guide */}
-        <Card className="border-slate-800/80 bg-[#090b14]/90 p-6">
-          <h3 className="mb-3 text-sm font-bold text-slate-100">
+        <Card className="border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+          <h3 className="mb-3 text-sm font-bold text-slate-900 dark:text-slate-100">
             {t('Commission Status Guide')}
           </h3>
           <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-3">
             <div className="flex items-center gap-2">
-              <Badge className="border-amber-500/40 bg-amber-500/20 text-[10px] text-amber-400">
+              <Badge className="border-amber-500/40 bg-amber-500/15 text-[10px] text-amber-700 dark:bg-amber-500/20 dark:text-amber-400">
                 {t('PENDING')}
               </Badge>
-              <span className="text-slate-400">
+              <span className="text-slate-600 dark:text-slate-400">
                 {t('Awaiting the next payout cycle')}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
+              <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
                 {t('PAID')}
               </Badge>
-              <span className="text-slate-400">{t('Settled via payout')}</span>
+              <span className="text-slate-600 dark:text-slate-400">
+                {t('Settled via payout')}
+              </span>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="border-slate-700 bg-slate-800 text-[10px] text-slate-400">
+              <Badge className="border-slate-300 bg-slate-100 text-[10px] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                 {t('HOLD')}
               </Badge>
-              <span className="text-slate-400">
+              <span className="text-slate-600 dark:text-slate-400">
                 {t('Under fraud/compliance review')}
               </span>
             </div>

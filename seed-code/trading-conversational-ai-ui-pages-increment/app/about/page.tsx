@@ -57,26 +57,26 @@ export default function AboutPage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#050609] text-slate-100">
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <MarketingNavbar />
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative overflow-hidden border-b border-slate-800/80 px-4 py-20 md:px-6 md:py-28">
+        <section className="relative overflow-hidden border-b border-slate-200 px-4 py-20 md:px-6 md:py-28 dark:border-slate-800/80">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.15),transparent_60%)]" />
           <div className="relative container mx-auto max-w-5xl space-y-6 text-center">
-            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-400">
+            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-400">
               {t('About DavinTrade AI')}
             </Badge>
 
-            <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl">
+            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl md:text-6xl dark:text-slate-100">
               {t('Precision Gold Analytics Powered by')}{' '}
-              <span className="bg-gradient-to-r from-amber-400 via-amber-200 to-yellow-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 bg-clip-text text-transparent dark:from-amber-400 dark:via-amber-200 dark:to-yellow-500">
                 {t('Conversational AI')}
               </span>
             </h1>
 
-            <p className="mx-auto max-w-2xl text-base leading-relaxed text-slate-400 md:text-lg">
+            <p className="mx-auto max-w-2xl text-base leading-relaxed text-slate-600 md:text-lg dark:text-slate-400">
               {t(
                 'We built DavinTrade because retail traders deserve the same quantitative rigor, real-time fractal signal precision, and sub-second execution telemetry that institutional desks use every day.'
               )}
@@ -92,9 +92,9 @@ export default function AboutPage() {
               <Link href="/terminal">
                 <Button
                   variant="outline"
-                  className="border-slate-700 bg-slate-900/60 px-6 py-5 text-slate-200 hover:bg-slate-800"
+                  className="border-slate-300 bg-white px-6 py-5 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
-                  <LineChart className="mr-2 h-4 w-4 text-amber-400" />
+                  <LineChart className="mr-2 h-4 w-4 text-amber-600 dark:text-amber-400" />
                   {t('Open PRO Terminal')}
                 </Button>
               </Link>
@@ -105,10 +105,10 @@ export default function AboutPage() {
         {/* Core Principles */}
         <section className="container mx-auto max-w-6xl px-4 py-16 md:px-6">
           <div className="mb-12 space-y-3 text-center">
-            <h2 className="text-2xl font-extrabold text-slate-100 md:text-3xl">
+            <h2 className="text-2xl font-extrabold text-slate-900 md:text-3xl dark:text-slate-100">
               {t('Our Engineering Principles')}
             </h2>
-            <p className="mx-auto max-w-xl text-sm text-slate-400">
+            <p className="mx-auto max-w-xl text-sm text-slate-600 dark:text-slate-400">
               {t(
                 'How we design algorithmic tools that genuinely empower traders to make disciplined, high-probability decisions.'
               )}
@@ -121,16 +121,16 @@ export default function AboutPage() {
               return (
                 <Card
                   key={idx}
-                  className="border-slate-800/80 bg-[#090b14]/80 backdrop-blur-xl transition-all duration-200 hover:border-amber-500/40 hover:bg-[#0c0f1d]"
+                  className="border-slate-200 bg-white shadow-md transition-all duration-200 hover:border-amber-500/40 hover:bg-slate-50 dark:border-slate-800/80 dark:bg-[#090b14]/80 dark:backdrop-blur-xl dark:hover:bg-[#0c0f1d]"
                 >
                   <CardContent className="space-y-4 p-6">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-400">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
                       <Icon className="h-6 w-6" />
                     </div>
-                    <h3 className="text-lg font-bold text-slate-100">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                       {v.title}
                     </h3>
-                    <p className="text-sm leading-relaxed text-slate-400">
+                    <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
                       {v.description}
                     </p>
                   </CardContent>
@@ -141,38 +141,38 @@ export default function AboutPage() {
         </section>
 
         {/* Global Infrastructure Stats */}
-        <section className="border-t border-slate-800/80 bg-[#070910] px-4 py-16 md:px-6">
+        <section className="border-t border-slate-200 bg-slate-100/70 px-4 py-16 md:px-6 dark:border-slate-800/80 dark:bg-[#070910]">
           <div className="container mx-auto max-w-5xl">
             <div className="grid grid-cols-2 gap-6 text-center md:grid-cols-4">
               <div className="space-y-1">
-                <div className="font-mono text-3xl font-extrabold text-amber-400 md:text-4xl">
+                <div className="font-mono text-3xl font-extrabold text-amber-600 md:text-4xl dark:text-amber-400">
                   &lt; 50ms
                 </div>
-                <div className="text-xs font-medium text-slate-400">
+                <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
                   {t('Tick Processing Latency')}
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="font-mono text-3xl font-extrabold text-amber-400 md:text-4xl">
+                <div className="font-mono text-3xl font-extrabold text-amber-600 md:text-4xl dark:text-amber-400">
                   99.98%
                 </div>
-                <div className="text-xs font-medium text-slate-400">
+                <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
                   {t('Platform Uptime')}
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="font-mono text-3xl font-extrabold text-amber-400 md:text-4xl">
+                <div className="font-mono text-3xl font-extrabold text-amber-600 md:text-4xl dark:text-amber-400">
                   24/7
                 </div>
-                <div className="text-xs font-medium text-slate-400">
+                <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
                   {t('AI Copilot Availability')}
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="font-mono text-3xl font-extrabold text-amber-400 md:text-4xl">
+                <div className="font-mono text-3xl font-extrabold text-amber-600 md:text-4xl dark:text-amber-400">
                   100%
                 </div>
-                <div className="text-xs font-medium text-slate-400">
+                <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
                   {t('Rule-Based Logic')}
                 </div>
               </div>

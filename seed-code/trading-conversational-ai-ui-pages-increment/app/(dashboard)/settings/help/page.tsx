@@ -103,20 +103,20 @@ export default function HelpPage() {
 
   return (
     <div className="animate-fade-in space-y-6 select-none">
-      <div className="space-y-6 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800/80 dark:bg-[#090c14]">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-slate-800">
           <div>
-            <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-100">
-              <HelpCircle className="h-4 w-4 text-amber-400" />{' '}
+            <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-900 dark:text-slate-100">
+              <HelpCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />{' '}
               {t('Help Center & Technical Support')}
             </h2>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {t(
                 'Search documentation, read FAQs, or contact our support team'
               )}
             </p>
           </div>
-          <Badge className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300">
+          <Badge className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-700 dark:text-amber-300">
             {t('24/7 SUPPORT')}
           </Badge>
         </div>
@@ -128,10 +128,10 @@ export default function HelpPage() {
               <Headphones className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-xs font-extrabold text-white">
+              <h3 className="text-xs font-extrabold text-slate-950 dark:text-white">
                 {t('Need Instant Assistance? Launch Support Centre Chat')}
               </h3>
-              <p className="text-[11px] text-slate-300">
+              <p className="text-[11px] text-slate-700 dark:text-slate-300">
                 {t('Connect with Davin AI Support Specialist in real time')}
               </p>
             </div>
@@ -154,17 +154,17 @@ export default function HelpPage() {
               <a
                 key={idx}
                 href={item.href}
-                className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-800 bg-[#06080e] p-3.5 transition-all hover:border-amber-500/40 hover:bg-slate-800/50"
+                className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 transition-all hover:border-amber-500/40 hover:bg-slate-100 dark:border-slate-800 dark:bg-[#06080e] dark:hover:bg-slate-800/50"
               >
-                <div className="shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/15 p-2 text-amber-400">
+                <div className="shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/15 p-2 text-amber-600 dark:text-amber-400">
                   <Icon className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="flex items-center gap-1 text-xs font-bold text-slate-200">
+                  <h4 className="flex items-center gap-1 text-xs font-bold text-slate-800 dark:text-slate-200">
                     {t(item.title)}{' '}
-                    <ExternalLink className="h-3 w-3 text-slate-500" />
+                    <ExternalLink className="h-3 w-3 text-slate-400 dark:text-slate-500" />
                   </h4>
-                  <p className="mt-0.5 text-[11px] text-slate-400">
+                  <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
                     {t(item.desc)}
                   </p>
                 </div>
@@ -173,35 +173,35 @@ export default function HelpPage() {
           })}
         </div>
 
-        <Separator className="bg-slate-800" />
+        <Separator className="bg-slate-100 dark:bg-slate-800" />
 
         {/* FAQ Accordion */}
         <div className="space-y-3">
-          <Label className="text-xs font-semibold text-slate-300">
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             {t('Frequently Asked Questions (FAQ)')}
           </Label>
           <div className="space-y-2">
             {faqs.map((faq, idx) => (
               <div
                 key={idx}
-                className="overflow-hidden rounded-xl border border-slate-800 bg-[#06080e]"
+                className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-[#06080e]"
               >
                 <button
                   type="button"
                   onClick={() =>
                     setExpandedFAQ(expandedFAQ === idx ? null : idx)
                   }
-                  className="flex w-full items-center justify-between px-4 py-3 text-left text-xs font-bold text-slate-200 transition-colors hover:bg-slate-800/40"
+                  className="flex w-full items-center justify-between px-4 py-3 text-left text-xs font-bold text-slate-800 transition-colors hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800/40"
                 >
                   <span>{t(faq.question)}</span>
                   {expandedFAQ === idx ? (
-                    <ChevronUp className="h-4 w-4 shrink-0 text-amber-400" />
+                    <ChevronUp className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                   ) : (
-                    <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" />
+                    <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
                   )}
                 </button>
                 {expandedFAQ === idx && (
-                  <div className="border-t border-slate-800/60 px-4 pt-1 pb-3.5 text-xs leading-relaxed text-slate-400">
+                  <div className="border-t border-slate-200 px-4 pt-1 pb-3.5 text-xs leading-relaxed text-slate-600 dark:border-slate-800/60 dark:text-slate-400">
                     {t(faq.answer)}
                   </div>
                 )}
@@ -210,16 +210,16 @@ export default function HelpPage() {
           </div>
         </div>
 
-        <Separator className="bg-slate-800" />
+        <Separator className="bg-slate-100 dark:bg-slate-800" />
 
         {/* Contact Support Ticket Form */}
         <div className="space-y-3">
-          <Label className="text-xs font-semibold text-slate-300">
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             {t('Submit Technical Support Ticket')}
           </Label>
           {submitted ? (
-            <div className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-xs font-bold text-emerald-300">
-              <Check className="h-4 w-4 text-emerald-400" />{' '}
+            <div className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+              <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />{' '}
               {t(
                 'Ticket Submitted! Our support team will respond via email within 2 hours.'
               )}
@@ -227,14 +227,14 @@ export default function HelpPage() {
           ) : (
             <form onSubmit={handleSubmit} className="max-w-xl space-y-3">
               <div className="space-y-1.5">
-                <Label className="text-[11px] font-medium text-slate-400">
+                <Label className="text-[11px] font-medium text-slate-700 dark:text-slate-400">
                   {t('Issue Category')}
                 </Label>
                 <Select value={subject} onValueChange={setSubject}>
-                  <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs">
+                  <SelectTrigger className="border-slate-200 bg-slate-50 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-100">
                     <SelectValue placeholder={t('Select topic')} />
                   </SelectTrigger>
-                  <SelectContent className="border-slate-750 bg-[#0f1420] text-xs">
+                  <SelectContent className="border-slate-200 bg-white text-xs text-slate-900 dark:border-slate-700 dark:bg-[#0f1420] dark:text-slate-100">
                     <SelectItem value="Alert Engine Query">
                       {t('Alert Engine Trigger Issue')}
                     </SelectItem>
@@ -252,7 +252,7 @@ export default function HelpPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-[11px] font-medium text-slate-400">
+                <Label className="text-[11px] font-medium text-slate-700 dark:text-slate-400">
                   {t('Message Description')}
                 </Label>
                 <textarea
@@ -262,7 +262,7 @@ export default function HelpPage() {
                   placeholder={t(
                     'Describe your issue or question in detail...'
                   )}
-                  className="border-slate-750 w-full rounded-xl border bg-[#06080e] p-3 text-xs text-slate-100 placeholder:text-slate-500 focus:border-amber-500/60 focus:outline-none"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-amber-500/60 focus:outline-none dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-100 dark:placeholder:text-slate-500"
                 />
               </div>
 

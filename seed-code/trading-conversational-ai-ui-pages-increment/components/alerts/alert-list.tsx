@@ -103,24 +103,24 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
   return (
     <div className="space-y-4 select-none">
       {/* Top Action Bar */}
-      <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-slate-800/80 bg-[#090c14] p-4 shadow-xl sm:flex-row sm:items-center">
+      <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl sm:flex-row sm:items-center dark:border-slate-800/80 dark:bg-[#090c14]">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-400">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-600 dark:text-amber-400">
             <Bell className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="flex items-center gap-2 text-xs font-bold text-slate-100">
+            <h2 className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100">
               {t('Active Alert Rules')} (
               {alerts.filter((a) => a.isActive).length} /{' '}
               {tier === 'PRO' ? '100' : '0'})
               <Badge
                 variant="outline"
-                className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300"
+                className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-700 dark:text-amber-300"
               >
                 {tier === 'PRO' ? t('PRO Unlimited') : t('FREE Locked')}
               </Badge>
             </h2>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {t('Real-Time WebSocket & Server-Side Line Alert Triggers')}
             </p>
           </div>
@@ -128,12 +128,12 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
 
         <div className="flex w-full items-center gap-2 sm:w-auto">
           <div className="relative flex-1 sm:w-48">
-            <Filter className="absolute top-2.5 left-2.5 h-3.5 w-3.5 text-slate-500" />
+            <Filter className="absolute top-2.5 left-2.5 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
             <Input
               value={filterQuery}
               onChange={(e) => setFilterQuery(e.target.value)}
               placeholder={t('Filter rules...')}
-              className="border-slate-750 h-8 bg-[#06080e] pl-8 text-xs text-slate-200"
+              className="h-8 border-slate-200 bg-slate-50 pl-8 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-200"
             />
           </div>
 
@@ -150,12 +150,12 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
       </div>
 
       {/* Alert List Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-800/80 bg-[#090c14] shadow-xl">
-        <div className="divide-y divide-slate-800/60">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800/80 dark:bg-[#090c14]">
+        <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
           {filteredAlerts.map((alert) => (
             <div
               key={alert.id}
-              className="flex flex-col items-start justify-between gap-3 p-4 transition-colors hover:bg-slate-800/30 sm:flex-row sm:items-center"
+              className="flex flex-col items-start justify-between gap-3 p-4 transition-colors hover:bg-slate-50 sm:flex-row sm:items-center dark:hover:bg-slate-800/30"
             >
               <div className="flex items-start gap-3">
                 <Switch
@@ -167,22 +167,22 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-100">
+                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
                       {t(alert.name)}
                     </span>
                     <Badge
                       variant="outline"
-                      className="border-slate-700 bg-slate-800 font-mono text-[9px]"
+                      className="border-slate-200 bg-slate-100 font-mono text-[9px] text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                     >
                       {alert.symbol} • {alert.timeframe}
                     </Badge>
-                    <Badge className="border-amber-500/30 bg-amber-500/10 font-mono text-[9px] text-amber-300">
+                    <Badge className="border-amber-500/30 bg-amber-500/10 font-mono text-[9px] text-amber-700 dark:text-amber-300">
                       {t(alert.type)}
                     </Badge>
                   </div>
-                  <div className="font-mono text-xs text-slate-400">
+                  <div className="font-mono text-xs text-slate-500 dark:text-slate-400">
                     {t('Condition:')}{' '}
-                    <span className="font-bold text-amber-300">
+                    <span className="font-bold text-amber-700 dark:text-amber-300">
                       {t(alert.condition)}
                     </span>
                   </div>
@@ -191,9 +191,9 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
 
               <div className="flex w-full items-center justify-between gap-4 text-right sm:w-auto sm:justify-end">
                 <div className="text-right">
-                  <div className="text-[10px] text-slate-400">
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">
                     {t('Triggers:')}{' '}
-                    <strong className="text-slate-200">
+                    <strong className="text-slate-800 dark:text-slate-200">
                       {alert.triggerCount} {t('times')}
                     </strong>
                   </div>
@@ -211,7 +211,7 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
                       variant="ghost"
                       size="icon"
                       aria-label={t('View chart')}
-                      className="h-8 w-8 text-slate-400 hover:bg-slate-700/40 hover:text-slate-200"
+                      className="h-8 w-8 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-700/40 dark:hover:text-slate-200"
                     >
                       <LineChart className="h-4 w-4" />
                     </Button>
@@ -222,7 +222,7 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
                       variant="ghost"
                       size="icon"
                       aria-label={`${t('Edit')} ${t(alert.name)}`}
-                      className="h-8 w-8 text-slate-400 hover:bg-slate-700/40 hover:text-slate-200"
+                      className="h-8 w-8 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-700/40 dark:hover:text-slate-200"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -233,7 +233,7 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
                     size="icon"
                     onClick={() => setAlertToDelete(alert)}
                     aria-label={`${t('Delete')} ${t(alert.name)}`}
-                    className="h-8 w-8 text-rose-400 hover:bg-rose-500/20 hover:text-rose-300"
+                    className="h-8 w-8 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-500/20 dark:hover:text-rose-300"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -248,19 +248,19 @@ export default function AlertList({ tier = 'PRO' }: { tier?: 'PRO' | 'FREE' }) {
         open={alertToDelete !== null}
         onOpenChange={(open) => !open && setAlertToDelete(null)}
       >
-        <AlertDialogContent className="border-slate-800/80 bg-[#0b0e17] text-slate-100">
+        <AlertDialogContent className="border-slate-200 bg-white text-slate-900 dark:border-slate-800/80 dark:bg-[#0b0e17] dark:text-slate-100">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-rose-400">
+            <AlertDialogTitle className="text-rose-600 dark:text-rose-400">
               {t('Delete Alert Rule?')}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-slate-600 dark:text-slate-400">
               {t('Are you sure you want to delete')} &quot;
               {alertToDelete ? t(alertToDelete.name) : ''}&quot;?{' '}
               {t('This action cannot be undone.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-slate-700 bg-transparent text-slate-300 hover:bg-slate-800 hover:text-slate-100">
+            <AlertDialogCancel className="border-slate-300 bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-100">
               {t('Cancel')}
             </AlertDialogCancel>
             <AlertDialogAction

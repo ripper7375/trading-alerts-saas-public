@@ -226,9 +226,12 @@ const FALLBACK_DETAIL: AffiliateDetail = {
 };
 
 const STATUS_BADGE_TONE: Record<AffiliateDetail['status'], string> = {
-  ACTIVE: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300',
-  SUSPENDED: 'border-rose-500/40 bg-rose-500/15 text-rose-300',
-  PENDING: 'border-amber-500/40 bg-amber-500/15 text-amber-300',
+  ACTIVE:
+    'border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+  SUSPENDED:
+    'border-rose-500/40 bg-rose-500/15 text-rose-700 dark:text-rose-300',
+  PENDING:
+    'border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300',
 };
 
 interface AffiliateDetailPageProps {
@@ -281,13 +284,13 @@ export default function AffiliateDisbursementDetailPage({
         <div>
           <Link
             href="/admin/disbursement/affiliates"
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             {t('Back to Payable Affiliates')}
           </Link>
           <div className="mt-2 flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-slate-100 sm:text-3xl">
+            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl dark:text-slate-100">
               {detail.name}
             </h1>
             <Badge
@@ -296,12 +299,12 @@ export default function AffiliateDisbursementDetailPage({
               {t(detail.status)}
             </Badge>
             {detail.readyForPayout && (
-              <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-300">
+              <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-700 dark:text-emerald-300">
                 {t('Ready for Payout')}
               </Badge>
             )}
           </div>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
             {detail.email} · {detail.country}
           </p>
         </div>
@@ -325,69 +328,69 @@ export default function AffiliateDisbursementDetailPage({
       </div>
 
       {success && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
           {success}
         </div>
       )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader className="pb-2">
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-slate-600 dark:text-slate-400">
               {t('Total Earnings')}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="font-mono text-xl font-bold text-slate-100">
+            <div className="font-mono text-xl font-bold text-slate-900 dark:text-slate-100">
               {formatCurrency(detail.stats.totalEarnings)}
             </div>
           </CardContent>
         </Card>
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader className="pb-2">
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-slate-600 dark:text-slate-400">
               {t('Pending')}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="font-mono text-xl font-bold text-amber-400">
+            <div className="font-mono text-xl font-bold text-amber-700 dark:text-amber-400">
               {formatCurrency(detail.stats.totalPending)}
             </div>
           </CardContent>
         </Card>
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader className="pb-2">
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-slate-600 dark:text-slate-400">
               {t('Paid')}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="font-mono text-xl font-bold text-emerald-400">
+            <div className="font-mono text-xl font-bold text-emerald-700 dark:text-emerald-400">
               {formatCurrency(detail.stats.totalPaid)}
             </div>
           </CardContent>
         </Card>
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader className="pb-2">
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-slate-600 dark:text-slate-400">
               {t('Codes Distributed')}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-slate-100">
+            <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
               {detail.stats.codesDistributed}
             </div>
           </CardContent>
         </Card>
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader className="pb-2">
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-slate-600 dark:text-slate-400">
               {t('Codes Used')}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-slate-100">
+            <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
               {detail.stats.codesUsed}
             </div>
           </CardContent>
@@ -396,42 +399,46 @@ export default function AffiliateDisbursementDetailPage({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Pending Commissions */}
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader>
-            <CardTitle className="text-sm text-slate-100">
+            <CardTitle className="text-sm text-slate-900 dark:text-slate-100">
               {t('Pending Commissions')}
             </CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-slate-600 dark:text-slate-400">
               {detail.pendingCommissions.count}{' '}
               {t('commissions awaiting payout')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-xs">
             <div className="flex justify-between">
-              <span className="text-slate-400">{t('Total Amount')}</span>
-              <span className="font-mono text-slate-200">
+              <span className="text-slate-600 dark:text-slate-400">
+                {t('Total Amount')}
+              </span>
+              <span className="font-mono text-slate-900 dark:text-slate-200">
                 {formatCurrency(detail.pendingCommissions.totalAmount)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">{t('Oldest')}</span>
-              <span className="text-slate-200">
+              <span className="text-slate-600 dark:text-slate-400">
+                {t('Oldest')}
+              </span>
+              <span className="text-slate-900 dark:text-slate-200">
                 {detail.pendingCommissions.oldestDate
                   ? formatDate(detail.pendingCommissions.oldestDate)
                   : '—'}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">
+              <span className="text-slate-600 dark:text-slate-400">
                 {t('Meets Payout Threshold')} (
                 {formatCurrency(detail.minimumThreshold)})
               </span>
               {detail.pendingCommissions.meetsThreshold ? (
-                <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[9px] text-emerald-300">
+                <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[9px] text-emerald-700 dark:text-emerald-300">
                   {t('Yes')}
                 </Badge>
               ) : (
-                <Badge className="border-slate-600/40 bg-slate-600/15 text-[9px] text-slate-400">
+                <Badge className="border-slate-300 bg-slate-100 text-[9px] text-slate-600 dark:border-slate-600/40 dark:bg-slate-600/15 dark:text-slate-400">
                   {t('No')}
                 </Badge>
               )}
@@ -440,31 +447,33 @@ export default function AffiliateDisbursementDetailPage({
         </Card>
 
         {/* Wise recipient + RiseWorks historical */}
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader>
-            <CardTitle className="text-sm text-slate-100">
+            <CardTitle className="text-sm text-slate-900 dark:text-slate-100">
               {t('Wise Recipient')}
             </CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-slate-600 dark:text-slate-400">
               {detail.bankSummary}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-xs">
             <div className="flex justify-between">
-              <span className="text-slate-400">{t('Recipient ID')}</span>
-              <span className="font-mono text-slate-300">
+              <span className="text-slate-600 dark:text-slate-400">
+                {t('Recipient ID')}
+              </span>
+              <span className="font-mono text-slate-800 dark:text-slate-300">
                 {detail.wiseRecipientId}
               </span>
             </div>
             {detail.riseAccount ? (
-              <div className="mt-2 flex items-center justify-between border-t border-slate-800 pt-2">
-                <span className="flex items-center gap-1.5 text-slate-400">
+              <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-800">
+                <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
                   {t('RiseWorks (Historical)')}
                 </span>
                 <KycStatusBadge status={detail.riseAccount.kycStatus} />
               </div>
             ) : (
-              <p className="mt-2 border-t border-slate-800 pt-2 text-slate-500">
+              <p className="mt-2 border-t border-slate-200 pt-2 text-slate-500 dark:border-slate-800">
                 {t('No RiseWorks account on record.')}
               </p>
             )}
@@ -473,32 +482,32 @@ export default function AffiliateDisbursementDetailPage({
       </div>
 
       {/* Recent Transactions */}
-      <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
+      <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
         <CardHeader>
-          <CardTitle className="text-sm text-slate-100">
+          <CardTitle className="text-sm text-slate-900 dark:text-slate-100">
             {t('Recent Transactions')}
           </CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-slate-600 dark:text-slate-400">
             {t('Most recent disbursement transactions for this affiliate')}
           </CardDescription>
         </CardHeader>
         {detail.recentTransactions.length > 0 ? (
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Transaction')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Amount')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Status')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Batch')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Created')}
                 </TableHead>
               </TableRow>
@@ -507,12 +516,12 @@ export default function AffiliateDisbursementDetailPage({
               {detail.recentTransactions.map((tx) => (
                 <TableRow
                   key={tx.id}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
-                  <TableCell className="font-mono text-xs text-slate-300">
+                  <TableCell className="font-mono text-xs text-slate-700 dark:text-slate-300">
                     {tx.transactionId}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-emerald-400">
+                  <TableCell className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     {formatCurrency(tx.amount)}
                   </TableCell>
                   <TableCell>
@@ -521,7 +530,7 @@ export default function AffiliateDisbursementDetailPage({
                   <TableCell>
                     {tx.batchNumber ? (
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs text-slate-400">
+                        <span className="font-mono text-xs text-slate-600 dark:text-slate-400">
                           {tx.batchNumber}
                         </span>
                         {tx.batchStatus && (
@@ -529,10 +538,12 @@ export default function AffiliateDisbursementDetailPage({
                         )}
                       </div>
                     ) : (
-                      <span className="text-slate-500">—</span>
+                      <span className="text-slate-400 dark:text-slate-500">
+                        —
+                      </span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right text-xs text-slate-400">
+                  <TableCell className="text-right text-xs text-slate-600 dark:text-slate-400">
                     {formatDate(tx.createdAt)}
                   </TableCell>
                 </TableRow>
@@ -540,7 +551,7 @@ export default function AffiliateDisbursementDetailPage({
             </TableBody>
           </Table>
         ) : (
-          <CardContent className="py-6 text-center text-xs text-slate-400">
+          <CardContent className="py-6 text-center text-xs text-slate-600 dark:text-slate-400">
             {t('No transactions yet.')}
           </CardContent>
         )}
@@ -548,21 +559,21 @@ export default function AffiliateDisbursementDetailPage({
 
       {/* Payout Confirmation */}
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <AlertDialogContent className="border-slate-800 bg-[#0b0e17] text-slate-100">
+        <AlertDialogContent className="border-slate-200 bg-white text-slate-900 shadow-xl dark:border-slate-800 dark:bg-[#0b0e17] dark:text-slate-100">
           <AlertDialogHeader>
             <AlertDialogTitle>
               {t('Disburse')}{' '}
               {formatCurrency(detail.pendingCommissions.totalAmount)} {t('to')}{' '}
               {detail.name}?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-slate-600 dark:text-slate-400">
               {t(
                 'This dispatches a real payout via Wise to this affiliate’s recipient account. This action cannot be undone.'
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-slate-800 bg-transparent text-slate-300 hover:bg-slate-800">
+            <AlertDialogCancel className="border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800">
               {t('Cancel')}
             </AlertDialogCancel>
             <AlertDialogAction

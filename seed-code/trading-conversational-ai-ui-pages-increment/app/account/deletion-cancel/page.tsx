@@ -73,20 +73,20 @@ function DeletionCancelContent() {
               }}
             />
           </div>
-          <span className="bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-xl font-black text-transparent">
+          <span className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 bg-clip-text text-xl font-black text-transparent dark:from-amber-400 dark:to-amber-200">
             DavinTrade AI
           </span>
         </Link>
-        <h1 className="text-2xl font-bold text-slate-100">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
           {t('Account Deletion Cancelled')}
         </h1>
       </div>
 
-      <Card className="space-y-6 border-slate-800/80 bg-[#090b14]/95 p-6 text-center shadow-2xl backdrop-blur-2xl md:p-8">
+      <Card className="space-y-6 border-slate-200 bg-white p-6 text-center shadow-2xl md:p-8 dark:border-slate-800/80 dark:bg-[#090b14]/95 dark:backdrop-blur-2xl">
         {status === 'processing' && (
           <div className="space-y-4 py-6">
-            <Loader2 className="mx-auto h-10 w-10 animate-spin text-amber-400" />
-            <p className="text-xs text-slate-400">
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-amber-600 dark:text-amber-400" />
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               {t('Processing cancellation request...')}
             </p>
           </div>
@@ -95,15 +95,15 @@ function DeletionCancelContent() {
         {status === 'success' && (
           <div className="space-y-4 py-4">
             <div className="flex justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/20 text-emerald-400">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                 <ShieldCheck className="h-8 w-8" />
               </div>
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-emerald-300">
+              <h3 className="text-base font-bold text-emerald-700 dark:text-emerald-300">
                 {t('Your Account Remains Active & Safe')}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 {t(
                   'The scheduled deletion process has been terminated. All your workspaces and alert configurations are preserved.'
                 )}
@@ -124,15 +124,15 @@ function DeletionCancelContent() {
         {status === 'error' && (
           <div className="space-y-4 py-4">
             <div className="flex justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/20 text-rose-400">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/20 text-rose-600 dark:text-rose-400">
                 <AlertCircle className="h-8 w-8" />
               </div>
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-rose-300">
+              <h3 className="text-base font-bold text-rose-700 dark:text-rose-300">
                 {t('Cancellation Failed')}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 {message || t('The token might be invalid or expired.')}
               </p>
             </div>
@@ -141,7 +141,7 @@ function DeletionCancelContent() {
               <Link href="/login">
                 <Button
                   variant="outline"
-                  className="w-full border-slate-800 text-slate-300"
+                  className="w-full border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   {t('Go to Login')}
                 </Button>
@@ -156,7 +156,7 @@ function DeletionCancelContent() {
 
 export default function AccountDeletionCancelPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#050609] p-4 text-slate-100">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <Suspense fallback={null}>
         <DeletionCancelContent />
       </Suspense>

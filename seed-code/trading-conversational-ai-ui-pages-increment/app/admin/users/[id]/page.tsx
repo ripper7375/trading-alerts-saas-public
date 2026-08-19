@@ -129,7 +129,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Admin User Detail & Governance')}
         subtitle={`${t('Inspecting Account UID:')} ${userId}`}
@@ -141,7 +141,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
         <div className="flex items-center justify-between">
           <Link
             href="/admin/users"
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>{t('Back to User Management')}</span>
@@ -152,23 +152,23 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
               variant="outline"
               size="sm"
               onClick={handleResetPassword}
-              className="border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
+              className="border-slate-300 bg-slate-50 text-xs text-slate-800 hover:bg-slate-100 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-300 dark:hover:bg-slate-800"
             >
-              <KeyRound className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
+              <KeyRound className="mr-1.5 h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
               {t('Trigger Password Reset')}
             </Button>
           </div>
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-950/40 p-3.5 text-xs text-rose-300">
+          <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>{success}</span>
           </div>
@@ -176,10 +176,10 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
 
         <form onSubmit={handleSave} className="space-y-6">
           {/* Main info */}
-          <Card className="space-y-5 border-slate-800/80 bg-[#090b14]/90 p-6 backdrop-blur-xl">
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
+          <Card className="space-y-5 border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-4 dark:border-slate-800/80">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-lg font-bold text-amber-400">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-lg font-bold text-amber-600 dark:text-amber-400">
                   {name
                     .split(' ')
                     .map((n) => n[0])
@@ -187,21 +187,21 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-slate-100">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                       {name}
                     </h3>
                     <Badge
                       className={
                         tier === 'PRO'
                           ? 'bg-amber-500 text-[10px] font-bold text-slate-950'
-                          : 'bg-slate-800 text-[10px] text-slate-400'
+                          : 'bg-slate-200 text-[10px] text-slate-700 dark:bg-slate-800 dark:text-slate-400'
                       }
                     >
                       {t(tier)}
                     </Badge>
                     <Badge
                       variant="outline"
-                      className="border-rose-500/30 text-[10px] text-rose-400"
+                      className="border-rose-500/30 text-[10px] text-rose-700 dark:text-rose-400"
                     >
                       {t(role)}
                     </Badge>
@@ -209,56 +209,58 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                       variant="outline"
                       className={
                         emailVerified
-                          ? 'border-emerald-500/30 text-[10px] text-emerald-400'
-                          : 'border-slate-700 text-[10px] text-slate-400'
+                          ? 'border-emerald-500/30 text-[10px] text-emerald-700 dark:text-emerald-400'
+                          : 'border-slate-300 text-[10px] text-slate-600 dark:border-slate-700 dark:text-slate-400'
                       }
                     >
                       <Mail className="mr-1 h-3 w-3" />
                       {emailVerified ? t('Verified') : t('Unverified')}
                     </Badge>
                   </div>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
                     {email} • {t('UID:')} {userId}
                   </p>
                 </div>
               </div>
 
-              <div className="text-right text-xs text-slate-400">
+              <div className="text-right text-xs text-slate-600 dark:text-slate-400">
                 <div>
                   {t('Registered')}:{' '}
-                  <strong className="text-slate-200">
+                  <strong className="text-slate-900 dark:text-slate-200">
                     {formatDate(createdAt)}
                   </strong>
                 </div>
                 <div>
                   {t('Last Active')}:{' '}
-                  <strong className="text-slate-200">{lastLogin}</strong>
+                  <strong className="text-slate-900 dark:text-slate-200">
+                    {lastLogin}
+                  </strong>
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
-                <Label className="text-xs text-slate-300">
+                <Label className="text-xs text-slate-700 dark:text-slate-300">
                   {t('Full Name')}
                 </Label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="border-slate-800 bg-[#06080e] text-slate-200"
+                  className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                   required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs text-slate-300">
+                <Label className="text-xs text-slate-700 dark:text-slate-300">
                   {t('Email Address')}
                 </Label>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="border-slate-800 bg-[#06080e] text-slate-200"
+                  className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                   required
                 />
               </div>
@@ -266,14 +268,14 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="space-y-1.5">
-                <Label className="text-xs text-slate-300">
+                <Label className="text-xs text-slate-700 dark:text-slate-300">
                   {t('Subscription Tier')}
                 </Label>
                 <Select value={tier} onValueChange={(v: any) => setTier(v)}>
-                  <SelectTrigger className="border-slate-800 bg-[#06080e] text-slate-200">
+                  <SelectTrigger className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="border-slate-800 bg-[#090b14]">
+                  <SelectContent className="border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200">
                     <SelectItem value="FREE">{t('FREE Workspace')}</SelectItem>
                     <SelectItem value="PRO">
                       {t('PRO Terminal ($49/mo)')}
@@ -283,14 +285,14 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs text-slate-300">
+                <Label className="text-xs text-slate-700 dark:text-slate-300">
                   {t('Platform Role')}
                 </Label>
                 <Select value={role} onValueChange={(v: any) => setRole(v)}>
-                  <SelectTrigger className="border-slate-800 bg-[#06080e] text-slate-200">
+                  <SelectTrigger className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="border-slate-800 bg-[#090b14]">
+                  <SelectContent className="border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200">
                     <SelectItem value="USER">
                       {t('USER (Standard Trader)')}
                     </SelectItem>
@@ -302,14 +304,14 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs text-slate-300">
+                <Label className="text-xs text-slate-700 dark:text-slate-300">
                   {t('Account Status')}
                 </Label>
                 <Select value={status} onValueChange={(v: any) => setStatus(v)}>
-                  <SelectTrigger className="border-slate-800 bg-[#06080e] text-slate-200">
+                  <SelectTrigger className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="border-slate-800 bg-[#090b14]">
+                  <SelectContent className="border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200">
                     <SelectItem value="ACTIVE">
                       {t('ACTIVE (Normal Access)')}
                     </SelectItem>
@@ -325,12 +327,12 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
             </div>
 
             <div className="grid grid-cols-1 gap-4 pt-2 md:grid-cols-3">
-              <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-[#06080e]">
                 <div className="space-y-0.5">
-                  <div className="text-xs font-bold text-slate-200">
+                  <div className="text-xs font-bold text-slate-900 dark:text-slate-200">
                     {t('Two-Factor Authentication (2FA)')}
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
                     {twoFactorEnabled ? t('Enabled (TOTP App)') : t('Disabled')}
                   </p>
                 </div>
@@ -340,33 +342,33 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                 />
               </div>
 
-              <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-[#06080e]">
                 <div className="space-y-0.5">
-                  <div className="text-xs font-bold text-slate-200">
+                  <div className="text-xs font-bold text-slate-900 dark:text-slate-200">
                     {t('Active Sessions')}
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
                     {t('Signed in on')} {activeSessions}{' '}
                     {activeSessions === 1 ? t('device') : t('devices')}
                   </p>
                 </div>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-[#090b14] text-sm font-bold text-slate-200">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-300 bg-white text-sm font-bold text-slate-900 dark:border-slate-700 dark:bg-[#090b14] dark:text-slate-200">
                   {activeSessions}
                 </div>
               </div>
 
-              <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-[#06080e]">
                 <div className="space-y-0.5">
-                  <div className="text-xs font-bold text-slate-200">
+                  <div className="text-xs font-bold text-slate-900 dark:text-slate-200">
                     {t('Attributed Referral Code')}
                   </div>
-                  <p className="font-mono text-[11px] text-amber-400">
+                  <p className="font-mono text-[11px] text-amber-700 dark:text-amber-400">
                     {affiliateCode || t('None (Direct Signup)')}
                   </p>
                 </div>
                 <Badge
                   variant="outline"
-                  className="border-amber-500/30 text-[10px] text-amber-400"
+                  className="border-amber-500/30 text-[10px] text-amber-700 dark:text-amber-400"
                 >
                   {t('30% RevShare')}
                 </Badge>
@@ -376,45 +378,59 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {/* Subscription & Billing */}
-            <Card className="space-y-3 border-slate-800/80 bg-[#090b14]/90 p-5 backdrop-blur-xl">
-              <div className="flex items-center gap-2 border-b border-slate-800/80 pb-3">
-                <CreditCard className="h-4 w-4 text-amber-400" />
-                <h4 className="text-xs font-bold text-slate-200">
+            <Card className="space-y-3 border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
+              <div className="flex items-center gap-2 border-b border-slate-200 pb-3 dark:border-slate-800/80">
+                <CreditCard className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
                   {t('Subscription & Billing')}
                 </h4>
               </div>
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">{t('Status')}</span>
+                  <span className="text-slate-600 dark:text-slate-400">
+                    {t('Status')}
+                  </span>
                   <Badge className="bg-emerald-500 text-[10px] font-bold text-slate-950">
                     {t(subscription.status)}
                   </Badge>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">{t('Provider')}</span>
-                  <span className="text-slate-200">
+                  <span className="text-slate-600 dark:text-slate-400">
+                    {t('Provider')}
+                  </span>
+                  <span className="text-slate-900 dark:text-slate-200">
                     {subscription.provider}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">{t('Subscription ID')}</span>
-                  <span className="font-mono text-[11px] text-slate-300">
+                  <span className="text-slate-600 dark:text-slate-400">
+                    {t('Subscription ID')}
+                  </span>
+                  <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300">
                     {subscription.subscriptionId}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">{t('Plan')}</span>
-                  <span className="text-slate-200">{t(subscription.plan)}</span>
+                  <span className="text-slate-600 dark:text-slate-400">
+                    {t('Plan')}
+                  </span>
+                  <span className="text-slate-900 dark:text-slate-200">
+                    {t(subscription.plan)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">{t('Period End')}</span>
-                  <span className="text-slate-200">
+                  <span className="text-slate-600 dark:text-slate-400">
+                    {t('Period End')}
+                  </span>
+                  <span className="text-slate-900 dark:text-slate-200">
                     {formatDate(subscription.periodEnd)}
                   </span>
                 </div>
-                <div className="flex justify-between border-t border-slate-800 pt-2">
-                  <span className="text-slate-400">{t('Trial Status')}</span>
-                  <span className="text-slate-200">
+                <div className="flex justify-between border-t border-slate-200 pt-2 dark:border-slate-800">
+                  <span className="text-slate-600 dark:text-slate-400">
+                    {t('Trial Status')}
+                  </span>
+                  <span className="text-slate-900 dark:text-slate-200">
                     {t(subscription.trialStatus)}
                   </span>
                 </div>
@@ -422,10 +438,10 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
             </Card>
 
             {/* Fraud Alerts */}
-            <Card className="space-y-3 border-slate-800/80 bg-[#090b14]/90 p-5 backdrop-blur-xl">
-              <div className="flex items-center gap-2 border-b border-slate-800/80 pb-3">
-                <ShieldAlert className="h-4 w-4 text-rose-400" />
-                <h4 className="text-xs font-bold text-slate-200">
+            <Card className="space-y-3 border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
+              <div className="flex items-center gap-2 border-b border-slate-200 pb-3 dark:border-slate-800/80">
+                <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
                   {t('Fraud Alerts')}
                 </h4>
                 {userFraudAlerts.length > 0 && (
@@ -435,7 +451,7 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                 )}
               </div>
               {userFraudAlerts.length === 0 ? (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   {t('No fraud alerts on record.')}
                 </p>
               ) : (
@@ -444,19 +460,19 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
                     <li key={alert.id}>
                       <Link
                         href={`/admin/fraud-alerts/${alert.id}`}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-slate-800 bg-[#06080e] p-2.5 text-xs hover:border-rose-500/40"
+                        className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs hover:border-rose-500/40 dark:border-slate-800 dark:bg-[#06080e]"
                       >
                         <div>
-                          <div className="font-semibold text-slate-100">
+                          <div className="font-semibold text-slate-900 dark:text-slate-100">
                             {alert.pattern}
                           </div>
-                          <div className="text-[10px] text-slate-400">
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400">
                             {formatDate(alert.createdAt)}
                           </div>
                         </div>
                         <Badge
                           variant="outline"
-                          className="border-rose-500/40 text-[9px] text-rose-300"
+                          className="border-rose-500/40 text-[9px] text-rose-700 dark:text-rose-300"
                         >
                           {t(alert.severity)}
                         </Badge>
@@ -468,35 +484,43 @@ export default function AdminUserDetailPage({ params }: UserDetailPageProps) {
             </Card>
 
             {/* Affiliate & Code Info */}
-            <Card className="space-y-3 border-slate-800/80 bg-[#090b14]/90 p-5 backdrop-blur-xl lg:col-span-2">
-              <div className="flex items-center gap-2 border-b border-slate-800/80 pb-3">
-                <Layers className="h-4 w-4 text-amber-400" />
-                <h4 className="text-xs font-bold text-slate-200">
+            <Card className="space-y-3 border-slate-200 bg-white p-5 shadow-sm lg:col-span-2 dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
+              <div className="flex items-center gap-2 border-b border-slate-200 pb-3 dark:border-slate-800/80">
+                <Layers className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
                   {t('Affiliate & Code Info')}
                 </h4>
               </div>
               <div className="grid grid-cols-2 gap-4 text-xs sm:grid-cols-4">
                 <div>
-                  <p className="text-slate-400">{t('Status')}</p>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    {t('Status')}
+                  </p>
                   <Badge className="mt-1 bg-emerald-500 text-[10px] font-bold text-slate-950">
                     {t(affiliateStats.status)}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-slate-400">{t('Codes Distributed')}</p>
-                  <p className="mt-1 text-base font-bold text-slate-100">
+                  <p className="text-slate-600 dark:text-slate-400">
+                    {t('Codes Distributed')}
+                  </p>
+                  <p className="mt-1 text-base font-bold text-slate-900 dark:text-slate-100">
                     {affiliateStats.codesDistributed}
                   </p>
                 </div>
                 <div>
-                  <p className="text-slate-400">{t('Total Earnings')}</p>
-                  <p className="mt-1 text-base font-bold text-slate-100">
+                  <p className="text-slate-600 dark:text-slate-400">
+                    {t('Total Earnings')}
+                  </p>
+                  <p className="mt-1 text-base font-bold text-slate-900 dark:text-slate-100">
                     {formatCurrency(affiliateStats.totalEarnings)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-slate-400">{t('Pending Commissions')}</p>
-                  <p className="mt-1 text-base font-bold text-amber-400">
+                  <p className="text-slate-600 dark:text-slate-400">
+                    {t('Pending Commissions')}
+                  </p>
+                  <p className="mt-1 text-base font-bold text-amber-700 dark:text-amber-400">
                     {formatCurrency(affiliateStats.pendingCommissions)}
                   </p>
                 </div>

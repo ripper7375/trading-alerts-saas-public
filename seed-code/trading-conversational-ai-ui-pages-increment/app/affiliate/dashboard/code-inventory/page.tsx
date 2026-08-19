@@ -44,17 +44,17 @@ export default function AffiliateCodeInventoryPage() {
     {
       label: t('Total Allocated Codes'),
       value: '15',
-      color: 'text-amber-400',
+      color: 'text-amber-700 dark:text-amber-400',
     },
     {
       label: t('Active & Redeemable'),
       value: '12',
-      color: 'text-emerald-400',
+      color: 'text-emerald-700 dark:text-emerald-400',
     },
     {
       label: t('Redemption Rate'),
       value: '64.8%',
-      color: 'text-cyan-400',
+      color: 'text-cyan-700 dark:text-cyan-400',
     },
     {
       label: t('Expired / Inactive'),
@@ -98,7 +98,7 @@ export default function AffiliateCodeInventoryPage() {
     .filter((item) => item.expiry >= startDate && item.expiry <= endDate);
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#06070a] dark:text-slate-100">
       <AppHeader
         title={t('Affiliate Code Inventory')}
         subtitle={t(
@@ -110,24 +110,24 @@ export default function AffiliateCodeInventoryPage() {
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">
         {/* Filters */}
-        <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
+        <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
           <div className="flex flex-wrap items-end gap-4">
             <div className="relative max-w-xs flex-1">
-              <label className="mb-1 block text-xs font-medium text-slate-400">
+              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
                 {t('Search Code')}
               </label>
-              <Search className="absolute top-[34px] left-3 h-4 w-4 text-slate-500" />
+              <Search className="absolute top-[34px] left-3 h-4 w-4 text-slate-400" />
               <Input
                 placeholder={t('Search promo code...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-9 border-slate-800 bg-[#06080e] pl-9 text-xs text-slate-200"
+                className="h-9 border-slate-200 bg-slate-50 pl-9 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
               />
             </div>
             <div>
               <label
                 htmlFor="startDate"
-                className="mb-1 block text-xs font-medium text-slate-400"
+                className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400"
               >
                 {t('Start Date')}
               </label>
@@ -137,13 +137,13 @@ export default function AffiliateCodeInventoryPage() {
                 value={startDate}
                 max={endDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="h-9 rounded-md border border-slate-800 bg-[#06080e] px-3 text-xs text-slate-200"
+                className="h-9 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
               />
             </div>
             <div>
               <label
                 htmlFor="endDate"
-                className="mb-1 block text-xs font-medium text-slate-400"
+                className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400"
               >
                 {t('End Date')}
               </label>
@@ -153,7 +153,7 @@ export default function AffiliateCodeInventoryPage() {
                 value={endDate}
                 min={startDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="h-9 rounded-md border border-slate-800 bg-[#06080e] px-3 text-xs text-slate-200"
+                className="h-9 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
               />
             </div>
           </div>
@@ -162,8 +162,11 @@ export default function AffiliateCodeInventoryPage() {
         {/* KPI Stats */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {stats.map((st, idx) => (
-            <Card key={idx} className="border-slate-800/80 bg-[#090b14]/90 p-4">
-              <div className="text-xs font-medium text-slate-400">
+            <Card
+              key={idx}
+              className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90"
+            >
+              <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
                 {st.label}
               </div>
               <div
@@ -176,36 +179,36 @@ export default function AffiliateCodeInventoryPage() {
         </div>
 
         {/* Inventory Table */}
-        <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Promo Code')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Discount')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Allocation Pool')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Allocated')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Claimed')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Remaining')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Expiration')}
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {visibleInventory.length === 0 && (
-                <TableRow className="border-slate-800/60 hover:bg-transparent">
+                <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800/60">
                   <TableCell
                     colSpan={7}
                     className="py-8 text-center text-xs text-slate-500"
@@ -217,32 +220,32 @@ export default function AffiliateCodeInventoryPage() {
               {visibleInventory.map((item, idx) => (
                 <TableRow
                   key={idx}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
-                  <TableCell className="font-mono text-xs font-bold text-amber-400">
+                  <TableCell className="font-mono text-xs font-bold text-amber-700 dark:text-amber-400">
                     {item.code}
                   </TableCell>
                   <TableCell className="text-xs">
                     <Badge
                       variant="outline"
-                      className="border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-400"
+                      className="border-amber-500/40 bg-amber-500/15 text-[10px] text-amber-700 dark:text-amber-400"
                     >
                       {item.discount}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs text-slate-300">
+                  <TableCell className="text-xs text-slate-900 dark:text-slate-300">
                     {t(item.pool)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-300">
+                  <TableCell className="font-mono text-xs text-slate-700 dark:text-slate-300">
                     {item.allocated}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-emerald-400">
+                  <TableCell className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     {item.claimed}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-slate-200">
+                  <TableCell className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
                     {item.remaining}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-400">
+                  <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                     {formatDate(item.expiry)}
                   </TableCell>
                 </TableRow>

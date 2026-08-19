@@ -62,7 +62,7 @@ export default function AdminNotificationsBroadcastPage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Admin Notification Broadcast Center')}
         subtitle={t(
@@ -74,31 +74,31 @@ export default function AdminNotificationsBroadcastPage() {
 
       <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 md:p-6">
         {success && (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>{success}</span>
           </div>
         )}
 
         <form onSubmit={handleBroadcast} className="space-y-6">
-          <Card className="space-y-5 border-slate-800/80 bg-[#090b14]/90 p-6">
-            <h3 className="border-b border-slate-800 pb-3 text-sm font-bold text-slate-100">
+          <Card className="space-y-5 border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <h3 className="border-b border-slate-200 pb-3 text-sm font-bold text-slate-900 dark:border-slate-800 dark:text-slate-100">
               {t('Broadcast Parameters & Content')}
             </h3>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
-                <Label className="text-xs text-slate-300">
+                <Label className="text-xs text-slate-700 dark:text-slate-300">
                   {t('Target Audience')}
                 </Label>
                 <Select
                   value={audience}
                   onValueChange={(v: any) => setAudience(v)}
                 >
-                  <SelectTrigger className="border-slate-800 bg-[#06080e] text-slate-200">
+                  <SelectTrigger className="border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="border-slate-800 bg-[#090b14]">
+                  <SelectContent className="border-slate-200 bg-white dark:border-slate-800 dark:bg-[#090b14]">
                     <SelectItem value="ALL">
                       {t('All Registered Users (1,420 traders)')}
                     </SelectItem>
@@ -116,20 +116,20 @@ export default function AdminNotificationsBroadcastPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs text-slate-300">
+                <Label className="text-xs text-slate-700 dark:text-slate-300">
                   {t('Action Link (Optional)')}
                 </Label>
                 <Input
                   value={targetLink}
                   onChange={(e) => setTargetLink(e.target.value)}
                   placeholder="/terminal"
-                  className="border-slate-800 bg-[#06080e] text-slate-200"
+                  className="border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-300">
+              <Label className="text-xs text-slate-700 dark:text-slate-300">
                 {t('Broadcast Headline')}
               </Label>
               <Input
@@ -138,13 +138,13 @@ export default function AdminNotificationsBroadcastPage() {
                 placeholder={t(
                   'e.g. Scheduled MT5 Maintenance Completed / New Fractal Models Live'
                 )}
-                className="border-slate-800 bg-[#06080e] text-slate-200"
+                className="border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                 required
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-300">
+              <Label className="text-xs text-slate-700 dark:text-slate-300">
                 {t('Broadcast Body Text')}
               </Label>
               <Textarea
@@ -152,22 +152,22 @@ export default function AdminNotificationsBroadcastPage() {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={t('Type your system announcement message here...')}
                 rows={4}
-                className="border-slate-800 bg-[#06080e] text-xs text-slate-200"
+                className="border-slate-200 bg-white text-xs text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                 required
               />
             </div>
 
             {/* Channels */}
             <div className="space-y-3 pt-2">
-              <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
-                <span className="text-xs text-slate-300">
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-[#06080e]">
+                <span className="text-xs text-slate-800 dark:text-slate-300">
                   {t('In-App Notification Centre Push')}
                 </span>
                 <Switch checked={inAppPush} onCheckedChange={setInAppPush} />
               </div>
 
-              <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
-                <span className="text-xs text-slate-300">
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-[#06080e]">
+                <span className="text-xs text-slate-800 dark:text-slate-300">
                   {t('Trigger Audio Chime / Visual Banner on Active Terminals')}
                 </span>
                 <Switch
@@ -176,8 +176,8 @@ export default function AdminNotificationsBroadcastPage() {
                 />
               </div>
 
-              <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3">
-                <span className="text-xs text-slate-300">
+              <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-[#06080e]">
+                <span className="text-xs text-slate-800 dark:text-slate-300">
                   {t('Dispatch Bulk Email Blast via AWS SES')}
                 </span>
                 <Switch checked={emailBlast} onCheckedChange={setEmailBlast} />

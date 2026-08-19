@@ -40,7 +40,7 @@ export function ProUpgradeModal({
             <div>
               <Badge
                 variant="outline"
-                className="border-amber-500/40 bg-amber-500/10 font-mono text-[10px] text-amber-400 uppercase"
+                className="border-amber-500/40 bg-amber-500/10 font-mono text-[10px] text-amber-700 uppercase dark:text-amber-400"
               >
                 {t('PRO Subscriber Feature')}
               </Badge>
@@ -58,21 +58,21 @@ export function ProUpgradeModal({
 
         <div className="border-border/50 bg-muted/30 my-2 space-y-2.5 rounded-xl border p-3.5 text-xs">
           <div className="text-foreground flex items-center gap-2 font-medium">
-            <Check className="h-4 w-4 shrink-0 text-emerald-400" />
+            <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
             <span>
               <strong>{t('Part 24 Engine 2 MTF Overlay')}</strong>:{' '}
               {t('Overlays M5 EDT equal-distance channels onto M15 chart.')}
             </span>
           </div>
           <div className="text-foreground flex items-center gap-2 font-medium">
-            <Check className="h-4 w-4 shrink-0 text-emerald-400" />
+            <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
             <span>
               <strong>{t('Stack D Multimodal AI Analyst')}</strong>:{' '}
               {t('Real-time Gemini 3.6 & Claude 5 chart vision analysis.')}
             </span>
           </div>
           <div className="text-foreground flex items-center gap-2 font-medium">
-            <Check className="h-4 w-4 shrink-0 text-emerald-400" />
+            <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
             <span>
               <strong>{t('Stack E Live Market Comments')}</strong>:{' '}
               {t(
@@ -81,7 +81,7 @@ export function ProUpgradeModal({
             </span>
           </div>
           <div className="text-foreground flex items-center gap-2 font-medium">
-            <Check className="h-4 w-4 shrink-0 text-emerald-400" />
+            <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
             <span>
               {t('100 Active Price Alerts & 300 requests/hour API rate limit.')}
             </span>
@@ -93,7 +93,7 @@ export function ProUpgradeModal({
             <span className="text-muted-foreground text-xs">
               {t('7-Day Free Trial')}
             </span>
-            <span className="text-lg font-extrabold text-amber-400">
+            <span className="text-lg font-extrabold text-amber-700 dark:text-amber-400">
               {formatCurrency(PRO_MONTHLY_PRICE)}{' '}
               <span className="text-muted-foreground text-xs font-normal">
                 / {t('month')}

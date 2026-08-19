@@ -71,19 +71,19 @@ export default function ChangelogPage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#050609] text-slate-100">
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <MarketingNavbar />
 
       <main className="container mx-auto max-w-4xl flex-1 px-4 py-16 md:px-6">
         <div className="space-y-10">
           <div className="mx-auto max-w-2xl space-y-4 text-center">
-            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-400">
+            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-400">
               {t('Product Updates & Release Notes')}
             </Badge>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-100 md:text-5xl">
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-5xl dark:text-slate-100">
               {t('DavinTrade Changelog')}
             </h1>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               {t(
                 'Follow the evolution of our quantitative AI trading platform, feature rollouts, and infrastructure enhancements.'
               )}
@@ -91,11 +91,11 @@ export default function ChangelogPage() {
           </div>
 
           {/* Timeline */}
-          <div className="relative ml-4 space-y-10 border-l border-slate-800 md:ml-8">
+          <div className="relative ml-4 space-y-10 border-l border-slate-200 md:ml-8 dark:border-slate-800">
             {releases.map((rel, idx) => (
               <div key={idx} className="relative space-y-3 pl-6 md:pl-8">
                 {/* Node dot */}
-                <div className="absolute top-1.5 -left-[9px] h-4 w-4 rounded-full border-2 border-amber-500 bg-[#06070a]" />
+                <div className="absolute top-1.5 -left-[9px] h-4 w-4 rounded-full border-2 border-amber-500 bg-white dark:bg-[#06070a]" />
 
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge className="bg-amber-500 text-xs font-bold text-slate-950">
@@ -103,7 +103,7 @@ export default function ChangelogPage() {
                   </Badge>
                   <Badge
                     variant="outline"
-                    className="border-slate-700 text-[10px] text-slate-400"
+                    className="border-slate-300 text-[10px] text-slate-600 dark:border-slate-700 dark:text-slate-400"
                   >
                     {rel.badge}
                   </Badge>
@@ -112,14 +112,14 @@ export default function ChangelogPage() {
                   </span>
                 </div>
 
-                <Card className="border-slate-800/80 bg-[#090b14]/90 p-6 backdrop-blur-xl">
-                  <h3 className="mb-3 text-base font-bold text-slate-100">
+                <Card className="border-slate-200 bg-white p-6 shadow-md dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
+                  <h3 className="mb-3 text-base font-bold text-slate-900 dark:text-slate-100">
                     {rel.title}
                   </h3>
-                  <ul className="space-y-2 text-xs text-slate-300 md:text-sm">
+                  <ul className="space-y-2 text-xs text-slate-700 md:text-sm dark:text-slate-300">
                     {rel.items.map((it, iIdx) => (
                       <li key={iIdx} className="flex items-start gap-2">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                         <span>{it}</span>
                       </li>
                     ))}

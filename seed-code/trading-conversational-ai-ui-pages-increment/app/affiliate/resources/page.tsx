@@ -66,7 +66,7 @@ export default function AffiliateResourcesPage() {
   ];
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#06070a] dark:text-slate-100">
       <AppHeader
         title={t('Affiliate Marketing Resources & Media Kit')}
         subtitle={t(
@@ -80,23 +80,23 @@ export default function AffiliateResourcesPage() {
         {/* Your Referral Links */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Link2 className="h-5 w-5 text-amber-400" />
-            <h2 className="text-base font-bold text-slate-100">
+            <Link2 className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
               {t('Your Referral Links')}
             </h2>
           </div>
 
-          <Card className="space-y-3 border-slate-800/80 bg-[#090b14]/90 p-5">
+          <Card className="space-y-3 border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
             {ACTIVE_REFERRAL_CODES.map((c) => {
               const link = `${origin}/register?ref=${c.code}`;
               return (
                 <div
                   key={c.code}
-                  className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-800 bg-[#06080e] p-3.5"
+                  className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-[#06080e]"
                 >
                   <Badge
                     variant="outline"
-                    className="border-amber-500/30 bg-amber-500/10 font-mono text-[11px] text-amber-400"
+                    className="border-amber-500/40 bg-amber-500/15 font-mono text-[11px] text-amber-700 dark:text-amber-400"
                   >
                     {c.code} · {c.discount}% {t('OFF')}
                   </Badge>
@@ -105,7 +105,7 @@ export default function AffiliateResourcesPage() {
                     value={link}
                     onFocus={(e) => e.target.select()}
                     aria-label={t(`Referral link for code ${c.code}`)}
-                    className="min-w-[220px] flex-1 rounded-lg border border-slate-800 bg-[#05060a] px-2.5 py-1.5 font-mono text-xs text-slate-300"
+                    className="min-w-[220px] flex-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-mono text-xs text-slate-800 dark:border-slate-800 dark:bg-[#05060a] dark:text-slate-300"
                   />
                   <Button
                     size="sm"
@@ -133,15 +133,15 @@ export default function AffiliateResourcesPage() {
         {/* Logos & Mascot Assets */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <ImageIcon className="h-5 w-5 text-amber-400" />
-            <h2 className="text-base font-bold text-slate-100">
+            <ImageIcon className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
               {t('Official Brand Assets & AI Mascots')}
             </h2>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <Card className="space-y-4 border-slate-800/80 bg-[#090b14]/90 p-5 text-center">
-              <div className="flex h-32 items-center justify-center rounded-xl border border-slate-800 bg-[#05060a] p-4">
+            <Card className="space-y-4 border-slate-200 bg-white p-5 text-center shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+              <div className="flex h-32 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-[#05060a]">
                 <Image
                   src="/davintrade-ai-icon.png"
                   alt="Davin AI Icon"
@@ -154,10 +154,10 @@ export default function AffiliateResourcesPage() {
                 />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-200">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
                   {t('Davin AI App Icon (512x512 PNG)')}
                 </h4>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">
                   {t('High resolution icon with transparent background')}
                 </p>
               </div>
@@ -165,7 +165,7 @@ export default function AffiliateResourcesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full border-slate-700 text-xs"
+                  className="w-full border-slate-300 text-xs text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200"
                 >
                   <Download className="mr-1.5 h-3.5 w-3.5" />
                   {t('Download PNG')}
@@ -173,8 +173,8 @@ export default function AffiliateResourcesPage() {
               </a>
             </Card>
 
-            <Card className="space-y-4 border-slate-800/80 bg-[#090b14]/90 p-5 text-center">
-              <div className="flex h-32 items-center justify-center rounded-xl border border-slate-800 bg-[#05060a] p-4">
+            <Card className="space-y-4 border-slate-200 bg-white p-5 text-center shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+              <div className="flex h-32 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-[#05060a]">
                 <Image
                   src="/DavinTrade_Logo.jpg"
                   alt="DavinTrade Logo"
@@ -187,10 +187,10 @@ export default function AffiliateResourcesPage() {
                 />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-200">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
                   {t('DavinTrade Full Brand Logo')}
                 </h4>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">
                   {t('Official horizontal banner brand logo')}
                 </p>
               </div>
@@ -198,7 +198,7 @@ export default function AffiliateResourcesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full border-slate-700 text-xs"
+                  className="w-full border-slate-300 text-xs text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200"
                 >
                   <Download className="mr-1.5 h-3.5 w-3.5" />
                   {t('Download JPG')}
@@ -206,20 +206,20 @@ export default function AffiliateResourcesPage() {
               </a>
             </Card>
 
-            <Card className="space-y-4 border-slate-800/80 bg-[#090b14]/90 p-5 text-center">
-              <div className="flex h-32 items-center justify-center rounded-xl border border-slate-800 bg-[#05060a] p-4">
+            <Card className="space-y-4 border-slate-200 bg-white p-5 text-center shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+              <div className="flex h-32 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-[#05060a]">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-8 w-8 text-amber-400" />
-                  <span className="text-lg font-extrabold text-amber-400">
+                  <Sparkles className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+                  <span className="text-lg font-extrabold text-amber-600 dark:text-amber-400">
                     DavinTrade
                   </span>
                 </div>
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-200">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
                   {t('Vector SVG Icon Pack')}
                 </h4>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">
                   {t('Scalable vector graphics for web and video')}
                 </p>
               </div>
@@ -227,7 +227,7 @@ export default function AffiliateResourcesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full border-slate-700 text-xs"
+                  className="w-full border-slate-300 text-xs text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200"
                 >
                   <Download className="mr-1.5 h-3.5 w-3.5" />
                   {t('Download SVG')}
@@ -240,8 +240,8 @@ export default function AffiliateResourcesPage() {
         {/* Copywriting Swipes */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-amber-400" />
-            <h2 className="text-base font-bold text-slate-100">
+            <FileText className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
               {t('High-Converting Copywriting Swipes')}
             </h2>
           </div>
@@ -250,21 +250,21 @@ export default function AffiliateResourcesPage() {
             {copyTexts.map((copy, idx) => (
               <Card
                 key={idx}
-                className="space-y-3 border-slate-800/80 bg-[#090b14]/90 p-5"
+                className="space-y-3 border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90"
               >
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-200">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
                     {copy.title}
                   </h4>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => copySwipe(copy.text, idx)}
-                    className="text-xs text-amber-400 hover:bg-amber-500/10"
+                    className="text-xs text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
                   >
                     {copiedIndex === idx ? (
                       <>
-                        <Check className="mr-1 h-3.5 w-3.5 text-emerald-400" />
+                        <Check className="mr-1 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                         <span>{t('Copied')}</span>
                       </>
                     ) : (
@@ -275,7 +275,7 @@ export default function AffiliateResourcesPage() {
                     )}
                   </Button>
                 </div>
-                <div className="rounded-xl border border-slate-800 bg-[#06080e] p-3 font-mono text-xs leading-relaxed text-slate-300 select-all">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 font-mono text-xs leading-relaxed text-slate-800 select-all dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-300">
                   {t(copy.text)}
                 </div>
               </Card>
@@ -286,34 +286,34 @@ export default function AffiliateResourcesPage() {
         {/* FAQ */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <HelpCircle className="h-5 w-5 text-amber-400" />
-            <h2 className="text-base font-bold text-slate-100">
+            <HelpCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
               {t('Frequently Asked Questions')}
             </h2>
           </div>
 
-          <Card className="divide-y divide-slate-800/80 border-slate-800/80 bg-[#090b14]/90 p-0">
+          <Card className="divide-y divide-slate-200 border-slate-200 bg-white p-0 shadow-sm dark:divide-slate-800/80 dark:border-slate-800/80 dark:bg-[#090b14]/90">
             <div className="space-y-1 p-5">
-              <h4 className="text-xs font-bold text-slate-200">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
                 {t('How much do I earn per referral?')}
               </h4>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">
                 {t(
                   'You earn 30% of net recurring revenue on every PRO-tier subscriber you refer, for as long as they stay subscribed.'
                 )}
               </p>
             </div>
             <div className="space-y-1 p-5">
-              <h4 className="text-xs font-bold text-slate-200">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
                 {t('When do I get paid?')}
               </h4>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">
                 {t(
                   'Payouts run automatically via Wise/Rise on the 1st of every month. Track the status of each batch on the'
                 )}{' '}
                 <Link
                   href="/affiliate/dashboard/payouts"
-                  className="text-amber-400 hover:underline"
+                  className="text-amber-600 hover:underline dark:text-amber-400"
                 >
                   {t('Payouts')}
                 </Link>{' '}
@@ -321,16 +321,16 @@ export default function AffiliateResourcesPage() {
               </p>
             </div>
             <div className="space-y-1 p-5">
-              <h4 className="text-xs font-bold text-slate-200">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
                 {t('How are my payouts set up and paid?')}
               </h4>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">
                 {t(
                   'Payout configurations and disbursements are handled directly by the Admin Disbursement Team via Wise and RiseWorks. You can view your payment records anytime in'
                 )}{' '}
                 <Link
                   href="/affiliate/dashboard/payouts"
-                  className="text-amber-400 hover:underline"
+                  className="text-amber-600 hover:underline dark:text-amber-400"
                 >
                   {t('Payouts')}
                 </Link>

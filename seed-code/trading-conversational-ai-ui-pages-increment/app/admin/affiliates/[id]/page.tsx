@@ -164,14 +164,14 @@ const getCodeStatusBadgeClass = (
 ): string => {
   switch (status) {
     case 'ACTIVE':
-      return 'border-emerald-500/40 bg-emerald-500/20 text-emerald-400';
+      return 'border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400';
     case 'USED':
-      return 'border-blue-500/40 bg-blue-500/20 text-blue-400';
+      return 'border-blue-500/40 bg-blue-500/15 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400';
     case 'CANCELLED':
-      return 'border-rose-500/40 bg-rose-500/20 text-rose-400';
+      return 'border-rose-500/40 bg-rose-500/15 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400';
     case 'EXPIRED':
     default:
-      return 'border-slate-500/40 bg-slate-500/20 text-slate-400';
+      return 'border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-500/40 dark:bg-slate-500/20 dark:text-slate-400';
   }
 };
 
@@ -301,7 +301,7 @@ export default function AdminAffiliateDetailPage({
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Admin Partner Deep Dive')}
         subtitle={t(`Managing Partner ID: ${affiliateId}`)}
@@ -313,7 +313,7 @@ export default function AdminAffiliateDetailPage({
         <div className="flex items-center justify-between">
           <Link
             href="/admin/affiliates"
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>{t('Back to Affiliates Directory')}</span>
@@ -325,8 +325,8 @@ export default function AdminAffiliateDetailPage({
             onClick={handleToggleStatus}
             className={`text-xs ${
               status === 'ACTIVE'
-                ? 'border-rose-500/40 text-rose-300 hover:bg-rose-950/40'
-                : 'border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/40'
+                ? 'border-rose-500/40 bg-rose-500/10 text-rose-700 hover:bg-rose-500/20 dark:bg-transparent dark:text-rose-300 dark:hover:bg-rose-950/40'
+                : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:bg-transparent dark:text-emerald-300 dark:hover:bg-emerald-950/40'
             }`}
           >
             {status === 'ACTIVE' ? (
@@ -344,72 +344,72 @@ export default function AdminAffiliateDetailPage({
         </div>
 
         {success && (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>{success}</span>
           </div>
         )}
 
         {/* Overview Header */}
-        <Card className="space-y-6 border-slate-800/80 bg-[#090b14]/90 p-6">
-          <div className="flex flex-col justify-between gap-4 border-b border-slate-800 pb-4 sm:flex-row sm:items-center">
+        <Card className="space-y-6 border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+          <div className="flex flex-col justify-between gap-4 border-b border-slate-200 pb-4 sm:flex-row sm:items-center dark:border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-lg font-bold text-amber-400">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-lg font-bold text-amber-600 dark:text-amber-400">
                 AM
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-bold text-slate-100">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                     Alex Morgan
                   </h3>
                   <Badge
                     className={
                       status === 'ACTIVE'
-                        ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-400'
-                        : 'border-rose-500/40 bg-rose-500/20 text-rose-400'
+                        ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
+                        : 'border-rose-500/40 bg-rose-500/15 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'
                     }
                   >
                     {t(status)}
                   </Badge>
                 </div>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   alex.trader@gmail.com • {t('ID:')} {affiliateId}
                 </p>
               </div>
             </div>
 
             <div className="text-right">
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-slate-600 dark:text-slate-400">
                 {t('Accrued Unpaid Commissions')}
               </div>
-              <div className="font-mono text-2xl font-extrabold text-emerald-400">
+              <div className="font-mono text-2xl font-extrabold text-emerald-700 dark:text-emerald-400">
                 {formatCurrency(PENDING_COMMISSIONS)}
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-xl border border-slate-800 bg-[#06080e] p-4">
-              <div className="text-xs text-slate-400">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-[#06080e]">
+              <div className="text-xs text-slate-600 dark:text-slate-400">
                 {t('Total Referrals')}
               </div>
-              <div className="mt-1 font-mono text-xl font-bold text-slate-200">
+              <div className="mt-1 font-mono text-xl font-bold text-slate-900 dark:text-slate-200">
                 168 {t('Signups')}
               </div>
             </div>
-            <div className="rounded-xl border border-slate-800 bg-[#06080e] p-4">
-              <div className="text-xs text-slate-400">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-[#06080e]">
+              <div className="text-xs text-slate-600 dark:text-slate-400">
                 {t('Active PRO Subscribers')}
               </div>
-              <div className="mt-1 font-mono text-xl font-bold text-emerald-400">
+              <div className="mt-1 font-mono text-xl font-bold text-emerald-700 dark:text-emerald-400">
                 42 {t('Traders')}
               </div>
             </div>
-            <div className="rounded-xl border border-slate-800 bg-[#06080e] p-4">
-              <div className="text-xs text-slate-400">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-[#06080e]">
+              <div className="text-xs text-slate-600 dark:text-slate-400">
                 {t('Lifetime Volume')}
               </div>
-              <div className="mt-1 font-mono text-xl font-bold text-cyan-400">
+              <div className="mt-1 font-mono text-xl font-bold text-cyan-700 dark:text-cyan-400">
                 {formatCurrency(8232)}
               </div>
             </div>
@@ -418,46 +418,52 @@ export default function AdminAffiliateDetailPage({
 
         {/* Profile & Earnings */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
-            <h4 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-slate-300 uppercase">
-              <ShieldCheck className="h-4 w-4 text-amber-400" />
+          <Card className="border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <h4 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-slate-900 uppercase dark:text-slate-300">
+              <ShieldCheck className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               {t('Profile Information')}
             </h4>
             <dl className="space-y-3 text-xs">
               <div className="flex items-center justify-between">
-                <dt className="text-slate-400">{t('Country')}</dt>
-                <dd className="font-semibold text-slate-200">
+                <dt className="text-slate-600 dark:text-slate-400">
+                  {t('Country')}
+                </dt>
+                <dd className="font-semibold text-slate-900 dark:text-slate-200">
                   {t(PROFILE.country)}
                 </dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="flex items-center gap-1.5 text-slate-400">
+                <dt className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
                   <Landmark className="h-3.5 w-3.5" />
                   {t('Payment Method')}
                 </dt>
-                <dd className="font-semibold text-slate-200">
+                <dd className="font-semibold text-slate-900 dark:text-slate-200">
                   {PROFILE.paymentMethod}
                 </dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="text-slate-400">{t('Verified At')}</dt>
-                <dd className="font-semibold text-slate-200">
+                <dt className="text-slate-600 dark:text-slate-400">
+                  {t('Verified At')}
+                </dt>
+                <dd className="font-semibold text-slate-900 dark:text-slate-200">
                   {formatDate(PROFILE.verifiedAt)}
                 </dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="text-slate-400">{t('Joined')}</dt>
-                <dd className="font-semibold text-slate-200">
+                <dt className="text-slate-600 dark:text-slate-400">
+                  {t('Joined')}
+                </dt>
+                <dd className="font-semibold text-slate-900 dark:text-slate-200">
                   {formatDate(PROFILE.joinedAt)}
                 </dd>
               </div>
             </dl>
 
             {status === 'SUSPENDED' && suspensionReason && (
-              <div className="mt-4 flex items-start gap-2 rounded-xl border border-rose-500/30 bg-rose-950/40 p-3 text-xs text-rose-300">
+              <div className="mt-4 flex items-start gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-700 dark:bg-rose-950/40 dark:text-rose-300">
                 <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <div>
-                  <div className="font-semibold tracking-wide text-rose-400 uppercase">
+                  <div className="font-semibold tracking-wide text-rose-700 uppercase dark:text-rose-400">
                     {t('Suspension Reason')}
                   </div>
                   <div>{suspensionReason}</div>
@@ -466,46 +472,58 @@ export default function AdminAffiliateDetailPage({
             )}
           </Card>
 
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
-            <h4 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-slate-300 uppercase">
-              <DollarSign className="h-4 w-4 text-amber-400" />
+          <Card className="border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <h4 className="mb-4 flex items-center gap-2 text-xs font-bold tracking-wider text-slate-900 uppercase dark:text-slate-300">
+              <DollarSign className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               {t('Earnings Summary')}
             </h4>
             <dl className="space-y-3 text-xs">
               <div className="flex items-center justify-between">
-                <dt className="text-slate-400">{t('Total Earnings')}</dt>
-                <dd className="font-mono font-bold text-slate-200">
+                <dt className="text-slate-600 dark:text-slate-400">
+                  {t('Total Earnings')}
+                </dt>
+                <dd className="font-mono font-bold text-slate-900 dark:text-slate-200">
                   {formatCurrency(totalEarnings)}
                 </dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="text-slate-400">{t('Pending Commissions')}</dt>
-                <dd className="font-mono font-bold text-amber-400">
+                <dt className="text-slate-600 dark:text-slate-400">
+                  {t('Pending Commissions')}
+                </dt>
+                <dd className="font-mono font-bold text-amber-700 dark:text-amber-400">
                   {formatCurrency(PENDING_COMMISSIONS)}
                 </dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="text-slate-400">{t('Paid Commissions')}</dt>
-                <dd className="font-mono font-bold text-emerald-400">
+                <dt className="text-slate-600 dark:text-slate-400">
+                  {t('Paid Commissions')}
+                </dt>
+                <dd className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
                   {formatCurrency(PAID_COMMISSIONS)}
                 </dd>
               </div>
-              <div className="flex items-center justify-between border-t border-slate-800 pt-3">
-                <dt className="text-slate-400">{t('Codes Distributed')}</dt>
-                <dd className="font-semibold text-slate-200">
+              <div className="flex items-center justify-between border-t border-slate-200 pt-3 dark:border-slate-800">
+                <dt className="text-slate-600 dark:text-slate-400">
+                  {t('Codes Distributed')}
+                </dt>
+                <dd className="font-semibold text-slate-900 dark:text-slate-200">
                   {codeDetails.length}
                 </dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="text-slate-400">{t('Codes Used')}</dt>
-                <dd className="font-semibold text-slate-200">{codesUsed}</dd>
+                <dt className="text-slate-600 dark:text-slate-400">
+                  {t('Codes Used')}
+                </dt>
+                <dd className="font-semibold text-slate-900 dark:text-slate-200">
+                  {codesUsed}
+                </dd>
               </div>
               <div className="flex items-center justify-between">
-                <dt className="flex items-center gap-1.5 text-slate-400">
+                <dt className="flex items-center gap-1.5 text-slate-600 dark:text-slate-400">
                   <Percent className="h-3.5 w-3.5" />
                   {t('Conversion Rate')}
                 </dt>
-                <dd className="font-semibold text-slate-200">
+                <dd className="font-semibold text-slate-900 dark:text-slate-200">
                   {conversionRate}%
                 </dd>
               </div>
@@ -514,16 +532,16 @@ export default function AdminAffiliateDetailPage({
         </div>
 
         {/* Affiliate Codes */}
-        <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90">
-          <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
-            <h4 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+            <h4 className="text-xs font-bold tracking-wider text-slate-900 uppercase dark:text-slate-300">
               {t('Affiliate Codes')} ({codeDetails.length})
             </h4>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsDistributing(true)}
-              className="border-slate-700 bg-[#06080e] text-xs text-amber-400 hover:bg-slate-800"
+              className="border-slate-300 bg-slate-50 text-xs text-amber-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-[#06080e] dark:text-amber-400 dark:hover:bg-slate-800"
             >
               <Plus className="mr-1 h-3.5 w-3.5" />
               {t('Distribute Codes')}
@@ -533,7 +551,7 @@ export default function AdminAffiliateDetailPage({
           {isDistributing && (
             <form
               onSubmit={handleDistributeCodes}
-              className="flex flex-col gap-2 border-b border-slate-800 bg-[#06080e] p-3 sm:flex-row"
+              className="flex flex-col gap-2 border-b border-slate-200 bg-slate-50 p-3 sm:flex-row dark:border-slate-800 dark:bg-[#06080e]"
             >
               <Input
                 type="number"
@@ -542,14 +560,14 @@ export default function AdminAffiliateDetailPage({
                 placeholder={t('Count (1-50)')}
                 value={distributeCount}
                 onChange={(e) => setDistributeCount(Number(e.target.value))}
-                className="border-slate-700 bg-[#090b14] text-xs sm:w-28"
+                className="border-slate-200 bg-white text-xs text-slate-900 sm:w-28 dark:border-slate-700 dark:bg-[#090b14] dark:text-slate-200"
                 required
               />
               <Input
                 placeholder={t('Reason (e.g. Q3 growth bonus)')}
                 value={distributeReason}
                 onChange={(e) => setDistributeReason(e.target.value)}
-                className="border-slate-700 bg-[#090b14] text-xs"
+                className="border-slate-200 bg-white text-xs text-slate-900 dark:border-slate-700 dark:bg-[#090b14] dark:text-slate-200"
                 required
               />
               <div className="flex gap-2">
@@ -565,7 +583,7 @@ export default function AdminAffiliateDetailPage({
                   size="sm"
                   type="button"
                   onClick={() => setIsDistributing(false)}
-                  className="text-slate-400"
+                  className="text-slate-500 hover:text-slate-900 dark:text-slate-400"
                 >
                   {t('Cancel')}
                 </Button>
@@ -574,30 +592,30 @@ export default function AdminAffiliateDetailPage({
           )}
 
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Code')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Status')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Reason')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Distributed')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Expires')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Used')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Cancelled')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Action')}
                 </TableHead>
               </TableRow>
@@ -606,9 +624,9 @@ export default function AdminAffiliateDetailPage({
               {codeDetails.map((c) => (
                 <TableRow
                   key={c.code}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
-                  <TableCell className="flex items-center gap-1.5 font-mono text-xs font-bold text-amber-400">
+                  <TableCell className="flex items-center gap-1.5 font-mono text-xs font-bold text-amber-700 dark:text-amber-400">
                     <QrCode className="h-3.5 w-3.5" />
                     {c.code}
                   </TableCell>
@@ -619,19 +637,19 @@ export default function AdminAffiliateDetailPage({
                       {t(c.status)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs text-slate-400">
+                  <TableCell className="text-xs text-slate-600 dark:text-slate-400">
                     {t(REASON_LABEL[c.distributionReason])}
                   </TableCell>
-                  <TableCell className="text-xs text-slate-300">
+                  <TableCell className="text-xs text-slate-700 dark:text-slate-300">
                     {formatDate(c.distributedAt)}
                   </TableCell>
-                  <TableCell className="text-xs text-slate-300">
+                  <TableCell className="text-xs text-slate-700 dark:text-slate-300">
                     {formatDate(c.expiresAt)}
                   </TableCell>
-                  <TableCell className="text-xs text-slate-300">
+                  <TableCell className="text-xs text-slate-700 dark:text-slate-300">
                     {formatDate(c.usedAt)}
                   </TableCell>
-                  <TableCell className="text-xs text-slate-300">
+                  <TableCell className="text-xs text-slate-700 dark:text-slate-300">
                     {formatDate(c.cancelledAt)}
                   </TableCell>
                   <TableCell className="text-right">
@@ -640,13 +658,15 @@ export default function AdminAffiliateDetailPage({
                         variant="outline"
                         size="sm"
                         onClick={() => handleCancelCode(c.code)}
-                        className="border-rose-500/30 bg-[#06080e] text-xs text-rose-400 hover:bg-rose-950/40"
+                        className="border-rose-500/30 bg-rose-50 text-xs text-rose-700 hover:bg-rose-100 dark:bg-[#06080e] dark:text-rose-400 dark:hover:bg-rose-950/40"
                       >
                         <Ban className="mr-1 h-3.5 w-3.5" />
                         {t('Cancel')}
                       </Button>
                     ) : (
-                      <span className="text-xs text-slate-600">—</span>
+                      <span className="text-xs text-slate-400 dark:text-slate-600">
+                        —
+                      </span>
                     )}
                   </TableCell>
                 </TableRow>
@@ -656,26 +676,26 @@ export default function AdminAffiliateDetailPage({
         </Card>
 
         {/* Recent Commissions */}
-        <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90">
-          <div className="flex items-center gap-2 border-b border-slate-800 px-5 py-4">
-            <Landmark className="h-4 w-4 text-amber-400" />
-            <h4 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+          <div className="flex items-center gap-2 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+            <Landmark className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <h4 className="text-xs font-bold tracking-wider text-slate-900 uppercase dark:text-slate-300">
               {t('Recent Commissions')}
             </h4>
           </div>
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Amount')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Status')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Earned')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Paid')}
                 </TableHead>
               </TableRow>
@@ -684,26 +704,26 @@ export default function AdminAffiliateDetailPage({
               {COMMISSIONS.map((c) => (
                 <TableRow
                   key={c.id}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
-                  <TableCell className="font-mono text-xs font-bold text-slate-200">
+                  <TableCell className="font-mono text-xs font-bold text-slate-900 dark:text-slate-200">
                     {formatCurrency(c.amount)}
                   </TableCell>
                   <TableCell>
                     <Badge
                       className={`text-[10px] ${
                         c.status === 'PAID'
-                          ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-400'
-                          : 'border-amber-500/40 bg-amber-500/20 text-amber-400'
+                          ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
+                          : 'border-amber-500/40 bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
                       }`}
                     >
                       {t(c.status)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs text-slate-300">
+                  <TableCell className="text-xs text-slate-700 dark:text-slate-300">
                     {formatDate(c.earnedAt)}
                   </TableCell>
-                  <TableCell className="text-xs text-slate-300">
+                  <TableCell className="text-xs text-slate-700 dark:text-slate-300">
                     {formatDate(c.paidAt)}
                   </TableCell>
                 </TableRow>

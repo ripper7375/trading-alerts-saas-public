@@ -86,19 +86,19 @@ export default function HelpPage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#050609] text-slate-100">
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <MarketingNavbar />
 
       <main className="container mx-auto max-w-5xl flex-1 px-4 py-16 md:px-6">
         <div className="space-y-10">
           <div className="mx-auto max-w-2xl space-y-4 text-center">
-            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-400">
+            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-400">
               {t('DavinTrade Help Centre')}
             </Badge>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-100 md:text-5xl">
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-5xl dark:text-slate-100">
               {t('How can we help you today?')}
             </h1>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               {t(
                 'Search our knowledge base or chat directly with Davin AI support.'
               )}
@@ -110,7 +110,7 @@ export default function HelpPage() {
                 placeholder={t('Search questions, billing, signals...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-11 border-slate-800 bg-[#090b14] pl-10 text-slate-200 focus:border-amber-500/60"
+                className="h-11 border-slate-200 bg-white pl-10 text-slate-900 focus:border-amber-500/60 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200"
               />
             </div>
           </div>
@@ -119,20 +119,20 @@ export default function HelpPage() {
           <div className="mx-auto grid max-w-3xl gap-4 md:grid-cols-2">
             <Card
               onClick={openChat}
-              className="cursor-pointer border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-[#0d101a] to-[#090b14] p-5 transition-all hover:border-amber-500/60"
+              className="cursor-pointer border-amber-500/30 bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-white p-5 shadow-md transition-all hover:border-amber-500/60 dark:from-amber-500/10 dark:via-[#0d101a] dark:to-[#090b14]"
             >
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-400">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-600 dark:text-amber-400">
                   <Sparkles className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-100">
+                  <h3 className="flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100">
                     {t('Live Conversational AI Support')}
-                    <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
+                    <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-600 dark:text-emerald-400">
                       24/7
                     </Badge>
                   </h3>
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                     {t(
                       'Instant answers about market analytics, account setup, and billing.'
                     )}
@@ -141,16 +141,16 @@ export default function HelpPage() {
               </div>
             </Card>
 
-            <Card className="border-slate-800 bg-[#090b14]/80 p-5">
+            <Card className="border-slate-200 bg-white p-5 shadow-md dark:border-slate-800 dark:bg-[#090b14]/80">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-700 bg-slate-800/50 text-slate-300">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
                   <Mail className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-100">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                     {t('Email Support Desk')}
                   </h3>
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                     support@davintrade.com • {t('Response within 4 hours')}
                   </p>
                 </div>
@@ -164,11 +164,11 @@ export default function HelpPage() {
               const Icon = cat.icon;
               return (
                 <div key={idx} className="space-y-4">
-                  <div className="flex items-center gap-2.5 border-b border-slate-800/80 pb-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400">
+                  <div className="flex items-center gap-2.5 border-b border-slate-200 pb-3 dark:border-slate-800/80">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
                       <Icon className="h-4 w-4" />
                     </div>
-                    <h2 className="text-lg font-bold text-slate-100">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                       {cat.category}
                     </h2>
                   </div>
@@ -177,12 +177,12 @@ export default function HelpPage() {
                     {cat.questions.map((item, qIdx) => (
                       <Card
                         key={qIdx}
-                        className="space-y-2 border-slate-800/80 bg-[#080a12]/80 p-5 hover:border-slate-700"
+                        className="space-y-2 border-slate-200 bg-white p-5 shadow-sm hover:border-slate-300 dark:border-slate-800/80 dark:bg-[#080a12]/80 dark:hover:border-slate-700"
                       >
-                        <h4 className="text-sm font-bold text-slate-200">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-slate-200">
                           {item.q}
                         </h4>
-                        <p className="text-xs leading-relaxed text-slate-400">
+                        <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                           {item.a}
                         </p>
                       </Card>

@@ -201,17 +201,17 @@ export default function PaymentBatchesPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100 sm:text-3xl">
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl dark:text-slate-100">
             {t('Payment Batches')}
           </h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             {t('Manage and execute payment batches')}
           </p>
         </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
-            className="border-slate-800 bg-[#090c14] text-slate-300 hover:bg-slate-800"
+            className="border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-[#090c14] dark:text-slate-300 dark:hover:bg-slate-800"
             onClick={() => window.location.reload()}
           >
             <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
@@ -228,13 +228,13 @@ export default function PaymentBatchesPage() {
       </div>
 
       {successMessage && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
           {t(successMessage)}
         </div>
       )}
 
       {/* Status Filter */}
-      <Card className="border-slate-800/80 bg-[#090c14]">
+      <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
         <CardContent className="flex flex-wrap gap-2 py-4">
           {STATUS_OPTIONS.map((status) => (
             <Button
@@ -245,7 +245,7 @@ export default function PaymentBatchesPage() {
               className={
                 statusFilter === status
                   ? 'bg-amber-500 font-bold text-slate-950 hover:bg-amber-400'
-                  : 'border-slate-800 bg-transparent text-xs text-slate-300 hover:bg-slate-800'
+                  : 'border-slate-300 bg-slate-50 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800'
               }
             >
               {status === 'ALL' ? t('All Batches') : t(status)}
@@ -256,29 +256,29 @@ export default function PaymentBatchesPage() {
 
       {/* Batches Table */}
       {filteredBatches.length > 0 ? (
-        <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Batch #')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Status')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Payments')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Amount')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Provider')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Created')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Actions')}
                 </TableHead>
               </TableRow>
@@ -287,12 +287,12 @@ export default function PaymentBatchesPage() {
               {filteredBatches.map((batch) => (
                 <TableRow
                   key={batch.id}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
                   <TableCell>
                     <Link
                       href={`/admin/disbursement/batches/${batch.id}`}
-                      className="font-mono text-xs font-bold text-amber-400 hover:text-amber-300"
+                      className="font-mono text-xs font-bold text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
                     >
                       {batch.batchNumber}
                     </Link>
@@ -300,18 +300,18 @@ export default function PaymentBatchesPage() {
                   <TableCell>
                     <BatchStatusBadge status={batch.status} />
                   </TableCell>
-                  <TableCell className="text-xs text-slate-300">
+                  <TableCell className="text-xs text-slate-700 dark:text-slate-300">
                     {batch.paymentCount}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-emerald-400">
+                  <TableCell className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     {formatCurrency(batch.totalAmount)}
                   </TableCell>
                   <TableCell>
-                    <Badge className="border-slate-600/40 bg-slate-600/15 text-[10px] text-slate-300">
+                    <Badge className="border-slate-300 bg-slate-100 text-[10px] text-slate-700 dark:border-slate-600/40 dark:bg-slate-600/15 dark:text-slate-300">
                       {t(batch.provider)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-400">
+                  <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                     {formatDate(batch.createdAt)}
                   </TableCell>
                   <TableCell className="text-right">
@@ -343,7 +343,7 @@ export default function PaymentBatchesPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-7 border-slate-800 bg-transparent text-xs text-slate-300 hover:bg-slate-800"
+                          className="h-7 border-slate-300 bg-slate-50 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800"
                         >
                           {t('Details')}
                         </Button>
@@ -356,8 +356,8 @@ export default function PaymentBatchesPage() {
           </Table>
         </Card>
       ) : (
-        <Card className="border-slate-800/80 bg-[#090c14]">
-          <CardContent className="py-12 text-center text-sm text-slate-400">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
+          <CardContent className="py-12 text-center text-sm text-slate-600 dark:text-slate-400">
             {t('No batches found.')}
           </CardContent>
         </Card>
@@ -365,39 +365,45 @@ export default function PaymentBatchesPage() {
 
       {/* Create Batch Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-h-[80vh] max-w-2xl overflow-auto border-slate-800 bg-[#0b0e17] text-slate-100">
+        <DialogContent className="max-h-[80vh] max-w-2xl overflow-auto border-slate-200 bg-white text-slate-900 shadow-xl dark:border-slate-800 dark:bg-[#0b0e17] dark:text-slate-100">
           <DialogHeader>
             <DialogTitle>{t('Create Payment Batch')}</DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-slate-600 dark:text-slate-400">
               {t('Review the batch preview before creating')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="rounded-lg bg-slate-800/50 p-3">
-              <p className="text-xs text-slate-400">{t('Total Affiliates')}</p>
-              <p className="text-xl font-bold text-slate-100">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-transparent dark:bg-slate-800/50">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {t('Total Affiliates')}
+              </p>
+              <p className="text-xl font-bold text-slate-900 dark:text-slate-100">
                 {BATCH_PREVIEW.length}
               </p>
             </div>
-            <div className="rounded-lg bg-slate-800/50 p-3">
-              <p className="text-xs text-slate-400">{t('Eligible')}</p>
-              <p className="text-xl font-bold text-emerald-400">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-transparent dark:bg-slate-800/50">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {t('Eligible')}
+              </p>
+              <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
                 {eligiblePreview.length}
               </p>
             </div>
-            <div className="rounded-lg bg-slate-800/50 p-3">
-              <p className="text-xs text-slate-400">{t('Total Amount')}</p>
-              <p className="text-xl font-bold text-emerald-400">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-transparent dark:bg-slate-800/50">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {t('Total Amount')}
+              </p>
+              <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
                 {formatCurrency(previewTotal)}
               </p>
             </div>
           </div>
 
-          <div className="max-h-60 overflow-auto rounded-lg border border-slate-800">
+          <div className="max-h-60 overflow-auto rounded-lg border border-slate-200 dark:border-slate-800">
             <table className="w-full text-xs">
-              <thead className="sticky top-0 bg-[#06080e]">
-                <tr className="border-b border-slate-800 text-slate-400">
+              <thead className="sticky top-0 bg-slate-100 text-slate-700 dark:bg-[#06080e] dark:text-slate-400">
+                <tr className="border-b border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-400">
                   <th className="px-3 py-2 text-left font-medium">
                     {t('Affiliate')}
                   </th>
@@ -416,24 +422,24 @@ export default function PaymentBatchesPage() {
                 {BATCH_PREVIEW.map((item) => (
                   <tr
                     key={item.affiliateId}
-                    className="border-b border-slate-800/50 last:border-0"
+                    className="border-b border-slate-200 last:border-0 dark:border-slate-800/50"
                   >
-                    <td className="px-3 py-2 text-slate-200">
+                    <td className="px-3 py-2 text-slate-900 dark:text-slate-200">
                       {item.affiliateName}
                     </td>
-                    <td className="px-3 py-2 text-slate-300">
+                    <td className="px-3 py-2 text-slate-700 dark:text-slate-300">
                       {item.commissionCount}
                     </td>
-                    <td className="px-3 py-2 font-mono text-emerald-400">
+                    <td className="px-3 py-2 font-mono text-emerald-700 dark:text-emerald-400">
                       {formatCurrency(item.totalAmount)}
                     </td>
                     <td className="px-3 py-2">
                       {item.eligible ? (
-                        <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[9px] text-emerald-300">
+                        <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[9px] text-emerald-700 dark:text-emerald-300">
                           {t('Yes')}
                         </Badge>
                       ) : (
-                        <Badge className="border-rose-500/40 bg-rose-500/15 text-[9px] text-rose-300">
+                        <Badge className="border-rose-500/40 bg-rose-500/15 text-[9px] text-rose-700 dark:text-rose-300">
                           {item.reason ? t(item.reason) : t('No')}
                         </Badge>
                       )}
@@ -447,7 +453,7 @@ export default function PaymentBatchesPage() {
           <DialogFooter>
             <Button
               variant="outline"
-              className="border-slate-800 bg-transparent text-slate-300 hover:bg-slate-800"
+              className="border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800"
               onClick={() => setShowCreateDialog(false)}
             >
               {t('Cancel')}
@@ -468,17 +474,17 @@ export default function PaymentBatchesPage() {
         open={deleteTargetId !== null}
         onOpenChange={(open) => !open && setDeleteTargetId(null)}
       >
-        <AlertDialogContent className="border-slate-800 bg-[#0b0e17] text-slate-100">
+        <AlertDialogContent className="border-slate-200 bg-white text-slate-900 shadow-xl dark:border-slate-800 dark:bg-[#0b0e17] dark:text-slate-100">
           <AlertDialogHeader>
             <AlertDialogTitle>{t('Delete this batch?')}</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
+            <AlertDialogDescription className="text-slate-600 dark:text-slate-400">
               {t(
                 'This permanently removes the batch and cannot be undone. Only pending, cancelled, or failed batches can be deleted.'
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-slate-800 bg-transparent text-slate-300 hover:bg-slate-800">
+            <AlertDialogCancel className="border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800">
               {t('Cancel')}
             </AlertDialogCancel>
             <AlertDialogAction

@@ -13,31 +13,31 @@ export default function DisclaimerPage() {
   const { t } = useLocale();
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#050609] text-slate-100">
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <MarketingNavbar />
 
       <main className="container mx-auto max-w-4xl flex-1 px-4 py-16 md:px-6">
         <div className="space-y-8">
           <div className="space-y-3">
-            <Badge className="border-rose-500/40 bg-rose-500/15 px-3 py-1 font-mono text-xs text-rose-400">
+            <Badge className="border-rose-500/40 bg-rose-500/15 px-3 py-1 font-mono text-xs text-rose-700 dark:text-rose-400">
               {t('Regulatory & Risk Notice')}
             </Badge>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-100 md:text-4xl">
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl dark:text-slate-100">
               {t('Financial Risk Disclosure & Legal Disclaimer')}
             </h1>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               {t('Last Updated: August 2026')}
             </p>
           </div>
 
-          <Card className="border-rose-500/30 bg-rose-950/20 backdrop-blur-xl">
+          <Card className="border-rose-500/30 bg-rose-500/10 backdrop-blur-xl">
             <CardContent className="flex items-start gap-4 p-6">
-              <ShieldAlert className="mt-0.5 h-7 w-7 shrink-0 text-rose-400" />
+              <ShieldAlert className="mt-0.5 h-7 w-7 shrink-0 text-rose-600 dark:text-rose-400" />
               <div className="space-y-2">
-                <h3 className="text-base font-bold text-rose-200">
+                <h3 className="text-base font-bold text-rose-800 dark:text-rose-200">
                   {t('High Risk Investment Warning')}
                 </h3>
-                <p className="text-xs leading-relaxed text-slate-300">
+                <p className="text-xs leading-relaxed text-slate-700 dark:text-slate-300">
                   {t(
                     'Trading Foreign Exchange (Forex), Contracts for Difference (CFDs), and Commodities such as Spot Gold (XAUUSD) on margin carries a high level of risk and may not be suitable for all investors. The high degree of leverage can work against you as well as for you. You may lose some or all of your invested capital.'
                   )}
@@ -46,9 +46,9 @@ export default function DisclaimerPage() {
             </CardContent>
           </Card>
 
-          <div className="space-y-6 border-t border-slate-800/80 pt-6 text-sm leading-relaxed text-slate-300">
+          <div className="space-y-6 border-t border-slate-200 pt-6 text-sm leading-relaxed text-slate-700 dark:border-slate-800/80 dark:text-slate-300">
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-slate-100">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                 1. {t('Informational and Educational Purpose Only')}
               </h2>
               <p>
@@ -59,7 +59,7 @@ export default function DisclaimerPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-slate-100">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                 2. {t('No Financial or Investment Advice')}
               </h2>
               <p>
@@ -70,7 +70,7 @@ export default function DisclaimerPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-slate-100">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                 3. {t('Hypothetical & Past Performance')}
               </h2>
               <p>
@@ -81,7 +81,7 @@ export default function DisclaimerPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-slate-100">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                 4. {t('Technical Reliability & Latency')}
               </h2>
               <p>
@@ -92,7 +92,7 @@ export default function DisclaimerPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-slate-100">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                 5. {t('No Guarantee of Results')}
               </h2>
               <p>
@@ -103,7 +103,7 @@ export default function DisclaimerPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-lg font-bold text-slate-100">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                 6. {t('Acknowledgment')}
               </h2>
               <p>
@@ -112,14 +112,14 @@ export default function DisclaimerPage() {
                 )}{' '}
                 <Link
                   href="/terms"
-                  className="text-amber-400 underline hover:text-amber-300"
+                  className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                 >
                   {t('Terms of Service')}
                 </Link>{' '}
                 {t('and')}{' '}
                 <Link
                   href="/privacy"
-                  className="text-amber-400 underline hover:text-amber-300"
+                  className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                 >
                   {t('Privacy Policy')}
                 </Link>

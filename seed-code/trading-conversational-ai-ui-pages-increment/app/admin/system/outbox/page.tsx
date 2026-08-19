@@ -113,7 +113,7 @@ export default function AdminSystemOutboxPage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Admin System: Transactional Outbox Queue')}
         subtitle={t(
@@ -125,7 +125,7 @@ export default function AdminSystemOutboxPage() {
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">
         {success && (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>{success}</span>
           </div>
@@ -138,7 +138,7 @@ export default function AdminSystemOutboxPage() {
               placeholder={t('Search outbox queue...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
+              className="h-9 border-slate-200 bg-white pl-9 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200"
             />
           </div>
 
@@ -146,7 +146,7 @@ export default function AdminSystemOutboxPage() {
             size="sm"
             disabled={statusCounts.FAILED === 0 || isRetrying}
             onClick={handleRetryFailed}
-            className="border-rose-500/30 bg-rose-500/10 text-xs text-rose-300 hover:bg-rose-500/20 disabled:opacity-40"
+            className="border-rose-500/30 bg-rose-50 text-xs text-rose-700 hover:bg-rose-100 disabled:opacity-40 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20"
             variant="outline"
           >
             <RefreshCw
@@ -154,7 +154,7 @@ export default function AdminSystemOutboxPage() {
             />
             {isRetrying ? t('Retrying...') : t('Retry Failed Events')}
             {statusCounts.FAILED > 0 && (
-              <Badge className="ml-1.5 border-rose-500/40 bg-rose-500/20 text-[10px] text-rose-300">
+              <Badge className="ml-1.5 border-rose-500/40 bg-rose-500/15 text-[10px] text-rose-700 dark:bg-rose-500/20 dark:text-rose-300">
                 {statusCounts.FAILED}
               </Badge>
             )}
@@ -162,58 +162,58 @@ export default function AdminSystemOutboxPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
-            <div className="text-xs font-medium text-slate-400">
+          <Card className="border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               {t('SENT')}
             </div>
-            <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-400">
+            <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-700 dark:text-emerald-400">
               {statusCounts.SENT}
             </div>
           </Card>
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
-            <div className="text-xs font-medium text-slate-400">
+          <Card className="border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               {t('PENDING')}
             </div>
-            <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-400">
+            <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-700 dark:text-cyan-400">
               {statusCounts.PENDING}
             </div>
           </Card>
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-5">
-            <div className="text-xs font-medium text-slate-400">
+          <Card className="border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               {t('FAILED')}
             </div>
-            <div className="mt-1 font-mono text-2xl font-extrabold text-rose-400">
+            <div className="mt-1 font-mono text-2xl font-extrabold text-rose-700 dark:text-rose-400">
               {statusCounts.FAILED}
             </div>
           </Card>
         </div>
 
-        <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Outbox ID')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Channel')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Recipient Target')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Subject / Event')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Attempts')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Last Attempt')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Last Error')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Status')}
                 </TableHead>
               </TableRow>
@@ -232,42 +232,42 @@ export default function AdminSystemOutboxPage() {
                 filteredMessages.map((m) => (
                   <TableRow
                     key={m.id}
-                    className="border-slate-800/60 hover:bg-slate-800/30"
+                    className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                   >
-                    <TableCell className="font-mono text-xs text-slate-400">
+                    <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                       {m.id}
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className="border-cyan-500/30 bg-cyan-500/10 font-mono text-[10px] text-cyan-400"
+                        className="border-cyan-500/30 bg-cyan-50 font-mono text-[10px] text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-400"
                       >
                         {t(m.channel)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-slate-200">
+                    <TableCell className="font-mono text-xs text-slate-900 dark:text-slate-200">
                       {m.recipient}
                     </TableCell>
-                    <TableCell className="text-xs text-slate-300">
+                    <TableCell className="text-xs text-slate-800 dark:text-slate-300">
                       {t(m.subject)}
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-slate-400">
+                    <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                       {m.attempts}
                     </TableCell>
                     <TableCell className="font-mono text-xs text-slate-500">
                       {t(m.lastAttempt)}
                     </TableCell>
-                    <TableCell className="max-w-xs truncate font-mono text-[11px] text-rose-400">
+                    <TableCell className="max-w-xs truncate font-mono text-[11px] text-rose-600 dark:text-rose-400">
                       {m.lastError ? t(m.lastError) : '—'}
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge
                         className={
                           m.status === 'FAILED'
-                            ? 'border-rose-500/40 bg-rose-500/20 text-[10px] text-rose-400'
+                            ? 'border-rose-500/40 bg-rose-500/15 text-[10px] text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'
                             : m.status === 'PENDING'
-                              ? 'border-cyan-500/40 bg-cyan-500/20 text-[10px] text-cyan-400'
-                              : 'border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400'
+                              ? 'border-cyan-500/40 bg-cyan-500/15 text-[10px] text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-400'
+                              : 'border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
                         }
                       >
                         {t(m.status)}

@@ -130,7 +130,7 @@ export default function AdminReportProfitLossPage() {
   ];
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Admin Report: SaaS Profit & Loss Breakdown')}
         subtitle={t(
@@ -144,7 +144,7 @@ export default function AdminReportProfitLossPage() {
         <div className="flex items-center justify-between">
           <Link
             href="/admin/affiliates"
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>{t('Back to Affiliates Directory')}</span>
@@ -154,9 +154,9 @@ export default function AdminReportProfitLossPage() {
             variant="outline"
             size="sm"
             onClick={() => alert(t('Downloading PnL CSV Report...'))}
-            className="border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
+            className="border-slate-300 bg-slate-50 text-xs text-slate-800 hover:bg-slate-100 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-300 dark:hover:bg-slate-800"
           >
-            <Download className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
+            <Download className="mr-1.5 h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
             {t('Export CSV Report')}
           </Button>
         </div>
@@ -164,7 +164,7 @@ export default function AdminReportProfitLossPage() {
         {/* Period Selector */}
         <div className="flex items-center gap-2">
           <Calendar className="h-3.5 w-3.5 text-slate-400" />
-          <div className="inline-flex overflow-hidden rounded-lg border border-slate-800">
+          <div className="inline-flex overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
             {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
               <button
                 key={p}
@@ -172,7 +172,7 @@ export default function AdminReportProfitLossPage() {
                 className={`px-4 py-1.5 text-xs font-medium ${
                   period === p
                     ? 'bg-amber-500 text-slate-950'
-                    : 'bg-[#090b14] text-slate-300 hover:bg-slate-800'
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 dark:bg-[#090b14] dark:text-slate-300 dark:hover:bg-slate-800'
                 }`}
               >
                 {t(PERIOD_LABELS[p])}
@@ -183,35 +183,35 @@ export default function AdminReportProfitLossPage() {
 
         {/* 4 Summary Cards */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
-            <div className="text-xs font-medium text-slate-400">
+          <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               {t(`Gross Revenue (${PERIOD_LABELS[period]})`)}
             </div>
-            <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-400">
+            <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-700 dark:text-emerald-400">
               {formatCurrency(summary.grossRevenue)}
             </div>
           </Card>
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
-            <div className="text-xs font-medium text-slate-400">
+          <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               {t('Affiliate Expense')}
             </div>
-            <div className="mt-1 font-mono text-2xl font-extrabold text-amber-400">
+            <div className="mt-1 font-mono text-2xl font-extrabold text-amber-700 dark:text-amber-400">
               {formatCurrency(summary.affiliateExpense)}
             </div>
           </Card>
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
-            <div className="text-xs font-medium text-slate-400">
+          <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               {t('Net Operating Profit')}
             </div>
-            <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-400">
+            <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-700 dark:text-cyan-400">
               {formatCurrency(summary.netOperatingProfit)}
             </div>
           </Card>
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
-            <div className="text-xs font-medium text-slate-400">
+          <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               {t('Average Net Margin')}
             </div>
-            <div className="mt-1 font-mono text-2xl font-extrabold text-purple-400">
+            <div className="mt-1 font-mono text-2xl font-extrabold text-purple-700 dark:text-purple-400">
               {summary.averageNetMargin.toFixed(1)}%
             </div>
           </Card>
@@ -219,23 +219,23 @@ export default function AdminReportProfitLossPage() {
 
         {/* Revenue Breakdown & Commission Breakdown (matches Codebase 1's Detailed Breakdown section) */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-6">
-            <h2 className="mb-4 text-sm font-bold text-slate-200">
+          <Card className="border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <h2 className="mb-4 text-sm font-bold text-slate-900 dark:text-slate-200">
               {t('Revenue Breakdown')}
             </h2>
             <dl className="space-y-3 text-xs">
               <div className="flex justify-between">
-                <dt className="text-slate-400">
+                <dt className="text-slate-600 dark:text-slate-400">
                   {t('Gross Revenue')} (
                   {summary.totalSales.toLocaleString(language)} {t('sales')}{' '}
                   &times;{' '}
                   {formatCurrency(summary.grossRevenue / summary.totalSales)})
                 </dt>
-                <dd className="font-mono font-semibold text-slate-200">
+                <dd className="font-mono font-semibold text-slate-900 dark:text-slate-200">
                   {formatCurrency(summary.grossRevenue)}
                 </dd>
               </div>
-              <div className="flex justify-between text-red-400">
+              <div className="flex justify-between text-red-600 dark:text-red-400">
                 <dt>
                   {t('Less: Discounts')} ({summary.discountPercent}%)
                 </dt>
@@ -243,9 +243,11 @@ export default function AdminReportProfitLossPage() {
                   -{formatCurrency(summary.discounts)}
                 </dd>
               </div>
-              <div className="flex justify-between border-t border-slate-800 pt-3">
-                <dt className="font-bold text-slate-200">{t('Net Revenue')}</dt>
-                <dd className="font-mono text-sm font-bold text-emerald-400">
+              <div className="flex justify-between border-t border-slate-200 pt-3 dark:border-slate-800">
+                <dt className="font-bold text-slate-900 dark:text-slate-200">
+                  {t('Net Revenue')}
+                </dt>
+                <dd className="font-mono text-sm font-bold text-emerald-700 dark:text-emerald-400">
                   {formatCurrency(summary.netRevenue)}
                 </dd>
               </div>
@@ -258,36 +260,40 @@ export default function AdminReportProfitLossPage() {
             </dl>
           </Card>
 
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-6">
-            <h2 className="mb-4 text-sm font-bold text-slate-200">
+          <Card className="border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <h2 className="mb-4 text-sm font-bold text-slate-900 dark:text-slate-200">
               {t('Commission Breakdown')}
             </h2>
             <dl className="space-y-3 text-xs">
               <div className="flex justify-between">
-                <dt className="text-slate-400">{t('Paid Commissions')}</dt>
-                <dd className="font-mono font-semibold text-emerald-400">
+                <dt className="text-slate-600 dark:text-slate-400">
+                  {t('Paid Commissions')}
+                </dt>
+                <dd className="font-mono font-semibold text-emerald-700 dark:text-emerald-400">
                   {formatCurrency(summary.paidCommissions)}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-slate-400">
+                <dt className="text-slate-600 dark:text-slate-400">
                   {t('Approved (Awaiting Payment)')}
                 </dt>
-                <dd className="font-mono font-semibold text-cyan-400">
+                <dd className="font-mono font-semibold text-cyan-700 dark:text-cyan-400">
                   {formatCurrency(summary.approvedCommissions)}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-slate-400">{t('Pending Approval')}</dt>
-                <dd className="font-mono font-semibold text-amber-400">
+                <dt className="text-slate-600 dark:text-slate-400">
+                  {t('Pending Approval')}
+                </dt>
+                <dd className="font-mono font-semibold text-amber-700 dark:text-amber-400">
                   {formatCurrency(summary.pendingCommissions)}
                 </dd>
               </div>
-              <div className="flex justify-between border-t border-slate-800 pt-3">
-                <dt className="font-bold text-slate-200">
+              <div className="flex justify-between border-t border-slate-200 pt-3 dark:border-slate-800">
+                <dt className="font-bold text-slate-900 dark:text-slate-200">
                   {t('Total Commissions')}
                 </dt>
-                <dd className="font-mono text-sm font-bold text-slate-100">
+                <dd className="font-mono text-sm font-bold text-slate-900 dark:text-slate-100">
                   {formatCurrency(summary.affiliateExpense)}
                 </dd>
               </div>
@@ -304,29 +310,29 @@ export default function AdminReportProfitLossPage() {
         </div>
 
         {/* Table */}
-        <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Month Period')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Gross Revenue')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Payment Gateway Fees (2.9%)')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Affiliate Commissions (30%)')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Infrastructure Cost')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Net Profit')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Net Margin')}
                 </TableHead>
               </TableRow>
@@ -335,28 +341,28 @@ export default function AdminReportProfitLossPage() {
               {pnlMonthly.map((p, idx) => (
                 <TableRow
                   key={idx}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
-                  <TableCell className="text-xs font-bold text-slate-200">
+                  <TableCell className="text-xs font-bold text-slate-900 dark:text-slate-200">
                     {t(p.month)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-emerald-400">
+                  <TableCell className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     {formatCurrency(p.gross)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-400">
+                  <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                     {formatCurrency(p.gatewayFees)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-amber-400">
+                  <TableCell className="font-mono text-xs text-amber-700 dark:text-amber-400">
                     {formatCurrency(p.affiliateCommissions)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-500">
                     {formatCurrency(p.serverCosts)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-cyan-300">
+                  <TableCell className="font-mono text-xs font-bold text-cyan-700 dark:text-cyan-300">
                     {formatCurrency(p.netProfit)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Badge className="border-purple-500/40 bg-purple-500/20 font-mono text-[10px] text-purple-300">
+                    <Badge className="border-purple-500/40 bg-purple-500/15 font-mono text-[10px] text-purple-700 dark:bg-purple-500/20 dark:text-purple-300">
                       {p.margin}
                     </Badge>
                   </TableCell>

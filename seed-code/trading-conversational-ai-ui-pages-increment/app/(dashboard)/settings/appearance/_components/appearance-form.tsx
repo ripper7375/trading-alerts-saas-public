@@ -69,10 +69,10 @@ const accentActiveStyles: Record<AccentScheme, string> = {
   amber:
     'border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/30',
   emerald:
-    'border-emerald-500 bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30',
-  blue: 'border-blue-500 bg-blue-500/15 text-blue-300 ring-1 ring-blue-500/30',
+    'border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30',
+  blue: 'border-blue-500 bg-blue-500/15 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/30',
   purple:
-    'border-purple-500 bg-purple-500/15 text-purple-300 ring-1 ring-purple-500/30',
+    'border-purple-500 bg-purple-500/15 text-purple-700 dark:text-purple-300 ring-1 ring-purple-500/30',
 };
 
 export function AppearanceForm() {

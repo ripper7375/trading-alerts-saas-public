@@ -36,16 +36,16 @@ export default function AffiliateRegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-[#06070a] p-4 select-none">
-      <div className="w-full max-w-lg space-y-6 rounded-2xl border border-amber-500/30 bg-[#0b0e17] p-8 shadow-2xl backdrop-blur-xl">
+    <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 p-4 text-slate-900 select-none dark:bg-[#06070a] dark:text-slate-100">
+      <div className="w-full max-w-lg space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl backdrop-blur-xl dark:border-amber-500/30 dark:bg-[#0b0e17]">
         <div className="flex flex-col items-center space-y-2 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-400">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-600 dark:text-amber-400">
             <Share2 className="h-6 w-6" />
           </div>
-          <h2 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
+          <h2 className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 bg-clip-text text-xl font-extrabold tracking-tight text-transparent dark:from-amber-400 dark:via-amber-200 dark:to-amber-500">
             {t('Join Partner Program')}
           </h2>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             {t(
               'Earn 30% monthly recurring commission on every trader you refer'
             )}
@@ -54,7 +54,7 @@ export default function AffiliateRegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-300">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('Partner Name / Channel')}
             </Label>
             <Input
@@ -63,12 +63,12 @@ export default function AffiliateRegisterPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={t('e.g. Gold Traders Community')}
-              className="border-slate-750 bg-[#06080e] text-xs text-slate-100"
+              className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-300">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('Business Email')}
             </Label>
             <Input
@@ -77,12 +77,12 @@ export default function AffiliateRegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="partner@example.com"
-              className="border-slate-750 bg-[#06080e] text-xs text-slate-100"
+              className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-300">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('Country Code')}
             </Label>
             <Input
@@ -92,7 +92,7 @@ export default function AffiliateRegisterPage() {
               onChange={(e) => setCountry(e.target.value.toUpperCase())}
               maxLength={2}
               placeholder="US"
-              className="border-slate-750 bg-[#06080e] text-xs text-slate-100 uppercase"
+              className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 uppercase dark:bg-[#06080e] dark:text-slate-100"
             />
             <p className="text-[11px] text-slate-500">
               {t('2-letter country code (e.g., US, UK, TH)')}
@@ -100,7 +100,7 @@ export default function AffiliateRegisterPage() {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-300">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('Channel Link / Website (Optional)')}
             </Label>
             <Input
@@ -108,12 +108,12 @@ export default function AffiliateRegisterPage() {
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
               placeholder="https://t.me/yourchannel"
-              className="border-slate-750 bg-[#06080e] text-xs text-slate-100"
+              className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100"
             />
           </div>
 
-          <div className="space-y-2 border-t border-slate-800/80 pt-4">
-            <Label className="text-xs font-semibold text-slate-300">
+          <div className="space-y-2 border-t border-slate-200 pt-4 dark:border-slate-800/80">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('Social Profiles (Optional)')}
             </Label>
             <p className="text-[11px] text-slate-500">
@@ -125,41 +125,41 @@ export default function AffiliateRegisterPage() {
                 value={twitterUrl}
                 onChange={(e) => setTwitterUrl(e.target.value)}
                 placeholder={t('Twitter / X URL')}
-                className="border-slate-750 bg-[#06080e] text-xs text-slate-100"
+                className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100"
               />
               <Input
                 type="url"
                 value={youtubeUrl}
                 onChange={(e) => setYoutubeUrl(e.target.value)}
                 placeholder={t('YouTube URL')}
-                className="border-slate-750 bg-[#06080e] text-xs text-slate-100"
+                className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100"
               />
               <Input
                 type="url"
                 value={instagramUrl}
                 onChange={(e) => setInstagramUrl(e.target.value)}
                 placeholder={t('Instagram URL')}
-                className="border-slate-750 bg-[#06080e] text-xs text-slate-100"
+                className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100"
               />
               <Input
                 type="url"
                 value={tiktokUrl}
                 onChange={(e) => setTiktokUrl(e.target.value)}
                 placeholder={t('TikTok URL')}
-                className="border-slate-750 bg-[#06080e] text-xs text-slate-100"
+                className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100"
               />
             </div>
           </div>
 
-          <label className="flex items-start gap-2.5 border-t border-slate-800/80 pt-4">
+          <label className="flex items-start gap-2.5 border-t border-slate-200 pt-4 dark:border-slate-800/80">
             <input
               type="checkbox"
               required
               checked={terms}
               onChange={(e) => setTerms(e.target.checked)}
-              className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-700 bg-[#06080e] text-amber-500 focus:ring-amber-500"
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 bg-slate-50 text-amber-500 focus:ring-amber-500 dark:border-slate-700 dark:bg-[#06080e]"
             />
-            <span className="text-[11px] leading-relaxed text-slate-400">
+            <span className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
               {t(
                 'I agree to the Partner Program terms. I understand I will earn 30% recurring commission on referrals and that payouts are processed monthly for balances over $50, once I configure my Wise/RiseWorks payout account.'
               )}
@@ -178,11 +178,11 @@ export default function AffiliateRegisterPage() {
           </Button>
         </form>
 
-        <div className="space-y-2 border-t border-slate-800/80 pt-4">
-          <h3 className="text-xs font-bold text-slate-200">
+        <div className="space-y-2 border-t border-slate-200 pt-4 dark:border-slate-800/80">
+          <h3 className="text-xs font-bold text-slate-900 dark:text-slate-200">
             {t('Partner Benefits')}
           </h3>
-          <ul className="space-y-1 text-[11px] text-slate-400">
+          <ul className="space-y-1 text-[11px] text-slate-600 dark:text-slate-400">
             <li>
               {t(
                 '- Earn 30% recurring commission on every successful referral'
@@ -196,11 +196,11 @@ export default function AffiliateRegisterPage() {
           </ul>
         </div>
 
-        <div className="border-t border-slate-800/80 pt-2 text-center text-xs text-slate-400">
+        <div className="border-t border-slate-200 pt-2 text-center text-xs text-slate-600 dark:border-slate-800/80 dark:text-slate-400">
           {t('Already registered?')}{' '}
           <Link
             href="/affiliate/dashboard"
-            className="font-bold text-amber-400 hover:underline"
+            className="font-bold text-amber-600 hover:underline dark:text-amber-400"
           >
             {t('Partner Dashboard')}
           </Link>

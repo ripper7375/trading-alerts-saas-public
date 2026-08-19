@@ -63,9 +63,12 @@ const LOGIN_HISTORY: LoginHistoryEntry[] = [
 ];
 
 const STATUS_BADGE: Record<LoginHistoryEntry['status'], string> = {
-  SUCCESS: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/40',
-  FAILED: 'bg-rose-500/15 text-rose-400 border border-rose-500/40',
-  BLOCKED: 'bg-orange-500/15 text-orange-400 border border-orange-500/40',
+  SUCCESS:
+    'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/40',
+  FAILED:
+    'bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/40',
+  BLOCKED:
+    'bg-orange-500/15 text-orange-700 dark:text-orange-400 border border-orange-500/40',
 };
 
 const BACKUP_CODES = [
@@ -130,15 +133,15 @@ export default function SecuritySettingsPage() {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 select-none">
       {/* 2FA Card */}
-      <div className="space-y-4 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800/80 dark:bg-[#090c14]">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-slate-800">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-amber-400" />
+            <ShieldCheck className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             <div>
-              <h2 className="text-sm font-extrabold text-slate-100">
+              <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
                 {t('Two-Factor Authentication (TOTP)')}
               </h2>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 {t('Secure your account with Google Authenticator or Authy')}
               </p>
             </div>
@@ -148,7 +151,7 @@ export default function SecuritySettingsPage() {
         </div>
 
         {is2faEnabled && (
-          <div className="flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300">
+          <div className="flex items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-300">
             <span className="font-semibold">
               {t('✓ 2FA Authentication Active')}
             </span>
@@ -156,7 +159,7 @@ export default function SecuritySettingsPage() {
               size="sm"
               variant="outline"
               onClick={() => setShowBackupCodes(true)}
-              className="h-6 border-emerald-500/40 text-[10px]"
+              className="h-6 border-emerald-500/40 text-[10px] text-emerald-700 dark:text-emerald-300"
             >
               {t('View Backup Codes')}
             </Button>
@@ -165,17 +168,17 @@ export default function SecuritySettingsPage() {
       </div>
 
       {/* Change Password Card */}
-      <div className="space-y-4 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-          <Lock className="h-5 w-5 text-amber-400" />
-          <h2 className="text-sm font-extrabold text-slate-100">
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800/80 dark:bg-[#090c14]">
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-3 dark:border-slate-800">
+          <Lock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
             {t('Change Master Password')}
           </h2>
         </div>
 
         <form onSubmit={handlePasswordUpdate} className="space-y-3">
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-300">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('Current Password')}
             </Label>
             <Input
@@ -183,12 +186,12 @@ export default function SecuritySettingsPage() {
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="••••••••••••"
-              className="border-slate-750 bg-[#06080e] text-xs"
+              className="border-slate-200 bg-slate-50 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-100"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-300">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('New Password')}
             </Label>
             <Input
@@ -196,7 +199,7 @@ export default function SecuritySettingsPage() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="••••••••••••"
-              className="border-slate-750 bg-[#06080e] text-xs"
+              className="border-slate-200 bg-slate-50 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-100"
             />
           </div>
 
@@ -211,21 +214,21 @@ export default function SecuritySettingsPage() {
       </div>
 
       {/* Security Alerts */}
-      <div className="space-y-4 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-          <Bell className="h-5 w-5 text-amber-400" />
-          <h2 className="text-sm font-extrabold text-slate-100">
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800/80 dark:bg-[#090c14]">
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-3 dark:border-slate-800">
+          <Bell className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
             {t('Security Alerts')}
           </h2>
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-[#06080e]">
             <div>
-              <div className="text-xs font-bold text-slate-200">
+              <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
                 {t('New Device Login Alerts')}
               </div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">
                 {t(
                   'Get notified when your account is accessed from a new device'
                 )}
@@ -237,12 +240,12 @@ export default function SecuritySettingsPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-[#06080e]">
             <div>
-              <div className="text-xs font-bold text-slate-200">
+              <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
                 {t('Password Change Alerts')}
               </div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-[11px] text-slate-500 dark:text-slate-400">
                 {t('Get notified when your password is changed')}
               </div>
             </div>
@@ -255,17 +258,17 @@ export default function SecuritySettingsPage() {
       </div>
 
       {/* Active Sessions Card */}
-      <div className="space-y-4 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h2 className="text-sm font-extrabold text-slate-100">
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800/80 dark:bg-[#090c14]">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-slate-800">
+          <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
             {t('Active Login Sessions')}
           </h2>
-          <Badge className="border-slate-700 bg-slate-800 font-mono text-[9px] text-slate-300">
+          <Badge className="border-slate-200 bg-slate-100 font-mono text-[9px] text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
             {sessions.length} {t('Devices')}
           </Badge>
         </div>
 
-        <div className="divide-y divide-slate-800/60">
+        <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
           {sessions.map((session) => (
             <div
               key={session.id}
@@ -273,20 +276,20 @@ export default function SecuritySettingsPage() {
             >
               <div className="flex items-center gap-3">
                 {session.device.includes('iPhone') ? (
-                  <Smartphone className="h-5 w-5 shrink-0 text-amber-400" />
+                  <Smartphone className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
                 ) : (
-                  <Laptop className="h-5 w-5 shrink-0 text-amber-400" />
+                  <Laptop className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
                 )}
                 <div>
-                  <div className="flex items-center gap-2 font-bold text-slate-200">
+                  <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
                     {session.device}
                     {session.current && (
-                      <Badge className="border-emerald-500/40 bg-emerald-500/15 font-mono text-[8px] text-emerald-400">
+                      <Badge className="border-emerald-500/40 bg-emerald-500/15 font-mono text-[8px] text-emerald-700 dark:text-emerald-400">
                         {t('This Device')}
                       </Badge>
                     )}
                   </div>
-                  <div className="font-mono text-[10px] text-slate-400">
+                  <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
                     {session.ip} • {session.location} • {session.lastActive}
                   </div>
                 </div>
@@ -298,7 +301,7 @@ export default function SecuritySettingsPage() {
                   size="icon"
                   onClick={() => handleRevokeSession(session.id)}
                   aria-label={`${t('Revoke session on')} ${session.device}`}
-                  className="h-7 w-7 text-rose-400 hover:bg-rose-500/20"
+                  className="h-7 w-7 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-500/20"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
@@ -309,14 +312,14 @@ export default function SecuritySettingsPage() {
       </div>
 
       {/* Login History */}
-      <div className="space-y-4 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-          <History className="h-5 w-5 text-amber-400" />
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800/80 dark:bg-[#090c14]">
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-3 dark:border-slate-800">
+          <History className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           <div>
-            <h2 className="text-sm font-extrabold text-slate-100">
+            <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
               {t('Login History')}
             </h2>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {t('Recent login activity on your account')}
             </p>
           </div>
@@ -326,11 +329,11 @@ export default function SecuritySettingsPage() {
           {LOGIN_HISTORY.map((entry) => (
             <div
               key={entry.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-[#06080e] p-3 text-xs"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs dark:border-slate-800 dark:bg-[#06080e]"
             >
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-200">
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
                     {entry.device}
                   </span>
                   <Badge
@@ -348,7 +351,7 @@ export default function SecuritySettingsPage() {
                     {t(entry.status)}
                   </Badge>
                 </div>
-                <div className="mt-1 flex items-center gap-3 text-[10px] text-slate-400">
+                <div className="mt-1 flex items-center gap-3 text-[10px] text-slate-500 dark:text-slate-400">
                   <span className="flex items-center gap-1">
                     <MapPin className="h-3 w-3" />
                     {entry.location}
@@ -362,12 +365,12 @@ export default function SecuritySettingsPage() {
       </div>
 
       {/* Security Activity link-out */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl sm:flex-row sm:items-center sm:justify-between dark:border-slate-800/80 dark:bg-[#090c14]">
         <div>
-          <h2 className="text-sm font-extrabold text-slate-100">
+          <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
             {t('Security Activity')}
           </h2>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
             {t(
               'Password changes, two-factor changes, and device/login alerts for your account'
             )}
@@ -377,7 +380,7 @@ export default function SecuritySettingsPage() {
           <Button
             variant="outline"
             size="sm"
-            className="border-slate-750 shrink-0 bg-slate-800 text-xs text-slate-200"
+            className="shrink-0 border-slate-200 bg-slate-50 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           >
             {t('View All Activity')}
           </Button>
@@ -386,20 +389,20 @@ export default function SecuritySettingsPage() {
 
       {/* Backup Codes Dialog */}
       <Dialog open={showBackupCodes} onOpenChange={setShowBackupCodes}>
-        <DialogContent className="border-slate-800 bg-[#0c0f18] sm:max-w-md">
+        <DialogContent className="border-slate-200 bg-white sm:max-w-md dark:border-slate-800 dark:bg-[#0c0f18]">
           <DialogHeader>
-            <DialogTitle className="text-slate-100">
+            <DialogTitle className="text-slate-900 dark:text-slate-100">
               {t('Backup Codes')}
             </DialogTitle>
-            <DialogDescription className="text-slate-400">
+            <DialogDescription className="text-slate-500 dark:text-slate-400">
               {t('Each code can only be used once. Store them somewhere safe.')}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-2 rounded-xl bg-[#06080e] p-4 font-mono text-xs">
+          <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs dark:border-slate-800 dark:bg-[#06080e]">
             {BACKUP_CODES.map((code) => (
               <div
                 key={code}
-                className="rounded border border-slate-800 bg-slate-900 p-2 text-center text-slate-200"
+                className="rounded border border-slate-200 bg-white p-2 text-center text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
               >
                 {code}
               </div>
@@ -408,7 +411,7 @@ export default function SecuritySettingsPage() {
           <Button
             variant="outline"
             onClick={copyBackupCodes}
-            className="border-slate-750 bg-slate-800 text-xs text-slate-200"
+            className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-700 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-200"
           >
             <Copy className="mr-2 h-3.5 w-3.5" />
             {t('Copy All Codes')}

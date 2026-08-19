@@ -82,16 +82,16 @@ export default function SettingsPage() {
   return (
     <div className="animate-fade-in space-y-6 select-none">
       {/* Current Plan Summary */}
-      <div className="space-y-4 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-[#0c0f18] via-[#121624] to-[#0d0f17] p-6 shadow-xl">
+      <div className="space-y-4 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-slate-100 p-6 shadow-xl dark:from-[#0c0f18] dark:via-[#121624] dark:to-[#0d0f17]">
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <Badge className="border-amber-500/50 bg-amber-500/20 font-mono text-[10px] text-amber-300">
+            <Badge className="border-amber-500/50 bg-amber-500/20 font-mono text-[10px] text-amber-700 dark:text-amber-300">
               ⚡ {t('PRO PLAN ACTIVE')}
             </Badge>
-            <h2 className="mt-1 text-lg font-extrabold text-slate-100">
+            <h2 className="mt-1 text-lg font-extrabold text-slate-900 dark:text-slate-100">
               {t('DavinTrade PRO Tier Subscription')}
             </h2>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
               {formatCurrency(49)}/{t('mo')} —{' '}
               {t('100 alerts, drawing engine, multi-timeframe')}
             </p>
@@ -99,7 +99,7 @@ export default function SettingsPage() {
           <Link href="/settings/billing">
             <Button
               variant="outline"
-              className="h-8 border-amber-500/40 bg-amber-500/10 text-xs text-amber-300 hover:bg-amber-500/20"
+              className="h-8 border-amber-500/40 bg-amber-500/10 text-xs text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
             >
               <Sparkles className="mr-1.5 h-3.5 w-3.5" />
               {t('Manage Subscription')}
@@ -110,7 +110,7 @@ export default function SettingsPage() {
 
       {/* Quick Links */}
       <div>
-        <h3 className="mb-3 text-xs font-extrabold tracking-wider text-slate-400 uppercase">
+        <h3 className="mb-3 text-xs font-extrabold tracking-wider text-slate-500 uppercase dark:text-slate-400">
           {t('All Settings')}
         </h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -118,13 +118,13 @@ export default function SettingsPage() {
             const Icon = link.icon;
             return (
               <Link key={link.href} href={link.href}>
-                <div className="flex h-full items-start gap-3 rounded-2xl border border-slate-800/80 bg-[#090c14] p-4 shadow-xl transition-colors hover:border-amber-500/40 hover:bg-[#0c0f1a]">
-                  <Icon className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+                <div className="flex h-full items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl transition-colors hover:border-amber-500/40 hover:bg-slate-50 dark:border-slate-800/80 dark:bg-[#090c14] dark:hover:bg-[#0c0f1a]">
+                  <Icon className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
                   <div>
-                    <h4 className="text-xs font-extrabold text-slate-100">
+                    <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
                       {t(link.title)}
                     </h4>
-                    <p className="mt-0.5 text-[11px] text-slate-400">
+                    <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
                       {t(link.description)}
                     </p>
                   </div>

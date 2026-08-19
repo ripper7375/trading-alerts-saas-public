@@ -81,19 +81,19 @@ export default function BlogPage() {
       : posts.filter((p) => p.category === selectedCategory);
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#050609] text-slate-100">
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <MarketingNavbar />
 
       <main className="container mx-auto max-w-6xl flex-1 px-4 py-16 md:px-6">
         <div className="space-y-10">
           <div className="mx-auto max-w-2xl space-y-4 text-center">
-            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-400">
+            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-400">
               {t('DavinTrade Research & Insights')}
             </Badge>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-100 md:text-5xl">
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-5xl dark:text-slate-100">
               {t('Trading Intelligence Blog')}
             </h1>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               {t(
                 'Deep dives into quantitative trading, fractal market structures, and conversational AI architecture.'
               )}
@@ -108,7 +108,7 @@ export default function BlogPage() {
                   className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-all ${
                     selectedCategory === cat
                       ? 'bg-amber-500 font-bold text-slate-950 shadow-md shadow-amber-500/20'
-                      : 'border border-slate-800 bg-slate-900/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                      : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
                   }`}
                 >
                   {t(cat)}
@@ -122,12 +122,12 @@ export default function BlogPage() {
             {filtered.map((post) => (
               <Card
                 key={post.id}
-                className="flex flex-col justify-between border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl transition-all duration-200 hover:border-amber-500/40 hover:bg-[#0c0f1c]"
+                className="flex flex-col justify-between border-slate-200 bg-white shadow-md transition-all duration-200 hover:border-amber-500/40 hover:bg-slate-50 dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl dark:hover:bg-[#0c0f1c]"
               >
                 <CardContent className="flex flex-1 flex-col justify-between space-y-4 p-6">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Badge className="border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-400">
+                      <Badge className="border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-400">
                         {t(post.category)}
                       </Badge>
                       <div className="flex items-center gap-1 text-[11px] text-slate-500">
@@ -136,20 +136,20 @@ export default function BlogPage() {
                       </div>
                     </div>
 
-                    <h3 className="text-base leading-snug font-bold text-slate-100 transition-colors hover:text-amber-300">
+                    <h3 className="text-base leading-snug font-bold text-slate-900 transition-colors hover:text-amber-600 dark:text-slate-100 dark:hover:text-amber-300">
                       {post.title}
                     </h3>
 
-                    <p className="line-clamp-3 text-xs leading-relaxed text-slate-400">
+                    <p className="line-clamp-3 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                       {post.excerpt}
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-slate-800/80 pt-4 text-xs text-slate-500">
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-4 text-xs text-slate-500 dark:border-slate-800/80">
                     <span>{post.date}</span>
                     <Link
                       href="/terminal"
-                      className="flex items-center gap-1 font-semibold text-amber-400 hover:text-amber-300"
+                      className="flex items-center gap-1 font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                     >
                       <span>{t('Read in Terminal')}</span>
                       <ArrowRight className="h-3 w-3" />
@@ -161,11 +161,11 @@ export default function BlogPage() {
           </div>
 
           {/* Newsletter Box */}
-          <div className="mx-auto max-w-2xl space-y-4 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-[#0d101a] to-[#090b14] p-8 text-center">
-            <h3 className="text-lg font-bold text-slate-100">
+          <div className="mx-auto max-w-2xl space-y-4 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-slate-100 p-8 text-center dark:from-amber-500/10 dark:via-[#0d101a] dark:to-[#090b14]">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
               {t('Get Weekly Quantitative Alpha Directly to Your Inbox')}
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               {t(
                 'Zero spam. Strictly fractal levels, volatility previews, and AI signal recaps.'
               )}
@@ -173,7 +173,7 @@ export default function BlogPage() {
             <div className="mx-auto flex max-w-md gap-2">
               <Input
                 placeholder={t('Enter your email')}
-                className="border-slate-800 bg-[#06080e] text-slate-200"
+                className="border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
               />
               <Button className="shrink-0 bg-amber-500 font-bold text-slate-950 hover:bg-amber-400">
                 {t('Subscribe')}

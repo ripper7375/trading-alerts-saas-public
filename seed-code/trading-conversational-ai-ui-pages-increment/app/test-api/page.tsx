@@ -114,7 +114,7 @@ export default function TestApiHarnessPage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Interactive API Test Harness')}
         subtitle={t(
@@ -125,7 +125,7 @@ export default function TestApiHarnessPage() {
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 p-4 md:p-6">
         {/* Preset quick links */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <span className="mr-1 text-xs font-bold tracking-wider text-slate-400 uppercase">
+          <span className="mr-1 text-xs font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400">
             {t('Quick Presets')}:
           </span>
           {presets.map((p, idx) => (
@@ -133,7 +133,7 @@ export default function TestApiHarnessPage() {
               key={idx}
               type="button"
               onClick={() => handleSelectPreset(p)}
-              className="rounded-lg border border-slate-800 bg-[#090b14] px-3 py-1 text-xs whitespace-nowrap text-slate-300 transition-colors hover:border-amber-500/40 hover:text-amber-400"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-xs whitespace-nowrap text-slate-700 transition-colors hover:border-amber-500/40 hover:text-amber-600 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-300 dark:hover:text-amber-400"
             >
               {p.label}
             </button>
@@ -142,18 +142,18 @@ export default function TestApiHarnessPage() {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Request Composer */}
-          <Card className="space-y-4 border-slate-800/80 bg-[#090b14]/90 p-5">
-            <h3 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
+          <Card className="space-y-4 border-slate-200 bg-white p-5 shadow-md dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <h3 className="text-xs font-bold tracking-wider text-slate-700 uppercase dark:text-slate-300">
               {t('HTTP Request Details')}
             </h3>
 
             <form onSubmit={handleExecute} className="space-y-4">
               <div className="flex gap-2">
                 <Select value={method} onValueChange={(v: any) => setMethod(v)}>
-                  <SelectTrigger className="w-28 border-slate-800 bg-[#06080e] font-mono text-xs font-bold text-amber-400">
+                  <SelectTrigger className="w-28 border-slate-200 bg-slate-50 font-mono text-xs font-bold text-amber-600 dark:border-slate-800 dark:bg-[#06080e] dark:text-amber-400">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="border-slate-800 bg-[#090b14]">
+                  <SelectContent className="border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-100">
                     <SelectItem value="GET">GET</SelectItem>
                     <SelectItem value="POST">POST</SelectItem>
                     <SelectItem value="PUT">PUT</SelectItem>
@@ -165,14 +165,14 @@ export default function TestApiHarnessPage() {
                   value={endpoint}
                   onChange={(e) => setEndpoint(e.target.value)}
                   placeholder="/api/..."
-                  className="border-slate-800 bg-[#06080e] font-mono text-xs text-slate-200"
+                  className="border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                   required
                 />
               </div>
 
               {method !== 'GET' && (
                 <div className="space-y-1.5">
-                  <span className="font-mono text-[11px] text-slate-400">
+                  <span className="font-mono text-[11px] text-slate-600 dark:text-slate-400">
                     JSON Body Payload:
                   </span>
                   <Textarea
@@ -180,7 +180,7 @@ export default function TestApiHarnessPage() {
                     onChange={(e) => setRequestBody(e.target.value)}
                     placeholder='{ "key": "value" }'
                     rows={6}
-                    className="border-slate-800 bg-[#06080e] font-mono text-xs text-slate-200"
+                    className="border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                   />
                 </div>
               )}
@@ -201,9 +201,9 @@ export default function TestApiHarnessPage() {
           </Card>
 
           {/* Response Inspector */}
-          <Card className="flex flex-col space-y-4 border-slate-800/80 bg-[#090b14]/90 p-5">
+          <Card className="flex flex-col space-y-4 border-slate-200 bg-white p-5 shadow-md dark:border-slate-800/80 dark:bg-[#090b14]/90">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
+              <h3 className="text-xs font-bold tracking-wider text-slate-700 uppercase dark:text-slate-300">
                 {t('Server Response Payload')}
               </h3>
 
@@ -212,28 +212,30 @@ export default function TestApiHarnessPage() {
                   <Badge
                     className={
                       responseStatus >= 200 && responseStatus < 300
-                        ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-400'
-                        : 'border-rose-500/40 bg-rose-500/20 text-rose-400'
+                        ? 'border-emerald-500/40 bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
+                        : 'border-rose-500/40 bg-rose-500/20 text-rose-700 dark:text-rose-400'
                     }
                   >
                     HTTP {responseStatus}
                   </Badge>
                   {latency !== null && (
-                    <span className="text-slate-400">{latency}ms</span>
+                    <span className="text-slate-500 dark:text-slate-400">
+                      {latency}ms
+                    </span>
                   )}
                 </div>
               )}
             </div>
 
-            <div className="min-h-[220px] flex-1 overflow-auto rounded-xl border border-slate-800 bg-[#040509] p-3 font-mono text-xs whitespace-pre-wrap text-slate-300">
+            <div className="min-h-[220px] flex-1 overflow-auto rounded-xl border border-slate-200 bg-slate-900 p-3 font-mono text-xs whitespace-pre-wrap text-slate-100 dark:border-slate-800 dark:bg-[#040509] dark:text-slate-300">
               {isLoading ? (
-                <div className="flex h-full items-center justify-center text-slate-500">
+                <div className="flex h-full items-center justify-center text-slate-400">
                   <Loader2 className="h-6 w-6 animate-spin text-amber-400" />
                 </div>
               ) : responseBody ? (
                 responseBody
               ) : (
-                <span className="text-slate-600">
+                <span className="text-slate-400">
                   {t(
                     'No response recorded yet. Send a request above to inspect payloads.'
                   )}

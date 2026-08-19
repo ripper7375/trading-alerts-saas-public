@@ -67,20 +67,20 @@ function DeletionConfirmContent() {
               }}
             />
           </div>
-          <span className="bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-xl font-black text-transparent">
+          <span className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 bg-clip-text text-xl font-black text-transparent dark:from-amber-400 dark:to-amber-200">
             DavinTrade AI
           </span>
         </Link>
-        <h1 className="text-2xl font-bold text-slate-100">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
           {t('Account Deletion Confirmation')}
         </h1>
       </div>
 
-      <Card className="space-y-6 border-slate-800/80 bg-[#090b14]/95 p-6 text-center shadow-2xl backdrop-blur-2xl md:p-8">
+      <Card className="space-y-6 border-slate-200 bg-white p-6 text-center shadow-2xl md:p-8 dark:border-slate-800/80 dark:bg-[#090b14]/95 dark:backdrop-blur-2xl">
         {status === 'processing' && (
           <div className="space-y-4 py-6">
-            <Loader2 className="mx-auto h-10 w-10 animate-spin text-rose-400" />
-            <p className="text-xs text-slate-400">
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-rose-600 dark:text-rose-400" />
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               {t('Executing permanent account deletion...')}
             </p>
           </div>
@@ -89,15 +89,15 @@ function DeletionConfirmContent() {
         {status === 'success' && (
           <div className="space-y-4 py-4">
             <div className="flex justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/20 text-rose-400">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/20 text-rose-600 dark:text-rose-400">
                 <Trash2 className="h-8 w-8" />
               </div>
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-slate-100">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {t('Account Permanently Deleted')}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 {t(
                   'Your profile data, authentication sessions, and saved settings have been securely purged.'
                 )}
@@ -106,7 +106,7 @@ function DeletionConfirmContent() {
 
             <div className="pt-2">
               <Link href="/">
-                <Button className="w-full bg-slate-800 font-bold text-slate-200 hover:bg-slate-700">
+                <Button className="w-full bg-slate-900 font-bold text-white hover:bg-slate-800 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">
                   <Home className="mr-2 h-4 w-4" />
                   {t('Return to Homepage')}
                 </Button>
@@ -118,15 +118,15 @@ function DeletionConfirmContent() {
         {status === 'error' && (
           <div className="space-y-4 py-4">
             <div className="flex justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/20 text-rose-400">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/20 text-rose-600 dark:text-rose-400">
                 <AlertCircle className="h-8 w-8" />
               </div>
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-rose-300">
+              <h3 className="text-base font-bold text-rose-700 dark:text-rose-300">
                 {t('Deletion Request Failed')}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 {message || t('The link is invalid or has expired.')}
               </p>
             </div>
@@ -135,7 +135,7 @@ function DeletionConfirmContent() {
               <Link href="/login">
                 <Button
                   variant="outline"
-                  className="w-full border-slate-800 text-slate-300"
+                  className="w-full border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   {t('Go to Login')}
                 </Button>
@@ -150,7 +150,7 @@ function DeletionConfirmContent() {
 
 export default function AccountDeletionConfirmPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#050609] p-4 text-slate-100">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <Suspense fallback={null}>
         <DeletionConfirmContent />
       </Suspense>

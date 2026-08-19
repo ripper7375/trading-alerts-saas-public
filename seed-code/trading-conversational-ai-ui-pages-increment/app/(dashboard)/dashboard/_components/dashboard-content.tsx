@@ -24,7 +24,7 @@ export function DashboardContent() {
   const { t } = useLocale();
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 select-none dark:bg-[#06070a]">
       <AppHeader
         title={t('Main Terminal Dashboard')}
         subtitle={t('Real-Time XAUUSD Quantitative Overview & Alert Telemetry')}
@@ -32,21 +32,21 @@ export function DashboardContent() {
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">
         {/* Top Hero Banner */}
-        <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-r from-[#0c0f18] via-[#121624] to-[#0d0f17] p-6 shadow-2xl">
+        <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-slate-100 p-6 shadow-xl dark:from-[#0c0f18] dark:via-[#121624] dark:to-[#0d0f17] dark:shadow-2xl">
           <div className="relative z-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
             <div className="max-w-xl space-y-1">
               <div className="flex items-center gap-2">
-                <Badge className="border-amber-500/50 bg-amber-500/20 font-mono text-[10px] text-amber-300">
+                <Badge className="border-amber-500/50 bg-amber-500/20 font-mono text-[10px] text-amber-700 dark:text-amber-300">
                   ⚡ {t('PRO TIER ACTIVE')}
                 </Badge>
-                <span className="font-mono text-[11px] text-slate-400">
+                <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
                   {t('XAUUSD M5 / M15 Feed Live')}
                 </span>
               </div>
-              <h2 className="text-xl font-extrabold tracking-tight text-slate-100">
+              <h2 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
                 {t('Quantitative Trading & AI Analysis Terminal')}
               </h2>
-              <p className="text-xs leading-relaxed text-slate-400">
+              <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                 {t(
                   'Your PRO account has 100 active alert slots enabled, real-time M5 on M15 equal-distance channel overlay, and quad-RAG AI multi-model queries.'
                 )}
@@ -107,11 +107,11 @@ export function DashboardContent() {
           </div>
 
           <div className="space-y-4">
-            <Card className="border-slate-800/80 bg-[#090c14] text-slate-100 shadow-xl">
+            <Card className="border-slate-200 bg-white text-slate-900 shadow-xl dark:border-slate-800/80 dark:bg-[#090c14] dark:text-slate-100">
               <CardContent className="space-y-3 p-4">
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                  <h3 className="flex items-center gap-1.5 text-xs font-bold text-slate-200">
-                    <Zap className="h-4 w-4 text-amber-400" />{' '}
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-800/80">
+                  <h3 className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200">
+                    <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" />{' '}
                     {t('Quick Actions')}
                   </h3>
                 </div>
@@ -120,43 +120,43 @@ export function DashboardContent() {
                   <Link href="/alerts/new">
                     <Button
                       variant="outline"
-                      className="border-slate-750 w-full justify-between bg-[#06080f] text-xs text-slate-200 hover:bg-slate-800"
+                      className="w-full justify-between border-slate-200 bg-slate-50 text-xs text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:bg-[#06080f] dark:text-slate-200 dark:hover:bg-slate-800"
                     >
                       <span>{t('Create Price Alert')}</span>
-                      <ArrowRight className="h-3.5 w-3.5 text-amber-400" />
+                      <ArrowRight className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                     </Button>
                   </Link>
 
                   <Link href="/terminal">
                     <Button
                       variant="outline"
-                      className="border-slate-750 w-full justify-between bg-[#06080f] text-xs text-slate-200 hover:bg-slate-800"
+                      className="w-full justify-between border-slate-200 bg-slate-50 text-xs text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:bg-[#06080f] dark:text-slate-200 dark:hover:bg-slate-800"
                     >
                       <span>{t('Ask AI Chart Analyst')}</span>
-                      <Brain className="h-3.5 w-3.5 text-amber-400" />
+                      <Brain className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                     </Button>
                   </Link>
 
                   <Link href="/settings/security">
                     <Button
                       variant="outline"
-                      className="border-slate-750 w-full justify-between bg-[#06080f] text-xs text-slate-200 hover:bg-slate-800"
+                      className="w-full justify-between border-slate-200 bg-slate-50 text-xs text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:bg-[#06080f] dark:text-slate-200 dark:hover:bg-slate-800"
                     >
                       <span>{t('Manage Security & 2FA')}</span>
-                      <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />
+                      <ShieldCheck className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                     </Button>
                   </Link>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-amber-500/30 bg-amber-500/5 text-slate-100 shadow-xl">
+            <Card className="border-amber-500/30 bg-amber-500/5 text-slate-900 shadow-xl dark:text-slate-100">
               <CardContent className="space-y-2 p-4">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400">
                   <Sparkles className="h-4 w-4" />{' '}
                   {t('Multi-Timeframe Strategy Engine')}
                 </div>
-                <p className="text-[11px] leading-relaxed text-slate-300">
+                <p className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
                   {t(
                     'Engine 2 calculates live M5 Equal-Distance Centroid Channels overlaid directly onto the M15 chart for dual-perspective momentum tracking.'
                   )}

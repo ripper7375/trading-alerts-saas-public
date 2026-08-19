@@ -10,7 +10,7 @@ export default function CheckoutPage() {
   const { t } = useLocale();
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#06070a] dark:text-slate-100">
       <AppHeader
         title={t('Secure Subscription Checkout')}
         subtitle={t('Upgrade to DavinTrade PRO Tier Annual / Monthly Plan')}
@@ -18,7 +18,7 @@ export default function CheckoutPage() {
       <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
         <Link
           href="/pricing"
-          className="mb-4 inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-amber-400"
+          className="mb-4 inline-flex items-center gap-2 text-xs font-medium text-slate-600 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           {t('Back to Pricing')}

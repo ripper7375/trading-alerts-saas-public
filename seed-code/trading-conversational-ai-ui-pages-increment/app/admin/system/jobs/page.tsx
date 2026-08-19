@@ -97,7 +97,7 @@ export default function AdminSystemJobsPage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Admin System: Background Cron Jobs')}
         subtitle={t(
@@ -109,35 +109,35 @@ export default function AdminSystemJobsPage() {
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">
         {success && (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>{success}</span>
           </div>
         )}
 
-        <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Job ID')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Job Routine Name')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Cron Schedule')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Last Run')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Duration')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Status')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Manual Run')}
                 </TableHead>
               </TableRow>
@@ -146,29 +146,29 @@ export default function AdminSystemJobsPage() {
               {jobs.map((j) => (
                 <TableRow
                   key={j.id}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
-                  <TableCell className="font-mono text-xs font-bold text-slate-400">
+                  <TableCell className="font-mono text-xs font-bold text-slate-600 dark:text-slate-400">
                     {j.id}
                   </TableCell>
-                  <TableCell className="text-xs font-bold text-slate-200">
+                  <TableCell className="text-xs font-bold text-slate-900 dark:text-slate-200">
                     {t(j.name)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-amber-400">
+                  <TableCell className="font-mono text-xs text-amber-700 dark:text-amber-400">
                     {t(j.schedule)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-400">
+                  <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                     {t(j.lastRun)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-400">
+                  <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                     {j.duration}
                   </TableCell>
                   <TableCell>
                     <Badge
                       className={`text-[10px] ${
                         j.status === 'RUNNING'
-                          ? 'animate-pulse border-amber-500/40 bg-amber-500/20 text-amber-400'
-                          : 'border-emerald-500/40 bg-emerald-500/20 text-emerald-400'
+                          ? 'animate-pulse border-amber-500/40 bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400'
+                          : 'border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
                       }`}
                     >
                       {t(j.status)}
@@ -181,7 +181,7 @@ export default function AdminSystemJobsPage() {
                           variant="outline"
                           size="sm"
                           disabled={runningJob === j.id}
-                          className="border-slate-700 bg-[#06080e] text-xs text-slate-300 hover:bg-slate-800 hover:text-amber-400"
+                          className="border-slate-300 bg-slate-50 text-xs text-slate-700 hover:bg-slate-100 hover:text-amber-700 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-amber-400"
                         >
                           <Play
                             className={`mr-1 h-3.5 w-3.5 ${runningJob === j.id ? 'animate-spin' : ''}`}
@@ -193,19 +193,19 @@ export default function AdminSystemJobsPage() {
                           </span>
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent className="border-slate-800 bg-[#090b14] text-slate-100">
+                      <AlertDialogContent className="border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-100">
                         <AlertDialogHeader>
                           <AlertDialogTitle>
                             {t('Run')} {t(j.name)}?
                           </AlertDialogTitle>
-                          <AlertDialogDescription className="text-slate-400">
+                          <AlertDialogDescription className="text-slate-600 dark:text-slate-400">
                             {t(
                               'This triggers the exact same job code the scheduler runs automatically, right now, for real. Only proceed if you intend a real, immediate execution.'
                             )}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel className="border-slate-700 bg-[#06080e] text-slate-200 hover:bg-slate-800">
+                          <AlertDialogCancel className="border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-200 dark:hover:bg-slate-800">
                             {t('Cancel')}
                           </AlertDialogCancel>
                           <AlertDialogAction

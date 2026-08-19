@@ -109,7 +109,7 @@ export default function AffiliateStatementsPage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#06070a] dark:text-slate-100">
       <AppHeader
         title={t('Affiliate Monthly Statements')}
         subtitle={t(
@@ -120,32 +120,32 @@ export default function AffiliateStatementsPage() {
       <AffiliateNav />
 
       <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">
-        <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Statement ID')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Billing Period')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Gross Referred Sales')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Earned Commission (30%)')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Transfer Fee')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Net Disbursed')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Status')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Document')}
                 </TableHead>
               </TableRow>
@@ -154,28 +154,28 @@ export default function AffiliateStatementsPage() {
               {statements.map((st) => (
                 <TableRow
                   key={st.id}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
-                  <TableCell className="font-mono text-xs font-bold text-amber-400">
+                  <TableCell className="font-mono text-xs font-bold text-amber-700 dark:text-amber-400">
                     {st.id}
                   </TableCell>
-                  <TableCell className="text-xs font-semibold text-slate-300">
+                  <TableCell className="text-xs font-semibold text-slate-900 dark:text-slate-300">
                     {t(st.month)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-300">
+                  <TableCell className="font-mono text-xs text-slate-700 dark:text-slate-300">
                     {formatCurrency(st.grossSales)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-emerald-400">
+                  <TableCell className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     {formatCurrency(st.commission)}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-slate-500">
                     {formatCurrency(st.fees)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-emerald-300">
+                  <TableCell className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-300">
                     {formatCurrency(st.netPayout)}
                   </TableCell>
                   <TableCell>
-                    <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
+                    <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
                       {t(st.status)}
                     </Badge>
                   </TableCell>
@@ -184,7 +184,7 @@ export default function AffiliateStatementsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => downloadStatement(st)}
-                      className="border-slate-700 bg-[#06080e] text-xs text-slate-300 hover:bg-slate-800 hover:text-amber-400"
+                      className="border-slate-300 bg-slate-50 text-xs text-slate-800 hover:bg-slate-100 hover:text-amber-600 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-amber-400"
                     >
                       <Download className="mr-1.5 h-3.5 w-3.5" />
                       <span>{t('CSV')}</span>
@@ -197,11 +197,11 @@ export default function AffiliateStatementsPage() {
         </Card>
 
         {/* Tax Summary Note */}
-        <Card className="border-slate-800/80 bg-[#090b14]/90 p-6">
-          <h3 className="mb-2 text-sm font-bold text-slate-100">
+        <Card className="border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+          <h3 className="mb-2 text-sm font-bold text-slate-900 dark:text-slate-100">
             {t('Tax Summary Note')}
           </h3>
-          <p className="text-xs leading-relaxed text-slate-400">
+          <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
             {t(
               'These statements summarize commission activity and are not official tax documents. Amounts shown are in USD before any local withholding or currency-conversion fees applied by our payout provider. Consult a tax advisor in your jurisdiction to determine your reporting obligations.'
             )}

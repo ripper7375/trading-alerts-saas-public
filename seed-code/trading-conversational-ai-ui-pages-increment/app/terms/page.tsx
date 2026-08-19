@@ -13,31 +13,31 @@ export default function TermsPage() {
   const { t } = useLocale();
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#050609] text-slate-100">
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <MarketingNavbar />
 
       <main className="container mx-auto max-w-4xl flex-1 px-4 py-16 md:px-6">
         <div className="space-y-8">
           <div className="space-y-3">
-            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-400">
+            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-400">
               {t('Service Agreement')}
             </Badge>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-100 md:text-4xl">
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl dark:text-slate-100">
               {t('Terms of Service')}
             </h1>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               {t('Last Revised: August 2026')}
             </p>
           </div>
 
-          <Card className="border-slate-800/80 bg-[#090b14]/80 backdrop-blur-xl">
+          <Card className="border-slate-200 bg-white shadow-md dark:border-slate-800/80 dark:bg-[#090b14]/80 dark:backdrop-blur-xl">
             <CardContent className="flex items-start gap-4 p-6">
-              <Scale className="mt-0.5 h-6 w-6 shrink-0 text-amber-400" />
+              <Scale className="mt-0.5 h-6 w-6 shrink-0 text-amber-600 dark:text-amber-400" />
               <div className="space-y-2">
-                <h3 className="text-sm font-bold text-slate-200">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-200">
                   {t('Acceptance of Terms')}
                 </h3>
-                <p className="text-xs leading-relaxed text-slate-400">
+                <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                   {t(
                     'By accessing or using DavinTrade AI, you agree to be bound by these Terms of Service. If you disagree with any part of the terms, you may not access our quantitative software or conversational trading interfaces.'
                   )}
@@ -46,13 +46,13 @@ export default function TermsPage() {
             </CardContent>
           </Card>
 
-          <div className="space-y-6 border-t border-slate-800/80 pt-6 text-sm leading-relaxed text-slate-300">
+          <div className="space-y-6 border-t border-slate-200 pt-6 text-sm leading-relaxed text-slate-700 dark:border-slate-800/80 dark:text-slate-300">
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 1. {t('Description of Service')}
               </h2>
               <p>{t('DavinTrade AI provides:')}</p>
-              <ul className="list-disc space-y-1 pl-5 text-xs text-slate-400 md:text-sm">
+              <ul className="list-disc space-y-1 pl-5 text-xs text-slate-600 md:text-sm dark:text-slate-400">
                 <li>
                   {t('Real-time XAUUSD price charts with fractal analysis')}
                 </li>
@@ -67,7 +67,7 @@ export default function TermsPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 2. {t('User Accounts')}
               </h2>
               <p>
@@ -78,7 +78,7 @@ export default function TermsPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 3. {t('Software License & Acceptable Use')}
               </h2>
               <p>
@@ -89,7 +89,7 @@ export default function TermsPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 4. {t('Subscription Fees & Billing Cycles')}
               </h2>
               <p>
@@ -100,21 +100,21 @@ export default function TermsPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="flex items-center gap-2 text-base font-bold text-slate-100">
-                <AlertTriangle className="h-4 w-4 text-amber-400" />
+              <h2 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 5. {t('Financial Disclaimer')}
               </h2>
-              <div className="rounded-lg border border-amber-500/30 bg-amber-950/20 p-4">
-                <p className="mb-1 text-xs font-bold text-amber-200">
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+                <p className="mb-1 text-xs font-bold text-amber-800 dark:text-amber-200">
                   {t('Important Notice:')}
                 </p>
-                <p className="text-xs text-amber-100/80">
+                <p className="text-xs text-slate-700 dark:text-amber-100/80">
                   {t(
                     'DavinTrade AI provides informational and analytical tools only and does NOT constitute financial advice. Trading in financial markets involves substantial risk of loss. See our full'
                   )}{' '}
                   <Link
                     href="/disclaimer"
-                    className="underline hover:text-amber-200"
+                    className="underline hover:text-amber-600 dark:hover:text-amber-200"
                   >
                     {t('Financial Risk Disclaimer')}
                   </Link>{' '}
@@ -124,7 +124,7 @@ export default function TermsPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 6. {t('Intellectual Property')}
               </h2>
               <p>
@@ -135,7 +135,7 @@ export default function TermsPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 7. {t('Limitation of Liability')}
               </h2>
               <p>
@@ -146,7 +146,7 @@ export default function TermsPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 8. {t('Termination')}
               </h2>
               <p>
@@ -157,7 +157,7 @@ export default function TermsPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 9. {t('Governing Law')}
               </h2>
               <p>
@@ -168,7 +168,7 @@ export default function TermsPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 10. {t('Contact Information')}
               </h2>
               <p>
@@ -177,7 +177,7 @@ export default function TermsPage() {
                 )}{' '}
                 <a
                   href="mailto:legal@davintrade.com"
-                  className="text-amber-400 underline hover:text-amber-300"
+                  className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                 >
                   legal@davintrade.com
                 </a>

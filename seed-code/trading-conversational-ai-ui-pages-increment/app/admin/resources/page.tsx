@@ -188,7 +188,7 @@ export default function AdminMarketingResourcesPage() {
   );
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Marketing Resources & Media Kit Manager')}
         subtitle={t(
@@ -202,19 +202,19 @@ export default function AdminMarketingResourcesPage() {
         {/* Top Breadcrumb & Actions */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <div className="flex items-center gap-2 font-mono text-xs text-slate-400">
+            <div className="flex items-center gap-2 font-mono text-xs text-slate-600 dark:text-slate-400">
               <Link
                 href="/admin"
-                className="transition-colors hover:text-amber-300"
+                className="transition-colors hover:text-amber-600 dark:hover:text-amber-300"
               >
                 {t('Admin')}
               </Link>
               <span>/</span>
-              <span className="font-bold text-amber-400">
+              <span className="font-bold text-amber-700 dark:text-amber-400">
                 {t('Marketing Resources')}
               </span>
             </div>
-            <h1 className="mt-1 text-2xl font-bold text-slate-100 sm:text-3xl">
+            <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl dark:text-slate-100">
               {t('Affiliate Media Kit & Creative Assets')}
             </h1>
           </div>
@@ -224,9 +224,9 @@ export default function AdminMarketingResourcesPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-slate-800 bg-[#0a0d16] text-xs text-slate-300 hover:bg-slate-800"
+                className="border-slate-300 bg-white text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-[#0a0d16] dark:text-slate-300 dark:hover:bg-slate-800"
               >
-                <Eye className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
+                <Eye className="mr-1.5 h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                 {t('Preview Partner Media Kit')}
               </Button>
             </Link>
@@ -242,7 +242,7 @@ export default function AdminMarketingResourcesPage() {
         </div>
 
         {successMessage && (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>{successMessage}</span>
           </div>
@@ -250,17 +250,17 @@ export default function AdminMarketingResourcesPage() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-slate-800/80 bg-[#090c14] p-4 shadow-xl">
+          <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#090c14] dark:shadow-xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+                <p className="text-[11px] font-bold tracking-wider text-slate-600 uppercase dark:text-slate-400">
                   {t('Published Assets')}
                 </p>
-                <div className="mt-1 font-mono text-2xl font-extrabold text-slate-100">
+                <div className="mt-1 font-mono text-2xl font-extrabold text-slate-900 dark:text-slate-100">
                   {assets.length}
                 </div>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-400">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
                 <FolderDown className="h-5 w-5" />
               </div>
             </div>
@@ -269,17 +269,17 @@ export default function AdminMarketingResourcesPage() {
             </p>
           </Card>
 
-          <Card className="border-slate-800/80 bg-[#090c14] p-4 shadow-xl">
+          <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#090c14] dark:shadow-xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+                <p className="text-[11px] font-bold tracking-wider text-slate-600 uppercase dark:text-slate-400">
                   {t('Partner Downloads')}
                 </p>
-                <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-400">
+                <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-700 dark:text-emerald-400">
                   {totalDownloads.toLocaleString(language)}
                 </div>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                 <Download className="h-5 w-5" />
               </div>
             </div>
@@ -288,17 +288,17 @@ export default function AdminMarketingResourcesPage() {
             </p>
           </Card>
 
-          <Card className="border-slate-800/80 bg-[#090c14] p-4 shadow-xl">
+          <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#090c14] dark:shadow-xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+                <p className="text-[11px] font-bold tracking-wider text-slate-600 uppercase dark:text-slate-400">
                   {t('Asset Categories')}
                 </p>
-                <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-400">
+                <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-700 dark:text-cyan-400">
                   5
                 </div>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
                 <Layers className="h-5 w-5" />
               </div>
             </div>
@@ -307,18 +307,18 @@ export default function AdminMarketingResourcesPage() {
             </p>
           </Card>
 
-          <Card className="border-slate-800/80 bg-[#090c14] p-4 shadow-xl">
+          <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#090c14] dark:shadow-xl">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+                <p className="text-[11px] font-bold tracking-wider text-slate-600 uppercase dark:text-slate-400">
                   {t('CDN Delivery Status')}
                 </p>
-                <div className="mt-1 flex items-center gap-2 font-mono text-base font-extrabold text-emerald-400">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+                <div className="mt-1 flex items-center gap-2 font-mono text-base font-extrabold text-emerald-700 dark:text-emerald-400">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500 dark:bg-emerald-400" />
                   {t('Edge Optimized')}
                 </div>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-400">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-600 dark:text-purple-400">
                 <Sparkles className="h-5 w-5" />
               </div>
             </div>
@@ -329,7 +329,7 @@ export default function AdminMarketingResourcesPage() {
         </div>
 
         {/* Search & Filter Bar */}
-        <div className="flex flex-col justify-between gap-4 rounded-xl border border-slate-800/80 bg-[#090c14] p-4 sm:flex-row sm:items-center">
+        <div className="flex flex-col justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center dark:border-slate-800/80 dark:bg-[#090c14]">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative max-w-xs">
               <Search className="absolute top-2.5 left-3 h-4 w-4 text-slate-400" />
@@ -337,14 +337,14 @@ export default function AdminMarketingResourcesPage() {
                 placeholder={t('Search marketing assets...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-9 border-slate-800 bg-[#06080e] pl-9 text-xs text-slate-200"
+                className="h-9 border-slate-200 bg-white pl-9 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
               />
             </div>
 
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="h-9 rounded-md border border-slate-800 bg-[#06080e] px-3 text-xs text-slate-200"
+              className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
             >
               <option value="ALL">{t('All Categories')}</option>
               <option value="BRAND_LOGOS">{t('Brand Logos')}</option>
@@ -363,11 +363,11 @@ export default function AdminMarketingResourcesPage() {
 
         {/* Upload Modal Drawer / Card */}
         {isUploadModalOpen && (
-          <Card className="space-y-4 border-amber-500/40 bg-[#090d18] p-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <Card className="space-y-4 border-amber-500/40 bg-white p-6 shadow-2xl dark:bg-[#090d18]">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-slate-800">
               <div className="flex items-center gap-2">
-                <Upload className="h-5 w-5 text-amber-400" />
-                <h3 className="text-base font-bold text-slate-100">
+                <Upload className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                   {t('Upload Marketing Creative to Media Kit')}
                 </h3>
               </div>
@@ -375,7 +375,7 @@ export default function AdminMarketingResourcesPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsUploadModalOpen(false)}
-                className="text-xs text-slate-400 hover:text-slate-200"
+                className="text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
               >
                 {t('Cancel')}
               </Button>
@@ -384,7 +384,7 @@ export default function AdminMarketingResourcesPage() {
             <form onSubmit={handleUploadSubmit} className="space-y-4">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-300">
+                  <Label className="text-xs text-slate-700 dark:text-slate-300">
                     {t('Asset Title / Description')} *
                   </Label>
                   <Input
@@ -392,12 +392,12 @@ export default function AdminMarketingResourcesPage() {
                     placeholder={t('e.g. Davin AI Mascot 3D High-Res Pack')}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="border-slate-800 bg-[#06080e] text-xs text-slate-200"
+                    className="border-slate-200 bg-white text-xs text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-300">
+                  <Label className="text-xs text-slate-700 dark:text-slate-300">
                     {t('Asset Category')} *
                   </Label>
                   <select
@@ -405,7 +405,7 @@ export default function AdminMarketingResourcesPage() {
                     onChange={(e) =>
                       setCategory(e.target.value as MarketingAsset['category'])
                     }
-                    className="h-9 w-full rounded-md border border-slate-800 bg-[#06080e] px-3 text-xs text-slate-200"
+                    className="h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                   >
                     <option value="BRAND_LOGOS">
                       {t('Brand Logos & Vector Marks')}
@@ -424,33 +424,33 @@ export default function AdminMarketingResourcesPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-300">
+                  <Label className="text-xs text-slate-700 dark:text-slate-300">
                     {t('File Format')}
                   </Label>
                   <Input
                     placeholder={t('e.g. PNG / SVG / JPG / MP4')}
                     value={format}
                     onChange={(e) => setFormat(e.target.value.toUpperCase())}
-                    className="border-slate-800 bg-[#06080e] font-mono text-xs text-slate-200 uppercase"
+                    className="border-slate-200 bg-white font-mono text-xs text-slate-900 uppercase dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-300">
+                  <Label className="text-xs text-slate-700 dark:text-slate-300">
                     {t('Resolution / Dimensions')}
                   </Label>
                   <Input
                     placeholder={t('e.g. 512x512 or 1920x1080')}
                     value={resolution}
                     onChange={(e) => setResolution(e.target.value)}
-                    className="border-slate-800 bg-[#06080e] font-mono text-xs text-slate-200"
+                    className="border-slate-200 bg-white font-mono text-xs text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                   />
                 </div>
               </div>
 
               {category === 'SWIPE_COPY' ? (
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-300">
+                  <Label className="text-xs text-slate-700 dark:text-slate-300">
                     {t('Swipe File Copy Content')}
                   </Label>
                   <Textarea
@@ -460,13 +460,13 @@ export default function AdminMarketingResourcesPage() {
                     )}
                     value={copyTextContent}
                     onChange={(e) => setCopyTextContent(e.target.value)}
-                    className="border-slate-800 bg-[#06080e] font-mono text-xs text-slate-200"
+                    className="border-slate-200 bg-white font-mono text-xs text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                   />
                 </div>
               ) : (
-                <div className="border-slate-750 rounded-xl border-2 border-dashed bg-[#06080e] p-6 text-center">
-                  <Upload className="mx-auto h-8 w-8 text-amber-400 opacity-80" />
-                  <p className="mt-2 text-xs font-semibold text-slate-200">
+                <div className="dark:border-slate-750 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center dark:bg-[#06080e]">
+                  <Upload className="mx-auto h-8 w-8 text-amber-500 opacity-80 dark:text-amber-400" />
+                  <p className="mt-2 text-xs font-semibold text-slate-900 dark:text-slate-200">
                     {t('Drag and drop your image, vector, or media file here')}
                   </p>
                   <p className="mt-1 text-[10px] text-slate-500">
@@ -480,7 +480,7 @@ export default function AdminMarketingResourcesPage() {
                   type="button"
                   variant="ghost"
                   onClick={() => setIsUploadModalOpen(false)}
-                  className="text-xs text-slate-400"
+                  className="text-xs text-slate-600 dark:text-slate-400"
                 >
                   {t('Cancel')}
                 </Button>
@@ -497,29 +497,29 @@ export default function AdminMarketingResourcesPage() {
         )}
 
         {/* Asset Table */}
-        <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Asset Title')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Category')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Format')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Resolution / Size')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Downloads')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Status')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Actions')}
                 </TableHead>
               </TableRow>
@@ -528,12 +528,12 @@ export default function AdminMarketingResourcesPage() {
               {filteredAssets.map((asset) => (
                 <TableRow
                   key={asset.id}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
                   <TableCell>
                     <div className="flex items-center gap-3">
                       {asset.previewUrl ? (
-                        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-800 bg-[#06080e]">
+                        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-[#06080e]">
                           <Image
                             src={asset.previewUrl}
                             alt={t(asset.title)}
@@ -542,12 +542,12 @@ export default function AdminMarketingResourcesPage() {
                           />
                         </div>
                       ) : (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-800 bg-[#06080e] text-amber-400">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-amber-600 dark:border-slate-800 dark:bg-[#06080e] dark:text-amber-400">
                           <FileText className="h-5 w-5" />
                         </div>
                       )}
                       <div>
-                        <div className="text-xs font-bold text-slate-200">
+                        <div className="text-xs font-bold text-slate-900 dark:text-slate-200">
                           {t(asset.title)}
                         </div>
                         <div className="text-[10px] text-slate-500">
@@ -559,22 +559,22 @@ export default function AdminMarketingResourcesPage() {
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className="border-slate-700 bg-slate-800/60 text-[10px] text-slate-300"
+                      className="border-slate-300 bg-slate-100 text-[10px] text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300"
                     >
                       {t(asset.category)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-amber-400">
+                  <TableCell className="font-mono text-xs font-bold text-amber-700 dark:text-amber-400">
                     {asset.format}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-400">
+                  <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                     {asset.resolution} • {asset.size}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-emerald-400">
+                  <TableCell className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     {asset.downloadCount.toLocaleString(language)}
                   </TableCell>
                   <TableCell>
-                    <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
+                    <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
                       {t(asset.status)}
                     </Badge>
                   </TableCell>
@@ -586,11 +586,11 @@ export default function AdminMarketingResourcesPage() {
                         onClick={() =>
                           handleCopyLink(asset.id, asset.downloadUrl)
                         }
-                        className="h-8 text-xs text-slate-400 hover:bg-slate-800 hover:text-amber-400"
+                        className="h-8 text-xs text-slate-600 hover:bg-slate-100 hover:text-amber-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-amber-400"
                         title={t('Copy Asset URL')}
                       >
                         {copiedId === asset.id ? (
-                          <Check className="h-3.5 w-3.5 text-emerald-400" />
+                          <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                         ) : (
                           <Copy className="h-3.5 w-3.5" />
                         )}
@@ -600,7 +600,7 @@ export default function AdminMarketingResourcesPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDelete(asset.id)}
-                        className="h-8 text-xs text-slate-400 hover:bg-rose-950/40 hover:text-rose-400"
+                        className="h-8 text-xs text-slate-600 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-400"
                         title={t('Delete Asset')}
                       >
                         <Trash2 className="h-3.5 w-3.5" />

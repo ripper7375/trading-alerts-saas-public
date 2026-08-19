@@ -58,7 +58,7 @@ function VerifyEmailPendingContent() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#050609] p-4 text-slate-100">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <div className="w-full max-w-md space-y-6">
         <div className="space-y-2 text-center">
           <Link href="/" className="inline-flex items-center gap-2">
@@ -74,47 +74,47 @@ function VerifyEmailPendingContent() {
                 }}
               />
             </div>
-            <span className="bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-xl font-black text-transparent">
+            <span className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 bg-clip-text text-xl font-black text-transparent dark:from-amber-400 dark:to-amber-200">
               DavinTrade AI
             </span>
           </Link>
-          <h1 className="text-2xl font-bold text-slate-100">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
             {t('Check Your Email')}
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             {t('We sent a verification link to your registered email address.')}
           </p>
         </div>
 
-        <Card className="space-y-6 border-slate-800/80 bg-[#090b14]/95 p-6 text-center shadow-2xl backdrop-blur-2xl md:p-8">
+        <Card className="space-y-6 border-slate-200 bg-white p-6 text-center shadow-2xl md:p-8 dark:border-slate-800/80 dark:bg-[#090b14]/95 dark:backdrop-blur-2xl">
           <div className="flex justify-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-400">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-600 dark:text-amber-400">
               <Mail className="h-7 w-7" />
             </div>
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-sm font-bold text-slate-200">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-200">
               {t('Verification Link Sent')}
             </h3>
             {!showEmailInput && email ? (
               <div>
-                <p className="text-xs leading-relaxed text-slate-400">
+                <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                   {t("We've sent a verification link to:")}
                 </p>
-                <p className="mt-1 font-semibold break-all text-amber-400">
+                <p className="mt-1 font-semibold break-all text-amber-600 dark:text-amber-400">
                   {email}
                 </p>
                 <button
                   type="button"
                   onClick={() => setShowEmailInput(true)}
-                  className="mt-1 text-[11px] text-slate-500 hover:text-slate-300"
+                  className="mt-1 text-[11px] text-slate-500 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300"
                 >
                   {t('Wrong email?')}
                 </button>
               </div>
             ) : (
-              <p className="text-xs leading-relaxed text-slate-400">
+              <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                 {t(
                   'Please click the link in your email to activate your account. If you do not see it within a few minutes, check your spam or junk folder.'
                 )}
@@ -123,29 +123,29 @@ function VerifyEmailPendingContent() {
           </div>
 
           {sent ? (
-            <div className="space-y-1 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-4 text-xs text-emerald-300">
+            <div className="space-y-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
               <div className="flex items-center justify-center gap-1.5 font-bold">
                 <CheckCircle2 className="h-4 w-4" />
                 <span>{t('New Link Dispatched!')}</span>
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">
                 {t('Please check your inbox again.')}
               </p>
             </div>
           ) : (
             <form
               onSubmit={handleResend}
-              className="space-y-3 border-t border-slate-800/80 pt-4 text-left"
+              className="space-y-3 border-t border-slate-200 pt-4 text-left dark:border-slate-800/80"
             >
               {error && (
-                <div className="flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-950/40 p-2.5 text-xs text-rose-300">
+                <div className="flex items-center gap-2 rounded-lg border border-rose-500/40 bg-rose-500/10 p-2.5 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-rose-950/40 dark:text-rose-300">
                   <AlertCircle className="h-4 w-4 shrink-0" />
                   <span>{error}</span>
                 </div>
               )}
               {(showEmailInput || !email) && (
                 <div className="space-y-1">
-                  <Label className="text-xs text-slate-300">
+                  <Label className="text-xs text-slate-700 dark:text-slate-300">
                     {t(
                       "Didn't receive it? Enter email to resend",
                       "Didn't receive an email? Enter your email to resend"
@@ -156,7 +156,7 @@ function VerifyEmailPendingContent() {
                     placeholder="name@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="border-slate-800 bg-[#06080e] text-slate-200"
+                    className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                     required
                   />
                 </div>
@@ -174,19 +174,19 @@ function VerifyEmailPendingContent() {
             </form>
           )}
 
-          <div className="space-y-1.5 border-t border-slate-800/80 pt-3 text-center">
-            <p className="text-xs text-slate-400">
+          <div className="space-y-1.5 border-t border-slate-200 pt-3 text-center dark:border-slate-800/80">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               {t('Already verified?')}{' '}
               <Link
                 href="/login"
-                className="font-semibold text-amber-400 hover:underline"
+                className="font-semibold text-amber-600 hover:underline dark:text-amber-400"
               >
                 {t('Sign in')}
               </Link>
             </p>
             <Link
               href="/register"
-              className="block text-[11px] text-slate-500 hover:text-slate-300"
+              className="block text-[11px] text-slate-500 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300"
             >
               {t('Need to register with a different address?')}
             </Link>

@@ -151,19 +151,19 @@ export default function DocsPage() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#050609] text-slate-100">
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <MarketingNavbar />
 
       <main className="container mx-auto max-w-5xl flex-1 px-4 py-16 md:px-6">
         <div className="space-y-8">
           <div className="mx-auto max-w-2xl space-y-4 text-center">
-            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-400">
+            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-400">
               {t('DavinTrade AI Knowledge Hub')}
             </Badge>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-100 md:text-5xl">
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-5xl dark:text-slate-100">
               {t('Documentation & Platform Guides')}
             </h1>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               {t(
                 'Complete reference for trading workspaces, algorithmic signals, conversational AI, billing, and API endpoints.'
               )}
@@ -176,7 +176,7 @@ export default function DocsPage() {
                 placeholder={t('Search topics, signals, webhooks...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-11 border-slate-800 bg-[#090b14] pl-10 text-slate-200 focus:border-amber-500/60"
+                className="h-11 border-slate-200 bg-white pl-10 text-slate-900 focus:border-amber-500/60 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200"
               />
             </div>
           </div>
@@ -189,26 +189,26 @@ export default function DocsPage() {
               return (
                 <Card
                   key={idx}
-                  className="border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl transition-colors hover:border-slate-700"
+                  className="border-slate-200 bg-white shadow-md transition-colors hover:border-slate-300 dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl dark:hover:border-slate-700"
                 >
                   <div
                     onClick={() => toggleSection(idx)}
                     className="flex cursor-pointer items-center justify-between p-5 select-none"
                   >
                     <div className="flex items-center gap-3.5">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-400">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
                         <Icon className="h-5 w-5" />
                       </div>
                       <div>
-                        <h3 className="text-base font-bold text-slate-100">
+                        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                           {section.title}
                         </h3>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
                           {section.summary}
                         </p>
                       </div>
                     </div>
-                    <button className="p-1 text-slate-400 hover:text-slate-200">
+                    <button className="p-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
                       {isOpen ? (
                         <ChevronUp className="h-5 w-5" />
                       ) : (
@@ -218,11 +218,13 @@ export default function DocsPage() {
                   </div>
 
                   {isOpen && (
-                    <CardContent className="space-y-2 border-t border-slate-800/80 bg-[#06080e]/60 px-6 py-4">
-                      <ul className="space-y-2 text-xs text-slate-300 md:text-sm">
+                    <CardContent className="space-y-2 border-t border-slate-200 bg-slate-50/80 px-6 py-4 dark:border-slate-800/80 dark:bg-[#06080e]/60">
+                      <ul className="space-y-2 text-xs text-slate-700 md:text-sm dark:text-slate-300">
                         {section.content.map((point, pIdx) => (
                           <li key={pIdx} className="flex items-start gap-2">
-                            <span className="font-bold text-amber-400">•</span>
+                            <span className="font-bold text-amber-600 dark:text-amber-400">
+                              •
+                            </span>
                             <span>{point}</span>
                           </li>
                         ))}

@@ -99,44 +99,44 @@ function ResetPasswordForm() {
               }}
             />
           </div>
-          <span className="bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-xl font-black text-transparent">
+          <span className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 bg-clip-text text-xl font-black text-transparent dark:from-amber-400 dark:to-amber-200">
             DavinTrade AI
           </span>
         </Link>
-        <h1 className="text-2xl font-bold text-slate-100">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
           {t('Set New Password')}
         </h1>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-600 dark:text-slate-400">
           {t('Enter your new secure account password below.')}
         </p>
       </div>
 
-      <Card className="space-y-4 border-slate-800/80 bg-[#090b14]/95 p-6 shadow-2xl backdrop-blur-2xl">
+      <Card className="space-y-4 border-slate-200 bg-white p-6 shadow-2xl md:p-8 dark:border-slate-800/80 dark:bg-[#090b14]/95 dark:backdrop-blur-2xl">
         {isSuccess ? (
           <div className="space-y-3 py-6 text-center">
             <div className="flex justify-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/20 text-emerald-400">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-6 w-6" />
               </div>
             </div>
-            <h3 className="text-base font-bold text-emerald-200">
+            <h3 className="text-base font-bold text-emerald-700 dark:text-emerald-200">
               {t('Password Reset Successfully!')}
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               {t('Redirecting you to login portal...')}
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-950/40 p-3 text-xs text-rose-300">
+              <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-rose-950/40 dark:text-rose-300">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-300">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 {t('New Password')}
               </Label>
               <div className="relative">
@@ -146,13 +146,13 @@ function ResetPasswordForm() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="border-slate-800 bg-[#06080e] pr-10 pl-9 text-slate-200 focus:border-amber-500"
+                  className="border-slate-200 bg-slate-50 pr-10 pl-9 text-slate-900 focus:border-amber-500 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute top-3 right-3 text-slate-500 hover:text-slate-300"
+                  className="absolute top-3 right-3 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   aria-label={
                     showPassword ? t('Hide password') : t('Show password')
                   }
@@ -166,7 +166,7 @@ function ResetPasswordForm() {
               </div>
 
               {password && (
-                <div className="mt-2 space-y-1 rounded-lg border border-slate-800 bg-[#070910] p-2.5">
+                <div className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-800 dark:bg-[#070910]">
                   {[
                     { key: 'minLength', label: t('At least 8 characters') },
                     { key: 'hasUppercase', label: t('One uppercase letter') },
@@ -187,13 +187,15 @@ function ResetPasswordForm() {
                         className="flex items-center gap-1.5 text-[11px]"
                       >
                         {passed ? (
-                          <Check className="h-3 w-3 text-emerald-400" />
+                          <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                         ) : (
-                          <X className="h-3 w-3 text-slate-600" />
+                          <X className="h-3 w-3 text-slate-400 dark:text-slate-600" />
                         )}
                         <span
                           className={
-                            passed ? 'text-emerald-400' : 'text-slate-500'
+                            passed
+                              ? 'text-emerald-700 dark:text-emerald-400'
+                              : 'text-slate-600 dark:text-slate-500'
                           }
                         >
                           {label}
@@ -206,7 +208,7 @@ function ResetPasswordForm() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-300">
+              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 {t('Confirm New Password')}
               </Label>
               <div className="relative">
@@ -216,13 +218,13 @@ function ResetPasswordForm() {
                   placeholder="••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="border-slate-800 bg-[#06080e] pr-10 pl-9 text-slate-200 focus:border-amber-500"
+                  className="border-slate-200 bg-slate-50 pr-10 pl-9 text-slate-900 focus:border-amber-500 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute top-3 right-3 text-slate-500 hover:text-slate-300"
+                  className="absolute top-3 right-3 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                   aria-label={
                     showConfirmPassword
                       ? t('Hide password confirmation')
@@ -237,7 +239,7 @@ function ResetPasswordForm() {
                 </button>
               </div>
               {confirmPassword && confirmPassword !== password && (
-                <p className="flex items-center gap-1 text-[11px] text-rose-400">
+                <p className="flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400">
                   <X className="h-3 w-3" />
                   {t('Passwords do not match')}
                 </p>
@@ -254,17 +256,17 @@ function ResetPasswordForm() {
               ) : (
                 <span className="flex items-center gap-1.5">
                   {t('Update Password')}
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
                 </span>
               )}
             </Button>
           </form>
         )}
 
-        <div className="border-t border-slate-800/80 pt-2 text-center">
+        <div className="border-t border-slate-200 pt-2 text-center dark:border-slate-800/80">
           <Link
             href="/login"
-            className="text-xs text-slate-400 transition-colors hover:text-amber-400"
+            className="text-xs text-slate-600 transition-colors hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400"
           >
             ← {t('Back to Login')}
           </Link>
@@ -276,7 +278,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#050609] p-4 text-slate-100">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <Suspense fallback={null}>
         <ResetPasswordForm />
       </Suspense>

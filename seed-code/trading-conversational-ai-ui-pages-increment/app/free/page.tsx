@@ -54,17 +54,17 @@ export default function FreeTierPage() {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#06070a] select-none">
+    <div className="flex h-screen w-full overflow-hidden bg-slate-50 select-none dark:bg-[#06070a]">
       <div className="flex h-screen flex-1 flex-col overflow-hidden">
         {/* Top Control Bar when Chat Panel B or Comments Panel D are collapsed */}
         {(isPanel1Collapsed || isPanel3Collapsed) && (
-          <div className="z-30 flex h-8 shrink-0 items-center justify-between border-b border-slate-800 bg-[#0c0f17] px-3 text-xs">
+          <div className="z-30 flex h-8 shrink-0 items-center justify-between border-b border-slate-200 bg-slate-100 px-3 text-xs dark:border-slate-800 dark:bg-[#0c0f17]">
             <div className="flex items-center gap-2">
               {isPanel1Collapsed && (
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-6 border-amber-500/40 bg-amber-500/10 text-[11px] font-bold text-amber-300"
+                  className="h-6 border-amber-500/40 bg-amber-500/10 text-[11px] font-bold text-amber-700 dark:text-amber-300"
                   onClick={() => setIsPanel1Collapsed(false)}
                 >
                   <PanelLeftOpen className="mr-1 h-3 w-3" />
@@ -78,7 +78,7 @@ export default function FreeTierPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-6 border-emerald-500/40 bg-emerald-500/10 text-[11px] font-bold text-emerald-300"
+                  className="h-6 border-emerald-500/40 bg-emerald-500/10 text-[11px] font-bold text-emerald-700 dark:text-emerald-300"
                   onClick={() => setIsPanel3Collapsed(false)}
                 >
                   <PanelRightOpen className="mr-1 h-3 w-3" />
@@ -120,7 +120,7 @@ export default function FreeTierPage() {
             {/* Drag Handle 1 */}
             <ResizableHandle
               withHandle
-              className="border-x border-amber-500/30 bg-[#0c0f17] hover:bg-amber-500/60"
+              className="border-x border-amber-500/30 bg-slate-200 hover:bg-amber-500/60 dark:bg-[#0c0f17]"
             />
 
             {/* Part-B: Stack D AI Analyst Chat Panel (FREE Tier Mode) */}
@@ -156,7 +156,7 @@ export default function FreeTierPage() {
                 {/* Drag Handle 2 */}
                 <ResizableHandle
                   withHandle
-                  className="border-x border-amber-500/30 bg-[#0c0f17] hover:bg-amber-500/60"
+                  className="border-x border-amber-500/30 bg-slate-200 hover:bg-amber-500/60 dark:bg-[#0c0f17]"
                 />
               </>
             )}
@@ -186,7 +186,7 @@ export default function FreeTierPage() {
                 {/* Drag Handle 3 */}
                 <ResizableHandle
                   withHandle
-                  className="border-x border-emerald-500/30 bg-[#0c0f17] hover:bg-emerald-500/60"
+                  className="border-x border-emerald-500/30 bg-slate-200 hover:bg-emerald-500/60 dark:bg-[#0c0f17]"
                 />
 
                 <ResizablePanel

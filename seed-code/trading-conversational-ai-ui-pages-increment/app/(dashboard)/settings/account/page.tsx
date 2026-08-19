@@ -117,17 +117,17 @@ export default function AccountSettingsPage() {
   return (
     <div className="animate-fade-in space-y-6 select-none">
       {/* Change Password */}
-      <div className="space-y-4 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-          <Lock className="h-5 w-5 text-amber-400" />
-          <h2 className="text-sm font-extrabold text-slate-100">
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800/80 dark:bg-[#090c14]">
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-3 dark:border-slate-800">
+          <Lock className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
             {t('Change Password')}
           </h2>
         </div>
 
         <form onSubmit={handlePasswordUpdate} className="space-y-3">
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-300">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('Current Password')}
             </Label>
             <div className="relative">
@@ -136,7 +136,7 @@ export default function AccountSettingsPage() {
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="border-slate-750 bg-[#06080e] pr-9 text-xs"
+                className="border-slate-200 bg-slate-50 pr-9 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-100"
               />
               <button
                 type="button"
@@ -146,7 +146,7 @@ export default function AccountSettingsPage() {
                     ? t('Hide current password')
                     : t('Show current password')
                 }
-                className="absolute top-1/2 right-2.5 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                className="absolute top-1/2 right-2.5 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
               >
                 {showCurrent ? (
                   <EyeOff className="h-3.5 w-3.5" />
@@ -158,7 +158,7 @@ export default function AccountSettingsPage() {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-300">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('New Password')}
             </Label>
             <div className="relative">
@@ -167,7 +167,7 @@ export default function AccountSettingsPage() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="border-slate-750 bg-[#06080e] pr-9 text-xs"
+                className="border-slate-200 bg-slate-50 pr-9 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-100"
               />
               <button
                 type="button"
@@ -175,7 +175,7 @@ export default function AccountSettingsPage() {
                 aria-label={
                   showNew ? t('Hide new password') : t('Show new password')
                 }
-                className="absolute top-1/2 right-2.5 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                className="absolute top-1/2 right-2.5 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
               >
                 {showNew ? (
                   <EyeOff className="h-3.5 w-3.5" />
@@ -187,7 +187,7 @@ export default function AccountSettingsPage() {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-300">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('Confirm New Password')}
             </Label>
             <Input
@@ -195,10 +195,10 @@ export default function AccountSettingsPage() {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="••••••••••••"
-              className="border-slate-750 bg-[#06080e] text-xs"
+              className="border-slate-200 bg-slate-50 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-100"
             />
             {passwordsMismatch && (
-              <p className="text-[11px] text-rose-400">
+              <p className="text-[11px] text-rose-600 dark:text-rose-400">
                 {t('Passwords do not match')}
               </p>
             )}
@@ -217,14 +217,14 @@ export default function AccountSettingsPage() {
       </div>
 
       {/* Two-Factor Authentication entry point */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl sm:flex-row sm:items-center sm:justify-between dark:border-slate-800/80 dark:bg-[#090c14]">
         <div className="flex items-center gap-3">
-          <ShieldCheck className="h-5 w-5 shrink-0 text-amber-400" />
+          <ShieldCheck className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
           <div>
-            <h2 className="text-sm font-extrabold text-slate-100">
+            <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
               {t('Two-Factor Authentication')}
             </h2>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {t(
                 'Set up, verify, disable 2FA, or regenerate backup codes from Security & 2FA settings.'
               )}
@@ -234,7 +234,7 @@ export default function AccountSettingsPage() {
         <Link href="/settings/security">
           <Button
             variant="outline"
-            className="border-slate-750 h-8 shrink-0 bg-slate-800 text-xs text-slate-200"
+            className="h-8 shrink-0 border-slate-200 bg-slate-50 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           >
             {t('Manage 2FA')}
           </Button>
@@ -242,17 +242,17 @@ export default function AccountSettingsPage() {
       </div>
 
       {/* Active Sessions */}
-      <div className="space-y-4 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h2 className="text-sm font-extrabold text-slate-100">
+      <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800/80 dark:bg-[#090c14]">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-slate-800">
+          <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
             {t('Active Sessions')}
           </h2>
-          <Badge className="border-slate-700 bg-slate-800 font-mono text-[9px] text-slate-300">
+          <Badge className="border-slate-200 bg-slate-100 font-mono text-[9px] text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
             {sessions.length} {t('Devices')}
           </Badge>
         </div>
 
-        <div className="divide-y divide-slate-800/60">
+        <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
           {sessions.map((session) => {
             const Icon = session.type === 'mobile' ? Smartphone : Laptop;
             return (
@@ -261,17 +261,17 @@ export default function AccountSettingsPage() {
                 className="flex items-center justify-between py-3 text-xs"
               >
                 <div className="flex items-center gap-3">
-                  <Icon className="h-5 w-5 shrink-0 text-amber-400" />
+                  <Icon className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
                   <div>
-                    <div className="flex items-center gap-2 font-bold text-slate-200">
+                    <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-200">
                       {session.device}
                       {session.isCurrent && (
-                        <Badge className="border-emerald-500/40 bg-emerald-500/15 font-mono text-[8px] text-emerald-400">
+                        <Badge className="border-emerald-500/40 bg-emerald-500/15 font-mono text-[8px] text-emerald-700 dark:text-emerald-400">
                           {t('This Device')}
                         </Badge>
                       )}
                     </div>
-                    <div className="font-mono text-[10px] text-slate-400">
+                    <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
                       {session.location} • {session.lastActive}
                     </div>
                   </div>
@@ -283,7 +283,7 @@ export default function AccountSettingsPage() {
                     size="sm"
                     onClick={() => handleRevokeSession(session.id)}
                     disabled={revokingId === session.id}
-                    className="text-rose-400 hover:bg-rose-500/20 hover:text-rose-300"
+                    className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-500/20 dark:hover:text-rose-300"
                   >
                     <LogOut className="mr-1.5 h-3.5 w-3.5" />
                     {revokingId === session.id ? t('Revoking...') : t('Revoke')}
@@ -296,11 +296,11 @@ export default function AccountSettingsPage() {
       </div>
 
       {/* Data Export Box */}
-      <div className="space-y-3 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
-        <h2 className="text-sm font-extrabold text-slate-100">
+      <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800/80 dark:bg-[#090c14]">
+        <h2 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
           {t('Download Account Data Package (GDPR)')}
         </h2>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-600 dark:text-slate-400">
           {t(
             'Export all your active alert rules, historical AI prompts, and billing logs in JSON format.'
           )}
@@ -309,7 +309,7 @@ export default function AccountSettingsPage() {
           variant="outline"
           onClick={handleDataExport}
           disabled={isExporting}
-          className="border-slate-750 h-8 bg-slate-800 text-xs text-slate-200"
+          className="h-8 border-slate-200 bg-slate-50 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
         >
           {isExporting
             ? t('Preparing Data Archive...')
@@ -318,7 +318,7 @@ export default function AccountSettingsPage() {
               : t('Request Data Archive')}
         </Button>
         {exportSuccess && (
-          <p className="flex items-center gap-1 text-xs font-bold text-emerald-400">
+          <p className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 className="h-3.5 w-3.5" />
             {t("You'll receive an email with a download link within 24 hours.")}
           </p>
@@ -327,7 +327,7 @@ export default function AccountSettingsPage() {
 
       {/* Danger Zone: Account Deletion */}
       <div className="space-y-4 rounded-2xl border border-rose-500/40 bg-rose-500/5 p-6 shadow-xl">
-        <div className="flex items-center gap-2 border-b border-rose-500/30 pb-3 text-rose-400">
+        <div className="flex items-center gap-2 border-b border-rose-500/30 pb-3 text-rose-600 dark:text-rose-400">
           <AlertTriangle className="h-5 w-5 shrink-0" />
           <h2 className="text-sm font-extrabold">
             {t('Danger Zone: Account Deletion')}
@@ -335,17 +335,17 @@ export default function AccountSettingsPage() {
         </div>
 
         {!isRequested ? (
-          <div className="space-y-3 text-xs text-slate-300">
+          <div className="space-y-3 text-xs text-slate-700 dark:text-slate-300">
             <p>
               {t(
                 'Initiating account deletion schedules your account for permanent erasure after a'
               )}{' '}
-              <strong className="text-amber-400">
+              <strong className="text-amber-700 dark:text-amber-400">
                 {t('7-day grace period')}
               </strong>
               .
             </p>
-            <p className="text-slate-400">
+            <p className="text-slate-500 dark:text-slate-400">
               {t(
                 'During this period, you can log in anytime to cancel the deletion request.'
               )}
@@ -364,36 +364,38 @@ export default function AccountSettingsPage() {
               >
                 {t('Request Account Deletion (7-Day Grace)')}
               </Button>
-              <DialogContent className="border-slate-800 bg-[#0c0f18] sm:max-w-md">
+              <DialogContent className="border-slate-200 bg-white sm:max-w-md dark:border-slate-800 dark:bg-[#0c0f18]">
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2 text-rose-400">
+                  <DialogTitle className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
                     <AlertTriangle className="h-5 w-5" />
                     {t('Delete Account')}
                   </DialogTitle>
-                  <DialogDescription className="text-slate-400">
+                  <DialogDescription className="text-slate-600 dark:text-slate-400">
                     {t(
                       'This action cannot be undone. This will schedule your account and all associated data for permanent erasure after a 7-day grace period.'
                     )}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="my-2">
-                  <p className="mb-2 text-xs text-slate-400">
+                  <p className="mb-2 text-xs text-slate-600 dark:text-slate-400">
                     {t('Type')}{' '}
-                    <strong className="text-slate-200">DELETE</strong>{' '}
+                    <strong className="text-slate-900 dark:text-slate-200">
+                      DELETE
+                    </strong>{' '}
                     {t('to confirm:')}
                   </p>
                   <Input
                     value={deleteConfirmation}
                     onChange={(e) => setDeleteConfirmation(e.target.value)}
                     placeholder="DELETE"
-                    className="border-slate-750 bg-[#06080e] text-xs"
+                    className="border-slate-200 bg-slate-50 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-100"
                   />
                 </div>
                 <DialogFooter>
                   <Button
                     variant="outline"
                     onClick={() => setIsDeleteDialogOpen(false)}
-                    className="border-slate-750 bg-slate-800 text-xs text-slate-200"
+                    className="border-slate-300 bg-transparent text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                   >
                     {t('Cancel')}
                   </Button>
@@ -410,11 +412,11 @@ export default function AccountSettingsPage() {
           </div>
         ) : (
           <div className="space-y-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-xs">
-            <div className="flex items-center gap-2 font-bold text-amber-300">
+            <div className="flex items-center gap-2 font-bold text-amber-700 dark:text-amber-300">
               <ShieldAlert className="h-4 w-4" />{' '}
               {t('Account Scheduled for Deletion')}
             </div>
-            <p className="text-slate-300">
+            <p className="text-slate-700 dark:text-slate-300">
               {t('Your account is scheduled to be erased in')}{' '}
               <strong>
                 6 {t('days')}, 23 {t('hours')}

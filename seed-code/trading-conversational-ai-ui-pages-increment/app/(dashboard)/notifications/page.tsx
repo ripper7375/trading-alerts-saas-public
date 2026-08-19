@@ -151,7 +151,7 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Notifications Centre')}
         subtitle={t(
@@ -181,7 +181,7 @@ export default function NotificationsPage() {
                 className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all ${
                   filter === tab.id
                     ? 'bg-amber-500 font-bold text-slate-950 shadow-md shadow-amber-500/20'
-                    : 'border border-slate-800 bg-[#090b14] text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                    : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
                 }`}
               >
                 {tab.label}
@@ -194,9 +194,9 @@ export default function NotificationsPage() {
               variant="outline"
               size="sm"
               onClick={markAllRead}
-              className="self-start border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
+              className="self-start border-slate-200 bg-white text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-300 dark:hover:bg-slate-800"
             >
-              <CheckCheck className="mr-1.5 h-3.5 w-3.5 text-emerald-400" />
+              <CheckCheck className="mr-1.5 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
               {t('Mark all as read')}
             </Button>
           )}
@@ -204,7 +204,7 @@ export default function NotificationsPage() {
 
         {/* Undo Delete Banner */}
         {showUndo && deletedNotification && (
-          <div className="animate-in slide-in-from-top-2 flex items-center justify-between rounded-xl bg-slate-800 px-4 py-3 text-slate-100">
+          <div className="animate-in slide-in-from-top-2 flex items-center justify-between rounded-xl bg-slate-200 px-4 py-3 text-slate-900 dark:bg-slate-800 dark:text-slate-100">
             <span className="text-xs">
               {t('Notification')} &quot;{deletedNotification.title}&quot;{' '}
               {t('deleted')}
@@ -213,7 +213,7 @@ export default function NotificationsPage() {
               variant="ghost"
               size="sm"
               onClick={undoDelete}
-              className="text-xs text-slate-100 hover:bg-slate-700 hover:text-white"
+              className="text-xs text-slate-900 hover:bg-slate-300 dark:text-slate-100 dark:hover:bg-slate-700 dark:hover:text-white"
             >
               <Undo2 className="mr-2 h-3.5 w-3.5" />
               {t('Undo')}
@@ -224,9 +224,9 @@ export default function NotificationsPage() {
         {/* Notifications Feed */}
         <div className="space-y-3">
           {filtered.length === 0 ? (
-            <Card className="border-slate-800 bg-[#090b14]/80 p-12 text-center">
-              <Bell className="mx-auto mb-3 h-10 w-10 text-slate-600" />
-              <h3 className="text-sm font-bold text-slate-300">
+            <Card className="border-slate-200 bg-white/80 p-12 text-center dark:border-slate-800 dark:bg-[#090b14]/80">
+              <Bell className="mx-auto mb-3 h-10 w-10 text-slate-400 dark:text-slate-600" />
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-300">
                 {t('No notifications found')}
               </h3>
               <p className="mt-1 text-xs text-slate-500">
@@ -238,13 +238,21 @@ export default function NotificationsPage() {
               const getIcon = () => {
                 switch (item.category) {
                   case 'ALERT':
-                    return <Zap className="h-4 w-4 text-amber-400" />;
+                    return (
+                      <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    );
                   case 'BILLING':
-                    return <CreditCard className="h-4 w-4 text-cyan-400" />;
+                    return (
+                      <CreditCard className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                    );
                   case 'SECURITY':
-                    return <Shield className="h-4 w-4 text-rose-400" />;
+                    return (
+                      <Shield className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                    );
                   default:
-                    return <Sparkles className="h-4 w-4 text-purple-400" />;
+                    return (
+                      <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    );
                 }
               };
 
@@ -252,29 +260,29 @@ export default function NotificationsPage() {
                 <Card
                   key={item.id}
                   onClick={() => markItemRead(item.id)}
-                  className={`border transition-all hover:border-slate-700 ${
+                  className={`border transition-all hover:border-slate-300 dark:hover:border-slate-700 ${
                     item.read
-                      ? 'border-slate-800/60 bg-[#070910]/70'
-                      : 'border-amber-500/30 bg-[#0b0e1a]/95 shadow-md shadow-amber-500/5'
+                      ? 'border-slate-200/80 bg-white/70 dark:border-slate-800/60 dark:bg-[#070910]/70'
+                      : 'border-amber-500/30 bg-amber-500/5 shadow-xs dark:bg-[#0b0e1a]/95 dark:shadow-md dark:shadow-amber-500/5'
                   }`}
                 >
                   <CardContent className="flex items-start justify-between gap-4 p-4">
                     <div className="flex items-start gap-3.5">
-                      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-800 bg-[#06080e]">
+                      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-[#06080e]">
                         {getIcon()}
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <h4
-                            className={`text-xs font-bold ${item.read ? 'text-slate-300' : 'text-slate-100'}`}
+                            className={`text-xs font-bold ${item.read ? 'text-slate-700 dark:text-slate-300' : 'text-slate-900 dark:text-slate-100'}`}
                           >
                             {item.title}
                           </h4>
                           {!item.read && (
-                            <span className="h-2 w-2 rounded-full bg-amber-400" />
+                            <span className="h-2 w-2 rounded-full bg-amber-500 dark:bg-amber-400" />
                           )}
                         </div>
-                        <p className="text-xs leading-relaxed text-slate-400">
+                        <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                           {item.message}
                         </p>
                         <div className="flex items-center gap-3 pt-1 text-[10px] text-slate-500">
@@ -296,7 +304,7 @@ export default function NotificationsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="px-2.5 text-xs text-amber-400 hover:bg-amber-500/10"
+                            className="px-2.5 text-xs text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
                           >
                             <span>{t('View')}</span>
                             <ArrowRight className="ml-1 h-3.5 w-3.5" />
@@ -311,7 +319,7 @@ export default function NotificationsPage() {
                           e.stopPropagation();
                           deleteNotification(item.id);
                         }}
-                        className="h-8 w-8 text-slate-500 hover:bg-rose-500/20 hover:text-rose-300"
+                        className="h-8 w-8 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-500 dark:hover:bg-rose-500/20 dark:hover:text-rose-300"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>

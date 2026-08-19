@@ -106,7 +106,7 @@ export function AdminNav() {
   ];
 
   return (
-    <div className="flex w-full scrollbar-none items-center gap-1 overflow-x-auto border-b border-rose-500/20 bg-[#07080e] px-4 py-2 text-xs md:px-6">
+    <div className="flex w-full scrollbar-none items-center gap-1 overflow-x-auto border-b border-rose-500/20 bg-slate-50 px-4 py-2 text-xs md:px-6 dark:bg-[#07080e]">
       {links.map((link) => {
         const Icon = link.icon;
         const isActive =
@@ -121,14 +121,16 @@ export function AdminNav() {
             className={cn(
               'flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-medium whitespace-nowrap transition-all',
               isActive
-                ? 'border border-rose-500/30 bg-rose-500/15 font-semibold text-rose-400 shadow-sm'
-                : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+                ? 'border border-rose-500/30 bg-rose-500/15 font-semibold text-rose-600 shadow-xs dark:text-rose-400'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200'
             )}
           >
             <Icon
               className={cn(
                 'h-3.5 w-3.5',
-                isActive ? 'text-rose-400' : 'text-slate-400'
+                isActive
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : 'text-slate-500 dark:text-slate-400'
               )}
             />
             <span>{link.label}</span>

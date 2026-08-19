@@ -42,7 +42,7 @@ export function MarketingNavbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-[#06070a]/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/90 backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#06070a]/90">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
         {/* Brand Logo with Davin AI Icon */}
         <Link href="/" className="group flex items-center space-x-3">
@@ -61,14 +61,14 @@ export function MarketingNavbar() {
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
-              <span className="bg-gradient-to-r from-amber-400 via-amber-200 to-yellow-500 bg-clip-text text-lg font-black tracking-tight text-transparent">
+              <span className="bg-gradient-to-r from-amber-600 via-amber-500 to-yellow-600 bg-clip-text text-lg font-black tracking-tight text-transparent dark:from-amber-400 dark:via-amber-200 dark:to-yellow-500">
                 DavinTrade
               </span>
-              <Badge className="border-amber-500/40 bg-amber-500/15 px-1.5 py-0 text-[10px] font-bold text-amber-400">
+              <Badge className="border-amber-500/40 bg-amber-500/15 px-1.5 py-0 text-[10px] font-bold text-amber-700 dark:text-amber-400">
                 AI
               </Badge>
             </div>
-            <span className="text-[10px] font-medium text-slate-400">
+            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
               {t('Conversational Quantitative SaaS')}
             </span>
           </div>
@@ -80,10 +80,10 @@ export function MarketingNavbar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`transition-colors hover:text-amber-400 ${
+              className={`transition-colors hover:text-amber-600 dark:hover:text-amber-400 ${
                 pathname === item.href
-                  ? 'font-semibold text-amber-400'
-                  : 'text-slate-300'
+                  ? 'font-semibold text-amber-700 dark:text-amber-400'
+                  : 'text-slate-600 dark:text-slate-300'
               }`}
             >
               {item.label}
@@ -93,56 +93,56 @@ export function MarketingNavbar() {
           {/* More Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-1 text-slate-300 transition-colors hover:text-amber-400 focus:outline-none">
+              <button className="flex items-center gap-1 text-slate-600 transition-colors hover:text-amber-600 focus:outline-none dark:text-slate-300 dark:hover:text-amber-400">
                 <span>{t('More')}</span>
                 <ChevronDown className="h-3.5 w-3.5" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="w-48 border-slate-800 bg-[#0d111c]/95 backdrop-blur-xl"
+              className="w-48 border-slate-200 bg-white/95 backdrop-blur-xl dark:border-slate-800 dark:bg-[#0d111c]/95"
             >
               <DropdownMenuItem asChild>
                 <Link
                   href="/about"
-                  className="flex cursor-pointer items-center gap-2 text-slate-200 hover:text-amber-400"
+                  className="flex cursor-pointer items-center gap-2 text-slate-700 hover:text-amber-600 dark:text-slate-200 dark:hover:text-amber-400"
                 >
-                  <Layers className="h-4 w-4 text-amber-400" />
+                  <Layers className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   <span>{t('About Us')}</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
                   href="/status"
-                  className="flex cursor-pointer items-center gap-2 text-slate-200 hover:text-amber-400"
+                  className="flex cursor-pointer items-center gap-2 text-slate-700 hover:text-amber-600 dark:text-slate-200 dark:hover:text-amber-400"
                 >
-                  <Activity className="h-4 w-4 text-emerald-400" />
+                  <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                   <span>{t('System Status')}</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
                   href="/changelog"
-                  className="flex cursor-pointer items-center gap-2 text-slate-200 hover:text-amber-400"
+                  className="flex cursor-pointer items-center gap-2 text-slate-700 hover:text-amber-600 dark:text-slate-200 dark:hover:text-amber-400"
                 >
-                  <Sparkles className="h-4 w-4 text-amber-400" />
+                  <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   <span>{t('Changelog')}</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
                   href="/help"
-                  className="flex cursor-pointer items-center gap-2 text-slate-200 hover:text-amber-400"
+                  className="flex cursor-pointer items-center gap-2 text-slate-700 hover:text-amber-600 dark:text-slate-200 dark:hover:text-amber-400"
                 >
-                  <HelpCircle className="h-4 w-4 text-cyan-400" />
+                  <HelpCircle className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
                   <span>{t('Help Centre')}</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-slate-800" />
+              <DropdownMenuSeparator className="bg-slate-200 dark:bg-slate-800" />
               <DropdownMenuItem asChild>
                 <Link
                   href="/disclaimer"
-                  className="flex cursor-pointer items-center gap-2 text-xs text-slate-400 hover:text-slate-200"
+                  className="flex cursor-pointer items-center gap-2 text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                 >
                   <Shield className="h-3.5 w-3.5" />
                   <span>{t('Risk Disclaimer')}</span>
@@ -157,7 +157,7 @@ export function MarketingNavbar() {
           <Link href="/login">
             <Button
               variant="ghost"
-              className="text-slate-300 hover:bg-slate-800/60 hover:text-slate-100"
+              className="text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-slate-100"
             >
               {t('Log In')}
             </Button>
@@ -173,7 +173,7 @@ export function MarketingNavbar() {
         {/* Mobile Menu Button */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800 text-slate-400 hover:text-slate-100 md:hidden"
+          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 md:hidden dark:border-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
         >
           {mobileMenuOpen ? (
             <X className="h-5 w-5" />
@@ -185,46 +185,46 @@ export function MarketingNavbar() {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="border-b border-slate-800 bg-[#06070a]/98 px-4 py-6 md:hidden">
+        <div className="border-b border-slate-200 bg-white/98 px-4 py-6 md:hidden dark:border-slate-800 dark:bg-[#06070a]/98">
           <div className="flex flex-col space-y-4">
             {navLinks.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-base font-medium text-slate-200 hover:text-amber-400"
+                className="text-base font-medium text-slate-700 hover:text-amber-600 dark:text-slate-200 dark:hover:text-amber-400"
               >
                 {item.label}
               </Link>
             ))}
-            <div className="flex flex-col space-y-2 border-t border-slate-800/80 pt-4">
+            <div className="flex flex-col space-y-2 border-t border-slate-200 pt-4 dark:border-slate-800/80">
               <Link
                 href="/about"
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-sm text-slate-300 hover:text-amber-400"
+                className="text-sm text-slate-600 hover:text-amber-600 dark:text-slate-300 dark:hover:text-amber-400"
               >
                 {t('About Us')}
               </Link>
               <Link
                 href="/status"
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-sm text-slate-300 hover:text-amber-400"
+                className="text-sm text-slate-600 hover:text-amber-600 dark:text-slate-300 dark:hover:text-amber-400"
               >
                 {t('System Status')}
               </Link>
               <Link
                 href="/help"
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-sm text-slate-300 hover:text-amber-400"
+                className="text-sm text-slate-600 hover:text-amber-600 dark:text-slate-300 dark:hover:text-amber-400"
               >
                 {t('Help Centre')}
               </Link>
             </div>
-            <div className="flex flex-col gap-2 border-t border-slate-800/80 pt-4">
+            <div className="flex flex-col gap-2 border-t border-slate-200 pt-4 dark:border-slate-800/80">
               <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
                 <Button
                   variant="outline"
-                  className="w-full border-slate-700 text-slate-200"
+                  className="w-full border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-200"
                 >
                   {t('Log In')}
                 </Button>

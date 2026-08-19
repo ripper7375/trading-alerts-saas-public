@@ -58,10 +58,10 @@ export default function UpgradeSuccessPage() {
 
   if (isConfirming) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#050609] p-4 text-slate-100">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
         <div className="space-y-3 text-center">
-          <Loader2 className="mx-auto h-10 w-10 animate-spin text-amber-400" />
-          <p className="text-sm text-slate-400">
+          <Loader2 className="mx-auto h-10 w-10 animate-spin text-amber-600 dark:text-amber-400" />
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             {t('Confirming your upgrade...')}
           </p>
         </div>
@@ -70,7 +70,7 @@ export default function UpgradeSuccessPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#050609] p-4 text-slate-100">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <div className="w-full max-w-xl space-y-6">
         <div className="space-y-2 text-center">
           <Link href="/" className="inline-flex items-center gap-2">
@@ -86,26 +86,26 @@ export default function UpgradeSuccessPage() {
                 }}
               />
             </div>
-            <span className="bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-2xl font-black text-transparent">
+            <span className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 bg-clip-text text-2xl font-black text-transparent dark:from-amber-400 dark:to-amber-200">
               DavinTrade AI
             </span>
           </Link>
         </div>
 
-        <Card className="space-y-6 border-amber-500/40 bg-[#090b14]/95 p-6 shadow-2xl backdrop-blur-2xl md:p-8">
+        <Card className="space-y-6 border-amber-500/40 bg-white p-6 shadow-2xl md:p-8 dark:bg-[#090b14]/95">
           <div className="space-y-3 text-center">
             <div className="flex justify-center">
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-400 shadow-lg shadow-amber-500/20">
+              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-600 shadow-lg shadow-amber-500/20 dark:text-amber-400">
                 <Sparkles className="h-8 w-8" />
               </div>
             </div>
             <Badge className="bg-amber-500 px-3 py-1 text-xs font-bold text-slate-950">
               {t('PRO TIER ACTIVATED')}
             </Badge>
-            <h1 className="text-2xl font-extrabold text-slate-100 md:text-3xl">
+            <h1 className="text-2xl font-extrabold text-slate-900 md:text-3xl dark:text-slate-100">
               {t('Welcome to DavinTrade PRO!')}
             </h1>
-            <p className="text-xs text-slate-400 md:text-sm">
+            <p className="text-xs text-slate-600 md:text-sm dark:text-slate-400">
               {t(
                 'Your account has been upgraded. All professional quantitative features and conversational AI models are now active.'
               )}
@@ -118,16 +118,18 @@ export default function UpgradeSuccessPage() {
               return (
                 <div
                   key={idx}
-                  className="flex items-center gap-3 rounded-xl border border-slate-800/80 bg-[#06080e] p-3.5"
+                  className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800/80 dark:bg-[#06080e]"
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
                     <Icon className="h-5 w-5" />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-200">
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
                       {feat.title}
                     </h4>
-                    <p className="text-[11px] text-slate-400">{feat.desc}</p>
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                      {feat.desc}
+                    </p>
                   </div>
                 </div>
               );
@@ -141,16 +143,19 @@ export default function UpgradeSuccessPage() {
                 {t('Enter PRO Terminal Workspace')}
               </Button>
             </Link>
-            <div className="flex items-center justify-center gap-4 pt-1 text-xs text-slate-500">
+            <div className="flex items-center justify-center gap-4 pt-1 text-xs text-slate-600 dark:text-slate-500">
               <Link
                 href="/settings/billing"
-                className="flex items-center gap-1 hover:text-amber-400"
+                className="flex items-center gap-1 hover:text-amber-600 dark:hover:text-amber-400"
               >
                 <Receipt className="h-3.5 w-3.5" />
                 <span>{t('View Invoice')}</span>
               </Link>
               <span>•</span>
-              <Link href="/dashboard" className="hover:text-amber-400">
+              <Link
+                href="/dashboard"
+                className="hover:text-amber-600 dark:hover:text-amber-400"
+              >
                 {t('Go to Dashboard')}
               </Link>
             </div>

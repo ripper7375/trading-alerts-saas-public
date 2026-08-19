@@ -28,16 +28,16 @@ export default function Verify2faPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-[#06070a] p-4 select-none">
-      <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-800/80 bg-[#0b0e17] p-8 shadow-2xl backdrop-blur-xl">
+    <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 p-4 text-slate-900 select-none dark:bg-[#06070a] dark:text-slate-100">
+      <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
         <div className="flex flex-col items-center space-y-2 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-400">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-600 dark:text-amber-400">
             <ShieldCheck className="h-6 w-6" />
           </div>
-          <h2 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
+          <h2 className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 bg-clip-text text-xl font-extrabold tracking-tight text-transparent dark:from-amber-400 dark:to-amber-200">
             {t('Two-Factor Authentication')}
           </h2>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             {useBackup
               ? t('Enter one of your 8-digit emergency backup codes')
               : t(
@@ -48,7 +48,7 @@ export default function Verify2faPage() {
 
         <form onSubmit={handleVerify} className="space-y-4">
           <div className="space-y-1.5 text-center">
-            <Label className="text-xs font-semibold text-slate-300">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {useBackup ? t('Backup Code') : t('6-Digit Security Code')}
             </Label>
             <Input
@@ -58,7 +58,7 @@ export default function Verify2faPage() {
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder={useBackup ? '1234-5678' : '123456'}
-              className="border-slate-750 h-12 bg-[#06080e] text-center font-mono text-lg tracking-widest text-amber-300"
+              className="dark:border-slate-750 h-12 border-slate-200 bg-slate-50 text-center font-mono text-lg tracking-widest text-amber-600 dark:bg-[#06080e] dark:text-amber-300"
             />
           </div>
 
@@ -71,11 +71,11 @@ export default function Verify2faPage() {
           </Button>
         </form>
 
-        <div className="flex items-center justify-between border-t border-slate-800/80 pt-2 text-xs">
+        <div className="flex items-center justify-between border-t border-slate-200 pt-2 text-xs dark:border-slate-800/80">
           <button
             type="button"
             onClick={() => setUseBackup(!useBackup)}
-            className="flex items-center gap-1 font-semibold text-amber-400 hover:underline"
+            className="flex items-center gap-1 font-semibold text-amber-600 hover:underline dark:text-amber-400"
           >
             <KeyRound className="h-3.5 w-3.5" />
             {useBackup ? t('Use Authenticator App') : t('Use Backup Code')}
@@ -83,7 +83,7 @@ export default function Verify2faPage() {
 
           <Link
             href="/login"
-            className="flex items-center gap-1 text-slate-400 hover:text-slate-200"
+            className="flex items-center gap-1 text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> {t('Back to Login')}
           </Link>

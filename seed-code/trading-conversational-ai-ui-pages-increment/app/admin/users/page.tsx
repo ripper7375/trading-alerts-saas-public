@@ -9,7 +9,7 @@ export default function AdminUsersPage() {
   const { t } = useLocale();
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('User Directory Management')}
         subtitle={t('System Account Oversight, Role Assignment & Account Bans')}

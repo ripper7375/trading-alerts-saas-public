@@ -77,7 +77,7 @@ export default function TerminalPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-6 border-amber-500/40 bg-amber-500/10 text-[11px] font-bold text-amber-300 transition-all hover:border-amber-400 hover:bg-amber-500/25 hover:text-amber-200"
+                  className="h-6 border-amber-500/40 bg-amber-500/10 text-[11px] font-bold text-amber-700 transition-all hover:border-amber-400 hover:bg-amber-500/25 hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200"
                   onClick={() => setIsPanel1Collapsed(false)}
                 >
                   <PanelLeftOpen className="mr-1 h-3 w-3" />
@@ -91,7 +91,7 @@ export default function TerminalPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-6 border-emerald-500/40 bg-emerald-500/10 text-[11px] font-bold text-emerald-300 transition-all hover:border-emerald-400 hover:bg-emerald-500/25 hover:text-emerald-200"
+                  className="h-6 border-emerald-500/40 bg-emerald-500/10 text-[11px] font-bold text-emerald-700 transition-all hover:border-emerald-400 hover:bg-emerald-500/25 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200"
                   onClick={() => setIsPanel3Collapsed(false)}
                 >
                   <PanelRightOpen className="mr-1 h-3 w-3" />

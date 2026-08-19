@@ -58,16 +58,16 @@ export default function AdminDisbursementConfigPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-100 sm:text-3xl">
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl dark:text-slate-100">
           {t('Configuration')}
         </h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
           {t('Disbursement system settings')}
         </p>
       </div>
 
       {success && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>{success}</span>
         </div>
@@ -75,8 +75,8 @@ export default function AdminDisbursementConfigPage() {
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Provider */}
-        <Card className="space-y-4 border-slate-800/80 bg-[#090c14] p-6">
-          <h3 className="border-b border-slate-800 pb-3 text-sm font-bold text-slate-100">
+        <Card className="space-y-4 border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
+          <h3 className="border-b border-slate-200 pb-3 text-sm font-bold text-slate-900 dark:border-slate-800 dark:text-slate-100">
             {t('Payment Provider')}
           </h3>
 
@@ -88,8 +88,8 @@ export default function AdminDisbursementConfigPage() {
                   key={p}
                   className={`flex items-center gap-2 text-xs ${
                     isAvailable
-                      ? 'cursor-pointer text-slate-200'
-                      : 'cursor-not-allowed text-slate-500 opacity-50'
+                      ? 'cursor-pointer text-slate-800 dark:text-slate-200'
+                      : 'cursor-not-allowed text-slate-400 opacity-50 dark:text-slate-500'
                   }`}
                 >
                   <input
@@ -107,8 +107,8 @@ export default function AdminDisbursementConfigPage() {
             })}
           </div>
 
-          <div className="rounded-lg border border-blue-500/30 bg-blue-950/20 p-3">
-            <p className="text-[11px] text-blue-300">
+          <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3 dark:bg-blue-950/20">
+            <p className="text-[11px] text-blue-700 dark:text-blue-300">
               <strong>
                 {t('Configured via')} <code>DISBURSEMENT_PROVIDER</code>{' '}
                 {t('environment variable.')}
@@ -120,17 +120,17 @@ export default function AdminDisbursementConfigPage() {
           </div>
         </Card>
 
-        <Card className="space-y-5 border-slate-800/80 bg-[#090c14] p-6">
-          <h3 className="border-b border-slate-800 pb-3 text-sm font-bold text-slate-100">
+        <Card className="space-y-5 border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
+          <h3 className="border-b border-slate-200 pb-3 text-sm font-bold text-slate-900 dark:border-slate-800 dark:text-slate-100">
             {t('Automated Settlement Parameters')}
           </h3>
 
-          <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-[#06080e]">
             <div className="space-y-0.5">
-              <div className="text-xs font-bold text-slate-200">
+              <div className="text-xs font-bold text-slate-900 dark:text-slate-200">
                 {t('Disbursement Status')}
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">
                 {t('When disabled, no new batches can be created or executed.')}
               </p>
             </div>
@@ -138,8 +138,8 @@ export default function AdminDisbursementConfigPage() {
               <Badge
                 className={
                   enabled
-                    ? 'border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-300'
-                    : 'border-rose-500/40 bg-rose-500/15 text-[10px] text-rose-300'
+                    ? 'border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-700 dark:text-emerald-300'
+                    : 'border-rose-500/40 bg-rose-500/15 text-[10px] text-rose-700 dark:text-rose-300'
                 }
               >
                 {enabled ? t('Enabled') : t('Disabled')}
@@ -150,7 +150,7 @@ export default function AdminDisbursementConfigPage() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-300">
+              <Label className="text-xs text-slate-700 dark:text-slate-300">
                 {t('Minimum Payout Threshold (USD)')}
               </Label>
               <Input
@@ -159,7 +159,7 @@ export default function AdminDisbursementConfigPage() {
                 min="0"
                 value={minThreshold}
                 onChange={(e) => setMinThreshold(e.target.value)}
-                className="border-slate-800 bg-[#06080e] font-mono text-slate-200"
+                className="border-slate-200 bg-white font-mono text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                 required
               />
               <p className="text-[11px] text-slate-500">
@@ -170,7 +170,7 @@ export default function AdminDisbursementConfigPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-300">
+              <Label className="text-xs text-slate-700 dark:text-slate-300">
                 {t('Maximum Batch Size')}
               </Label>
               <Input
@@ -179,7 +179,7 @@ export default function AdminDisbursementConfigPage() {
                 max="500"
                 value={batchSize}
                 onChange={(e) => setBatchSize(e.target.value)}
-                className="border-slate-800 bg-[#06080e] font-mono text-slate-200"
+                className="border-slate-200 bg-white font-mono text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                 required
               />
               <p className="text-[11px] text-slate-500">
@@ -188,7 +188,7 @@ export default function AdminDisbursementConfigPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-300">
+              <Label className="text-xs text-slate-700 dark:text-slate-300">
                 {t('Monthly Disbursement Day')}
               </Label>
               <Input
@@ -197,19 +197,19 @@ export default function AdminDisbursementConfigPage() {
                 max="28"
                 value={payoutDay}
                 onChange={(e) => setPayoutDay(e.target.value)}
-                className="border-slate-800 bg-[#06080e] font-mono text-slate-200"
+                className="border-slate-200 bg-white font-mono text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
+            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-[#06080e]">
               <div className="space-y-0.5">
-                <div className="text-xs font-bold text-slate-200">
+                <div className="text-xs font-bold text-slate-900 dark:text-slate-200">
                   {t('Automated Wise Cron Job Execution')}
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">
                   {t(
                     'Automatically executes validated batches without manual admin trigger.'
                   )}
@@ -218,14 +218,14 @@ export default function AdminDisbursementConfigPage() {
               <Switch checked={autoExecute} onCheckedChange={setAutoExecute} />
             </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
+            <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-[#06080e]">
               <div className="space-y-0.5">
-                <div className="text-xs font-bold text-slate-200">
+                <div className="text-xs font-bold text-slate-900 dark:text-slate-200">
                   {t(
                     'Dual Admin Multi-Signature Required for Batches > $5,000'
                   )}
                 </div>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-600 dark:text-slate-400">
                   {t(
                     'High security threshold for large treasury balance withdrawals.'
                   )}
@@ -239,31 +239,31 @@ export default function AdminDisbursementConfigPage() {
           </div>
         </Card>
 
-        <Card className="space-y-4 border-slate-800/80 bg-[#090c14] p-6">
-          <h3 className="border-b border-slate-800 pb-3 text-sm font-bold text-slate-100">
+        <Card className="space-y-4 border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
+          <h3 className="border-b border-slate-200 pb-3 text-sm font-bold text-slate-900 dark:border-slate-800 dark:text-slate-100">
             {t('API Credentials & Vault Configuration')}
           </h3>
 
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-300">
+              <Label className="text-xs text-slate-700 dark:text-slate-300">
                 {t('Wise Business Live API Key')}
               </Label>
               <Input
                 value={wiseApiKeyMasked}
                 onChange={(e) => setWiseApiKeyMasked(e.target.value)}
-                className="border-slate-800 bg-[#06080e] font-mono text-xs text-slate-400"
+                className="border-slate-200 bg-white font-mono text-xs text-slate-600 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-400"
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-300">
+              <Label className="text-xs text-slate-700 dark:text-slate-300">
                 {t('RiseWorks Contractor API Key')}
               </Label>
               <Input
                 value={riseWorksApiKeyMasked}
                 onChange={(e) => setRiseWorksApiKeyMasked(e.target.value)}
-                className="border-slate-800 bg-[#06080e] font-mono text-xs text-slate-400"
+                className="border-slate-200 bg-white font-mono text-xs text-slate-600 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-400"
               />
             </div>
           </div>
@@ -282,28 +282,34 @@ export default function AdminDisbursementConfigPage() {
       </form>
 
       {/* Configuration Guide */}
-      <Card className="border-slate-800/80 bg-[#090c14] p-6">
-        <h3 className="mb-3 text-sm font-bold text-slate-100">
+      <Card className="border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
+        <h3 className="mb-3 text-sm font-bold text-slate-900 dark:text-slate-100">
           {t('Configuration Guide')}
         </h3>
-        <CardContent className="space-y-3 p-0 text-xs text-slate-300">
+        <CardContent className="space-y-3 p-0 text-xs text-slate-700 dark:text-slate-300">
           <div>
-            <h4 className="mb-1 font-semibold text-slate-100">
+            <h4 className="mb-1 font-semibold text-slate-900 dark:text-slate-100">
               {t('Payment Provider')}
             </h4>
-            <ul className="list-inside list-disc space-y-1 text-slate-400">
+            <ul className="list-inside list-disc space-y-1 text-slate-600 dark:text-slate-400">
               <li>
-                <strong className="text-slate-300">MOCK:</strong>{' '}
+                <strong className="text-slate-800 dark:text-slate-300">
+                  MOCK:
+                </strong>{' '}
                 {t(
                   'Simulates payments instantly. Use for development and testing.'
                 )}
               </li>
               <li>
-                <strong className="text-slate-300">RISE:</strong>{' '}
+                <strong className="text-slate-800 dark:text-slate-300">
+                  RISE:
+                </strong>{' '}
                 {t('RiseWorks blockchain provider. Archived — no longer live.')}
               </li>
               <li>
-                <strong className="text-slate-300">WISE:</strong>{' '}
+                <strong className="text-slate-800 dark:text-slate-300">
+                  WISE:
+                </strong>{' '}
                 {t(
                   'Wise payout provider. Live in production; batches execute through the money service.'
                 )}
@@ -312,10 +318,10 @@ export default function AdminDisbursementConfigPage() {
           </div>
 
           <div>
-            <h4 className="mb-1 font-semibold text-slate-100">
+            <h4 className="mb-1 font-semibold text-slate-900 dark:text-slate-100">
               {t('Minimum Payout')}
             </h4>
-            <p className="text-slate-400">
+            <p className="text-slate-600 dark:text-slate-400">
               {t(
                 'The minimum commission balance required before an affiliate becomes eligible for payout. This helps reduce transaction fees for small amounts.'
               )}
@@ -323,18 +329,18 @@ export default function AdminDisbursementConfigPage() {
           </div>
 
           <div>
-            <h4 className="mb-1 font-semibold text-slate-100">
+            <h4 className="mb-1 font-semibold text-slate-900 dark:text-slate-100">
               {t('Batch Size')}
             </h4>
-            <p className="text-slate-400">
+            <p className="text-slate-600 dark:text-slate-400">
               {t(
                 'Maximum number of payments to include in a single batch. Larger batches are more efficient but take longer to process.'
               )}
             </p>
           </div>
 
-          <div className="rounded-lg border border-amber-500/30 bg-amber-950/20 p-3">
-            <p className="text-amber-300">
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 dark:bg-amber-950/20">
+            <p className="text-amber-700 dark:text-amber-300">
               <strong>{t('Note:')}</strong>{' '}
               {t(
                 'The provider field above reflects the current DISBURSEMENT_PROVIDER environment variable and cannot be changed from this page. Real WISE payouts move real money — provider changes must go through a deliberate environment-variable update and redeploy, not this form.'

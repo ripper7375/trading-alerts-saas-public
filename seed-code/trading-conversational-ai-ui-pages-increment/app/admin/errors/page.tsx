@@ -96,7 +96,7 @@ export default function AdminErrorsLogPage() {
   });
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Admin System Exception & Error Logs')}
         subtitle={t(
@@ -114,7 +114,7 @@ export default function AdminErrorsLogPage() {
               placeholder={t('Search error logs...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
+              className="h-9 border-slate-200 bg-white pl-9 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200"
             />
           </div>
         </div>
@@ -131,12 +131,12 @@ export default function AdminErrorsLogPage() {
                 <Card
                   key={err.id}
                   onClick={() => setSelectedError(err)}
-                  className={`cursor-pointer border p-4 transition-all ${
+                  className={`cursor-pointer border p-4 shadow-sm transition-all ${
                     selectedError?.id === err.id
-                      ? 'border-amber-500/40 bg-[#0d1020]'
+                      ? 'border-amber-500/40 bg-amber-50/50 dark:bg-[#0d1020]'
                       : err.resolved
-                        ? 'border-slate-800/60 bg-[#070912]/80 opacity-70'
-                        : 'border-rose-500/30 bg-[#0a0d18]'
+                        ? 'border-slate-200 bg-white opacity-70 dark:border-slate-800/60 dark:bg-[#070912]/80'
+                        : 'border-rose-500/30 bg-rose-50/30 dark:bg-[#0a0d18]'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -144,29 +144,29 @@ export default function AdminErrorsLogPage() {
                       <div
                         className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
                           err.level === 'ERROR'
-                            ? 'border border-rose-500/40 bg-rose-500/20 text-rose-400'
-                            : 'border border-amber-500/40 bg-amber-500/20 text-amber-400'
+                            ? 'border border-rose-500/40 bg-rose-500/10 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400'
+                            : 'border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400'
                         }`}
                       >
                         <AlertOctagon className="h-4 w-4" />
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-slate-200">
+                          <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-200">
                             {err.source}
                           </span>
                           <Badge
-                            className={`py-0 text-[10px] ${err.level === 'ERROR' ? 'bg-rose-950 text-rose-300' : 'bg-amber-950 text-amber-300'}`}
+                            className={`py-0 text-[10px] ${err.level === 'ERROR' ? 'border-rose-500/30 bg-rose-500/15 text-rose-700 dark:bg-rose-950 dark:text-rose-300' : 'border-amber-500/30 bg-amber-500/15 text-amber-700 dark:bg-amber-950 dark:text-amber-300'}`}
                           >
                             {t(err.level)}
                           </Badge>
                           {err.count > 1 && (
-                            <span className="py-0.2 rounded bg-slate-800 px-1.5 font-mono text-[10px] text-slate-400">
+                            <span className="py-0.2 rounded border border-slate-200 bg-slate-100 px-1.5 font-mono text-[10px] text-slate-600 dark:border-transparent dark:bg-slate-800 dark:text-slate-400">
                               x{err.count}
                             </span>
                           )}
                         </div>
-                        <p className="font-mono text-xs leading-relaxed text-slate-300">
+                        <p className="font-mono text-xs leading-relaxed text-slate-800 dark:text-slate-300">
                           {err.message}
                         </p>
                         <div className="font-mono text-[10px] text-slate-500">
@@ -177,7 +177,7 @@ export default function AdminErrorsLogPage() {
 
                     <div>
                       {err.resolved ? (
-                        <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
+                        <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
                           {t('Resolved')}
                         </Badge>
                       ) : (
@@ -188,7 +188,7 @@ export default function AdminErrorsLogPage() {
                             e.stopPropagation();
                             handleResolve(err.id);
                           }}
-                          className="text-xs text-emerald-400 hover:bg-emerald-950/30"
+                          className="text-xs text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
                         >
                           <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
                           {t('Resolve')}
@@ -203,29 +203,29 @@ export default function AdminErrorsLogPage() {
 
           {/* Error Detail Panel */}
           <div>
-            <Card className="sticky top-6 space-y-4 border-slate-800/80 bg-[#090b14]/90 p-5">
-              <h3 className="text-xs font-bold tracking-wider text-slate-300 uppercase">
+            <Card className="sticky top-6 space-y-4 border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+              <h3 className="text-xs font-bold tracking-wider text-slate-900 uppercase dark:text-slate-300">
                 {t('Stack Trace & Diagnostics')}
               </h3>
 
               {selectedError ? (
                 <div className="space-y-3">
-                  <div className="font-mono text-xs text-slate-400">
+                  <div className="font-mono text-xs text-slate-600 dark:text-slate-400">
                     <div>
                       {t('Error ID:')}{' '}
-                      <strong className="text-slate-200">
+                      <strong className="text-slate-900 dark:text-slate-200">
                         {selectedError.id}
                       </strong>
                     </div>
                     <div>
                       {t('Source:')}{' '}
-                      <strong className="text-amber-400">
+                      <strong className="text-amber-700 dark:text-amber-400">
                         {selectedError.source}
                       </strong>
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto rounded-xl border border-slate-800 bg-[#040509] p-3 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-rose-300">
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 bg-slate-950 p-3 font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-rose-300 dark:border-slate-800 dark:bg-[#040509]">
                     {selectedError.stack}
                   </div>
                 </div>

@@ -77,7 +77,7 @@ export default function AdminReportCodeFlowsPage() {
   );
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Admin Report: Promotional Code Flows')}
         subtitle={t(
@@ -91,7 +91,7 @@ export default function AdminReportCodeFlowsPage() {
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
           <Link
             href="/admin/affiliates"
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>{t('Back to Affiliates Directory')}</span>
@@ -101,7 +101,7 @@ export default function AdminReportCodeFlowsPage() {
             <div>
               <label
                 htmlFor="flows-start"
-                className="mb-1 block text-[11px] font-medium text-slate-400"
+                className="mb-1 block text-[11px] font-medium text-slate-600 dark:text-slate-400"
               >
                 {t('Start')}
               </label>
@@ -110,13 +110,13 @@ export default function AdminReportCodeFlowsPage() {
                 type="date"
                 value={start}
                 onChange={(e) => setStart(e.target.value)}
-                className="h-9 border-slate-800 bg-[#090b14] text-xs text-slate-200"
+                className="h-9 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200"
               />
             </div>
             <div>
               <label
                 htmlFor="flows-end"
-                className="mb-1 block text-[11px] font-medium text-slate-400"
+                className="mb-1 block text-[11px] font-medium text-slate-600 dark:text-slate-400"
               >
                 {t('End')}
               </label>
@@ -125,57 +125,59 @@ export default function AdminReportCodeFlowsPage() {
                 type="date"
                 value={end}
                 onChange={(e) => setEnd(e.target.value)}
-                className="h-9 border-slate-800 bg-[#090b14] text-xs text-slate-200"
+                className="h-9 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200"
               />
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => alert(t('Exporting Code Flows CSV...'))}
-              className="border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
+              className="border-slate-300 bg-slate-50 text-xs text-slate-800 hover:bg-slate-100 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-300 dark:hover:bg-slate-800"
             >
-              <Download className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
+              <Download className="mr-1.5 h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
               {t('Export CSV Report')}
             </Button>
           </div>
         </div>
 
-        <div className="rounded-lg border border-slate-800 bg-[#090b14]/60 px-4 py-2.5 text-xs text-slate-400">
+        <div className="rounded-lg border border-slate-200 bg-slate-100 px-4 py-2.5 text-xs text-slate-600 dark:border-slate-800 dark:bg-[#090b14]/60 dark:text-slate-400">
           {t('Period')}: {formatDate(start)} &ndash; {formatDate(end)} &middot;{' '}
-          <strong className="text-slate-200">{flows.length}</strong>{' '}
+          <strong className="text-slate-900 dark:text-slate-200">
+            {flows.length}
+          </strong>{' '}
           {t('codes issued in this window')}
         </div>
 
-        <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Promo Code')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Assigned Partner')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Issued Date')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('First Redeemed')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Redemption Velocity')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Total Redemptions')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Active Retention')}
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {flows.length === 0 && (
-                <TableRow className="border-slate-800/60 hover:bg-transparent">
+                <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800/60">
                   <TableCell
                     colSpan={7}
                     className="py-8 text-center text-xs text-slate-500"
@@ -187,28 +189,28 @@ export default function AdminReportCodeFlowsPage() {
               {flows.map((f) => (
                 <TableRow
                   key={f.code}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
-                  <TableCell className="font-mono text-xs font-bold text-amber-400">
+                  <TableCell className="font-mono text-xs font-bold text-amber-700 dark:text-amber-400">
                     {f.code}
                   </TableCell>
-                  <TableCell className="text-xs font-bold text-slate-200">
+                  <TableCell className="text-xs font-bold text-slate-900 dark:text-slate-200">
                     {f.partner}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-400">
+                  <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                     {formatDate(f.generatedDate)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-400">
+                  <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                     {formatDate(f.firstRedeemed)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-cyan-400">
+                  <TableCell className="font-mono text-xs text-cyan-700 dark:text-cyan-400">
                     {t(f.velocity)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-slate-200">
+                  <TableCell className="font-mono text-xs font-bold text-slate-900 dark:text-slate-200">
                     {f.totalUsed}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
+                    <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
                       {f.activeUsers} {t('Active')}
                     </Badge>
                   </TableCell>

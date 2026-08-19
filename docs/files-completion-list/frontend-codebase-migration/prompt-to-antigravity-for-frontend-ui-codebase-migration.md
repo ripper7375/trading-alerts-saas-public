@@ -50,4 +50,26 @@ Please use your installed Frontend & UI Design Skills + Next.js and React Skills
 
 ========================================
 
-Yes, the functional layout structure, user flows, and core interactive elements in the 25 pre-existing pages of Codebase 2 match their counterparts in Codebase 1. However, their visual styling, component modularity, and brand tokens have been upgraded to the DavinTrade AI design system (Condition B).
+Based on D:\SaaS Project\trading-alerts-saas-public\docs\files-completion-list\frontend-codebase-migration\ui-pages-replication.xlsx,
+
+I want to modify D:\SaaS Project\trading-alerts-saas-public\seed-code\trading-conversational-ai-ui-pages-increment (codebase 2) as follows :
+
+1. The functional layout structure, user flows, and core interactive elements in the 95 pages of Codebase 2 must be exactly matched against their counterparts in Codebase 1.
+
+2. Codebase 2's visual styling (colour, font, etc.), component modularity, and brand tokens must be in compliance with the DavinTrade AI design system
+
+[Note : Codebase 1 branding = Trading Alerts (old frontend UI design) while Codebase 2 branding = DavinTrade (new frontend UI design)]
+
+You can compare differences of the 2 codebase frontend UI design by looking at the excel file as
+
+Non-Login : column R vs X
+
+Free Tier Login : S vs Y
+
+Pro Tier Login : T vs Z
+
+Affiliate+Free Login : U vs AA
+
+Affiliate+Pro Login : V vs AB
+
+Admin Login : W vs AC

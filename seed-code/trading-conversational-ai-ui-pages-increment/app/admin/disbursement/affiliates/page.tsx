@@ -181,10 +181,10 @@ export default function PayableAffiliatesPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100 sm:text-3xl">
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl dark:text-slate-100">
             {t('Payable Affiliates')}
           </h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             {t('Affiliates with pending commission payouts')}
           </p>
         </div>
@@ -202,45 +202,45 @@ export default function PayableAffiliatesPage() {
       </div>
 
       {successMessage && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
           {successMessage}
         </div>
       )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader className="pb-2">
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-slate-600 dark:text-slate-400">
               {t('Total Affiliates')}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-100">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
               {AFFILIATES.length}
             </div>
           </CardContent>
         </Card>
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader className="pb-2">
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-slate-600 dark:text-slate-400">
               {t('Ready for Payout')}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-400">
+            <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
               {AFFILIATES.filter((a) => a.readyForPayout).length}
             </div>
           </CardContent>
         </Card>
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader className="pb-2">
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-slate-600 dark:text-slate-400">
               {t('Total Pending')}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="font-mono text-2xl font-bold text-amber-400">
+            <div className="font-mono text-2xl font-bold text-amber-700 dark:text-amber-400">
               {formatCurrency(totalPending)}
             </div>
           </CardContent>
@@ -254,23 +254,23 @@ export default function PayableAffiliatesPage() {
           placeholder={t('Search affiliate...')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
+          className="h-9 border-slate-200 bg-white pl-9 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200"
         />
       </div>
 
       {/* Ready for Payout */}
       {readyAffiliates.length > 0 && (
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2 text-sm text-slate-100">
+                <CardTitle className="flex items-center gap-2 text-sm text-slate-900 dark:text-slate-100">
                   {t('Ready for Payout')}
-                  <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-300">
+                  <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-700 dark:text-emerald-300">
                     {readyAffiliates.length}
                   </Badge>
                 </CardTitle>
-                <CardDescription className="text-slate-400">
+                <CardDescription className="text-slate-600 dark:text-slate-400">
                   {t('Affiliates with approved Wise recipients')}
                 </CardDescription>
               </div>
@@ -278,15 +278,15 @@ export default function PayableAffiliatesPage() {
                 size="sm"
                 variant="outline"
                 onClick={handleSelectAll}
-                className="border-slate-800 bg-transparent text-xs text-slate-300 hover:bg-slate-800"
+                className="border-slate-300 bg-slate-50 text-xs text-slate-800 hover:bg-slate-100 dark:border-slate-800 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 {allReadySelected ? t('Deselect All') : t('Select All')}
               </Button>
             </div>
           </CardHeader>
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
                 <TableHead className="w-10">
                   <Checkbox
                     checked={allReadySelected}
@@ -294,25 +294,25 @@ export default function PayableAffiliatesPage() {
                     aria-label={t('Select all affiliates')}
                   />
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Affiliate')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Country')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Pending')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Commissions')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Oldest')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('KYC Status')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Actions')}
                 </TableHead>
               </TableRow>
@@ -321,7 +321,7 @@ export default function PayableAffiliatesPage() {
               {readyAffiliates.map((affiliate) => (
                 <TableRow
                   key={affiliate.id}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
                   <TableCell>
                     <Checkbox
@@ -331,23 +331,23 @@ export default function PayableAffiliatesPage() {
                     />
                   </TableCell>
                   <TableCell>
-                    <div className="text-xs font-bold text-slate-200">
+                    <div className="text-xs font-bold text-slate-900 dark:text-slate-200">
                       {affiliate.name}
                     </div>
-                    <div className="text-[11px] text-slate-400">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
                       {affiliate.email}
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs text-slate-300">
+                  <TableCell className="text-xs text-slate-700 dark:text-slate-300">
                     {affiliate.country}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-emerald-400">
+                  <TableCell className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     {formatCurrency(affiliate.pendingAmount)}
                   </TableCell>
-                  <TableCell className="text-xs text-slate-300">
+                  <TableCell className="text-xs text-slate-700 dark:text-slate-300">
                     {affiliate.commissionCount}
                   </TableCell>
-                  <TableCell className="text-xs text-slate-400">
+                  <TableCell className="text-xs text-slate-600 dark:text-slate-400">
                     {formatDate(affiliate.oldestPendingDate)}
                   </TableCell>
                   <TableCell>
@@ -357,7 +357,7 @@ export default function PayableAffiliatesPage() {
                     <div className="flex justify-end gap-2">
                       <Link
                         href={`/admin/disbursement/affiliates/${affiliate.id}`}
-                        className="text-xs font-semibold text-amber-400 hover:text-amber-300"
+                        className="text-xs font-semibold text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
                       >
                         {t('View')}
                       </Link>
@@ -386,37 +386,37 @@ export default function PayableAffiliatesPage() {
 
       {/* Not Ready */}
       {notReadyAffiliates.length > 0 && (
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm text-slate-100">
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900 dark:text-slate-100">
               {t('Not Ready for Payout')}
-              <Badge className="border-slate-600/40 bg-slate-600/15 text-[10px] text-slate-300">
+              <Badge className="border-slate-300 bg-slate-100 text-[10px] text-slate-700 dark:border-slate-600/40 dark:bg-slate-600/15 dark:text-slate-300">
                 {notReadyAffiliates.length}
               </Badge>
             </CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-slate-600 dark:text-slate-400">
               {t('Affiliates pending KYC approval or missing a Wise recipient')}
             </CardDescription>
           </CardHeader>
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Affiliate')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Country')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Pending')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('KYC Status')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Reason')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Actions')}
                 </TableHead>
               </TableRow>
@@ -425,26 +425,26 @@ export default function PayableAffiliatesPage() {
               {notReadyAffiliates.map((affiliate) => (
                 <TableRow
                   key={affiliate.id}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
                   <TableCell>
-                    <div className="text-xs font-bold text-slate-200">
+                    <div className="text-xs font-bold text-slate-900 dark:text-slate-200">
                       {affiliate.name}
                     </div>
-                    <div className="text-[11px] text-slate-400">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400">
                       {affiliate.email}
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs text-slate-300">
+                  <TableCell className="text-xs text-slate-700 dark:text-slate-300">
                     {affiliate.country}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-amber-400">
+                  <TableCell className="font-mono text-xs font-bold text-amber-700 dark:text-amber-400">
                     {formatCurrency(affiliate.pendingAmount)}
                   </TableCell>
                   <TableCell>
                     <KycStatusBadge status={affiliate.kycStatus} />
                   </TableCell>
-                  <TableCell className="text-xs text-slate-400">
+                  <TableCell className="text-xs text-slate-600 dark:text-slate-400">
                     {affiliate.notReadyReason
                       ? t(affiliate.notReadyReason)
                       : null}
@@ -452,7 +452,7 @@ export default function PayableAffiliatesPage() {
                   <TableCell className="text-right">
                     <Link
                       href={`/admin/disbursement/affiliates/${affiliate.id}`}
-                      className="text-xs font-semibold text-amber-400 hover:text-amber-300"
+                      className="text-xs font-semibold text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
                     >
                       {t('View')}
                     </Link>
@@ -465,8 +465,8 @@ export default function PayableAffiliatesPage() {
       )}
 
       {readyAffiliates.length === 0 && notReadyAffiliates.length === 0 && (
-        <Card className="border-slate-800/80 bg-[#090c14]">
-          <CardContent className="py-12 text-center text-sm text-slate-400">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
+          <CardContent className="py-12 text-center text-sm text-slate-600 dark:text-slate-400">
             {t('No affiliates with pending payouts found.')}
           </CardContent>
         </Card>

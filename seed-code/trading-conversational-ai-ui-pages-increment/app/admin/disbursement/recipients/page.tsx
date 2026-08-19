@@ -162,24 +162,24 @@ export default function AdminDisbursementRecipientsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-100 sm:text-3xl">
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl dark:text-slate-100">
           {t('Disbursement Accounts')}
         </h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
           {t(
             'Affiliate payout accounts — active Wise recipients and historical RiseWorks records. View only, never raw bank details.'
           )}
         </p>
       </div>
 
-      <div className="flex gap-2 border-b border-slate-800">
+      <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800">
         <button
           type="button"
           onClick={() => setTab('wise')}
           className={`px-4 py-2 text-xs font-bold transition-colors ${
             tab === 'wise'
-              ? 'border-b-2 border-amber-500 text-amber-300'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'border-b-2 border-amber-500 text-amber-700 dark:text-amber-300'
+              : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
           }`}
         >
           {t('Wise Recipients')}
@@ -189,8 +189,8 @@ export default function AdminDisbursementRecipientsPage() {
           onClick={() => setTab('riseworks')}
           className={`px-4 py-2 text-xs font-bold transition-colors ${
             tab === 'riseworks'
-              ? 'border-b-2 border-amber-500 text-amber-300'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'border-b-2 border-amber-500 text-amber-700 dark:text-amber-300'
+              : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
           }`}
         >
           {t('RiseWorks (Historical)')}
@@ -198,14 +198,14 @@ export default function AdminDisbursementRecipientsPage() {
       </div>
 
       {tab === 'wise' ? (
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle className="text-sm text-slate-100">
+                <CardTitle className="text-sm text-slate-900 dark:text-slate-100">
                   {t('Wise Recipients')}
                 </CardTitle>
-                <CardDescription className="text-slate-400">
+                <CardDescription className="text-slate-600 dark:text-slate-400">
                   {filteredWise.length} {t('total')} —{' '}
                   {t('view only, never raw bank details')}
                 </CardDescription>
@@ -217,7 +217,7 @@ export default function AdminDisbursementRecipientsPage() {
                     placeholder={t('Search recipient or partner...')}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="h-8 w-48 border-slate-800 bg-[#06080e] pl-8 text-xs text-slate-200"
+                    className="h-8 w-48 border-slate-200 bg-white pl-8 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                   />
                 </div>
                 <Select
@@ -226,7 +226,7 @@ export default function AdminDisbursementRecipientsPage() {
                     setStatusFilter(v as WiseRecipientStatus | 'ALL')
                   }
                 >
-                  <SelectTrigger className="h-8 w-40 border-slate-800 bg-[#06080e] text-xs text-slate-200">
+                  <SelectTrigger className="h-8 w-40 border-slate-200 bg-white text-xs text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -244,27 +244,27 @@ export default function AdminDisbursementRecipientsPage() {
           </CardHeader>
           {filteredWise.length > 0 ? (
             <Table>
-              <TableHeader className="bg-[#06080e]">
-                <TableRow className="border-slate-800 hover:bg-transparent">
-                  <TableHead className="text-xs font-bold text-slate-300">
+              <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+                <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                  <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                     {t('Affiliate ID')}
                   </TableHead>
-                  <TableHead className="text-xs font-bold text-slate-300">
+                  <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                     {t('Account Holder')}
                   </TableHead>
-                  <TableHead className="text-xs font-bold text-slate-300">
+                  <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                     {t('Country')}
                   </TableHead>
-                  <TableHead className="text-xs font-bold text-slate-300">
+                  <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                     {t('Currency')}
                   </TableHead>
-                  <TableHead className="text-xs font-bold text-slate-300">
+                  <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                     {t('Account')}
                   </TableHead>
-                  <TableHead className="text-xs font-bold text-slate-300">
+                  <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                     {t('Status')}
                   </TableHead>
-                  <TableHead className="text-right text-xs font-bold text-slate-300">
+                  <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                     {t('Created')}
                   </TableHead>
                 </TableRow>
@@ -273,27 +273,27 @@ export default function AdminDisbursementRecipientsPage() {
                 {filteredWise.map((r) => (
                   <TableRow
                     key={r.id}
-                    className="border-slate-800/60 hover:bg-slate-800/30"
+                    className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                   >
-                    <TableCell className="font-mono text-xs text-slate-400">
+                    <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                       {r.affiliateId}
                     </TableCell>
-                    <TableCell className="text-xs font-bold text-slate-200">
+                    <TableCell className="text-xs font-bold text-slate-900 dark:text-slate-200">
                       {r.accountHolder}
                     </TableCell>
-                    <TableCell className="text-xs text-slate-300">
+                    <TableCell className="text-xs text-slate-700 dark:text-slate-300">
                       {r.country}
                     </TableCell>
-                    <TableCell className="font-mono text-xs font-bold text-amber-400">
+                    <TableCell className="font-mono text-xs font-bold text-amber-700 dark:text-amber-400">
                       {r.currency}
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-slate-300">
+                    <TableCell className="font-mono text-xs text-slate-700 dark:text-slate-300">
                       •••• {r.accountTail}
                     </TableCell>
                     <TableCell>
                       <WiseRecipientStatusBadge status={r.status} />
                     </TableCell>
-                    <TableCell className="text-right text-xs text-slate-400">
+                    <TableCell className="text-right text-xs text-slate-600 dark:text-slate-400">
                       {formatDate(r.createdAt)}
                     </TableCell>
                   </TableRow>
@@ -301,21 +301,21 @@ export default function AdminDisbursementRecipientsPage() {
               </TableBody>
             </Table>
           ) : (
-            <CardContent className="py-8 text-center text-xs text-slate-400">
+            <CardContent className="py-8 text-center text-xs text-slate-600 dark:text-slate-400">
               {t('No Wise recipients found.')}
             </CardContent>
           )}
         </Card>
       ) : (
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm text-slate-100">
+            <CardTitle className="flex items-center gap-2 text-sm text-slate-900 dark:text-slate-100">
               {t('RiseWorks Accounts')}
-              <Badge className="border-slate-600/40 bg-slate-600/15 text-[10px] text-slate-300">
+              <Badge className="border-slate-300 bg-slate-100 text-[10px] text-slate-700 dark:border-slate-600/40 dark:bg-slate-600/15 dark:text-slate-300">
                 {t('Historical')}
               </Badge>
             </CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-slate-600 dark:text-slate-400">
               {t(
                 'RiseWorks is archived — this tab is a read-only historical record. No sync or create actions are available.'
               )}
@@ -323,24 +323,24 @@ export default function AdminDisbursementRecipientsPage() {
           </CardHeader>
           {RISEWORKS_ACCOUNTS.length > 0 ? (
             <Table>
-              <TableHeader className="bg-[#06080e]">
-                <TableRow className="border-slate-800 hover:bg-transparent">
-                  <TableHead className="text-xs font-bold text-slate-300">
+              <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+                <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                  <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                     {t('Email')}
                   </TableHead>
-                  <TableHead className="text-xs font-bold text-slate-300">
+                  <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                     {t('Rise ID')}
                   </TableHead>
-                  <TableHead className="text-xs font-bold text-slate-300">
+                  <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                     {t('KYC Status')}
                   </TableHead>
-                  <TableHead className="text-xs font-bold text-slate-300">
+                  <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                     {t('Invitation')}
                   </TableHead>
-                  <TableHead className="text-xs font-bold text-slate-300">
+                  <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                     {t('Last Sync')}
                   </TableHead>
-                  <TableHead className="text-right text-xs font-bold text-slate-300">
+                  <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                     {t('Created')}
                   </TableHead>
                 </TableRow>
@@ -349,12 +349,12 @@ export default function AdminDisbursementRecipientsPage() {
                 {RISEWORKS_ACCOUNTS.map((account) => (
                   <TableRow
                     key={account.id}
-                    className="border-slate-800/60 hover:bg-slate-800/30"
+                    className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                   >
-                    <TableCell className="text-xs text-slate-200">
+                    <TableCell className="text-xs text-slate-900 dark:text-slate-200">
                       {account.email}
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-slate-400">
+                    <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                       {account.riseId.slice(0, 10)}...
                       {account.riseId.slice(-6)}
                     </TableCell>
@@ -363,25 +363,25 @@ export default function AdminDisbursementRecipientsPage() {
                     </TableCell>
                     <TableCell>
                       {account.invitationAccepted ? (
-                        <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[9px] text-emerald-300">
+                        <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[9px] text-emerald-700 dark:text-emerald-300">
                           {t('Accepted')}
                         </Badge>
                       ) : account.invitationSent ? (
-                        <Badge className="border-amber-500/40 bg-amber-500/15 text-[9px] text-amber-300">
+                        <Badge className="border-amber-500/40 bg-amber-500/15 text-[9px] text-amber-700 dark:text-amber-300">
                           {t('Sent')}
                         </Badge>
                       ) : (
-                        <Badge className="border-slate-600/40 bg-slate-600/15 text-[9px] text-slate-400">
+                        <Badge className="border-slate-300 bg-slate-100 text-[9px] text-slate-600 dark:border-slate-600/40 dark:bg-slate-600/15 dark:text-slate-400">
                           {t('Not Sent')}
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-xs text-slate-400">
+                    <TableCell className="text-xs text-slate-600 dark:text-slate-400">
                       {account.lastSyncAt
                         ? formatDate(account.lastSyncAt)
                         : t('Never')}
                     </TableCell>
-                    <TableCell className="text-right text-xs text-slate-400">
+                    <TableCell className="text-right text-xs text-slate-600 dark:text-slate-400">
                       {formatDate(account.createdAt)}
                     </TableCell>
                   </TableRow>
@@ -389,7 +389,7 @@ export default function AdminDisbursementRecipientsPage() {
               </TableBody>
             </Table>
           ) : (
-            <CardContent className="py-8 text-center text-xs text-slate-400">
+            <CardContent className="py-8 text-center text-xs text-slate-600 dark:text-slate-400">
               {t('No historical RiseWorks accounts found.')}
             </CardContent>
           )}

@@ -106,7 +106,7 @@ export default function DisbursementLayout({
     disbursementTabs[0];
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Disbursement Admin')}
         subtitle={t(
@@ -118,29 +118,31 @@ export default function DisbursementLayout({
 
       <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
         {/* Breadcrumb */}
-        <div className="mb-6 flex items-center gap-2 font-mono text-xs text-slate-400">
+        <div className="mb-6 flex items-center gap-2 font-mono text-xs text-slate-600 dark:text-slate-400">
           <Link
             href="/admin"
-            className="transition-colors hover:text-amber-300"
+            className="transition-colors hover:text-amber-600 dark:hover:text-amber-300"
           >
             {t('breadcrumb.admin', 'Admin')}
           </Link>
-          <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
+          <ChevronRight className="h-3.5 w-3.5 text-slate-400 dark:text-slate-600" />
           <Link
             href="/admin/disbursement"
-            className="transition-colors hover:text-amber-300"
+            className="transition-colors hover:text-amber-600 dark:hover:text-amber-300"
           >
             {t('breadcrumb.disbursement', 'Disbursement')}
           </Link>
-          <ChevronRight className="h-3.5 w-3.5 text-slate-600" />
-          <span className="font-bold text-amber-400">{t(activeTab.label)}</span>
+          <ChevronRight className="h-3.5 w-3.5 text-slate-400 dark:text-slate-600" />
+          <span className="font-bold text-amber-700 dark:text-amber-400">
+            {t(activeTab.label)}
+          </span>
         </div>
 
         <div className="flex flex-col gap-6 lg:flex-row">
           {/* Desktop Sub-Sidebar */}
           <div className="hidden w-64 shrink-0 lg:block">
-            <div className="sticky top-4 space-y-1 rounded-2xl border border-slate-800/80 bg-[#090c14] p-3 shadow-xl">
-              <div className="px-3 py-2 text-[10px] font-extrabold tracking-wider text-slate-500 uppercase">
+            <div className="sticky top-4 space-y-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800/80 dark:bg-[#090c14] dark:shadow-xl">
+              <div className="px-3 py-2 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase dark:text-slate-500">
                 {t('disbursement.nav_title', 'DISBURSEMENT ADMIN')}
               </div>
               <nav className="grid gap-1">
@@ -155,14 +157,16 @@ export default function DisbursementLayout({
                       className={cn(
                         'flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all',
                         isActive
-                          ? 'border border-amber-500/40 bg-amber-500/15 font-bold text-amber-300 shadow-md shadow-amber-500/10'
-                          : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100'
+                          ? 'border border-amber-500/40 bg-amber-500/15 font-bold text-amber-700 shadow-sm dark:text-amber-300 dark:shadow-md dark:shadow-amber-500/10'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-100'
                       )}
                     >
                       <Icon
                         className={cn(
                           'h-4 w-4',
-                          isActive ? 'text-amber-400' : 'text-slate-400'
+                          isActive
+                            ? 'text-amber-700 dark:text-amber-400'
+                            : 'text-slate-400'
                         )}
                       />
                       <span>{t(tab.label)}</span>
@@ -171,17 +175,17 @@ export default function DisbursementLayout({
                 })}
               </nav>
 
-              <div className="my-1 border-t border-slate-800" />
+              <div className="my-1 border-t border-slate-200 dark:border-slate-800" />
 
               {/* Payment Provider status — mirrors Codebase 1's sidebar
                   footer widget showing which disbursement gateway is live. */}
-              <div className="rounded-xl bg-slate-800/50 px-3 py-3">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 dark:border-transparent dark:bg-slate-800/50">
                 <p className="mb-1.5 text-[10px] font-bold tracking-wide text-slate-500 uppercase">
                   {t('disbursement.provider_label', 'Payment Provider')}
                 </p>
                 <div className="flex items-center gap-2">
                   <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500" />
-                  <span className="text-xs font-bold text-slate-200">
+                  <span className="text-xs font-bold text-slate-900 dark:text-slate-200">
                     {t('disbursement.provider_active', 'Wise Business — Live')}
                   </span>
                 </div>
@@ -189,7 +193,7 @@ export default function DisbursementLayout({
 
               <Link
                 href="/admin"
-                className="block px-3 py-2 text-xs text-slate-400 transition-colors hover:text-white"
+                className="block px-3 py-2 text-xs text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
               >
                 {t('disbursement.back_to_admin', '← Back to Admin Panel')}
               </Link>
@@ -211,7 +215,7 @@ export default function DisbursementLayout({
                       'flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold whitespace-nowrap transition-colors',
                       isActive
                         ? 'bg-amber-500 font-bold text-slate-950 shadow-md'
-                        : 'border border-slate-800 bg-[#090c14] text-slate-300 hover:bg-slate-800'
+                        : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-[#090c14] dark:text-slate-300 dark:hover:bg-slate-800'
                     )}
                   >
                     <Icon className="h-3.5 w-3.5" />

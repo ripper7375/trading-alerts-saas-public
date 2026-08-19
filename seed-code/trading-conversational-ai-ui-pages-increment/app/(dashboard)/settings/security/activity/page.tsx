@@ -55,23 +55,28 @@ const SECURITY_EVENT_META: Record<
 > = {
   NEW_DEVICE_LOGIN: {
     icon: Shield,
-    badgeClass: 'border-blue-500/40 bg-blue-500/15 text-blue-400',
+    badgeClass:
+      'border-blue-500/40 bg-blue-500/15 text-blue-700 dark:text-blue-400',
   },
   PASSWORD_CHANGED: {
     icon: KeyRound,
-    badgeClass: 'border-purple-500/40 bg-purple-500/15 text-purple-400',
+    badgeClass:
+      'border-purple-500/40 bg-purple-500/15 text-purple-700 dark:text-purple-400',
   },
   TWO_FACTOR_ENABLED: {
     icon: ShieldCheck,
-    badgeClass: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-400',
+    badgeClass:
+      'border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
   },
   TWO_FACTOR_DISABLED: {
     icon: ShieldOff,
-    badgeClass: 'border-orange-500/40 bg-orange-500/15 text-orange-400',
+    badgeClass:
+      'border-orange-500/40 bg-orange-500/15 text-orange-700 dark:text-orange-400',
   },
   SUSPICIOUS_LOGIN: {
     icon: AlertTriangle,
-    badgeClass: 'border-rose-500/40 bg-rose-500/15 text-rose-400',
+    badgeClass:
+      'border-rose-500/40 bg-rose-500/15 text-rose-700 dark:text-rose-400',
   },
 };
 
@@ -175,7 +180,7 @@ export default function SecurityActivityPage() {
       <div className="flex items-center justify-between">
         <Link
           href="/settings/security"
-          className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 transition-colors hover:text-amber-400"
+          className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 transition-colors hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400"
         >
           <ArrowLeft className="h-4 w-4" />
           <span>{t('Back to Security & 2FA')}</span>
@@ -186,7 +191,7 @@ export default function SecurityActivityPage() {
             variant="outline"
             size="sm"
             onClick={handleRevokeAllOther}
-            className="border-rose-500/30 bg-rose-950/20 text-xs text-rose-300 hover:bg-rose-950/50"
+            className="border-rose-500/30 bg-rose-50 text-xs text-rose-700 hover:bg-rose-100 dark:bg-rose-950/20 dark:text-rose-300 dark:hover:bg-rose-950/50"
           >
             <LogOut className="mr-1.5 h-3.5 w-3.5" />
             {t('Revoke All Other Sessions')}
@@ -195,10 +200,10 @@ export default function SecurityActivityPage() {
       </div>
 
       <div className="space-y-1">
-        <h2 className="text-xl font-bold text-slate-100">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
           {t('Active Sessions & Device Activity')}
         </h2>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           {t(
             'Review all active browser sessions currently authenticated with your DavinTrade account.'
           )}
@@ -206,7 +211,7 @@ export default function SecurityActivityPage() {
       </div>
 
       {successMessage && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>{successMessage}</span>
         </div>
@@ -221,8 +226,8 @@ export default function SecurityActivityPage() {
               key={sess.id}
               className={`border p-4 transition-all ${
                 sess.isCurrent
-                  ? 'border-amber-500/40 bg-[#0c0f1e]/90 shadow-md shadow-amber-500/5'
-                  : 'border-slate-800 bg-[#080a12]/80'
+                  ? 'border-amber-500/40 bg-amber-500/5 shadow-md shadow-amber-500/5 dark:bg-[#0c0f1e]/90'
+                  : 'border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#080a12]/80'
               }`}
             >
               <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -230,31 +235,31 @@ export default function SecurityActivityPage() {
                   <div
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${
                       sess.isCurrent
-                        ? 'border-amber-500/40 bg-amber-500/20 text-amber-400'
-                        : 'border-slate-700 bg-slate-800/60 text-slate-400'
+                        ? 'border-amber-500/40 bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                        : 'border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400'
                     }`}
                   >
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="text-xs font-bold text-slate-200">
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
                         {sess.device} — {sess.browser}
                       </h4>
                       {sess.isCurrent && (
-                        <Badge className="border-emerald-500/40 bg-emerald-500/20 py-0 text-[10px] text-emerald-400">
+                        <Badge className="border-emerald-500/40 bg-emerald-500/20 py-0 text-[10px] text-emerald-700 dark:text-emerald-400">
                           {t('Current Session')}
                         </Badge>
                       )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
+                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
                       <span className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3 text-slate-500" />
+                        <MapPin className="h-3 w-3 text-slate-400 dark:text-slate-500" />
                         {sess.location} ({sess.ip})
                       </span>
                       <span>•</span>
                       <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3 text-slate-500" />
+                        <Clock className="h-3 w-3 text-slate-400 dark:text-slate-500" />
                         {sess.lastActive}
                       </span>
                     </div>
@@ -267,7 +272,7 @@ export default function SecurityActivityPage() {
                     size="sm"
                     onClick={() => handleRevoke(sess.id)}
                     disabled={revokingId === sess.id}
-                    className="self-start text-xs text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 sm:self-center"
+                    className="self-start text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 sm:self-center dark:text-rose-400 dark:hover:bg-rose-950/30 dark:hover:text-rose-300"
                   >
                     <LogOut className="mr-1.5 h-3.5 w-3.5" />
                     {revokingId === sess.id ? t('Revoking...') : t('Revoke')}
@@ -281,10 +286,10 @@ export default function SecurityActivityPage() {
 
       {/* Security Event Log */}
       <div className="space-y-1 pt-4">
-        <h2 className="text-xl font-bold text-slate-100">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
           {t('Security Event Log')}
         </h2>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           {t(
             'A full record of security events on your account: password changes, two-factor changes, and new-device alerts.'
           )}
@@ -298,7 +303,7 @@ export default function SecurityActivityPage() {
           return (
             <Card
               key={event.id}
-              className="border border-slate-800 bg-[#080a12]/80 p-4"
+              className="border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#080a12]/80"
             >
               <div className="flex items-start gap-3.5">
                 <div
@@ -307,10 +312,10 @@ export default function SecurityActivityPage() {
                   <Icon className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1 space-y-1">
-                  <h4 className="text-xs font-bold text-slate-200">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
                     {t(event.title)}
                   </h4>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
                     {t(event.message)}
                   </p>
                   <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-500">

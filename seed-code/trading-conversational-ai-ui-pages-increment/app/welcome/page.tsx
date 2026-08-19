@@ -50,7 +50,7 @@ export default function WelcomePage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#050609] p-4 text-slate-100">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <div className="w-full max-w-xl space-y-6">
         {/* Logo & Step indicator */}
         <div className="space-y-3 text-center">
@@ -67,7 +67,7 @@ export default function WelcomePage() {
                 }}
               />
             </div>
-            <span className="bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-2xl font-black text-transparent">
+            <span className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 bg-clip-text text-2xl font-black text-transparent dark:from-amber-400 dark:to-amber-200">
               DavinTrade AI
             </span>
           </div>
@@ -81,7 +81,7 @@ export default function WelcomePage() {
                     ? 'w-8 bg-amber-500'
                     : step > s
                       ? 'w-4 bg-amber-500/50'
-                      : 'w-4 bg-slate-800'
+                      : 'w-4 bg-slate-200 dark:bg-slate-800'
                 }`}
               />
             ))}
@@ -89,41 +89,41 @@ export default function WelcomePage() {
         </div>
 
         {/* Step Card */}
-        <Card className="space-y-6 border-slate-800/80 bg-[#090b14]/95 p-6 shadow-2xl backdrop-blur-2xl md:p-8">
+        <Card className="space-y-6 border-slate-200 bg-white p-6 shadow-2xl md:p-8 dark:border-slate-800/80 dark:bg-[#090b14]/95 dark:backdrop-blur-2xl">
           <div className="space-y-2 text-center">
-            <h2 className="text-xl font-bold text-slate-100 md:text-2xl">
+            <h2 className="text-xl font-bold text-slate-900 md:text-2xl dark:text-slate-100">
               {steps[step - 1].title}
             </h2>
-            <p className="text-xs text-slate-400 md:text-sm">
+            <p className="text-xs text-slate-600 md:text-sm dark:text-slate-400">
               {steps[step - 1].subtitle}
             </p>
           </div>
 
           {step === 1 && (
             <div className="space-y-3 py-2">
-              <div className="flex items-center gap-3 rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-[#06080e]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
                   <LineChart className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-slate-200">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
                     {t('Real-Time XAUUSD M5/M15 Fractal Feeds')}
                   </h4>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
                     {t('Multi-timeframe liquidity detection.')}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-[#06080e]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
                   <MessageSquare className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-slate-200">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
                     {t('Davin AI Quantitative Chat Copilot')}
                   </h4>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
                     {t('Instant market context via floating widget.')}
                   </p>
                 </div>
@@ -169,8 +169,8 @@ export default function WelcomePage() {
                     onClick={() => updateSettings({ accent: acc.id as any })}
                     className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-all ${
                       settings.accent === acc.id
-                        ? 'border-amber-500 bg-amber-500/15 text-slate-100'
-                        : 'border-slate-800 bg-[#06080e] text-slate-400 hover:border-slate-700'
+                        ? 'border-amber-500 bg-amber-500/15 text-slate-900 dark:text-slate-100'
+                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-400 dark:hover:border-slate-700'
                     }`}
                   >
                     <div className={`h-4 w-4 rounded-full ${acc.color}`} />
@@ -183,7 +183,7 @@ export default function WelcomePage() {
                 <Button
                   variant="outline"
                   onClick={() => setStep(1)}
-                  className="flex-1 border-slate-700 text-slate-300"
+                  className="flex-1 border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   {t('Back')}
                 </Button>
@@ -202,49 +202,49 @@ export default function WelcomePage() {
             <div className="space-y-4 py-2">
               <div className="grid gap-3">
                 <Link href="/terminal">
-                  <div className="group flex items-center justify-between rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 to-[#0e1220] p-4 transition-all hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/10">
+                  <div className="group flex items-center justify-between rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 to-amber-500/5 p-4 transition-all hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/10 dark:to-[#0e1220]">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 font-bold text-slate-950">
                         <Zap className="h-5 w-5" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-bold text-slate-100">
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
                             {t('PRO Terminal Workspace')}
                           </h4>
                           <Badge className="bg-amber-500 text-[10px] font-bold text-slate-950">
                             {t('RECOMMENDED')}
                           </Badge>
                         </div>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400">
                           {t(
                             'Real-time zero latency, conversational AI, full indicators.'
                           )}
                         </p>
                       </div>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-amber-400 transition-transform group-hover:translate-x-1" />
+                    <ArrowRight className="h-4 w-4 text-amber-600 transition-transform group-hover:translate-x-1 dark:text-amber-400" />
                   </div>
                 </Link>
 
                 <Link href="/free">
-                  <div className="group flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-4 transition-all hover:border-slate-700">
+                  <div className="group flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4 transition-all hover:border-slate-300 hover:bg-slate-100/80 dark:border-slate-800 dark:bg-[#06080e] dark:hover:border-slate-700">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800 text-slate-300">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                         <LineChart className="h-5 w-5" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-slate-200">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-slate-200">
                           {t('Free Workspace Overview')}
                         </h4>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400">
                           {t(
                             'Explore delayed sample charts and baseline telemetry.'
                           )}
                         </p>
                       </div>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-slate-400 transition-transform group-hover:translate-x-1" />
+                    <ArrowRight className="h-4 w-4 text-slate-500 transition-transform group-hover:translate-x-1 dark:text-slate-400" />
                   </div>
                 </Link>
               </div>
@@ -252,7 +252,7 @@ export default function WelcomePage() {
               <div className="pt-2 text-center">
                 <Link
                   href="/dashboard"
-                  className="text-xs text-slate-500 underline underline-offset-4 hover:text-amber-400"
+                  className="text-xs text-slate-600 underline underline-offset-4 hover:text-amber-600 dark:text-slate-500 dark:hover:text-amber-400"
                 >
                   {t('Or go straight to User Dashboard')}
                 </Link>

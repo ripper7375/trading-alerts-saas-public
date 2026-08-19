@@ -53,7 +53,7 @@ export default function AdminReportCodeInventoryPage() {
     totalMinted > 0 ? ((totalAssigned / totalMinted) * 100).toFixed(1) : '0.0';
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Admin Report: Global Promo Code Inventory')}
         subtitle={t(
@@ -67,7 +67,7 @@ export default function AdminReportCodeInventoryPage() {
         <div className="flex items-center justify-between">
           <Link
             href="/admin/affiliates"
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>{t('Back to Affiliates Directory')}</span>
@@ -77,66 +77,66 @@ export default function AdminReportCodeInventoryPage() {
             variant="outline"
             size="sm"
             onClick={() => alert(t('Exporting Code Inventory CSV...'))}
-            className="border-slate-800 bg-[#090b14] text-xs text-slate-300 hover:bg-slate-800"
+            className="border-slate-300 bg-slate-50 text-xs text-slate-800 hover:bg-slate-100 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-300 dark:hover:bg-slate-800"
           >
-            <Download className="mr-1.5 h-3.5 w-3.5 text-amber-400" />
+            <Download className="mr-1.5 h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
             {t('Export CSV Report')}
           </Button>
         </div>
 
         {/* All-Time Statistics */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
-            <div className="text-xs font-medium text-slate-400">
+          <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               {t('Total Minted')}
             </div>
-            <div className="mt-1 font-mono text-2xl font-extrabold text-slate-200">
+            <div className="mt-1 font-mono text-2xl font-extrabold text-slate-900 dark:text-slate-200">
               {totalMinted.toLocaleString(language)}
             </div>
           </Card>
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
-            <div className="text-xs font-medium text-slate-400">
+          <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               {t('Assigned to Partners')}
             </div>
-            <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-400">
+            <div className="mt-1 font-mono text-2xl font-extrabold text-cyan-700 dark:text-cyan-400">
               {totalAssigned.toLocaleString(language)}
             </div>
           </Card>
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
-            <div className="text-xs font-medium text-slate-400">
+          <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               {t('Available Stock')}
             </div>
-            <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-400">
+            <div className="mt-1 font-mono text-2xl font-extrabold text-emerald-700 dark:text-emerald-400">
               {totalAvailable.toLocaleString(language)}
             </div>
           </Card>
-          <Card className="border-slate-800/80 bg-[#090b14]/90 p-4">
-            <div className="text-xs font-medium text-slate-400">
+          <Card className="border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+            <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
               {t('Assignment Rate')}
             </div>
-            <div className="mt-1 font-mono text-2xl font-extrabold text-purple-400">
+            <div className="mt-1 font-mono text-2xl font-extrabold text-purple-700 dark:text-purple-400">
               {assignmentRate}%
             </div>
           </Card>
         </div>
 
-        <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Pool Name')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Discount Rate')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Total Minted')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Assigned to Partners')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Available Stock')}
                 </TableHead>
               </TableRow>
@@ -145,26 +145,26 @@ export default function AdminReportCodeInventoryPage() {
               {inventory.map((inv, idx) => (
                 <TableRow
                   key={idx}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
-                  <TableCell className="text-xs font-bold text-slate-200">
+                  <TableCell className="text-xs font-bold text-slate-900 dark:text-slate-200">
                     {t(inv.poolName)}
                   </TableCell>
                   <TableCell className="text-xs">
                     <Badge
                       variant="outline"
-                      className="border-amber-500/30 bg-amber-500/10 font-mono text-[10px] text-amber-400"
+                      className="border-amber-500/40 bg-amber-500/15 font-mono text-[10px] text-amber-700 dark:text-amber-400"
                     >
                       {inv.discount}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-300">
+                  <TableCell className="font-mono text-xs text-slate-700 dark:text-slate-300">
                     {inv.totalIssued}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-cyan-400">
+                  <TableCell className="font-mono text-xs font-bold text-cyan-700 dark:text-cyan-400">
                     {inv.assigned}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-xs font-bold text-emerald-400">
+                  <TableCell className="text-right font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     {inv.available}
                   </TableCell>
                 </TableRow>

@@ -80,40 +80,40 @@ function AffiliateVerifyContent() {
               }}
             />
           </div>
-          <span className="bg-gradient-to-r from-amber-400 to-amber-200 bg-clip-text text-xl font-black text-transparent">
+          <span className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 bg-clip-text text-xl font-black text-transparent dark:from-amber-400 dark:to-amber-200">
             DavinTrade AI
           </span>
         </Link>
-        <h1 className="text-2xl font-bold text-slate-100">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
           {t('Partner Verification')}
         </h1>
       </div>
 
-      <Card className="space-y-6 border-slate-800/80 bg-[#090b14]/95 p-6 text-center shadow-2xl backdrop-blur-2xl md:p-8">
+      <Card className="space-y-6 border-slate-200 bg-white p-6 text-center shadow-2xl md:p-8 dark:border-slate-800/80 dark:bg-[#090b14]/95 dark:backdrop-blur-2xl">
         {status === 'pending' && (
           <div className="space-y-4 py-4">
             <div className="flex justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-400">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-600 dark:text-amber-400">
                 <Mail className="h-8 w-8" />
               </div>
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-slate-100">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {t('Check Your Inbox')}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 {t(
                   "We've sent a verification link to your inbox. Click it to activate your partner account."
                 )}
               </p>
             </div>
 
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-[11px] text-amber-300/90">
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-[11px] text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/5 dark:text-amber-300/90">
               {t("Didn't receive the email? Check your spam folder or")}{' '}
               <button
                 type="button"
                 onClick={() => setResent(true)}
-                className="font-semibold underline hover:text-amber-200"
+                className="font-semibold underline hover:text-amber-600 dark:hover:text-amber-200"
               >
                 {resent ? t('Email resent!') : t('click here to resend')}
               </button>
@@ -121,7 +121,7 @@ function AffiliateVerifyContent() {
 
             <Link
               href="/affiliate/register"
-              className="inline-block text-xs text-slate-400 hover:text-amber-400"
+              className="inline-block text-xs text-slate-600 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400"
             >
               {t('← Back to registration')}
             </Link>
@@ -130,8 +130,8 @@ function AffiliateVerifyContent() {
 
         {status === 'verifying' && (
           <div className="space-y-4 py-6">
-            <Loader2 className="mx-auto h-10 w-10 animate-spin text-amber-400" />
-            <p className="text-xs text-slate-400">
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-amber-600 dark:text-amber-400" />
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               {t('Verifying your affiliate credentials...')}
             </p>
           </div>
@@ -140,15 +140,15 @@ function AffiliateVerifyContent() {
         {status === 'success' && (
           <div className="space-y-4 py-4">
             <div className="flex justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/20 text-emerald-400">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-8 w-8" />
               </div>
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-emerald-300">
+              <h3 className="text-base font-bold text-emerald-700 dark:text-emerald-300">
                 {t('Partner Account Verified!')}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 {t(
                   'Your affiliate account is now fully approved. You can generate custom discount codes and track payouts.'
                 )}
@@ -173,15 +173,15 @@ function AffiliateVerifyContent() {
         {status === 'error' && (
           <div className="space-y-4 py-4">
             <div className="flex justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/20 text-rose-400">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/20 text-rose-600 dark:text-rose-400">
                 <AlertCircle className="h-8 w-8" />
               </div>
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-bold text-rose-300">
+              <h3 className="text-base font-bold text-rose-700 dark:text-rose-300">
                 {t('Partner Verification Failed')}
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-400">
                 {errorMsg || t('The token might be expired or invalid.')}
               </p>
             </div>
@@ -202,7 +202,7 @@ function AffiliateVerifyContent() {
 
 export default function AffiliateVerifyPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#050609] p-4 text-slate-100">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <Suspense fallback={null}>
         <AffiliateVerifyContent />
       </Suspense>

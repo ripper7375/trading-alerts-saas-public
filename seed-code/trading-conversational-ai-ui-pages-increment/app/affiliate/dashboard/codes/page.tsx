@@ -48,10 +48,13 @@ const REASON_LABEL: Record<DistributionReason, string> = {
 };
 
 const STATUS_BADGE_CLASS: Record<CodeStatus, string> = {
-  ACTIVE: 'border-emerald-500/40 bg-emerald-500/20 text-emerald-400',
-  USED: 'border-blue-500/40 bg-blue-500/20 text-blue-400',
-  EXPIRED: 'border-slate-700 bg-slate-800 text-slate-400',
-  CANCELLED: 'border-rose-500/40 bg-rose-500/20 text-rose-400',
+  ACTIVE:
+    'border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400',
+  USED: 'border-blue-500/40 bg-blue-500/15 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
+  EXPIRED:
+    'border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400',
+  CANCELLED:
+    'border-rose-500/40 bg-rose-500/15 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400',
 };
 
 // Seed data shaped exactly like a GET /api/affiliate/dashboard/codes response --
@@ -137,7 +140,7 @@ export default function AffiliateCodesPage() {
     .filter((c) => statusFilter === 'ALL' || c.status === statusFilter);
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#06070a] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#06070a] dark:text-slate-100">
       <AppHeader
         title={t('My Promo Codes')}
         subtitle={t(
@@ -157,13 +160,13 @@ export default function AffiliateCodesPage() {
                 placeholder={t('Search promo code...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-9 border-slate-800 bg-[#090b14] pl-9 text-xs text-slate-200"
+                className="h-9 border-slate-200 bg-white pl-9 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200"
               />
             </div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              className="h-9 rounded-md border border-slate-800 bg-[#090b14] px-3 text-xs text-slate-200"
+              className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200"
             >
               <option value="ALL">{t('All Codes')}</option>
               <option value="ACTIVE">{t('Active')}</option>
@@ -179,8 +182,8 @@ export default function AffiliateCodesPage() {
         </div>
 
         {/* Issuance Notice -- codes are never self-created by the affiliate */}
-        <div className="flex items-start gap-2.5 rounded-xl border border-slate-800 bg-[#090b14]/80 px-4 py-3 text-xs text-slate-400">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+        <div className="flex items-start gap-2.5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 shadow-sm dark:border-slate-800 dark:bg-[#090b14]/80 dark:text-slate-400">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <span>
             {t(
               'Codes are issued automatically (welcome batch, monthly allocation) or allocated manually by the DavinTrade team -- affiliates cannot create or name their own codes. Share the code or its checkout link with your audience to earn commission.'
@@ -189,39 +192,39 @@ export default function AffiliateCodesPage() {
         </div>
 
         {/* Table */}
-        <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Code')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Discount')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Reason')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Distributed')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Expires')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Used')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Status')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Action')}
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
-                <TableRow className="border-slate-800/60 hover:bg-transparent">
+                <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800/60">
                   <TableCell
                     colSpan={8}
                     className="py-8 text-center text-xs text-slate-500"
@@ -233,29 +236,29 @@ export default function AffiliateCodesPage() {
                 filtered.map((c) => (
                   <TableRow
                     key={c.id}
-                    className="border-slate-800/60 hover:bg-slate-800/30"
+                    className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                   >
-                    <TableCell className="font-mono text-xs font-bold text-amber-400">
+                    <TableCell className="font-mono text-xs font-bold text-amber-700 dark:text-amber-400">
                       {c.code}
                     </TableCell>
-                    <TableCell className="text-xs text-slate-300">
+                    <TableCell className="text-xs text-slate-700 dark:text-slate-300">
                       <Badge
                         variant="outline"
-                        className="border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-400"
+                        className="border-amber-500/40 bg-amber-500/15 text-[10px] text-amber-700 dark:text-amber-400"
                       >
                         {c.discountPercent}% {t('OFF')}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-slate-400">
+                    <TableCell className="text-xs text-slate-600 dark:text-slate-400">
                       {t(REASON_LABEL[c.distributionReason])}
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-slate-300">
+                    <TableCell className="font-mono text-xs text-slate-700 dark:text-slate-300">
                       {formatDate(c.distributedAt)}
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-slate-300">
+                    <TableCell className="font-mono text-xs text-slate-700 dark:text-slate-300">
                       {formatDate(c.expiresAt)}
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-slate-300">
+                    <TableCell className="font-mono text-xs text-slate-700 dark:text-slate-300">
                       {formatDate(c.usedAt)}
                     </TableCell>
                     <TableCell>
@@ -271,11 +274,11 @@ export default function AffiliateCodesPage() {
                         size="sm"
                         disabled={c.status !== 'ACTIVE'}
                         onClick={() => handleCopy(c.code)}
-                        className="border-slate-700 bg-[#06080e] text-xs text-slate-300 hover:bg-slate-800 hover:text-amber-400 disabled:opacity-40"
+                        className="border-slate-300 bg-slate-50 text-xs text-slate-800 hover:bg-slate-100 hover:text-amber-600 disabled:opacity-40 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-amber-400"
                       >
                         {copiedCode === c.code ? (
                           <>
-                            <Check className="mr-1 h-3.5 w-3.5 text-emerald-400" />
+                            <Check className="mr-1 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                             <span>{t('Copied Link')}</span>
                           </>
                         ) : (
@@ -294,40 +297,40 @@ export default function AffiliateCodesPage() {
         </Card>
 
         {/* Code Status Guide */}
-        <Card className="border-slate-800/80 bg-[#090b14]/90 p-6">
-          <h3 className="mb-3 text-sm font-bold text-slate-100">
+        <Card className="border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+          <h3 className="mb-3 text-sm font-bold text-slate-900 dark:text-slate-100">
             {t('Code Status Guide')}
           </h3>
           <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-2 lg:grid-cols-4">
             <div className="flex items-center gap-2">
-              <Badge className="border-emerald-500/40 bg-emerald-500/20 text-[10px] text-emerald-400">
+              <Badge className="border-emerald-500/40 bg-emerald-500/15 text-[10px] text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400">
                 {t('ACTIVE')}
               </Badge>
-              <span className="text-slate-400">
+              <span className="text-slate-600 dark:text-slate-400">
                 {t('Ready to share and earn')}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="border-blue-500/40 bg-blue-500/20 text-[10px] text-blue-400">
+              <Badge className="border-blue-500/40 bg-blue-500/15 text-[10px] text-blue-700 dark:bg-blue-500/20 dark:text-blue-400">
                 {t('USED')}
               </Badge>
-              <span className="text-slate-400">
+              <span className="text-slate-600 dark:text-slate-400">
                 {t('Successfully redeemed')}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="border-slate-700 bg-slate-800 text-[10px] text-slate-400">
+              <Badge className="border-slate-300 bg-slate-100 text-[10px] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
                 {t('EXPIRED')}
               </Badge>
-              <span className="text-slate-400">
+              <span className="text-slate-600 dark:text-slate-400">
                 {t('Past its expiration date')}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="border-rose-500/40 bg-rose-500/20 text-[10px] text-rose-400">
+              <Badge className="border-rose-500/40 bg-rose-500/15 text-[10px] text-rose-700 dark:bg-rose-500/20 dark:text-rose-400">
                 {t('CANCELLED')}
               </Badge>
-              <span className="text-slate-400">
+              <span className="text-slate-600 dark:text-slate-400">
                 {t('Manually cancelled by DavinTrade')}
               </span>
             </div>

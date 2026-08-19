@@ -49,13 +49,13 @@ export default function RecentAlerts() {
   ];
 
   return (
-    <div className="rounded-2xl border border-slate-800/80 bg-[#090c14] p-4 shadow-xl select-none">
-      <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl select-none dark:border-slate-800/80 dark:bg-[#090c14]">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-slate-800/80">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/15 text-amber-400">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/15 text-amber-600 dark:text-amber-400">
             <Bell className="h-4 w-4" />
           </div>
-          <h2 className="text-xs font-bold tracking-wider text-slate-100 uppercase">
+          <h2 className="text-xs font-bold tracking-wider text-slate-900 uppercase dark:text-slate-100">
             {t('RECENT ALERT EXECUTIONS')}
           </h2>
         </div>
@@ -63,14 +63,14 @@ export default function RecentAlerts() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-xs font-semibold text-amber-400 hover:text-amber-300"
+            className="h-7 text-xs font-semibold text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
           >
             {t('View All Alerts')}
           </Button>
         </Link>
       </div>
 
-      <div className="mt-3 divide-y divide-slate-800/60">
+      <div className="mt-3 divide-y divide-slate-100 dark:divide-slate-800/60">
         {alerts.map((alert) => (
           <div
             key={alert.id}
@@ -80,8 +80,8 @@ export default function RecentAlerts() {
               <Badge
                 className={
                   alert.direction === 'BUY'
-                    ? 'border-emerald-500/40 bg-emerald-500/15 font-mono text-[10px] text-emerald-400'
-                    : 'border-rose-500/40 bg-rose-500/15 font-mono text-[10px] text-rose-400'
+                    ? 'border-emerald-500/40 bg-emerald-500/15 font-mono text-[10px] text-emerald-700 dark:text-emerald-400'
+                    : 'border-rose-500/40 bg-rose-500/15 font-mono text-[10px] text-rose-700 dark:text-rose-400'
                 }
               >
                 {alert.direction === 'BUY' ? (
@@ -94,17 +94,17 @@ export default function RecentAlerts() {
 
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-bold text-slate-200">
+                  <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
                     {alert.symbol}
                   </span>
                   <Badge
                     variant="outline"
-                    className="border-slate-700 bg-slate-800 font-mono text-[9px]"
+                    className="border-slate-200 bg-slate-100 font-mono text-[9px] text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                   >
                     {alert.timeframe}
                   </Badge>
                 </div>
-                <div className="text-[11px] font-medium text-slate-400">
+                <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                   {t(alert.type)}: {alert.condition}
                 </div>
               </div>
@@ -115,7 +115,7 @@ export default function RecentAlerts() {
                 <Clock className="h-3 w-3" />
                 {alert.triggeredAt}
               </span>
-              <Badge className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300">
+              <Badge className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-700 dark:text-amber-300">
                 {alert.status}
               </Badge>
             </div>

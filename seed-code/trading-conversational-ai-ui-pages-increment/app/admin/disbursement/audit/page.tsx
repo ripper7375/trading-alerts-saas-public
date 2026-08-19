@@ -102,16 +102,16 @@ export default function AdminDisbursementAuditPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-100 sm:text-3xl">
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl dark:text-slate-100">
           {t('Audit Logs')}
         </h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
           {t('Immutable disbursement activity history & approval signoffs')}
         </p>
       </div>
 
       {/* Action Filter */}
-      <Card className="border-slate-800/80 bg-[#090c14]">
+      <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
         <CardContent className="flex flex-wrap gap-2 py-4">
           <Button
             size="sm"
@@ -120,7 +120,7 @@ export default function AdminDisbursementAuditPage() {
             className={
               !actionFilter
                 ? 'bg-amber-500 font-bold text-slate-950 hover:bg-amber-400'
-                : 'border-slate-800 bg-transparent text-xs text-slate-300 hover:bg-slate-800'
+                : 'border-slate-300 bg-slate-50 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800'
             }
           >
             {t('All Actions')}
@@ -134,7 +134,7 @@ export default function AdminDisbursementAuditPage() {
               className={
                 actionFilter === action
                   ? 'bg-amber-500 font-bold text-slate-950 hover:bg-amber-400'
-                  : 'border-slate-800 bg-transparent text-xs text-slate-300 hover:bg-slate-800'
+                  : 'border-slate-300 bg-slate-50 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800'
               }
             >
               {action}
@@ -143,35 +143,35 @@ export default function AdminDisbursementAuditPage() {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
+      <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
         <CardHeader className="pb-0">
           <CardTitle className="sr-only">{t('Audit Events')}</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-slate-600 dark:text-slate-400">
             {filteredEvents.length} {t('events')}
           </CardDescription>
         </CardHeader>
         <Table>
-          <TableHeader className="bg-[#06080e]">
-            <TableRow className="border-slate-800 hover:bg-transparent">
-              <TableHead className="text-xs font-bold text-slate-300">
+          <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+            <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+              <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                 {t('Audit ID')}
               </TableHead>
-              <TableHead className="text-xs font-bold text-slate-300">
+              <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                 {t('Timestamp')}
               </TableHead>
-              <TableHead className="text-xs font-bold text-slate-300">
+              <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                 {t('Actor / Trigger')}
               </TableHead>
-              <TableHead className="text-xs font-bold text-slate-300">
+              <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                 {t('Action Event')}
               </TableHead>
-              <TableHead className="text-xs font-bold text-slate-300">
+              <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                 {t('Status')}
               </TableHead>
-              <TableHead className="text-xs font-bold text-slate-300">
+              <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                 {t('Details')}
               </TableHead>
-              <TableHead className="text-right text-xs font-bold text-slate-300">
+              <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                 {t('IP Source')}
               </TableHead>
             </TableRow>
@@ -180,24 +180,24 @@ export default function AdminDisbursementAuditPage() {
             {filteredEvents.map((ev) => (
               <TableRow
                 key={ev.id}
-                className="border-slate-800/60 hover:bg-slate-800/30"
+                className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
               >
-                <TableCell className="font-mono text-xs text-slate-400">
+                <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                   {ev.id}
                 </TableCell>
-                <TableCell className="font-mono text-xs text-slate-400">
+                <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                   {formatDate(ev.timestamp)}
                 </TableCell>
-                <TableCell className="font-mono text-xs font-bold text-amber-400">
+                <TableCell className="font-mono text-xs font-bold text-amber-700 dark:text-amber-400">
                   {ev.actor}
                 </TableCell>
-                <TableCell className="font-mono text-xs font-bold text-slate-200">
+                <TableCell className="font-mono text-xs font-bold text-slate-900 dark:text-slate-200">
                   {ev.action}
                 </TableCell>
                 <TableCell>
                   <AuditStatusBadge status={ev.status} />
                 </TableCell>
-                <TableCell className="text-xs text-slate-300">
+                <TableCell className="text-xs text-slate-700 dark:text-slate-300">
                   {t(ev.details)}
                 </TableCell>
                 <TableCell className="text-right font-mono text-xs text-slate-500">

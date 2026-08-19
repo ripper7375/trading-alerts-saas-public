@@ -10,31 +10,31 @@ export default function TermsPage() {
 
   return (
     <div className="animate-fade-in space-y-6 select-none">
-      <div className="space-y-6 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800/80 dark:bg-[#090c14]">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-slate-800">
           <div>
-            <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-100">
-              <FileText className="h-4 w-4 text-amber-400" />{' '}
+            <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-900 dark:text-slate-100">
+              <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400" />{' '}
               {t('Terms of Service & Risk Disclosure Statements')}
             </h2>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {t(
                 'Legal agreements, privacy disclosures, and financial trading risk notices'
               )}
             </p>
           </div>
-          <Badge className="border-slate-700 bg-slate-800 font-mono text-[9px] text-slate-300">
+          <Badge className="border-slate-200 bg-slate-100 font-mono text-[9px] text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
             {t('LEGAL')}
           </Badge>
         </div>
 
         {/* High Risk Trading Warning Box */}
         <div className="space-y-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-xs">
-          <div className="flex items-center gap-2 font-bold text-amber-300">
+          <div className="flex items-center gap-2 font-bold text-amber-700 dark:text-amber-300">
             <ShieldAlert className="h-4 w-4" />{' '}
             {t('Important Risk Disclosure Notice')}
           </div>
-          <p className="leading-relaxed text-slate-300">
+          <p className="leading-relaxed text-slate-700 dark:text-slate-300">
             {t(
               'Trading foreign exchange, precious metals (XAUUSD Gold), and futures carries a high level of risk and may not be suitable for all investors. Quantitative signals and AI chart analysis provided by DavinTrade are for informational and analytical purposes only and do not constitute financial advice.'
             )}
@@ -42,8 +42,8 @@ export default function TermsPage() {
         </div>
 
         {/* Terms Articles */}
-        <div className="space-y-4 text-xs leading-relaxed text-slate-300">
-          <h3 className="text-xs font-bold tracking-wider text-slate-100 uppercase">
+        <div className="space-y-4 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+          <h3 className="text-xs font-bold tracking-wider text-slate-900 uppercase dark:text-slate-100">
             {t('1. Master Subscription Agreement')}
           </h3>
           <p>
@@ -52,9 +52,9 @@ export default function TermsPage() {
             )}
           </p>
 
-          <Separator className="bg-slate-800" />
+          <Separator className="bg-slate-100 dark:bg-slate-800" />
 
-          <h3 className="text-xs font-bold tracking-wider text-slate-100 uppercase">
+          <h3 className="text-xs font-bold tracking-wider text-slate-900 uppercase dark:text-slate-100">
             {t('2. Data Privacy & GDPR Compliance')}
           </h3>
           <p>
@@ -63,9 +63,9 @@ export default function TermsPage() {
             )}
           </p>
 
-          <Separator className="bg-slate-800" />
+          <Separator className="bg-slate-100 dark:bg-slate-800" />
 
-          <h3 className="text-xs font-bold tracking-wider text-slate-100 uppercase">
+          <h3 className="text-xs font-bold tracking-wider text-slate-900 uppercase dark:text-slate-100">
             {t('3. Cancellation & Refund Policy')}
           </h3>
           <p>

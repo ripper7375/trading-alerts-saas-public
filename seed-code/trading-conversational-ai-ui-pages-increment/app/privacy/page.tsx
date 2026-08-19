@@ -12,31 +12,31 @@ export default function PrivacyPage() {
   const { t } = useLocale();
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#050609] text-slate-100">
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <MarketingNavbar />
 
       <main className="container mx-auto max-w-4xl flex-1 px-4 py-16 md:px-6">
         <div className="space-y-8">
           <div className="space-y-3">
-            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-400">
+            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-400">
               {t('Privacy & Data Governance')}
             </Badge>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-100 md:text-4xl">
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 md:text-4xl dark:text-slate-100">
               {t('DavinTrade AI Privacy Policy')}
             </h1>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               {t('Effective Date: August 16, 2026')}
             </p>
           </div>
 
-          <Card className="border-slate-800/80 bg-[#090b14]/80 backdrop-blur-xl">
+          <Card className="border-slate-200 bg-white shadow-md dark:border-slate-800/80 dark:bg-[#090b14]/80 dark:backdrop-blur-xl">
             <CardContent className="flex items-start gap-4 p-6">
-              <Lock className="mt-0.5 h-6 w-6 shrink-0 text-amber-400" />
+              <Lock className="mt-0.5 h-6 w-6 shrink-0 text-amber-600 dark:text-amber-400" />
               <div className="space-y-2">
-                <h3 className="text-sm font-bold text-slate-200">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-200">
                   {t('Our Commitment to Your Privacy')}
                 </h3>
-                <p className="text-xs leading-relaxed text-slate-400">
+                <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
                   {t(
                     'DavinTrade AI adheres to strict data privacy principles under GDPR, CCPA, and global cybersecurity frameworks. We do not sell personal data, we do not store plaintext passwords, and all analytics telemetry is fully encrypted at rest and in transit.'
                   )}
@@ -45,9 +45,9 @@ export default function PrivacyPage() {
             </CardContent>
           </Card>
 
-          <div className="space-y-6 border-t border-slate-800/80 pt-6 text-sm leading-relaxed text-slate-300">
+          <div className="space-y-6 border-t border-slate-200 pt-6 text-sm leading-relaxed text-slate-700 dark:border-slate-800/80 dark:text-slate-300">
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 1. {t('Information We Collect')}
               </h2>
               <p>
@@ -58,10 +58,10 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 2. {t('How We Use Your Data')}
               </h2>
-              <ul className="list-disc space-y-1 pl-5 text-xs text-slate-400 md:text-sm">
+              <ul className="list-disc space-y-1 pl-5 text-xs text-slate-600 md:text-sm dark:text-slate-400">
                 <li>
                   {t(
                     'To provision and maintain your real-time trading workspaces and alert deliveries.'
@@ -86,7 +86,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 3. {t('Your Rights and Data Control')}
               </h2>
               <p>
@@ -97,7 +97,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 4. {t('How We Share Your Information')}
               </h2>
               <p>
@@ -105,9 +105,9 @@ export default function PrivacyPage() {
                   'We do not sell your personal information. We share data only with:'
                 )}
               </p>
-              <ul className="list-disc space-y-1 pl-5 text-xs text-slate-400 md:text-sm">
+              <ul className="list-disc space-y-1 pl-5 text-xs text-slate-600 md:text-sm dark:text-slate-400">
                 <li>
-                  <strong className="text-slate-200">
+                  <strong className="text-slate-900 dark:text-slate-200">
                     {t('Payment processors')}
                   </strong>{' '}
                   {t(
@@ -115,7 +115,7 @@ export default function PrivacyPage() {
                   )}
                 </li>
                 <li>
-                  <strong className="text-slate-200">
+                  <strong className="text-slate-900 dark:text-slate-200">
                     {t('Infrastructure providers')}
                   </strong>{' '}
                   {t(
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
                   )}
                 </li>
                 <li>
-                  <strong className="text-slate-200">
+                  <strong className="text-slate-900 dark:text-slate-200">
                     {t('Affiliate partners')}
                   </strong>{' '}
                   {t(
@@ -131,7 +131,7 @@ export default function PrivacyPage() {
                   )}
                 </li>
                 <li>
-                  <strong className="text-slate-200">
+                  <strong className="text-slate-900 dark:text-slate-200">
                     {t('Law enforcement')}
                   </strong>{' '}
                   {t(
@@ -142,7 +142,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 5. {t('Cookies & Session Data')}
               </h2>
               <p>
@@ -153,7 +153,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 6. {t('Data Retention & Security')}
               </h2>
               <p>
@@ -164,7 +164,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 7. {t("Children's Privacy")}
               </h2>
               <p>
@@ -175,7 +175,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 8. {t('Changes to This Policy')}
               </h2>
               <p>
@@ -186,14 +186,14 @@ export default function PrivacyPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-bold text-slate-100">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
                 9. {t('Contact Us')}
               </h2>
               <p>
                 {t('Questions about this Privacy Policy? Contact us at')}{' '}
                 <a
                   href="mailto:privacy@davintrade.com"
-                  className="text-amber-400 underline hover:text-amber-300"
+                  className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                 >
                   privacy@davintrade.com
                 </a>

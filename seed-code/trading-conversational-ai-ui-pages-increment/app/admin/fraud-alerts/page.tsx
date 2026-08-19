@@ -58,7 +58,7 @@ export default function FraudAlertsPage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Fraud Detection & Risk Inspection')}
         subtitle={t(
@@ -67,51 +67,53 @@ export default function FraudAlertsPage() {
       />
       <AdminNav />
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 md:p-6">
-        <div className="space-y-4 rounded-2xl border border-rose-500/40 bg-[#090c14] p-6 shadow-xl">
-          <div className="flex items-center justify-between border-b border-rose-500/30 pb-3">
-            <h2 className="flex items-center gap-2 text-sm font-extrabold text-rose-400">
+        <div className="space-y-4 rounded-2xl border border-rose-500/30 bg-white p-6 shadow-sm dark:border-rose-500/40 dark:bg-[#090c14] dark:shadow-xl">
+          <div className="flex items-center justify-between border-b border-rose-200 pb-3 dark:border-rose-500/30">
+            <h2 className="flex items-center gap-2 text-sm font-extrabold text-rose-700 dark:text-rose-400">
               <ShieldAlert className="h-5 w-5" />{' '}
               {t('Flagged Security Anomalies')} ({fraudItems.length})
             </h2>
-            <Badge className="border-rose-500/40 bg-rose-500/15 font-mono text-[9px] text-rose-300">
+            <Badge className="border-rose-500/40 bg-rose-500/15 font-mono text-[9px] text-rose-700 dark:text-rose-300">
               {t('HIGH PRIORITY')}
             </Badge>
           </div>
 
-          <div className="divide-y divide-slate-800/60">
+          <div className="divide-y divide-slate-200 dark:divide-slate-800/60">
             {fraudItems.map((item) => (
               <div key={item.id} className="space-y-2 py-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-slate-100">
+                    <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100">
                       {item.id}
                     </span>
                     <Badge
                       variant="outline"
-                      className="border-rose-500/40 bg-rose-500/10 font-mono text-[9px] text-rose-300"
+                      className="border-rose-500/30 bg-rose-50 font-mono text-[9px] text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300"
                     >
                       {t('Risk Score:')} {item.riskScore}
                       /100
                     </Badge>
-                    <span className="text-xs font-bold text-slate-200">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                       {item.pattern}
                     </span>
                   </div>
                   <Badge
                     className={
                       item.status === 'BLOCKED'
-                        ? 'border-rose-500/40 bg-rose-500/15 font-mono text-[9px] text-rose-300'
+                        ? 'border-rose-500/40 bg-rose-500/15 font-mono text-[9px] text-rose-700 dark:text-rose-300'
                         : item.status === 'DISMISSED'
-                          ? 'border-emerald-500/40 bg-emerald-500/15 font-mono text-[9px] text-emerald-300'
-                          : 'border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300'
+                          ? 'border-emerald-500/40 bg-emerald-500/15 font-mono text-[9px] text-emerald-700 dark:text-emerald-300'
+                          : 'border-amber-500/40 bg-amber-500/15 font-mono text-[9px] text-amber-700 dark:text-amber-300'
                     }
                   >
                     {statusLabel[item.status]}
                   </Badge>
                 </div>
 
-                <p className="text-xs text-slate-300">{item.details}</p>
-                <div className="font-mono text-[11px] text-slate-400">
+                <p className="text-xs text-slate-700 dark:text-slate-300">
+                  {item.details}
+                </p>
+                <div className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
                   {t('User:')} {item.user} • {t('Target IP:')} {item.ip}
                 </div>
 
@@ -130,7 +132,7 @@ export default function FraudAlertsPage() {
                     variant="outline"
                     disabled={item.status !== 'ACTION_REQUIRED'}
                     onClick={() => setItemStatus(item.id, 'DISMISSED')}
-                    className="border-slate-750 h-7 text-[10px] text-slate-300 disabled:opacity-40"
+                    className="dark:border-slate-750 h-7 border-slate-300 bg-slate-50 text-[10px] text-slate-700 hover:bg-slate-100 disabled:opacity-40 dark:bg-transparent dark:text-slate-300"
                   >
                     {t('Dismiss as False Positive')}
                   </Button>
@@ -138,7 +140,7 @@ export default function FraudAlertsPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 border-amber-500/30 bg-amber-500/5 text-[10px] text-amber-300 hover:bg-amber-500/15"
+                      className="h-7 border-amber-500/30 bg-amber-50 text-[10px] text-amber-700 hover:bg-amber-100 dark:bg-amber-500/5 dark:text-amber-300 dark:hover:bg-amber-500/15"
                     >
                       {t('View & Investigate')}
                       <ChevronRight className="ml-1 h-3 w-3" />

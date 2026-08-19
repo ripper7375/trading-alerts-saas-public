@@ -69,7 +69,7 @@ export default function AdminSettingsAffiliatePage() {
   };
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-y-auto bg-[#050609] text-slate-100 select-none">
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#050609] dark:text-slate-100">
       <AppHeader
         title={t('Admin Settings: Affiliate Program Engine')}
         subtitle={t(
@@ -82,14 +82,14 @@ export default function AdminSettingsAffiliatePage() {
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 p-4 md:p-6">
         <Link
           href="/admin/affiliates"
-          className="flex w-fit items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-amber-400"
+          className="flex w-fit items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400"
         >
           <Share2 className="h-3.5 w-3.5" />
           {t('Back to Affiliates')}
         </Link>
 
         {success && (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-xs text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>{success}</span>
           </div>
@@ -97,66 +97,66 @@ export default function AdminSettingsAffiliatePage() {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <form onSubmit={handleSave} className="space-y-6">
-            <Card className="space-y-5 border-slate-800/80 bg-[#090b14]/90 p-6">
-              <h3 className="border-b border-slate-800 pb-3 text-sm font-bold text-slate-100">
+            <Card className="space-y-5 border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+              <h3 className="border-b border-slate-200 pb-3 text-sm font-bold text-slate-900 dark:border-slate-800 dark:text-slate-100">
                 {t('Attribution & Commission Rules')}
               </h3>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-300">
+                  <Label className="text-xs text-slate-700 dark:text-slate-300">
                     {t('Default Recurring Commission Rate (%)')}
                   </Label>
                   <Input
                     type="number"
                     value={defaultRate}
                     onChange={(e) => setDefaultRate(e.target.value)}
-                    className="border-slate-800 bg-[#06080e] font-mono text-slate-200"
+                    className="border-slate-200 bg-slate-50 font-mono text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-300">
+                  <Label className="text-xs text-slate-700 dark:text-slate-300">
                     {t('Referral Cookie Lifespan (Days)')}
                   </Label>
                   <Input
                     type="number"
                     value={cookieDays}
                     onChange={(e) => setCookieDays(e.target.value)}
-                    className="border-slate-800 bg-[#06080e] font-mono text-slate-200"
+                    className="border-slate-200 bg-slate-50 font-mono text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-300">
+                  <Label className="text-xs text-slate-700 dark:text-slate-300">
                     {t('Customer Discount (%)')}
                   </Label>
                   <Input
                     type="number"
                     value={discountPercent}
                     onChange={(e) => setDiscountPercent(Number(e.target.value))}
-                    className="border-slate-800 bg-[#06080e] font-mono text-slate-200"
+                    className="border-slate-200 bg-slate-50 font-mono text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-300">
+                  <Label className="text-xs text-slate-700 dark:text-slate-300">
                     {t('Codes Distributed Per Month')}
                   </Label>
                   <Input
                     type="number"
                     value={codesPerMonth}
                     onChange={(e) => setCodesPerMonth(Number(e.target.value))}
-                    className="border-slate-800 bg-[#06080e] font-mono text-slate-200"
+                    className="border-slate-200 bg-slate-50 font-mono text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-300">
+                  <Label className="text-xs text-slate-700 dark:text-slate-300">
                     {t('Monthly Subscription Price ($)')}
                   </Label>
                   <Input
@@ -164,13 +164,13 @@ export default function AdminSettingsAffiliatePage() {
                     step="0.01"
                     value={basePrice}
                     onChange={(e) => setBasePrice(Number(e.target.value))}
-                    className="border-slate-800 bg-[#06080e] font-mono text-slate-200"
+                    className="border-slate-200 bg-slate-50 font-mono text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-300">
+                  <Label className="text-xs text-slate-700 dark:text-slate-300">
                     {t('3-Day Trial Price ($)')}
                   </Label>
                   <Input
@@ -178,21 +178,21 @@ export default function AdminSettingsAffiliatePage() {
                     step="0.01"
                     value={threeDayPrice}
                     onChange={(e) => setThreeDayPrice(Number(e.target.value))}
-                    className="border-slate-800 bg-[#06080e] font-mono text-slate-200"
+                    className="border-slate-200 bg-slate-50 font-mono text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                     required
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs text-slate-300">
+                <Label className="text-xs text-slate-700 dark:text-slate-300">
                   {t('Reason for Change (Optional)')}
                 </Label>
                 <Input
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   placeholder={t('e.g., Holiday promotion, Market adjustment')}
-                  className="border-slate-800 bg-[#06080e] text-slate-200"
+                  className="border-slate-200 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
                 />
                 <p className="text-[11px] text-slate-500">
                   {t('This will be recorded in the audit history.')}
@@ -200,12 +200,12 @@ export default function AdminSettingsAffiliatePage() {
               </div>
 
               <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
+                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-[#06080e]">
                   <div className="space-y-0.5">
-                    <div className="text-xs font-bold text-slate-200">
+                    <div className="text-xs font-bold text-slate-900 dark:text-slate-200">
                       {t('Auto-Approve Verified Partner Applications')}
                     </div>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
                       {t(
                         'Instantly unlocks referral codes upon email verification.'
                       )}
@@ -217,12 +217,12 @@ export default function AdminSettingsAffiliatePage() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
+                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-[#06080e]">
                   <div className="space-y-0.5">
-                    <div className="text-xs font-bold text-slate-200">
+                    <div className="text-xs font-bold text-slate-900 dark:text-slate-200">
                       {t('Allow Custom Coupon Codes')}
                     </div>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
                       {t(
                         'Lets verified partners request a vanity code instead of a generated one.'
                       )}
@@ -234,12 +234,12 @@ export default function AdminSettingsAffiliatePage() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-3.5">
+                <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-[#06080e]">
                   <div className="space-y-0.5">
-                    <div className="text-xs font-bold text-slate-200">
+                    <div className="text-xs font-bold text-slate-900 dark:text-slate-200">
                       {t('Enable Anti-Self-Referral Machine Learning Guardian')}
                     </div>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-400">
                       {t(
                         'Flags credit card fingerprints and IP subnet collisions automatically.'
                       )}
@@ -267,18 +267,20 @@ export default function AdminSettingsAffiliatePage() {
 
           {/* Live Preview */}
           <div className="space-y-4">
-            <Card className="space-y-3 border-slate-800/80 bg-[#090b14]/90 p-6">
-              <h3 className="border-b border-slate-800 pb-3 text-sm font-bold text-slate-100">
+            <Card className="space-y-3 border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90">
+              <h3 className="border-b border-slate-200 pb-3 text-sm font-bold text-slate-900 dark:border-slate-800 dark:text-slate-100">
                 {t('Example Calculation')}
               </h3>
               <div className="space-y-2.5 text-xs">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">{t('Regular Price')}</span>
-                  <span className="font-mono text-slate-200">
+                  <span className="text-slate-600 dark:text-slate-400">
+                    {t('Regular Price')}
+                  </span>
+                  <span className="font-mono text-slate-900 dark:text-slate-200">
                     ${formatUsd(basePrice)}
                   </span>
                 </div>
-                <div className="flex justify-between text-amber-400">
+                <div className="flex justify-between text-amber-700 dark:text-amber-400">
                   <span>
                     {t('Discount')} ({discountPercent}%)
                   </span>
@@ -286,13 +288,15 @@ export default function AdminSettingsAffiliatePage() {
                     -${formatUsd((basePrice * discountPercent) / 100)}
                   </span>
                 </div>
-                <div className="flex justify-between border-t border-slate-800 pt-2">
-                  <span className="text-slate-400">{t('Customer Pays')}</span>
-                  <span className="font-mono font-semibold text-slate-100">
+                <div className="flex justify-between border-t border-slate-200 pt-2 dark:border-slate-800">
+                  <span className="text-slate-600 dark:text-slate-400">
+                    {t('Customer Pays')}
+                  </span>
+                  <span className="font-mono font-semibold text-slate-900 dark:text-slate-100">
                     ${formatUsd(exampleNetPrice)}
                   </span>
                 </div>
-                <div className="flex justify-between text-emerald-400">
+                <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
                   <span>
                     {t('Affiliate Earns')} ({commissionPercent}%)
                   </span>
@@ -300,7 +304,7 @@ export default function AdminSettingsAffiliatePage() {
                     ${formatUsd(exampleCommission)}
                   </span>
                 </div>
-                <div className="flex justify-between border-t border-slate-800 pt-2 text-cyan-400">
+                <div className="flex justify-between border-t border-slate-200 pt-2 text-cyan-700 dark:border-slate-800 dark:text-cyan-400">
                   <span>{t('Company Revenue')}</span>
                   <span className="font-mono font-semibold">
                     ${formatUsd(exampleNetPrice - exampleCommission)}
@@ -309,12 +313,12 @@ export default function AdminSettingsAffiliatePage() {
               </div>
             </Card>
 
-            <Card className="space-y-2 border-amber-500/20 bg-amber-500/5 p-6">
-              <h4 className="flex items-center gap-2 text-xs font-bold text-amber-300">
+            <Card className="space-y-2 border-amber-500/30 bg-amber-500/10 p-6 dark:border-amber-500/20 dark:bg-amber-500/5">
+              <h4 className="flex items-center gap-2 text-xs font-bold text-amber-800 dark:text-amber-300">
                 <AlertTriangle className="h-3.5 w-3.5" />
                 {t('Important Notes')}
               </h4>
-              <ul className="space-y-1.5 text-[11px] text-slate-400">
+              <ul className="space-y-1.5 text-[11px] text-slate-600 dark:text-slate-400">
                 <li>
                   {t(
                     'Changes take effect immediately for new code distributions.'

@@ -195,16 +195,16 @@ function TransactionsPageContent() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100 sm:text-3xl">
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl dark:text-slate-100">
             {t('Transactions')}
           </h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             {t('All disbursement transactions')}
           </p>
         </div>
         <Button
           variant="outline"
-          className="border-slate-800 bg-[#090c14] text-slate-300 hover:bg-slate-800"
+          className="border-slate-300 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-[#090c14] dark:text-slate-300 dark:hover:bg-slate-800"
           onClick={() => window.location.reload()}
         >
           <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
@@ -213,7 +213,7 @@ function TransactionsPageContent() {
       </div>
 
       {/* Status Filter */}
-      <Card className="border-slate-800/80 bg-[#090c14]">
+      <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
         <CardContent className="flex flex-wrap gap-2 py-4">
           {STATUS_OPTIONS.map((status) => (
             <Button
@@ -228,7 +228,7 @@ function TransactionsPageContent() {
               className={
                 (status === 'ALL' && !statusFilter) || statusFilter === status
                   ? 'bg-amber-500 font-bold text-slate-950 hover:bg-amber-400'
-                  : 'border-slate-800 bg-transparent text-xs text-slate-300 hover:bg-slate-800'
+                  : 'border-slate-300 bg-slate-50 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800'
               }
             >
               {status === 'ALL' ? t('All Transactions') : t(status)}
@@ -239,32 +239,32 @@ function TransactionsPageContent() {
 
       {/* Transactions Table */}
       {pageItems.length > 0 ? (
-        <Card className="overflow-hidden border-slate-800/80 bg-[#090b14]/90 backdrop-blur-xl">
+        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
           <Table>
-            <TableHeader className="bg-[#06080e]">
-              <TableRow className="border-slate-800 hover:bg-transparent">
-                <TableHead className="text-xs font-bold text-slate-300">
+            <TableHeader className="bg-slate-50 dark:bg-[#06080e]">
+              <TableRow className="border-slate-200 hover:bg-transparent dark:border-slate-800">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Transaction ID')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Partner')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Amount')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Provider')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Provider TX')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Retries')}
                 </TableHead>
-                <TableHead className="text-xs font-bold text-slate-300">
+                <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Created')}
                 </TableHead>
-                <TableHead className="text-right text-xs font-bold text-slate-300">
+                <TableHead className="text-right text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Status')}
                 </TableHead>
               </TableRow>
@@ -273,35 +273,35 @@ function TransactionsPageContent() {
               {pageItems.map((tx) => (
                 <TableRow
                   key={tx.id}
-                  className="border-slate-800/60 hover:bg-slate-800/30"
+                  className="border-slate-200 hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/30"
                 >
-                  <TableCell className="font-mono text-xs font-bold text-amber-400">
+                  <TableCell className="font-mono text-xs font-bold text-amber-700 dark:text-amber-400">
                     {tx.transactionId}
                   </TableCell>
-                  <TableCell className="text-xs font-bold text-slate-200">
+                  <TableCell className="text-xs font-bold text-slate-900 dark:text-slate-200">
                     {tx.partner}
                   </TableCell>
-                  <TableCell className="font-mono text-xs font-bold text-emerald-400">
+                  <TableCell className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     {formatCurrency(tx.amount)}
                   </TableCell>
                   <TableCell>
-                    <Badge className="border-slate-600/40 bg-slate-600/15 text-[10px] text-slate-300">
+                    <Badge className="border-slate-300 bg-slate-100 text-[10px] text-slate-700 dark:border-slate-600/40 dark:bg-slate-600/15 dark:text-slate-300">
                       {t(tx.provider)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-400">
+                  <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                     {tx.providerTxId || '—'}
                   </TableCell>
                   <TableCell
                     className={
                       tx.retryCount > 0
-                        ? 'text-xs text-amber-400'
-                        : 'text-xs text-slate-400'
+                        ? 'text-xs text-amber-700 dark:text-amber-400'
+                        : 'text-xs text-slate-600 dark:text-slate-400'
                     }
                   >
                     {tx.retryCount}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-400">
+                  <TableCell className="font-mono text-xs text-slate-600 dark:text-slate-400">
                     {formatDate(tx.createdAt)}
                   </TableCell>
                   <TableCell className="text-right">
@@ -313,8 +313,8 @@ function TransactionsPageContent() {
           </Table>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between border-t border-slate-800 px-4 py-3">
-            <p className="text-xs text-slate-400">
+          <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-slate-800">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               {t('Showing')} {(currentPage - 1) * PAGE_SIZE + 1}–
               {Math.min(currentPage * PAGE_SIZE, filtered.length)} {t('of')}{' '}
               {filtered.length}
@@ -325,7 +325,7 @@ function TransactionsPageContent() {
                 size="sm"
                 disabled={currentPage <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="border-slate-800 bg-transparent text-xs text-slate-300 hover:bg-slate-800"
+                className="border-slate-300 bg-slate-50 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 {t('Previous')}
               </Button>
@@ -334,7 +334,7 @@ function TransactionsPageContent() {
                 size="sm"
                 disabled={currentPage >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="border-slate-800 bg-transparent text-xs text-slate-300 hover:bg-slate-800"
+                className="border-slate-300 bg-slate-50 text-xs text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-transparent dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 {t('Next')}
               </Button>
@@ -342,8 +342,8 @@ function TransactionsPageContent() {
           </div>
         </Card>
       ) : (
-        <Card className="border-slate-800/80 bg-[#090c14]">
-          <CardContent className="py-12 text-center text-sm text-slate-400">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
+          <CardContent className="py-12 text-center text-sm text-slate-600 dark:text-slate-400">
             {t('No transactions found.')}
           </CardContent>
         </Card>
@@ -351,12 +351,12 @@ function TransactionsPageContent() {
 
       {/* Failed Transaction Details */}
       {statusFilter === 'FAILED' && filtered.length > 0 && (
-        <Card className="border-slate-800/80 bg-[#090c14]">
+        <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800/80 dark:bg-[#090c14]">
           <CardHeader>
-            <CardTitle className="text-sm text-slate-100">
+            <CardTitle className="text-sm text-slate-900 dark:text-slate-100">
               {t('Failed Transaction Details')}
             </CardTitle>
-            <CardDescription className="text-slate-400">
+            <CardDescription className="text-slate-600 dark:text-slate-400">
               {t('Error information for failed transactions')}
             </CardDescription>
           </CardHeader>
@@ -366,21 +366,21 @@ function TransactionsPageContent() {
               .map((tx) => (
                 <div
                   key={tx.id}
-                  className="rounded-lg border border-rose-500/30 bg-rose-950/20 p-3"
+                  className="rounded-lg border border-rose-500/30 bg-rose-50 p-3 dark:bg-rose-950/20"
                 >
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-slate-200">
+                    <span className="font-mono text-xs font-bold text-slate-900 dark:text-slate-200">
                       {tx.transactionId}
                     </span>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-slate-600 dark:text-slate-400">
                       {formatDate(tx.createdAt)}
                     </span>
                   </div>
-                  <p className="text-xs text-rose-300">
+                  <p className="text-xs text-rose-700 dark:text-rose-300">
                     {tx.errorMessage && t(tx.errorMessage)}
                   </p>
                   {tx.retryCount > 0 && (
-                    <p className="mt-1 text-[11px] text-amber-400">
+                    <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-400">
                       {t('Retried')} {tx.retryCount} {t('times')}
                     </p>
                   )}

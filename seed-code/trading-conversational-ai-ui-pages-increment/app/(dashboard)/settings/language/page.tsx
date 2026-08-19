@@ -142,43 +142,43 @@ export default function LanguageSettingsPage() {
 
   return (
     <div className="animate-fade-in space-y-6 select-none">
-      <div className="space-y-6 rounded-2xl border border-slate-800/80 bg-[#090c14] p-6 shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800/80 dark:bg-[#090c14]">
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-slate-800">
           <div>
-            <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-100">
-              <Globe className="h-4 w-4 text-amber-400" />{' '}
+            <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-900 dark:text-slate-100">
+              <Globe className="h-4 w-4 text-amber-600 dark:text-amber-400" />{' '}
               {t(
                 'settings.language_title',
                 'Language, Timezone & Regional Formats'
               )}
             </h2>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {t(
                 'settings.language_subtitle',
                 'Configure internationalization, session clock timezones, and date formats'
               )}
             </p>
           </div>
-          <Badge className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-300">
+          <Badge className="border-amber-500/40 bg-amber-500/10 font-mono text-[9px] text-amber-700 dark:text-amber-300">
             GLOBAL + dLocal 8 + UK
           </Badge>
         </div>
 
         {/* Display Language Selection */}
         <div className="max-w-md space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-300">
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             {t('Display Language', 'Display Language')}
           </Label>
           <Select
             value={language}
             onValueChange={(val) => setLocalePreferences({ language: val })}
           >
-            <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs text-slate-100">
+            <SelectTrigger className="border-slate-200 bg-slate-50 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-100">
               <SelectValue
                 placeholder={t('Select language', 'Select language')}
               />
             </SelectTrigger>
-            <SelectContent className="border-slate-750 bg-[#0f1420] text-xs">
+            <SelectContent className="border-slate-200 bg-white text-xs text-slate-900 dark:border-slate-700 dark:bg-[#0f1420] dark:text-slate-100">
               {languages.map((lang) => (
                 <SelectItem key={lang.code} value={lang.code}>
                   {lang.name}
@@ -188,11 +188,11 @@ export default function LanguageSettingsPage() {
           </Select>
         </div>
 
-        <Separator className="bg-slate-800" />
+        <Separator className="bg-slate-100 dark:bg-slate-800" />
 
         {/* Session Timezone Selection */}
         <div className="max-w-md space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-300">
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             {t(
               'Session Timezone (Live Market Clock)',
               'Session Timezone (Live Market Clock)'
@@ -202,12 +202,12 @@ export default function LanguageSettingsPage() {
             value={timezone}
             onValueChange={(val) => setLocalePreferences({ timezone: val })}
           >
-            <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs text-slate-100">
+            <SelectTrigger className="border-slate-200 bg-slate-50 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-100">
               <SelectValue
                 placeholder={t('Select timezone', 'Select timezone')}
               />
             </SelectTrigger>
-            <SelectContent className="border-slate-750 bg-[#0f1420] text-xs">
+            <SelectContent className="border-slate-200 bg-white text-xs text-slate-900 dark:border-slate-700 dark:bg-[#0f1420] dark:text-slate-100">
               {timezones.map((tz) => (
                 <SelectItem key={tz.value} value={tz.value}>
                   {tz.label}
@@ -215,25 +215,25 @@ export default function LanguageSettingsPage() {
               ))}
             </SelectContent>
           </Select>
-          <div className="mt-2 flex items-center justify-between rounded-xl border border-slate-800 bg-[#06080e] p-2.5 font-mono text-[11px] text-slate-400">
+          <div className="mt-2 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-2.5 font-mono text-[11px] text-slate-600 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-400">
             <span>
               {t(
                 'Current Terminal Session Clock:',
                 'Current Terminal Session Clock:'
               )}
             </span>
-            <span className="font-bold text-amber-300">
+            <span className="font-bold text-amber-700 dark:text-amber-300">
               {formatTimestamp(new Date())}
             </span>
           </div>
         </div>
 
-        <Separator className="bg-slate-800" />
+        <Separator className="bg-slate-100 dark:bg-slate-800" />
 
         {/* Date & Time Formats */}
         <div className="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-xs font-semibold text-slate-300">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('Date Format', 'Date Format')}
             </Label>
             <div className="space-y-2 text-xs">
@@ -265,7 +265,7 @@ export default function LanguageSettingsPage() {
               ].map((f) => (
                 <label
                   key={f.value}
-                  className="flex cursor-pointer items-center gap-2 text-slate-300"
+                  className="flex cursor-pointer items-center gap-2 text-slate-700 dark:text-slate-300"
                 >
                   <input
                     type="radio"
@@ -283,7 +283,7 @@ export default function LanguageSettingsPage() {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs font-semibold text-slate-300">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('Time Format', 'Time Format')}
             </Label>
             <div className="space-y-2 text-xs">
@@ -305,7 +305,7 @@ export default function LanguageSettingsPage() {
               ].map((tf) => (
                 <label
                   key={tf.value}
-                  className="flex cursor-pointer items-center gap-2 text-slate-300"
+                  className="flex cursor-pointer items-center gap-2 text-slate-700 dark:text-slate-300"
                 >
                   <input
                     type="radio"
@@ -323,11 +323,11 @@ export default function LanguageSettingsPage() {
           </div>
         </div>
 
-        <Separator className="bg-slate-800" />
+        <Separator className="bg-slate-100 dark:bg-slate-800" />
 
         {/* Display Currency (Supporting dLocal 8 + UK + Global) */}
         <div className="max-w-md space-y-1.5">
-          <Label className="text-xs font-semibold text-slate-300">
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             {t(
               'Display Currency (dLocal APAC/EMEA & UK)',
               'Display Currency (dLocal APAC/EMEA & UK)'
@@ -337,12 +337,12 @@ export default function LanguageSettingsPage() {
             value={currency}
             onValueChange={(val) => setLocalePreferences({ currency: val })}
           >
-            <SelectTrigger className="border-slate-750 bg-[#06080e] text-xs text-slate-100">
+            <SelectTrigger className="border-slate-200 bg-slate-50 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#06080e] dark:text-slate-100">
               <SelectValue
                 placeholder={t('Select currency', 'Select currency')}
               />
             </SelectTrigger>
-            <SelectContent className="border-slate-750 bg-[#0f1420] text-xs">
+            <SelectContent className="border-slate-200 bg-white text-xs text-slate-900 dark:border-slate-700 dark:bg-[#0f1420] dark:text-slate-100">
               {currencies.map((curr) => (
                 <SelectItem key={curr.code} value={curr.code}>
                   {curr.name} ({curr.symbol})
@@ -352,11 +352,11 @@ export default function LanguageSettingsPage() {
           </Select>
 
           <div className="mt-2 space-y-1 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs">
-            <div className="flex justify-between font-medium text-slate-300">
+            <div className="flex justify-between font-medium text-slate-700 dark:text-slate-300">
               <span>
                 {t('Formatted Price Example:', 'Formatted Price Example:')}
               </span>
-              <strong className="font-mono text-sm text-amber-300">
+              <strong className="font-mono text-sm text-amber-700 dark:text-amber-300">
                 {formatCurrency(
                   currencies.find((c) => c.code === currency)?.example || 1000
                 )}

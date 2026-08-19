@@ -90,20 +90,20 @@ export default function UserTable() {
   );
 
   return (
-    <div className="space-y-4 overflow-hidden rounded-2xl border border-slate-800 bg-[#090c14] p-4 shadow-xl select-none">
-      <div className="flex flex-col items-start justify-between gap-3 border-b border-slate-800 pb-3 sm:flex-row sm:items-center">
-        <h3 className="text-xs font-bold tracking-wider text-slate-200 uppercase">
+    <div className="space-y-4 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-xl select-none dark:border-slate-800 dark:bg-[#090c14]">
+      <div className="flex flex-col items-start justify-between gap-3 border-b border-slate-200 pb-3 sm:flex-row sm:items-center dark:border-slate-800">
+        <h3 className="text-xs font-bold tracking-wider text-slate-900 uppercase dark:text-slate-200">
           {t('User Account Directory')} ({filteredUsers.length})
         </h3>
 
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <div className="relative w-full sm:w-64">
-            <Search className="absolute top-2.5 left-2.5 h-3.5 w-3.5 text-slate-500" />
+            <Search className="absolute top-2.5 left-2.5 h-3.5 w-3.5 text-slate-400" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('Search users by email...')}
-              className="border-slate-750 h-8 bg-[#06080e] pl-8 text-xs text-slate-200"
+              className="dark:border-slate-750 h-8 border-slate-200 bg-slate-50 pl-8 text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-200"
             />
           </div>
 
@@ -113,10 +113,10 @@ export default function UserTable() {
               setRoleFilter(v as 'ALL' | UserRecord['role'])
             }
           >
-            <SelectTrigger className="border-slate-750 h-8 w-full bg-[#06080e] text-xs text-slate-200 sm:w-36">
+            <SelectTrigger className="dark:border-slate-750 h-8 w-full border-slate-200 bg-slate-50 text-xs text-slate-900 sm:w-36 dark:bg-[#06080e] dark:text-slate-200">
               <SelectValue placeholder={t('Role')} />
             </SelectTrigger>
-            <SelectContent className="border-slate-800 bg-[#090b14] text-slate-200">
+            <SelectContent className="border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200">
               <SelectItem value="ALL">{t('All Roles')}</SelectItem>
               <SelectItem value="FREE">{t('FREE')}</SelectItem>
               <SelectItem value="PRO">{t('PRO')}</SelectItem>
@@ -127,7 +127,7 @@ export default function UserTable() {
         </div>
       </div>
 
-      <div className="divide-y divide-slate-800/60">
+      <div className="divide-y divide-slate-200 dark:divide-slate-800/60">
         {filteredUsers.map((user) => (
           <div
             key={user.id}
@@ -137,7 +137,7 @@ export default function UserTable() {
               <div className="flex items-center gap-2">
                 <Link
                   href={`/admin/users/${user.id}`}
-                  className="font-bold text-slate-100 hover:text-amber-400 hover:underline"
+                  className="font-bold text-slate-900 hover:text-amber-600 hover:underline dark:text-slate-100 dark:hover:text-amber-400"
                 >
                   {t(
                     user.name,
@@ -153,12 +153,12 @@ export default function UserTable() {
                 <Badge
                   className={
                     user.role === 'PRO'
-                      ? 'border-amber-500/40 bg-amber-500/15 font-mono text-[9px] text-amber-300'
+                      ? 'border-amber-500/40 bg-amber-500/15 font-mono text-[9px] text-amber-700 dark:text-amber-300'
                       : user.role === 'ADMIN'
-                        ? 'border-rose-500/40 bg-rose-500/15 font-mono text-[9px] text-rose-300'
+                        ? 'border-rose-500/40 bg-rose-500/15 font-mono text-[9px] text-rose-700 dark:text-rose-300'
                         : user.role === 'AFFILIATE'
-                          ? 'border-emerald-500/40 bg-emerald-500/15 font-mono text-[9px] text-emerald-300'
-                          : 'border-slate-700 bg-slate-800 font-mono text-[9px] text-slate-400'
+                          ? 'border-emerald-500/40 bg-emerald-500/15 font-mono text-[9px] text-emerald-700 dark:text-emerald-300'
+                          : 'border-slate-300 bg-slate-100 font-mono text-[9px] text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
                   }
                 >
                   {t(user.role)}
@@ -166,7 +166,7 @@ export default function UserTable() {
               </div>
               <Link
                 href={`/admin/users/${user.id}`}
-                className="font-mono text-[11px] text-slate-400 hover:text-amber-400"
+                className="font-mono text-[11px] text-slate-600 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400"
               >
                 {user.email} • {t('Joined')} {formatDate(user.joinedAt)}
               </Link>
@@ -174,7 +174,7 @@ export default function UserTable() {
 
             <div className="flex w-full items-center justify-between gap-4 text-right sm:w-auto sm:justify-end">
               <div className="text-right">
-                <span className="font-mono text-[10px] text-slate-400">
+                <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
                   {user.alertsCount} {t('Alerts Configured')}
                 </span>
               </div>
@@ -185,8 +185,8 @@ export default function UserTable() {
                 onClick={() => toggleUserStatus(user.id)}
                 className={
                   user.status === 'Active'
-                    ? 'h-7 border-rose-500/40 bg-rose-500/10 text-[10px] text-rose-300 hover:bg-rose-500/20'
-                    : 'h-7 border-emerald-500/40 bg-emerald-500/10 text-[10px] text-emerald-300 hover:bg-emerald-500/20'
+                    ? 'h-7 border-rose-500/40 bg-rose-500/10 text-[10px] text-rose-700 hover:bg-rose-500/20 dark:text-rose-300'
+                    : 'h-7 border-emerald-500/40 bg-emerald-500/10 text-[10px] text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300'
                 }
               >
                 {user.status === 'Active' ? (
@@ -201,7 +201,7 @@ export default function UserTable() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-slate-750 h-7 bg-[#06080e] text-[10px] text-slate-300 hover:bg-slate-800"
+                  className="dark:border-slate-750 h-7 border-slate-300 bg-slate-50 text-[10px] text-slate-800 hover:bg-slate-100 dark:bg-[#06080e] dark:text-slate-300 dark:hover:bg-slate-800"
                 >
                   {t('Inspect')}
                   <ChevronRight className="ml-1 h-3 w-3" />

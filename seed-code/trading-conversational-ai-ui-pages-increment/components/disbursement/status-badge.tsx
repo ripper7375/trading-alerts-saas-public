@@ -19,12 +19,16 @@ type BadgeTone =
   | 'neutral';
 
 const TONE_CLASS: Record<BadgeTone, string> = {
-  success: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300',
-  warning: 'border-amber-500/40 bg-amber-500/15 text-amber-300',
-  danger: 'border-rose-500/40 bg-rose-500/15 text-rose-300',
-  info: 'border-blue-500/40 bg-blue-500/15 text-blue-300',
-  progress: 'border-purple-500/40 bg-purple-500/15 text-purple-300',
-  neutral: 'border-slate-600/40 bg-slate-600/15 text-slate-400',
+  success:
+    'border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+  warning:
+    'border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300',
+  danger: 'border-rose-500/40 bg-rose-500/15 text-rose-700 dark:text-rose-300',
+  info: 'border-blue-500/40 bg-blue-500/15 text-blue-700 dark:text-blue-300',
+  progress:
+    'border-purple-500/40 bg-purple-500/15 text-purple-700 dark:text-purple-300',
+  neutral:
+    'border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-600/40 dark:bg-slate-600/15 dark:text-slate-400',
 };
 
 export function StatusBadge({
