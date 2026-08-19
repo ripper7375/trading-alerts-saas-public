@@ -183,3 +183,4 @@ staging-credentials.txt
 .env.scratch
 .tmp-*
 .env*
+scratch/

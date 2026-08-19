@@ -1,10 +1,11 @@
 # DavinTrade SaaS — Mobile UI Architecture & Specification
 
-> **Target Codebase:** [`D:\SaaS Project\trading-alerts-saas-public\seed-code\trading-conversational-ai-ui-pages-increment`](file:///D:/SaaS%20Project/trading-alerts-saas-public/seed-code/trading-conversational-ai-ui-pages-increment) (Codebase 2)  
-> **Mobile Reference Seed:** [`D:\SaaS Project\trading-alerts-saas-public\seed-code\lovable-mobile-app`](file:///D:/SaaS%20Project/trading-alerts-saas-public/seed-code/lovable-mobile-app)  
-> **Shared Backend:** [`D:\SaaS Project\trading-alerts-saas-public`](file:///D:/SaaS%20Project/trading-alerts-saas-public) (Next.js API + Prisma + PostgreSQL + Flask MT5 VPS)  
+> **Target Build Destination:** [`D:\SaaS Project\trading-alerts-saas-public\mobile-app`](file:///D:/SaaS%20Project/trading-alerts-saas-public/mobile-app) _(Dedicated Standalone Mobile App Project)_  
+> **Immutable Seed Reference 1 (Architecture & Mobile Shell):** [`D:\SaaS Project\trading-alerts-saas-public\seed-code\lovable-mobile-app`](file:///D:/SaaS%20Project/trading-alerts-saas-public/seed-code/lovable-mobile-app) _(READ-ONLY — Raw mobile layout shell, bottom navigation, touch gestures, drawers, and mobile components)_  
+> **Immutable Seed Reference 2 (Business Logic & Design System):** [`D:\SaaS Project\trading-alerts-saas-public\seed-code\trading-conversational-ai-ui-pages-increment`](file:///D:/SaaS%20Project/trading-alerts-saas-public/seed-code/trading-conversational-ai-ui-pages-increment) _(READ-ONLY — DavinTrade AI design system, business workflows, MT5 trading logic, tier rules, and route inventory)_  
+> **Shared Backend:** [`D:\SaaS Project\trading-alerts-saas-public`](file:///D:/SaaS%20Project/trading-alerts-saas-public) _(Next.js API + Prisma + PostgreSQL + Flask MT5 VPS + FCM Push Dispatcher)_  
 > **Authoritative Page Master:** [`docs/files-completion-list/frontend-codebase-migration/ui-pages-pages-increment-codebase-2.xlsx`](file:///D:/SaaS%20Project/trading-alerts-saas-public/docs/files-completion-list/frontend-codebase-migration/ui-pages-pages-increment-codebase-2.xlsx)  
-> **Status:** Approved Architectural Blueprint for Autonomous Implementation
+> **⚠️ Critical Protection Rule:** All directories inside `seed-code/*` are **STRICTLY READ-ONLY SEEDS** and must **NEVER** be modified or overwritten.
 
 ---
 
@@ -12,7 +13,7 @@
 
 **DavinTrade** is an AI-powered conversational trading analyst and automated fractal support/resistance alert platform connected to live MetaTrader 5 (MT5) terminals.
 
-While desktop users utilize a multi-panel trading workbench, **mobile users primary requirement is portability, real-time alert monitoring, and instant push notifications**. Traders analyze charts and configure price breach rules on desktop, but rely on mobile devices to receive **instant, high-priority push notifications with custom alert chimes** when price targets are breached.
+The standalone mobile app built in [`mobile-app/`](file:///D:/SaaS%20Project/trading-alerts-saas-public/mobile-app) provides a high-performance, mobile-optimized experience focused on **portability, real-time alert monitoring, and instant push notifications**. Traders analyze charts and configure price breach rules on desktop, but rely on the mobile app to receive **instant, high-priority push notifications with custom alert chimes** when price targets are breached.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -27,8 +28,9 @@ While desktop users utilize a multi-panel trading workbench, **mobile users prim
                 ┌──────────────────────┴──────────────────────┐
                 ▼                                             ▼
     ┌─────────────────────────┐                   ┌─────────────────────────┐
-    │     Desktop Web UI      │                   │      Mobile UI App      │
-    │  • 4-Panel AI Terminal  │                   │  • Bottom Tab Nav       │
+    │     Desktop Web UI      │                   │    Standalone Mobile    │
+    │      (frontend/)        │                   │     (mobile-app/)       │
+    │  • 4-Panel AI Terminal  │                   │  • 5-Tab Bottom Nav     │
     │  • Bento Grid Dashboard │                   │  • Sliding AI Drawer    │
     │  • Multi-column Tables  │                   │  • Swipeable Alert List │
     │  • Full Admin Console   │                   │  • High-Priority Push   │
@@ -45,11 +47,24 @@ While desktop users utilize a multi-panel trading workbench, **mobile users prim
 
 ---
 
-## 2. Role & Scope Boundary Definition
+## 2. Seed Code Reference Duality & Roles
+
+The Mobile UI build in [`mobile-app/`](file:///D:/SaaS%20Project/trading-alerts-saas-public/mobile-app) is constructed by fusing two complementary reference seeds:
+
+| Seed Code Library                                                                        | Nature & Purpose                                        | Responsibilities in Mobile Build                                                                                                                                                                                                                                                                                                                                         |
+| :--------------------------------------------------------------------------------------- | :------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`seed-code/lovable-mobile-app`** _(Seed 1 — Architecture)_                             | **Raw Fundamental Mobile Architecture**                 | • Mobile Viewport Layout Shell (`MobileLayout`, `AppHeader`, safe-area insets)<br>• 5-tab Bottom Navigation (`BottomNavigation`)<br>• Mobile touch primitives (`SwipeableItem`, `usePullToRefresh`)<br>• Mobile skeleton placeholders & empty state cards<br>• Capacitor Android native bridge configuration                                                             |
+| **`seed-code/trading-conversational-ai-ui-pages-increment`** _(Seed 2 — Logic & Design)_ | **Business Workflows, Logic & DavinTrade Brand Design** | • DavinTrade brand tokens, dark/light theme palette, and typography<br>• AI Conversational Analyst chat streaming engine and prompt workflows<br>• MT5 fractal support/resistance calculation hooks & chart overlays<br>• User tier validation (FREE: 5 symbols / 3 TFs vs PRO: 15 symbols / 9 TFs)<br>• Stripe & dLocal checkout workflows and partner affiliate system |
+
+> **⚠️ IMMUTABILITY NOTICE:** Both seed folders in `seed-code/*` serve as reference blueprints and must remain untouched. All new code is written into `D:\SaaS Project\trading-alerts-saas-public\mobile-app`.
+
+---
+
+## 3. Role & Scope Boundary Definition
 
 Based on [`ui-pages-pages-increment-codebase-2.xlsx`](file:///D:/SaaS%20Project/trading-alerts-saas-public/docs/files-completion-list/frontend-codebase-migration/ui-pages-pages-increment-codebase-2.xlsx), there are 6 distinct user authentication states in the system:
 
-### 2.1. Included Mobile User Roles (5 External Roles)
+### 3.1. Included Mobile User Roles (5 External Roles)
 
 1. **Non-Login (NL)**: Public marketing, onboarding, tier comparison, auth flows, and legal compliance.
 2. **FREE Tier User (FT)**: 5 symbols, 3 timeframes, 5 active alerts, basic dashboard, AI chat drawer, billing upgrade flows.
@@ -57,7 +72,7 @@ Based on [`ui-pages-pages-increment-codebase-2.xlsx`](file:///D:/SaaS%20Project/
 4. **Unified Affiliate + FREE User (AF)**: FREE tier analyst workbench + Full Mobile Partner Affiliate Portal.
 5. **Unified Affiliate + PRO User (AP)**: PRO tier analyst workbench + Full Mobile Partner Affiliate Portal.
 
-### 2.2. Explicitly Excluded Scopes from Mobile UI
+### 3.2. Explicitly Excluded Scopes from Mobile UI
 
 - **❌ Admin Role (`/admin/*`)**: All 24 admin pages (User management, disbursements, fraud logs, system cron monitors, broadcast center) are strictly desktop-only. Admin users manage operations from desktop terminals.
 - **❌ Non-Core Peripheral Content**: Non-essential marketing and development scratch pages (`/about`, `/blog`, `/careers`, `/changelog`, `/docs`, `/test-api`) are omitted from the mobile application shell.
@@ -65,11 +80,11 @@ Based on [`ui-pages-pages-increment-codebase-2.xlsx`](file:///D:/SaaS%20Project/
 
 ---
 
-## 3. Complete Mobile Page Inventory & Route Mapping
+## 4. Complete Mobile Page Inventory & Route Mapping
 
 Below is the complete list of active pages included in the Mobile UI scope, mapped directly from [`ui-pages-pages-increment-codebase-2.xlsx`](file:///D:/SaaS%20Project/trading-alerts-saas-public/docs/files-completion-list/frontend-codebase-migration/ui-pages-pages-increment-codebase-2.xlsx):
 
-| Excel Row | Page Title                    | App Route URI                          | Codebase 2 File Path                                  |    Target Roles    | Mobile Pattern & Layout Adaptation                                                                                                                                                                                             |
+| Excel Row | Page Title                    | App Route URI                          | Logic & Design Reference (Seed 2)                     |    Target Roles    | Mobile Pattern & Layout Adaptation (Seed 1)                                                                                                                                                                                    |
 | :-------: | :---------------------------- | :------------------------------------- | :---------------------------------------------------- | :----------------: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |  **02**   | **Landing Page**              | `/`                                    | `app/page.tsx`                                        |         NL         | Mobile hero with Value Proposition, Live Forex Ticker, "Download Android APK" & "Get Started" CTAs.                                                                                                                            |
 |  **04**   | **Cancel Account Deletion**   | `/account/deletion-cancel`             | `app/account/deletion-cancel/page.tsx`                |     NL, FT, PT     | Compact confirmation card with direct return-to-dashboard button.                                                                                                                                                              |
@@ -128,11 +143,11 @@ Below is the complete list of active pages included in the Mobile UI scope, mapp
 
 ---
 
-## 4. Mobile Component Architecture & Touch Patterns
+## 5. Mobile Component Architecture & Touch Patterns
 
-The Mobile UI inherits tested interaction primitives from [`seed-code/lovable-mobile-app`](file:///D:/SaaS%20Project/trading-alerts-saas-public/seed-code/lovable-mobile-app):
+The Mobile UI in [`mobile-app/`](file:///D:/SaaS%20Project/trading-alerts-saas-public/mobile-app) implements interaction primitives adapted from Seed 1 ([`seed-code/lovable-mobile-app`](file:///D:/SaaS%20Project/trading-alerts-saas-public/seed-code/lovable-mobile-app)):
 
-### 4.1. Navigation & Shell Primitives
+### 5.1. Navigation & Shell Primitives
 
 - **`BottomNavigation` ([`BottomNavigation.tsx`](file:///D:/SaaS%20Project/trading-alerts-saas-public/seed-code/lovable-mobile-app/src/components/navigation/BottomNavigation.tsx))**:
   Fixed bottom tab bar with 5 primary destinations for logged-in users:
@@ -146,7 +161,7 @@ The Mobile UI inherits tested interaction primitives from [`seed-code/lovable-mo
 - **`MobileLayout` ([`MobileLayout.tsx`](file:///D:/SaaS%20Project/trading-alerts-saas-public/seed-code/lovable-mobile-app/src/components/layouts/MobileLayout.tsx))**:
   Wraps the viewport with `min-h-[100dvh]`, top safe-area padding `pt-[env(safe-area-inset-top)]`, and bottom nav spacing `pb-16 pb-[env(safe-area-inset-bottom)]`.
 
-### 4.2. Mobile Gesture & Touch Components
+### 5.2. Mobile Gesture & Touch Components
 
 - **`SwipeableItem` ([`SwipeableItem.tsx`](file:///D:/SaaS%20Project/trading-alerts-saas-public/seed-code/lovable-mobile-app/src/components/mobile/SwipeableItem.tsx))**:
   Enables horizontal swipe gestures on alert cards:
@@ -161,23 +176,23 @@ The Mobile UI inherits tested interaction primitives from [`seed-code/lovable-mo
 
 ---
 
-## 5. Detailed Module Specifications
+## 6. Detailed Module Specifications
 
-### 5.1. Conversational AI Analyst Terminal (`/terminal` & `/free`)
+### 6.1. Conversational AI Analyst Terminal (`/terminal` & `/free`)
 
 - **Mobile Adaptation**: On desktop, the terminal is a 4-panel split workbench. On mobile:
   - **Main Viewport (100% height)**: Candlestick chart with MT5 fractal levels (Peak-to-Peak horizontal lines & diagonal trend channels).
   - **Top Bar**: Symbol selector dropdown (`EURUSD`, `GBPUSD`, `XAUUSD`, `BTCUSD`, etc.) + Timeframe pill chips (`H1`, `H4`, `D1` on Free; `M5`–`D1` on Pro).
   - **Floating Action Pill / Sheet (`Ask Davin AI`)**: Tapping the floating bottom pill opens a slide-up drawer containing the full streaming AI chat panel ([`chat-panel.tsx`](file:///D:/SaaS%20Project/trading-alerts-saas-public/seed-code/trading-conversational-ai-ui-pages-increment/components/chat-panel.tsx)). Traders can ask _"What is the current fractal support for Gold?"_ and view AI analysis overlaid on the chart.
 
-### 5.2. Real-Time Alert Engine (`/alerts`, `/alerts/new`, `/alerts/[id]/edit`)
+### 6.2. Real-Time Alert Engine (`/alerts`, `/alerts/new`, `/alerts/[id]/edit`)
 
 - **Card Feed**: Each card displays Symbol badge, Direction (`Above` / `Below`), Target Price, Current Price, Status badge (`Active` / `Triggered`), and Created timestamp.
 - **Swipe Actions**: Fast swipe-to-delete or tap to edit.
 - **Tier Limit Gauge**: Sticky top bar showing current usage (e.g. `Free Plan: 3/5 Alerts Used — Upgrade for 20 Alerts`).
 - **New Alert Modal**: Slide-up sheet with numeric price keyboard, quick "+0.5%", "-0.5%" quick-set buttons, and sound chime selector.
 
-### 5.3. Push Notification Engine & Notification Center (`/notifications`)
+### 6.3. Push Notification Engine & Notification Center (`/notifications`)
 
 - **Delivery Protocol**: Firebase Cloud Messaging (FCM) via Capacitor native bridge on Android, and Web Push on iOS PWA.
 - **Payload Structure**:
@@ -204,12 +219,12 @@ The Mobile UI inherits tested interaction primitives from [`seed-code/lovable-mo
   ```
 - **In-App Notification Center**: History feed with unread count badges, filter by symbol, and 1-tap deep link to open the affected chart.
 
-### 5.4. Monetization & Checkout (`/pricing`, `/checkout`, `/settings/billing`)
+### 6.4. Monetization & Checkout (`/pricing`, `/checkout`, `/settings/billing`)
 
 - **Stripe & dLocal Integration**: Direct mobile checkout sheet supporting Credit/Debit Cards, Google Pay, Apple Pay, UPI (India), Pix (Brazil), and local payment methods across 8 emerging markets.
 - **Zero App Store Fee**: Because the Android `.apk` is distributed directly from the website, 100% of subscription revenue is retained with zero Google 30% commission cuts.
 
-### 5.5. Mobile Partner Affiliate Portal (`/affiliate/*`)
+### 6.5. Mobile Partner Affiliate Portal (`/affiliate/*`)
 
 - **Mobile Overview**: 4 high-contrast KPI cards (Commissions Earned, Unpaid Balance, Clicks, Conversions).
 - **1-Tap Share**: Referral link generator with native mobile share sheet trigger (`navigator.share` / WhatsApp / Telegram).
@@ -217,7 +232,7 @@ The Mobile UI inherits tested interaction primitives from [`seed-code/lovable-mo
 
 ---
 
-## 6. Cross-Device Responsive Behavior
+## 7. Cross-Device Responsive Behavior
 
 The responsive engine uses Tailwind CSS breakpoints to adapt seamlessly across form factors:
 
@@ -241,11 +256,11 @@ The responsive engine uses Tailwind CSS breakpoints to adapt seamlessly across f
 
 ---
 
-## 7. Technical Implementation Stack
+## 8. Technical Implementation Stack
 
 | Layer                        | Specification / Library                                                                |
 | :--------------------------- | :------------------------------------------------------------------------------------- |
-| **Framework & Engine**       | Next.js 15 (App Router, Server & Client Components), React 19, TypeScript 5.8          |
+| **Framework & Engine**       | Vite 5, React 18, TypeScript 5.8, React Router v6                                      |
 | **Styling & Components**     | Tailwind CSS 3.4, shadcn/ui (Radix UI Primitives), Lucide React                        |
 | **Mobile Gestures & UX**     | `vaul` (Drawers), `framer-motion` (Swipe & Transitions), `embla-carousel-react`        |
 | **Data Fetching & State**    | TanStack Query v5 (React Query), Context API (`AuthContext`, `NotificationContext`)    |
@@ -256,18 +271,18 @@ The responsive engine uses Tailwind CSS breakpoints to adapt seamlessly across f
 
 ---
 
-## 8. Capacitor Configuration Blueprint
+## 9. Capacitor Configuration Blueprint
 
 ```typescript
-// capacitor.config.ts
+// mobile-app/capacitor.config.ts
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.davintrade.app',
   appName: 'DavinTrade',
-  webDir: 'public',
+  webDir: 'dist',
   server: {
-    // Points to production Next.js deployment for instant Over-The-Air updates
+    // Points to production backend/app URL for API sync & updates
     url: 'https://app.davintrade.com',
     cleartext: false,
   },
@@ -288,34 +303,34 @@ export default config;
 
 ---
 
-## 9. Implementation Execution Roadmap (For Future Agent Sessions)
+## 10. Implementation Execution Roadmap (For Future Agent Sessions)
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│  Phase 1: Mobile Layout Shell & Touch Primitives       │
+│  Phase 1: Initialize mobile-app Project Directory      │
+│  • Scaffold mobile-app (Vite + React + Tailwind + UI)  │
 │  • Port BottomNavigation, MobileLayout, SwipeableItem  │
-│  • Configure Safe-Area Insets & 100dvh global styles   │
 └───────────────────────────┬────────────────────────────┘
                             │
                             ▼
 ┌────────────────────────────────────────────────────────┐
-│  Phase 2: Terminal & Alerts Mobile UI Migration        │
-│  • Convert 4-panel /terminal into Tabbed / Drawer View │
-│  • Integrate Swipeable Alert Feed on /alerts           │
+│  Phase 2: Terminal & Alerts Mobile UI Implementation   │
+│  • Build /terminal and /free with sliding AI Drawer    │
+│  • Implement Swipeable Alert Feed on /alerts           │
 └───────────────────────────┬────────────────────────────┘
                             │
                             ▼
 ┌────────────────────────────────────────────────────────┐
 │  Phase 3: Settings, Affiliate & Auth Mobile Screens    │
-│  • Adapt /settings/* into mobile drill-down navigation │
+│  • Build /settings/* mobile drill-down navigation      │
 │  • Build mobile-optimized /affiliate/* partner cards   │
 └───────────────────────────┬────────────────────────────┘
                             │
                             ▼
 ┌────────────────────────────────────────────────────────┐
 │  Phase 4: Push Notification System & FCM Registration  │
-│  • Add /api/notifications/register-device endpoint     │
 │  • Connect Capacitor FCM token listener & chime audio  │
+│  • Register device tokens to shared backend            │
 └───────────────────────────┬────────────────────────────┘
                             │
                             ▼

@@ -18,6 +18,7 @@ export default [
       'k6-tests/**',
       'davintrade-*/**',
       'backend-stack-*/**',
+      'mobile-app/**',
       '**/*.js',
       '**/*.cjs',
       '**/*.mjs',
