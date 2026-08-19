@@ -98,10 +98,10 @@ export default function SettingsLayout({
   )?.id;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 p-4 dark:bg-gray-900 md:p-6 lg:p-8">
+      <div className="mx-auto max-w-7xl">
         {/* Breadcrumb */}
-        <nav className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        <nav className="mb-4 text-sm text-gray-500 dark:text-gray-400">
           <Link
             href="/dashboard"
             className="hover:text-gray-700 dark:hover:text-gray-300"
@@ -113,18 +113,18 @@ export default function SettingsLayout({
         </nav>
 
         {/* Header */}
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+        <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
           Settings
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-8">
+        <p className="mb-8 text-gray-600 dark:text-gray-400">
           Manage your account settings and preferences
         </p>
 
         {/* Layout Container */}
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col gap-6 lg:flex-row">
           {/* Desktop Sidebar */}
-          <div className="hidden lg:block w-64 flex-shrink-0">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 sticky top-4">
+          <div className="hidden w-64 flex-shrink-0 lg:block">
+            <div className="sticky top-4 rounded-xl bg-white p-4 shadow-md dark:bg-gray-800">
               <nav className="space-y-2">
                 {settingsTabs.map((tab) => {
                   const Icon = tab.icon;
@@ -135,13 +135,13 @@ export default function SettingsLayout({
                       key={tab.id}
                       href={tab.href}
                       className={cn(
-                        'w-full text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center gap-3',
+                        'flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition-all duration-200',
                         isActive
-                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-l-4 border-blue-600 dark:border-blue-400 font-semibold'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          ? 'bg-primary/10 border-l-4 border-primary font-semibold text-primary'
+                          : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
                       )}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="h-5 w-5" />
                       <span>{tab.label}</span>
                     </Link>
                   );
@@ -151,7 +151,7 @@ export default function SettingsLayout({
           </div>
 
           {/* Mobile Horizontal Tabs */}
-          <div className="lg:hidden overflow-x-auto">
+          <div className="overflow-x-auto lg:hidden">
             <div className="flex gap-2 pb-4">
               {settingsTabs.map((tab) => {
                 const Icon = tab.icon;
@@ -162,13 +162,13 @@ export default function SettingsLayout({
                     key={tab.id}
                     href={tab.href}
                     className={cn(
-                      'flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors',
+                      'flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 transition-colors',
                       isActive
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'border-2 border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
                     )}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="h-4 w-4" />
                     <span className="text-sm">{tab.label}</span>
                   </Link>
                 );
@@ -178,7 +178,7 @@ export default function SettingsLayout({
 
           {/* Content Area */}
           <div className="flex-1">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 md:p-8 min-h-[600px]">
+            <div className="min-h-[600px] rounded-xl bg-white p-6 shadow-md dark:bg-gray-800 md:p-8">
               {children}
             </div>
           </div>

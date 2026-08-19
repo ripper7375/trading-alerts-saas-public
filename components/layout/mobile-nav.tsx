@@ -125,7 +125,7 @@ export function MobileNav({
         <div className="flex h-[calc(100%-73px)] flex-col">
           {/* Main Navigation */}
           <nav className="flex-1 space-y-1 px-3 py-4">
-            <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               Main Menu
             </p>
 
@@ -143,8 +143,8 @@ export function MobileNav({
                   className={cn(
                     'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                     active
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100',
+                      ? 'bg-primary/10 dark:bg-primary/20 text-primary'
+                      : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700',
                     !accessible && 'opacity-60'
                   )}
                 >
@@ -152,8 +152,8 @@ export function MobileNav({
                     className={cn(
                       'h-5 w-5 shrink-0',
                       active
-                        ? 'text-blue-600'
-                        : 'text-gray-400 group-hover:text-gray-600'
+                        ? 'text-primary'
+                        : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'
                     )}
                   />
                   <span className="flex-1">{item.name}</span>
@@ -164,7 +164,7 @@ export function MobileNav({
                       <Lock className="h-3.5 w-3.5 text-gray-400" />
                       <Badge
                         variant="secondary"
-                        className="bg-amber-100 px-1.5 py-0 text-[10px] text-amber-700"
+                        className="bg-amber-100 px-1.5 py-0 text-[10px] text-amber-700 dark:bg-amber-900 dark:text-amber-300"
                       >
                         PRO
                       </Badge>
@@ -207,16 +207,16 @@ export function MobileNav({
                   className={cn(
                     'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                     active
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary/10 dark:bg-primary/20 text-primary'
+                      : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
                   )}
                 >
                   <Icon
                     className={cn(
                       'h-5 w-5 shrink-0',
                       active
-                        ? 'text-blue-600'
-                        : 'text-gray-400 group-hover:text-gray-600'
+                        ? 'text-primary'
+                        : 'text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300'
                     )}
                   />
                   <span>{item.name}</span>

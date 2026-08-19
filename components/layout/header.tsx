@@ -183,7 +183,7 @@ export function Header({ user }: HeaderProps): React.ReactElement {
                       src={user.image || undefined}
                       alt={user.name}
                     />
-                    <AvatarFallback className="bg-blue-100 text-sm text-blue-600">
+                    <AvatarFallback className="bg-primary/10 text-sm text-primary">
                       {initials}
                     </AvatarFallback>
                   </Avatar>

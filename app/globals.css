@@ -40,6 +40,17 @@
     --chart-bearish: 0.627 0.258 29.2;
     --chart-grid: 0.929 0.013 255.5;
     --chart-crosshair: 0.554 0.027 256.8;
+
+    /* Hybrid Appearance System — user-configurable candlestick chart tokens.
+       Plain hex (not oklch) since these come straight from a <input type="color">
+       picker; independent of --chart-bullish/--chart-bearish above, which are
+       fixed design-system indicator colors used elsewhere in the UI (badges,
+       price-up/price-down text). Defaults match DEFAULT_APPEARANCE_SETTINGS in
+       lib/appearance/types.ts; the root layout overrides these inline per-user
+       via the resolved server-side AppearanceSettings for zero-FOUC. */
+    --chart-candle-up: #00fbff;
+    --chart-candle-down: #fb00ff;
+    --chart-grid-opacity: 0;
   }
 
   .dark {
@@ -77,6 +88,66 @@
     --chart-bearish: 0.627 0.258 29.2;
     --chart-grid: 0.269 0.043 258.3;
     --chart-crosshair: 0.713 0.025 256.8;
+  }
+
+  /* Hybrid Appearance System — Accent Color Scheme overrides.
+     Set via a `data-accent` attribute (SSR-injected on the dashboard layout's
+     wrapper element in app/(dashboard)/layout.tsx — deliberately NOT <html>
+     in the root layout, since resolving it there would force cookies()/
+     headers() reads on every route in the app, including static marketing
+     pages that have no accent-dependent UI; kept in sync client-side by
+     components/providers/appearance-provider.tsx, which does still apply it
+     to <html> for instant reactive feedback). Plain attribute selectors (not
+     :root-scoped) so this works whether data-accent ends up on <html> or on
+     a nested element — CSS custom properties cascade to descendants either
+     way. Only --primary/--primary-foreground/--ring move; --accent/
+     --accent-foreground stay untouched (that pair is the separate shadcn
+     hover-surface token, not this "accent color scheme" feature — see the
+     Contrast & Hover Safety note below for why that distinction matters).
+     Values are oklch approximations of Tailwind's amber/emerald/blue/violet
+     -500 (dark mode) and -600 (light mode, for AA contrast against a white
+     background) swatches. Amber gets a dark --primary-foreground: white text
+     on amber-500/600 fails WCAG AA (~2:1) for normal text, so amber buttons
+     use near-black text instead, matching every other accent's contrast
+     ratio (~4.5:1+). */
+  [data-accent='amber'] {
+    --primary: 0.666 0.179 58.318;
+    --primary-foreground: 0.145 0.014 285.8;
+    --ring: 0.666 0.179 58.318;
+  }
+  [data-accent='emerald'] {
+    --primary: 0.596 0.145 163.225;
+    --ring: 0.596 0.145 163.225;
+  }
+  [data-accent='blue'] {
+    --primary: 0.546 0.245 262.881;
+    --ring: 0.546 0.245 262.881;
+  }
+  [data-accent='purple'] {
+    --primary: 0.541 0.281 293.009;
+    --ring: 0.541 0.281 293.009;
+  }
+
+  .dark[data-accent='amber'],
+  .dark [data-accent='amber'] {
+    --primary: 0.769 0.188 70.08;
+    --primary-foreground: 0.145 0.014 285.8;
+    --ring: 0.769 0.188 70.08;
+  }
+  .dark[data-accent='emerald'],
+  .dark [data-accent='emerald'] {
+    --primary: 0.696 0.17 162.48;
+    --ring: 0.696 0.17 162.48;
+  }
+  .dark[data-accent='blue'],
+  .dark [data-accent='blue'] {
+    --primary: 0.623 0.214 259.815;
+    --ring: 0.623 0.214 259.815;
+  }
+  .dark[data-accent='purple'],
+  .dark [data-accent='purple'] {
+    --primary: 0.606 0.25 292.717;
+    --ring: 0.606 0.25 292.717;
   }
 }
 

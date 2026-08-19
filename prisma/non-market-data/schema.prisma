@@ -128,6 +128,7 @@ model User {
   alerts            Alert[]
   drawings          Drawing[]
   preferences       UserPreferences?   // User preferences (settings)
+  appearance        UserAppearance?    // Terminal appearance (theme/accent/chart colors)
 
   sessions          Session[]
 
@@ -314,6 +315,23 @@ model UserPreferences {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+/// Hybrid terminal appearance settings (theme mode, accent scheme, candlestick
+/// colors, grid opacity) — dedicated model, separate from the generic JSON
+/// UserPreferences blob above, per the Hybrid Appearance Handoff Specification.
+model UserAppearance {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  theme          String   @default("dark")
+  accent         String   @default("amber")
+  chartUpColor   String   @default("#00fbff")
+  chartDownColor String   @default("#fb00ff")
+  gridOpacity    Int      @default(0)
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }

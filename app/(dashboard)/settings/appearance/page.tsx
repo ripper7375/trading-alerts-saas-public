@@ -1,309 +1,380 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useTheme } from 'next-themes';
-import { Sun, Moon, Monitor, Check } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Sun,
+  Moon,
+  Monitor,
+  Check,
+  Palette,
+  Loader2,
+  RotateCcw,
+} from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useAppearance } from '@/components/providers/appearance-provider';
+import {
+  AccentScheme,
+  DEFAULT_APPEARANCE_SETTINGS,
+  ThemeMode,
+} from '@/lib/appearance/types';
 import { cn } from '@/lib/utils';
 
 /**
  * Appearance Settings Page
  *
- * Features:
- * - Theme selection: Light, Dark, System
- * - Color scheme selector
- * - Chart preferences (candlestick colors, grid opacity)
- * - Changes apply immediately (no save button needed)
+ * Theme mode, accent color scheme, and candlestick/grid chart customization,
+ * backed by lib/appearance (DB + cookie persisted via saveAppearanceAction).
+ * Built entirely from the shared oklch design tokens (bg-card, border-border,
+ * bg-primary, etc.) so Light Clean Mode and Dark Trading Terminal both render
+ * with correct contrast — no hardcoded dark-only hex classes.
  */
 
-type Theme = 'light' | 'dark' | 'system';
-type ColorScheme = 'blue' | 'purple' | 'green' | 'orange';
-
 interface ThemeOption {
-  value: Theme;
+  value: ThemeMode;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  preview: {
-    bg: string;
-    content: string;
-  };
+  description: string;
 }
 
-interface ColorOption {
-  name: ColorScheme;
-  color: string;
-  ring: string;
+interface AccentOption {
+  name: AccentScheme;
+  label: string;
+  swatchClass: string;
+  activeClass: string;
 }
 
 const themeOptions: ThemeOption[] = [
   {
-    value: 'light',
-    label: 'Light',
-    icon: Sun,
-    preview: {
-      bg: 'bg-white border',
-      content: 'bg-gray-200',
-    },
+    value: 'dark',
+    label: 'Dark Trading Terminal',
+    icon: Moon,
+    description: 'High-contrast dark theme optimized for long trading sessions',
   },
   {
-    value: 'dark',
-    label: 'Dark',
-    icon: Moon,
-    preview: {
-      bg: 'bg-gray-900 border-gray-700',
-      content: 'bg-gray-700',
-    },
+    value: 'light',
+    label: 'Light Clean Mode',
+    icon: Sun,
+    description: 'Bright high-visibility interface for daylight analysis',
   },
   {
     value: 'system',
-    label: 'System',
+    label: 'System Sync',
     icon: Monitor,
-    preview: {
-      bg: 'bg-gradient-to-r from-white to-gray-900 border',
-      content: 'bg-gray-400',
-    },
+    description: 'Automatically match your operating system theme settings',
   },
 ];
 
-const colorSchemes: ColorOption[] = [
-  { name: 'blue', color: 'bg-blue-600', ring: 'ring-blue-600' },
-  { name: 'purple', color: 'bg-purple-600', ring: 'ring-purple-600' },
-  { name: 'green', color: 'bg-green-600', ring: 'ring-green-600' },
-  { name: 'orange', color: 'bg-orange-600', ring: 'ring-orange-600' },
+const accentOptions: AccentOption[] = [
+  {
+    name: 'amber',
+    label: 'Gold Amber',
+    swatchClass: 'bg-amber-500',
+    activeClass:
+      'border-amber-500 bg-amber-500/15 text-amber-600 dark:text-amber-300 ring-1 ring-amber-500/30',
+  },
+  {
+    name: 'emerald',
+    label: 'Emerald Green',
+    swatchClass: 'bg-emerald-500',
+    activeClass:
+      'border-emerald-500 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 ring-1 ring-emerald-500/30',
+  },
+  {
+    name: 'blue',
+    label: 'Sapphire Blue',
+    swatchClass: 'bg-blue-500',
+    activeClass:
+      'border-blue-500 bg-blue-500/15 text-blue-600 dark:text-blue-300 ring-1 ring-blue-500/30',
+  },
+  {
+    name: 'purple',
+    label: 'Amethyst Purple',
+    swatchClass: 'bg-purple-500',
+    activeClass:
+      'border-purple-500 bg-purple-500/15 text-purple-600 dark:text-purple-300 ring-1 ring-purple-500/30',
+  },
 ];
 
 export default function AppearanceSettingsPage(): React.ReactElement {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  const [colorScheme, setColorScheme] = useState<ColorScheme>('blue');
-  const [chartUpColor, setChartUpColor] = useState('#22c55e');
-  const [chartDownColor, setChartDownColor] = useState('#ef4444');
-  const [gridOpacity, setGridOpacity] = useState(50);
+  const { settings, updateSettings, saveSettings, isSaving } = useAppearance();
+  const [isSaved, setIsSaved] = useState(false);
 
-  // Avoid hydration mismatch
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Load preferences from localStorage
-  useEffect(() => {
-    const savedColorScheme = localStorage.getItem(
-      'colorScheme'
-    ) as ColorScheme | null;
-    const savedGridOpacity = localStorage.getItem('gridOpacity');
-    const savedChartUpColor = localStorage.getItem('chartUpColor');
-    const savedChartDownColor = localStorage.getItem('chartDownColor');
-
-    if (savedColorScheme) setColorScheme(savedColorScheme);
-    if (savedGridOpacity) setGridOpacity(parseInt(savedGridOpacity, 10));
-    if (savedChartUpColor) setChartUpColor(savedChartUpColor);
-    if (savedChartDownColor) setChartDownColor(savedChartDownColor);
-  }, []);
-
-  // Handle theme change
-  const handleThemeChange = (newTheme: Theme): void => {
-    setTheme(newTheme);
+  const handleThemeChange = (newTheme: ThemeMode): void => {
+    updateSettings({ theme: newTheme });
   };
 
-  // Handle color scheme change
-  const handleColorSchemeChange = (scheme: ColorScheme): void => {
-    setColorScheme(scheme);
-    localStorage.setItem('colorScheme', scheme);
-    // Apply to document for CSS variable updates
-    document.documentElement.setAttribute('data-color-scheme', scheme);
+  const handleResetChartDefaults = (): void => {
+    updateSettings({
+      chartUpColor: DEFAULT_APPEARANCE_SETTINGS.chartUpColor,
+      chartDownColor: DEFAULT_APPEARANCE_SETTINGS.chartDownColor,
+      gridOpacity: DEFAULT_APPEARANCE_SETTINGS.gridOpacity,
+    });
   };
 
-  // Handle grid opacity change
-  const handleGridOpacityChange = (value: number): void => {
-    setGridOpacity(value);
-    localStorage.setItem('gridOpacity', value.toString());
-  };
-
-  // Handle chart color changes
-  const handleChartColorChange = (type: 'up' | 'down', color: string): void => {
-    if (type === 'up') {
-      setChartUpColor(color);
-      localStorage.setItem('chartUpColor', color);
-    } else {
-      setChartDownColor(color);
-      localStorage.setItem('chartDownColor', color);
+  const handleSave = async (): Promise<void> => {
+    const success = await saveSettings();
+    if (success) {
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2500);
     }
   };
 
-  if (!mounted) {
-    return (
-      <div className="animate-pulse">
-        <div className="mb-6 h-8 w-48 rounded bg-gray-200 dark:bg-gray-700" />
-        <div className="space-y-4">
-          <div className="h-32 rounded bg-gray-200 dark:bg-gray-700" />
-          <div className="h-32 rounded bg-gray-200 dark:bg-gray-700" />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="animate-fade-in">
-      <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white">
-        Appearance Settings
-      </h2>
+    <div className="animate-fade-in space-y-6">
+      <div className="space-y-6 rounded-2xl border border-border bg-card p-6 shadow-xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-bold text-foreground">
+              <Palette className="h-4 w-4 text-primary" />
+              Terminal Appearance &amp; Chart Color Scheme
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Customize theme mode, accent highlights, and candlestick styles.
+              Changes apply instantly across the app.
+            </p>
+          </div>
+          <Badge className="border-primary/40 bg-primary/10 hover:bg-primary/10 border font-mono text-[10px] text-primary">
+            LIVE PREVIEW
+          </Badge>
+        </div>
 
-      {/* Theme Selection */}
-      <section className="mb-8">
-        <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-          Theme
-        </h3>
-        <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-          Select your preferred theme. Changes apply immediately.
-        </p>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {themeOptions.map((option) => {
-            const Icon = option.icon;
-            const isSelected = theme === option.value;
-
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => handleThemeChange(option.value)}
-                className={cn(
-                  'cursor-pointer rounded-lg border-2 p-4 transition-all',
-                  isSelected
-                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30'
-                    : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
-                )}
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-                    <span className="font-semibold text-gray-900 dark:text-white">
+        {/* Theme Selection */}
+        <div className="space-y-3">
+          <Label className="text-xs font-semibold text-muted-foreground">
+            Theme Mode
+          </Label>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {themeOptions.map((option) => {
+              const Icon = option.icon;
+              const isSelected = settings.theme === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleThemeChange(option.value)}
+                  className={cn(
+                    'flex cursor-pointer flex-col items-start rounded-xl border p-4 text-left transition-all',
+                    isSelected
+                      ? 'bg-primary/10 ring-primary/30 border-primary text-primary shadow-md ring-1'
+                      : 'bg-muted/40 hover:border-primary/40 border-border text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <div className="flex w-full items-center justify-between text-sm font-bold">
+                    <span className="flex items-center gap-2">
+                      <Icon className="h-4 w-4" />
                       {option.label}
                     </span>
+                    {isSelected && <Check className="h-4 w-4" />}
                   </div>
-                  {isSelected && <Check className="h-5 w-5 text-blue-600" />}
-                </div>
-                <div
-                  className={cn('space-y-2 rounded-lg p-4', option.preview.bg)}
-                >
-                  <div
-                    className={cn('h-2 w-3/4 rounded', option.preview.content)}
-                  />
-                  <div
-                    className={cn('h-2 w-1/2 rounded', option.preview.content)}
-                  />
-                </div>
-              </button>
-            );
-          })}
+                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                    {option.description}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </section>
 
-      <Separator className="my-8" />
+        <Separator />
 
-      {/* Color Scheme Selection */}
-      <section className="mb-8">
-        <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-          Color Scheme
-        </h3>
-        <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-          Choose your accent color for buttons and highlights.
-        </p>
-        <div className="flex gap-3">
-          {colorSchemes.map((scheme) => (
-            <button
-              key={scheme.name}
-              type="button"
-              onClick={() => handleColorSchemeChange(scheme.name)}
-              className={cn(
-                'h-12 w-12 rounded-full transition-transform hover:scale-110',
-                scheme.color,
-                colorScheme === scheme.name &&
-                  'ring-4 ring-offset-2 ring-offset-white dark:ring-offset-gray-800',
-                colorScheme === scheme.name && scheme.ring
-              )}
-              title={scheme.name.charAt(0).toUpperCase() + scheme.name.slice(1)}
-            >
-              {colorScheme === scheme.name && (
-                <Check className="mx-auto h-5 w-5 text-white" />
-              )}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <Separator className="my-8" />
-
-      {/* Chart Preferences */}
-      <section className="mb-8">
-        <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-          Chart Preferences
-        </h3>
-
-        {/* Candlestick Colors */}
-        <div className="mb-6">
-          <Label className="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Candlestick Colors
+        {/* Accent Color Scheme */}
+        <div className="space-y-3">
+          <Label className="text-xs font-semibold text-muted-foreground">
+            Accent Color Scheme
           </Label>
-          <div className="flex gap-6">
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={chartUpColor}
-                onChange={(e) => handleChartColorChange('up', e.target.value)}
-                className="h-10 w-10 cursor-pointer rounded border border-gray-200 dark:border-gray-700"
-              />
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                Up (Bullish)
+          <div className="flex flex-wrap items-center gap-3">
+            {accentOptions.map((opt) => {
+              const isSelected = settings.accent === opt.name;
+              return (
+                <button
+                  key={opt.name}
+                  type="button"
+                  onClick={() => updateSettings({ accent: opt.name })}
+                  className={cn(
+                    'flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition-all',
+                    isSelected
+                      ? opt.activeClass
+                      : 'bg-muted/40 border-border text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <span
+                    className={cn('h-3.5 w-3.5 rounded-full', opt.swatchClass)}
+                  />
+                  <span>{opt.label}</span>
+                  {isSelected && <Check className="h-3.5 w-3.5" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Chart Preferences */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-semibold text-muted-foreground">
+              Chart Candlestick &amp; Grid Customization
+            </Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleResetChartDefaults}
+              className="h-7 gap-1.5 px-2.5 text-[11px] font-bold"
+              title="Reset chart candlestick colors and grid opacity to defaults"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Reset Defaults
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="bg-muted/40 flex items-center justify-between rounded-xl border border-border p-3">
+              <span className="text-xs font-medium text-foreground">
+                Bullish Up Candle
+              </span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={settings.chartUpColor}
+                  onChange={(e) =>
+                    updateSettings({ chartUpColor: e.target.value })
+                  }
+                  className="h-7 w-7 cursor-pointer rounded border-0 bg-transparent"
+                  aria-label="Bullish up candle color"
+                />
+                <span
+                  className="font-mono text-xs font-bold"
+                  style={{ color: settings.chartUpColor }}
+                >
+                  {settings.chartUpColor}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-muted/40 flex items-center justify-between rounded-xl border border-border p-3">
+              <span className="text-xs font-medium text-foreground">
+                Bearish Down Candle
+              </span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={settings.chartDownColor}
+                  onChange={(e) =>
+                    updateSettings({ chartDownColor: e.target.value })
+                  }
+                  className="h-7 w-7 cursor-pointer rounded border-0 bg-transparent"
+                  aria-label="Bearish down candle color"
+                />
+                <span
+                  className="font-mono text-xs font-bold"
+                  style={{ color: settings.chartDownColor }}
+                >
+                  {settings.chartDownColor}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-muted/40 space-y-2 rounded-xl border border-border p-3">
+            <div className="flex justify-between text-xs font-semibold">
+              <span className="text-foreground">Chart Grid Opacity</span>
+              <span className="font-mono text-primary">
+                {settings.gridOpacity}%
               </span>
             </div>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={chartDownColor}
-                onChange={(e) => handleChartColorChange('down', e.target.value)}
-                className="h-10 w-10 cursor-pointer rounded border border-gray-200 dark:border-gray-700"
-              />
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                Down (Bearish)
-              </span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={settings.gridOpacity}
+              onChange={(e) =>
+                updateSettings({ gridOpacity: parseInt(e.target.value, 10) })
+              }
+              className="h-1.5 w-full cursor-pointer rounded-lg bg-border accent-primary"
+              aria-label="Chart grid opacity"
+            />
+          </div>
+
+          {/* Live Preview */}
+          <div className="relative mt-4 h-32 w-full overflow-hidden rounded-xl border border-border bg-background p-4">
+            <div
+              className="pointer-events-none absolute inset-0 transition-opacity"
+              style={{
+                backgroundImage:
+                  'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
+                backgroundSize: '24px 24px',
+                opacity: settings.gridOpacity / 100,
+                color: 'oklch(var(--muted-foreground))',
+              }}
+            />
+            <div className="relative z-10 flex h-full items-end justify-around px-4">
+              {[
+                { color: settings.chartUpColor, h: [14, 36, 10] },
+                { color: settings.chartDownColor, h: [8, 42, 16] },
+                { color: settings.chartUpColor, h: [16, 48, 12] },
+                { color: settings.chartDownColor, h: [10, 28, 8] },
+              ].map((candle, i) => (
+                <div key={i} className="flex flex-col items-center">
+                  <div
+                    className="w-0.5"
+                    style={{
+                      backgroundColor: candle.color,
+                      height: candle.h[0],
+                    }}
+                  />
+                  <div
+                    className="w-4 rounded-sm shadow-sm transition-colors"
+                    style={{
+                      backgroundColor: candle.color,
+                      height: candle.h[1],
+                    }}
+                  />
+                  <div
+                    className="w-0.5"
+                    style={{
+                      backgroundColor: candle.color,
+                      height: candle.h[2],
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Grid Opacity */}
-        <div>
-          <div className="mb-2 flex justify-between">
-            <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Grid Line Opacity
-            </Label>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {gridOpacity}%
-            </span>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={gridOpacity}
-            onChange={(e) =>
-              handleGridOpacityChange(parseInt(e.target.value, 10))
-            }
-            className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-blue-600 dark:bg-gray-700"
-          />
-          <div className="mt-1 flex justify-between text-xs text-gray-500">
-            <span>Hidden</span>
-            <span>Visible</span>
-          </div>
+        {/* Save Button */}
+        <div className="flex justify-end pt-2">
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="h-9 text-xs font-extrabold"
+          >
+            {isSaving ? (
+              <span className="flex items-center gap-1.5">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Saving...
+              </span>
+            ) : isSaved ? (
+              'Preferences Saved!'
+            ) : (
+              'Apply Appearance Settings'
+            )}
+          </Button>
         </div>
-      </section>
+      </div>
 
       {/* Info Note */}
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/30">
-        <p className="text-sm text-blue-700 dark:text-blue-300">
-          All changes are saved automatically and apply immediately across all
-          your sessions.
+      <div className="border-primary/20 bg-primary/5 rounded-lg border p-4">
+        <p className="text-sm text-muted-foreground">
+          Signed-in preferences sync across every browser and device. Signed
+          out, your choices are still remembered on this browser via a cookie.
         </p>
       </div>
     </div>
