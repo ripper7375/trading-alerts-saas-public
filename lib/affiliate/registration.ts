@@ -1,19 +1,23 @@
 /**
  * Affiliate Registration Module
  *
- * Handles affiliate registration, email verification,
- * and initial code distribution.
+ * Handles affiliate registration and initial code distribution.
+ *
+ * Registration requires an authenticated DavinTrade account, and every
+ * account is already email/social-verified before it can reach this flow
+ * (see lib/auth/auth-options.ts) — so there is no separate affiliate email
+ * re-verification step. Registering activates the affiliate profile
+ * immediately and distributes the first month's codes right away.
  *
  * @module lib/affiliate/registration
  */
-
-import crypto from 'crypto';
 
 import type { Prisma } from '.prisma/non-market-client';
 
 type InputJsonValue = Prisma.InputJsonValue;
 
 import { prisma } from '@/lib/db/prisma';
+import { sendAffiliateWelcomeEmail } from '@/lib/email/email';
 
 import { AFFILIATE_CONFIG, type PaymentMethod } from './constants';
 import { distributeCodes } from './code-generator';
@@ -39,11 +43,6 @@ export interface RegistrationResult {
   success: boolean;
   message: string;
   profileId?: string;
-}
-
-export interface VerificationResult {
-  success: boolean;
-  message: string;
   codesDistributed?: number;
 }
 
@@ -56,8 +55,10 @@ export interface VerificationResult {
  *
  * - Validates user exists and is not already an affiliate
  * - Sets user.isAffiliate = true
- * - Creates AffiliateProfile with PENDING_VERIFICATION status
- * - Generates email verification token
+ * - Creates AffiliateProfile as ACTIVE immediately — the account itself is
+ *   already email/social-verified before it can reach this flow, so there is
+ *   nothing left to re-verify here
+ * - Distributes the first month's codes and sends a welcome email
  *
  * @param input - Registration data
  * @returns Registration result with success status
@@ -93,17 +94,13 @@ export async function registerAffiliate(
     throw new Error('Already registered as affiliate');
   }
 
-  // Generate verification token (to be stored/emailed in future implementation)
-  const verificationToken = crypto.randomBytes(32).toString('hex');
-  void verificationToken; // Will be used when email verification is implemented
-
   // Set user as affiliate
   await prisma.user.update({
     where: { id: userId },
     data: { isAffiliate: true },
   });
 
-  // Create affiliate profile
+  // Create affiliate profile, active immediately
   const profile = await prisma.affiliateProfile.create({
     data: {
       userId,
@@ -116,72 +113,37 @@ export async function registerAffiliate(
       twitterUrl: twitterUrl || null,
       youtubeUrl: youtubeUrl || null,
       tiktokUrl: tiktokUrl || null,
-      status: 'PENDING_VERIFICATION',
-    },
-  });
-
-  // TODO: Send verification email with token
-  // await sendAffiliateWelcomeEmail(user.email, fullName, verificationToken);
-
-  return {
-    success: true,
-    message:
-      'Registration successful. Please verify your email to activate your affiliate account.',
-    profileId: profile.id,
-  };
-}
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// EMAIL VERIFICATION
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-/**
- * Verify affiliate email with token
- *
- * - Validates token and finds pending profile
- * - Updates status to ACTIVE
- * - Distributes initial codes (15)
- *
- * @param token - Verification token from email
- * @returns Verification result
- * @throws Error if token is invalid
- */
-export async function verifyAffiliateEmail(
-  _token: string
-): Promise<VerificationResult> {
-  // Find profile with matching token
-  // For now, we'll use a simple approach - in production,
-  // the token should be stored in the profile or a separate table
-  const profile = await prisma.affiliateProfile.findFirst({
-    where: {
-      status: 'PENDING_VERIFICATION',
-    },
-  });
-
-  if (!profile) {
-    throw new Error('Invalid verification token');
-  }
-
-  // Update profile status to ACTIVE
-  await prisma.affiliateProfile.update({
-    where: { id: profile.id },
-    data: {
       status: 'ACTIVE',
       verifiedAt: new Date(),
     },
   });
 
-  // Distribute initial codes
+  // Distribute the first month's codes
   await distributeCodes(
     profile.id,
     AFFILIATE_CONFIG.CODES_PER_MONTH,
     'INITIAL'
   );
 
+  // Best-effort welcome email — registration has already succeeded, so a
+  // delivery failure here shouldn't fail the request
+  if (user.email) {
+    try {
+      await sendAffiliateWelcomeEmail(
+        user.email,
+        fullName,
+        AFFILIATE_CONFIG.CODES_PER_MONTH
+      );
+    } catch (error) {
+      console.error('[Affiliate Register] Welcome email failed:', error);
+    }
+  }
+
   return {
     success: true,
     message:
-      'Email verified successfully. Your affiliate codes have been distributed.',
+      'Registration successful. Your affiliate account is active and your first codes are ready.',
+    profileId: profile.id,
     codesDistributed: AFFILIATE_CONFIG.CODES_PER_MONTH,
   };
 }

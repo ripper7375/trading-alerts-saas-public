@@ -20,8 +20,10 @@ import { affiliateRegistrationSchema } from '@/lib/affiliate/validators';
 /**
  * Register current user as an affiliate
  *
- * Requires authenticated user who is not already an affiliate.
- * Creates AffiliateProfile and sends verification email.
+ * Requires authenticated user who is not already an affiliate. The account
+ * itself is already email/social-verified, so this activates the affiliate
+ * profile immediately, distributes the first month's codes, and sends a
+ * welcome email.
  *
  * @param request - Next.js request with registration data
  * @returns JSON response with success status

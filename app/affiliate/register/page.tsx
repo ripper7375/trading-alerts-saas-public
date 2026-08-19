@@ -27,8 +27,7 @@ import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 interface FormData {
   fullName: string;
   country: string;
-  paymentMethod: (typeof AFFILIATE_CONFIG.PAYMENT_METHODS)[number];
-  paymentDetails: Record<string, string>;
+  wiseEmail: string;
   terms: boolean;
   twitterUrl: string;
   youtubeUrl: string;
@@ -62,8 +61,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     country: '',
-    paymentMethod: 'PAYPAL',
-    paymentDetails: {},
+    wiseEmail: '',
     terms: false,
     twitterUrl: '',
     youtubeUrl: '',
@@ -87,16 +85,6 @@ export default function AffiliateRegisterPage(): React.ReactElement {
     }));
   };
 
-  const handlePaymentDetailChange = (field: string, value: string): void => {
-    setFormData((prev) => ({
-      ...prev,
-      paymentDetails: {
-        ...prev.paymentDetails,
-        [field]: value,
-      },
-    }));
-  };
-
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setLoading(true);
@@ -109,8 +97,8 @@ export default function AffiliateRegisterPage(): React.ReactElement {
         body: JSON.stringify({
           fullName: formData.fullName,
           country: formData.country,
-          paymentMethod: formData.paymentMethod,
-          paymentDetails: formData.paymentDetails,
+          paymentMethod: 'WISE',
+          paymentDetails: { email: formData.wiseEmail },
           terms: formData.terms,
           twitterUrl: formData.twitterUrl || undefined,
           youtubeUrl: formData.youtubeUrl || undefined,
@@ -126,7 +114,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
         throw new Error(data.message || data.error || 'Registration failed');
       }
 
-      router.push('/affiliate/verify');
+      router.push('/affiliate/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -266,143 +254,28 @@ export default function AffiliateRegisterPage(): React.ReactElement {
             <h2 className="mb-4 text-lg font-semibold text-gray-900">
               Payment Information
             </h2>
+            <p className="mb-4 text-sm text-gray-500">
+              Payouts are sent via Wise — enter the email tied to your Wise
+              account.
+            </p>
 
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="paymentMethod"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Payment Method *
-                </label>
-                <select
-                  id="paymentMethod"
-                  name="paymentMethod"
-                  value={formData.paymentMethod}
-                  onChange={handleInputChange}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                >
-                  {AFFILIATE_CONFIG.PAYMENT_METHODS.map((method) => (
-                    <option key={method} value={method}>
-                      {method.replace('_', ' ')}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* PayPal Email */}
-              {formData.paymentMethod === 'PAYPAL' && (
-                <div>
-                  <label
-                    htmlFor="paypalEmail"
-                    className="mb-1 block text-sm font-medium text-gray-700"
-                  >
-                    PayPal Email *
-                  </label>
-                  <input
-                    type="email"
-                    id="paypalEmail"
-                    value={formData.paymentDetails['email'] || ''}
-                    onChange={(e) =>
-                      handlePaymentDetailChange('email', e.target.value)
-                    }
-                    required
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="your@paypal.com"
-                  />
-                </div>
-              )}
-
-              {/* Bank Transfer Details */}
-              {formData.paymentMethod === 'BANK_TRANSFER' && (
-                <>
-                  <div>
-                    <label
-                      htmlFor="bankName"
-                      className="mb-1 block text-sm font-medium text-gray-700"
-                    >
-                      Bank Name *
-                    </label>
-                    <input
-                      type="text"
-                      id="bankName"
-                      value={formData.paymentDetails['bankName'] || ''}
-                      onChange={(e) =>
-                        handlePaymentDetailChange('bankName', e.target.value)
-                      }
-                      required
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="accountNumber"
-                      className="mb-1 block text-sm font-medium text-gray-700"
-                    >
-                      Account Number *
-                    </label>
-                    <input
-                      type="text"
-                      id="accountNumber"
-                      value={formData.paymentDetails['accountNumber'] || ''}
-                      onChange={(e) =>
-                        handlePaymentDetailChange(
-                          'accountNumber',
-                          e.target.value
-                        )
-                      }
-                      required
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* Cryptocurrency Address */}
-              {formData.paymentMethod === 'CRYPTOCURRENCY' && (
-                <div>
-                  <label
-                    htmlFor="walletAddress"
-                    className="mb-1 block text-sm font-medium text-gray-700"
-                  >
-                    Wallet Address (USDT/BTC) *
-                  </label>
-                  <input
-                    type="text"
-                    id="walletAddress"
-                    value={formData.paymentDetails['walletAddress'] || ''}
-                    onChange={(e) =>
-                      handlePaymentDetailChange('walletAddress', e.target.value)
-                    }
-                    required
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="Your crypto wallet address"
-                  />
-                </div>
-              )}
-
-              {/* Wise Email */}
-              {formData.paymentMethod === 'WISE' && (
-                <div>
-                  <label
-                    htmlFor="wiseEmail"
-                    className="mb-1 block text-sm font-medium text-gray-700"
-                  >
-                    Wise Email *
-                  </label>
-                  <input
-                    type="email"
-                    id="wiseEmail"
-                    value={formData.paymentDetails['email'] || ''}
-                    onChange={(e) =>
-                      handlePaymentDetailChange('email', e.target.value)
-                    }
-                    required
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="your@wise.com"
-                  />
-                </div>
-              )}
+            <div>
+              <label
+                htmlFor="wiseEmail"
+                className="mb-1 block text-sm font-medium text-gray-700"
+              >
+                Wise Email *
+              </label>
+              <input
+                type="email"
+                id="wiseEmail"
+                name="wiseEmail"
+                value={formData.wiseEmail}
+                onChange={handleInputChange}
+                required
+                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
+                placeholder="your@wise.com"
+              />
             </div>
           </div>
 

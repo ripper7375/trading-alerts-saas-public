@@ -82,13 +82,12 @@ export const AFFILIATE_CONFIG = {
 
   /**
    * Supported payment methods for affiliate payouts
+   *
+   * DavinTrade disburses exclusively via Wise — RiseWorks was retired and
+   * PayPal/cryptocurrency were never wired to a real disbursement path.
+   * Narrowed to a single value so registration has nothing to pick.
    */
-  PAYMENT_METHODS: [
-    'BANK_TRANSFER',
-    'PAYPAL',
-    'CRYPTOCURRENCY',
-    'WISE',
-  ] as const,
+  PAYMENT_METHODS: ['WISE'] as const,
 
   /**
    * How often affiliates receive payouts

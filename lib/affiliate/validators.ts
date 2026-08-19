@@ -30,19 +30,18 @@ export const affiliateRegistrationSchema = z.object({
     .length(2, 'Country code must be exactly 2 characters')
     .toUpperCase(),
 
-  /** Payment method for receiving commissions */
+  /** Payment method for receiving commissions (Wise is the only disbursement rail) */
   paymentMethod: z.enum(AFFILIATE_CONFIG.PAYMENT_METHODS, {
     errorMap: () => ({
       message: `Payment method must be one of: ${AFFILIATE_CONFIG.PAYMENT_METHODS.join(', ')}`,
     }),
   }),
 
-  /** Payment details specific to chosen method */
-  paymentDetails: z
-    .record(z.unknown())
-    .refine((data) => Object.keys(data).length > 0, {
-      message: 'Payment details are required',
-    }),
+  /** Wise payout details */
+  paymentDetails: z.object({
+    email: z.string().email('A valid Wise email is required'),
+    accountId: z.string().optional(),
+  }),
 
   /** Must accept terms and conditions */
   terms: z

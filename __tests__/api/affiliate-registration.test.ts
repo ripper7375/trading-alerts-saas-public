@@ -1,7 +1,7 @@
 /**
  * Affiliate Registration API Route Tests
  *
- * Tests for POST /api/affiliate/auth/register and POST /api/affiliate/auth/verify-email
+ * Tests for POST /api/affiliate/auth/register
  *
  * @module __tests__/api/affiliate-registration.test
  */
@@ -69,11 +69,9 @@ jest.mock('@/lib/auth/session', () => ({
 
 // Mock registration functions
 const mockRegisterAffiliate = jest.fn();
-const mockVerifyAffiliateEmail = jest.fn();
 jest.mock('@/lib/affiliate/registration', () => ({
   __esModule: true,
   registerAffiliate: (data: unknown) => mockRegisterAffiliate(data),
-  verifyAffiliateEmail: (token: string) => mockVerifyAffiliateEmail(token),
 }));
 
 // Mock Prisma
@@ -121,8 +119,8 @@ describe('Affiliate Registration API Routes', () => {
     const validRegistrationData = {
       fullName: 'John Doe',
       country: 'US',
-      paymentMethod: 'PAYPAL',
-      paymentDetails: { email: 'john@paypal.com' },
+      paymentMethod: 'WISE',
+      paymentDetails: { email: 'john@wise.com' },
       terms: true,
     };
 
@@ -195,8 +193,9 @@ describe('Affiliate Registration API Routes', () => {
 
       mockRegisterAffiliate.mockResolvedValue({
         success: true,
-        message: 'Please verify your email to complete registration',
+        message: 'Registration successful. Your affiliate account is active.',
         profileId: 'aff-profile-123',
+        codesDistributed: 15,
       });
 
       const { POST } = await import('@/app/api/affiliate/auth/register/route');
@@ -218,7 +217,7 @@ describe('Affiliate Registration API Routes', () => {
           userId: 'user-1',
           fullName: 'John Doe',
           country: 'US',
-          paymentMethod: 'PAYPAL',
+          paymentMethod: 'WISE',
         })
       );
     });
@@ -230,8 +229,9 @@ describe('Affiliate Registration API Routes', () => {
 
       mockRegisterAffiliate.mockResolvedValue({
         success: true,
-        message: 'Please verify your email',
+        message: 'Registration successful. Your affiliate account is active.',
         profileId: 'aff-profile-123',
+        codesDistributed: 15,
       });
 
       const dataWithSocials = {
@@ -280,99 +280,6 @@ describe('Affiliate Registration API Routes', () => {
 
       expect(response.status).toBe(500);
       expect(data.code).toBe('REGISTRATION_ERROR');
-    });
-  });
-
-  describe('POST /api/affiliate/auth/verify-email', () => {
-    it('should return 400 for missing token', async () => {
-      const { POST } = await import(
-        '@/app/api/affiliate/auth/verify-email/route'
-      );
-      const request = new MockRequest(
-        'http://localhost/api/affiliate/auth/verify-email',
-        {
-          method: 'POST',
-          body: JSON.stringify({}),
-        }
-      );
-      const response = await POST(request as unknown as Request);
-      const data = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(data.message).toContain('token');
-    });
-
-    it('should return 400 for invalid/expired token', async () => {
-      mockVerifyAffiliateEmail.mockRejectedValue(
-        new Error('Invalid verification token')
-      );
-
-      const { POST } = await import(
-        '@/app/api/affiliate/auth/verify-email/route'
-      );
-      const request = new MockRequest(
-        'http://localhost/api/affiliate/auth/verify-email',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            token: 'invalid-token-1234567890123456789012',
-          }),
-        }
-      );
-      const response = await POST(request as unknown as Request);
-      const data = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(data.code).toBe('INVALID_TOKEN');
-    });
-
-    it('should verify email and activate affiliate successfully', async () => {
-      mockVerifyAffiliateEmail.mockResolvedValue({
-        success: true,
-        message: 'Email verified successfully',
-        codesDistributed: 15,
-      });
-
-      const { POST } = await import(
-        '@/app/api/affiliate/auth/verify-email/route'
-      );
-      const request = new MockRequest(
-        'http://localhost/api/affiliate/auth/verify-email',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            token: 'valid-token-12345678901234567890123',
-          }),
-        }
-      );
-      const response = await POST(request as unknown as Request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(data.message).toContain('verified');
-    });
-
-    it('should handle verification errors gracefully', async () => {
-      mockVerifyAffiliateEmail.mockRejectedValue(
-        new Error('Database connection failed')
-      );
-
-      const { POST } = await import(
-        '@/app/api/affiliate/auth/verify-email/route'
-      );
-      const request = new MockRequest(
-        'http://localhost/api/affiliate/auth/verify-email',
-        {
-          method: 'POST',
-          body: JSON.stringify({ token: 'some-token-with-32-characters-min' }),
-        }
-      );
-      const response = await POST(request as unknown as Request);
-      const data = await response.json();
-
-      expect(response.status).toBe(500);
-      expect(data.error).toBeDefined();
     });
   });
 });

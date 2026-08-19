@@ -44,7 +44,9 @@ function getResendClient(): Resend | null {
  * Uses RESEND_FROM_EMAIL env var if set, otherwise defaults to Resend's test address
  */
 const EMAIL_CONFIG = {
-  from: process.env['RESEND_FROM_EMAIL'] || 'Trading Alerts <onboarding@resend.dev>',
+  from:
+    process.env['RESEND_FROM_EMAIL'] ||
+    'Trading Alerts <onboarding@resend.dev>',
   replyTo: process.env['RESEND_REPLY_TO'] || undefined,
 } as const;
 
@@ -60,7 +62,12 @@ export async function sendEmail(
   to: string,
   subject: string,
   html: string
-): Promise<{ success: boolean; messageId?: string; error?: string; simulated?: boolean }> {
+): Promise<{
+  success: boolean;
+  messageId?: string;
+  error?: string;
+  simulated?: boolean;
+}> {
   try {
     const resend = getResendClient();
 
@@ -131,6 +138,43 @@ export function getWelcomeEmail(name: string): string {
         </a>
         <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
           If you have any questions, reply to this email or visit our help center.
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Generate affiliate welcome email HTML
+ *
+ * @param name - Affiliate's name
+ * @param codesDistributed - Number of codes distributed on registration
+ * @returns HTML string for affiliate welcome email
+ */
+export function getAffiliateWelcomeEmail(
+  name: string,
+  codesDistributed: number
+): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Welcome to the Affiliate Program</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
+      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h1 style="color: #18181b; margin: 0 0 16px 0; font-size: 24px;">You're an Affiliate Partner, ${name}!</h1>
+        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
+          Your affiliate account is active. We've generated your first ${codesDistributed} referral codes — they're ready in your dashboard now.
+        </p>
+        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/affiliate/dashboard" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
+          Go to Affiliate Dashboard
+        </a>
+        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
+          Payouts are sent via Wise once your balance crosses the monthly minimum. If you have any questions, reply to this email or visit our help center.
         </p>
       </div>
     </body>
@@ -286,6 +330,18 @@ export async function sendWelcomeEmail(
 ): Promise<{ success: boolean; error?: string }> {
   const html = getWelcomeEmail(name);
   return sendEmail(to, 'Welcome to Trading Alerts!', html);
+}
+
+/**
+ * Send affiliate welcome email
+ */
+export async function sendAffiliateWelcomeEmail(
+  to: string,
+  name: string,
+  codesDistributed: number
+): Promise<{ success: boolean; error?: string }> {
+  const html = getAffiliateWelcomeEmail(name, codesDistributed);
+  return sendEmail(to, "You're an Affiliate Partner - Trading Alerts", html);
 }
 
 /**
@@ -881,7 +937,11 @@ export async function sendTwoFactorEnabledEmail(
   location: string
 ): Promise<{ success: boolean; error?: string }> {
   const html = getTwoFactorEnabledEmail(name, ipAddress, location, new Date());
-  return sendEmail(to, 'Security Alert: Two-Factor Authentication Enabled', html);
+  return sendEmail(
+    to,
+    'Security Alert: Two-Factor Authentication Enabled',
+    html
+  );
 }
 
 /**
@@ -980,5 +1040,9 @@ export async function sendTwoFactorDisabledEmail(
   location: string
 ): Promise<{ success: boolean; error?: string }> {
   const html = getTwoFactorDisabledEmail(name, ipAddress, location, new Date());
-  return sendEmail(to, 'Security Alert: Two-Factor Authentication Disabled', html);
+  return sendEmail(
+    to,
+    'Security Alert: Two-Factor Authentication Disabled',
+    html
+  );
 }
