@@ -44,9 +44,9 @@ export default function AffiliateLandingPage() {
     },
     {
       icon: Landmark,
-      title: t('Automated Wise & RiseWorks Payouts'),
+      title: t('Automated Wise Payouts'),
       desc: t(
-        'Direct monthly disbursements in your preferred local currency with minimal gateway friction.'
+        'Direct monthly disbursements via Wise with minimal gateway friction.'
       ),
     },
     {

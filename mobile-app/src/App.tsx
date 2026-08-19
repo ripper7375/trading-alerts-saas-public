@@ -65,7 +65,6 @@ import TermsSettingsPage from '@/pages/settings/TermsSettingsPage';
 import AffiliateLandingPage from '@/pages/affiliate/AffiliateLandingPage';
 import AffiliateJoinPage from '@/pages/affiliate/AffiliateJoinPage';
 import AffiliateRegisterPage from '@/pages/affiliate/AffiliateRegisterPage';
-import AffiliateVerifyPage from '@/pages/affiliate/AffiliateVerifyPage';
 import AffiliateDashboardPage from '@/pages/affiliate/AffiliateDashboardPage';
 import AffiliateCodesPage from '@/pages/affiliate/AffiliateCodesPage';
 import AffiliateCodeInventoryPage from '@/pages/affiliate/AffiliateCodeInventoryPage';
@@ -220,10 +219,6 @@ export default function App() {
                       <Route
                         path="/affiliate/register"
                         element={<AffiliateRegisterPage />}
-                      />
-                      <Route
-                        path="/affiliate/verify"
-                        element={<AffiliateVerifyPage />}
                       />
                       <Route
                         path="/affiliate/dashboard"

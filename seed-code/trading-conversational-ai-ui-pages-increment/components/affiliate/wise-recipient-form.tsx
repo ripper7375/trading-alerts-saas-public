@@ -29,7 +29,6 @@ const CURRENCY_OPTIONS = [
 
 export default function WiseRecipientForm() {
   const { t } = useLocale();
-  const [provider, setProvider] = useState<'wise' | 'rise'>('wise');
   const [accountHolderName, setAccountHolderName] = useState('');
   const [targetCurrency, setTargetCurrency] = useState('USD');
   const [recipientCountry, setRecipientCountry] = useState('');
@@ -68,22 +67,12 @@ export default function WiseRecipientForm() {
           <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             {t('Disbursement Provider')}
           </Label>
-          <Select
-            value={provider}
-            onValueChange={(val: any) => setProvider(val)}
-          >
-            <SelectTrigger className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100">
-              <SelectValue placeholder={t('Select provider')} />
-            </SelectTrigger>
-            <SelectContent className="dark:border-slate-750 border-slate-200 bg-white text-xs text-slate-900 dark:bg-[#0f1420] dark:text-slate-100">
-              <SelectItem value="wise">
-                {t('Wise Business (Direct Bank Transfer)')}
-              </SelectItem>
-              <SelectItem value="rise">
-                {t('RiseWorks (Crypto / SIWE Wallet Payout)')}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <Input
+            type="text"
+            value={t('Wise Business (Direct Bank Transfer)')}
+            disabled
+            className="dark:border-slate-750 border-slate-200 bg-slate-100 text-xs text-slate-500 dark:bg-[#0a0d15] dark:text-slate-500"
+          />
         </div>
 
         <div className="space-y-1.5">
@@ -109,80 +98,65 @@ export default function WiseRecipientForm() {
           )}
         </div>
 
-        {provider === 'wise' ? (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  {t('Payout Currency')}
-                </Label>
-                <Select
-                  value={targetCurrency}
-                  onValueChange={(val: string) => setTargetCurrency(val)}
-                >
-                  <SelectTrigger className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="dark:border-slate-750 border-slate-200 bg-white text-xs text-slate-900 dark:bg-[#0f1420] dark:text-slate-100">
-                    {CURRENCY_OPTIONS.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  {t('Recipient Country')}
-                </Label>
-                <Input
-                  type="text"
-                  value={recipientCountry}
-                  onChange={(e) =>
-                    setRecipientCountry(e.target.value.toUpperCase())
-                  }
-                  maxLength={2}
-                  placeholder="US"
-                  className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 uppercase dark:bg-[#06080e] dark:text-slate-100"
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                {t('Wise Account Email')}
-              </Label>
-              <Input
-                type="email"
-                value={wiseEmail}
-                onChange={(e) => setWiseEmail(e.target.value)}
-                className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                {t('Bank IBAN / Account Number')}
-              </Label>
-              <Input
-                type="text"
-                value={bankAccount}
-                onChange={(e) => setBankAccount(e.target.value)}
-                className="dark:border-slate-750 border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100"
-              />
-            </div>
-          </>
-        ) : (
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              {t('RiseWorks EVM Wallet Address')}
+              {t('Payout Currency')}
+            </Label>
+            <Select
+              value={targetCurrency}
+              onValueChange={(val: string) => setTargetCurrency(val)}
+            >
+              <SelectTrigger className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="dark:border-slate-750 border-slate-200 bg-white text-xs text-slate-900 dark:bg-[#0f1420] dark:text-slate-100">
+                {CURRENCY_OPTIONS.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              {t('Recipient Country')}
             </Label>
             <Input
               type="text"
-              placeholder="0x71C...39A"
-              className="dark:border-slate-750 border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100"
+              value={recipientCountry}
+              onChange={(e) =>
+                setRecipientCountry(e.target.value.toUpperCase())
+              }
+              maxLength={2}
+              placeholder="US"
+              className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 uppercase dark:bg-[#06080e] dark:text-slate-100"
             />
           </div>
-        )}
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            {t('Wise Account Email')}
+          </Label>
+          <Input
+            type="email"
+            value={wiseEmail}
+            onChange={(e) => setWiseEmail(e.target.value)}
+            className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            {t('Bank IBAN / Account Number')}
+          </Label>
+          <Input
+            type="text"
+            value={bankAccount}
+            onChange={(e) => setBankAccount(e.target.value)}
+            className="dark:border-slate-750 border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100"
+          />
+        </div>
 
         <Button
           type="submit"

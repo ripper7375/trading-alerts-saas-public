@@ -11,12 +11,17 @@ export default function AffiliateRegisterPage() {
   const navigate = useNavigate();
   const { switchRole } = useAuth();
   const [customCode, setCustomCode] = useState('');
+  const [wiseEmail, setWiseEmail] = useState('');
   const [channelUrl, setChannelUrl] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customCode) {
       toast.error('Please enter a desired referral code');
+      return;
+    }
+    if (!wiseEmail) {
+      toast.error('Please enter your Wise payout email');
       return;
     }
     toast.success('Affiliate partner account registered!');
@@ -54,6 +59,22 @@ export default function AffiliateRegisterPage() {
               </div>
               <span className="text-[10px] text-muted-foreground">
                 Your link: https://davintrade.com/?ref={customCode || 'CODE'}
+              </span>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-foreground">
+                Wise Payout Email
+              </label>
+              <Input
+                type="email"
+                value={wiseEmail}
+                onChange={(e) => setWiseEmail(e.target.value)}
+                placeholder="you@wise.com"
+                required
+              />
+              <span className="text-[10px] text-muted-foreground">
+                Commissions are paid out via Wise to this email.
               </span>
             </div>
 

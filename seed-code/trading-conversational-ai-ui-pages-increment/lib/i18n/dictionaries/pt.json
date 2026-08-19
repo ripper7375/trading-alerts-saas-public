@@ -2256,5 +2256,15 @@
   "view only, never raw bank details": "apenas visualização, nunca detalhes bancários em bruto",
   "— only an anonymized referral code and commission amount, if you signed up through an affiliate link.": "— apenas um código de recomendação anónimo e o montante da comissão, caso se tenha registado através de um link de afiliado.",
   "— when required by law, subpoena, or to protect the rights and safety of our users.": "— quando exigido por lei, intimação judicial ou para proteger os direitos e a segurança dos nossos utilizadores.",
-  "← Back to registration": "← Voltar ao registo"
+  "← Back to registration": "← Voltar ao registo",
+  "I agree to the Partner Program terms. I understand I will earn 30% recurring commission on referrals and that payouts are processed monthly via Wise for balances over $50.": "Concordo com os termos do Programa de Parceiros. Compreendo que vou ganhar uma comissão recorrente de 30% sobre as referências e que os pagamentos são processados mensalmente através da Wise para saldos superiores a $50.",
+  "Wise Payout Email": "E-mail de pagamento Wise",
+  "Commissions are paid out via Wise to this email": "As comissões são pagas através da Wise para este e-mail",
+  "Wise Business Automated Transfers & Threshold Telemetry": "Transferências automáticas Wise Business e telemetria de limite",
+  "Next Payout (Wise)": "Próximo pagamento (Wise)",
+  "Track Referral Commissions, Conversion Analytics & Wise Payouts": "Acompanhe comissões de referência, análises de conversão e pagamentos Wise",
+  "Automated Wise Payouts": "Pagamentos automáticos via Wise",
+  "Direct monthly disbursements via Wise with minimal gateway friction.": "Desembolsos mensais diretos via Wise com fricção mínima.",
+  "Auto-Approve Partner Applications": "Aprovar automaticamente candidaturas de parceiros",
+  "Instantly unlocks referral codes when a partner registers — there is no manual review step today.": "Desbloqueia códigos de referência instantaneamente quando um parceiro se regista — atualmente não existe uma etapa de revisão manual."
 }

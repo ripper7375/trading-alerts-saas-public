@@ -17,7 +17,7 @@ export default function AffiliateDashboardPage() {
       <AppHeader
         title={t('Affiliate Partner Dashboard')}
         subtitle={t(
-          'Track Referral Commissions, Conversion Analytics & Wise/Rise Payouts'
+          'Track Referral Commissions, Conversion Analytics & Wise Payouts'
         )}
       />
 

@@ -2256,5 +2256,15 @@
   "view only, never raw bank details": "solo vista, nunca datos bancarios sin procesar",
   "— only an anonymized referral code and commission amount, if you signed up through an affiliate link.": "— solo un código de referido anonimizado y el importe de la comisión, si te registraste a través de un enlace de afiliado.",
   "— when required by law, subpoena, or to protect the rights and safety of our users.": "— cuando lo exija la ley, una orden judicial o para proteger los derechos y la seguridad de nuestros usuarios.",
-  "← Back to registration": "← Volver al registro"
+  "← Back to registration": "← Volver al registro",
+  "I agree to the Partner Program terms. I understand I will earn 30% recurring commission on referrals and that payouts are processed monthly via Wise for balances over $50.": "Acepto los términos del Programa de Socios. Entiendo que ganaré una comisión recurrente del 30% por las referencias y que los pagos se procesan mensualmente a través de Wise para saldos superiores a $50.",
+  "Wise Payout Email": "Correo de pago de Wise",
+  "Commissions are paid out via Wise to this email": "Las comisiones se pagan a través de Wise a este correo electrónico",
+  "Wise Business Automated Transfers & Threshold Telemetry": "Transferencias automáticas de Wise Business y telemetría de umbral",
+  "Next Payout (Wise)": "Próximo pago (Wise)",
+  "Track Referral Commissions, Conversion Analytics & Wise Payouts": "Seguimiento de comisiones por referidos, análisis de conversión y pagos por Wise",
+  "Automated Wise Payouts": "Pagos automáticos por Wise",
+  "Direct monthly disbursements via Wise with minimal gateway friction.": "Desembolsos mensuales directos a través de Wise con fricción mínima.",
+  "Auto-Approve Partner Applications": "Aprobar automáticamente solicitudes de socios",
+  "Instantly unlocks referral codes when a partner registers — there is no manual review step today.": "Desbloquea los códigos de referido al instante cuando un socio se registra; hoy no existe un paso de revisión manual."
 }

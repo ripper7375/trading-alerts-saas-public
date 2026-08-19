@@ -2256,5 +2256,15 @@
   "view only, never raw bank details": "hanya lihat, tidak menampilkan detail bank mentah",
   "— only an anonymized referral code and commission amount, if you signed up through an affiliate link.": "— hanya kode rujukan yang dianonimkan dan jumlah komisi, jika Anda mendaftar melalui tautan afiliasi.",
   "— when required by law, subpoena, or to protect the rights and safety of our users.": "— bila diwajibkan oleh hukum, panggilan pengadilan, atau untuk melindungi hak dan keselamatan pengguna kami.",
-  "← Back to registration": "← Kembali ke pendaftaran"
+  "← Back to registration": "← Kembali ke pendaftaran",
+  "I agree to the Partner Program terms. I understand I will earn 30% recurring commission on referrals and that payouts are processed monthly via Wise for balances over $50.": "Saya menyetujui syarat Program Mitra. Saya memahami bahwa saya akan mendapatkan komisi berulang 30% atas setiap rujukan dan pembayaran diproses setiap bulan melalui Wise untuk saldo di atas $50.",
+  "Wise Payout Email": "Email Pembayaran Wise",
+  "Commissions are paid out via Wise to this email": "Komisi dibayarkan melalui Wise ke email ini",
+  "Wise Business Automated Transfers & Threshold Telemetry": "Transfer Otomatis Wise Business & Telemetri Ambang Batas",
+  "Next Payout (Wise)": "Pembayaran Berikutnya (Wise)",
+  "Track Referral Commissions, Conversion Analytics & Wise Payouts": "Lacak Komisi Rujukan, Analitik Konversi & Pembayaran Wise",
+  "Automated Wise Payouts": "Pembayaran Otomatis via Wise",
+  "Direct monthly disbursements via Wise with minimal gateway friction.": "Pencairan bulanan langsung melalui Wise dengan hambatan gateway minimal.",
+  "Auto-Approve Partner Applications": "Setujui Otomatis Aplikasi Mitra",
+  "Instantly unlocks referral codes when a partner registers — there is no manual review step today.": "Segera membuka kode rujukan saat mitra mendaftar — saat ini tidak ada langkah peninjauan manual."
 }

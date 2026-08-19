@@ -2256,5 +2256,15 @@
   "view only, never raw bank details": "yalnızca görüntüleme, asla ham banka bilgileri değil",
   "— only an anonymized referral code and commission amount, if you signed up through an affiliate link.": "— bir ortaklık bağlantısı üzerinden kaydolduysanız yalnızca anonimleştirilmiş bir tavsiye kodu ve komisyon tutarı.",
   "— when required by law, subpoena, or to protect the rights and safety of our users.": "— kanunen, mahkeme celbiyle veya kullanıcılarımızın haklarını ve güvenliğini korumak için gerektiğinde.",
-  "← Back to registration": "← Kayda dön"
+  "← Back to registration": "← Kayda dön",
+  "I agree to the Partner Program terms. I understand I will earn 30% recurring commission on referrals and that payouts are processed monthly via Wise for balances over $50.": "Ortaklık Programı şartlarını kabul ediyorum. Yönlendirmeler için %30 tekrarlayan komisyon kazanacağımı ve 50 doların üzerindeki bakiyeler için ödemelerin Wise üzerinden aylık olarak işlendiğini anlıyorum.",
+  "Wise Payout Email": "Wise Ödeme E-postası",
+  "Commissions are paid out via Wise to this email": "Komisyonlar bu e-postaya Wise üzerinden ödenir",
+  "Wise Business Automated Transfers & Threshold Telemetry": "Otomatik Wise Business Transferleri ve Eşik Telemetrisi",
+  "Next Payout (Wise)": "Sonraki Ödeme (Wise)",
+  "Track Referral Commissions, Conversion Analytics & Wise Payouts": "Yönlendirme Komisyonlarını, Dönüşüm Analizini ve Wise Ödemelerini Takip Edin",
+  "Automated Wise Payouts": "Otomatik Wise Ödemeleri",
+  "Direct monthly disbursements via Wise with minimal gateway friction.": "Wise üzerinden minimum gateway sürtünmesiyle doğrudan aylık ödemeler.",
+  "Auto-Approve Partner Applications": "Ortak Başvurularını Otomatik Onayla",
+  "Instantly unlocks referral codes when a partner registers — there is no manual review step today.": "Bir ortak kayıt olduğunda yönlendirme kodlarını anında etkinleştirir — bugün itibarıyla manuel inceleme adımı yoktur."
 }

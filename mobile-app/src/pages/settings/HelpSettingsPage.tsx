@@ -51,7 +51,7 @@ export default function HelpSettingsPage() {
     },
     {
       q: 'How do affiliate commissions and monthly payouts work?',
-      a: 'Affiliates earn a 20% recurring monthly commission on all referred PRO subscribers ($5.80/mo). Payouts disburse on the 1st of every month via USDT TRC20 or Bank Wire.',
+      a: 'Affiliates earn a 20% recurring monthly commission on all referred PRO subscribers ($5.80/mo). Payouts disburse on the 1st of every month via Wise.',
     },
   ];
 

@@ -2256,5 +2256,15 @@
   "— only an anonymized referral code and commission amount, if you signed up through an affiliate link.": "— เฉพาะรหัสแนะนำที่ไม่เปิดเผยชื่อและจำนวนค่าคอมมิชชันเท่านั้น หากคุณลงทะเบียนผ่านลิงก์พันธมิตร",
   "— when required by law, subpoena, or to protect the rights and safety of our users.": "— เมื่อกฎหมาย หมายศาล หรือเพื่อปกป้องสิทธิ์และความปลอดภัยของผู้ใช้ของเรากำหนดไว้",
   "← Back to registration": "← กลับไปที่การลงทะเบียน",
+  "I agree to the Partner Program terms. I understand I will earn 30% recurring commission on referrals and that payouts are processed monthly via Wise for balances over $50.": "ฉันยอมรับข้อกำหนดของโปรแกรมพันธมิตร ฉันเข้าใจว่าฉันจะได้รับค่าคอมมิชชันแบบต่อเนื่อง 30% จากการแนะนำ และการจ่ายเงินจะดำเนินการทุกเดือนผ่าน Wise สำหรับยอดคงเหลือที่เกิน $50",
+  "Wise Payout Email": "อีเมลรับเงิน Wise",
+  "Commissions are paid out via Wise to this email": "ค่าคอมมิชชันจะจ่ายผ่าน Wise ไปยังอีเมลนี้",
+  "Wise Business Automated Transfers & Threshold Telemetry": "การโอนเงินอัตโนมัติผ่าน Wise Business และการติดตามเกณฑ์ขั้นต่ำ",
+  "Next Payout (Wise)": "การจ่ายเงินครั้งถัดไป (Wise)",
+  "Track Referral Commissions, Conversion Analytics & Wise Payouts": "ติดตามค่าคอมมิชชันการแนะนำ การวิเคราะห์การแปลง และการจ่ายเงินผ่าน Wise",
+  "Automated Wise Payouts": "การจ่ายเงินอัตโนมัติผ่าน Wise",
+  "Direct monthly disbursements via Wise with minimal gateway friction.": "การเบิกจ่ายรายเดือนโดยตรงผ่าน Wise โดยมีความยุ่งยากน้อยที่สุด",
+  "Auto-Approve Partner Applications": "อนุมัติใบสมัครพันธมิตรอัตโนมัติ",
+  "Instantly unlocks referral codes when a partner registers — there is no manual review step today.": "ปลดล็อกรหัสแนะนำทันทีเมื่อพันธมิตรลงทะเบียน — ปัจจุบันไม่มีขั้นตอนการตรวจสอบด้วยตนเอง",
   "Real-time XAUUSD Technical Assessment:\\n\\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.": "การประเมินทางเทคนิค XAUUSD เรียลไทม์:\\n\\n- **โครงสร้าง M5**: การปฏิเสธไส้เทียน Double Bottom ที่ขอบล่างของช่อง EDT (,634.50)\\n- **ความชัน SSA M15**: การจัดแนวโน้มขาขึ้นพร้อมการขยายตัวของแท่งเทียน Z-score\\n- **การดำเนินการทางยุทธวิธี**: จุดเข้า BUY LIMIT ที่ได้เปรียบที่ ,634.50 โดยมีเป้าหมายที่ ,648.00"
 }

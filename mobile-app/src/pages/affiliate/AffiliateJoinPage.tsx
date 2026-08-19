@@ -11,7 +11,7 @@ export default function AffiliateJoinPage() {
     '20% Lifetime Recurring Commission per PRO user',
     'Real-time Mobile Click & Conversion Tracker',
     'Pre-designed Social Marketing Kit & Banners',
-    'Monthly Payouts via USDT TRC20 or Bank Transfer',
+    'Monthly Payouts via Wise',
     'Dedicated Partner VIP Support Desk',
   ];
 

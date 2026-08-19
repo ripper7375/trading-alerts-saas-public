@@ -32,7 +32,7 @@ import { useLocale } from '@/lib/context/locale-context';
 interface PayoutBatchItem {
   id: string;
   date: string;
-  method: 'Wise' | 'RiseWorks' | 'Bank Wire';
+  method: 'Wise';
   currency: string;
   amount: number;
   fee: number;
@@ -88,9 +88,7 @@ export default function AffiliatePayoutsPage() {
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#06070a] dark:text-slate-100">
       <AppHeader
         title={t('Affiliate Payouts & Disbursement History')}
-        subtitle={t(
-          'Wise Business Automated Transfers, RiseWorks Treasury & Threshold Telemetry'
-        )}
+        subtitle={t('Wise Business Automated Transfers & Threshold Telemetry')}
       />
 
       <AffiliateNav />

@@ -2256,5 +2256,15 @@
   "view only, never raw bank details": "chỉ xem, không bao giờ hiển thị chi tiết ngân hàng thô",
   "— only an anonymized referral code and commission amount, if you signed up through an affiliate link.": "— chỉ mã giới thiệu ẩn danh và số tiền hoa hồng, nếu bạn đăng ký qua liên kết đối tác.",
   "— when required by law, subpoena, or to protect the rights and safety of our users.": "— khi được yêu cầu bởi pháp luật, trát hầu tòa hoặc để bảo vệ quyền và sự an toàn của người dùng chúng tôi.",
-  "← Back to registration": "← Quay lại đăng ký"
+  "← Back to registration": "← Quay lại đăng ký",
+  "I agree to the Partner Program terms. I understand I will earn 30% recurring commission on referrals and that payouts are processed monthly via Wise for balances over $50.": "Tôi đồng ý với các điều khoản của Chương trình Đối tác. Tôi hiểu rằng tôi sẽ kiếm được hoa hồng định kỳ 30% trên các lượt giới thiệu và các khoản thanh toán được xử lý hàng tháng qua Wise cho số dư trên $50.",
+  "Wise Payout Email": "Email nhận thanh toán Wise",
+  "Commissions are paid out via Wise to this email": "Hoa hồng được thanh toán qua Wise đến email này",
+  "Wise Business Automated Transfers & Threshold Telemetry": "Chuyển khoản tự động Wise Business & theo dõi ngưỡng thanh toán",
+  "Next Payout (Wise)": "Khoản thanh toán tiếp theo (Wise)",
+  "Track Referral Commissions, Conversion Analytics & Wise Payouts": "Theo dõi hoa hồng giới thiệu, phân tích chuyển đổi & thanh toán qua Wise",
+  "Automated Wise Payouts": "Thanh toán tự động qua Wise",
+  "Direct monthly disbursements via Wise with minimal gateway friction.": "Giải ngân hàng tháng trực tiếp qua Wise với ít trở ngại nhất.",
+  "Auto-Approve Partner Applications": "Tự động phê duyệt đơn đăng ký đối tác",
+  "Instantly unlocks referral codes when a partner registers — there is no manual review step today.": "Kích hoạt ngay mã giới thiệu khi đối tác đăng ký — hiện không có bước xét duyệt thủ công."
 }

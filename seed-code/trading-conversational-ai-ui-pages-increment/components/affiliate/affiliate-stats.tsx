@@ -34,7 +34,7 @@ export default function AffiliateStats() {
         description={t('Unique Visitor Clicks')}
       />
       <StatsCard
-        title={t('Next Payout (Wise/Rise)')}
+        title={t('Next Payout (Wise)')}
         value={formatCurrency(680)}
         change={formatDate('2026-08-31')}
         changeType="positive"

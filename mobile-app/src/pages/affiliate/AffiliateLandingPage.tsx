@@ -83,7 +83,7 @@ export default function AffiliateLandingPage() {
               </h3>
               <p className="text-xs leading-relaxed text-muted-foreground">
                 Disbursements executed automatically on the 1st of every month
-                via Bank Wire or USDT TRC20 ($50 minimum threshold).
+                via Wise ($50 minimum threshold).
               </p>
             </div>
           </CardContent>

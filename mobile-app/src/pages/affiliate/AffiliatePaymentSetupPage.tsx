@@ -4,23 +4,11 @@ import { ArrowLeft, Save, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { toast } from 'sonner';
-
-type PayoutMethodType = 'usdt' | 'bank' | 'wire';
 
 export default function AffiliatePaymentSetupPage() {
   const navigate = useNavigate();
-  const [method, setMethod] = useState<PayoutMethodType>('usdt');
-  const [usdtAddress, setUsdtAddress] = useState(
-    'TYW849204859012398492849021840291'
-  );
+  const [wiseEmail, setWiseEmail] = useState('affiliate@davin-trade.com');
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,75 +41,26 @@ export default function AffiliatePaymentSetupPage() {
           <form onSubmit={handleSave} className="space-y-4">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-foreground">
-                Preferred Payout Method
+                Payout Method
               </label>
-              <Select
-                value={method}
-                onValueChange={(v) => setMethod(v as PayoutMethodType)}
-              >
-                <SelectTrigger className="h-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="usdt">
-                    USDT TRC20 (Zero fees, Instant on 1st)
-                  </SelectItem>
-                  <SelectItem value="bank">Local Bank Transfer</SelectItem>
-                  <SelectItem value="wire">
-                    International Bank Wire (SWIFT / IBAN)
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <Input value="Wise" disabled className="h-11" />
+              <span className="text-[10px] text-muted-foreground">
+                Commissions are disbursed via Wise on the 1st of every month.
+              </span>
             </div>
 
-            {method === 'usdt' && (
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-foreground">
-                  USDT TRC20 Wallet Address
-                </label>
-                <Input
-                  value={usdtAddress}
-                  onChange={(e) => setUsdtAddress(e.target.value)}
-                  placeholder="T..."
-                  className="font-mono text-xs"
-                  required
-                />
-                <span className="text-[10px] text-muted-foreground">
-                  Ensure address is on the TRON (TRC20) network.
-                </span>
-              </div>
-            )}
-
-            {method === 'bank' && (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Bank Name
-                  </label>
-                  <Input
-                    placeholder="e.g. JPMorgan Chase or Bangkok Bank"
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    Account Number
-                  </label>
-                  <Input placeholder="Account number" required />
-                </div>
-              </div>
-            )}
-
-            {method === 'wire' && (
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-foreground">
-                    IBAN / SWIFT Code
-                  </label>
-                  <Input placeholder="GB29..." className="font-mono" required />
-                </div>
-              </div>
-            )}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-foreground">
+                Wise Payout Email
+              </label>
+              <Input
+                type="email"
+                value={wiseEmail}
+                onChange={(e) => setWiseEmail(e.target.value)}
+                placeholder="you@wise.com"
+                required
+              />
+            </div>
 
             <Button
               type="submit"

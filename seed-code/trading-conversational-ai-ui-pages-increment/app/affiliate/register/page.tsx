@@ -16,6 +16,7 @@ export default function AffiliateRegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [country, setCountry] = useState('');
+  const [wiseEmail, setWiseEmail] = useState('');
   const [website, setWebsite] = useState('');
   const [twitterUrl, setTwitterUrl] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
@@ -112,6 +113,23 @@ export default function AffiliateRegisterPage() {
             />
           </div>
 
+          <div className="space-y-1.5 border-t border-slate-200 pt-4 dark:border-slate-800/80">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              {t('Wise Payout Email')}
+            </Label>
+            <Input
+              type="email"
+              required
+              value={wiseEmail}
+              onChange={(e) => setWiseEmail(e.target.value)}
+              placeholder="you@wise.com"
+              className="dark:border-slate-750 border-slate-200 bg-slate-50 text-xs text-slate-900 dark:bg-[#06080e] dark:text-slate-100"
+            />
+            <p className="text-[11px] text-slate-500">
+              {t('Commissions are paid out via Wise to this email')}
+            </p>
+          </div>
+
           <div className="space-y-2 border-t border-slate-200 pt-4 dark:border-slate-800/80">
             <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {t('Social Profiles (Optional)')}
@@ -161,7 +179,7 @@ export default function AffiliateRegisterPage() {
             />
             <span className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
               {t(
-                'I agree to the Partner Program terms. I understand I will earn 30% recurring commission on referrals and that payouts are processed monthly for balances over $50, once I configure my Wise/RiseWorks payout account.'
+                'I agree to the Partner Program terms. I understand I will earn 30% recurring commission on referrals and that payouts are processed monthly via Wise for balances over $50.'
               )}
             </span>
           </label>

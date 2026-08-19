@@ -203,11 +203,11 @@ export default function AdminSettingsAffiliatePage() {
                 <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-[#06080e]">
                   <div className="space-y-0.5">
                     <div className="text-xs font-bold text-slate-900 dark:text-slate-200">
-                      {t('Auto-Approve Verified Partner Applications')}
+                      {t('Auto-Approve Partner Applications')}
                     </div>
                     <p className="text-[11px] text-slate-600 dark:text-slate-400">
                       {t(
-                        'Instantly unlocks referral codes upon email verification.'
+                        'Instantly unlocks referral codes when a partner registers — there is no manual review step today.'
                       )}
                     </p>
                   </div>

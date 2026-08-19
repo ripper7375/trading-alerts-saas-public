@@ -2256,5 +2256,15 @@
   "view only, never raw bank details": "nur Ansicht, niemals rohe Bankdaten",
   "— only an anonymized referral code and commission amount, if you signed up through an affiliate link.": "— nur ein anonymisierter Empfehlungscode und Provisionsbetrag, falls Sie sich über einen Partnerlink registriert haben.",
   "— when required by law, subpoena, or to protect the rights and safety of our users.": "— wenn dies gesetzlich, durch Vorladung oder zum Schutz der Rechte und Sicherheit unserer Nutzer erforderlich ist.",
-  "← Back to registration": "← Zurück zur Registrierung"
+  "← Back to registration": "← Zurück zur Registrierung",
+  "I agree to the Partner Program terms. I understand I will earn 30% recurring commission on referrals and that payouts are processed monthly via Wise for balances over $50.": "Ich stimme den Bedingungen des Partnerprogramms zu. Mir ist bewusst, dass ich 30 % wiederkehrende Provision auf Empfehlungen verdiene und dass Auszahlungen monatlich über Wise für Guthaben über 50 $ erfolgen.",
+  "Wise Payout Email": "Wise-Auszahlungs-E-Mail",
+  "Commissions are paid out via Wise to this email": "Provisionen werden über Wise an diese E-Mail-Adresse ausgezahlt",
+  "Wise Business Automated Transfers & Threshold Telemetry": "Automatische Wise-Business-Überweisungen & Schwellenwert-Telemetrie",
+  "Next Payout (Wise)": "Nächste Auszahlung (Wise)",
+  "Track Referral Commissions, Conversion Analytics & Wise Payouts": "Empfehlungsprovisionen, Conversion-Analysen & Wise-Auszahlungen verfolgen",
+  "Automated Wise Payouts": "Automatisierte Wise-Auszahlungen",
+  "Direct monthly disbursements via Wise with minimal gateway friction.": "Direkte monatliche Auszahlungen über Wise mit minimaler Gateway-Reibung.",
+  "Auto-Approve Partner Applications": "Partneranträge automatisch genehmigen",
+  "Instantly unlocks referral codes when a partner registers — there is no manual review step today.": "Schaltet Empfehlungscodes sofort frei, sobald sich ein Partner registriert – derzeit gibt es keine manuelle Prüfung."
 }

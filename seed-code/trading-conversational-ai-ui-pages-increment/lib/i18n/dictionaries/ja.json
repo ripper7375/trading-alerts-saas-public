@@ -2256,5 +2256,15 @@
   "— only an anonymized referral code and commission amount, if you signed up through an affiliate link.": "— アフィリエイトリンク経由で登録した場合の、匿名化された紹介コードおよびコミッション額のみ。",
   "— when required by law, subpoena, or to protect the rights and safety of our users.": "— 法律、召喚状により義務付けられる場合、または利用者の権利と安全を保護するために必要な場合。",
   "← Back to registration": "← 登録へ戻る",
+  "I agree to the Partner Program terms. I understand I will earn 30% recurring commission on referrals and that payouts are processed monthly via Wise for balances over $50.": "パートナープログラムの規約に同意します。紹介ごとに30%の継続コミッションを獲得できること、また残高が50ドルを超える場合、支払いはWise経由で毎月処理されることを理解しています。",
+  "Wise Payout Email": "Wise受取用メールアドレス",
+  "Commissions are paid out via Wise to this email": "コミッションはこのメールアドレス宛にWise経由で支払われます",
+  "Wise Business Automated Transfers & Threshold Telemetry": "Wiseビジネスの自動送金としきい値テレメトリー",
+  "Next Payout (Wise)": "次回の支払い(Wise)",
+  "Track Referral Commissions, Conversion Analytics & Wise Payouts": "紹介コミッション、コンバージョン分析、Wise支払いを確認",
+  "Automated Wise Payouts": "Wiseによる自動支払い",
+  "Direct monthly disbursements via Wise with minimal gateway friction.": "Wise経由での直接月次送金、ゲートウェイの摩擦は最小限。",
+  "Auto-Approve Partner Applications": "パートナー申請を自動承認",
+  "Instantly unlocks referral codes when a partner registers — there is no manual review step today.": "パートナーが登録すると紹介コードが即座に有効になります。現在、手動審査のステップはありません。",
   "Real-time XAUUSD Technical Assessment:\\n\\n- **M5 Structure**: Double bottom wick rejection at lower EDT channel boundary ($2,634.50).\\n- **M15 SSA Slope**: Bullish trend alignment with Z-score candle expansion.\\n- **Tactical Action**: Favorable BUY LIMIT entry at $2,634.50 targeting $2,648.00.": "リアルタイム XAUUSD テクニカル評価:\\n\\n- **M5 構造**: EDT チャネル下限境界 (,634.50) でのダブルボトム下ヒゲ反発。\\n- **M15 SSA 傾き**: Zスコアローソク足拡大を伴う強気トレンドアライメント。\\n- **戦術的アクション**: ,648.00 を目標とする ,634.50 での有利な BUY LIMIT エントリー。"
 }

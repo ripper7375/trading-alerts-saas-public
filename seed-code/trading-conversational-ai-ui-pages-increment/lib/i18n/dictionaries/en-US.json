@@ -2256,5 +2256,15 @@
   "Log In": "Log In",
   "Get Started": "Get Started",
   "Available local methods for": "Available local methods for",
-  "You'll be redirected to dLocal's secure page to complete payment with your selected method.": "You'll be redirected to dLocal's secure page to complete payment with your selected method."
+  "You'll be redirected to dLocal's secure page to complete payment with your selected method.": "You'll be redirected to dLocal's secure page to complete payment with your selected method.",
+  "I agree to the Partner Program terms. I understand I will earn 30% recurring commission on referrals and that payouts are processed monthly via Wise for balances over $50.": "I agree to the Partner Program terms. I understand I will earn 30% recurring commission on referrals and that payouts are processed monthly via Wise for balances over $50.",
+  "Wise Payout Email": "Wise Payout Email",
+  "Commissions are paid out via Wise to this email": "Commissions are paid out via Wise to this email",
+  "Wise Business Automated Transfers & Threshold Telemetry": "Wise Business Automated Transfers & Threshold Telemetry",
+  "Next Payout (Wise)": "Next Payout (Wise)",
+  "Track Referral Commissions, Conversion Analytics & Wise Payouts": "Track Referral Commissions, Conversion Analytics & Wise Payouts",
+  "Automated Wise Payouts": "Automated Wise Payouts",
+  "Direct monthly disbursements via Wise with minimal gateway friction.": "Direct monthly disbursements via Wise with minimal gateway friction.",
+  "Auto-Approve Partner Applications": "Auto-Approve Partner Applications",
+  "Instantly unlocks referral codes when a partner registers — there is no manual review step today.": "Instantly unlocks referral codes when a partner registers — there is no manual review step today."
 }

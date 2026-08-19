@@ -87,7 +87,7 @@ export default function SettingsOverviewPage() {
               {
                 icon: CreditCard,
                 label: 'Payout Setup',
-                desc: 'Bank, Wire & USDT TRC20 details',
+                desc: 'Wise payout email',
                 path: '/affiliate/dashboard/profile/payment',
               },
             ],

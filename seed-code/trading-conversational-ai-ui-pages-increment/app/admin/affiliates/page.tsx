@@ -30,16 +30,10 @@ interface AdminAffiliate {
   totalVolume: number;
   unpaidCommission: number;
   payoutMethod: string;
-  status: 'ACTIVE' | 'PENDING_VERIFICATION' | 'SUSPENDED' | 'INACTIVE';
+  status: 'ACTIVE' | 'SUSPENDED' | 'INACTIVE';
 }
 
-const STATUS_FILTERS = [
-  'ALL',
-  'ACTIVE',
-  'PENDING_VERIFICATION',
-  'SUSPENDED',
-  'INACTIVE',
-] as const;
+const STATUS_FILTERS = ['ALL', 'ACTIVE', 'SUSPENDED', 'INACTIVE'] as const;
 
 export default function AdminAffiliatesDirectoryPage() {
   const { t, formatCurrency } = useLocale();
@@ -85,7 +79,7 @@ export default function AdminAffiliatesDirectoryPage() {
       activeSubscribers: 8,
       totalVolume: 1176.0,
       unpaidCommission: 117.6,
-      payoutMethod: 'RiseWorks',
+      payoutMethod: 'Wise (RUB)',
       status: 'SUSPENDED',
     },
   ];
@@ -105,8 +99,6 @@ export default function AdminAffiliatesDirectoryPage() {
     switch (status) {
       case 'ACTIVE':
         return 'border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400';
-      case 'PENDING_VERIFICATION':
-        return 'border-amber-500/40 bg-amber-500/15 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400';
       case 'INACTIVE':
         return 'border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-500/40 dark:bg-slate-500/20 dark:text-slate-400';
       case 'SUSPENDED':
