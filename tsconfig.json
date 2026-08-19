@@ -25,9 +25,7 @@
     "allowImportingTsExtensions": false, // Don't allow .ts/.tsx in imports
     "baseUrl": ".", // Base directory for module resolution
     "paths": {
-      "@/*": [
-        "./*"
-      ] // @ alias maps to project root
+      "@/*": ["./*"] // @ alias maps to project root
     },
     // ==========================================================================
     // Type Checking - STRICT MODE (CRITICAL QUALITY GATES)
@@ -131,6 +129,7 @@
     "build", // Build artifacts
     "seed-code", // Seed/template code
     "frontend", // Separate Next.js project (has own tsconfig.json)
+    "mobile-app", // Separate Vite mobile app (has own tsconfig.json + package.json)
     "railway-gateway", // Separate NestJS project (has own tsconfig.json + package.json)
     "operation-service", // Separate NestJS project (has own tsconfig.json + package.json)
     "money-service", // Separate NestJS project (has own tsconfig.json + package.json)
