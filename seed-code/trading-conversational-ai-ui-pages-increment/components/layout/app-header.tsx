@@ -48,7 +48,7 @@ export default function AppHeader({
   const currentTier = pathname.startsWith('/free') ? 'FREE' : tier;
 
   return (
-    <header className="z-20 flex h-14 w-full shrink-0 items-center justify-between border-b border-slate-800/80 bg-[#090b11] px-4 shadow-sm select-none">
+    <header className="z-20 flex h-14 w-full shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 shadow-sm select-none dark:border-slate-800/80 dark:bg-[#090b11]">
       {/* Left: Brand Logo & Current Section Title */}
       <div className="flex items-center gap-3">
         <Link href="/" className="flex items-center gap-2">
@@ -65,23 +65,23 @@ export default function AppHeader({
           </span>
         </Link>
 
-        <ChevronRight className="hidden h-4 w-4 text-slate-600 sm:inline" />
+        <ChevronRight className="hidden h-4 w-4 text-slate-400 sm:inline dark:text-slate-600" />
 
         <div className="flex flex-col">
-          <h1 className="flex items-center gap-2 text-xs font-bold text-slate-100">
+          <h1 className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-slate-100">
             {title || 'Dashboard'}
             <Badge
               className={
                 currentTier === 'PRO'
-                  ? 'border-amber-500/40 bg-amber-500/20 px-1.5 py-0 font-mono text-[9px] text-amber-300'
-                  : 'border-slate-700 bg-slate-800 px-1.5 py-0 font-mono text-[9px] text-slate-400'
+                  ? 'border-amber-500/40 bg-amber-500/20 px-1.5 py-0 font-mono text-[9px] text-amber-700 dark:text-amber-300'
+                  : 'border-slate-300 bg-slate-100 px-1.5 py-0 font-mono text-[9px] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
               }
             >
               {currentTier === 'PRO' ? '⚡ PRO' : '🔒 FREE'}
             </Badge>
           </h1>
           {subtitle && (
-            <p className="hidden truncate text-[10px] text-slate-400 md:inline">
+            <p className="hidden truncate text-[10px] text-slate-500 md:inline dark:text-slate-400">
               {subtitle}
             </p>
           )}
@@ -89,15 +89,15 @@ export default function AppHeader({
       </div>
 
       {/* Middle: Quick Action Tabs */}
-      <div className="hidden items-center gap-1 rounded-xl border border-slate-800 bg-[#05060a] p-1 md:flex">
+      <div className="hidden items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 md:flex dark:border-slate-800 dark:bg-[#05060a]">
         <Link href="/dashboard">
           <Button
             variant="ghost"
             size="sm"
             className={`h-7 px-3 text-xs font-medium ${
               pathname === '/dashboard'
-                ? 'bg-slate-800 font-bold text-[var(--primary)]'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-slate-100 font-bold text-[var(--primary)] dark:bg-slate-800'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             <LayoutDashboard className="mr-1.5 h-3.5 w-3.5" />
@@ -111,7 +111,7 @@ export default function AppHeader({
             className={`h-7 px-3 text-xs font-medium ${
               pathname === '/terminal' || pathname === '/free'
                 ? 'border border-[var(--primary)]/30 bg-[var(--primary)]/20 font-bold text-[var(--primary)]'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             <LineChart className="mr-1.5 h-3.5 w-3.5 text-[var(--primary)]" />
@@ -124,8 +124,8 @@ export default function AppHeader({
             size="sm"
             className={`h-7 px-3 text-xs font-medium ${
               pathname.startsWith('/alerts')
-                ? 'bg-slate-800 font-bold text-[var(--primary)]'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-slate-100 font-bold text-[var(--primary)] dark:bg-slate-800'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
             }`}
           >
             <Bell className="mr-1.5 h-3.5 w-3.5" />
@@ -142,28 +142,28 @@ export default function AppHeader({
             <Button
               variant="ghost"
               size="sm"
-              className="border-slate-750 h-7 gap-1.5 border bg-[#0c0f19] px-2 font-mono text-xs font-bold text-slate-200 hover:bg-slate-800"
+              className="dark:border-slate-750 h-7 gap-1.5 border border-slate-200 bg-white px-2 font-mono text-xs font-bold text-slate-800 hover:bg-slate-100 dark:bg-[#0c0f19] dark:text-slate-200 dark:hover:bg-slate-800"
               title={t('Select Country & Region')}
             >
               <span className="text-sm">{countryConfig?.flag || '🇬🇧'}</span>
-              <span className="hidden font-sans text-[11px] font-bold text-amber-300 sm:inline">
+              <span className="hidden font-sans text-[11px] font-bold text-amber-700 sm:inline dark:text-amber-300">
                 {countryConfig?.code || 'GB'}
               </span>
-              <ChevronDown className="h-3 w-3 text-slate-400" />
+              <ChevronDown className="h-3 w-3 text-slate-500 dark:text-slate-400" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="border-slate-750 max-h-72 w-48 overflow-y-auto bg-[#0f1420] text-xs text-slate-200">
-            <DropdownMenuLabel className="text-[10px] font-bold tracking-wider text-amber-400 uppercase">
+          <DropdownMenuContent className="dark:border-slate-750 max-h-72 w-48 overflow-y-auto border-slate-200 bg-white text-xs text-slate-800 dark:bg-[#0f1420] dark:text-slate-200">
+            <DropdownMenuLabel className="text-[10px] font-bold tracking-wider text-amber-600 uppercase dark:text-amber-400">
               {t('Select Country & Region')}
             </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-slate-800" />
+            <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
             {Object.values(SUPPORTED_COUNTRIES).map((c) => (
               <DropdownMenuItem
                 key={c.code}
                 onClick={() => setCountryCode(c.code)}
                 className={`flex cursor-pointer items-center justify-between py-1.5 ${
                   countryCode === c.code
-                    ? 'bg-amber-500/20 font-bold text-amber-300'
+                    ? 'bg-amber-500/20 font-bold text-amber-700 dark:text-amber-300'
                     : ''
                 }`}
               >
@@ -171,7 +171,7 @@ export default function AppHeader({
                   <span className="text-base">{c.flag}</span>
                   <span>{t(c.name)}</span>
                 </div>
-                <span className="font-mono text-[10px] text-slate-400">
+                <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
                   {c.symbol}
                 </span>
               </DropdownMenuItem>
@@ -195,10 +195,10 @@ export default function AppHeader({
           <Button
             variant="ghost"
             size="icon"
-            className="relative h-8 w-8 text-slate-400 hover:bg-slate-800 hover:text-slate-100"
+            className="relative h-8 w-8 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
           >
             <Bell className="h-4 w-4" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 animate-pulse rounded-full bg-rose-500 ring-2 ring-[#090b11]" />
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 animate-pulse rounded-full bg-rose-500 ring-2 ring-white dark:ring-[#090b11]" />
           </Button>
         </Link>
 
@@ -208,30 +208,30 @@ export default function AppHeader({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-2 p-1 hover:bg-slate-800"
+              className="h-8 gap-2 p-1 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <Avatar className="h-6 w-6 ring-1 ring-amber-500/40">
                 <AvatarImage src="/placeholder-user.jpg" />
-                <AvatarFallback className="bg-slate-800 text-[10px] text-slate-200">
+                <AvatarFallback className="bg-slate-100 text-[10px] text-slate-800 dark:bg-slate-800 dark:text-slate-200">
                   TU
                 </AvatarFallback>
               </Avatar>
-              <span className="hidden text-xs font-bold text-slate-200 sm:inline">
+              <span className="hidden text-xs font-bold text-slate-800 sm:inline dark:text-slate-200">
                 {t('Trader User', 'Trader User')}
               </span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="border-slate-750 w-52 bg-[#0f1420] text-xs text-slate-200">
-            <DropdownMenuLabel className="font-bold text-amber-400">
+          <DropdownMenuContent className="dark:border-slate-750 w-52 border-slate-200 bg-white text-xs text-slate-800 dark:bg-[#0f1420] dark:text-slate-200">
+            <DropdownMenuLabel className="font-bold text-amber-600 dark:text-amber-400">
               {t('Trader Account')}
             </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-slate-800" />
+            <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
             <DropdownMenuItem asChild>
               <Link
                 href="/settings/profile"
                 className="flex cursor-pointer items-center"
               >
-                <User className="mr-2 h-3.5 w-3.5 text-slate-400" />{' '}
+                <User className="mr-2 h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />{' '}
                 {t('Profile Settings')}
               </Link>
             </DropdownMenuItem>
@@ -240,7 +240,7 @@ export default function AppHeader({
                 href="/settings/security"
                 className="flex cursor-pointer items-center"
               >
-                <Shield className="mr-2 h-3.5 w-3.5 text-slate-400" />{' '}
+                <Shield className="mr-2 h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />{' '}
                 {t('Security & 2FA')}
               </Link>
             </DropdownMenuItem>
@@ -249,31 +249,31 @@ export default function AppHeader({
                 href="/settings/billing"
                 className="flex cursor-pointer items-center"
               >
-                <Settings className="mr-2 h-3.5 w-3.5 text-slate-400" />{' '}
+                <Settings className="mr-2 h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />{' '}
                 {t('Billing & Invoices')}
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-slate-800" />
+            <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
             <DropdownMenuItem asChild>
               <Link
                 href="/affiliate/dashboard"
                 className="flex cursor-pointer items-center"
               >
-                <Share2 className="mr-2 h-3.5 w-3.5 text-slate-400" />{' '}
+                <Share2 className="mr-2 h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />{' '}
                 {t('Affiliate Partner Dashboard')}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/admin" className="flex cursor-pointer items-center">
-                <ShieldAlert className="mr-2 h-3.5 w-3.5 text-slate-400" />{' '}
+                <ShieldAlert className="mr-2 h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />{' '}
                 {t('nav.admin', 'Admin Control')}
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-slate-800" />
+            <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
             <DropdownMenuItem asChild>
               <Link
                 href="/login"
-                className="flex cursor-pointer items-center text-rose-400"
+                className="flex cursor-pointer items-center text-rose-600 dark:text-rose-400"
               >
                 <LogOut className="mr-2 h-3.5 w-3.5" /> {t('Log out')}
               </Link>

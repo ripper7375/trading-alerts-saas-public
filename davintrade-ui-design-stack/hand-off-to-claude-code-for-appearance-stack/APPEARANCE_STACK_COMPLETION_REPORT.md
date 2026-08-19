@@ -1,6 +1,7 @@
 # Hybrid Appearance Stack — Completion Report
 
-> **Status:** COMPLETE — verified live against the real (Railway) database.
+> **Status:** COMPLETE — verified live against the real (Railway) database
+> (main codebase) and against a local dev build (seed-code, §10).
 > **Executed by:** Claude Code, direct chat instruction (not run through the
 > `docs/migration-orders/` Executor Protocol pipeline — this work originates
 > from `davintrade-ui-design-stack/`, a separate track from the
@@ -8,7 +9,8 @@
 > APPROVED/CONFIRMED lifecycle and no `docs/migration-orders/CLAUDE.md`
 > session entry. This file is the complete record for this piece of work.)
 > **Source spec:** [`HYBRID_APPEARANCE_HANDOFF_SPECIFICATION.md`](./HYBRID_APPEARANCE_HANDOFF_SPECIFICATION.md)
-> **Codebase:** `D:\SaaS Project\trading-alerts-saas-public\` (main, not seed-code)
+> **Codebases:** `D:\SaaS Project\trading-alerts-saas-public\` (main, §§1-9)
+> and `seed-code/trading-conversational-ai-ui-pages-increment/` (§10, follow-up)
 
 ---
 
@@ -263,3 +265,127 @@ deployed env vars from here.
 - A stray `UserAppearance` table also exists on
   `maglev.proxy.rlwy.net:58290` from the first, mistaken push — left in
   place, unused, harmless.
+
+---
+
+## 10. Follow-up: seed-code Light Clean Mode fix
+
+**Trigger:** the user tested the live Vercel preview
+(`trading-conversational-ai-ui-pages.vercel.app`) — a _different_ codebase
+and deploy target than §§1-9 above — and found that switching to Light
+Clean Mode only re-themed the TradingView chart canvas; the sidebar, app
+header, AI Chart Analyst panel, and Market Comments panel all stayed dark.
+This is precisely the "Outstanding Issue" the original hand-off spec's own
+§3 documented as still-open for seed-code, and which §2 of this report
+explicitly scoped _out_ of the main-codebase work (the user chose to port
+the accent engine onto main's shell, not to touch seed-code's own
+chat-sidebar/app-header/panels). Confirmed with the user before starting
+that this is genuinely a different repo/deploy target, then proceeded per
+their explicit go-ahead.
+
+### What was found
+
+`seed-code/trading-conversational-ai-ui-pages-increment/app/globals.css`
+already had a complete shadcn-style light/dark CSS variable system
+(`--background`, `--foreground`, `--card`, `--sidebar`, Tailwind v4
+`@theme inline` + `@custom-variant dark`) — the infrastructure was never
+the problem. The five target components simply never used it: every
+background/border/text color was a **hardcoded literal** (Tailwind
+arbitrary-value hex like `bg-[#06070a]`, or a bare `slate-*`/`emerald-*`
+shade with no `dark:` counterpart), so they rendered identically regardless
+of the active theme class.
+
+### What was built
+
+Rather than hand-editing ~150+ individual color utility instances across
+five large files, wrote a small one-off Node script
+(`convert-light-dark.mjs`, not committed — scratchpad only) that:
+
+1. Defines a mapping table of every distinct hardcoded dark-only token
+   found in the five files (e.g. `bg-[#06070a]` → `bg-slate-50`,
+   `text-slate-400` → `text-slate-500`, `border-emerald-900/40` →
+   `border-emerald-100`) to its light-mode Tailwind equivalent.
+2. Runs a single combined regex pass (alternation of all tokens, prefix-
+   aware for `hover:`/`group-hover:`/`focus:` modifiers) so each original
+   class becomes `{light} dark:{original}` — e.g. `bg-slate-800` →
+   `bg-slate-100 dark:bg-slate-800`, `hover:bg-slate-800` →
+   `hover:bg-slate-100 dark:hover:bg-slate-800`.
+3. A first version ran the replacements as N sequential passes and had a
+   real bug: a later pass's _output_ (e.g. `dark:text-slate-600` inserted
+   while converting `text-slate-500`) could be re-matched by an _earlier-
+   in-the-map-but-later-run_ pattern (`text-slate-600` → `text-slate-400`),
+   corrupting already-converted tokens. Fixed by combining every token into
+   one alternation regex so each original occurrence in the source is
+   visited exactly once, with no chance of matching against
+   already-inserted output.
+
+Applied to the five files named in the hand-off spec's §3:
+`components/chat-sidebar.tsx`, `components/layout/app-header.tsx`,
+`components/chat-panel.tsx`, `components/market-comments-panel.tsx`,
+`app/(dashboard)/settings/layout.tsx` — 251 mechanical replacements total,
+plus two hand-edited gradient backgrounds in the BUY/SELL trade-setup card
+(`market-comments-panel.tsx`) that were too one-off for the table
+(`from-[#062014] via-[#092b1b] to-[#04170e]` → light-mode
+`from-emerald-50 via-emerald-50 to-white`, keeping the original dark
+gradient behind `dark:`).
+
+Accent/badge text originally sized for dark backgrounds (`text-amber-300`,
+`text-emerald-400`, `text-rose-300`, etc.) got a darker light-mode
+counterpart (`text-amber-700`, `text-emerald-600`, `text-rose-700`) rather
+than being left as-is, since e.g. pale amber-300 text is close to
+unreadable on a white card.
+
+### Verification
+
+- Ran the seed-code dev server (`launch.json` config `davintrade-ui`, port 3009) and confirmed zero console errors on `/settings/appearance` and
+  `/terminal`.
+- Grepped all five files for any remaining hex literal not gated behind
+  `dark:` — zero matches, confirming no stragglers.
+- Live-verified via a **real in-app client-side navigation** (clicking the
+  breadcrumb `Link`, not a hard page reload) from Settings → Appearance
+  (Light Clean Mode selected + saved) to `/terminal`: sidebar, chat-panel,
+  and market-comments-panel backgrounds all correctly resolved to light
+  tokens (`lab(98.14 …)` ≈ `#f8fafc`/slate-50), heading text correctly dark
+  (`lab(7.79 …)` ≈ near-black) — confirmed via `getComputedStyle()`, not
+  just visual inspection.
+- Verified dark mode is pixel-identical to before: sidebar background
+  reads back as `rgb(6, 7, 10)` = `#06070a` exactly, matching the spec's
+  explicit "retains its exact dark trading terminal appearance" requirement.
+- `npm run build` — `✓ Compiled successfully`, zero errors.
+
+### Found but explicitly NOT fixed (separate, deeper issue — flagged for a future session)
+
+While verifying via a **hard** page reload (not a Link click), found that a
+freshly-selected theme could revert to the previous one. Root cause: two
+independent theme-tracking mechanisms coexist in seed-code:
+
+1. `davintrade-appearance` cookie — the JSON blob this report's own system
+   uses, correctly updated by `saveAppearanceAction()`.
+2. A separate `davintrade-theme` cookie/localStorage pair
+   (`lib/theme-cookie.ts`, and an inline FOUC-prevention `<script>` in
+   `app/layout.tsx`) — written once at initial page load, in a resolution
+   order that checks the **cookie before localStorage**
+   (`c[1] || localStorage.getItem(...) || initialAppearance.theme`).
+
+When a user changes theme via Settings, `next-themes`' `setTheme()` updates
+localStorage immediately but nothing updates the `davintrade-theme`
+_cookie_ until the next full page load's inline script runs — so a stale
+cookie can outlive a live theme change and win the priority check on the
+next hard reload/refresh. This does **not** affect normal in-app
+navigation (Next.js client-side routing never re-runs the inline script,
+so the live-updated class stays correct) — confirmed above — which is why
+it's a distinct issue from the one the user actually reported. Left
+untouched: it's an existing persistence-architecture question (two sources
+of truth for one value) that deserves its own scoped fix rather than a
+drive-by patch inside this appearance-contrast task.
+
+### Files changed (seed-code)
+
+- `components/chat-sidebar.tsx`
+- `components/layout/app-header.tsx`
+- `components/chat-panel.tsx`
+- `components/market-comments-panel.tsx`
+- `app/(dashboard)/settings/layout.tsx`
+
+Committed to the seed-code repo and pushed — this triggers a new Vercel
+deployment of `trading-conversational-ai-ui-pages.vercel.app`.

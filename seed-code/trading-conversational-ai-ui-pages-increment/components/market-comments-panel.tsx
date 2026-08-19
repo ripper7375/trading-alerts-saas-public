@@ -160,13 +160,21 @@ export default function MarketCommentsPanel({
   const renderIcon = (type: MarketComment['iconType']) => {
     switch (type) {
       case 'ALERT_RESISTANCE':
-        return <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-rose-400" />;
+        return (
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-rose-600 dark:text-rose-400" />
+        );
       case 'EDT_TOUCH':
-        return <Bell className="h-3.5 w-3.5 shrink-0 text-amber-400" />;
+        return (
+          <Bell className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+        );
       case 'SSA_CROSS':
-        return <Zap className="h-3.5 w-3.5 shrink-0 text-blue-400" />;
+        return (
+          <Zap className="h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
+        );
       default:
-        return <Info className="h-3.5 w-3.5 shrink-0 text-emerald-400" />;
+        return (
+          <Info className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+        );
     }
   };
 
@@ -174,19 +182,19 @@ export default function MarketCommentsPanel({
     switch (action) {
       case 'BUY':
         return (
-          <Badge className="shrink-0 border-emerald-500/50 bg-emerald-500/20 px-1.5 py-0 font-mono text-[9px] text-emerald-300 shadow-xs">
+          <Badge className="shrink-0 border-emerald-500/50 bg-emerald-500/20 px-1.5 py-0 font-mono text-[9px] text-emerald-700 shadow-xs dark:text-emerald-300">
             <TrendingUp className="mr-0.5 inline h-2.5 w-2.5" /> {t('BUY')}
           </Badge>
         );
       case 'SELL':
         return (
-          <Badge className="shrink-0 border-rose-500/50 bg-rose-500/20 px-1.5 py-0 font-mono text-[9px] text-rose-300 shadow-xs">
+          <Badge className="shrink-0 border-rose-500/50 bg-rose-500/20 px-1.5 py-0 font-mono text-[9px] text-rose-700 shadow-xs dark:text-rose-300">
             <TrendingDown className="mr-0.5 inline h-2.5 w-2.5" /> {t('SELL')}
           </Badge>
         );
       default:
         return (
-          <Badge className="shrink-0 border-slate-500/50 bg-slate-500/20 px-1.5 py-0 font-mono text-[9px] text-slate-300 shadow-xs">
+          <Badge className="shrink-0 border-slate-500/50 bg-slate-500/20 px-1.5 py-0 font-mono text-[9px] text-slate-700 shadow-xs dark:text-slate-300">
             <Minus className="mr-0.5 inline h-2.5 w-2.5" /> {t('NEUTRAL')}
           </Badge>
         );
@@ -235,15 +243,15 @@ export default function MarketCommentsPanel({
             />
           </svg>
           <div className="absolute flex flex-col items-center justify-center text-center">
-            <span className="font-mono text-base font-black text-slate-100">
+            <span className="font-mono text-base font-black text-slate-900 dark:text-slate-100">
               {value}
             </span>
-            <span className="font-mono text-[8px] text-slate-400 uppercase">
+            <span className="font-mono text-[8px] text-slate-500 uppercase dark:text-slate-400">
               {t('pts')}
             </span>
           </div>
         </div>
-        <span className="mt-1.5 text-[10px] font-extrabold text-slate-300">
+        <span className="mt-1.5 text-[10px] font-extrabold text-slate-700 dark:text-slate-300">
           {label}
         </span>
       </div>
@@ -251,18 +259,18 @@ export default function MarketCommentsPanel({
   };
 
   return (
-    <div className="relative flex h-full flex-col space-y-3.5 overflow-y-auto border-l border-emerald-950/70 bg-[#080d0a] p-0.5 shadow-2xl select-none">
+    <div className="relative flex h-full flex-col space-y-3.5 overflow-y-auto border-l border-emerald-100 bg-slate-50 p-0.5 shadow-2xl select-none dark:border-emerald-950/70 dark:bg-[#080d0a]">
       {/* D2: Panel Header — Market Comments : LIVE (Larger Font Size) */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-emerald-900/40 bg-[#101713] px-4">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-emerald-100 bg-white px-4 dark:border-emerald-900/40 dark:bg-[#101713]">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400 shadow-xs ring-1 ring-emerald-500/30">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 shadow-xs ring-1 ring-emerald-500/30 dark:text-emerald-400">
             <Activity className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="flex items-center gap-2 text-base font-extrabold tracking-tight text-slate-100">
+            <h2 className="flex items-center gap-2 text-base font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
               {t('comments.title', 'Market Comments')} :
               {tier === 'PRO' && (
-                <span className="flex items-center gap-1.5 font-mono text-xs font-bold text-emerald-400">
+                <span className="flex items-center gap-1.5 font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400">
                   <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400" />
                   {t('LIVE')}
                 </span>
@@ -276,7 +284,7 @@ export default function MarketCommentsPanel({
             variant="ghost"
             size="icon"
             onClick={onCollapsePanel}
-            className="h-7 w-7 text-slate-400 hover:bg-emerald-950/60 hover:text-slate-100"
+            className="h-7 w-7 text-slate-500 hover:bg-emerald-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-emerald-950/60 dark:hover:text-slate-100"
             title={t('Collapse Right Panel')}
           >
             <ChevronRight className="h-4 w-4" />
@@ -286,27 +294,27 @@ export default function MarketCommentsPanel({
 
       {/* D3: Expanded Market Comments Feed (Space expanded to allow 3 full rows of comments comfortably) */}
       <div className="flex shrink-0 flex-col px-3">
-        <div className="flex items-center justify-between rounded-t-lg border border-emerald-900/40 bg-[#0c1310] px-3.5 py-2 text-[10px] font-extrabold tracking-wider text-slate-400 uppercase">
+        <div className="flex items-center justify-between rounded-t-lg border border-emerald-100 bg-slate-50 px-3.5 py-2 text-[10px] font-extrabold tracking-wider text-slate-500 uppercase dark:border-emerald-900/40 dark:bg-[#0c1310] dark:text-slate-400">
           <span>
             {t('comments.col_comment', 'ALERT / TIMESTAMP / COMMENT')}
           </span>
           <span>{t('comments.col_action', 'ACTION')}</span>
         </div>
 
-        <ScrollArea className="h-44 rounded-b-lg border-x border-b border-emerald-900/40 bg-[#0a0f0c] p-2">
+        <ScrollArea className="h-44 rounded-b-lg border-x border-b border-emerald-100 bg-white p-2 dark:border-emerald-900/40 dark:bg-[#0a0f0c]">
           <div className="space-y-2">
             {comments.map((comment) => (
               <div
                 key={comment.id}
-                className="flex items-center justify-between gap-2 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-2.5 text-xs shadow-xs transition-all hover:border-emerald-700/40 hover:bg-[#101915]"
+                className="flex items-center justify-between gap-2 rounded-lg border border-emerald-100 bg-slate-50 p-2.5 text-xs shadow-xs transition-all hover:border-emerald-300 hover:bg-slate-100 dark:border-emerald-900/30 dark:bg-[#0d1411] dark:hover:border-emerald-700/40 dark:hover:bg-[#101915]"
               >
                 <div className="flex min-w-0 items-center gap-2">
                   {renderIcon(comment.iconType)}
                   <div className="flex min-w-0 flex-col">
-                    <span className="font-mono text-[9px] text-slate-400">
+                    <span className="font-mono text-[9px] text-slate-500 dark:text-slate-400">
                       {comment.timestamp}
                     </span>
-                    <span className="truncate text-[11px] font-semibold text-slate-200">
+                    <span className="truncate text-[11px] font-semibold text-slate-800 dark:text-slate-200">
                       {t(comment.shortComment)}
                     </span>
                   </div>
@@ -351,7 +359,7 @@ export default function MarketCommentsPanel({
       </div>
 
       {/* D5: 3 Circular Speedometer / Gauge-Progress Dials */}
-      <div className="mx-3 shrink-0 rounded-xl border border-emerald-900/40 bg-[#0a0f0c] py-3 shadow-md">
+      <div className="mx-3 shrink-0 rounded-xl border border-emerald-100 bg-white py-3 shadow-md dark:border-emerald-900/40 dark:bg-[#0a0f0c]">
         <div className="grid grid-cols-3 gap-2">
           <RenderGaugeDial
             label={t('M15 EDT Stochastic')}
@@ -377,8 +385,8 @@ export default function MarketCommentsPanel({
           className={cn(
             'relative space-y-3 rounded-xl border-2 p-3.5 shadow-2xl transition-all',
             tradeSetup.direction === 'BUY'
-              ? 'border-emerald-400 bg-gradient-to-br from-[#062014] via-[#092b1b] to-[#04170e] text-slate-100 shadow-emerald-950/50'
-              : 'border-rose-500 bg-gradient-to-br from-[#2a0910] via-[#380c15] to-[#1c0409] text-slate-100 shadow-rose-950/50'
+              ? 'border-emerald-400 bg-gradient-to-br from-emerald-50 via-emerald-50 to-white text-slate-900 shadow-emerald-950/50 dark:from-[#062014] dark:via-[#092b1b] dark:to-[#04170e] dark:text-slate-100'
+              : 'border-rose-500 bg-gradient-to-br from-rose-50 via-rose-50 to-white text-slate-900 shadow-rose-950/50 dark:from-[#2a0910] dark:via-[#380c15] dark:to-[#1c0409] dark:text-slate-100'
           )}
         >
           <div className="flex items-center justify-between">
@@ -387,16 +395,16 @@ export default function MarketCommentsPanel({
                 className={cn(
                   'h-4 w-4 stroke-[2.5]',
                   tradeSetup.direction === 'BUY'
-                    ? 'text-emerald-400'
-                    : 'text-rose-400'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-rose-600 dark:text-rose-400'
                 )}
               />
               <span
                 className={cn(
                   'text-xs font-black tracking-wider uppercase',
                   tradeSetup.direction === 'BUY'
-                    ? 'text-emerald-400'
-                    : 'text-rose-400'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-rose-600 dark:text-rose-400'
                 )}
               >
                 {t('comments.trade_setup_card', 'TRADE SETUP CARD')}
@@ -406,8 +414,8 @@ export default function MarketCommentsPanel({
               className={cn(
                 'border-2 px-2.5 py-0.5 font-mono text-xs font-black',
                 tradeSetup.direction === 'BUY'
-                  ? 'border-emerald-400 bg-emerald-500/30 text-emerald-200'
-                  : 'border-rose-500 bg-rose-500/30 text-rose-200'
+                  ? 'border-emerald-400 bg-emerald-500/30 text-emerald-800 dark:text-emerald-200'
+                  : 'border-rose-500 bg-rose-500/30 text-rose-800 dark:text-rose-200'
               )}
             >
               {tradeSetup.direction === 'BUY'
@@ -417,111 +425,111 @@ export default function MarketCommentsPanel({
             </Badge>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 rounded-lg border border-slate-800 bg-black/60 p-2.5 font-mono text-[11px]">
+          <div className="grid grid-cols-3 gap-2 rounded-lg border border-slate-200 bg-slate-100 p-2.5 font-mono text-[11px] dark:border-slate-800 dark:bg-black/60">
             <div>
-              <div className="text-[9px] font-bold text-slate-400 uppercase">
+              <div className="text-[9px] font-bold text-slate-500 uppercase dark:text-slate-400">
                 {t('Take Profit')}
               </div>
-              <div className="text-xs font-extrabold text-emerald-400">
+              <div className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">
                 ${tradeSetup.takeProfit.toFixed(2)}
               </div>
             </div>
             <div>
-              <div className="text-[9px] font-bold text-slate-400 uppercase">
+              <div className="text-[9px] font-bold text-slate-500 uppercase dark:text-slate-400">
                 {t('Stop Loss')}
               </div>
-              <div className="text-xs font-extrabold text-rose-400">
+              <div className="text-xs font-extrabold text-rose-600 dark:text-rose-400">
                 ${tradeSetup.stopLoss.toFixed(2)}
               </div>
             </div>
             <div>
-              <div className="text-[9px] font-bold text-slate-400 uppercase">
+              <div className="text-[9px] font-bold text-slate-500 uppercase dark:text-slate-400">
                 {t('Risk / Reward')}
               </div>
-              <div className="text-xs font-extrabold text-amber-400">
+              <div className="text-xs font-extrabold text-amber-600 dark:text-amber-400">
                 {tradeSetup.riskReward}
               </div>
             </div>
           </div>
 
-          <p className="text-[11px] leading-relaxed font-medium text-slate-200">
+          <p className="text-[11px] leading-relaxed font-medium text-slate-800 dark:text-slate-200">
             {t(tradeSetup.rationale)}
           </p>
         </div>
       </div>
 
       {/* D7: EDT Quality Metrics (Removed Stack E badge as requested!) */}
-      <div className="mt-2 shrink-0 space-y-3 border-t border-emerald-900/50 bg-[#0a0f0c] p-4">
+      <div className="mt-2 shrink-0 space-y-3 border-t border-emerald-100 bg-white p-4 dark:border-emerald-900/50 dark:bg-[#0a0f0c]">
         <div className="flex items-center justify-between">
-          <span className="flex items-center gap-2 text-base font-black text-slate-100">
-            <BarChart2 className="h-4.5 w-4.5 text-amber-400" />
+          <span className="flex items-center gap-2 text-base font-black text-slate-900 dark:text-slate-100">
+            <BarChart2 className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
             {t('comments.edt_quality_metrics', 'EDT Quality Metrics')}
           </span>
         </div>
 
         <div className="space-y-2 font-mono text-xs">
           {/* 1. Bar Coverage */}
-          <div className="space-y-1 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-2">
+          <div className="space-y-1 rounded-lg border border-emerald-100 bg-slate-50 p-2 dark:border-emerald-900/30 dark:bg-[#0d1411]">
             <div className="flex justify-between text-[11px]">
-              <span className="font-sans font-semibold text-slate-400">
+              <span className="font-sans font-semibold text-slate-500 dark:text-slate-400">
                 {t('comments.bar_coverage', 'Bar Coverage')}
               </span>
-              <span className="font-bold text-emerald-400">
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">
                 {t('Excellent')} {METRICS_DATA.barCoverage}%
               </span>
             </div>
             <Progress
               value={METRICS_DATA.barCoverage}
-              className="h-1.5 bg-slate-800"
+              className="h-1.5 bg-slate-100 dark:bg-slate-800"
             />
           </div>
 
           {/* 2. Regression R² */}
-          <div className="space-y-1 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-2">
+          <div className="space-y-1 rounded-lg border border-emerald-100 bg-slate-50 p-2 dark:border-emerald-900/30 dark:bg-[#0d1411]">
             <div className="flex justify-between text-[11px]">
-              <span className="font-sans font-semibold text-slate-400">
+              <span className="font-sans font-semibold text-slate-500 dark:text-slate-400">
                 {t('comments.regression_r2', 'Regression R²')}
               </span>
-              <span className="font-bold text-amber-400">
+              <span className="font-bold text-amber-600 dark:text-amber-400">
                 {t('Fair')} {METRICS_DATA.regressionR2}%
               </span>
             </div>
             <Progress
               value={METRICS_DATA.regressionR2}
-              className="h-1.5 bg-slate-800"
+              className="h-1.5 bg-slate-100 dark:bg-slate-800"
             />
           </div>
 
           {/* 3. EDT Fitness */}
-          <div className="space-y-1 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-2">
+          <div className="space-y-1 rounded-lg border border-emerald-100 bg-slate-50 p-2 dark:border-emerald-900/30 dark:bg-[#0d1411]">
             <div className="flex justify-between text-[11px]">
-              <span className="font-sans font-semibold text-slate-400">
+              <span className="font-sans font-semibold text-slate-500 dark:text-slate-400">
                 {t('comments.edt_fitness', 'EDT Fitness')}
               </span>
-              <span className="font-bold text-rose-400">
+              <span className="font-bold text-rose-600 dark:text-rose-400">
                 {t('Underfit')} {METRICS_DATA.edtFitness}%
               </span>
             </div>
             <Progress
               value={METRICS_DATA.edtFitness}
-              className="h-1.5 bg-slate-800"
+              className="h-1.5 bg-slate-100 dark:bg-slate-800"
             />
           </div>
 
           {/* 4. Baseline Symmetry */}
-          <div className="space-y-1 rounded-lg border border-emerald-900/30 bg-[#0d1411] p-1.5">
+          <div className="space-y-1 rounded-lg border border-emerald-100 bg-slate-50 p-1.5 dark:border-emerald-900/30 dark:bg-[#0d1411]">
             <div className="flex justify-between text-[11px]">
-              <span className="font-sans font-semibold text-slate-400">
+              <span className="font-sans font-semibold text-slate-500 dark:text-slate-400">
                 {t('comments.baseline_symmetry', 'Baseline Symmetry')}
               </span>
-              <span className="font-bold text-cyan-400">
+              <span className="font-bold text-cyan-600 dark:text-cyan-400">
                 {t(METRICS_DATA.symmetryBias)}{' '}
                 {`${METRICS_DATA.baselineSymmetry}%`}
               </span>
             </div>
             <Progress
               value={METRICS_DATA.baselineSymmetry}
-              className="h-1.5 bg-slate-800"
+              className="h-1.5 bg-slate-100 dark:bg-slate-800"
             />
           </div>
         </div>
@@ -529,20 +537,20 @@ export default function MarketCommentsPanel({
 
       {/* FREE Tier Glassmorphism Blur Overlay Gate */}
       {tier === 'FREE' && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#070b09]/85 p-6 text-center backdrop-blur-md">
-          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-400 shadow-lg ring-1 shadow-amber-500/10 ring-amber-500/40">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/85 p-6 text-center backdrop-blur-md dark:bg-[#070b09]/85">
+          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-600 shadow-lg ring-1 shadow-amber-500/10 ring-amber-500/40 dark:text-amber-400">
             <Lock className="h-6 w-6" />
           </div>
           <Badge
             variant="outline"
-            className="mb-2 border-amber-500/50 bg-amber-500/10 font-mono text-[10px] text-amber-400"
+            className="mb-2 border-amber-500/50 bg-amber-500/10 font-mono text-[10px] text-amber-600 dark:text-amber-400"
           >
             🔒 {t('PRO Subscriber Feature')}
           </Badge>
-          <h3 className="mb-1 text-base font-bold text-slate-100">
+          <h3 className="mb-1 text-base font-bold text-slate-900 dark:text-slate-100">
             {t('Live Feeds & Quality Metrics')}
           </h3>
-          <p className="mb-4 max-w-xs text-xs leading-relaxed text-slate-400">
+          <p className="mb-4 max-w-xs text-xs leading-relaxed text-slate-500 dark:text-slate-400">
             {t(
               'Live Market Comments, Session Countdowns, Gauges, and EDT Quality Metrics require a PRO subscription. Upgrade to unlock real-time WebSocket feeds for XAUUSD.'
             )}

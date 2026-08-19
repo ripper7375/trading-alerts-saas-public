@@ -219,15 +219,15 @@ export default function ChatPanel({
   const activeModelObj = ANALYST_MODELS.find((m) => m.id === selectedModel);
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden border-r border-slate-800/80 bg-[#0b0d14] shadow-xl select-none">
+    <div className="relative flex h-full flex-col overflow-hidden border-r border-slate-200 bg-slate-50 shadow-xl select-none dark:border-slate-800/80 dark:bg-[#0b0d14]">
       {/* B2: Panel Header — AI Chart Analyst */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-800/80 bg-[#121622] px-3.5">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-3.5 dark:border-slate-800/80 dark:bg-[#121622]">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400 shadow-xs ring-1 ring-amber-500/30">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 shadow-xs ring-1 ring-amber-500/30 dark:text-amber-400">
             <Brain className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="flex items-center gap-1.5 text-xs font-extrabold tracking-tight text-slate-100">
+            <h2 className="flex items-center gap-1.5 text-xs font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
               {t('AI Chart Analyst')}
             </h2>
           </div>
@@ -235,19 +235,19 @@ export default function ChatPanel({
 
         <div className="flex items-center gap-1.5">
           <Select value={selectedModel} onValueChange={handleModelChange}>
-            <SelectTrigger className="border-slate-750 h-7 w-[165px] bg-[#090b10] text-xs font-semibold text-slate-200 focus:ring-amber-500/30">
+            <SelectTrigger className="dark:border-slate-750 h-7 w-[165px] border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:ring-amber-500/30 dark:bg-[#090b10] dark:text-slate-200">
               <SelectValue placeholder={t('Select AI Model')} />
             </SelectTrigger>
-            <SelectContent className="border-slate-750 bg-[#121622]">
+            <SelectContent className="dark:border-slate-750 border-slate-200 bg-white dark:bg-[#121622]">
               {ANALYST_MODELS.map((model) => (
                 <SelectItem
                   key={model.id}
                   value={model.id}
-                  className="flex items-center justify-between text-xs focus:bg-amber-500/20 focus:text-amber-300"
+                  className="flex items-center justify-between text-xs focus:bg-amber-500/20 focus:text-amber-700 dark:focus:text-amber-300"
                 >
                   <span>{model.name}</span>
                   {tier === 'FREE' && model.proOnly && (
-                    <Badge className="ml-1.5 h-3.5 border-amber-500/40 bg-amber-500/20 font-mono text-[8px] text-amber-300">
+                    <Badge className="ml-1.5 h-3.5 border-amber-500/40 bg-amber-500/20 font-mono text-[8px] text-amber-700 dark:text-amber-300">
                       {t('🔒 PRO')}
                     </Badge>
                   )}
@@ -261,7 +261,7 @@ export default function ChatPanel({
               variant="ghost"
               size="icon"
               onClick={onCollapsePanel}
-              className="h-7 w-7 text-slate-400 hover:bg-slate-800 hover:text-slate-100"
+              className="h-7 w-7 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
               title={t('Collapse AI Analyst Panel')}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -272,9 +272,9 @@ export default function ChatPanel({
 
       {/* FREE Tier Read-Only Banner */}
       {tier === 'FREE' && (
-        <div className="flex shrink-0 items-center justify-between border-b border-amber-500/30 bg-[#121017] px-3.5 py-2 text-xs text-amber-300">
+        <div className="flex shrink-0 items-center justify-between border-b border-amber-500/30 bg-amber-50 px-3.5 py-2 text-xs text-amber-700 dark:bg-[#121017] dark:text-amber-300">
           <div className="flex items-center gap-2">
-            <Info className="h-4 w-4 shrink-0 text-amber-400" />
+            <Info className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <span className="text-[11px] font-semibold">
               {t(
                 'Read-Only Session History (FREE Tier) — Upgrade to PRO to resume interactive AI Chart Analysis.'
@@ -304,14 +304,14 @@ export default function ChatPanel({
                 message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
               )}
             >
-              <Avatar className="h-7 w-7 shrink-0 border border-slate-700 shadow-xs">
+              <Avatar className="h-7 w-7 shrink-0 border border-slate-300 shadow-xs dark:border-slate-700">
                 {message.role === 'assistant' ? (
                   <AvatarImage
                     src="/DavinTrade_Logo.jpg"
                     className="object-cover"
                   />
                 ) : (
-                  <AvatarFallback className="bg-slate-800 text-xs text-slate-300">
+                  <AvatarFallback className="bg-slate-100 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                     <User className="h-3.5 w-3.5" />
                   </AvatarFallback>
                 )}
@@ -323,16 +323,16 @@ export default function ChatPanel({
                     'relative rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-md',
                     message.role === 'user'
                       ? 'rounded-tr-xs bg-amber-500 font-semibold text-slate-950'
-                      : 'rounded-tl-xs border border-slate-800/90 bg-[#131724] text-slate-100 backdrop-blur-xs'
+                      : 'rounded-tl-xs border border-slate-200 bg-slate-100 text-slate-900 backdrop-blur-xs dark:border-slate-800/90 dark:bg-[#131724] dark:text-slate-100'
                   )}
                 >
                   {message.role === 'assistant' && (
-                    <div className="mb-1.5 flex items-center justify-between border-b border-slate-800/80 pb-1 text-[10px] font-extrabold tracking-wider text-amber-400 uppercase">
+                    <div className="mb-1.5 flex items-center justify-between border-b border-slate-200 pb-1 text-[10px] font-extrabold tracking-wider text-amber-600 uppercase dark:border-slate-800/80 dark:text-amber-400">
                       <span>
                         {t('DAVINTRADE AI')} •{' '}
                         {activeModelObj?.name.split(' ')[0]}
                       </span>
-                      <span className="font-mono text-[9px] font-normal text-slate-400">
+                      <span className="font-mono text-[9px] font-normal text-slate-500 dark:text-slate-400">
                         {t('SUB-500MS QUAD-RAG')}
                       </span>
                     </div>
@@ -347,11 +347,11 @@ export default function ChatPanel({
           ))}
 
           {isTyping && (
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               <Avatar className="h-6 w-6 border border-amber-500/40">
                 <AvatarImage src="/DavinTrade_Logo.jpg" />
               </Avatar>
-              <span className="animate-pulse font-mono text-[11px] text-amber-300">
+              <span className="animate-pulse font-mono text-[11px] text-amber-700 dark:text-amber-300">
                 {t(
                   `${activeModelObj?.name.split(' ')[0]} is processing market analysis...`
                 )}
@@ -363,13 +363,13 @@ export default function ChatPanel({
       </ScrollArea>
 
       {/* B3: Monthly Token Quota Bar */}
-      <div className="shrink-0 border-t border-slate-800/60 bg-[#0e1018] px-3.5 py-1.5 text-[11px]">
+      <div className="shrink-0 border-t border-slate-200 bg-slate-50 px-3.5 py-1.5 text-[11px] dark:border-slate-800/60 dark:bg-[#0e1018]">
         <div className="mb-1 flex items-center justify-between font-medium">
-          <span className="flex items-center gap-1 text-slate-300">
-            <Zap className="h-3 w-3 text-amber-400" />
+          <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+            <Zap className="h-3 w-3 text-amber-600 dark:text-amber-400" />
             {t('chat.monthly_token_quota', 'Monthly Token Quota')}
           </span>
-          <span className="font-mono text-[10px] font-bold text-amber-400">
+          <span className="font-mono text-[10px] font-bold text-amber-600 dark:text-amber-400">
             {tokensUsed.toLocaleString(language)} /{' '}
             {tier === 'PRO'
               ? monthlyQuota.toLocaleString(language)
@@ -378,12 +378,12 @@ export default function ChatPanel({
         </div>
         <Progress
           value={(tokensUsed / (tier === 'PRO' ? monthlyQuota : 50000)) * 100}
-          className="h-1.5 bg-slate-800"
+          className="h-1.5 bg-slate-100 dark:bg-slate-800"
         />
       </div>
 
       {/* B7: Input Box — Interactive in PRO Tier vs Locked Read-Only Banner in FREE Tier */}
-      <div className="shrink-0 border-t border-slate-800/90 bg-[#0d0f17] p-3.5">
+      <div className="shrink-0 border-t border-slate-200 bg-white p-3.5 dark:border-slate-800/90 dark:bg-[#0d0f17]">
         {tier === 'PRO' ? (
           <div className="relative mx-auto max-w-2xl">
             <textarea
@@ -396,7 +396,7 @@ export default function ChatPanel({
                 }
               }}
               placeholder={t(`Ask ${activeModelObj?.name.split(' ')[0]}...`)}
-              className="border-slate-750 min-h-[58px] w-full resize-none rounded-xl border bg-[#07090f] py-3.5 pr-12 pl-4 text-sm text-slate-100 shadow-inner placeholder:text-base placeholder:font-medium placeholder:text-slate-500 focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/30 focus:outline-none"
+              className="dark:border-slate-750 min-h-[58px] w-full resize-none rounded-xl border border-slate-200 bg-slate-50 py-3.5 pr-12 pl-4 text-sm text-slate-900 shadow-inner placeholder:text-base placeholder:font-medium placeholder:text-slate-500 focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/30 focus:outline-none dark:bg-[#07090f] dark:text-slate-100"
               rows={2}
             />
             <div className="absolute right-3 bottom-3.5 flex gap-1">
@@ -414,12 +414,12 @@ export default function ChatPanel({
         ) : (
           <div className="mx-auto flex max-w-2xl flex-col items-center justify-between gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-center sm:flex-row sm:text-left">
             <div className="flex items-center gap-2">
-              <Lock className="h-4 w-4 shrink-0 text-amber-400" />
+              <Lock className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
               <div>
-                <div className="text-xs font-bold text-slate-100">
+                <div className="text-xs font-bold text-slate-900 dark:text-slate-100">
                   {t('Read-Only History (FREE Tier)')}
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400">
                   {t(
                     'Upgrade to PRO to ask new questions or continue this session.'
                   )}

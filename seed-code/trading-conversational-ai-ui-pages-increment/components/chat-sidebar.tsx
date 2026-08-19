@@ -133,9 +133,9 @@ export function ChatSidebar({
   ];
 
   return (
-    <aside className="relative z-20 flex h-full w-full flex-col overflow-hidden border-r border-slate-800/80 bg-[#06070a] shadow-2xl select-none">
+    <aside className="relative z-20 flex h-full w-full flex-col overflow-hidden border-r border-slate-200 bg-slate-50 shadow-2xl select-none dark:border-slate-800/80 dark:bg-[#06070a]">
       {/* Brand & Tier Selector Dropdown */}
-      <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-800/80 bg-[#090b11] px-3.5">
+      <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-3.5 dark:border-slate-800/80 dark:bg-[#090b11]">
         {!isCollapsed && (
           <div className="flex min-w-0 flex-col justify-center">
             <div className="flex items-center gap-2 truncate text-base font-bold tracking-tight">
@@ -160,26 +160,26 @@ export function ChatSidebar({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="border-slate-750 ml-1 h-5 border px-1.5 font-mono text-[10px] font-bold hover:bg-slate-800"
+                    className="dark:border-slate-750 ml-1 h-5 border border-slate-200 px-1.5 font-mono text-[10px] font-bold hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     <Badge
                       className={cn(
                         'px-1.5 py-0 font-mono text-[9px] font-bold',
                         currentTier === 'PRO'
-                          ? 'border-amber-500/40 bg-amber-500/20 text-amber-300'
-                          : 'border-slate-700 bg-slate-800 text-slate-300'
+                          ? 'border-amber-500/40 bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                          : 'border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
                       )}
                     >
                       {currentTier === 'PRO' ? t('⚡ PRO') : t('🔒 FREE')}
                     </Badge>
-                    <ChevronDown className="ml-0.5 h-3 w-3 text-slate-400" />
+                    <ChevronDown className="ml-0.5 h-3 w-3 text-slate-500 dark:text-slate-400" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="border-slate-750 w-36 bg-[#0f1420] text-xs text-slate-200">
+                <DropdownMenuContent className="dark:border-slate-750 w-36 border-slate-200 bg-white text-xs text-slate-800 dark:bg-[#0f1420] dark:text-slate-200">
                   <DropdownMenuItem asChild>
                     <Link
                       href="/terminal"
-                      className="flex cursor-pointer items-center justify-between font-bold text-amber-300 hover:bg-amber-500/20"
+                      className="flex cursor-pointer items-center justify-between font-bold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
                     >
                       <span>{t('⚡ PRO Tier Page')}</span>
                     </Link>
@@ -187,7 +187,7 @@ export function ChatSidebar({
                   <DropdownMenuItem asChild>
                     <Link
                       href="/free"
-                      className="flex cursor-pointer items-center justify-between font-bold text-slate-300 hover:bg-slate-800"
+                      className="flex cursor-pointer items-center justify-between font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                     >
                       <span>{t('🔒 FREE Tier Page')}</span>
                     </Link>
@@ -203,7 +203,7 @@ export function ChatSidebar({
           size="icon"
           onClick={onToggleCollapse}
           className={cn(
-            'h-8 w-8 shrink-0 text-slate-400 hover:bg-slate-800/80 hover:text-slate-100',
+            'h-8 w-8 shrink-0 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/80 dark:hover:text-slate-100',
             isCollapsed && 'mx-auto'
           )}
           title={isCollapsed ? t('Expand Sidebar') : t('Collapse Sidebar')}
@@ -232,7 +232,7 @@ export function ChatSidebar({
                   isCollapsed && 'justify-center px-0',
                   isActive
                     ? 'border border-[var(--primary)]/40 bg-[var(--primary)]/15 font-bold text-[var(--primary)] shadow-[var(--primary)]/10 shadow-md'
-                    : 'text-slate-300 hover:bg-slate-800/60 hover:text-slate-100'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/60 dark:hover:text-slate-100'
                 )}
               >
                 <Link href={item.href}>
@@ -252,7 +252,7 @@ export function ChatSidebar({
                             'h-4 shrink-0 px-1.5 font-mono text-[9px]',
                             item.isProGated
                               ? 'gap-0.5 border-[var(--primary)]/50 bg-[var(--primary)]/10 text-[var(--primary)]'
-                              : 'border-rose-500/40 bg-rose-500/20 text-rose-300'
+                              : 'border-rose-500/40 bg-rose-500/20 text-rose-700 dark:text-rose-300'
                           )}
                         >
                           {item.isProGated && (
@@ -272,7 +272,7 @@ export function ChatSidebar({
         {/* Management Navigation */}
         <div className="mt-4 px-2.5">
           {!isCollapsed && (
-            <h3 className="mb-2 truncate px-2 text-[10px] font-extrabold tracking-wider text-slate-500 uppercase">
+            <h3 className="mb-2 truncate px-2 text-[10px] font-extrabold tracking-wider text-slate-600 uppercase dark:text-slate-500">
               {t('nav.management_header', 'MANAGEMENT')}
             </h3>
           )}
@@ -290,11 +290,11 @@ export function ChatSidebar({
                     isCollapsed && 'justify-center px-0',
                     isActive
                       ? 'border border-[var(--primary)]/30 bg-[var(--primary)]/10 font-bold text-[var(--primary)]'
-                      : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100'
+                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-100'
                   )}
                 >
                   <Link href={item.href}>
-                    <Icon className="mr-2 h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    <Icon className="mr-2 h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" />
                     {!isCollapsed && (
                       <span className="truncate text-[11px]">{item.label}</span>
                     )}
@@ -308,7 +308,7 @@ export function ChatSidebar({
         {/* Sessions Section */}
         <div className="mt-4 px-2.5">
           {!isCollapsed && (
-            <h3 className="mb-2 truncate px-2 text-[10px] font-extrabold tracking-wider text-slate-500 uppercase">
+            <h3 className="mb-2 truncate px-2 text-[10px] font-extrabold tracking-wider text-slate-600 uppercase dark:text-slate-500">
               {t('nav.sessions_header', 'SESSIONS')}
             </h3>
           )}
@@ -325,7 +325,7 @@ export function ChatSidebar({
                     isCollapsed && 'justify-center px-0',
                     isActive
                       ? 'border border-[var(--primary)]/50 bg-[var(--primary)]/15 font-bold text-[var(--primary)] shadow-[var(--primary)]/10 shadow-xs'
-                      : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-100'
+                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/50 dark:hover:text-slate-100'
                   )}
                 >
                   <MessageSquare
@@ -348,7 +348,7 @@ export function ChatSidebar({
       </ScrollArea>
 
       {/* Action Section: PNG Download + Upgrade CTA */}
-      <div className="shrink-0 space-y-2 border-t border-slate-800/80 bg-[#090b11] p-2.5">
+      <div className="shrink-0 space-y-2 border-t border-slate-200 bg-white p-2.5 dark:border-slate-800/80 dark:bg-[#090b11]">
         {currentTier === 'FREE' && (
           <Link href="/pricing">
             <Button
@@ -376,7 +376,7 @@ export function ChatSidebar({
                 <Download className="h-3.5 w-3.5 shrink-0" />
                 {t('PNG Download')}
               </span>
-              <span className="mt-0.5 truncate font-mono text-[9px] text-slate-400">
+              <span className="mt-0.5 truncate font-mono text-[9px] text-slate-500 dark:text-slate-400">
                 {t('Matplotlib 3-Panel Vision Render')}
               </span>
             </div>
@@ -387,32 +387,32 @@ export function ChatSidebar({
       </div>
 
       {/* User Profile Footer */}
-      <div className="shrink-0 border-t border-slate-800/80 bg-[#07090e] p-2.5">
+      <div className="shrink-0 border-t border-slate-200 bg-white p-2.5 dark:border-slate-800/80 dark:bg-[#07090e]">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div
               className={cn(
-                'flex min-w-0 cursor-pointer items-center gap-2.5 rounded-xl border border-slate-800 bg-[#0d101a] p-2 shadow-inner transition-colors hover:bg-slate-800/60',
+                'flex min-w-0 cursor-pointer items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-2 shadow-inner transition-colors hover:bg-slate-100 dark:border-slate-800 dark:bg-[#0d101a] dark:hover:bg-slate-800/60',
                 isCollapsed && 'justify-center border-0 bg-transparent p-1'
               )}
             >
               <Avatar className="h-7 w-7 shrink-0 ring-1 ring-amber-500/40">
                 <AvatarImage src="/placeholder-user.jpg" />
-                <AvatarFallback className="bg-slate-800 text-xs text-slate-200">
+                <AvatarFallback className="bg-slate-100 text-xs text-slate-800 dark:bg-slate-800 dark:text-slate-200">
                   TU
                 </AvatarFallback>
               </Avatar>
               {!isCollapsed && (
                 <div className="flex flex-1 flex-col overflow-hidden">
-                  <span className="truncate text-xs font-bold text-slate-100">
+                  <span className="truncate text-xs font-bold text-slate-900 dark:text-slate-100">
                     {t('Trader User')}
                   </span>
                   <span
                     className={cn(
                       'flex items-center gap-1 truncate text-[10px] font-bold',
                       currentTier === 'PRO'
-                        ? 'text-amber-400'
-                        : 'text-slate-400'
+                        ? 'text-amber-600 dark:text-amber-400'
+                        : 'text-slate-500 dark:text-slate-400'
                     )}
                   >
                     <ShieldCheck className="h-3 w-3 shrink-0" />
@@ -421,15 +421,15 @@ export function ChatSidebar({
                 </div>
               )}
               {!isCollapsed && (
-                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500 dark:text-slate-400" />
               )}
             </div>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="border-slate-750 w-48 bg-[#0f1420] text-xs text-slate-200">
-            <DropdownMenuLabel className="font-bold text-amber-400">
+          <DropdownMenuContent className="dark:border-slate-750 w-48 border-slate-200 bg-white text-xs text-slate-800 dark:bg-[#0f1420] dark:text-slate-200">
+            <DropdownMenuLabel className="font-bold text-amber-600 dark:text-amber-400">
               {t('Account Options')}
             </DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-slate-800" />
+            <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
             <DropdownMenuItem asChild>
               <Link href="/settings/profile" className="cursor-pointer">
                 {t('Profile Settings')}
@@ -445,11 +445,11 @@ export function ChatSidebar({
                 {t('Billing & Invoices')}
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-slate-800" />
+            <DropdownMenuSeparator className="bg-slate-100 dark:bg-slate-800" />
             <DropdownMenuItem asChild>
               <Link
                 href="/login"
-                className="flex cursor-pointer items-center text-rose-400"
+                className="flex cursor-pointer items-center text-rose-600 dark:text-rose-400"
               >
                 <LogOut className="mr-1.5 h-3.5 w-3.5" /> {t('Log out')}
               </Link>
