@@ -88,7 +88,14 @@ export default async function RootLayout({
                 try {
                   var u = new URLSearchParams(window.location.search);
                   var c = document.cookie.match(/davintrade-theme=([^;]+)/);
-                  var t = u.get('theme') || (c && c[1]) || localStorage.getItem('davintrade-theme') || '${initialAppearance.theme}';
+                  // localStorage before the cookie: next-themes' setTheme()
+                  // (called live whenever the user picks a theme) only ever
+                  // updates localStorage, not this cookie — the cookie is
+                  // only (re)written by this same script, once per full
+                  // page load. Checking the cookie first meant a stale
+                  // write-once value could outlive and override a fresher
+                  // live theme change on the next hard reload.
+                  var t = u.get('theme') || localStorage.getItem('davintrade-theme') || (c && c[1]) || '${initialAppearance.theme}';
                   var d = document.documentElement;
                   d.classList.remove('dark', 'light');
                   d.classList.add(t);

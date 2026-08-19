@@ -353,7 +353,7 @@ unreadable on a white card.
   explicit "retains its exact dark trading terminal appearance" requirement.
 - `npm run build` — `✓ Compiled successfully`, zero errors.
 
-### Found but explicitly NOT fixed (separate, deeper issue — flagged for a future session)
+### Found and fixed in a follow-up: stale-cookie theme reversion on hard reload
 
 While verifying via a **hard** page reload (not a Link click), found that a
 freshly-selected theme could revert to the previous one. Root cause: two
@@ -361,23 +361,40 @@ independent theme-tracking mechanisms coexist in seed-code:
 
 1. `davintrade-appearance` cookie — the JSON blob this report's own system
    uses, correctly updated by `saveAppearanceAction()`.
-2. A separate `davintrade-theme` cookie/localStorage pair
-   (`lib/theme-cookie.ts`, and an inline FOUC-prevention `<script>` in
-   `app/layout.tsx`) — written once at initial page load, in a resolution
-   order that checks the **cookie before localStorage**
-   (`c[1] || localStorage.getItem(...) || initialAppearance.theme`).
+2. A separate `davintrade-theme` cookie/localStorage pair, driven by an
+   inline FOUC-prevention `<script>` in `app/layout.tsx` — written once at
+   initial page load, in a resolution order that checked the **cookie
+   before localStorage**
+   (`(c && c[1]) || localStorage.getItem(...) || initialAppearance.theme`).
 
 When a user changes theme via Settings, `next-themes`' `setTheme()` updates
-localStorage immediately but nothing updates the `davintrade-theme`
-_cookie_ until the next full page load's inline script runs — so a stale
-cookie can outlive a live theme change and win the priority check on the
+localStorage immediately but nothing updated the `davintrade-theme`
+_cookie_ until the next full page load's inline script ran — so a stale
+cookie could outlive a live theme change and win the priority check on the
 next hard reload/refresh. This does **not** affect normal in-app
 navigation (Next.js client-side routing never re-runs the inline script,
-so the live-updated class stays correct) — confirmed above — which is why
-it's a distinct issue from the one the user actually reported. Left
-untouched: it's an existing persistence-architecture question (two sources
-of truth for one value) that deserves its own scoped fix rather than a
-drive-by patch inside this appearance-contrast task.
+so the live-updated class stays correct throughout a session) — which is
+why it's a distinct issue from the one the user originally reported (that
+one was purely the missing `dark:` classes, fixed above).
+
+Initially left unfixed and flagged here as a separate concern. The user
+then explicitly asked whether it should be fixed. Investigated blast radius
+first: `lib/theme-cookie.ts`'s `setThemeCookie`/`getThemeCookie` exports
+are dead code (never imported anywhere), and `components/theme-sync.tsx`
+only handles a `?theme=` URL param, calling `next-themes`' `setTheme()`
+directly — it never touches the `davintrade-theme` cookie. So the entire
+bug lives in the one inline script in `app/layout.tsx`, and the fix is a
+one-line priority reorder (localStorage before the cookie — localStorage
+is always the live value, the cookie is only ever a write-once snapshot),
+not a restructure of the persistence architecture.
+
+**Verified via direct reproduction**, not just re-reading the code: forced
+theme to dark + saved (cookie still said the previous session's "light" —
+confirms the stale-cookie precondition), hard-reloaded — `<html>` class
+correctly stayed `dark` (previously would have reverted to the stale
+cookie's `light`). Repeated in reverse (light → hard reload, cookie stale
+at `dark`) — `<html>` class correctly stayed `light`. `npm run build` —
+`✓ Compiled successfully`, zero errors.
 
 ### Files changed (seed-code)
 
@@ -386,6 +403,7 @@ drive-by patch inside this appearance-contrast task.
 - `components/chat-panel.tsx`
 - `components/market-comments-panel.tsx`
 - `app/(dashboard)/settings/layout.tsx`
+- `app/layout.tsx` (stale-cookie fix, follow-up commit)
 
 Committed to the seed-code repo and pushed — this triggers a new Vercel
 deployment of `trading-conversational-ai-ui-pages.vercel.app`.
