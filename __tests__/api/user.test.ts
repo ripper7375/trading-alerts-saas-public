@@ -50,10 +50,25 @@ jest.mock('bcryptjs', () => ({
 jest.mock('@/lib/preferences/defaults', () => ({
   DEFAULT_PREFERENCES: {
     theme: 'system',
+    countryCode: 'US',
     language: 'en',
     timezone: 'UTC',
     emailNotifications: true,
   },
+  SUPPORTED_COUNTRY_CODES: [
+    'GB',
+    'IN',
+    'NG',
+    'PK',
+    'VN',
+    'ID',
+    'TH',
+    'ZA',
+    'TR',
+    'US',
+    'EU',
+    'JP',
+  ],
   mergePreferences: (
     defaults: Record<string, unknown>,
     stored: Record<string, unknown>
@@ -74,17 +89,27 @@ jest.mock('@/lib/email/email', () => ({
 // Helper to create mock request
 function createMockRequest(
   method: string,
-  body?: Record<string, unknown>
+  body?: Record<string, unknown>,
+  headers?: Record<string, string>
 ): Request {
   const url = 'http://localhost:3000/api/user/profile';
   const init: RequestInit = {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(headers || {}) },
   };
   if (body) {
     init.body = JSON.stringify(body);
   }
   return new Request(url, init);
+}
+
+// GET /api/user/preferences reads GeoIP headers off the request even when
+// no body is sent — a bare `new Request(url)` (no init) still supports
+// `.headers.get()`, matching what `getPreferences()` needs.
+function createMockGetRequest(headers?: Record<string, string>): Request {
+  return new Request('http://localhost:3000/api/user/preferences', {
+    headers: headers || {},
+  });
 }
 
 // Import routes after mocks
@@ -239,7 +264,7 @@ describe('User Settings API', () => {
     it('should return 401 when not authenticated', async () => {
       mockGetServerSession.mockResolvedValue(null);
 
-      const response = await getPreferences();
+      const response = await getPreferences(createMockGetRequest());
       const data = await response.json();
 
       expect(response.status).toBe(401);
@@ -256,7 +281,7 @@ describe('User Settings API', () => {
         preferences: { theme: 'dark' },
       });
 
-      const response = await getPreferences();
+      const response = await getPreferences(createMockGetRequest());
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -264,19 +289,94 @@ describe('User Settings API', () => {
       expect(data.preferences.theme).toBe('dark');
     });
 
-    it('should return defaults when no preferences stored', async () => {
+    it('should return defaults when no preferences stored and no GeoIP header', async () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'user-123' },
       });
 
       mockPreferencesFindUnique.mockResolvedValue(null);
 
-      const response = await getPreferences();
+      const response = await getPreferences(createMockGetRequest());
       const data = await response.json();
 
       expect(response.status).toBe(200);
       expect(data.preferences).toBeDefined();
       expect(data.preferences.theme).toBe('system');
+      expect(data.preferences.countryCode).toBe('US');
+    });
+
+    it('should resolve locale from cf-ipcountry when no preferences are stored yet', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-123' },
+      });
+
+      mockPreferencesFindUnique.mockResolvedValue(null);
+
+      const response = await getPreferences(
+        createMockGetRequest({ 'cf-ipcountry': 'TH' })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.preferences.countryCode).toBe('TH');
+      expect(data.preferences.language).toBe('th');
+      expect(data.preferences.currency).toBe('THB');
+      expect(data.preferences.timezone).toBe('Asia/Bangkok');
+    });
+
+    it('should fall back to x-vercel-ip-country when cf-ipcountry is absent', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-123' },
+      });
+
+      mockPreferencesFindUnique.mockResolvedValue(null);
+
+      const response = await getPreferences(
+        createMockGetRequest({ 'x-vercel-ip-country': 'DE' })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.preferences.countryCode).toBe('EU');
+      expect(data.preferences.currency).toBe('EUR');
+    });
+
+    it('should ignore an unsupported GeoIP country and fall back to defaults', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-123' },
+      });
+
+      mockPreferencesFindUnique.mockResolvedValue(null);
+
+      const response = await getPreferences(
+        createMockGetRequest({ 'cf-ipcountry': 'XX' })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.preferences.countryCode).toBe('US');
+    });
+
+    it('should NOT apply GeoIP resolution when the user already has stored preferences', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-123' },
+      });
+
+      mockPreferencesFindUnique.mockResolvedValue({
+        userId: 'user-123',
+        preferences: { theme: 'dark' },
+      });
+
+      const response = await getPreferences(
+        createMockGetRequest({ 'cf-ipcountry': 'TH' })
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      // Explicit stored row wins over GeoIP even though it never set
+      // countryCode itself -- matches the "explicit preference wins"
+      // precedence, treating any stored row as the user's own choice.
+      expect(data.preferences.countryCode).toBe('US');
     });
   });
 
@@ -317,6 +417,45 @@ describe('User Settings API', () => {
       });
 
       const request = createMockRequest('PUT', { theme: 'invalid-theme' });
+      const response = await putPreferences(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('Invalid input');
+    });
+
+    it('should accept and persist a supported countryCode', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-123' },
+      });
+
+      mockPreferencesFindUnique.mockResolvedValue(null);
+      mockPreferencesUpsert.mockResolvedValue({
+        userId: 'user-123',
+        preferences: { countryCode: 'JP' },
+      });
+
+      const request = createMockRequest('PUT', { countryCode: 'JP' });
+      const response = await putPreferences(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.preferences.countryCode).toBe('JP');
+      expect(mockPreferencesUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            preferences: expect.objectContaining({ countryCode: 'JP' }),
+          }),
+        })
+      );
+    });
+
+    it('should return 400 for an unsupported countryCode', async () => {
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-123' },
+      });
+
+      const request = createMockRequest('PUT', { countryCode: 'FR' });
       const response = await putPreferences(request);
       const data = await response.json();
 

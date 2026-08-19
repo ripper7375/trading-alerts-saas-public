@@ -84,6 +84,18 @@ export class UsersController {
   // SOURCE (app/api/user/preferences/route.ts) exports GET/PUT, not
   // GET/PATCH — the APPROVED order's own Step 2 text said PATCH; corrected
   // here against real SOURCE (Deviations).
+  //
+  // KNOWN GAP: SOURCE's GET resolves a guest's locale from the
+  // cf-ipcountry/x-vercel-ip-country GeoIP headers when no preferences row
+  // exists yet (lib/preferences/geo-locale.ts). This controller does NOT
+  // replicate that — forwardRequestToOperationService() in the monolith
+  // only forwards x-correlation-id/user-agent/x-forwarded-for
+  // (forwardedRequestContext(), lib/operation-service/client.ts), so the
+  // real GeoIP header never reaches this process even when
+  // MIGRATE_USER_PROFILE is on. Not fixed here — extending the shared
+  // forwarder affects every other route that uses it. Currently moot:
+  // MIGRATE_USER_PROFILE defaults off everywhere, so SOURCE's own GeoIP
+  // path is what's actually live.
 
   @UseGuards(JwtAuthGuard)
   @Get('preferences')

@@ -24,9 +24,29 @@ export const updateProfileSchema = z.object({
   avatarUrl: z.string().url('Invalid avatar URL').optional().nullable(),
 });
 
+/**
+ * Mirrors `lib/preferences/defaults.ts`'s `SUPPORTED_COUNTRY_CODES`
+ * verbatim (the 12 country prefixes the locale system supports).
+ */
+export const SUPPORTED_COUNTRY_CODES = [
+  'GB',
+  'IN',
+  'NG',
+  'PK',
+  'VN',
+  'ID',
+  'TH',
+  'ZA',
+  'TR',
+  'US',
+  'EU',
+  'JP',
+] as const;
+
 export const updatePreferencesSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']).optional(),
   colorScheme: z.enum(['blue', 'purple', 'green', 'orange']).optional(),
+  countryCode: z.enum(SUPPORTED_COUNTRY_CODES).optional(),
   language: z.string().optional(),
   timezone: z.string().optional(),
   dateFormat: z.enum(['MDY', 'DMY', 'YMD']).optional(),
@@ -66,6 +86,7 @@ export const deletionCancelSchema = z.object({
 export interface UserPreferencesShape {
   theme: 'light' | 'dark' | 'system';
   colorScheme: 'blue' | 'purple' | 'green' | 'orange';
+  countryCode: string;
   language: string;
   timezone: string;
   dateFormat: 'MDY' | 'DMY' | 'YMD';
@@ -86,6 +107,7 @@ export interface UserPreferencesShape {
 export const DEFAULT_PREFERENCES: UserPreferencesShape = {
   theme: 'system',
   colorScheme: 'blue',
+  countryCode: 'US',
   language: 'en-US',
   timezone: 'America/New_York',
   dateFormat: 'MDY',

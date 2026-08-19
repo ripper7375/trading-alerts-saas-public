@@ -298,6 +298,70 @@ affiliate/[affiliateId]` + `.../commissions`) recorded `KEEP — retire in Phase
   duplicated into the stack-analysis file for a non-domain-slice ad-hoc repair. **No next session
   PRE-DRAFTed** — `7-1-api-client-reverify-and-generate.migration-order.md` already exists from
   Session 6-12's own close and is unaffected by this repair; it remains the literal next session.
+- **Ad-hoc feature session (2026-08-19, phase/session unchanged — Phase 7 stays open on
+  `7-1-api-client-reverify-and-generate.migration-order.md` as the next numbered session):** run
+  per `EXECUTOR-PROTOCOL.md` §6 (no Advisor DRAFT — Davin scoped this directly in chat from
+  `davintrade-ui-design-stack/hand-off-to-claude-code-for-language-stack/
+language_timezone_regional_format_spec.md`'s §6 server-side tasks, a hand-off doc unrelated to
+  the microservices migration numbering). **CONFIRM found the hand-off doc's central assumption
+  — that `UserPreference`/`/api/user/preferences` don't exist yet — was false against live code**:
+  a generic-JSON `UserPreferences` model (note the plural — unrelated to the spec's proposed
+  singular `UserPreference`) and a fully working, auth-gated `GET/PUT /api/user/preferences`
+  already exist, already store `language`/`timezone`/`dateFormat`/`timeFormat`/`currency`, and
+  are already mirrored into `operation-service`'s `UsersController` behind the (default-off)
+  `MIGRATE_USER_PROFILE` flag. Per this repo's own live-code-wins doctrine, did NOT create a
+  competing model/route (would have collided at the identical `/api/user/preferences` path and
+  reintroduced exactly the kind of duplicate driftable surface Session 7-1 rejected for the API
+  client) — extended the existing JSON-blob shape instead, requiring zero Prisma migrations on
+  either side (sidesteps L1/L6 entirely). **Built:** `countryCode` (12-value enum, `SUPPORTED_COUNTRY_CODES`)
+  added to `lib/preferences/defaults.ts`'s `UserPreferences` interface/`DEFAULT_PREFERENCES`
+  (default `'US'`, matching the existing `en-US`/`USD` default — deliberately NOT the spec
+  snippet's `GB`/`en-GB`/`GBP`, which would have silently changed the default currency shown to
+  every zero-preference existing user); mirrored verbatim into `operation-service/src/users/
+users.schemas.ts`. New `lib/preferences/geo-locale.ts` — a server-only `cf-ipcountry`/
+  `x-vercel-ip-country` → locale-bundle resolver (real ISO alpha-2 codes, with 20 Eurozone
+  member codes mapped to the seed-code `country-config.ts`'s synthetic `eu` bundle, since no
+  GeoIP header ever literally sends `EU`) — wired into `GET /api/user/preferences`: resolves
+  from the header ONLY when the user has no stored preferences row yet (explicit stored prefs,
+  even partial, always win — matches seed-code's `resolvePreferences()` precedence). **Found,
+  not fixed:** `operation-service`'s mirror path cannot replicate the GeoIP resolution as-is —
+  `forwardRequestToOperationService()` only forwards `x-correlation-id`/`user-agent`/
+  `x-forwarded-for` (`forwardedRequestContext()`), dropping `cf-ipcountry`/`x-vercel-ip-country`
+  before they'd ever reach that process; moot today since `MIGRATE_USER_PROFILE` defaults off
+  everywhere, documented as a comment on `UsersController` for whoever flips that flag next.
+  **§6.C (AI system-prompt language injection) skipped, not deferred-silently**: grepped `app/
+api` for any chat/LLM route — none exists, matching the spec's own §3.4 admission ("NOT YET
+  BUILT ANYWHERE"); nothing to inject a language directive into yet. **§6.D (payment currency
+  wiring) deliberately NOT touched**: `app/api/payments/dlocal/create/route.ts` already reads
+  `currency` from an explicit, Zod-validated request body and converts via a real rate service
+  (`lib/dlocal/currency-converter.service.ts`), never `country-config.ts`'s mock table — the
+  actual risk §6.D warned about is already absent. Stripe (`lib/stripe/stripe.ts`) has a single
+  hardcoded `STRIPE_PRO_PRICE_ID` (USD only) and zero multi-currency infrastructure — wiring
+  `userPreference.currency` in for real would mean creating new per-currency Stripe Price
+  objects, a product-catalog decision outside a code session. Per this repo's own rule 5/§7
+  (money-code changes escalate), left both payment routes untouched rather than guess; currency
+  is already exposed via the now-`countryCode`-complete `GET /api/user/preferences` response for
+  a future checkout-UI session to read.
+  **Full verification:** `tsc --noEmit` clean on both the monolith and `operation-service` (one
+  PRE-EXISTING, unrelated `operation-service` error confirmed via `git stash`/clean-tree retest —
+  `auth.service.ts(252,261)`, `PrismaService.affiliateProfile` — not touched this session, not
+  introduced by it); monolith `eslint` on all 4 changed files clean, 0 warnings; monolith
+  `test:ci` **157/157 suites, 2379/2379 tests** (8 new/updated cases in `__tests__/api/
+user.test.ts` covering GeoIP resolution from both headers, unsupported-country fallback,
+  stored-preference-wins-over-geo, and `countryCode` PUT accept/reject — zero regressions
+  elsewhere); `operation-service` `src/users` suite 63/63 unchanged (schema widened, behavior
+  untouched, no new test needed there — GeoIP path is the documented gap above). **Found, not
+  investigated (unrelated to this session's own files):** working tree carried two unstaged
+  deletions (`docs/MOBILE_UI_SPECIFICATION.md`,
+  `docs/prompt-to-antigravity-to-executing-MOBILE_UI_SPECIFICATION_MD.md`) and an untracked
+  `seed-code/lovable-mobile-app/docs/` not present in this session's own opening git snapshot;
+  confirmed via `git stash`/pop that this session's own tooling didn't cause them (they survived
+  a stash/pop round-trip untouched) — left as-is, not staged, not reverted; flagged to Davin for
+  whichever session owns the docs reorg those belong to.
+  **No flag touched, no cutover-table row** — this is a hand-off feature build, not a migration
+  slice; `migration-cutover-table.md`/`migration-stack-analysis.md` unchanged. **No next session
+  PRE-DRAFTed** — same reasoning as the entry above; `7-1-api-client-reverify-and-generate.
+migration-order.md` remains the literal next numbered session, unaffected by this ad-hoc detour.
 
 ## Key documents
 
@@ -343,3 +407,13 @@ Do **NOT** modify `overrides`/`pnpm.overrides` in `package.json` on feature bran
 if `pnpm audit` complains. Security overrides are managed centrally on `main` via dedicated
 PRs (`check-overrides.yml` enforces this; 7+ documented merge-conflict incidents caused the
 rule — see `errors/continuous-pr-errors/`).
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

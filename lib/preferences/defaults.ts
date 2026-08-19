@@ -21,6 +21,29 @@ export type TimeFormat = '12h' | '24h';
 export type ProfileVisibility = 'public' | 'private' | 'connections';
 
 /**
+ * The 12 country prefixes supported by the locale system
+ * (seed-code's `lib/country-config.ts` is the source of truth for the
+ * full per-country bundle — this list exists here only so the stored
+ * `countryCode` preference can be validated server-side).
+ */
+export const SUPPORTED_COUNTRY_CODES = [
+  'GB',
+  'IN',
+  'NG',
+  'PK',
+  'VN',
+  'ID',
+  'TH',
+  'ZA',
+  'TR',
+  'US',
+  'EU',
+  'JP',
+] as const;
+
+export type SupportedCountryCode = (typeof SUPPORTED_COUNTRY_CODES)[number];
+
+/**
  * User Preferences Interface
  */
 export interface UserPreferences {
@@ -29,6 +52,7 @@ export interface UserPreferences {
   colorScheme: ColorScheme;
 
   // Language & Region
+  countryCode: string;
   language: string;
   timezone: string;
   dateFormat: DateFormat;
@@ -66,6 +90,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   colorScheme: 'blue',
 
   // Language & Region
+  countryCode: 'US',
   language: 'en-US',
   timezone: 'America/New_York',
   dateFormat: 'MDY',
@@ -134,6 +159,11 @@ export function isValidPreference(
     case 'newDeviceAlerts':
     case 'passwordChangeAlerts':
       return typeof value === 'boolean';
+    case 'countryCode':
+      return (
+        typeof value === 'string' &&
+        (SUPPORTED_COUNTRY_CODES as readonly string[]).includes(value)
+      );
     case 'language':
     case 'timezone':
     case 'currency':

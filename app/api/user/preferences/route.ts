@@ -12,8 +12,13 @@ import {
 import {
   DEFAULT_PREFERENCES,
   mergePreferences,
+  SUPPORTED_COUNTRY_CODES,
   type UserPreferences,
 } from '@/lib/preferences/defaults';
+import {
+  extractGeoCountryHeader,
+  resolveLocaleFromCountryHeader,
+} from '@/lib/preferences/geo-locale';
 
 /**
  * Preferences API Route
@@ -30,6 +35,7 @@ import {
 const preferencesSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']).optional(),
   colorScheme: z.enum(['blue', 'purple', 'green', 'orange']).optional(),
+  countryCode: z.enum(SUPPORTED_COUNTRY_CODES).optional(),
   language: z.string().optional(),
   timezone: z.string().optional(),
   dateFormat: z.enum(['MDY', 'DMY', 'YMD']).optional(),
@@ -73,10 +79,26 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       where: { userId: session.user.id },
     });
 
+    // Server-side GeoIP resolution (spec §4/§6.B): a user with NO stored
+    // row yet (first-ever visit, before any client-side preference write)
+    // gets their locale bundle resolved from the edge GeoIP country header
+    // instead of always defaulting to en-GB/GBP on the very first render.
+    // A user who already has a stored row is treated as having an explicit
+    // preference — same "explicit wins over geo" precedence as the
+    // client-side resolvePreferences() in the seed-code reference.
+    let baseDefaults = DEFAULT_PREFERENCES;
+    if (!userPreferences) {
+      const geoCountry = extractGeoCountryHeader(request);
+      const geoBundle = resolveLocaleFromCountryHeader(geoCountry);
+      if (geoBundle) {
+        baseDefaults = mergePreferences(DEFAULT_PREFERENCES, geoBundle);
+      }
+    }
+
     // Merge with defaults
     const storedPrefs =
       (userPreferences?.preferences as Partial<UserPreferences>) || {};
-    const preferences = mergePreferences(DEFAULT_PREFERENCES, storedPrefs);
+    const preferences = mergePreferences(baseDefaults, storedPrefs);
 
     return NextResponse.json({ preferences });
   } catch (error) {
