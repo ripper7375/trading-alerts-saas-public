@@ -58,7 +58,7 @@ export function LandingHero() {
 
             {/* Main Headline */}
             <div className="space-y-4">
-              <h1 className="text-4xl leading-[1.1] font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
+              <h1 className="text-4xl leading-[1.1] font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl dark:text-white">
                 {t('Trade Smarter with')}{' '}
                 <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 bg-clip-text text-transparent">
                   {t('Davin AI')}

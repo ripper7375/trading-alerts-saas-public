@@ -33,7 +33,7 @@ export function LandingTerminalPreview() {
             <Monitor className="h-3.5 w-3.5" />
             <span>{t('INTERACTIVE WORKBENCH PREVIEW')}</span>
           </div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
             {t('4-Panel Modular Trading Terminal')}
           </h2>
           <p className="text-base text-slate-500 sm:text-lg dark:text-slate-400">
@@ -49,7 +49,7 @@ export function LandingTerminalPreview() {
               className={`flex items-center space-x-2 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === 'chart'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-500 hover:text-white dark:text-slate-400'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
               <TrendingUp className="h-4 w-4" />
@@ -60,7 +60,7 @@ export function LandingTerminalPreview() {
               className={`flex items-center space-x-2 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === 'chat'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-500 hover:text-white dark:text-slate-400'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
               <MessageSquare className="h-4 w-4" />
@@ -71,7 +71,7 @@ export function LandingTerminalPreview() {
               className={`flex items-center space-x-2 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === 'comments'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-500 hover:text-white dark:text-slate-400'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
               <Sparkles className="h-4 w-4" />
@@ -82,7 +82,7 @@ export function LandingTerminalPreview() {
               className={`flex items-center space-x-2 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
                 activeTab === 'alerts'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-500 hover:text-white dark:text-slate-400'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
               <Bell className="h-4 w-4" />
@@ -117,7 +117,7 @@ export function LandingTerminalPreview() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-slate-800">
                   <div className="flex items-center space-x-3">
-                    <span className="font-mono text-lg font-bold text-white">
+                    <span className="font-mono text-lg font-bold text-slate-900 dark:text-white">
                       XAUUSD
                     </span>
                     <span className="rounded border border-amber-500/40 bg-amber-500/20 px-2 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-300">

@@ -25,7 +25,7 @@ export function LandingNavbar() {
             />
           </div>
           <div className="flex flex-col">
-            <span className="flex items-center gap-1.5 text-lg font-black tracking-tight text-white">
+            <span className="flex items-center gap-1.5 text-lg font-black tracking-tight text-slate-900 dark:text-white">
               Davin
               <span className="text-amber-600 dark:text-amber-400">Trade</span>
               <span className="rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-amber-700 uppercase dark:text-amber-300">
@@ -97,7 +97,7 @@ export function LandingNavbar() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-9 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-white dark:text-slate-300 dark:hover:bg-slate-800/80"
+              className="h-9 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white"
             >
               {t('Sign In')}
             </Button>

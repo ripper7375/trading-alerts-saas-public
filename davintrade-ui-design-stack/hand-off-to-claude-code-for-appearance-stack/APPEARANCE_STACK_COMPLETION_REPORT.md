@@ -462,6 +462,49 @@ bug), and the login card resolves to white in light mode / `#0b0e17`
 pixel-exact in dark mode. `npm run build` — `✓ Compiled successfully`,
 zero errors.
 
+### Self-caught regression: literal `text-white` never covered by the conversion script
+
+Before committing the third follow-up, re-read the actual diff (not just
+the replacement counts) and caught a real bug the mechanical script had
+missed: several marketing headlines, prices, and one icon used a literal
+`text-white` class (not `text-slate-100`, which is what every earlier file
+had used for the same visual effect) — the conversion script's mapping
+table never had an entry for it, since it hadn't appeared in any file
+converted up to that point. Left as-is, this would have made the hero
+headline, both pricing-card dollar amounts, the footer/navbar brand
+wordmark, and a features-section icon **invisible** in Light Clean Mode
+(white text on the newly-white background).
+
+Grepped every file touched this entire task (not just the newest batch)
+for `text-white`/`bg-white`/`border-white`/etc. to make sure this wasn't a
+wider miss — confirmed it was confined to the 13 `text-white` instances in
+`components/landing/*.tsx`, split into two real categories:
+
+- **Base/static text** (10 instances: headings, prices, brand wordmark, one
+  icon) — straightforward miss, given `text-slate-900 dark:text-white`.
+- **Hover-only text** (`hover:text-white` with no `dark:` gate, 5
+  instances across `landing-navbar.tsx` and 4x in
+  `landing-terminal-preview.tsx`'s tab buttons) — a subtler bug: in light
+  mode, hovering would turn text white against a light hover background
+  (near-invisible), while in dark mode it was already correct (white
+  against a dark hover background). Fixed by gating the white hover state
+  behind `dark:hover:text-white` and adding a `hover:text-slate-900`
+  light-mode counterpart.
+
+One instance investigated and deliberately left unchanged:
+`social-auth-buttons.tsx`'s "Continue with X" button uses `bg-slate-950`
+
+- `text-white` with **no** `dark:` variant on either — confirmed this is
+  the OAuth brand-button pattern (matches the Google button's own
+  correctly-themed `bg-white`/`text-slate-800` right above it, so the
+  always-black X button is a deliberate brand-consistency choice, not a
+  missed conversion).
+
+Re-verified live in both themes after the fix: hero headline reads as
+near-black in light mode (`lab(7.79 …)`) and pure white in dark mode
+(`rgb(255, 255, 255)`) — pixel-identical to the pre-fix dark rendering.
+`npm run build` — `✓ Compiled successfully`, zero errors.
+
 ### Files changed (seed-code)
 
 - `components/chat-sidebar.tsx`
@@ -475,7 +518,7 @@ zero errors.
   (third follow-up)
 - `components/landing/{landing-hero,landing-navbar,landing-features,
 landing-pricing,landing-footer,landing-terminal-preview,ticker-tape,
-landing-page}.tsx` (third follow-up)
+landing-page}.tsx` (third follow-up + self-caught `text-white` fix)
 - `components/auth/{login-form,register-form,social-auth-buttons}.tsx`,
   `app/(auth)/forgot-password/page.tsx` (third follow-up)
 

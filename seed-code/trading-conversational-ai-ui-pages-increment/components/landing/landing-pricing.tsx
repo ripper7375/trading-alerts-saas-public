@@ -20,7 +20,7 @@ export function LandingPricing() {
             <Zap className="h-3.5 w-3.5" />
             <span>{t('TRANSPARENT SAAS PRICING')}</span>
           </div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
             {t('Choose Your Analytical Advantage')}
           </h2>
           <p className="text-base text-slate-500 sm:text-lg dark:text-slate-400">
@@ -44,7 +44,7 @@ export function LandingPricing() {
                 </span>
               </div>
               <div className="mb-6 flex items-baseline space-x-2">
-                <span className="font-mono text-4xl font-extrabold text-white">
+                <span className="font-mono text-4xl font-extrabold text-slate-900 dark:text-white">
                   $0
                 </span>
                 <span className="text-sm text-slate-500 dark:text-slate-400">
@@ -82,7 +82,7 @@ export function LandingPricing() {
             <Link href="/free">
               <Button
                 variant="outline"
-                className="h-11 w-full border-slate-300 bg-slate-100 font-bold text-white hover:bg-slate-700 dark:border-slate-700 dark:bg-slate-800/80"
+                className="h-11 w-full border-slate-300 bg-slate-100 font-bold text-slate-900 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white dark:hover:bg-slate-700"
               >
                 {t('Try Free Terminal')}
               </Button>
@@ -103,7 +103,7 @@ export function LandingPricing() {
                 </span>
               </div>
               <div className="mb-6 flex items-baseline space-x-2">
-                <span className="font-mono text-4xl font-extrabold text-white">
+                <span className="font-mono text-4xl font-extrabold text-slate-900 dark:text-white">
                   $49
                 </span>
                 <span className="text-sm text-slate-500 dark:text-slate-400">

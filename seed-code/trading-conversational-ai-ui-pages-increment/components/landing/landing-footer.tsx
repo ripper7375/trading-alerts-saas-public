@@ -13,7 +13,7 @@ export function LandingFooter() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           {/* Col 1: Brand */}
           <div className="space-y-3">
-            <div className="flex items-center space-x-2 text-base font-bold text-white">
+            <div className="flex items-center space-x-2 text-base font-bold text-slate-900 dark:text-white">
               <Bot className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               <span>{t('DavinTrade AI SaaS')}</span>
             </div>
