@@ -505,22 +505,109 @@ near-black in light mode (`lab(7.79 …)`) and pure white in dark mode
 (`rgb(255, 255, 255)`) — pixel-identical to the pre-fix dark rendering.
 `npm run build` — `✓ Compiled successfully`, zero errors.
 
+### Fourth follow-up: 3 more concretely reported bugs, plus a page-by-page handoff playbook
+
+The user walked the deployed preview against the full page inventory
+(`docs/files-completion-list/frontend-codebase-migration/ui-pages-pages-increment-codebase-2.xlsx`,
+~91 pages) and reported that fixing one page does not imply others are
+fixed — correct, since every earlier round only touched the specific
+components a given page happened to render. They asked for three concrete
+bugs shown in screenshots to be fixed now, and a methodology document
+written so a **fresh** Claude Code session (with none of this session's
+context) can systematically finish the remaining pages using the xlsx as
+its worklist.
+
+**Bugs fixed, each a component never touched by any earlier round:**
+
+1. **Homepage "Support Centre" quick-reply chips** (screenshot: 4 dark
+   pills on an otherwise-light hero section) — these aren't the real
+   floating chat widget (`support-chat-widget.tsx`, which _was_ already
+   correctly converted); they're a separate static mock preview embedded
+   directly in `components/landing/landing-hero.tsx`. All four buttons
+   shared one identical `border-slate-700/50 bg-slate-800/90` className —
+   an **opacity-suffix variant** (`/90`) that wasn't in any earlier
+   session's mapping table (which had `/80`, `/60`, bare, but not `/90`),
+   so it silently passed through every prior grep-and-convert pass
+   untouched. This is now called out explicitly in the new methodology
+   doc as a named pitfall.
+2. **Terminal page resize handles** (screenshot: solid black vertical bars
+   between panels) — live in `app/terminal/page.tsx` itself (the page's
+   own outer `bg-[#06070a]` wrapper, a `bg-[#0c0f17]` toolbar strip, and
+   three `<ResizableHandle>` instances), a file no earlier round had
+   opened. Also fixed the **shared** `components/ui/resizable.tsx`
+   primitive's own default handle color and grip-icon box — this is a
+   reusable primitive, so the fix also benefits every other page in the
+   app that uses a resizable split (found and documented as a
+   high-leverage "fix shared components first" pattern in the methodology
+   doc).
+3. **Login page black background** (screenshot: white card correctly
+   floating on a still-solid-black page) — `login-form.tsx` itself was
+   fixed in the third follow-up, but `app/(auth)/login/page.tsx` is a
+   _separate_ 6-line wrapper file with its own independent
+   `bg-[#06070a]`, never touched. Fixed it and the identical bug in
+   `app/(auth)/register/page.tsx` (same wrapper pattern, same bug,
+   confirmed via direct comparison).
+
+**Additional contrast bugs found via a full re-sweep** (not shown in the
+screenshots, but the same class of miss — caught by grepping every file
+touched across all four rounds for un-paired `slate-700/800/900` and
+`-300/-400` accent-text shades one more time before calling this round
+done): two "EDT Configuration" popover panels in `trading-chart.tsx` had
+value text (`text-emerald-400`, `text-blue-400`, `text-purple-400`,
+heading `text-amber-400`) with no light-mode pairing, plus a
+`hover:bg-slate-700` button-hover state with no `dark:` gate (would turn
+dark text on an equally-dark hover background in light mode); two body-text
+instances in `support-chat-widget.tsx` (`text-emerald-400` online-status
+text, `text-amber-400/90` typing-indicator text) had the same gap. All
+fixed with the same darker-shade-for-light-mode pattern used throughout.
+
+**Verified live** using a fresh browser tab and the app's real
+`?theme=light`/`?theme=dark` URL-param mechanism (not manual
+`classList` toggling — a stale long-reused tab gave one **false negative**
+mid-session, documented as its own pitfall in the methodology doc since it
+cost real investigation time before being ruled out). `npm run build` —
+`✓ Compiled successfully`, zero errors throughout every fix.
+
+**Deliverable**: `docs/files-completion-list/frontend-codebase-migration/light-dark-mode-fix-methodology.md`
+— the page-by-page playbook requested, covering: how to read the xlsx
+worklist, why shared components must be fixed first (huge leverage), the
+exact grep commands used every round to find hardcoded dark-only literals,
+the reusable conversion-script pattern (including the sequential-vs-
+combined-regex bug from the third follow-up), a documented exceptions list
+(OAuth brand buttons, decorative dots/icons, badges with their own fixed
+dark backdrop — things that should **not** be converted), a per-page
+verification checklist, the stale-tab testing pitfall, and a suggested
+attack order for the remaining pages (shared UI primitives first, then
+high-traffic authenticated pages, then admin, then affiliate, then
+standalone marketing/legal pages, then auth edge cases).
+
 ### Files changed (seed-code)
 
 - `components/chat-sidebar.tsx`
 - `components/layout/app-header.tsx`
 - `components/chat-panel.tsx`
 - `components/market-comments-panel.tsx`
-- `components/trading-chart.tsx` (chart overlay chrome, second follow-up)
+- `components/trading-chart.tsx` (chart overlay chrome, second follow-up;
+  popover value-text + button-hover contrast, fourth follow-up)
 - `app/(dashboard)/settings/layout.tsx`
 - `app/layout.tsx` (stale-cookie fix, follow-up commit)
 - `app/(dashboard)/settings/appearance/_components/appearance-form.tsx`
   (third follow-up)
 - `components/landing/{landing-hero,landing-navbar,landing-features,
 landing-pricing,landing-footer,landing-terminal-preview,ticker-tape,
-landing-page}.tsx` (third follow-up + self-caught `text-white` fix)
+landing-page}.tsx` (third follow-up + self-caught `text-white` fix;
+  `landing-hero.tsx`'s inline support-widget chips, fourth follow-up)
 - `components/auth/{login-form,register-form,social-auth-buttons}.tsx`,
   `app/(auth)/forgot-password/page.tsx` (third follow-up)
+- `app/(auth)/login/page.tsx`, `app/(auth)/register/page.tsx` (outer
+  wrapper background, fourth follow-up)
+- `app/terminal/page.tsx`, `components/ui/resizable.tsx` (fourth follow-up)
+- `components/chat-widget/support-chat-widget.tsx` (fourth follow-up)
+
+**New:**
+
+- `docs/files-completion-list/frontend-codebase-migration/light-dark-mode-fix-methodology.md`
+  — handoff playbook for the remaining ~91-page effort.
 
 Committed to the seed-code repo and pushed — this triggers a new Vercel
 deployment of `trading-conversational-ai-ui-pages.vercel.app`.

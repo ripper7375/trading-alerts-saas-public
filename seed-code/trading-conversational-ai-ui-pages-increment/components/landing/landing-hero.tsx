@@ -100,28 +100,28 @@ export function LandingHero() {
                   <button
                     type="button"
                     onClick={() => handleChipClick('Product Info')}
-                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-amber-500/20 hover:text-amber-700 dark:text-slate-300 dark:hover:text-amber-300"
+                    className="rounded border border-slate-300 bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-amber-500/20 hover:text-amber-700 dark:border-slate-700/50 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:text-amber-300"
                   >
                     {t('Product Info')}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleChipClick('Technical Support')}
-                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-amber-500/20 hover:text-amber-700 dark:text-slate-300 dark:hover:text-amber-300"
+                    className="rounded border border-slate-300 bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-amber-500/20 hover:text-amber-700 dark:border-slate-700/50 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:text-amber-300"
                   >
                     {t('Technical Support')}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleChipClick('PRO Subscription')}
-                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-amber-500/20 hover:text-amber-700 dark:text-slate-300 dark:hover:text-amber-300"
+                    className="rounded border border-slate-300 bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-amber-500/20 hover:text-amber-700 dark:border-slate-700/50 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:text-amber-300"
                   >
                     {t('PRO Subscription')}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleChipClick('Billing')}
-                    className="rounded border border-slate-700/50 bg-slate-800/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-amber-500/20 hover:text-amber-700 dark:text-slate-300 dark:hover:text-amber-300"
+                    className="rounded border border-slate-300 bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-amber-500/20 hover:text-amber-700 dark:border-slate-700/50 dark:bg-slate-800/90 dark:text-slate-300 dark:hover:text-amber-300"
                   >
                     {t('Billing')}
                   </button>

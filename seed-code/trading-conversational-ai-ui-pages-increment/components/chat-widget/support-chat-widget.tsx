@@ -65,14 +65,14 @@ export function SupportChatWidget() {
 
   return (
     <div
-      className={`fixed right-4 bottom-4 z-50 w-[92vw] rounded-2xl border border-slate-700/80 bg-[#0a0d16]/95 shadow-2xl shadow-black/90 backdrop-blur-2xl transition-all duration-300 sm:right-6 sm:w-[420px] ${
+      className={`fixed right-4 bottom-4 z-50 w-[92vw] rounded-2xl border border-slate-700/80 bg-white/95 shadow-2xl shadow-black/90 backdrop-blur-2xl transition-all duration-300 sm:right-6 sm:w-[420px] dark:bg-[#0a0d16]/95 ${
         isMinimized
           ? 'h-14 overflow-hidden'
           : 'flex h-[580px] flex-col justify-between'
       }`}
     >
       {/* Widget Header */}
-      <div className="flex h-14 shrink-0 items-center justify-between rounded-t-2xl border-b border-slate-800 bg-[#0c101d] px-4">
+      <div className="flex h-14 shrink-0 items-center justify-between rounded-t-2xl border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-[#0c101d]">
         <div className="flex items-center space-x-3">
           <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border border-amber-500/40 bg-amber-500/10">
             <Image
@@ -84,13 +84,13 @@ export function SupportChatWidget() {
             />
           </div>
           <div className="flex flex-col">
-            <div className="flex items-center space-x-1.5 text-sm font-bold text-white">
+            <div className="flex items-center space-x-1.5 text-sm font-bold text-slate-900 dark:text-white">
               <span>{t('Support Centre')}</span>
-              <span className="py-0.2 rounded bg-amber-500/20 px-1.5 text-[9px] font-bold text-amber-300">
+              <span className="py-0.2 rounded bg-amber-500/20 px-1.5 text-[9px] font-bold text-amber-700 dark:text-amber-300">
                 {t('AI SaaS')}
               </span>
             </div>
-            <div className="flex items-center space-x-1 text-[10px] font-medium text-emerald-400">
+            <div className="flex items-center space-x-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
               <span className="h-1.5 w-1.5 animate-ping rounded-full bg-emerald-400" />
               <span>{t('Online 24/7 • Sub-2min Response')}</span>
             </div>
@@ -102,7 +102,7 @@ export function SupportChatWidget() {
             variant="ghost"
             size="icon"
             onClick={minimizeChat}
-            className="h-7 w-7 text-slate-400 hover:bg-slate-800 hover:text-white"
+            className="h-7 w-7 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
           >
             {isMinimized ? (
               <Maximize2 className="h-3.5 w-3.5" />
@@ -114,7 +114,7 @@ export function SupportChatWidget() {
             variant="ghost"
             size="icon"
             onClick={closeChat}
-            className="h-7 w-7 text-slate-400 hover:bg-rose-500/20 hover:text-rose-300"
+            className="h-7 w-7 text-slate-500 hover:bg-rose-500/20 hover:text-rose-300 dark:text-slate-400"
           >
             <X className="h-3.5 w-3.5" />
           </Button>
@@ -149,21 +149,21 @@ export function SupportChatWidget() {
                     className={`rounded-2xl px-3.5 py-2.5 font-sans text-xs leading-relaxed ${
                       msg.sender === 'user'
                         ? 'rounded-br-none bg-gradient-to-r from-amber-500 to-amber-600 font-medium text-slate-950 shadow-md shadow-amber-500/10'
-                        : 'rounded-bl-none border border-slate-800 bg-[#121726] text-slate-200 shadow-sm'
+                        : 'rounded-bl-none border border-slate-200 bg-slate-100 text-slate-800 shadow-sm dark:border-slate-800 dark:bg-[#121726] dark:text-slate-200'
                     }`}
                   >
                     {t(msg.text)}
                   </div>
                 </div>
 
-                <span className="mt-1 px-1 font-mono text-[10px] text-slate-400">
+                <span className="mt-1 px-1 font-mono text-[10px] text-slate-500 dark:text-slate-400">
                   {formatTimestamp(msg.timestamp)}
                 </span>
               </div>
             ))}
 
             {isTyping && (
-              <div className="flex items-center space-x-2 font-mono text-xs text-amber-400/90 italic">
+              <div className="flex items-center space-x-2 font-mono text-xs text-amber-700 italic dark:text-amber-400/90">
                 <Sparkles className="h-3.5 w-3.5 animate-spin" />
                 <span>{t('Davin Support AI is typing response...')}</span>
               </div>
@@ -172,15 +172,15 @@ export function SupportChatWidget() {
           </div>
 
           {/* Quick Topic Selector Chips */}
-          <div className="no-scrollbar flex items-center space-x-1.5 overflow-x-auto border-t border-slate-800/80 bg-[#080b13] px-4 py-2">
+          <div className="no-scrollbar flex items-center space-x-1.5 overflow-x-auto border-t border-slate-200 bg-slate-50 px-4 py-2 dark:border-slate-800/80 dark:bg-[#080b13]">
             {topicOptions.map((topic) => (
               <button
                 key={topic}
                 onClick={() => handleTopicClick(topic)}
                 className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-all ${
                   activeTopic === topic
-                    ? 'border-amber-500/60 bg-amber-500/20 text-amber-300'
-                    : 'border-slate-800 bg-[#0e121e] text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                    ? 'border-amber-500/60 bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                    : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-800 dark:border-slate-800 dark:bg-[#0e121e] dark:text-slate-400 dark:hover:border-slate-700 dark:hover:text-slate-200'
                 }`}
               >
                 {t(topic)}
@@ -189,7 +189,7 @@ export function SupportChatWidget() {
           </div>
 
           {/* Input Box & Send Bar */}
-          <div className="rounded-b-2xl border-t border-slate-800 bg-[#0c101d] p-3">
+          <div className="rounded-b-2xl border-t border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-[#0c101d]">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -202,7 +202,7 @@ export function SupportChatWidget() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={t('User type inquiry here...')}
-                className="flex-1 rounded-xl border border-slate-800 bg-[#060810] px-3 py-2 text-xs font-medium text-white placeholder:text-slate-500 focus:border-amber-500/60 focus:outline-none"
+                className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-900 placeholder:text-slate-500 focus:border-amber-500/60 focus:outline-none dark:border-slate-800 dark:bg-[#060810] dark:text-white"
               />
               <Button
                 type="submit"

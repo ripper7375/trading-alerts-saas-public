@@ -67,11 +67,11 @@ export default function TerminalPage() {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#06070a] select-none">
+    <div className="flex h-screen w-full overflow-hidden bg-slate-50 select-none dark:bg-[#06070a]">
       <div className="flex h-screen flex-1 flex-col overflow-hidden">
         {/* Top Control Bar when Chat Panel B or Comments Panel D are collapsed */}
         {(isPanel1Collapsed || isPanel3Collapsed) && (
-          <div className="z-30 flex h-8 shrink-0 items-center justify-between border-b border-slate-800 bg-[#0c0f17] px-3 text-xs">
+          <div className="z-30 flex h-8 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-3 text-xs dark:border-slate-800 dark:bg-[#0c0f17]">
             <div className="flex items-center gap-2">
               {isPanel1Collapsed && (
                 <Button
@@ -133,7 +133,7 @@ export default function TerminalPage() {
             {/* Drag Handle 1: Between Part A (Sidebar) and Part B (Chat Panel) */}
             <ResizableHandle
               withHandle
-              className="border-x border-amber-500/30 bg-[#0c0f17] hover:bg-amber-500/60"
+              className="border-x border-amber-500/30 bg-slate-100 hover:bg-amber-500/60 dark:bg-[#0c0f17]"
             />
 
             {/* Part-B: Stack D AI Analyst Chat Panel (Left-Middle) */}
@@ -169,7 +169,7 @@ export default function TerminalPage() {
                 {/* Drag Handle 2: Between Part B (Chat Panel) and Part C (Trading Chart) */}
                 <ResizableHandle
                   withHandle
-                  className="border-x border-amber-500/30 bg-[#0c0f17] hover:bg-amber-500/60"
+                  className="border-x border-amber-500/30 bg-slate-100 hover:bg-amber-500/60 dark:bg-[#0c0f17]"
                 />
               </>
             )}
@@ -199,7 +199,7 @@ export default function TerminalPage() {
                 {/* Drag Handle 3: Between Part C (Trading Chart) and Part D (Comments Panel) */}
                 <ResizableHandle
                   withHandle
-                  className="border-x border-emerald-500/30 bg-[#0c0f17] hover:bg-emerald-500/60"
+                  className="border-x border-emerald-500/30 bg-slate-100 hover:bg-emerald-500/60 dark:bg-[#0c0f17]"
                 />
 
                 <ResizablePanel

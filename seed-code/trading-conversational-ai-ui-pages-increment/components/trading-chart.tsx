@@ -584,25 +584,25 @@ export default function TradingChart({
                 <PopoverTrigger asChild>
                   <Button
                     size="sm"
-                    className="h-7 border border-slate-300 bg-slate-100 text-[11px] font-bold text-slate-800 hover:bg-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200"
+                    className="h-7 border border-slate-300 bg-slate-100 text-[11px] font-bold text-slate-800 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700"
                   >
                     <Sliders className="mr-1 h-3 w-3 text-amber-400" />
                     {t('EDT Configuration')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="dark:border-slate-750 w-64 space-y-2 border-slate-200 bg-white p-3 text-xs text-slate-800 dark:bg-[#121622] dark:text-slate-200">
-                  <div className="border-b border-slate-200 pb-1 font-bold text-amber-400 dark:border-slate-800">
+                  <div className="border-b border-slate-200 pb-1 font-bold text-amber-600 dark:border-slate-800 dark:text-amber-400">
                     {t('M5 EDT Parameters')}
                   </div>
                   <div className="flex justify-between text-[11px]">
                     <span>{t('Channel Width:')}</span>{' '}
-                    <span className="font-mono font-bold text-emerald-400">
+                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                       12.0 pips
                     </span>
                   </div>
                   <div className="flex justify-between text-[11px]">
                     <span>{t('SSA Smoothing Period:')}</span>{' '}
-                    <span className="font-mono font-bold text-blue-400">
+                    <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
                       24 bars
                     </span>
                   </div>
@@ -735,25 +735,25 @@ export default function TradingChart({
                 <PopoverTrigger asChild>
                   <Button
                     size="sm"
-                    className="h-7 border border-slate-300 bg-slate-100 text-[11px] font-bold text-slate-800 hover:bg-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200"
+                    className="h-7 border border-slate-300 bg-slate-100 text-[11px] font-bold text-slate-800 hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700"
                   >
                     <Sliders className="mr-1 h-3 w-3 text-amber-400" />
                     {t('EDT Configuration')}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="dark:border-slate-750 w-64 space-y-2 border-slate-200 bg-white p-3 text-xs text-slate-800 dark:bg-[#121622] dark:text-slate-200">
-                  <div className="border-b border-slate-200 pb-1 font-bold text-amber-400 dark:border-slate-800">
+                  <div className="border-b border-slate-200 pb-1 font-bold text-amber-600 dark:border-slate-800 dark:text-amber-400">
                     {t('M15 EDT Parameters')}
                   </div>
                   <div className="flex justify-between text-[11px]">
                     <span>{t('Channel Width:')}</span>{' '}
-                    <span className="font-mono font-bold text-emerald-400">
+                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
                       18.0 pips
                     </span>
                   </div>
                   <div className="flex justify-between text-[11px]">
                     <span>{t('SSA Smoothing Period:')}</span>{' '}
-                    <span className="font-mono font-bold text-purple-400">
+                    <span className="font-mono font-bold text-purple-600 dark:text-purple-400">
                       48 bars
                     </span>
                   </div>
