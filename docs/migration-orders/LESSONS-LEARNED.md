@@ -4,9 +4,10 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 29 (L1–L29), well within the cap after the
+**Hard cap ~40 active lessons.** Currently at 32 (L1–L32), well within the cap after the
 2026-08-12 consolidation pass (64 → 25: 28 archived, 11 merged into 8 master rules,
-then 4 unpromoted candidates promoted to L26–L29).
+then 4 unpromoted candidates promoted to L26–L29; L30 added 2026-08-20 ad-hoc, L31–L32
+added Session 7-2).
 Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds 40 again.
 
 ---
@@ -311,3 +312,17 @@ Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds
 - Root cause: a mock that echoes its input back verifies wiring, not the real API's contract — the test suite could reach 100% green without ever exercising the real validation path.
 - Rule: for any route calling `NextResponse.redirect()`/`Response.redirect()` on a value that could come from stored data (not a hardcoded literal), resolve it to absolute first (`new URL(value, request.url)`) and add a unit test for the relative-input case specifically. Live-verify redirect routes against a real dev server before calling a session done — this bug was caught only that way, not by 100%-passing mocked tests.
 - Source: Ad-hoc session 2026-08-20 (Marketing Resources / Media Kit) · Status: ACTIVE
+
+### L31 — Swapping a hand-rolled `fetch()` wrapper for `openapi-fetch` breaks every test that mocks `global.fetch` with a minimal `{ok, status, json}` object — real `Response`/`Request` objects are required
+
+- Symptom: migrating `app/api/auth/token-*` from `callOperationService()` onto `createOperationApi()` (Session 7-1's generated `openapi-fetch` client) turned every one of 5 existing test files' passing tests into uniform 500s. The real error, only visible with `--silent` off: `TypeError: Cannot read properties of undefined (reading 'get')` inside `openapi-fetch`'s `coreFetch`.
+- Root cause: `openapi-fetch` reads `response.headers.get('Content-Length')` before parsing, then parses via `response.text()` (not `.json()`), and calls the real underlying `fetch(request, init)` with a genuine `Request` object as the first argument — none of which the old wrapper's bare `fetch(url, init)` + `.json()` ever required, so `{ok, status, json: async () => body}` mocks satisfied the old code path but not the new one.
+- Rule: when migrating any route/wrapper onto an `openapi-fetch`-based generated client, replace every mocked fetch response with a real `new Response(JSON.stringify(body), {status})` (never a hand-rolled object), and rewrite any assertion reading `mock.calls[0]` as `(url, init)` to instead read `mock.calls[0][0]` as a real `Request` (`.url`, `await .text()`) — do this for every test file touching a migrated route before assuming "tests still green" proves nothing changed.
+- Source: Session 7-2 (2026-08-20), `DECISION-LOG.md`-adjacent order Deviation 4 · Status: ACTIVE
+
+### L32 — `@nestjs/swagger` can omit query-parameter (not just body) schemas entirely for Zod-validated routes — check `parameters.query` in the generated `schema.ts`, not just `requestBody`, before trusting a generated client's typed surface
+
+- Symptom: `lib/api/generated/money-api/schema.ts` (Session 7-1) has `parameters.query?: never` on **every** money-service operation — worse than the "generic `type: object`" body gap Session 7-1 disclosed. Discovered only by reading the raw schema file directly, not by trusting the generated clients' own header comments (which described the gap as body-only).
+- Root cause: `@nestjs/swagger` has no class-validator DTO metadata to introspect for a Zod-validated route's `@Query()` params, same underlying cause as the body gap (L29) — but the failure mode is silent (`never`, not a usable generic type), so a caller passing real query params gets a compile error, not a loose-but-working type.
+- Rule: before writing a call site against ANY generated OpenAPI client for a Zod-validated NestJS service, grep the real `schema.ts` for that operation's `parameters.query` (and `requestBody`) — don't assume from another service's or another session's disclosed gap that the shape is the same. Work around a `never` query type with a single narrowly-scoped cast (e.g., append the query string to a literal path, cast once) rather than casting every call site individually.
+- Source: Session 7-2 (2026-08-20), order Deviation 5 · Status: ACTIVE

@@ -1643,8 +1643,11 @@ New (FRONTEND):
 - `app/api/auth/token-2fa-status/route.ts` (GET), `token-2fa-setup/route.ts`,
   `token-2fa-verify-setup/route.ts`, `token-2fa-verify/route.ts` (unauthenticated —
   completes login itself, same as its source route), `token-2fa-backup-codes/route.ts`
-  (GET+POST), `token-2fa-disable/route.ts`
-- `__tests__/api/auth/token-email-flows.test.ts`, `token-2fa-flows.test.ts`
+  (GET+POST), `token-2fa-disable/route.ts` — **retired at Session 7-2 (2026-08-20):** zero UI
+  consumers ever (superseded by `/api/user/2fa/*` at Session 4B-21); all 6 files + their test
+  deleted, see that session's Decision 2.
+- `__tests__/api/auth/token-email-flows.test.ts`, `token-2fa-flows.test.ts` — the latter deleted
+  alongside its routes at Session 7-2 (above).
 
 Modified (FRONTEND):
 

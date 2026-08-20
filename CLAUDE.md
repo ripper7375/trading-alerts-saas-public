@@ -26,7 +26,71 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 7-1 (API Client Re-verify + Generate, CONTRACT/PORT hybrid, dial MEDIUM),
+- **Current:** Session 7-2 (API Client Migrate Consumers, PORT variant, dial LOW), CONFIRMED,
+  executed, CLOSED SUCCESSFUL 2026-08-20. Second session of Phase 7 — the consumer rewiring
+  Session 7-1 deliberately deferred. Also the session that landed `MASTER-ROADMAP-PHASES-7-15.md`
+  (registers F65–F74, resequences the whole remaining migration).
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L3/L11 pattern, this time as one large
+  batch spanning 8 files**: this order, `MASTER-ROADMAP-PHASES-7-15.md` (untracked, new), `CLAUDE.md`,
+  `DECISION-LOG.md`, `EXECUTOR-PROTOCOL.md`, the implementation plan, session playbook, and
+  `SESSION-PROMPT-SCRIPT.md` were all modified-but-uncommitted — the order itself had grown a new
+  `Decisions taken` section and expanded scope (an ESLint rule + dead-2FA retirement) beyond its
+  own committed PRE-DRAFT, and the roadmap's own header read "pending Davin's approval." Reported
+  in full before proceeding; Davin confirmed live the whole batch is his authentic edit and the
+  roadmap is approved.
+  **Two real gaps found at CONFIRM beyond the order's own text, both resolved by Davin's live
+  direction:** (1) the admin cron-trigger route (`app/api/admin/system/jobs/[jobId]/trigger/
+route.ts`) was calling money-service without the `/v1` prefix its global route prefix actually
+  requires — almost certainly a live 404 bug since Session 6-11 built the button; folded the fix
+  into Step 1 and updated the one test asserting the old path. (2) Step 3's planned ESLint-rule
+  allowlist omitted `lib/status/check-system-status.ts`'s legitimate direct `/health` fetch —
+  added it to the allowlist.
+  **Built all 4 Ordered Steps, one commit each, plus a Step 0 housekeeping commit for the
+  governance batch:** Step 0 — committed the confirmed 8-file batch above. Step 1 — migrated the
+  trigger route and all 18 `lib/money-service/routes.ts` wrapper functions onto
+  `createMoneyApi`/`unwrapMoneyApi` (17 downstream consumer routes needed zero changes — they call
+  the wrapper, not the transport). **Found a second, more severe generated-spec gap than Session
+  7-1 disclosed while doing this:** money-service's OpenAPI spec has `parameters.query?: never` on
+  every single operation (not just generic bodies) — `@nestjs/swagger` captured path/method/
+  path-param shape but zero query-parameter metadata for Zod-validated routes. Worked around with
+  one narrowly-scoped `pathWithQuery()` cast per query-bearing call, preserving byte-for-byte
+  identical request URLs via the same `buildQuery()` helper as before. Step 2 — migrated all 8
+  live `app/api/auth/token-*` routes onto `createOperationApi`/`unwrapOperationApi`. **Found that
+  `openapi-fetch` needs a real `Response`/`Request` object, not the old `{ok, status, json}` mock
+  shape** — broke all 5 affected test files uniformly with 500s until fixed (real `new Response()`
+  mocks, real `Request` reads for outbound-body/URL assertions); no assertion's expected value
+  changed, only the mock mechanics. Step 3 — `no-restricted-syntax` ESLint rule banning direct
+  `fetch()` against `OPERATION_SERVICE_URL`/`MONEY_SERVICE_URL`/bare microservice ports outside
+  `lib/api/generated/`, `lib/*-service/client.ts`, and the allowlisted health-check file; proven
+  via a planted violation (caught, then removed, clean rerun confirmed). Step 4 — removed the
+  empty `app/api/auth/register/` directory and retired all 6 dead `token-2fa-*` routes +
+  `__tests__/api/auth/token-2fa-flows.test.ts` (zero UI consumers, re-confirmed; superseded by
+  `/api/user/2fa/*` at Session 4B-21).
+  **Full verification:** `tsc --noEmit` clean throughout, re-checked after every step; `eslint app
+components lib hooks --max-warnings 0` — same 5 pre-existing warnings, 0 introduced; `test:ci`
+  **163/163 suites, 2412/2412 tests** (was 164/164, 2422/2422 — -1 suite/-10 tests, exactly the
+  deleted 2FA test file, zero regressions elsewhere; the order's own predicted "2415" was a
+  citation-drift guess — the file genuinely had 10 tests, not 7).
+  **No flag flipped, no cutover-table row** — pure internal client refactor, `migration-cutover-
+table.md` unchanged. `migration-stack-analysis.md` updated (Appendix note on the 6 retired
+  `token-2fa-*` files + their test, annotated not silently deleted from the historical record).
+  Two new `LESSONS-LEARNED.md` entries: **L31** (`openapi-fetch` needs real `Response`/`Request`
+  mocks, not the old bare-fetch shape) and **L32** (check a generated spec's `parameters.query`
+  for `never`, not just `requestBody` — a Zod-validated service can lose query-param metadata
+  entirely, worse than the disclosed generic-body gap).
+  **Artifacts updated:** `7-2-api-client-migrate-consumers.migration-order.md` (Status → CONFIRMED
+  → CLOSED SUCCESSFUL; entry criteria all checked with CONFIRM-time findings; Done-when all
+  checked; Deviations filled — 6 entries), `DECISION-LOG.md`/`MASTER-ROADMAP-PHASES-7-15.md`/
+  governance docs (committed as the confirmed batch, no new flag resolution — none was open for
+  this session), `migration-stack-analysis.md`, `LESSONS-LEARNED.md` (L31, L32), this file
+  (Current/Previous rotation — Session 6-12 and the 3 ad-hoc sessions between it and 7-1 moved to
+  `history/sessions-archive.md`, closing that piece of the long-standing Waiting-on #102/#129
+  backlog). **`7-3-api-client-contract-tests-and-retirement.migration-order.md` PRE-DRAFTed** —
+  contract-test rewrite, stale-doc retirement, `stackA`/`stackB`'s fate, and the widened
+  generated-spec query-param gap (L32) — deliberately leaves Ordered Steps open pending a real
+  Step 0 discovery pass, same discipline as every recent PRE-DRAFT since the Phase 6 drift
+  pattern.
+- **Previous:** Session 7-1 (API Client Re-verify + Generate, CONTRACT/PORT hybrid, dial MEDIUM),
   CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-12. First session of Phase 7 (API Client
   Rewrite) — `lib/api/index.ts` finally touched after being on `EXECUTOR-PROTOCOL.md` §5's
   standing do-not-touch list for the entire migration.
@@ -142,338 +206,6 @@ src/main.ts` claiming the browser calls money-service directly via a `NEXT_PUBLI
   `7-2-api-client-migrate-consumers.migration-order.md` PRE-DRAFTed (migrate Phase 6 per-domain
   fetch wrappers onto `operationApi`/`moneyApi`; delete the already-empty leftover `app/api/auth/
 register/` directory; audit which of the 6 dead `token-2fa-_` monolith files are safe to retire).
-- **Previous:** Session 6-12 (A11y + Responsive Audit / Phase 6 Exit Review, UI-BUILD variant,
-  dial MEDIUM), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-11, same day as Session 6-11.
-  **Phase 6 (Frontend Redesign) is now CLOSED — F11 RESOLVED, all 59 gap-matrix rows triaged.**
-  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L11 pattern again, this time carrying
-  a substantive false claim, not just header metadata:** the order arrived
-  modified-but-uncommitted, `PRE-DRAFT → APPROVED`, asserting F11 already "RESOLVED... all 90
-  gap matrix rows triaged" — but at first read, `phase-6-frontend-gap-matrix.md` itself (the one
-  artifact that could prove or disprove that claim) had **zero** uncommitted changes: every one
-  of its 59 rows still showed an unfilled `—` Triage value, and its own footer read "F11 stays
-  OPEN — Triage column awaits Davin." A second, independent error compounded it: the order's own
-  "90 rows" citation was itself wrong — the real, re-verified, deduplicated matrix has **59**
-  rows (18 A1 + 12 A2 + 5 B1 + 20 B2 + 4 C, grep-counted); 90 is `ui-page-gap-register.xlsx`'s
-  raw pre-dedup source count, a distinct artifact. Reported both findings in full before
-  proceeding; Davin confirmed live the `APPROVED` rewrite was his own authentic authorization and
-  that he had completed the row-by-row triage — moments later the gap matrix itself picked up
-  real, substantive changes (a genuine `BUILT`/`VERIFIED`/`OUT_OF_SCOPE` value on every one of
-  the 59 rows, footer updated to "F11 RESOLVED"), independently re-verified before treating the
-  claim as settled rather than taken on trust. A third, smaller citation error (the order's own
-  baseline test-count citation, "146/146 suites, 2291/2291 tests," was Session 6-10's number, not
-  6-11's real close-out figure of 148/148, 2312/2312) was also found and corrected — a fresh
-  `test:ci` run at CONFIRM confirmed 148/148, 2312/2312 was the accurate, zero-drift baseline.
-  **Reconciled all three findings across the order file, `DECISION-LOG.md`'s F11 entries, and the
-  gap matrix's own header/footer text** before proceeding, so no future reader hits the same
-  "90 vs 59" confusion.
-  **Built (5 Ordered Steps, one commit each):** Step 1 — the triage reconciliation above (docs
-  only, no code). Step 2 — deleted `app/test-api/page.tsx` (confirmed zero references anywhere
-  in `app/`, `components/`, `__tests__/` before removing it; `tsc --noEmit` clean after). Step 3
-  — a real, evidence-based accessibility audit, **18 fixes across 13 files**: this codebase's
-  baseline was already solid (Radix primitives handle dialog focus-trapping; most icon buttons
-  already carried `aria-label`) — the audit found and fixed one genuinely **recurring** pattern
-  (8 password/secret-visibility toggle buttons across 6 forms — login, register ×2,
-  reset-password, forgot-password ×2, account-settings ×3, the 2FA secret toggle — were
-  icon-only with no accessible name; one of them, `login-form.tsx`, also carried `tabIndex={-1}`,
-  removing it from the keyboard tab order entirely, fixed by removing the override rather than
-  just adding a label) plus several one-off gaps (an icon-only profile-photo-upload overlay
-  button invisible on keyboard focus — `opacity-0 group-hover:opacity-100` with no
-  focus-visible affordance; the notification-delete button; the global toast-dismiss button,
-  which appears on every page; the 2FA secret copy button; 3 filter/search inputs relying on
-  placeholder text alone as their only label). Step 4 — a real responsive-layout audit, **8
-  fixes across 6 files**: 2 tables (`admin/affiliates` list, billing `invoice-list`) wrapped
-  their `<table>` in `overflow-hidden` with no horizontal-scroll fallback — content wider than
-  the viewport was clipped rather than scrollable, fixed to `overflow-x-auto` matching the
-  convention already used correctly by the other 23 table-containing files in this codebase; 6
-  stat-card/quick-link/filter grids (`admin/affiliates` quick-links + filters, and all 4 admin
-  affiliate-report pages' summary-card grids) used a bare `grid-cols-3/4/5` with no responsive
-  breakpoint downgrade — on a 320-480px viewport these crammed 3-5 columns of large-number stat
-  cards or full-width form fields into slivers, fixed with a `grid-cols-1/2` mobile default and
-  `sm:`/`lg:` breakpoints restoring the original column count from tablet up. Checked and
-  deliberately left as-is (already correctly responsive, confirmed by reading each): fixed-width
-  Select/Input elements inside `flex-wrap` or `flex-col sm:flex-row` containers (alerts filter
-  row, `affiliate-filters`, the referral-link input) — these wrap or stack correctly, no
-  overflow; a `min-w-[600px]` chart SVG (`pnl-trend-chart`) already had its own
-  `overflow-x-auto` wrapper. Step 5 — new `__tests__/pages/phase-6-exit.test.tsx` (8 tests): the
-  **first-ever direct test coverage** for `app/not-found.tsx`, `app/error.tsx`, and
-  `app/global-error.tsx` (all built Session 6-2, never directly tested before — existing
-  "not-found" test hits are dynamic-route `notFound()` calls, not these root-level boundary
-  pages themselves), plus a route-integrity check (`app/test-api/page.tsx` genuinely gone from
-  disk) and `ToastContainer`'s a11y fix (dismiss button now has an accessible name). Added 2
-  more regression tests directly into the existing `login-form.test.tsx`/`register-form.test.tsx`
-  harnesses (where the render setup already existed) covering this session's own password-toggle
-  fixes, rather than duplicating that setup in the new file.
-  **Full verification:** `tsc --noEmit` clean throughout, re-checked after every step; `eslint
-app components lib hooks --max-warnings 0` — same 4 pre-existing warnings (all pre-existing
-  routing-method lint, unrelated to a11y — `no-location-assign-relative-destination` ×3,
-  `no-html-link-for-pages` ×1), 0 introduced; `test:ci` **149/149 suites, 2322/2322 tests** (was
-  148/148, 2312/2312 — +1 suite/+10 tests, exactly this session's own new coverage — 8 in the new
-  file + 1 each in `login-form.test.tsx`/`register-form.test.tsx` — zero regressions elsewhere).
-  Live browser click-through not attempted this session — same standing gap as every Phase 6
-  session since 6-1b (Waiting-on #117).
-  **No flag beyond F11, no cutover-table row** — pure frontend audit/fix work, zero backend
-  service changes, zero microservice feature flags touched; `migration-cutover-table.md`
-  unchanged.
-  **Artifacts updated:** `6-12-a11y-responsive-phase-exit.migration-order.md` (Status →
-  CONFIRMED, executed, CLOSED SUCCESSFUL; Entry criteria all checked with the CONFIRM-time
-  findings recorded; Done-when all checked; Deviations filled in full — 3 entries covering the
-  L11 recurrence, the row-count reconciliation, and the baseline-citation fix),
-  `DECISION-LOG.md` (F11 → RESOLVED, register row + full entry corrected to the real 59-row
-  count), `phase-6-frontend-gap-matrix.md` (Triage column filled for all 59 rows by Davin; header
-  note and "How to read" section updated to match; new Correction #7 documenting the 90-vs-59
-  reconciliation), this file (session-history hygiene: Session 6-11's own full text demoted to
-  Previous below; Session 6-10's own full text marked superseded-by-above, still needs its own
-  move to `history/sessions-archive.md` — the larger pre-existing backlog flagged at Waiting-on
-  #102/#129 is unchanged, still needs its own dedicated cleanup session). No new
-  `LESSONS-LEARNED.md` entry — the L11 recurrence and the citation-drift findings are both
-  already-documented pattern classes (L11, L27), not new failure classes; the file's own
-  consolidation backlog (Waiting-on #30) is unchanged. **Phase 6 is CLOSED. Phase 7 (API Client
-  Rewrite) opens next — `7-1-api-client-reverify-and-generate.migration-order.md` PRE-DRAFTed**
-  (CONTRACT/PORT hybrid, per the session playbook's own Session 7-1 "Re-verify + generate"
-  entry) — deliberately leaves Ordered Steps open pending a real re-verification pass against
-  live NestJS routes, same discipline the last several Phase 6 PRE-DRAFTs adopted after
-  pre-guessed step text repeatedly drifted from ground truth by CONFIRM.
-- **Ad-hoc repair (2026-08-11, phase/session unchanged — Phase 6 stays CLOSED, Phase 7 has NOT
-  opened):** run per `EXECUTOR-PROTOCOL.md` §6 (no Advisor DRAFT), same OPEN/CONFIRM/CLOSE rituals
-  as any session. An independent post-6-12 re-audit of the live working tree found Phase 6's own
-  exit claim — "all 59 gap-matrix rows triaged as BUILT/VERIFIED/OUT_OF_SCOPE" — did not hold for
-  one row. **CONFIRM independently re-verified all 7 findings against live code before touching
-  anything** (full detail in `phase-6-frontend-gap-matrix.md`'s own "Corrections found in ad-hoc
-  verification" section): gap-matrix row **A2-12** (`/settings/security/activity`) was triaged
-  `BUILT (Session 6-5)` though no such page, route, or `SecurityAlert` UI surface existed anywhere
-  in the tree, and Session 6-5's own order never scoped it (its only touch on the security surface
-  was a 2FA dummy-widget-to-link swap, Deviation 2b); row **A1-9** (`/settings/security`, A2-12's
-  own cited evidence) was also wrongly `BUILT` — genuinely `PARTIAL`, since login-history's
-  `?limit=20` cap and `SecurityAlert`'s zero-UI-consumer gap were both still exactly as originally
-  documented. Corrected the record first (own commit, before any code): both rows' Triage cells,
-  a new header correction note, and `DECISION-LOG.md`'s F11 entry (appended, F11 **not** reopened
-  — the triage process was sound, this was one wrong verdict).
-  **Then, per Davin's explicit two decisions:** **Decision A (build it, not re-triage
-  `OUT_OF_SCOPE`)** — both rows built for real: new `app/(dashboard)/settings/security/
-activity/page.tsx`; `GET /user/security-alerts` + `POST /user/security-alerts/:id/read` on
-  `operation-service`'s `UsersController` (ownership-scoped `updateMany`, matches the existing
-  `revokeSession` no-id-enumeration convention); the mirrored `SecurityAlert` model widened
-  additively first (`deviceInfo`/`read`/`readAt` — `prisma generate` only, per
-  `LESSONS-LEARNED.md` L1, confirmed as a real gap before fixing it, not assumed); matching
-  monolith routes at `app/api/user/security-alerts{,/[id]/read}/route.ts`, flag-gated behind the
-  existing `MIGRATE_USER_SESSIONS` flag (default off everywhere — zero traffic cut over; the
-  `operation-service` deploy needed to make the flag meaningful was explicitly **not** attempted,
-  an `EXECUTOR-PROTOCOL.md` §7 escalation correctly left for Davin); both `docs/open-api-documents/
-part-13-settings-openapi.yaml` and `part-22-user-account-openapi.yaml` updated (Phase 7 generates
-  its unified client from these specs — an endpoint absent from them would not exist in the
-  generated client); login-history's own real gap fixed too — the backend
-  (`app/api/user/login-history/route.ts`) had always supported `limit`/`offset` pagination, the
-  page just never exposed it, fixed with a "Load more" control; a real, separate bug caught while
-  wiring it (`onClick={fetchLoginHistory}` would have silently passed the click event object as
-  the new `offset` parameter on every Refresh click — fixed to `onClick={() =>
-fetchLoginHistory()}`). 30 new tests (8 `operation-service`, 22 monolith across 4 new test files).
-  **Decision B (keep, don't retire)** — two endpoints orphaned as a side effect of otherwise-
-  correct Phase 6 builds (`GET /api/affiliate/profile/payment`, `GET /api/disbursement/reports/
-affiliate/[affiliateId]` + `.../commissions`) recorded `KEEP — retire in Phase 8's deletion sweep`
-  rather than silently left for a future session to rediscover; `validate-code`/`exchange-rate`
-  reconfirmed unchanged, no new decision needed (still deliberately orphaned per Session 6-8).
-  **Full verification:** `tsc --noEmit` clean throughout (re-checked after every step);
-  `eslint app components lib hooks --max-warnings 0` — same 4 pre-existing warnings tracked since
-  Session 6-12, 0 introduced; `test:ci` **153/153 suites, 2344/2344 tests** (was 149/149,
-  2322/2322 — +4 suites/+22 tests, exactly this session's own new files, zero regressions
-  elsewhere); `operation-service` 42/42 suites, 393/393 tests, `tsc --noEmit` clean. Live-verified
-  via the dev server: unauthenticated `/settings/security/activity` correctly redirects to
-  `/login?callbackUrl=%2Fsettings%2Fsecurity%2Factivity` (proves the route compiles and the
-  `(dashboard)` layout's auth gate covers it) — deeper authenticated click-through blocked by the
-  same standing no-test-credentials gap as every Phase 6 session since 6-1b (Waiting-on #117); a
-  pre-existing, unrelated dev-environment issue (`/api/auth/session`/`/api/auth/providers` 404s in
-  this local Turbopack dev server) was found and disclosed, not chased — outside this session's
-  own files entirely.
-  **Lesson harvested:** a gap-matrix row's triage verdict must cite the commit or file that
-  actually closed it — "BUILT (Session N)" is not evidence unless session N's own order genuinely
-  scoped and shipped that work; A2-12 passed a full phase-exit review carrying a verdict that
-  named a session which never touched it. See `LESSONS-LEARNED.md` for the numbered entry (added
-  or consolidated per that file's own hygiene cap).
-  **Artifacts updated:** `phase-6-frontend-gap-matrix.md` (A1-9/A2-12 Triage cells, header
-  correction note, new "Corrections found in ad-hoc verification" section, footer),
-  `DECISION-LOG.md` (F11 entry appended twice — the correction, then the repair + Decision B),
-  this file (this entry + Waiting-on #130/#131), `LESSONS-LEARNED.md` (new entry per above). No
-  `migration-cutover-table.md`/`migration-stack-analysis.md` change — no flag flipped, and this
-  session's own new files are recorded in `DECISION-LOG.md`/this entry directly rather than
-  duplicated into the stack-analysis file for a non-domain-slice ad-hoc repair. **No next session
-  PRE-DRAFTed** — `7-1-api-client-reverify-and-generate.migration-order.md` already exists from
-  Session 6-12's own close and is unaffected by this repair; it remains the literal next session.
-- **Ad-hoc feature session (2026-08-19, phase/session unchanged — Phase 7 stays open on
-  `7-1-api-client-reverify-and-generate.migration-order.md` as the next numbered session):** run
-  per `EXECUTOR-PROTOCOL.md` §6 (no Advisor DRAFT — Davin scoped this directly in chat from
-  `davintrade-ui-design-stack/hand-off-to-claude-code-for-language-stack/
-language_timezone_regional_format_spec.md`'s §6 server-side tasks, a hand-off doc unrelated to
-  the microservices migration numbering). **CONFIRM found the hand-off doc's central assumption
-  — that `UserPreference`/`/api/user/preferences` don't exist yet — was false against live code**:
-  a generic-JSON `UserPreferences` model (note the plural — unrelated to the spec's proposed
-  singular `UserPreference`) and a fully working, auth-gated `GET/PUT /api/user/preferences`
-  already exist, already store `language`/`timezone`/`dateFormat`/`timeFormat`/`currency`, and
-  are already mirrored into `operation-service`'s `UsersController` behind the (default-off)
-  `MIGRATE_USER_PROFILE` flag. Per this repo's own live-code-wins doctrine, did NOT create a
-  competing model/route (would have collided at the identical `/api/user/preferences` path and
-  reintroduced exactly the kind of duplicate driftable surface Session 7-1 rejected for the API
-  client) — extended the existing JSON-blob shape instead, requiring zero Prisma migrations on
-  either side (sidesteps L1/L6 entirely). **Built:** `countryCode` (12-value enum, `SUPPORTED_COUNTRY_CODES`)
-  added to `lib/preferences/defaults.ts`'s `UserPreferences` interface/`DEFAULT_PREFERENCES`
-  (default `'US'`, matching the existing `en-US`/`USD` default — deliberately NOT the spec
-  snippet's `GB`/`en-GB`/`GBP`, which would have silently changed the default currency shown to
-  every zero-preference existing user); mirrored verbatim into `operation-service/src/users/
-users.schemas.ts`. New `lib/preferences/geo-locale.ts` — a server-only `cf-ipcountry`/
-  `x-vercel-ip-country` → locale-bundle resolver (real ISO alpha-2 codes, with 20 Eurozone
-  member codes mapped to the seed-code `country-config.ts`'s synthetic `eu` bundle, since no
-  GeoIP header ever literally sends `EU`) — wired into `GET /api/user/preferences`: resolves
-  from the header ONLY when the user has no stored preferences row yet (explicit stored prefs,
-  even partial, always win — matches seed-code's `resolvePreferences()` precedence). **Found,
-  not fixed:** `operation-service`'s mirror path cannot replicate the GeoIP resolution as-is —
-  `forwardRequestToOperationService()` only forwards `x-correlation-id`/`user-agent`/
-  `x-forwarded-for` (`forwardedRequestContext()`), dropping `cf-ipcountry`/`x-vercel-ip-country`
-  before they'd ever reach that process; moot today since `MIGRATE_USER_PROFILE` defaults off
-  everywhere, documented as a comment on `UsersController` for whoever flips that flag next.
-  **§6.C (AI system-prompt language injection) skipped, not deferred-silently**: grepped `app/
-api` for any chat/LLM route — none exists, matching the spec's own §3.4 admission ("NOT YET
-  BUILT ANYWHERE"); nothing to inject a language directive into yet. **§6.D (payment currency
-  wiring) deliberately NOT touched**: `app/api/payments/dlocal/create/route.ts` already reads
-  `currency` from an explicit, Zod-validated request body and converts via a real rate service
-  (`lib/dlocal/currency-converter.service.ts`), never `country-config.ts`'s mock table — the
-  actual risk §6.D warned about is already absent. Stripe (`lib/stripe/stripe.ts`) has a single
-  hardcoded `STRIPE_PRO_PRICE_ID` (USD only) and zero multi-currency infrastructure — wiring
-  `userPreference.currency` in for real would mean creating new per-currency Stripe Price
-  objects, a product-catalog decision outside a code session. Per this repo's own rule 5/§7
-  (money-code changes escalate), left both payment routes untouched rather than guess; currency
-  is already exposed via the now-`countryCode`-complete `GET /api/user/preferences` response for
-  a future checkout-UI session to read.
-  **Full verification:** `tsc --noEmit` clean on both the monolith and `operation-service` (one
-  PRE-EXISTING, unrelated `operation-service` error confirmed via `git stash`/clean-tree retest —
-  `auth.service.ts(252,261)`, `PrismaService.affiliateProfile` — not touched this session, not
-  introduced by it); monolith `eslint` on all 4 changed files clean, 0 warnings; monolith
-  `test:ci` **157/157 suites, 2379/2379 tests** (8 new/updated cases in `__tests__/api/
-user.test.ts` covering GeoIP resolution from both headers, unsupported-country fallback,
-  stored-preference-wins-over-geo, and `countryCode` PUT accept/reject — zero regressions
-  elsewhere); `operation-service` `src/users` suite 63/63 unchanged (schema widened, behavior
-  untouched, no new test needed there — GeoIP path is the documented gap above). **Found, not
-  investigated (unrelated to this session's own files):** working tree carried two unstaged
-  deletions (`docs/MOBILE_UI_SPECIFICATION.md`,
-  `docs/prompt-to-antigravity-to-executing-MOBILE_UI_SPECIFICATION_MD.md`) and an untracked
-  `seed-code/lovable-mobile-app/docs/` not present in this session's own opening git snapshot;
-  confirmed via `git stash`/pop that this session's own tooling didn't cause them (they survived
-  a stash/pop round-trip untouched) — left as-is, not staged, not reverted; flagged to Davin for
-  whichever session owns the docs reorg those belong to.
-  **No flag touched, no cutover-table row** — this is a hand-off feature build, not a migration
-  slice; `migration-cutover-table.md`/`migration-stack-analysis.md` unchanged. **No next session
-  PRE-DRAFTed** — same reasoning as the entry above; `7-1-api-client-reverify-and-generate.
-migration-order.md` remains the literal next numbered session, unaffected by this ad-hoc detour.
-- **Ad-hoc feature session (2026-08-20, phase/session unchanged — Phase 7 stays open, next
-  numbered session is `7-2-api-client-migrate-consumers.migration-order.md`):** run per
-  `EXECUTOR-PROTOCOL.md` §6 (no Advisor DRAFT — Davin asked directly in chat, pointing at 4
-  screenshots of 2 pages — `admin/resources` and `affiliate/resources` — in the read-only UI
-  prototype at `seed-code/trading-conversational-ai-ui-pages-increment/` and asking for the real
-  backend business logic behind them). **Read the actual source of both mock pages before writing
-  any backend code** (`app/admin/resources/page.tsx`, `app/affiliate/resources/page.tsx` in that
-  prototype tree) rather than working from the screenshots alone — confirmed both are pure
-  client-side mocks with hardcoded arrays, zero API calls. **CONFIRM found this is fully
-  greenfield**: no `MarketingAsset`-shaped Prisma model, no file-storage SDK/abstraction anywhere
-  in the repo (`package.json` — zero hits for S3/Cloudinary/Blob/multer/formidable), and the
-  live monolith's own `app/affiliate/dashboard/resources/page.tsx` (Session 6-7/B2-20) already
-  carries an honest doc-comment stating brand assets "aren't published yet... no public/ brand
-  asset files exist in this repo (checked)" — independently re-verified true (`public/` held only
-  `manifest.json`). Existing, reusable plumbing: `AffiliateCode.discountPercent` (real, per-code)
-  and the established `GET /api/affiliate/dashboard/codes` auth/response pattern.
-  **Two decisions escalated to Davin directly in chat, both confirmed before writing code:**
-  (1) file storage for admin-uploaded assets — offered Vercel Blob / Cloudinary / URL-only-defer;
-  Davin chose **Vercel Blob** (matches this app's existing Vercel deployment, zero new account,
-  `@vercel/blob` added at the pnpm workspace root per `LESSONS-LEARNED.md` L28); (2) whether to
-  run `prisma db push` against the live `DATABASE_URL` (a non-localhost, Railway-hosted DB, no
-  versioned migrations folder in this repo — `db push` is its own established schema-sync
-  convention) — Davin said yes, run it now.
-  **Built:** new additive-only `MarketingAsset` model + `MarketingAssetCategory`/
-  `MarketingAssetStatus` enums (`prisma/non-market-data/schema.prisma`) — `fileUrl`/`fileSize` for
-  4 real-file categories, `copyText` for `SWIPE_COPY`, no FK/relation changes to any existing
-  model. `lib/marketing-resources/{validators,service,storage}.ts` — Zod schemas; Prisma-backed
-  `listAssetsForAdmin`/`createAsset`/`deleteAsset`/`listPublishedAssets`/`recordAssetEngagement`
-  shared by both surfaces; a thin `@vercel/blob` `put()`/`del()` wrapper, scoped to only ever
-  delete blobs under its own `marketing-resources/` prefix (seeded `/public` paths are never
-  touched). Admin: `GET/POST /api/admin/resources` (list+stats / multipart-upload create),
-  `DELETE /api/admin/resources/[id]`. Affiliate: `GET /api/affiliate/dashboard/resources` (own
-  active codes + all published assets), `GET .../[id]/download` (atomic engagement-count
-  increment + redirect to the real file), `POST .../[id]/copy` (same counter, returns
-  server-authoritative `copyText` for `SWIPE_COPY`) — both routes double as the "Partner
-  Downloads" figure the admin stat card reports. Copied the 3 real brand-asset files
-  (`davintrade-ai-icon.png`, `DavinTrade_Logo.jpg`, `icon.svg` → renamed `marketing-icon.svg` to
-  avoid any future collision with Next's `app/icon.svg` convention) from the prototype's own
-  `public/` into this repo's; seeded all 4 assets (3 file-backed + 1 `SWIPE_COPY`) both into
-  `prisma/seed.ts` (idempotent, stable seed IDs, for future fresh databases) and, this session,
-  directly into the live DB via a standalone one-off script — deliberately NOT via
-  `npm run db:seed`, since that script's `prisma.alert.create` calls are non-idempotent and would
-  have duplicated the 2 demo alerts on every rerun; script deleted after use. `next.config.js`:
-  added the Blob storage hostname to both `images.remotePatterns` and the CSP `img-src` (would
-  otherwise 404/CSP-block real asset previews once admin uploads start landing on Blob URLs).
-  Wired the existing live `app/affiliate/dashboard/resources/page.tsx` to the new endpoint,
-  replacing its honest "not published yet" stub with a real assets grid + a new Copywriting
-  Swipes section (same minimal Tailwind the file already used — the prototype's own fuller
-  redesign is future frontend-migration scope, not this session's).
-  **Found and fixed one real bug via live verification, not by the unit tests**: the download
-  route's `NextResponse.redirect(asset.fileUrl)` threw `TypeError: Invalid URL` for every
-  relative `/public`-style `fileUrl` (3 of the 4 seeded assets) — Next's redirect helper requires
-  an absolute URL, and the fully-mocked unit test suite was 100% green throughout because its
-  mock echoed any string back uncritically. Fixed with `new URL(asset.fileUrl, request.url)`;
-  added a dedicated regression test for the relative-input case; see `LESSONS-LEARNED.md` **L30**
-  for the generalized rule. A second, unrelated jsdom-only quirk (`FormData.set()` silently
-  stringifies real `File` objects in this repo's jsdom test environment — never a problem in the
-  real Next.js runtime the route actually runs in) was hit and worked around in the admin POST
-  test file with a documented `FakeFormData` stand-in; not promoted to its own lesson entry
-  (resolved within-session, low future-recurrence risk, already commented in the one test file it
-  affects).
-  **Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
-  — same 5 pre-existing warnings (routing-method lint, unrelated to this session, none in any file
-  this session touched), 0 introduced; `prettier --check` clean on every changed file;
-  `test:ci` **163/163 suites, 2416/2416 tests** (was 157/157, 2379/2379 per the last recorded
-  baseline — +6 suites/+37 tests: 6 new test files for the routes/service above, zero
-  regressions elsewhere). **Live-verified end-to-end against the real dev server and the real
-  (Railway) database, not just mocks** — logged in as the seeded `affiliate-test@trading-alerts.
-test` user: the wired affiliate page correctly rendered real codes (`TESTCODE20`/`TESTCODE10`
-  with live `discountPercent`) and all 4 seeded assets; clicked the real "Copy Text" button and
-  confirmed the POST endpoint fired and returned an incremented `downloadCount`; hit the download
-  redirect both before and after the URL fix (500 → 307 → real 200 on the destination file),
-  confirming the atomic counter incremented on both attempts. Logged in as `admin-test@trading-
-alerts.test` and exercised the full admin CRUD lifecycle live via `fetch()` (no admin UI page
-  exists yet — building one is frontend-migration scope, not this backend session): list (`total:
-4, totalDownloads` aggregate correct), create a `SWIPE_COPY` asset (real 201, real row), delete it
-  (real 200, list count back to 4). The real Vercel Blob file-upload path itself was NOT
-  live-exercised (`BLOB_READ_WRITE_TOKEN` isn't provisioned in this session's environment) — its
-  code path is covered by mocked unit tests only. **Waiting on Davin:** provision a Blob store
-  for this project (Vercel dashboard → Storage tab) and set `BLOB_READ_WRITE_TOKEN` (see
-  `.env.example`'s new entry) — the real upload path can't be exercised end-to-end until then.
-  **Same-conversation follow-up (still 2026-08-20):** Davin asked 3 questions after this
-  session's own close-out — where the "left for you" items were tracked, whether MP4 could be
-  uploaded, and for frontend/backend recommendations. Answering the MP4 question surfaced a real
-  gap disclosed but not yet fixed: `POST /api/admin/resources` validated file **size** only, no
-  MIME-type allowlist — so the upload form's own stated "Supports PNG, JPG, SVG, MP4, PDF" was
-  unenforced and literally any file type would have been accepted and stored. Davin asked for the
-  fix. Added `ACCEPTED_ASSET_MIME_TYPES`/`isAcceptedAssetMimeType()` to
-  `lib/marketing-resources/validators.ts` (exactly the 5 types the UI already advertises) and a
-  400-rejection check in the route between the existing "file present" and "under 50MB" checks.
-  4 new tests (2 route-level: reject `text/html`, accept `video/mp4`; 2 in a new
-  `validators.test.ts` covering the allowlist function directly, including a
-  prototype-pollution-safety check via `hasOwnProperty`). **Live-verified against the real dev
-  server**, still logged in as `admin-test@trading-alerts.test`: a `text/html` POST correctly
-  400'd with the new message; an MP4 POST correctly passed the new type check and only then hit
-  the already-known, already-disclosed `BLOB_READ_WRITE_TOKEN`-missing 500 (confirmed via server
-  logs — not a new bug). `tsc`/`eslint`/`prettier` clean; `test:ci` **164/164 suites, 2422/2422
-  tests** (was 163/163, 2416/2416 — +1 suite/+6 tests, zero regressions). Deliberately did NOT
-  also derive `format`/cross-check it against the real uploaded MIME type (a related idea raised
-  in chat) — out of scope for "implement the MIME-type allowlist fix" specifically; left as an
-  unscoped idea for a future session if wanted, not silently done.
-  **No cutover-table row** — this is a brand-new domain, not a monolith→microservice slice;
-  `migration-cutover-table.md` unchanged. `migration-stack-analysis.md` also unchanged, matching
-  the 2026-08-19 entry's own precedent for a non-domain-slice ad-hoc build (new files recorded
-  here instead). **Deliberately monolith-only, not mirrored into `money-service`** — the existing
-  affiliate read-API migration (Slice 3, `MIGRATE_READ_APIS_MONEY_AFFILIATE`) covers pre-existing
-  affiliate data (codes/commissions/stats); this is a brand-new domain with no prior money-service
-  presence, and mirroring it wasn't asked for — noted here as a real, scoped follow-up for a
-  future session rather than attempted speculatively (no admin UI page exists yet either, for the
-  same reason: this session's own scope was "backend business logic," per Davin's own framing). **No next session PRE-DRAFTed** — `7-2-api-client-migrate-
-consumers.migration-order.md` remains the literal next numbered session, unaffected by this
-  ad-hoc detour.
 
 ## Key documents
 
