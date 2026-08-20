@@ -304,3 +304,10 @@ Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds
 
 - Rule: On a Zod-validated NestJS service, `@nestjs/swagger` emits correct route paths/methods/params but generic `type: object` for request/response bodies (Zod's `z.infer<>` types erase at compile time, carrying no decorator metadata). Accept generic body schemas or plan a separate `zod-to-openapi` step.
 - Source: Session 7-1 (promoted 2026-08-12) · Status: ACTIVE
+
+### L30 — A fully-mocked unit test suite can pass 100% while missing a real Next.js Response API constraint; verify redirects live, not just via mocks
+
+- Symptom: `GET /api/affiliate/dashboard/resources/[id]/download` redirected to `asset.fileUrl` unchanged. All 6 unit tests passed (the mocked `NextResponse.redirect` echoed any string back uncritically). Live browser verification against the real dev server 500'd instead: `NextResponse.redirect('/marketing-icon.svg')` throws `TypeError: Invalid URL` — the real Next.js redirect helper requires an ABSOLUTE URL, and a relative `/public`-style path (the exact shape 3 of the 4 seeded assets use) is a completely normal input, not an edge case.
+- Root cause: a mock that echoes its input back verifies wiring, not the real API's contract — the test suite could reach 100% green without ever exercising the real validation path.
+- Rule: for any route calling `NextResponse.redirect()`/`Response.redirect()` on a value that could come from stored data (not a hardcoded literal), resolve it to absolute first (`new URL(value, request.url)`) and add a unit test for the relative-input case specifically. Live-verify redirect routes against a real dev server before calling a session done — this bug was caught only that way, not by 100%-passing mocked tests.
+- Source: Ad-hoc session 2026-08-20 (Marketing Resources / Media Kit) · Status: ACTIVE

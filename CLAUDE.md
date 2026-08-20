@@ -362,6 +362,118 @@ user.test.ts` covering GeoIP resolution from both headers, unsupported-country f
   slice; `migration-cutover-table.md`/`migration-stack-analysis.md` unchanged. **No next session
   PRE-DRAFTed** — same reasoning as the entry above; `7-1-api-client-reverify-and-generate.
 migration-order.md` remains the literal next numbered session, unaffected by this ad-hoc detour.
+- **Ad-hoc feature session (2026-08-20, phase/session unchanged — Phase 7 stays open, next
+  numbered session is `7-2-api-client-migrate-consumers.migration-order.md`):** run per
+  `EXECUTOR-PROTOCOL.md` §6 (no Advisor DRAFT — Davin asked directly in chat, pointing at 4
+  screenshots of 2 pages — `admin/resources` and `affiliate/resources` — in the read-only UI
+  prototype at `seed-code/trading-conversational-ai-ui-pages-increment/` and asking for the real
+  backend business logic behind them). **Read the actual source of both mock pages before writing
+  any backend code** (`app/admin/resources/page.tsx`, `app/affiliate/resources/page.tsx` in that
+  prototype tree) rather than working from the screenshots alone — confirmed both are pure
+  client-side mocks with hardcoded arrays, zero API calls. **CONFIRM found this is fully
+  greenfield**: no `MarketingAsset`-shaped Prisma model, no file-storage SDK/abstraction anywhere
+  in the repo (`package.json` — zero hits for S3/Cloudinary/Blob/multer/formidable), and the
+  live monolith's own `app/affiliate/dashboard/resources/page.tsx` (Session 6-7/B2-20) already
+  carries an honest doc-comment stating brand assets "aren't published yet... no public/ brand
+  asset files exist in this repo (checked)" — independently re-verified true (`public/` held only
+  `manifest.json`). Existing, reusable plumbing: `AffiliateCode.discountPercent` (real, per-code)
+  and the established `GET /api/affiliate/dashboard/codes` auth/response pattern.
+  **Two decisions escalated to Davin directly in chat, both confirmed before writing code:**
+  (1) file storage for admin-uploaded assets — offered Vercel Blob / Cloudinary / URL-only-defer;
+  Davin chose **Vercel Blob** (matches this app's existing Vercel deployment, zero new account,
+  `@vercel/blob` added at the pnpm workspace root per `LESSONS-LEARNED.md` L28); (2) whether to
+  run `prisma db push` against the live `DATABASE_URL` (a non-localhost, Railway-hosted DB, no
+  versioned migrations folder in this repo — `db push` is its own established schema-sync
+  convention) — Davin said yes, run it now.
+  **Built:** new additive-only `MarketingAsset` model + `MarketingAssetCategory`/
+  `MarketingAssetStatus` enums (`prisma/non-market-data/schema.prisma`) — `fileUrl`/`fileSize` for
+  4 real-file categories, `copyText` for `SWIPE_COPY`, no FK/relation changes to any existing
+  model. `lib/marketing-resources/{validators,service,storage}.ts` — Zod schemas; Prisma-backed
+  `listAssetsForAdmin`/`createAsset`/`deleteAsset`/`listPublishedAssets`/`recordAssetEngagement`
+  shared by both surfaces; a thin `@vercel/blob` `put()`/`del()` wrapper, scoped to only ever
+  delete blobs under its own `marketing-resources/` prefix (seeded `/public` paths are never
+  touched). Admin: `GET/POST /api/admin/resources` (list+stats / multipart-upload create),
+  `DELETE /api/admin/resources/[id]`. Affiliate: `GET /api/affiliate/dashboard/resources` (own
+  active codes + all published assets), `GET .../[id]/download` (atomic engagement-count
+  increment + redirect to the real file), `POST .../[id]/copy` (same counter, returns
+  server-authoritative `copyText` for `SWIPE_COPY`) — both routes double as the "Partner
+  Downloads" figure the admin stat card reports. Copied the 3 real brand-asset files
+  (`davintrade-ai-icon.png`, `DavinTrade_Logo.jpg`, `icon.svg` → renamed `marketing-icon.svg` to
+  avoid any future collision with Next's `app/icon.svg` convention) from the prototype's own
+  `public/` into this repo's; seeded all 4 assets (3 file-backed + 1 `SWIPE_COPY`) both into
+  `prisma/seed.ts` (idempotent, stable seed IDs, for future fresh databases) and, this session,
+  directly into the live DB via a standalone one-off script — deliberately NOT via
+  `npm run db:seed`, since that script's `prisma.alert.create` calls are non-idempotent and would
+  have duplicated the 2 demo alerts on every rerun; script deleted after use. `next.config.js`:
+  added the Blob storage hostname to both `images.remotePatterns` and the CSP `img-src` (would
+  otherwise 404/CSP-block real asset previews once admin uploads start landing on Blob URLs).
+  Wired the existing live `app/affiliate/dashboard/resources/page.tsx` to the new endpoint,
+  replacing its honest "not published yet" stub with a real assets grid + a new Copywriting
+  Swipes section (same minimal Tailwind the file already used — the prototype's own fuller
+  redesign is future frontend-migration scope, not this session's).
+  **Found and fixed one real bug via live verification, not by the unit tests**: the download
+  route's `NextResponse.redirect(asset.fileUrl)` threw `TypeError: Invalid URL` for every
+  relative `/public`-style `fileUrl` (3 of the 4 seeded assets) — Next's redirect helper requires
+  an absolute URL, and the fully-mocked unit test suite was 100% green throughout because its
+  mock echoed any string back uncritically. Fixed with `new URL(asset.fileUrl, request.url)`;
+  added a dedicated regression test for the relative-input case; see `LESSONS-LEARNED.md` **L30**
+  for the generalized rule. A second, unrelated jsdom-only quirk (`FormData.set()` silently
+  stringifies real `File` objects in this repo's jsdom test environment — never a problem in the
+  real Next.js runtime the route actually runs in) was hit and worked around in the admin POST
+  test file with a documented `FakeFormData` stand-in; not promoted to its own lesson entry
+  (resolved within-session, low future-recurrence risk, already commented in the one test file it
+  affects).
+  **Full verification:** `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0`
+  — same 5 pre-existing warnings (routing-method lint, unrelated to this session, none in any file
+  this session touched), 0 introduced; `prettier --check` clean on every changed file;
+  `test:ci` **163/163 suites, 2416/2416 tests** (was 157/157, 2379/2379 per the last recorded
+  baseline — +6 suites/+37 tests: 6 new test files for the routes/service above, zero
+  regressions elsewhere). **Live-verified end-to-end against the real dev server and the real
+  (Railway) database, not just mocks** — logged in as the seeded `affiliate-test@trading-alerts.
+test` user: the wired affiliate page correctly rendered real codes (`TESTCODE20`/`TESTCODE10`
+  with live `discountPercent`) and all 4 seeded assets; clicked the real "Copy Text" button and
+  confirmed the POST endpoint fired and returned an incremented `downloadCount`; hit the download
+  redirect both before and after the URL fix (500 → 307 → real 200 on the destination file),
+  confirming the atomic counter incremented on both attempts. Logged in as `admin-test@trading-
+alerts.test` and exercised the full admin CRUD lifecycle live via `fetch()` (no admin UI page
+  exists yet — building one is frontend-migration scope, not this backend session): list (`total:
+4, totalDownloads` aggregate correct), create a `SWIPE_COPY` asset (real 201, real row), delete it
+  (real 200, list count back to 4). The real Vercel Blob file-upload path itself was NOT
+  live-exercised (`BLOB_READ_WRITE_TOKEN` isn't provisioned in this session's environment) — its
+  code path is covered by mocked unit tests only. **Waiting on Davin:** provision a Blob store
+  for this project (Vercel dashboard → Storage tab) and set `BLOB_READ_WRITE_TOKEN` (see
+  `.env.example`'s new entry) — the real upload path can't be exercised end-to-end until then.
+  **Same-conversation follow-up (still 2026-08-20):** Davin asked 3 questions after this
+  session's own close-out — where the "left for you" items were tracked, whether MP4 could be
+  uploaded, and for frontend/backend recommendations. Answering the MP4 question surfaced a real
+  gap disclosed but not yet fixed: `POST /api/admin/resources` validated file **size** only, no
+  MIME-type allowlist — so the upload form's own stated "Supports PNG, JPG, SVG, MP4, PDF" was
+  unenforced and literally any file type would have been accepted and stored. Davin asked for the
+  fix. Added `ACCEPTED_ASSET_MIME_TYPES`/`isAcceptedAssetMimeType()` to
+  `lib/marketing-resources/validators.ts` (exactly the 5 types the UI already advertises) and a
+  400-rejection check in the route between the existing "file present" and "under 50MB" checks.
+  4 new tests (2 route-level: reject `text/html`, accept `video/mp4`; 2 in a new
+  `validators.test.ts` covering the allowlist function directly, including a
+  prototype-pollution-safety check via `hasOwnProperty`). **Live-verified against the real dev
+  server**, still logged in as `admin-test@trading-alerts.test`: a `text/html` POST correctly
+  400'd with the new message; an MP4 POST correctly passed the new type check and only then hit
+  the already-known, already-disclosed `BLOB_READ_WRITE_TOKEN`-missing 500 (confirmed via server
+  logs — not a new bug). `tsc`/`eslint`/`prettier` clean; `test:ci` **164/164 suites, 2422/2422
+  tests** (was 163/163, 2416/2416 — +1 suite/+6 tests, zero regressions). Deliberately did NOT
+  also derive `format`/cross-check it against the real uploaded MIME type (a related idea raised
+  in chat) — out of scope for "implement the MIME-type allowlist fix" specifically; left as an
+  unscoped idea for a future session if wanted, not silently done.
+  **No cutover-table row** — this is a brand-new domain, not a monolith→microservice slice;
+  `migration-cutover-table.md` unchanged. `migration-stack-analysis.md` also unchanged, matching
+  the 2026-08-19 entry's own precedent for a non-domain-slice ad-hoc build (new files recorded
+  here instead). **Deliberately monolith-only, not mirrored into `money-service`** — the existing
+  affiliate read-API migration (Slice 3, `MIGRATE_READ_APIS_MONEY_AFFILIATE`) covers pre-existing
+  affiliate data (codes/commissions/stats); this is a brand-new domain with no prior money-service
+  presence, and mirroring it wasn't asked for — noted here as a real, scoped follow-up for a
+  future session rather than attempted speculatively (no admin UI page exists yet either, for the
+  same reason: this session's own scope was "backend business logic," per Davin's own framing). **No next session PRE-DRAFTed** — `7-2-api-client-migrate-
+consumers.migration-order.md` remains the literal next numbered session, unaffected by this
+  ad-hoc detour.
 
 ## Key documents
 
