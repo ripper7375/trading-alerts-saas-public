@@ -68,6 +68,11 @@ Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds
   with the one artifact that should carry that evidence (`phase-6-frontend-gap-matrix.md`) still
   100% unfilled at first read. Confirmed live by Davin as authentic; the real triage then landed
   and was re-verified against the file itself, not the claim alone, before treating it as settled.
+  Recurred again at Session 7-3 (2026-08-20) — benign: order arrived a bare `PRE-DRAFT` stub at
+  committed HEAD but the full DRAFT→APPROVED upgrade on disk; confirmed live by Davin as authentic
+  before execution. 15+ recurrences total — this is the single most-recurring finding in the
+  migration; per this file's own hygiene rule, further benign recurrences get a count bump here,
+  not a new paragraph.
 
 ### L4 — Never use `railway variables --kv` (or any unfiltered dump) to check whether a secret is set
 

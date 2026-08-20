@@ -886,37 +886,47 @@ role). Everything else in each list is exclusively that track's own code._
 
 - `lib/api/index.ts`
 
-**Session 7-1 update (2026-08-12):** `stackA`/`stackB` themselves are UNCHANGED and still broken
+**Session 7-3 update (2026-08-20, RETIRED):** `stackA`/`stackB`, the `api` export, `apiCall`/
+`BASE_URL`, and the 6 unused legacy interfaces (`AlertData`, `UserData`, `SubscriptionData`,
+`PaymentData`, `SettingsData`, `QueryParams`) described below are **deleted**. `lib/api/index.ts`
+now strictly exports the generated-client surface (`createOperationApi`, `createMoneyApi`,
+`unwrapOperationApi`, `unwrapMoneyApi`, `getOperationServiceToken`, `getMoneyServiceToken`, and
+their generated types). Everything below this note is historical — retained because it documents
+the real bugs that justified retiring rather than fixing these exports. Full detail in
+`7-3-api-client-contract-tests-and-retirement.migration-order.md` and the new canonical
+`docs/architecture/api-client-architecture.md`.
+
+Also this session: deleted `__tests__/lib/api/stack-a-client.test.ts`, `stack-b-client.test.ts`,
+and `__tests__/integration/api-client-workflow.test.ts` (exclusively tested the retired exports);
+expanded `__tests__/lib/api/generated-clients.test.ts` from 12 to 43 contract tests; prepended a
+`HISTORICAL/SUPERSEDED` notice to the 5 legacy design docs in `backend-stack-a/api-client-
+between-frontend-and-stack-b/` (kept, not deleted — the bug catalogue below is exactly why); new
+file `docs/architecture/api-client-architecture.md` (canonical reference, supersedes those 5).
+
+**Session 7-1 update (2026-08-12):** `stackA`/`stackB` themselves were UNCHANGED and still broken
 exactly as described below (re-verified against live routes at Session 7-1's CONFIRM, zero
-drift) — Phase 7's own Session 7-2/7-3 retires them, not this entry. What changed: `lib/api/
-index.ts` now ALSO exports `operationApi`/`moneyApi` (`lib/api/generated/`), typed clients
-generated from `@nestjs/swagger`-emitted specs covering all 107 operation-service/money-service
-operations, wrapping the existing `callOperationServiceWithToken`/`callMoneyServiceWithToken`
-error convention. The whole file is now server-only (see its own header). Full detail in
-`7-1-api-client-reverify-and-generate.migration-order.md`.
+drift). What changed: `lib/api/index.ts` also gained `operationApi`/`moneyApi`
+(`lib/api/generated/`), typed clients generated from `@nestjs/swagger`-emitted specs covering all
+107 operation-service/money-service operations. The whole file became server-only (see its own
+header). Full detail in `7-1-api-client-reverify-and-generate.migration-order.md`.
 
-**⚠️ Known broken, fix deferred (flagged 2026-07-11):** this "unified Stack A/Stack B API client"
-(design docs: `backend-stack-a/api-client-between-frontend-and-stack-b/api-client-{design,
-maintenance-and-updates,testing}.md`) has zero real consumers — the only caller in the app is
-`app/test-api/page.tsx`, an unguarded debug page; every real product hook/component calls its
-route directly via `fetch()` instead. It is also currently broken against the live routes it
-claims to wrap: `updateAlert()` sends `PUT` where the route only accepts `PATCH`;
-`markNotificationAsRead()` sends `PATCH /api/notifications/{id}` where the route needs
-`POST /api/notifications/{id}/read`; `updateSettings()` sends `PATCH /api/user/preferences` where
-the route only accepts `PUT`; `stackB.getMarketData()/getOHLCV()` call a path shape
-(`/api/market-data/{symbol}`) that doesn't match the one real market-data route that exists
+**⚠️ Historical — known broken, since retired (originally flagged 2026-07-11):** this "unified
+Stack A/Stack B API client" (design docs, now `HISTORICAL/SUPERSEDED`:
+`backend-stack-a/api-client-between-frontend-and-stack-b/api-client-{design,
+maintenance-and-updates,testing}.md`) had zero real consumers — the only caller in the app was
+`app/test-api/page.tsx`, an unguarded debug page (deleted at Session 6-12); every real product
+hook/component called its route directly via `fetch()` instead. It was also broken against the
+live routes it claimed to wrap: `updateAlert()` sent `PUT` where the route only accepts `PATCH`;
+`markNotificationAsRead()` sent `PATCH /api/notifications/{id}` where the route needs
+`POST /api/notifications/{id}/read`; `updateSettings()` sent `PATCH /api/user/preferences` where
+the route only accepts `PUT`; `stackB.getMarketData()/getOHLCV()` called a path shape
+(`/api/market-data/{symbol}`) that didn't match the one real market-data route that exists
 (`GET /api/market-data/channel?symbol=&timeframe=&variant=&limit=`, V8 PRO-only). Its own Jest
-tests (`__tests__/lib/api/stack-a-client.test.ts`, `stack-b-client.test.ts`) fully mock `fetch`,
-so they pass (36/36) without exercising any of this — no real signal there. Also stale: the
-design docs' Stack A/B model (Parts 1-19 deployed / Parts 20-26 future) predates the V8
-single-symbol redesign and doesn't reflect it.
-
-**Deliberately not fixed now** — hybrid (dual) authentication, the `non_market_data` Prisma
-schema split, and the Next.js→NestJS backend-stack refactor are all in flight and will each
-reshape what "correct" looks like here (auth headers, base URLs, response shapes). Since nothing
-real depends on this file today, there's no cost to leaving it broken until those land. Revisit
-and rewrite `lib/api/index.ts` (and the 3 design docs above, and the 2 test files) **after** those
-migrations are complete, not before.
+tests (`__tests__/lib/api/stack-a-client.test.ts`, `stack-b-client.test.ts`) fully mocked `fetch`,
+so they passed (36/36) without exercising any of this — no real signal there. Also stale: the
+design docs' Stack A/B model (Parts 1-19 deployed / Parts 20-26 future) predated the V8
+single-symbol redesign and didn't reflect it. This is exactly the bug catalogue that justified
+Session 7-3's Decision 1 (retire, don't fix) — nothing real ever depended on this code.
 
 </details>
 
