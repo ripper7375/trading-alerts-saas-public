@@ -30,6 +30,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.railway.app', // Railway deployments
       },
+      {
+        protocol: 'https',
+        hostname: '*.public.blob.vercel-storage.com', // Marketing-resources media-kit uploads (Vercel Blob)
+      },
     ],
     // Optimize images for faster loading
     formats: ['image/avif', 'image/webp'],
@@ -122,7 +126,7 @@ const nextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://*.googleusercontent.com https://*.githubusercontent.com https://*.stripe.com",
+              "img-src 'self' data: blob: https://*.googleusercontent.com https://*.githubusercontent.com https://*.stripe.com https://*.public.blob.vercel-storage.com",
               "font-src 'self' data:",
               "connect-src 'self' https://api.stripe.com https://checkout.stripe.com https://operation-service-production.up.railway.app wss://operation-service-production.up.railway.app https://*.vercel-analytics.com",
               "frame-src 'self' https://js.stripe.com https://checkout.stripe.com",

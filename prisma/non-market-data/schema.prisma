@@ -74,39 +74,53 @@ enum FraudAlertSeverity {
   CRITICAL
 }
 
+enum MarketingAssetCategory {
+  BRAND_LOGOS
+  MASCOTS
+  AD_BANNERS
+  SWIPE_COPY
+  DOCS
+}
+
+enum MarketingAssetStatus {
+  ACTIVE
+  DRAFT
+  ARCHIVED
+}
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MODELS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
+  id            String    @id @default(cuid())
+  email         String    @unique
   name          String?
-  password      String?  // Nullable for OAuth-only users
+  password      String? // Nullable for OAuth-only users
   image         String?
   emailVerified DateTime? // CRITICAL for verified-only OAuth linking
-  tier          UserTier @default(FREE)
-  role          String   @default("USER")
-  isActive      Boolean  @default(true)
+  tier          UserTier  @default(FREE)
+  role          String    @default("USER")
+  isActive      Boolean   @default(true)
 
   // Affiliate System (Unified Auth)
-  isAffiliate   Boolean  @default(false)  // Can be both SaaS user AND affiliate
+  isAffiliate Boolean @default(false) // Can be both SaaS user AND affiliate
 
   // General Trial Period Management (7-day PRO trial)
-  trialStatus       TrialStatus  @default(NOT_STARTED)
-  trialStartDate    DateTime?    // When user started 7-day trial
-  trialEndDate      DateTime?    // When trial expires (trialStartDate + 7 days)
-  trialConvertedAt  DateTime?    // When trial converted to paid subscription
-  trialCancelledAt  DateTime?    // When user cancelled trial
-  hasUsedFreeTrial  Boolean      @default(false)  // Prevent multiple 7-day trials
+  trialStatus      TrialStatus @default(NOT_STARTED)
+  trialStartDate   DateTime? // When user started 7-day trial
+  trialEndDate     DateTime? // When trial expires (trialStartDate + 7 days)
+  trialConvertedAt DateTime? // When trial converted to paid subscription
+  trialCancelledAt DateTime? // When user cancelled trial
+  hasUsedFreeTrial Boolean     @default(false) // Prevent multiple 7-day trials
 
   // Stripe Trial fields (Part 18: Anti-abuse)
-  hasUsedStripeTrial      Boolean  @default(false)
-  stripeTrialStartedAt    DateTime?
+  hasUsedStripeTrial   Boolean   @default(false)
+  stripeTrialStartedAt DateTime?
 
   // dLocal 3-day plan fields (Part 18: Anti-abuse)
-  hasUsedThreeDayPlan     Boolean  @default(false)
-  threeDayPlanUsedAt      DateTime?
+  hasUsedThreeDayPlan Boolean   @default(false)
+  threeDayPlanUsedAt  DateTime?
 
   // Fraud detection fields
   signupIP          String?
@@ -114,26 +128,26 @@ model User {
   deviceFingerprint String?
 
   // Email verification and password reset
-  verificationToken String? @unique
-  resetToken        String? @unique
+  verificationToken String?   @unique
+  resetToken        String?   @unique
   resetTokenExpiry  DateTime?
 
   // Two-Factor Authentication (TOTP)
-  twoFactorEnabled     Boolean  @default(false)
-  twoFactorSecret      String?  // Encrypted TOTP secret
-  twoFactorBackupCodes String?  // JSON array of hashed backup codes
+  twoFactorEnabled     Boolean   @default(false)
+  twoFactorSecret      String? // Encrypted TOTP secret
+  twoFactorBackupCodes String? // JSON array of hashed backup codes
   twoFactorVerifiedAt  DateTime? // When 2FA was successfully enabled
 
-  accounts          Account[]
-  alerts            Alert[]
-  drawings          Drawing[]
-  preferences       UserPreferences?   // User preferences (settings)
-  appearance        UserAppearance?    // Terminal appearance (theme/accent/chart colors)
+  accounts    Account[]
+  alerts      Alert[]
+  drawings    Drawing[]
+  preferences UserPreferences? // User preferences (settings)
+  appearance  UserAppearance? // Terminal appearance (theme/accent/chart colors)
 
-  sessions          Session[]
+  sessions Session[]
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([email])
   @@index([tier])
@@ -143,18 +157,18 @@ model User {
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -174,31 +188,31 @@ model Session {
 /// Extended session tracking for device/location monitoring
 /// Separate from NextAuth Session to preserve auth functionality
 model UserSession {
-  id            String   @id @default(cuid())
-  userId        String
+  id     String @id @default(cuid())
+  userId String
 
   /// Session metadata
-  userAgent     String?  // Full user agent string
-  ipAddress     String?  // Client IP address
-  deviceType    String?  // desktop, mobile, tablet
-  browser       String?  // Chrome, Safari, Firefox, etc.
+  userAgent      String? // Full user agent string
+  ipAddress      String? // Client IP address
+  deviceType     String? // desktop, mobile, tablet
+  browser        String? // Chrome, Safari, Firefox, etc.
   browserVersion String? // Browser version
-  os            String?  // MacOS, Windows, iOS, Android
-  osVersion     String?  // OS version
+  os             String? // MacOS, Windows, iOS, Android
+  osVersion      String? // OS version
 
   /// Geolocation (from IP)
-  country       String?  // Country code (US, UK, etc.)
-  city          String?  // City name
-  region        String?  // State/region
+  country String? // Country code (US, UK, etc.)
+  city    String? // City name
+  region  String? // State/region
 
   /// Session state
-  isActive      Boolean  @default(true)
-  lastActiveAt  DateTime @default(now())
-  createdAt     DateTime @default(now())
-  expiresAt     DateTime
+  isActive     Boolean  @default(true)
+  lastActiveAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
 
   /// Link to NextAuth session token (for revoking)
-  sessionToken  String?  @unique
+  sessionToken String? @unique
 
   @@index([userId])
   @@index([sessionToken])
@@ -229,35 +243,35 @@ enum SecurityAlertType {
 
 /// Tracks all login attempts for security monitoring
 model LoginHistory {
-  id            String       @id @default(cuid())
-  userId        String
+  id     String @id @default(cuid())
+  userId String
 
   /// Login details
-  status        LoginStatus
-  provider      String       // 'credentials', 'google', 'twitter', 'linkedin'
+  status   LoginStatus
+  provider String // 'credentials', 'google', 'twitter', 'linkedin'
 
   /// Device/browser info
-  userAgent     String?
-  deviceType    String?      // desktop, mobile, tablet
-  browser       String?
+  userAgent      String?
+  deviceType     String? // desktop, mobile, tablet
+  browser        String?
   browserVersion String?
-  os            String?
-  osVersion     String?
+  os             String?
+  osVersion      String?
 
   /// Geolocation (from IP)
-  ipAddress     String?
-  country       String?
-  city          String?
-  region        String?
+  ipAddress String?
+  country   String?
+  city      String?
+  region    String?
 
   /// Device fingerprint for new device detection
   deviceFingerprint String?
-  isNewDevice   Boolean      @default(false)
+  isNewDevice       Boolean @default(false)
 
   /// Failure info
   failureReason String?
 
-  createdAt     DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([userId, createdAt])
@@ -269,26 +283,26 @@ model LoginHistory {
 
 /// Security alerts sent to users
 model SecurityAlert {
-  id            String             @id @default(cuid())
-  userId        String
+  id     String @id @default(cuid())
+  userId String
 
   /// Alert details
-  type          SecurityAlertType
-  title         String
-  message       String
+  type    SecurityAlertType
+  title   String
+  message String
 
   /// Context
-  ipAddress     String?
-  deviceInfo    String?
-  location      String?
+  ipAddress  String?
+  deviceInfo String?
+  location   String?
 
   /// Status
-  emailSent     Boolean            @default(false)
-  emailSentAt   DateTime?
-  read          Boolean            @default(false)
-  readAt        DateTime?
+  emailSent   Boolean   @default(false)
+  emailSentAt DateTime?
+  read        Boolean   @default(false)
+  readAt      DateTime?
 
-  createdAt     DateTime           @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([userId, read])
@@ -306,12 +320,12 @@ model VerificationToken {
 }
 
 model UserPreferences {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Preferences stored as JSON for flexibility
-  preferences Json    @default("{}")
+  preferences Json @default("{}")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -343,9 +357,9 @@ model AccountDeletionRequest {
   status    String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED, COMPLETED
   expiresAt DateTime
 
-  confirmedAt  DateTime?
-  cancelledAt  DateTime?
-  completedAt  DateTime?
+  confirmedAt DateTime?
+  cancelledAt DateTime?
+  completedAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -356,35 +370,35 @@ model AccountDeletionRequest {
 }
 
 model Subscription {
-  id        String   @id @default(cuid())
-  userId    String   @unique
+  id     String @id @default(cuid())
+  userId String @unique
 
   // Affiliate tracking
-  affiliateCodeId    String?  // Track which affiliate code was used (nullable)
+  affiliateCodeId String? // Track which affiliate code was used (nullable)
 
   // Stripe fields (nullable for dLocal subscriptions)
-  stripeCustomerId       String?  @unique
-  stripeSubscriptionId   String?  @unique
+  stripeCustomerId       String?   @unique
+  stripeSubscriptionId   String?   @unique
   stripePriceId          String?
   stripeCurrentPeriodEnd DateTime?
 
   // dLocal fields (nullable for Stripe subscriptions)
-  dLocalPaymentId        String?  @unique
-  dLocalPaymentMethod    String?  // 'UPI', 'PAYTM', 'GOPAY', etc.
-  dLocalCountry          String?  // 'IN', 'ID', 'PK', etc.
-  dLocalCurrency         String?  // 'INR', 'IDR', 'PKR', etc.
+  dLocalPaymentId     String? @unique
+  dLocalPaymentMethod String? // 'UPI', 'PAYTM', 'GOPAY', etc.
+  dLocalCountry       String? // 'IN', 'ID', 'PK', etc.
+  dLocalCurrency      String? // 'INR', 'IDR', 'PKR', etc.
 
   // Common fields
-  planType               String?  // 'MONTHLY', 'THREE_DAY' (dLocal only)
-  amountUsd              Float
-  status                 SubscriptionStatus
-  expiresAt              DateTime? // Explicit expiry date (critical for dLocal)
-  renewalReminderSent    Boolean  @default(false)
+  planType            String? // 'MONTHLY', 'THREE_DAY' (dLocal only)
+  amountUsd           Float
+  status              SubscriptionStatus
+  expiresAt           DateTime? // Explicit expiry date (critical for dLocal)
+  renewalReminderSent Boolean            @default(false)
 
-  payments               Payment[]
+  payments Payment[]
 
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([status])
@@ -393,27 +407,27 @@ model Subscription {
 }
 
 model Alert {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Alert configuration
-  name        String?
-  symbol      String
-  timeframe   String
-  condition   String   // JSON string for complex conditions
-  alertType   String   @default("PRICE_TOUCH_LINE")
+  name      String?
+  symbol    String
+  timeframe String
+  condition String // JSON string for complex conditions
+  alertType String  @default("PRICE_TOUCH_LINE")
 
   // Alert state
-  isActive    Boolean  @default(true)
+  isActive      Boolean   @default(true)
   lastTriggered DateTime?
-  triggerCount Int     @default(0)
+  triggerCount  Int       @default(0)
 
   // Optional link to a chart drawing (line-touch alerts)
   drawingAlert DrawingAlert?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([symbol, timeframe])
@@ -425,41 +439,41 @@ model Alert {
 // See migration 20260706000000_drop_watchlists.
 
 model Payment {
-  id                 String   @id @default(cuid())
-  userId             String
-  subscriptionId     String?
-  subscription       Subscription? @relation(fields: [subscriptionId], references: [id])
+  id             String        @id @default(cuid())
+  userId         String
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
 
   // Payment Provider
-  provider           String   // 'STRIPE' or 'DLOCAL'
+  provider String // 'STRIPE' or 'DLOCAL'
 
   // Transaction Details
-  providerPaymentId  String   @unique
-  providerStatus     String
+  providerPaymentId String @unique
+  providerStatus    String
 
   // Amount and Currency
-  amount             Decimal
-  amountUSD          Decimal
-  currency           String
-  country            String?
-  paymentMethod      String?
+  amount        Decimal
+  amountUSD     Decimal
+  currency      String
+  country       String?
+  paymentMethod String?
 
   // Additional Data
-  planType           String?  // 'THREE_DAY', 'MONTHLY'
-  duration           Int?     // Days (3 or 30)
-  discountCode       String?
-  discountAmount     Decimal?
+  planType       String? // 'THREE_DAY', 'MONTHLY'
+  duration       Int? // Days (3 or 30)
+  discountCode   String?
+  discountAmount Decimal?
 
   // Status and Timestamps
-  status             String   // 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED'
-  failureReason      String?
+  status        String // 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED', 'CANCELLED'
+  failureReason String?
 
   // Fraud Detection Metadata
-  ipAddress          String?
-  deviceFingerprint  String?
+  ipAddress         String?
+  deviceFingerprint String?
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([provider])
@@ -468,34 +482,34 @@ model Payment {
 }
 
 model FraudAlert {
-  id                String   @id @default(cuid())
-  userId            String
+  id     String @id @default(cuid())
+  userId String
 
   // Alert Details
-  pattern           String   // '3DAY_PLAN_REUSE', 'MULTIPLE_FAILED_PAYMENTS', 'VELOCITY_LIMIT', 'IP_MISMATCH', etc.
-  severity          FraudAlertSeverity
-  status            FraudAlertStatus @default(PENDING)
-  description       String
+  pattern     String // '3DAY_PLAN_REUSE', 'MULTIPLE_FAILED_PAYMENTS', 'VELOCITY_LIMIT', 'IP_MISMATCH', etc.
+  severity    FraudAlertSeverity
+  status      FraudAlertStatus   @default(PENDING)
+  description String
 
   // Payment Context (for payment-related fraud)
-  country           String?
-  paymentMethod     String?
-  amount            Decimal?
-  currency          String?
+  country       String?
+  paymentMethod String?
+  amount        Decimal?
+  currency      String?
 
   // Detection Metadata
   ipAddress         String?
   deviceFingerprint String?
-  additionalData    Json?    // Flexible field for extra context
+  additionalData    Json? // Flexible field for extra context
 
   // Admin Review
-  reviewedBy        String?  // Admin user ID who reviewed
-  reviewedAt        DateTime?
-  resolution        String?  // 'FALSE_POSITIVE', 'WARNING_SENT', 'BLOCKED', etc.
-  notes             String?  // Admin notes
+  reviewedBy String? // Admin user ID who reviewed
+  reviewedAt DateTime?
+  resolution String? // 'FALSE_POSITIVE', 'WARNING_SENT', 'BLOCKED', etc.
+  notes      String? // Admin notes
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([pattern])
@@ -509,45 +523,45 @@ model FraudAlert {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 model AffiliateProfile {
-  id                String   @id @default(cuid())
-  userId            String   @unique
+  id     String @id @default(cuid())
+  userId String @unique
 
   // Affiliate Info
-  fullName          String
-  country           String
+  fullName String
+  country  String
 
   // Social Media (optional)
-  facebookUrl       String?
-  instagramUrl      String?
-  twitterUrl        String?
-  youtubeUrl        String?
-  tiktokUrl         String?
+  facebookUrl  String?
+  instagramUrl String?
+  twitterUrl   String?
+  youtubeUrl   String?
+  tiktokUrl    String?
 
   // Payment Preferences
-  paymentMethod     String   // 'BANK_TRANSFER', 'CRYPTO_USDT', 'PAYPAL', 'LOCAL_WALLET'
-  paymentDetails    Json     // Flexible field for payment info
+  paymentMethod  String // 'BANK_TRANSFER', 'CRYPTO_USDT', 'PAYPAL', 'LOCAL_WALLET'
+  paymentDetails Json // Flexible field for payment info
 
   // Stats
-  totalCodesDistributed  Int      @default(0)
-  totalCodesUsed         Int      @default(0)
-  totalEarnings          Decimal  @default(0)
-  pendingCommissions     Decimal  @default(0)
-  paidCommissions        Decimal  @default(0)
+  totalCodesDistributed Int     @default(0)
+  totalCodesUsed        Int     @default(0)
+  totalEarnings         Decimal @default(0)
+  pendingCommissions    Decimal @default(0)
+  paidCommissions       Decimal @default(0)
 
   // Status
-  status            AffiliateStatus   @default(PENDING_VERIFICATION)
-  verifiedAt        DateTime?
-  suspendedAt       DateTime?
-  suspensionReason  String?
+  status           AffiliateStatus @default(PENDING_VERIFICATION)
+  verifiedAt       DateTime?
+  suspendedAt      DateTime?
+  suspensionReason String?
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relationships
-  affiliateCodes    AffiliateCode[]
-  commissions       Commission[]
-  riseAccount       AffiliateRiseAccount?  // Part 19: RiseWorks account for payouts
-  wiseRecipient     AffiliateWiseRecipient?  // Part 19.5: Wise recipient for payouts
+  affiliateCodes AffiliateCode[]
+  commissions    Commission[]
+  riseAccount    AffiliateRiseAccount? // Part 19: RiseWorks account for payouts
+  wiseRecipient  AffiliateWiseRecipient? // Part 19.5: Wise recipient for payouts
 
   @@index([userId])
   @@index([status])
@@ -555,33 +569,33 @@ model AffiliateProfile {
 }
 
 model AffiliateCode {
-  id               String   @id @default(cuid())
-  code             String   @unique
+  id   String @id @default(cuid())
+  code String @unique
 
   // Ownership
   affiliateProfileId String
   affiliateProfile   AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
 
   // Configuration
-  discountPercent  Int      // 0-50%
-  commissionPercent Int     // 0-50%
+  discountPercent   Int // 0-50%
+  commissionPercent Int // 0-50%
 
   // Lifecycle
-  status           CodeStatus   @default(ACTIVE)
-  distributedAt    DateTime     @default(now())
-  expiresAt        DateTime
-  usedAt           DateTime?
-  cancelledAt      DateTime?
+  status             CodeStatus         @default(ACTIVE)
+  distributedAt      DateTime           @default(now())
+  expiresAt          DateTime
+  usedAt             DateTime?
+  cancelledAt        DateTime?
   distributionReason DistributionReason @default(MONTHLY)
 
   // Usage tracking
-  usedBy           String?  // userId (if redeemed)
-  subscriptionId   String?  // subscription created from this code
+  usedBy         String? // userId (if redeemed)
+  subscriptionId String? // subscription created from this code
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  commissions      Commission[]
+  commissions Commission[]
 
   @@index([affiliateProfileId])
   @@index([status])
@@ -590,39 +604,39 @@ model AffiliateCode {
 }
 
 model Commission {
-  id                 String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Ownership
   affiliateProfileId String
   affiliateProfile   AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
 
-  affiliateCodeId    String
-  affiliateCode      AffiliateCode @relation(fields: [affiliateCodeId], references: [id])
+  affiliateCodeId String
+  affiliateCode   AffiliateCode @relation(fields: [affiliateCodeId], references: [id])
 
   // Transaction
-  userId             String   // SaaS user who upgraded
-  subscriptionId     String?  // Subscription created
+  userId         String // SaaS user who upgraded
+  subscriptionId String? // Subscription created
 
   // Amounts
-  grossRevenue       Decimal  // Full subscription amount
-  discountAmount     Decimal  // Discount given to user
-  netRevenue         Decimal  // After discount
-  commissionAmount   Decimal  // Affiliate earns this
+  grossRevenue     Decimal // Full subscription amount
+  discountAmount   Decimal // Discount given to user
+  netRevenue       Decimal // After discount
+  commissionAmount Decimal // Affiliate earns this
 
   // Status
-  status             CommissionStatus @default(PENDING)
-  earnedAt           DateTime @default(now())
-  approvedAt         DateTime?
-  paidAt             DateTime?
-  cancelledAt        DateTime?
+  status      CommissionStatus @default(PENDING)
+  earnedAt    DateTime         @default(now())
+  approvedAt  DateTime?
+  paidAt      DateTime?
+  cancelledAt DateTime?
 
   // Payment tracking
-  paymentBatchId     String?
-  paymentMethod      String?
-  paymentReference   String?
+  paymentBatchId   String?
+  paymentMethod    String?
+  paymentReference String?
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Part 19: Disbursement relationship
   disbursementTransaction DisbursementTransaction?
@@ -631,6 +645,34 @@ model Commission {
   @@index([status])
   @@index([earnedAt])
   @@index([paidAt])
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// AFFILIATE MARKETING RESOURCES / MEDIA KIT (ad-hoc, 2026-08-20)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// Admin-managed creative asset (brand logo, mascot, ad banner, swipe-copy
+// text, or guideline doc) published to the affiliate-facing media kit.
+// `fileUrl`/`fileSize`/`format`/`resolution` describe a downloadable file;
+// SWIPE_COPY assets have no file and use `copyText` instead.
+model MarketingAsset {
+  id              String                 @id @default(cuid())
+  title           String
+  category        MarketingAssetCategory
+  format          String // e.g. PNG, JPG, SVG, TXT — free text, not an enum (matches admin UI's free-text File Format input)
+  resolution      String // e.g. "512x512", "Vector", "Text Copy" — display string, not parsed
+  fileUrl         String? // Vercel Blob (or seeded /public) URL; null for SWIPE_COPY
+  fileSize        Int? // bytes; null for SWIPE_COPY
+  copyText        String? // swipe-file text content; only set for SWIPE_COPY
+  downloadCount   Int                    @default(0)
+  status          MarketingAssetStatus   @default(ACTIVE)
+  createdByUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([status])
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -651,21 +693,21 @@ enum NotificationPriority {
 }
 
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
+  id     String @id @default(cuid())
+  userId String
 
   // Notification content
-  type      NotificationType
-  title     String
-  body      String
-  priority  NotificationPriority @default(MEDIUM)
+  type     NotificationType
+  title    String
+  body     String
+  priority NotificationPriority @default(MEDIUM)
 
   // Read status
-  read      Boolean  @default(false)
-  readAt    DateTime?
+  read   Boolean   @default(false)
+  readAt DateTime?
 
   // Optional link to related resource
-  link      String?
+  link String?
 
   // Timestamps
   createdAt DateTime @default(now())
@@ -709,9 +751,9 @@ enum DisbursementTransactionStatus {
 }
 
 enum DisbursementProvider {
-  RISE      // ARCHIVED 2026-07-25 (Part 19.5, F42) — rows retained, provider deactivated
+  RISE // ARCHIVED 2026-07-25 (Part 19.5, F42) — rows retained, provider deactivated
   MOCK
-  WISE      // Part 19.5 — active provider
+  WISE // Part 19.5 — active provider
 }
 
 enum AuditLogStatus {
@@ -722,30 +764,30 @@ enum AuditLogStatus {
 }
 
 model AffiliateRiseAccount {
-  id                   String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Link to existing Part 17 AffiliateProfile
-  affiliateProfileId   String   @unique
-  affiliateProfile     AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
+  affiliateProfileId String           @unique
+  affiliateProfile   AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
 
   // RiseWorks Account Info
-  riseId               String   @unique  // Blockchain address
-  email                String
+  riseId String @unique // Blockchain address
+  email  String
 
   // KYC Status
-  kycStatus            RiseWorksKycStatus @default(PENDING)
-  kycCompletedAt       DateTime?
+  kycStatus      RiseWorksKycStatus @default(PENDING)
+  kycCompletedAt DateTime?
 
   // Invitation Tracking
   invitationSentAt     DateTime?
   invitationAcceptedAt DateTime?
 
   // Sync Status
-  lastSyncAt           DateTime?
-  metadata             Json?
+  lastSyncAt DateTime?
+  metadata   Json?
 
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relationships
   disbursementTransactions DisbursementTransaction[]
@@ -756,39 +798,39 @@ model AffiliateRiseAccount {
 }
 
 model PaymentBatch {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Batch Identification
-  batchNumber     String   @unique
+  batchNumber String @unique
 
   // Batch Summary
-  paymentCount    Int      @default(0)
-  totalAmount     Decimal  @default(0)
-  currency        String   @default("USD")
+  paymentCount Int     @default(0)
+  totalAmount  Decimal @default(0)
+  currency     String  @default("USD")
 
   // Provider
-  provider        DisbursementProvider
+  provider DisbursementProvider
 
   // Status
-  status          PaymentBatchStatus @default(PENDING)
+  status PaymentBatchStatus @default(PENDING)
 
   // Timestamps
-  scheduledAt     DateTime?
-  executedAt      DateTime?
-  completedAt     DateTime?
-  failedAt        DateTime?
+  scheduledAt DateTime?
+  executedAt  DateTime?
+  completedAt DateTime?
+  failedAt    DateTime?
 
   // Error Handling
-  errorMessage    String?
-  metadata        Json?
+  errorMessage String?
+  metadata     Json?
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relationships
-  transactions    DisbursementTransaction[]
-  auditLogs       DisbursementAuditLog[]
-  wiseBatchGroup  WiseBatchGroup?  // Part 19.5: Wise-side half of this batch
+  transactions   DisbursementTransaction[]
+  auditLogs      DisbursementAuditLog[]
+  wiseBatchGroup WiseBatchGroup? // Part 19.5: Wise-side half of this batch
 
   @@index([status])
   @@index([scheduledAt])
@@ -797,53 +839,53 @@ model PaymentBatch {
 }
 
 model DisbursementTransaction {
-  id                String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Batch Reference
-  batchId           String
-  batch             PaymentBatch @relation(fields: [batchId], references: [id])
+  batchId String
+  batch   PaymentBatch @relation(fields: [batchId], references: [id])
 
   // Commission Reference (from Part 17)
-  commissionId      String   @unique
-  commission        Commission @relation(fields: [commissionId], references: [id])
+  commissionId String     @unique
+  commission   Commission @relation(fields: [commissionId], references: [id])
 
   // Transaction IDs
-  transactionId     String   @unique
-  providerTxId      String?
+  transactionId String  @unique
+  providerTxId  String?
 
   // Provider
-  provider          DisbursementProvider
+  provider DisbursementProvider
 
   // Payee Info
   affiliateRiseAccountId String?
   affiliateRiseAccount   AffiliateRiseAccount? @relation(fields: [affiliateRiseAccountId], references: [id])
-  payeeRiseId       String?
+  payeeRiseId            String?
 
   // Amount
-  amount            Decimal
-  amountRiseUnits   BigInt?
-  currency          String   @default("USD")
+  amount          Decimal
+  amountRiseUnits BigInt?
+  currency        String  @default("USD")
 
   // Status
-  status            DisbursementTransactionStatus @default(PENDING)
+  status DisbursementTransactionStatus @default(PENDING)
 
   // Retry Logic
-  retryCount        Int      @default(0)
-  lastRetryAt       DateTime?
+  retryCount  Int       @default(0)
+  lastRetryAt DateTime?
 
   // Error Handling
-  errorMessage      String?
-  metadata          Json?
+  errorMessage String?
+  metadata     Json?
 
   // Timestamps
-  createdAt         DateTime @default(now())
-  completedAt       DateTime?
-  failedAt          DateTime?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+  failedAt    DateTime?
 
   // Relationships
-  webhookEvents     RiseWorksWebhookEvent[]
-  auditLogs         DisbursementAuditLog[]
-  wiseTransfer      WiseTransfer?  // Part 19.5: Wise-side half of this transaction
+  webhookEvents RiseWorksWebhookEvent[]
+  auditLogs     DisbursementAuditLog[]
+  wiseTransfer  WiseTransfer? // Part 19.5: Wise-side half of this transaction
 
   @@index([batchId])
   @@index([commissionId])
@@ -853,30 +895,30 @@ model DisbursementTransaction {
 }
 
 model RiseWorksWebhookEvent {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Transaction Reference
-  transactionId   String?
-  transaction     DisbursementTransaction? @relation(fields: [transactionId], references: [id])
+  transactionId String?
+  transaction   DisbursementTransaction? @relation(fields: [transactionId], references: [id])
 
   // Event Info
-  eventType       String
-  provider        DisbursementProvider
+  eventType String
+  provider  DisbursementProvider
 
   // Payload
-  payload         Json
+  payload Json
 
   // Verification
-  signature       String?
-  hash            String?
-  verified        Boolean  @default(false)
+  signature String?
+  hash      String?
+  verified  Boolean @default(false)
 
   // Processing Status
-  processed       Boolean  @default(false)
-  processedAt     DateTime?
-  errorMessage    String?
+  processed    Boolean   @default(false)
+  processedAt  DateTime?
+  errorMessage String?
 
-  receivedAt      DateTime @default(now())
+  receivedAt DateTime @default(now())
 
   @@index([transactionId])
   @@index([eventType])
@@ -885,27 +927,27 @@ model RiseWorksWebhookEvent {
 }
 
 model DisbursementAuditLog {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // References
-  transactionId   String?
-  transaction     DisbursementTransaction? @relation(fields: [transactionId], references: [id])
-  batchId         String?
-  batch           PaymentBatch? @relation(fields: [batchId], references: [id])
+  transactionId String?
+  transaction   DisbursementTransaction? @relation(fields: [transactionId], references: [id])
+  batchId       String?
+  batch         PaymentBatch?            @relation(fields: [batchId], references: [id])
 
   // Action Info
-  action          String
-  actor           String?
+  action String
+  actor  String?
 
   // Status
-  status          AuditLogStatus
+  status AuditLogStatus
 
   // Details
-  details         Json?
-  ipAddress       String?
-  userAgent       String?
+  details   Json?
+  ipAddress String?
+  userAgent String?
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([transactionId])
   @@index([batchId])
@@ -916,58 +958,58 @@ model DisbursementAuditLog {
 // ── Part 19.5 · WISE DISBURSEMENT ─────────────────────────────────────────────
 
 enum WiseRecipientStatus {
-  DRAFT              // local record created, not yet sent to Wise
-  PENDING_DETAILS    // affiliate must supply/repair bank details
-  ACTIVE             // recipientId exists at Wise and is usable
-  INVALID            // Wise rejected it, or a payout bounced on details
-  ARCHIVED           // superseded by a newer recipient for the same affiliate
+  DRAFT // local record created, not yet sent to Wise
+  PENDING_DETAILS // affiliate must supply/repair bank details
+  ACTIVE // recipientId exists at Wise and is usable
+  INVALID // Wise rejected it, or a payout bounced on details
+  ARCHIVED // superseded by a newer recipient for the same affiliate
 }
 
 enum WiseBatchGroupStatus {
-  NEW                        // Wise: open for transfers
-  COMPLETED                  // Wise: closed, fundable, payInDetails available
-  AWAITING_MANUAL_FUNDING    // LOCAL: COMPLETED + WISE_FUNDING_MODE=MANUAL, human owes an action
-  FUNDED                     // LOCAL: funding observed (API call OK, or marked/detected)
-  MARKED_FOR_CANCELLATION    // Wise
-  PROCESSING_CANCEL          // Wise
-  CANCELLED                  // Wise
+  NEW // Wise: open for transfers
+  COMPLETED // Wise: closed, fundable, payInDetails available
+  AWAITING_MANUAL_FUNDING // LOCAL: COMPLETED + WISE_FUNDING_MODE=MANUAL, human owes an action
+  FUNDED // LOCAL: funding observed (API call OK, or marked/detected)
+  MARKED_FOR_CANCELLATION // Wise
+  PROCESSING_CANCEL // Wise
+  CANCELLED // Wise
 }
 
 enum WiseFundingSource {
-  API_BALANCE        // POST …/batch-payments/{id}/payments
-  MANUAL_ADMIN       // an admin asserted it, with evidence
-  MANUAL_DETECTED    // inferred from a balances#credit / balances#update event
+  API_BALANCE // POST …/batch-payments/{id}/payments
+  MANUAL_ADMIN // an admin asserted it, with evidence
+  MANUAL_DETECTED // inferred from a balances#credit / balances#update event
 }
 
 /// One Wise recipient (beneficiary) per affiliate. PII-minimising by design:
 /// the authoritative bank details live at Wise, never here. See §7.4.
 model AffiliateWiseRecipient {
-  id                  String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  affiliateProfileId  String   @unique
-  affiliateProfile    AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
+  affiliateProfileId String           @unique
+  affiliateProfile   AffiliateProfile @relation(fields: [affiliateProfileId], references: [id], onDelete: Cascade)
 
-  wiseRecipientId     String?  @unique     // Wise numeric account id, stringified. Null while DRAFT.
-  wiseProfileId       String                // which Wise profile owns it (audit; supports profile change)
+  wiseRecipientId String? @unique // Wise numeric account id, stringified. Null while DRAFT.
+  wiseProfileId   String // which Wise profile owns it (audit; supports profile change)
 
-  accountHolderName   String
-  targetCurrency      String                // ISO-4217, e.g. "THB"
-  recipientCountry    String                // ISO-3166-1 alpha-2
-  legalType           String                // "PRIVATE" | "BUSINESS"
-  requirementsType    String                // Wise requirement group, e.g. "thailand", "sort_code", "aba"
+  accountHolderName String
+  targetCurrency    String // ISO-4217, e.g. "THB"
+  recipientCountry  String // ISO-3166-1 alpha-2
+  legalType         String // "PRIVATE" | "BUSINESS"
+  requirementsType  String // Wise requirement group, e.g. "thailand", "sort_code", "aba"
 
-  accountTail         String?               // last 4 of the account number, for admin display ONLY
-  detailsFingerprint  String?               // SHA-256 of the canonicalised submitted details — change detection, never reversible
+  accountTail        String? // last 4 of the account number, for admin display ONLY
+  detailsFingerprint String? // SHA-256 of the canonicalised submitted details — change detection, never reversible
 
-  status              WiseRecipientStatus @default(DRAFT)
-  lastValidatedAt     DateTime?
-  invalidReason       String?
-  metadata            Json?
+  status          WiseRecipientStatus @default(DRAFT)
+  lastValidatedAt DateTime?
+  invalidReason   String?
+  metadata        Json?
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  transfers           WiseTransfer[]
+  transfers WiseTransfer[]
 
   @@index([wiseRecipientId])
   @@index([status])
@@ -976,49 +1018,49 @@ model AffiliateWiseRecipient {
 
 /// The Wise-side half of a DisbursementTransaction. 1:1.
 model WiseTransfer {
-  id                        String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  disbursementTransactionId String   @unique
+  disbursementTransactionId String                  @unique
   disbursementTransaction   DisbursementTransaction @relation(fields: [disbursementTransactionId], references: [id])
 
-  affiliateWiseRecipientId  String?
-  affiliateWiseRecipient    AffiliateWiseRecipient? @relation(fields: [affiliateWiseRecipientId], references: [id])
+  affiliateWiseRecipientId String?
+  affiliateWiseRecipient   AffiliateWiseRecipient? @relation(fields: [affiliateWiseRecipientId], references: [id])
 
-  wiseBatchGroupId          String?               // local WiseBatchGroup.id; null for quick-pay
-  wiseBatchGroup            WiseBatchGroup? @relation(fields: [wiseBatchGroupId], references: [id])
+  wiseBatchGroupId String? // local WiseBatchGroup.id; null for quick-pay
+  wiseBatchGroup   WiseBatchGroup? @relation(fields: [wiseBatchGroupId], references: [id])
 
   // ── provider identifiers ──
-  wiseTransferId            String   @unique      // Wise transfer id (numeric, stringified)
-  wiseQuoteId               String                // Wise v2 quote UUID — one quote per transfer, never reused
-  customerTransactionId     String   @unique      // OUR UUID v4 = Wise's idempotency key
-  reference                 String?               // what the affiliate sees on their statement
+  wiseTransferId        String  @unique // Wise transfer id (numeric, stringified)
+  wiseQuoteId           String // Wise v2 quote UUID — one quote per transfer, never reused
+  customerTransactionId String  @unique // OUR UUID v4 = Wise's idempotency key
+  reference             String? // what the affiliate sees on their statement
 
   // ── money (audit-grade; keep all six) ──
-  sourceCurrency            String
-  sourceValue               Decimal
-  targetCurrency            String
-  targetValue               Decimal
-  rate                      Decimal
-  feeAmount                 Decimal  @default(0)
-  feeBearer                 String                // "PLATFORM" | "AFFILIATE" (F38)
+  sourceCurrency String
+  sourceValue    Decimal
+  targetCurrency String
+  targetValue    Decimal
+  rate           Decimal
+  feeAmount      Decimal @default(0)
+  feeBearer      String // "PLATFORM" | "AFFILIATE" (F38)
 
   // ── Wise lifecycle (String, not enum — Wise adds states; see §5.1) ──
-  currentState              String   @default("created")
-  previousState             String?
-  lastEventOccurredAt       DateTime?             // data.occurred_at of the newest applied event — the ordering guard
-  stateHistory              Json?                 // append-only [{state, occurredAt, deliveryId}]
+  currentState        String    @default("created")
+  previousState       String?
+  lastEventOccurredAt DateTime? // data.occurred_at of the newest applied event — the ordering guard
+  stateHistory        Json? // append-only [{state, occurredAt, deliveryId}]
 
   // ── payout failure detail (transfers#payout-failure) ──
-  payoutFailureCode         String?
-  payoutFailureDescription  String?
-  hasActiveIssues           Boolean  @default(false)
+  payoutFailureCode        String?
+  payoutFailureDescription String?
+  hasActiveIssues          Boolean @default(false)
 
   // ── at-most-once accounting guards (§5.3) ──
-  balanceAppliedAt          DateTime?             // pending→paid applied exactly once
-  balanceRevertedAt         DateTime?             // paid→pending reverted exactly once
+  balanceAppliedAt  DateTime? // pending→paid applied exactly once
+  balanceRevertedAt DateTime? // paid→pending reverted exactly once
 
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([wiseBatchGroupId])
   @@index([currentState])
@@ -1028,36 +1070,36 @@ model WiseTransfer {
 
 /// The Wise-side half of a PaymentBatch. 1:1. Carries the funding gate.
 model WiseBatchGroup {
-  id                  String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  paymentBatchId      String   @unique
-  paymentBatch        PaymentBatch @relation(fields: [paymentBatchId], references: [id])
+  paymentBatchId String       @unique
+  paymentBatch   PaymentBatch @relation(fields: [paymentBatchId], references: [id])
 
-  wiseBatchGroupId    String   @unique          // Wise batch-group UUID
-  wiseProfileId       String
-  wiseVersion         Int                        // Wise optimistic-concurrency version
-  wiseName            String                     // ≤100 chars; we send PaymentBatch.batchNumber
+  wiseBatchGroupId String @unique // Wise batch-group UUID
+  wiseProfileId    String
+  wiseVersion      Int // Wise optimistic-concurrency version
+  wiseName         String // ≤100 chars; we send PaymentBatch.batchNumber
 
-  sourceCurrency      String
-  transferCount       Int      @default(0)
-  totalSourceAmount   Decimal  @default(0)
+  sourceCurrency    String
+  transferCount     Int     @default(0)
+  totalSourceAmount Decimal @default(0)
 
-  status              WiseBatchGroupStatus @default(NEW)
+  status WiseBatchGroupStatus @default(NEW)
 
   // ── funding gate ──
-  payInDetails        Json?                      // verbatim Wise payInDetails[] once COMPLETED
-  fundingSource       WiseFundingSource?
-  fundedAt            DateTime?
-  fundedByUserId      String?                    // who asserted/triggered it
-  fundingEvidence     Json?                      // admin note, bank ref, balances#credit event id
-  completedAt         DateTime?
-  cancelledAt         DateTime?
-  errorMessage        String?
+  payInDetails    Json? // verbatim Wise payInDetails[] once COMPLETED
+  fundingSource   WiseFundingSource?
+  fundedAt        DateTime?
+  fundedByUserId  String? // who asserted/triggered it
+  fundingEvidence Json? // admin note, bank ref, balances#credit event id
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  errorMessage    String?
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  transfers           WiseTransfer[]
+  transfers WiseTransfer[]
 
   @@index([status])
   @@index([wiseBatchGroupId])
@@ -1066,33 +1108,33 @@ model WiseBatchGroup {
 
 /// Every inbound Wise webhook delivery. THE dedupe + replay table.
 model WiseWebhookEvent {
-  id                 String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  deliveryId         String   @unique      // X-Delivery-Id — the dedupe key (§5.4)
-  subscriptionId     String?
-  eventType          String                // transfers#state-change | transfers#payout-failure | …
-  schemaVersion      String?               // "4.0.0" | "2.0.0"
+  deliveryId     String  @unique // X-Delivery-Id — the dedupe key (§5.4)
+  subscriptionId String?
+  eventType      String // transfers#state-change | transfers#payout-failure | …
+  schemaVersion  String? // "4.0.0" | "2.0.0"
 
   // ── denormalised for cheap lookup; nullable because not every event has them ──
-  resourceType       String?               // "transfer"
-  wiseResourceId     String?               // transfer id / profile id / balance id
-  currentState       String?
-  previousState      String?
-  occurredAt         DateTime?             // data.occurred_at — the ORDERING key
-  sentAt             DateTime?
+  resourceType   String? // "transfer"
+  wiseResourceId String? // transfer id / profile id / balance id
+  currentState   String?
+  previousState  String?
+  occurredAt     DateTime? // data.occurred_at — the ORDERING key
+  sentAt         DateTime?
 
-  payload            Json                  // verbatim body
-  rawSignature       String?               // X-Signature-SHA256 as received
-  signatureVerified  Boolean  @default(false)
-  isTestNotification Boolean  @default(false)
+  payload            Json // verbatim body
+  rawSignature       String? // X-Signature-SHA256 as received
+  signatureVerified  Boolean @default(false)
+  isTestNotification Boolean @default(false)
 
-  processed          Boolean  @default(false)
-  processedAt        DateTime?
-  skippedReason      String?               // "stale-order" | "unknown-transfer" | "unhandled-type" | …
-  errorMessage       String?
-  attemptCount       Int      @default(0)
+  processed     Boolean   @default(false)
+  processedAt   DateTime?
+  skippedReason String? // "stale-order" | "unknown-transfer" | "unhandled-type" | …
+  errorMessage  String?
+  attemptCount  Int       @default(0)
 
-  receivedAt         DateTime @default(now())
+  receivedAt DateTime @default(now())
 
   @@index([eventType])
   @@index([wiseResourceId])
@@ -1103,17 +1145,17 @@ model WiseWebhookEvent {
 
 /// Wise webhook subscriptions we own, so cutover/rollback is auditable.
 model WiseWebhookSubscription {
-  id                String   @id @default(cuid())
-  wiseSubscriptionId String  @unique
-  scopeDomain       String                 // "application" | "profile"
-  scopeId           String                 // clientKey or profileId
-  eventType         String
-  schemaVersion     String
-  deliveryUrl       String
-  environment       String                 // "sandbox" | "production"
-  active            Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  deletedAt         DateTime?
+  id                 String    @id @default(cuid())
+  wiseSubscriptionId String    @unique
+  scopeDomain        String // "application" | "profile"
+  scopeId            String // clientKey or profileId
+  eventType          String
+  schemaVersion      String
+  deliveryUrl        String
+  environment        String // "sandbox" | "production"
+  active             Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  deletedAt          DateTime?
 
   @@index([eventType])
   @@index([active])
@@ -1140,10 +1182,10 @@ model OutboxEvent {
   eventType     String
   payload       Json
 
-  status      OutboxEventStatus @default(PENDING)
-  processedAt DateTime?
-  attemptCount Int              @default(0)
-  lastError   String?
+  status       OutboxEventStatus @default(PENDING)
+  processedAt  DateTime?
+  attemptCount Int               @default(0)
+  lastError    String?
 
   createdAt DateTime @default(now())
 
@@ -1160,28 +1202,28 @@ model OutboxEvent {
 /// without code deployment. Used for affiliate discount/commission
 /// percentages and other dynamic settings.
 model SystemConfig {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   /// Unique identifier for the setting (e.g., "affiliate_discount_percent")
-  key         String   @unique
+  key String @unique
 
   /// Value stored as string (parsed based on valueType)
-  value       String
+  value String
 
   /// Type of value: "number", "string", "boolean", "json"
-  valueType   String   @default("string")
+  valueType String @default("string")
 
   /// Human-readable description of what this setting controls
   description String?
 
   /// Category for grouping settings (e.g., "affiliate", "payment", "system")
-  category    String
+  category String
 
   /// User ID or email of admin who last updated this setting
-  updatedBy   String?
+  updatedBy String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([category])
   @@index([key])
@@ -1189,24 +1231,24 @@ model SystemConfig {
 
 /// History of all changes to SystemConfig for audit trail
 model SystemConfigHistory {
-  id         String   @id @default(cuid())
+  id String @id @default(cuid())
 
   /// The config key that was changed
-  configKey  String
+  configKey String
 
   /// Previous value before the change
-  oldValue   String
+  oldValue String
 
   /// New value after the change
-  newValue   String
+  newValue String
 
   /// Email or ID of admin who made the change
-  changedBy  String
+  changedBy String
 
   /// Optional reason for the change
-  reason     String?
+  reason String?
 
-  changedAt  DateTime @default(now())
+  changedAt DateTime @default(now())
 
   @@index([configKey])
   @@index([changedBy])
@@ -1220,17 +1262,17 @@ model SystemConfigHistory {
 // A user-drawn chart object. Geometry is stored as price/time anchors (never
 // pixels) so the server can recompute level values headlessly (Phase 4).
 model Drawing {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   symbol    String
   timeframe String
-  type      String   // TRENDLINE | HLINE | CHANNEL | FIB_RETRACE | FIB_EXT | TEXT
-  anchors   Json     // [{ time, price }, ...] (1-3 anchors)
-  style     Json     // color, width, dash + tool-specific extras
+  type      String // TRENDLINE | HLINE | CHANNEL | FIB_RETRACE | FIB_EXT | TEXT
+  anchors   Json // [{ time, price }, ...] (1-3 anchors)
+  style     Json // color, width, dash + tool-specific extras
 
-  alerts    DrawingAlert[]
+  alerts DrawingAlert[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1242,20 +1284,20 @@ model Drawing {
 
 // Links an Alert to a specific level of a Drawing (the watched price line).
 model DrawingAlert {
-  id          String   @id @default(cuid())
-  drawingId   String
-  drawing     Drawing  @relation(fields: [drawingId], references: [id], onDelete: Cascade)
-  alertId     String   @unique
-  alert       Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  drawingId String
+  drawing   Drawing @relation(fields: [drawingId], references: [id], onDelete: Cascade)
+  alertId   String  @unique
+  alert     Alert   @relation(fields: [alertId], references: [id], onDelete: Cascade)
 
-  targetLevel String   // 'line' | 'channel_top' | 'fib_0.618' | 'fib_ext_1.618' ...
-  direction   String   @default("either") // cross_up | cross_down | either
-  tolerance   Float    @default(0)         // price units; 0 = pure cross
-  cooldownSec Int      @default(60)
-  oneShot     Boolean  @default(false)
+  targetLevel String // 'line' | 'channel_top' | 'fib_0.618' | 'fib_ext_1.618' ...
+  direction   String  @default("either") // cross_up | cross_down | either
+  tolerance   Float   @default(0) // price units; 0 = pure cross
+  cooldownSec Int     @default(60)
+  oneShot     Boolean @default(false)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([drawingId])
 }

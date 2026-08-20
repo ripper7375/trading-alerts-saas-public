@@ -286,6 +286,66 @@ async function main() {
     }
 
     console.log('✅ SystemConfig entries created (affiliate settings)');
+
+    // Seed the affiliate Media Kit with the real brand asset files copied
+    // into public/ (davintrade-ai-icon.png, DavinTrade_Logo.jpg,
+    // marketing-icon.svg) plus one swipe-copy text asset, so the media-kit
+    // pages have real content on a fresh database. Keyed by a stable id so
+    // reseeding is idempotent.
+    const marketingAssets = [
+      {
+        id: 'seed-marketing-asset-mascot-icon',
+        title: 'Davin AI App Icon (Transparent 512x512)',
+        category: 'MASCOTS' as const,
+        format: 'PNG',
+        resolution: '512x512',
+        fileUrl: '/davintrade-ai-icon.png',
+        fileSize: 400519,
+      },
+      {
+        id: 'seed-marketing-asset-brand-logo',
+        title: 'DavinTrade Official Horizontal Banner Logo',
+        category: 'BRAND_LOGOS' as const,
+        format: 'JPG',
+        resolution: '1200x400',
+        fileUrl: '/DavinTrade_Logo.jpg',
+        fileSize: 77251,
+      },
+      {
+        id: 'seed-marketing-asset-vector-icon',
+        title: 'Scalable Vector SVG Brand Pack',
+        category: 'BRAND_LOGOS' as const,
+        format: 'SVG',
+        resolution: 'Vector',
+        fileUrl: '/marketing-icon.svg',
+        fileSize: 1329,
+      },
+    ];
+
+    for (const asset of marketingAssets) {
+      await prisma.marketingAsset.upsert({
+        where: { id: asset.id },
+        update: {},
+        create: { ...asset, status: 'ACTIVE' },
+      });
+    }
+
+    await prisma.marketingAsset.upsert({
+      where: { id: 'seed-marketing-asset-swipe-copy' },
+      update: {},
+      create: {
+        id: 'seed-marketing-asset-swipe-copy',
+        title: 'Telegram & Discord High-Converting Alert Swipe',
+        category: 'SWIPE_COPY',
+        format: 'TXT',
+        resolution: 'Text Copy',
+        copyText:
+          '⚡ Just tested DavinTrade AI for Gold (XAUUSD) M5/M15 fractal setups. Sub-millisecond tick detection and the AI copilot gives instant support/resistance analysis. Use my referral link for an exclusive discount.',
+        status: 'ACTIVE',
+      },
+    });
+
+    console.log('✅ Marketing Resources / Media Kit assets seeded (4 assets)');
     console.log('');
     console.log('🎉 Database seeding completed successfully!');
     console.log('');
