@@ -64,6 +64,24 @@ jest.mock('@/lib/money-service/client', () => ({
   MoneyServiceError: MockMoneyServiceError,
 }));
 
+// Session 7-2 Step 1: the trigger route now calls createMoneyApi/
+// unwrapMoneyApi instead of callMoneyService directly. Mock only
+// createMoneyApi's returned client's POST method -- unwrapMoneyApi is the
+// REAL implementation (jest.requireActual), so it still throws the real
+// (mocked-class) MoneyServiceError on a non-ok response, same as production.
+const mockMoneyApiPost = jest.fn();
+const mockCreateMoneyApi = jest.fn(() => ({
+  POST: (...args: unknown[]) => mockMoneyApiPost(...args),
+}));
+jest.mock('@/lib/api/generated/money-api/client', () => {
+  const actual = jest.requireActual('@/lib/api/generated/money-api/client');
+  return {
+    __esModule: true,
+    createMoneyApi: (...args: unknown[]) => mockCreateMoneyApi(...args),
+    unwrapMoneyApi: (actual as { unwrapMoneyApi: unknown }).unwrapMoneyApi,
+  };
+});
+
 describe('GET /api/admin/system/terminals', () => {
   const originalEnv = process.env;
 
@@ -170,12 +188,15 @@ describe('POST /api/admin/system/jobs/[jobId]/trigger', () => {
 
     expect(response.status).toBe(400);
     expect(body.error).toBe('Unknown job id');
-    expect(mockCallMoneyService).not.toHaveBeenCalled();
+    expect(mockMoneyApiPost).not.toHaveBeenCalled();
   });
 
-  it('forwards a known job to money-service with the Bearer CRON_SECRET', async () => {
+  it('forwards a known job to money-service (v1-prefixed) with the Bearer CRON_SECRET', async () => {
     mockRequireAdmin.mockResolvedValue({ user: { role: 'ADMIN' } });
-    mockCallMoneyService.mockResolvedValue({ count: 2 });
+    mockMoneyApiPost.mockResolvedValue({
+      data: { count: 2 },
+      response: { ok: true, status: 200 },
+    });
 
     const { POST } = await import(
       '@/app/api/admin/system/jobs/[jobId]/trigger/route'
@@ -185,12 +206,13 @@ describe('POST /api/admin/system/jobs/[jobId]/trigger', () => {
     });
     const body = await response.json();
 
-    expect(mockCallMoneyService).toHaveBeenCalledWith(
-      '/cron-trigger/expire-codes',
-      expect.objectContaining({
-        method: 'POST',
-        headers: { Authorization: 'Bearer test-cron-secret' },
-      })
+    // Session 7-2 Deviation 1: money-service's real global prefix is `v1`
+    // (CronTriggerController is not excluded from it) -- the pre-7-2 route
+    // called the un-prefixed path, which almost certainly 404'd live.
+    expect(mockCreateMoneyApi).toHaveBeenCalledWith('test-cron-secret');
+    expect(mockMoneyApiPost).toHaveBeenCalledWith(
+      '/v1/cron-trigger/expire-codes',
+      {}
     );
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
@@ -199,9 +221,10 @@ describe('POST /api/admin/system/jobs/[jobId]/trigger', () => {
 
   it('maps a MoneyServiceError to its real status and message', async () => {
     mockRequireAdmin.mockResolvedValue({ user: { role: 'ADMIN' } });
-    mockCallMoneyService.mockRejectedValue(
-      new MockMoneyServiceError(401, { message: 'Unauthorized' })
-    );
+    mockMoneyApiPost.mockResolvedValue({
+      error: { message: 'Unauthorized' },
+      response: { ok: false, status: 401 },
+    });
 
     const { POST } = await import(
       '@/app/api/admin/system/jobs/[jobId]/trigger/route'

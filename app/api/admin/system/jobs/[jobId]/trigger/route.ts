@@ -17,18 +17,33 @@
  * this session" value, not a persisted audit trail (none exists; fabricating
  * one would violate this session's Data Discipline rule).
  *
+ * Session 7-2 Deviation 1: this route previously called
+ * `callMoneyService('/cron-trigger/${jobId}', ...)` -- missing the `/v1`
+ * prefix money-service's global route prefix actually requires (`main.ts`'s
+ * `setGlobalPrefix('v1', ...)`, not excluded for `cron-trigger`), so the real
+ * request almost certainly 404'd. Migrating onto `createMoneyApi` fixes this
+ * as a disclosed side effect (Davin confirmed live, 2026-08-20) rather than
+ * silently preserving the bug. `CronTriggerController` exposes one literal
+ * sub-route per job id (`/v1/cron-trigger/expire-codes`, etc.), not a single
+ * templated `/v1/cron-trigger/{jobId}` path, so the generated `paths` type
+ * has no entry a runtime `jobId` string can be checked against statically --
+ * the cast below is narrowly scoped to that one enumeration gap, not a
+ * blanket type-safety opt-out.
+ *
  * @module app/api/admin/system/jobs/[jobId]/trigger/route
  */
 
 import { NextResponse } from 'next/server';
 
+import type { paths } from '@/lib/api/generated/money-api/schema';
+import {
+  createMoneyApi,
+  unwrapMoneyApi,
+} from '@/lib/api/generated/money-api/client';
 import { AuthError } from '@/lib/auth/errors';
 import { requireAdmin } from '@/lib/auth/session';
 import { SYSTEM_CRON_JOB_IDS } from '@/lib/admin/system-jobs';
-import {
-  callMoneyService,
-  MoneyServiceError,
-} from '@/lib/money-service/client';
+import { MoneyServiceError } from '@/lib/money-service/client';
 
 interface RouteParams {
   params: Promise<{ jobId: string }>;
@@ -55,10 +70,12 @@ export async function POST(
       );
     }
 
-    const result = await callMoneyService(`/cron-trigger/${jobId}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${cronSecret}` },
-    });
+    const api = createMoneyApi(cronSecret);
+    const apiResult = await api.POST(
+      `/v1/cron-trigger/${jobId}` as keyof paths & `/v1/cron-trigger/${string}`,
+      {}
+    );
+    const result = await unwrapMoneyApi(apiResult);
 
     return NextResponse.json({
       success: true,
