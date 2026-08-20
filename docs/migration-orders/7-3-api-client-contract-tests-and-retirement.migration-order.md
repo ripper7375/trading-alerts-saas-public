@@ -8,7 +8,7 @@
 > Adapted from `TEMPLATE-PORT.md` / `TEMPLATE-CONTRACT.md` hybrid — dial **LOW**: behavior
 > preservation, dead code elimination, and high-fidelity contract verification.
 
-**Session:** 7-3 · **Phase:** Phase 7 (API Client Rewrite — Phase Exit) · **Variant:** PORT/CONTRACT hybrid (exit-review flavor) · **Status:** CONFIRMED (Executor, 2026-08-20 — re-verified against live code/runtime, Davin confirmed the APPROVED batch authentic live) · **Generated:** 2026-08-20 (Advisor upgrade from PRE-DRAFT) · **Flags touched:** none (pure test/doc/retirement cleanup) · **Estimated time:** 2–3h
+**Session:** 7-3 · **Phase:** Phase 7 (API Client Rewrite — Phase Exit) · **Variant:** PORT/CONTRACT hybrid (exit-review flavor) · **Status:** CLOSED SUCCESSFUL (Executor, 2026-08-20 — all 4 Ordered Steps executed, Done-when fully checked) · **Generated:** 2026-08-20 (Advisor upgrade from PRE-DRAFT) · **Flags touched:** none (pure test/doc/retirement cleanup) · **Estimated time:** 2–3h
 
 **Surface:**
 
@@ -185,15 +185,15 @@ Session 7-1 generated the typed OpenAPI clients (`lib/api/generated/`). Session 
 
 ## Done when
 
-- [ ] `stackA`, `stackB`, `api`, and legacy type interfaces deleted from `lib/api/index.ts`.
-- [ ] 3 obsolete test files (`stack-a-client.test.ts`, `stack-b-client.test.ts`, `api-client-workflow.test.ts`) deleted.
-- [ ] Comprehensive contract test suite in `__tests__/lib/api/generated-clients.test.ts` passing against recorded real responses (L1/L31 compliant).
-- [ ] 5 legacy design docs in `backend-stack-a/api-client-between-frontend-and-stack-b/` annotated with retirement headers.
-- [ ] `docs/architecture/api-client-architecture.md` authored and complete.
-- [ ] `tsc --noEmit` clean across all workspaces.
-- [ ] `eslint app components lib hooks --max-warnings 0` clean (0 errors, max 5 pre-existing warnings).
-- [ ] `test:ci` green with 160 suites passing.
-- [ ] Phase 7 exit review completed.
+- [x] `stackA`, `stackB`, `api`, and legacy type interfaces deleted from `lib/api/index.ts`.
+- [x] 3 obsolete test files (`stack-a-client.test.ts`, `stack-b-client.test.ts`, `api-client-workflow.test.ts`) deleted.
+- [x] Comprehensive contract test suite in `__tests__/lib/api/generated-clients.test.ts` passing against recorded real responses (L1/L31 compliant). **43 tests total (12 pre-existing + 31 new), all passing.**
+- [x] 5 legacy design docs in `backend-stack-a/api-client-between-frontend-and-stack-b/` annotated with retirement headers.
+- [x] `docs/architecture/api-client-architecture.md` authored and complete.
+- [x] `tsc --noEmit` clean across all workspaces.
+- [x] `eslint app components lib hooks --max-warnings 0` clean (0 errors, max 5 pre-existing warnings). **Same 5 pre-existing warnings, 0 introduced.**
+- [x] `test:ci` green with 160 suites passing. **160/160 suites, 2399/2399 tests (was 163/163, 2412/2412 -- net -13 tests: -44 deleted legacy + 31 new contract tests; zero regressions).**
+- [x] Phase 7 exit review completed. **See Deviation 4 for the live-surface stackA/stackB reference sweep.**
 
 ---
 
@@ -229,7 +229,41 @@ exports), 5 legacy docs in `backend-stack-a/api-client-between-frontend-and-stac
 `docs/architecture/api-client-architecture.md` correctly absent (new file). One citation-drift
 note: Step 1's verification text predicts "-3 suites and -37 tests"; actual static `it(`/`test(`
 count across the 3 files is **44** (18+18+8), not 37 — no `.each()` blocks to explain the gap.
-Corrected expected post-Step-1 baseline: **160 suites, 2368 tests** (2412 − 44).
+Corrected expected post-Step-1 baseline: **160 suites, 2368 tests** (2412 − 44). **Confirmed by
+live run**: `tsc --noEmit` clean, `test:ci` **160/160 suites, 2368/2368 tests** after Step 1.
+
+**Deviation 2 (Step 2, 2026-08-20):** the order's Surface line names a templated
+`POST /v1/cron-trigger/{jobId}` money-service route for the cron-trigger contract test. The real
+generated schema (`lib/api/generated/money-api/schema.ts`) has no such templated path — it emits
+8 separate literal-named routes instead (`/v1/cron-trigger/daily-maintenance`,
+`/v1/cron-trigger/expire-codes`, etc.), matching the real `CronTriggerController`. Tested against
+the real `/v1/cron-trigger/daily-maintenance` route instead (`LESSONS-LEARNED.md` L22 — source
+wins over the order's paraphrase). One test-writing correction along the way: the first draft of
+the `DELETE /alerts/{id}` 204-response test asserted `unwrapOperationApi` returns `{}` on 204; the
+real implementation returns `data as T` unchanged, which `openapi-fetch` sets to `undefined` for
+an empty 204 body — fixed the assertion to `toBeUndefined()`, a genuine finding about the client's
+real contract, not a flaky test. Added 31 new tests (12 pre-existing + 31 = 43 total in the file).
+`test:ci`: **160/160 suites, 2399/2399 tests** (2368 + 31, zero regressions).
+
+**Deviation 3 (Step 3, 2026-08-20):** no deviation — the 5 legacy docs and the new architecture
+doc were written exactly per the order's Decision 4 / Step 3 action list. `prettier --write`
+reformatted the new file once (line-wrap only) before `--check` passed clean.
+
+**Deviation 4 (Step 4, 2026-08-20):** the order's own Done-when phrasing ("Verify zero remaining
+references to `stackA`, `stackB`, or deprecated API types in the repo") is stricter than what's
+achievable or desirable literally — a repo-wide grep for `stackA|stackB` also matches 77 files:
+`seed-code/stack-auth/**` (an unrelated third-party "Stack Auth" library — `useStackApp`,
+`stackAdminApp`, etc. — read-only reference, `EXECUTOR-PROTOCOL.md` §5 do-not-touch), the
+`frontend/` SEPARATE_STACK mirror (never in this migration's scope), architecture docs using
+"Stack A/B/C" as an unrelated service-tier naming convention, and this session's own governance
+docs / the 5 annotated legacy docs / `lib/api/index.ts`'s own retirement note, all of which
+correctly still _mention_ `stackA`/`stackB` historically. Narrowed the check to the live surface
+(`app/`, `components/`, `lib/`, `hooks/`, `__tests__/`): only `lib/api/index.ts` matches (its own
+intentional historical doc comment), plus two coincidental unrelated identifiers
+(`SubscriptionData` locally defined in `app/(dashboard)/settings/billing/page.tsx`,
+`ExportUserDataInput`/`exportUserDataSchema` in `lib/validations/user.ts` — neither imports from
+or relates to the retired `lib/api/index.ts` exports). Zero live code references to the retired
+exports confirmed.
 
 ---
 
