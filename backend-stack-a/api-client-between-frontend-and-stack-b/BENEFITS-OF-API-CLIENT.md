@@ -1,5 +1,7 @@
 # BENEFITS OF API CLIENT (Why is Unified API Client Interface Needed?)
 
+> ⚠️ **HISTORICAL / SUPERSEDED (2026-08-20, Phase 7):** This document describes the legacy Stack A/Stack B API client architecture, which was retired in Phase 7 (Session 7-3). See `docs/architecture/api-client-architecture.md` for the modern generated OpenAPI client system.
+
 ❌ Without Unified API Client (Nightmare Scenario)
 // Component 1: Alerts Page
 function AlertsPage() {
