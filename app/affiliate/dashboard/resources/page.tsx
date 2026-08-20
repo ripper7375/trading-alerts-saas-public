@@ -1,14 +1,14 @@
 /**
- * Affiliate Resource Center Page (Session 6-7, B2-20)
+ * Affiliate Resource Center Page (Session 6-7, B2-20; wired to real media
+ * kit data ad-hoc 2026-08-20)
  *
- * No dedicated backend endpoint exists for this page — per Davin's live
- * CONFIRM-time direction, built as a client-side resource hub: a real
- * referral-link generator (reuses the existing GET
- * /api/affiliate/dashboard/codes?status=ACTIVE feed and the real `?ref=`
- * query param register-form.tsx already reads), promo-code copy widgets,
- * and an FAQ built from real AFFILIATE_CONFIG values. No public/ brand
- * asset files exist in this repo (checked) — the Brand Assets section says
- * so honestly rather than linking to files that would 404.
+ * Fetches GET /api/affiliate/dashboard/resources — the affiliate's own
+ * active codes (with discount %) plus every published (ACTIVE)
+ * MarketingAsset: brand logos/mascots/banners/docs are real downloadable
+ * files (served through the download-tracking redirect route), and
+ * SWIPE_COPY assets are copy-to-clipboard text (tracked via the copy
+ * route). Both engagement routes increment the same `downloadCount` the
+ * admin Marketing Resources dashboard reports.
  *
  * @module app/affiliate/dashboard/resources/page
  */
@@ -26,12 +26,25 @@ import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
 interface AffiliateCode {
   id: string;
   code: string;
-  status: 'ACTIVE' | 'USED' | 'EXPIRED' | 'CANCELLED';
+  discountPercent: number;
   expiresAt: string;
 }
 
-interface CodesResponse {
+interface MarketingAsset {
+  id: string;
+  title: string;
+  category: 'BRAND_LOGOS' | 'MASCOTS' | 'AD_BANNERS' | 'SWIPE_COPY' | 'DOCS';
+  format: string;
+  resolution: string;
+  fileUrl: string | null;
+  fileSize: number | null;
+  copyText: string | null;
+  downloadCount: number;
+}
+
+interface ResourcesResponse {
   codes: AffiliateCode[];
+  assets: MarketingAsset[];
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -40,6 +53,7 @@ interface CodesResponse {
 
 export default function AffiliateResourcesPage(): React.ReactElement {
   const [codes, setCodes] = useState<AffiliateCode[]>([]);
+  const [assets, setAssets] = useState<MarketingAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -48,33 +62,30 @@ export default function AffiliateResourcesPage(): React.ReactElement {
   useEffect(() => {
     setOrigin(window.location.origin);
 
-    const fetchCodes = async (): Promise<void> => {
+    const fetchResources = async (): Promise<void> => {
       setLoading(true);
       setError('');
 
       try {
-        const response = await fetch(
-          '/api/affiliate/dashboard/codes?status=ACTIVE&limit=100'
-        );
+        const response = await fetch('/api/affiliate/dashboard/resources');
 
         if (!response.ok) {
-          throw new Error('Failed to load your referral codes');
+          throw new Error('Failed to load your media kit');
         }
 
-        const data: CodesResponse = await response.json();
+        const data: ResourcesResponse = await response.json();
         setCodes(data.codes);
+        setAssets(data.assets);
       } catch (err) {
         setError(
-          err instanceof Error
-            ? err.message
-            : 'Failed to load your referral codes'
+          err instanceof Error ? err.message : 'Failed to load your media kit'
         );
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCodes();
+    fetchResources();
   }, []);
 
   async function copyToClipboard(key: string, value: string): Promise<void> {
@@ -87,6 +98,25 @@ export default function AffiliateResourcesPage(): React.ReactElement {
       // value is still visible and selectable in the input for manual copy.
     }
   }
+
+  async function copySwipe(asset: MarketingAsset): Promise<void> {
+    if (!asset.copyText) return;
+
+    // Copy immediately from already-fetched text (no round trip needed to
+    // show the result), then fire the engagement-tracking call.
+    await copyToClipboard(`swipe-${asset.id}`, asset.copyText);
+
+    try {
+      await fetch(`/api/affiliate/dashboard/resources/${asset.id}/copy`, {
+        method: 'POST',
+      });
+    } catch {
+      // Non-fatal: the clipboard copy already succeeded for the user.
+    }
+  }
+
+  const downloadableAssets = assets.filter((a) => a.category !== 'SWIPE_COPY');
+  const swipeAssets = assets.filter((a) => a.category === 'SWIPE_COPY');
 
   return (
     <div className="space-y-6">
@@ -139,6 +169,9 @@ export default function AffiliateResourcesPage(): React.ReactElement {
                   <span className="font-mono text-sm font-semibold text-gray-900">
                     {code.code}
                   </span>
+                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                    {code.discountPercent}% OFF
+                  </span>
                   <input
                     readOnly
                     value={link}
@@ -169,15 +202,86 @@ export default function AffiliateResourcesPage(): React.ReactElement {
 
       {/* Brand Assets */}
       <div className="rounded-lg bg-white p-6 shadow-md">
-        <h2 className="mb-2 text-lg font-semibold text-gray-900">
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">
           Brand Assets
         </h2>
-        <p className="text-sm text-gray-600">
-          Logo files and banner assets aren&apos;t published yet. Reach out to
-          your account contact and we&apos;ll send you the current brand kit
-          directly.
-        </p>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
+          </div>
+        ) : downloadableAssets.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            No brand assets have been published yet — check back soon.
+          </p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-3">
+            {downloadableAssets.map((asset) => (
+              <div
+                key={asset.id}
+                className="space-y-3 rounded-md border border-gray-200 p-4 text-center"
+              >
+                {asset.fileUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element -- external Blob/public URLs, arbitrary formats (svg/jpg/png)
+                  <img
+                    src={asset.fileUrl}
+                    alt={asset.title}
+                    className="mx-auto h-20 w-20 rounded-md object-contain"
+                  />
+                )}
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    {asset.title}
+                  </h4>
+                  <p className="text-xs text-gray-500">
+                    {asset.format} · {asset.resolution}
+                  </p>
+                </div>
+                <a
+                  href={`/api/affiliate/dashboard/resources/${asset.id}/download`}
+                  className="inline-block w-full rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                >
+                  Download {asset.format}
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Copywriting Swipes */}
+      {swipeAssets.length > 0 && (
+        <div className="rounded-lg bg-white p-6 shadow-md">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+            High-Converting Copywriting Swipes
+          </h2>
+          <div className="space-y-3">
+            {swipeAssets.map((asset) => (
+              <div
+                key={asset.id}
+                className="space-y-2 rounded-md border border-gray-200 p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    {asset.title}
+                  </h4>
+                  <button
+                    onClick={() => copySwipe(asset)}
+                    className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                  >
+                    {copiedKey === `swipe-${asset.id}`
+                      ? 'Copied!'
+                      : 'Copy Text'}
+                  </button>
+                </div>
+                <p className="select-all rounded bg-gray-50 p-3 font-mono text-xs text-gray-800">
+                  {asset.copyText}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* FAQ */}
       <div className="rounded-lg bg-white p-6 shadow-md">
