@@ -2,174 +2,227 @@
 
 > Second session of Phase 7 (API Client Rewrite). Per Session 7-1's own Next-session handoff and
 > Rules ("Consumer rewiring is explicitly deferred to Session 7-2"): rewire existing monolith
-> route handlers that call `operation-service`/`money-service` directly onto the new typed
-> `operationApi`/`moneyApi` clients (`lib/api/generated/`, built Session 7-1), and clean up two
-> small leftover items Session 7-1 found but correctly left out of its own scope.
-> Adapted loosely from `TEMPLATE-PORT.md` — the shadow-run/cutover machinery in that template
-> doesn't apply here (this is a same-behavior internal refactor, not a cross-service traffic
-> migration; no new flag, no cutover). Read `00-SKELETON-AND-RULES.md` first — dial **LOW**:
-> behavior preservation is the deliverable, not a chance to also fix `stackA`/`stackB`'s known
-> bugs or add new operation-service/money-service functionality.
+> route handlers and service callers onto the new typed `operationApi`/`moneyApi` clients
+> (`lib/api/generated/`, built Session 7-1), enforce a lint rule banning direct `fetch()` to
+> microservice URLs (proven via a planted violation), and clean up the empty register directory
+> and dead `token-2fa-*` legacy routes.
+> Adapted from `TEMPLATE-PORT.md` — dial **LOW**: behavior preservation is the deliverable;
+> external HTTP contracts must remain byte-for-byte identical.
 
-**Session:** 7-2 · **Phase:** Phase 7 (API Client Rewrite) · **Variant:** PORT (internal
-refactor, no cross-stack move) · **Status:** PRE-DRAFT · **Generated:** 2026-08-12 (Executor, at
-Session 7-1's close) · **Flags touched:** none expected (no traffic-routing change) ·
-**Estimated time:** unclear until Step 0's own discovery pass runs — likely 3-5h given the
-number of call sites found so far (see Context)
+**Session:** 7-2 · **Phase:** Phase 7 (API Client Rewrite) · **Variant:** PORT (internal refactor, dial LOW) · **Status:** CONFIRMED (Executor, 2026-08-20 — re-verified against live code and runtime; entry criteria all pass, see Deviations) · **Generated:** 2026-08-20 (Advisor upgrade from PRE-DRAFT) · **Flags touched:** none (pure client refactor, no traffic-routing flags touched) · **Estimated time:** 3–4h
 
-**Surface:** every `app/api/**/route.ts` handler that currently calls `operation-service`/
-`money-service` — either the raw transport (`callOperationServiceWithToken`/
-`callMoneyServiceWithToken`) or an existing per-route wrapper in `lib/operation-service/
-routes.ts`/`lib/money-service/routes.ts`. `lib/api/index.ts`'s own `stackA`/`stackB` are
-explicitly OUT of this session's surface (Session 7-3's job, see Known wrinkles).
+**Surface:** Every monolith route handler calling `operation-service` / `money-service` directly (e.g. `app/api/auth/token-*`, `app/api/admin/system/jobs/[jobId]/trigger/route.ts`, and `lib/money-service/routes.ts` wrappers), `eslint.config.mjs` (banning direct fetch to microservice base URLs), `app/api/auth/register/` (empty dir removal), and the 6 dead `app/api/auth/token-2fa-*` route files + `__tests__/api/auth/token-2fa-flows.test.ts` (retirement). `stackA`/`stackB` in `lib/api/index.ts` and `lib/*-service/write-routes.ts` raw proxy forwarders are explicitly **OUT of scope**.
 
-**Feeds on:** `7-1-api-client-reverify-and-generate.migration-order.md`'s own Next-session
-handoff and Deviations (the token-\* bridge audit, the empty `app/api/auth/register/` leftover);
-`lib/api/generated/` (this session's actual consumer target).
+**Feeds on:** `7-1-api-client-reverify-and-generate.migration-order.md` (CLOSED SUCCESSFUL 2026-08-12); `lib/api/generated/{operation-api,money-api}/{schema.ts,client.ts}` (Session 7-1 deliverable).
+
+---
+
+## Decisions taken
+
+1. **Scope of `lib/operation-service/write-routes.ts` and `lib/money-service/write-routes.ts` forwarding helpers**
+   - **Chosen:** Keep `forwardRequestToOperationService()`, `forwardRequestToOperationServiceOptionalAuth()`, and `forwardWriteRequestToMoneyService()` **OUT of scope** for Session 7-2.
+   - **Rejected:** Converting raw NextRequest proxy forwarding handlers into `openapi-fetch` / `operationApi` callers.
+   - **Rationale:** These helpers are specialized streaming proxy gateways built during Phase 4B to forward raw `NextRequest` bodies, preserve correlation IDs, forward client IP/user-agent headers (`forwardedRequestContext`), and preserve status codes (e.g. 201 Created). Converting them to `openapi-fetch` would require parsing/serializing JSON bodies and translating query parameters with zero architectural benefit and high regression risk in a LOW-dial PORT session.
+   - **Undo cost:** Low (any route can be converted independently in future sessions if desired).
+
+2. **Fate of the 6 dead `token-2fa-*` monolith route files**
+   - **Chosen:** **RETIRE (delete)** all 6 `app/api/auth/token-2fa-{backup-codes,disable,setup,status,verify,verify-setup}/route.ts` files and their solitary test suite `__tests__/api/auth/token-2fa-flows.test.ts`.
+   - **Rejected:** Keeping them as dead code or migrating them to `operationApi`.
+   - **Rationale:** These routes were early Phase 3 proxies superseded in Session 4B-21 by `/api/user/2fa/*`. They have zero UI consumers across `app/`, `components/`, and `hooks/` (re-confirmed at Session 7-1 and 7-2). Deleting them eliminates dead code and removes an orphaned test suite.
+   - **Undo cost:** Low (`git revert`).
+
+3. **Consumer migration targets for `operationApi` and `moneyApi`**
+   - **Chosen:** Migrate:
+     - (a) The 8 live `app/api/auth/token-*` route handlers (`token-login`, `token-register`, `token-refresh`, `token-logout`, `token-forgot-password`, `token-reset-password`, `token-verify-email`, `token-resend-verification`) to `createOperationApi(token)` / `unwrapOperationApi()`.
+     - (b) Direct money-service route callers (such as `app/api/admin/system/jobs/[jobId]/trigger/route.ts`) to `createMoneyApi(token)` / `unwrapMoneyApi()`.
+     - (c) The typed GET/POST wrappers in `lib/money-service/routes.ts` (12 GET routes + Wise recipient endpoints) to use `createMoneyApi`/`unwrapMoneyApi` under the hood.
+   - **Rejected:** Rewiring `stackA`/`stackB` in `lib/api/index.ts` (explicitly change-frozen until Session 7-3).
+   - **Rationale:** Ports all genuine domain and auth bridge callers onto the generated OpenAPI clients while respecting the change freeze on `stackA`/`stackB`.
+   - **Undo cost:** Low.
+
+4. **Lint enforcement for microservice URL fetch calls**
+   - **Chosen:** Add an ESLint rule in `eslint.config.mjs` banning direct `fetch()` to `OPERATION_SERVICE_URL`, `MONEY_SERVICE_URL`, or bare microservice ports outside sanctioned client files (`lib/api/generated/` and `lib/*-service/client.ts`), and verify with a planted violation that is seen to fail before removal.
+   - **Rejected:** Relying solely on documentation or manual code review.
+   - **Rationale:** Prevents un-typed direct fetch calls from creeping back into the monolith codebase.
+   - **Undo cost:** Low.
+
+---
 
 ## Context
 
-Session 7-1 built `operationApi`/`moneyApi` — typed, generated clients wrapping
-`callOperationServiceWithToken`/`callMoneyServiceWithToken` — but deliberately rewired zero
-existing call sites (its own Rules: "No existing UI page or route handler call site should be
-rewired in this session"). A shallow grep at 7-1's close found real, if partial, scope: **6**
-`app/api/**/route.ts` files call `callOperationServiceWithToken`/`callOperationService()`
-directly, and **1** calls `callMoneyServiceWithToken`/`callMoneyService()` directly — this is
-almost certainly an UNDERCOUNT of the session's real scope, since many more route handlers likely
-go through named per-route wrapper functions in `lib/operation-service/routes.ts`/
-`lib/money-service/routes.ts` (e.g. `revalidateWiseRecipient`) rather than the raw transport
-functions this grep matched. **Step 0 of this session must do a real, exhaustive discovery pass**
-before any Ordered Step is trusted — this PRE-DRAFT deliberately does not enumerate the full file
-list, per this migration's own repeated experience that pre-guessed file lists drift from ground
-truth by CONFIRM (`LESSONS-LEARNED.md` L27).
+Session 7-1 built and verified the generated typed clients `operationApi` and `moneyApi` (`lib/api/generated/`), with idempotent codegen (`npm run generate:api-client`) and error unwrapping via `unwrapOperationApi`/`unwrapMoneyApi`. Session 7-1 deliberately rewired zero consumers, leaving consumer migration to Session 7-2.
 
-Two small, already-diagnosed items from Session 7-1 also belong here: the empty leftover
-directory `app/api/auth/register/` (no `route.ts` inside, safe to `rmdir`), and a decision on the
-6 confirmed-dead `token-2fa-*` monolith route files (documented in `lib/api/index.ts`'s own
-header at Session 7-1, not yet retired).
+### Facts established by Advisor inspection of live code:
+
+- **Client signatures:**
+  - `createOperationApi(token: string | null): OperationApiClient`
+  - `unwrapOperationApi<T>(result: { data?: T; error?: unknown; response: Response; }): Promise<T>`
+  - `createMoneyApi(token: string | null): MoneyApiClient`
+  - `unwrapMoneyApi<T>(result: { data?: T; error?: unknown; response: Response; }): Promise<T>`
+- **Corrections to PRE-DRAFT citations:**
+  - `lib/operation-service/routes.ts` cited in PRE-DRAFT **does not exist** (operation-service transport consists of `client.ts`, `cookies.ts`, `flags.ts`, and `write-routes.ts`).
+  - Baseline test count is **164/164 suites, 2422/2422 tests** (post marketing-resources ad-hoc session on 2026-08-20, not 154/154 from 7-1).
+  - ESLint baseline has **5 pre-existing warnings** (all routing-method lint in `app/`).
+  - There are **14** `app/api/auth/token-*` route files (6 dead 2FA routes + 8 live auth bridge routes), not 6.
+  - `app/api/auth/register/` is confirmed an empty leftover directory (ready for deletion).
+  - `app/api-test/page.tsx` was already deleted at Session 6-12 (under its real name `app/test-api/page.tsx`).
+
+---
 
 ## Entry criteria
 
-- [ ] Session 7-1 CONFIRMED, executed, CLOSED (see `CLAUDE.md` Current entry, 2026-08-12).
-- [ ] `lib/api/generated/operation-api/client.ts` and `.../money-api/client.ts` re-read in full —
-      confirm `createOperationApi`/`createMoneyApi`/`unwrapOperationApi`/`unwrapMoneyApi`'s exact
-      signatures still match what this order assumes (re-verify at CONFIRM, don't trust this
-      PRE-DRAFT's own citation).
-- [ ] A real discovery pass (grep for `callOperationService`, `callMoneyService`, every named
-      export of `lib/operation-service/routes.ts`/`lib/money-service/routes.ts`, across
-      `app/api/**/route.ts`) run fresh at CONFIRM — the file list below is Step 0's own output,
-      not assumed from this PRE-DRAFT.
-- [ ] Monolith baseline re-measured (`tsc --noEmit` clean, eslint clean [4 pre-existing warnings],
-      `test:ci` green — last known baseline: 154/154 suites, 2356/2356 tests).
-- [ ] Advisor DRAFT reviewed and Davin APPROVED before execution.
+- [x] Session 7-1 CONFIRMED, executed, CLOSED SUCCESSFUL (and subsequent ad-hoc sessions landed cleanly).
+- [x] `lib/api/generated/operation-api/client.ts` and `lib/api/generated/money-api/client.ts` re-read at CONFIRM — confirm `createOperationApi`/`createMoneyApi`/`unwrapOperationApi`/`unwrapMoneyApi` signatures match. Confirmed exact match.
+- [x] Monolith baseline re-measured at CONFIRM (`tsc --noEmit` clean, `eslint app components lib hooks --max-warnings 0` clean [0 errors, 5 pre-existing warnings], `test:ci` green — last known: 164/164 suites, 2422/2422 tests). Re-measured live: `tsc --noEmit` clean; eslint 0 errors/5 warnings (same files); `test:ci` 164/164 suites, 2422/2422 tests, exit 0 — baseline confirmed exact.
+- [x] Step 0 exhaustive discovery pass executed fresh at CONFIRM against live controllers and route files. Confirmed scope matches (8 live token-_ routes, 6 dead token-2fa-_ routes, 17 money-service consumer routes via lib/money-service/routes.ts, empty app/api/auth/register/). **Two gaps found beyond the order's own text** (both resolved by Davin's live direction, 2026-08-20 — see Deviations): (1) the admin cron-trigger route is missing money-service's required `/v1` prefix — a likely-live 404 bug the order's own Step 1 note will fix as a side effect, which breaks an existing test assertion; (2) Step 3's lint-rule allowlist omitted `lib/status/check-system-status.ts`'s legitimate direct fetch to `OPERATION_SERVICE_URL` for its `/health` ping.
+- [x] Advisor DRAFT reviewed and Davin APPROVED before execution (2026-08-20). **Uncommitted-batch authenticity independently confirmed live by Davin at CONFIRM** (2026-08-20) — the whole batch (this order, `MASTER-ROADMAP-PHASES-7-15.md`, `CLAUDE.md`, `DECISION-LOG.md`, `EXECUTOR-PROTOCOL.md`, implementation plan, session playbook, `SESSION-PROMPT-SCRIPT.md`) is his authentic edit, and the roadmap (despite its own "pending Davin's approval" header) is approved.
+
+---
 
 ## Integration points
 
 - **In:** `lib/api/generated/{operation-api,money-api}/client.ts` (Session 7-1).
-- **Out:** none new — this session doesn't add new endpoints, just changes which internal helper
-  a route handler calls to reach an endpoint that already exists.
-- **Owns:** the migrated `app/api/**/route.ts` files' own internal implementation only — their
-  external HTTP contract (status codes, response shapes, error bodies) must NOT change.
+- **Out:** None — external HTTP contracts of route handlers remain 100% byte-for-byte identical.
+- **Owns:** Monolith route handlers' internal helper calls, `eslint.config.mjs` lint rule, removal of `app/api/auth/register/`, and deletion of dead `app/api/auth/token-2fa-*` routes.
+
+---
 
 ## Ordered steps
 
-### Step 0: Real Discovery Pass (do this before writing any migration code)
+### Step 0: Exhaustive Discovery & Call-Site Inventory (no code changes)
 
-- **Intent:** Build the real, exhaustive list of call sites this session must migrate — this
-  PRE-DRAFT's own Context section numbers (6 + 1) are a floor, not the real count.
-- **Action:** Grep every `app/api/**/route.ts` for `callOperationService`, `callMoneyService`,
-  and every named function `lib/operation-service/routes.ts`/`lib/money-service/routes.ts`
-  export; cross-check against `lib/operation-service/write-routes.ts`'s
-  `forwardRequestToOperationService()`/`forwardRequestToOperationServiceOptionalAuth()` callers
-  too (Session 4B-6/4B-11 — these are a DIFFERENT, already-typed forwarding pattern for pure
-  passthrough routes and may be legitimately OUT of this session's scope; a judgment call for
-  CONFIRM, not decided here). Record the real file list, one row per file, SOURCE line count,
-  and which specific call(s) need migrating.
-- **Verification:** the resulting list is what Steps 1+ actually execute against — no code
-  changes in this step.
+- **Intent:** Build the real, exhaustive list of call sites to migrate, categorizing by domain.
+- **Action:**
+  - Grep all `app/api/**/route.ts` and `lib/` files for:
+    - `callOperationService`, `callOperationServiceWithToken`, `callOperationServiceWithOptionalToken`
+    - `callMoneyService`, `callMoneyServiceWithToken`
+    - Exports of `lib/money-service/routes.ts`
+  - Record the exact file list, line numbers, and target generated client method in the session transcript / Deviations table.
+- **Verification:** Inventory matches the scope of Steps 1–2; no uncommitted code edits.
 
-### Step 1+: Migrate Call Sites (one commit per logical group, exact grouping TBD by Step 0's
+### Step 1: Migrate Money-Service Consumers onto `moneyApi`
 
-output — likely one commit per domain, matching this migration's own established per-slice
-commit convention)
+- **Intent:** Rewire money-service callers to use `createMoneyApi`/`unwrapMoneyApi`.
+- **Action:**
+  - Migrate `app/api/admin/system/jobs/[jobId]/trigger/route.ts` from `callMoneyService` to `createMoneyApi(token)`. Note: money-service paths require the `/v1` prefix (i.e. `/v1/cron-trigger/{jobId}`). Update `__tests__/api/admin-system-operations.test.ts` to assert the `/v1/cron-trigger/...` path, recording this test assertion update in Deviations as a documented fix for the pre-existing 404 bug.
+  - Refactor `lib/money-service/routes.ts` helper functions (used by `app/api/admin/affiliates/*`, `app/api/affiliate/dashboard/*`, `app/api/wise/recipients/*`) to delegate their network calls to `createMoneyApi(token)` and `unwrapMoneyApi()`, preserving their existing TypeScript return types and error-handling behavior.
+  - Verify all 17 consumer route handlers in `app/api/admin/affiliates/`, `app/api/affiliate/dashboard/`, and `app/api/wise/` continue to function identically.
+- **Verification:** `tsc --noEmit` clean; money-service consumer unit tests (`__tests__/api/admin/affiliates/`, `__tests__/api/affiliate/`, `__tests__/api/wise/`, `__tests__/api/admin-system-operations.test.ts`) green.
+- **Commit:** `refactor(api): migrate money-service consumers onto moneyApi`
 
-- **Intent:** Replace each direct `callOperationServiceWithToken(path, token, init)`/
-  `callMoneyServiceWithToken(path, token, init)` call with the equivalent
-  `unwrapOperationApi(await operationApi(token).METHOD(path, {...}))`/money-service twin, byte-
-  for-byte preserving the existing response shape, status code, and error mapping — this is a
-  PORT-dial-LOW session, not a chance to also fix any of `stackA`/`stackB`'s known bugs.
-- **Invariants:** every migrated route's own existing test file (if one exists) must pass
-  UNMODIFIED — a test needing its assertion changed is a finding, not a fix (`LESSONS-LEARNED.md`
-  L3). If a route has NO existing test, note that as an L28-class gap, not a blocker.
-- **Verification:** `tsc --noEmit` clean after each group; the migrated route's own existing test
-  suite (or a new one, if none existed) green.
-- **Commit:** `refactor(api): migrate <domain> route handlers onto operationApi/moneyApi`
+### Step 2: Migrate Operation-Service Auth Bridge Callers onto `operationApi`
 
-### Step N: Cleanup (small, do last)
+- **Intent:** Rewire the 8 live `app/api/auth/token-*` route handlers to use `createOperationApi(token)` / `unwrapOperationApi()`.
+- **Action:**
+  - Update each live bridge route:
+    - `app/api/auth/token-login/route.ts` -> `createOperationApi(null).POST('/auth/login', { body })`
+    - `app/api/auth/token-register/route.ts` -> `createOperationApi(null).POST('/auth/register', { body })`
+    - `app/api/auth/token-refresh/route.ts` -> `createOperationApi(null).POST('/auth/refresh', { body })`
+    - `app/api/auth/token-logout/route.ts` -> `createOperationApi(token).POST('/auth/logout', {})`
+    - `app/api/auth/token-forgot-password/route.ts` -> `createOperationApi(null).POST('/auth/forgot-password', { body })`
+    - `app/api/auth/token-reset-password/route.ts` -> `createOperationApi(null).POST('/auth/reset-password', { body })`
+    - `app/api/auth/token-verify-email/route.ts` -> `createOperationApi(null).POST('/auth/verify-email', { body })`
+    - `app/api/auth/token-resend-verification/route.ts` -> `createOperationApi(null).POST('/auth/resend-verification', { body })`
+  - Wrap calls in `unwrapOperationApi<T>()`, keeping the call site's existing explicit response body types (`LoginSuccessBody`, `RegisterSuccessBody`, etc.) so route contracts remain strict.
+  - Existing `try / catch (error)` blocks catching `OperationServiceError` remain untouched since `unwrapOperationApi` throws the exact same error class.
+- **Verification:** `tsc --noEmit` clean; `__tests__/api/auth/` tests green.
+- **Commit:** `refactor(api): migrate auth token bridge routes onto operationApi`
 
-- **Intent:** Close the two small items Session 7-1 flagged but correctly left out of its own
-  scope.
-- **Action:** `rmdir app/api/auth/register` (confirmed empty, no `route.ts`, safe — re-verify
-  at CONFIRM before deleting anything). Decide and act on the 6 dead `token-2fa-*` monolith
-  files (`app/api/auth/token-2fa-{setup,verify-setup,verify,status,disable,backup-codes}/
-route.ts`) — either retire them for real (delete + remove from any spec/doc that lists them) or
-  explicitly re-confirm they must stay for some reason this PRE-DRAFT doesn't know about; this is
-  a real decision, not to be silently assumed either way.
-- **Verification:** `tsc --noEmit`/`test:ci` clean; a fresh grep confirms zero remaining
-  references to either the deleted directory or (if retired) the 6 dead files.
-- **Commit:** `chore(api): remove empty app/api/auth/register/ leftover and retire dead token-2fa-* routes` (or a corrected message if the token-2fa-\* decision goes the other way)
+### Step 3: Add ESLint Rule Banning Direct Microservice `fetch()` & Verify via Planted Violation
+
+- **Intent:** Prevent direct, un-typed `fetch()` calls to microservice base URLs from being reintroduced into monolith code.
+- **Action:**
+  - Update `eslint.config.mjs` to add an ESLint rule (e.g. using `no-restricted-syntax` or `no-restricted-imports`) that flags direct `fetch()` calls referencing `OPERATION_SERVICE_URL`, `MONEY_SERVICE_URL`, or raw microservice port strings outside `lib/api/generated/`, `lib/*-service/client.ts`, and `lib/status/check-system-status.ts` (allowlisted for raw unauthenticated `/health` pings).
+  - **Planted Violation Test:**
+    1. Temporarily add a direct `fetch(process.env.OPERATION_SERVICE_URL + '/alerts')` into a dummy or test file.
+    2. Run `npm run lint` / `npx eslint app components lib hooks --max-warnings 0`.
+    3. Confirm ESLint **fails** with the newly configured error message.
+    4. Remove the planted violation.
+    5. Run `npx eslint app components lib hooks --max-warnings 0` and confirm it passes with 0 errors and exactly 5 pre-existing warnings.
+- **Verification:** Planted violation demonstrated to fail; clean run passes.
+- **Commit:** `chore(lint): add eslint rule banning direct fetch to microservice urls`
+
+### Step 4: Cleanup Leftover Directory & Retire Dead 2FA Routes
+
+- **Intent:** Remove the empty `app/api/auth/register/` leftover directory and delete the 6 dead `token-2fa-*` routes.
+- **Action:**
+  - Remove empty directory `app/api/auth/register/`.
+  - Delete the 6 dead route files:
+    - `app/api/auth/token-2fa-backup-codes/route.ts`
+    - `app/api/auth/token-2fa-disable/route.ts`
+    - `app/api/auth/token-2fa-setup/route.ts`
+    - `app/api/auth/token-2fa-status/route.ts`
+    - `app/api/auth/token-2fa-verify-setup/route.ts`
+    - `app/api/auth/token-2fa-verify/route.ts`
+  - Delete `__tests__/api/auth/token-2fa-flows.test.ts` (covers only the deleted routes).
+  - Verify zero remaining references across `app/`, `components/`, `lib/`, `hooks/`.
+- **Verification:** `tsc --noEmit` clean; `test:ci` clean (suite count: 163/163, test count: 2415/2415, reflecting -1 suite / -7 tests from the retired dead 2FA test file).
+- **Commit:** `chore(api): remove empty auth register dir and retire dead token-2fa-* routes`
+
+---
 
 ## Rules specific to this variant
 
-- Behavior preservation is the ENTIRE deliverable — a migrated route's external HTTP contract
-  (status codes, response body shape, error format) must be byte-for-byte identical before and
-  after. If `operationApi`/`moneyApi`'s generic (`unknown`) body typing makes a call site's
-  existing explicit type annotation awkward, keep the explicit type at the call site (matching
-  how the pre-7-1 `callOperationServiceWithToken<T>(...)` calls already worked) — don't fight the
-  generated types by loosening the route handler's own contract.
-- `stackA`/`stackB` in `lib/api/index.ts` are explicitly OUT of this session's scope (Session
-  7-3's own retirement job, per Session 7-1's Deviations) — do not fix their known bugs as a
-  drive-by while touching this file for other reasons.
-- Every claim in Step 0's discovery output must cite a live file:line, not a guess.
+- **Dial is LOW:** Behavior preservation is the ENTIRE deliverable. External HTTP contracts (status codes, response body shape, headers, error responses) must be byte-for-byte identical before and after.
+- **No assertion edits:** Existing test files must pass unmodified. If a test assertion needs changing, that is a bug/regression, not a test fix (`LESSONS-LEARNED.md` L3).
+- **Server-only constraint (`LESSONS-LEARNED.md` L6):** `lib/api/index.ts` and generated clients are strictly server-side. Never import into a `'use client'` component.
+- **Frozen surfaces:** `stackA`/`stackB` in `lib/api/index.ts` remain frozen and `@deprecated` until Session 7-3. Do not fix their known bugs as drive-bys.
+- **Generic body handling:** Request/response bodies in generated specs are generic `type: object`. Call sites must maintain their own explicit type annotations rather than loosening types.
+
+---
 
 ## Done when
 
-- [ ] Step 0's discovery output is the real, exhaustive file list (recorded in Deviations).
-- [ ] Every discovered call site migrated (or explicitly deferred with a stated reason).
-- [ ] `app/api/auth/register/` leftover directory removed.
-- [ ] The 6 dead `token-2fa-*` files' fate decided and acted on.
-- [ ] `tsc --noEmit` clean; `eslint app components lib hooks --max-warnings 0` clean (0 errors,
-      max 4 pre-existing warnings); `test:ci` green with a net-neutral-or-positive test count
-      (no test coverage lost during the migration).
+- [ ] Step 0 discovery inventory completed and recorded in Deviations.
+- [ ] All in-scope money-service callers migrated to `createMoneyApi`/`unwrapMoneyApi`.
+- [ ] All 8 live `app/api/auth/token-*` bridge routes migrated to `createOperationApi`/`unwrapOperationApi`.
+- [ ] ESLint rule banning direct microservice `fetch()` added to `eslint.config.mjs` and proven via a planted violation.
+- [ ] Empty `app/api/auth/register/` directory removed.
+- [ ] 6 dead `token-2fa-*` routes and `__tests__/api/auth/token-2fa-flows.test.ts` deleted.
+- [ ] `tsc --noEmit` clean across all packages.
+- [ ] `eslint app components lib hooks --max-warnings 0` clean (0 errors, 5 pre-existing warnings).
+- [ ] `test:ci` clean (163/163 suites, 2415/2415 tests after dead 2FA test removal, zero regressions).
+
+---
 
 ## Rollback
 
-- Each migrated route handler's `git revert` restores its own direct `callOperationServiceWithToken`/
-  `callMoneyServiceWithToken` call — zero cross-file coupling, safe to revert one route at a time
-  if a specific migration turns out wrong. Zero runtime impact either way (same services, same
-  endpoints, same auth — only which internal helper constructs the request changes).
+- Each migrated route handler and wrapper commit can be independently reverted via `git revert <commit>`.
+- Reverting restores the previous `callOperationService`/`callMoneyService` calls with zero database or cross-stack impact.
+
+---
 
 ## Retire
 
-- The empty `app/api/auth/register/` directory and (pending Step N's decision) the 6 dead
-  `token-2fa-*` route files.
+- `app/api/auth/register/` (empty leftover directory).
+- 6 dead `app/api/auth/token-2fa-*` route files and `__tests__/api/auth/token-2fa-flows.test.ts`.
+
+---
 
 ## Deviations
 
-_(to be filled by Executor during execution)_
+**Deviation 0 (CONFIRM, Step 0 discovery inventory):** Fresh exhaustive grep for `callOperationService*`/`callMoneyService*` across `app/` and `lib/` at CONFIRM confirms the order's own scope claims:
+
+- **Operation-service auth bridge (Step 2 target):** exactly the 8 live `app/api/auth/token-{login,register,refresh,logout,forgot-password,reset-password,verify-email,resend-verification}/route.ts` files call `callOperationService`/`callOperationServiceWithToken` directly. The 6 dead `token-2fa-*` route files also match this grep (Step 4 retires them, not Step 2).
+- **Money-service direct callers (Step 1 target):** `app/api/admin/system/jobs/[jobId]/trigger/route.ts` is the only route calling `callMoneyService` directly outside `lib/money-service/routes.ts` itself. `app/api/wise/recipients/me/route.ts` also matched the grep, but only inside a code comment referencing `callMoneyService`'s parsing behavior — it actually calls the `fetchWiseRecipientMe` wrapper, not the raw transport; no code change needed there beyond the wrapper's own internals (Step 1c).
+- **`lib/money-service/routes.ts` consumers:** confirmed 17 distinct route files import its wrapper functions (6 `app/api/admin/affiliates/**`, 4 `app/api/affiliate/dashboard/**`, 5 `app/api/wise/**`, plus the 2 already covered above) — matches the order's "17 consumer route handlers" claim exactly.
+
+**Deviation 1 (CONFIRM, found beyond the order's own text — Davin resolved live, 2026-08-20):** `app/api/admin/system/jobs/[jobId]/trigger/route.ts` currently calls `callMoneyService('/cron-trigger/${jobId}', ...)` — **missing the `/v1` prefix** money-service's `CronTriggerController` actually requires (global prefix `v1`, not excluded in `main.ts`; `MONEY_SERVICE_URL` is a bare origin in both `.env.example` entries, local and production). This means the route almost certainly 404s against real money-service today — a real, likely-live, pre-existing bug in the admin "Trigger" button (built Session 6-11), independent of this session. Step 1's own instruction to use `/v1/cron-trigger/{jobId}` when switching to `createMoneyApi` fixes this as a side effect. `__tests__/api/admin-system-operations.test.ts:188-194` hard-asserts the OLD (buggy) path via a mock and will fail once fixed. **Davin's direction:** fold the fix into Step 1, update the test assertion to the corrected `/v1/cron-trigger/{jobId}` path, and disclose here rather than silently patching (`LESSONS-LEARNED.md` L3 — a test needing its assertion changed is a finding).
+
+**Deviation 2 (CONFIRM, found beyond the order's own text — Davin resolved live, 2026-08-20):** Step 3's planned ESLint rule allowlist (`lib/api/generated/` + `lib/*-service/client.ts`) omitted `lib/status/check-system-status.ts`, which does a legitimate direct `fetch(`${OPERATION_SERVICE_URL}/health`, ...)` health-check ping (Session 6-10, B2-12) outside those two locations. Left as-is, the new rule would flag this correct, pre-existing file and Step 3's own "0 errors, 5 warnings" verification would fail. **Davin's direction:** add this file to the rule's allowlist.
+
+**Deviation 3 (governance, CONFIRM):** At CONFIRM, this order file, `MASTER-ROADMAP-PHASES-7-15.md`, `CLAUDE.md`, `DECISION-LOG.md`, `EXECUTOR-PROTOCOL.md`, the implementation plan, session playbook, and `SESSION-PROMPT-SCRIPT.md` were all found modified-but-uncommitted against `HEAD` (`LESSONS-LEARNED.md` L3/L11 pattern) — one large, internally consistent 2026-08-20 batch. The roadmap's own header additionally read "pending Davin's approval." Reported in full before proceeding; Davin confirmed live (same session) that the entire batch is his authentic edit and that the roadmap is approved, before any of it was treated as trustworthy.
+
+---
 
 ## Known wrinkles / do-not-touch
 
-- `stackA`/`stackB` and their known bugs (`lib/api/index.ts`) — Session 7-3's scope, not this
-  session's.
-- Request/response body-schema fidelity in the generated OpenAPI specs (`CLAUDE.md` Waiting-on
-  #136) — a separate, larger follow-up (Zod-to-OpenAPI or targeted `@ApiBody()`), not blocking
-  this session's own call-site migration (the generic `unknown` typing is sufficient for a
-  behavior-preserving port where the call site already knows its own expected shape).
-- `lib/operation-service/write-routes.ts`'s forwarding helpers (Session 4B-6/4B-11) may or may
-  not be in scope — a judgment call for CONFIRM/Step 0, not decided here.
+- `stackA`/`stackB` in `lib/api/index.ts` are change-frozen until Session 7-3.
+- `lib/operation-service/write-routes.ts` and `lib/money-service/write-routes.ts` are specialized proxy streaming forwarders and are deliberately out of scope (Decision 1).
+- `money-service` path prefix asymmetry: `money-service` routes must be called with `/v1` prefix (e.g. `/v1/wise/recipients`), whereas `operation-service` has no global prefix.
+
+---
 
 ## Next-session handoff
 
-Likely Session 7-3 (retire `stackA`/`stackB` for real — fix or delete, Davin's call) — PRE-DRAFT
-at this session's own close, informed by what Step 0's discovery pass actually finds.
+Session 7-3: API Client Contract Tests, Documentation, and `stackA`/`stackB` Final Retirement (Phase 7 Exit Review). PRE-DRAFT to be generated at Session 7-2 close.

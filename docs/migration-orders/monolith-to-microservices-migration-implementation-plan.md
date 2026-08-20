@@ -667,6 +667,24 @@ token layer, base URLs from env (`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_MONEY_API_U
 
 ## 10. Phase 8 — Decommission & Final Verification
 
+> **AMENDED 2026-08-20 (Advisor, PROPOSED).** Phase 8 is **split**. **8.1 + 8.2 run early** —
+> after Phase 10 and before Phase 11 — while the surface they delete is still fresh. **8.3–8.6
+> run last**, after Phase 15, so the full-system e2e, load test and documentation close-out cover
+> the AI, market-comments, support-chat and mobile stacks as well. Step numbering is unchanged.
+>
+> **8.1 gains three entry criteria:** the carry-forward money sessions 4A-13/4A-14/4A-15 CLOSED
+> (F60/F49/F47/F50 — the dLocal write path and the Stripe webhook are still monolith-native and
+> would be deleted out from under live traffic), Phase 9-10 CLOSED, and flag **F65** resolved
+> (it defines what "migrated" means for a route the browser still calls).
+> **8.2 must run before Session 13-1** — Stack E adds generation logic to the very
+> `market_data_v6` schema 8.2 deduplicates.
+> **8.3 journeys are extended** with: draw→line-alert→fire; AI quad-retrieval → streamed answer →
+> trade-setup card; comment generated → socket → Panel 3; support-chat round trip; mobile push
+> received. **8.4** adds the AI token-cost path under load and socket fan-out with the comments
+> feed live. **8.6** closes F1–F74 (not F1–F19) and re-estimates F12 against the new roadmap.
+>
+> Full sequencing: `docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md`.
+
 8.1 Delete migrated `app/api/**` routes from the monolith (except intentional keepers);
 remove the `frontend/` transitional mirror's dLocal slice per money blueprint §5.4
 ("mirror pattern dissolves"); empty `vercel.json` crons.
@@ -712,6 +730,23 @@ architecture diagrams, close the Decision Log.
 | F17 | CC-A    | Staging data strategy (seeded synthetic vs anonymized production subset)                                                                                                                                              | Decide before slice 1 shadow-runs; money data must never be copied to staging unmasked                                                                                                                                                                                                                |
 | F18 | CC-G    | RPO/RTO targets never stated for this SaaS                                                                                                                                                                            | Owner decision (Davin): set targets, then verify Railway backup cadence + restore rehearsal meets them                                                                                                                                                                                                |
 | F19 | 2.0     | Prisma upgrade to **7.8.0** crosses two majors (5→6→7); breaking-change list post-cutoff for plan author                                                                                                              | Verify 7.8.0 on npm (F2-style); read official Prisma 6 & 7 upgrade guides; audit client output/ESM, removed previewFeatures, PgBouncer/`directUrl` semantics, `$use`→client extensions, Decimal/JSON typings in money code, Node minimums; re-verify pooler (1.4) and F5 layout choice under Prisma 7 |
+
+---
+
+### Flags added 2026-08-20 (F65–F74) — Phases 9–15
+
+| #       | Phase | Flag                                                                                                                                                                                                                  | Resolution required                                                                       |
+| ------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **F65** | 9     | BFF boundary: does the browser keep calling monolith `app/api/**`, or eventually call the services directly? §10's 8.1 assumes the latter; F45/F30 and Session 7-1's server-only `lib/api/index.ts` assume the former | Session 9-0 — NEEDS EXPLICIT SIGN-OFF; gates 8.1's deletion list and Phase 9's data layer |
+| **F66** | 9     | Frontend swap mechanism (big-bang branch vs progressive per-surface) and how far the "Trading Alerts" → "DavinTrade" rename reaches (titles, emails, legal copy, Stripe product names, manifest, OG images)           | Session 9-0                                                                               |
+| **F67** | 10    | Where the drawing-alert live smoke test runs — never executed; the 2026-07-05 attempt had no Docker, no root and an unreachable Railway Postgres                                                                      | Session 10-1                                                                              |
+| **F68** | 11    | The Parts 02–33 tier access matrix — redefines FREE/PRO entitlements on a product with paying users                                                                                                                   | Session 11-1 — NEEDS EXPLICIT SIGN-OFF; cross-check against live Stripe entitlements      |
+| **F69** | 12    | Stack D LLM provider, model and monthly cost ceiling, plus the behaviour when the ceiling is hit                                                                                                                      | Session 12-0 — NEEDS EXPLICIT SIGN-OFF (money-adjacent, §7)                               |
+| **F70** | 12    | VANNA / txtai runtime host (Contabo next to MT5 vs new Railway service vs in-process) and which DB role reads `market_data_v6` — Phase 1's fences give `core_app` no market-data grant                                | Session 12-0                                                                              |
+| **F71** | 13    | Stack E generation mechanism: PL/pgSQL trigger on `market_data_v6` (owned by `railway-gateway`, written by `gateway_ingest`, on the must-never-blip ingest path) vs application-side generation vs a side table       | Session 13-0 — NEEDS EXPLICIT SIGN-OFF; entry criterion 8.2 CLOSED                        |
+| **F72** | 14    | Contabo chat stack scope: domain + TLS, whether NLLB-200 ships in v1, LLM-router reuse, and socket authentication — the hand-off spec's `client_message` carries no identity at all                                   | Session 14-0                                                                              |
+| **F73** | 15    | Mobile distribution (direct APK vs Play Store), FCM project ownership and key storage, iOS via PWA vs paid Apple account                                                                                              | Session 15-0                                                                              |
+| **F74** | 11    | Payment currency wiring (language hand-off §6.D, deferred 2026-08-19) — requires per-currency Stripe Price objects, a product-catalog decision                                                                        | Session 11-1 — NEEDS EXPLICIT SIGN-OFF                                                    |
 
 ---
 
@@ -875,5 +910,8 @@ re-derives environment setup from scratch and the migration slows to a crawl.
 
 ---
 
-**Status:** v1.2 — sequencing blueprint + cross-cutting engineering track + Prisma 7.8.0
-upgrade step (2.0). Flags F1–F19 open; Claude Code resolves them in order of phase entry.
+**Status:** v1.3 (2026-08-20, PROPOSED) — v1.2's sequencing blueprint + cross-cutting engineering
+track + Prisma 7.8.0 upgrade step (2.0), **extended by Phases 9–15 and the Phase 8 split**
+recorded in `docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md`. Flag register now F1–F74.
+Phases 9–15 are product stacks built on the migrated architecture, not migration steps — they
+run through the same three-role chain and the same order lifecycle.

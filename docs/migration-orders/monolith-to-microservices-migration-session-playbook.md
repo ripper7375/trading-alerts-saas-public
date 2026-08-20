@@ -1,7 +1,7 @@
 # Migration Session Playbook — Development & Deployment Sessions for Claude Code
 
 **Purpose:** The operational companion to
-`docs/migration-orders/monolith-to-microservices-migration-implementation-plan.md` (v1.2). That document says
+`docs/migration-orders/monolith-to-microservices-migration-implementation-plan.md` (v1.3). That document says
 _what_ to build and in _what order_; this one divides the work into discrete Claude Code
 **sessions** — each one a verifiable unit of work you can start, supervise, and close in a
 single sitting.
@@ -16,6 +16,20 @@ the clock is done.
 
 **Session count summary:** ~50–60 sessions total. Phase 4 dominates (~25–30); the exact count
 there depends on how cleanly each slice ports.
+
+> **AMENDED 2026-08-20 (Advisor, PROPOSED - pending Davin's approval).** Five bodies of work
+> that were built or specified outside this playbook's numbering are now sequenced into it:
+> the frontend replacement from codebase 2 (**Phase 9**), the drawing-engine/line-alert
+> residuals (**Phase 10**), the preparatory tier-access refactoring (**Phase 11**), Stack D
+> and Stack E, Parts 26-33 (**Phases 12/13**), the Contabo web-chat stack (**Phase 14**), and
+> the mobile app (**Phase 15**). **Phase 8 is split**: sessions 8-1/8-2 run early (after Phase
+> 10), sessions 8-3/8-4/8-5 run last so the final e2e, load test and runbooks cover the new
+> stacks. No session ID is renumbered. Three sessions of unfinished Phase 4 money work
+> (**4A-13/14/15**, flags F60/F49/F47/F50) are gathered as **Phase 4X** and **must close before
+> Session 8-1** - 8-1's deletion sweep would otherwise take live dLocal and Stripe traffic down.
+> Full detail, per-session scope, entry criteria and the 10 new flags (F65-F74):
+> **`docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md`** - read it alongside this file.
+> Revised total: **~45 sessions remaining** as of 2026-08-20.
 
 ---
 
@@ -542,7 +556,16 @@ consent checkbox links to `/terms` and `/privacy` — which exist only behind au
 
 ---
 
-## Phase 8 — Decommission & final verification (5 sessions)
+## Phase 8 — Decommission & final verification (5 sessions) — SPLIT 2026-08-20
+
+> **Split into 8A and 8B** (`MASTER-ROADMAP-PHASES-7-15.md` §0). **8A = sessions 8-1, 8-2**,
+> run after Phase 10 and before Phase 11. **8B = sessions 8-3, 8-4, 8-5**, run last, after
+> Phase 15. Session IDs and scope are unchanged; only when they run changes.
+> **8-1 gains three entry criteria:** Phase 4X (4A-13/14/15) CLOSED, Phase 9-10 CLOSED, and
+> flag **F65** (BFF boundary) resolved. **8-2 must run before Session 13-1** — Stack E wants
+> to add a trigger to the very `market_data_v6` schema 8-2 deduplicates. **8-3/8-4/8-5 gain
+> amended scope** (AI chat, market comments, support chat and mobile push journeys; the AI
+> token cost path under load; runbooks for the Contabo chat stack and the FCM dispatcher).
 
 ### Session 8-1 — Deletion sweep
 
@@ -577,6 +600,127 @@ consent checkbox links to `/terms` and `/privacy` — which exist only behind au
 
 ---
 
+---
+
+## Phases 9–15 — post-migration product stacks (added 2026-08-20)
+
+> **These are summaries.** Per-session scope, entry criteria, invariants, inputs and the ten new
+> flags live in **`docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md`**. That file is the one
+> to read at session OPEN; this section exists so the playbook is not silently incomplete.
+
+### Phase 4X — Carry-forward money cutovers (3 sessions) — runs after 7-3, gates 8-1
+
+- **4A-13 — Stripe webhook cutover** (VERIFY-RETIRE, real money). Closes **F60**. Order already
+  PRE-DRAFTed 2026-08-04 and never run.
+- **4A-14 — dLocal write-API Group B cutover** (PORT+CUTOVER, real money). Fix the missing
+  `payment_method_flow` field, flip `MIGRATE_WRITE_APIS_MONEY_DLOCAL`. Closes **F49**, completing
+  Slice 4 (currently CUT-OVER 3/4 groups).
+- **4A-15 — Wise + outbox defect sweep** (PORT, low dial). Closes **F47**, **F50**.
+
+### Phase 9 — Frontend Stack Replacement (11 sessions, cut on layout boundaries)
+
+Replace the monolith frontend with codebase 2 (`seed-code/trading-conversational-ai-ui-pages-increment/`,
+93 pages, DavinTrade brand, parity-audited and light/dark complete) bound to the **real** data
+layer, auth and tier gates. Codebase 2 has no backend, no NextAuth and a no-op `middleware.ts` —
+supplying those is the work. `seed-code/**` is read-only from here on.
+
+**Sessions are cut on layout boundaries** (codebase 1 has 12 `layout.tsx` files), not on
+"surfaces": batch membership becomes derivable from the tree instead of from judgment, one
+`layout.tsx` + its guard + its nav moves per session, and each session owns a closed set of URLs.
+Route groups are URL-neutral in Next.js, so adopting codebase 1's grouping while taking codebase
+2's page bodies preserves the "URLs must match codebase 1 exactly" rule for free.
+
+- **9-0** Swap contract & decisions (CONTRACT) — resolve **F65**/**F66**; produce
+  `frontend-swap-route-map.md`, one row per route naming its target layout boundary **and** the
+  real endpoint it binds to; produce per-page effort so 9-7/9-8's split is decided on evidence.
+- **9-1** Root shell & design system (nothing migrates before this) · **9-2** `(marketing)` 12 +
+  `(public)` 2 — **second on purpose:** the only pages that render without a session, so they are
+  verifiable while the no-test-credentials gap (Waiting-on #117) is open · **9-3** `(auth)` 7
+  (unblocks live verification for everything after it) · **9-4** `(dashboard)` core 7 +
+  `/terminal` + `/free`, retiring the 2 chart-workspace pages (Stack D/E panels ship as
+  flag-gated **empty states**, never mock data) · **9-5** `(dashboard)/settings/` 11 (closes
+  **F21**, **F64**) · **9-6** Payments flow — checkout ×2, upgrade/success, plus `/pricing` and
+  `/settings/billing` re-verified end-to-end; **deliberately cross-boundary**, because payment is
+  a flow not a layout and money code escalates (§7) · **9-7** `app/affiliate/*` 14 across 5 nested
+  layouts (expect a 9-7a/b split) · **9-8** `(dashboard)/admin/` core 19, incl. all four
+  `admin/system/*` pages and `/admin/resources` (expect a 9-8a/b split) · **9-9**
+  `admin/disbursement/` 10 · **9-10** Phase 9 exit review (VERIFY-RETIRE).
+- **Per-session exit check (9-1…9-9):** a **route-manifest diff** on top of `tsc`/`test:ci` — a
+  stale `app/about/` surviving beside a new `app/(marketing)/about/` fails the Next.js build and
+  nothing in the normal gate predicts it.
+- **Do not carry over:** codebase 2's `app/admin/login` (**F62** already resolved it to a redirect
+  to `/login`) or `app/test-api/` (Session 6-12 deleted it deliberately). Triage codebase 2's
+  `admin/notifications/broadcast` and `admin/disbursement/settings` at 9-0 — new surfaces with no
+  codebase-1 counterpart and no confirmed endpoint.
+- **You provide:** F65/F66 decisions, and **test credentials** — no authenticated live
+  click-through has been possible since 6-1b (Waiting-on #117) and Phase 9 cannot be verified
+  without one.
+
+### Phase 10 — Drawing Engine & Line-Alert closure (3 sessions)
+
+Residuals only. The engine already migrated (4B-2/3 alert engine, 4B-5/6/7 alerts CRUD incl. line
+alerts, 4B-8 drawings — Slices 6/7/8 in the cutover table).
+
+- **10-1** Live end-to-end smoke (Flask→Redis→worker→notify) — the one link never proven live;
+  resolve **F67** first · **10-2** Playwright e2e + Newman coverage · **10-3** Blueprint
+  reconciliation (the blueprint still describes monolith `lib/alert-engine/`, Prisma 6 and the
+  pre-split schema — all three moved).
+- **Not here:** drawing tool-set tier gating — its values come from Phase 11's matrix (11-1).
+
+### Phase 11 — Preparatory Tier-Access & Core Refactoring (3 sessions)
+
+Source: `davintrade-stack-d-and-e/PREPARATORY-TIER-ACCESS-AND-CORE-REFACTORING-SPECIFICATION.md`
+§3 (6 Core Areas). Gates Phases 12 and 13.
+
+- **11-1** Tier matrix decision + `@trading-alerts/types`/`lib/tier-config.ts` — resolve **F68**
+  (changes entitlements on a product with paying users) and **F74** · **11-2** `lib/tier-validation.ts`,
+  NestJS `TierGuard`, JWT claims, header forwarding (fix `forwardedRequestContext()`'s silent
+  header drop) · **11-3** Redis `trackAiTokenUsage()` limiter + `TokenUsageLog`/`profile` JSONB.
+- **You provide:** the tier matrix sign-off (F68) and the payment-currency decision (F74).
+
+### Phase 12 — Stack D: Conversational AI Analyst, Parts 26–30 (6 sessions)
+
+- **12-0** Decisions & contracts (**F69** LLM provider + cost ceiling, **F70** VANNA/txtai host
+  and market-data read role); freeze `/api/ai/chat*` OpenAPI **before** building ·
+  **12-1** Part 26 dual-RAG infra (reuse the existing Vercel Blob) · **12-2** Part 27 NL2SQL +
+  quad-retrieval (XAUUSD/M5/M15 scoping enforced in code, not prompt) · **12-3** Part 28 context
+  assembly + multimodal router + cost surveillance · **12-4** Part 29 chat management +
+  `AIAnalystPanel` · **12-5** Part 30 SSE stream + action cards (also closes the language
+  hand-off's §6.C).
+- **You provide:** F69/F70 decisions; LLM API keys.
+
+### Phase 13 — Stack E: Market Comments & Quality Metrics, Parts 31–33 (4 sessions)
+
+- **13-0** Decisions & contract — resolve **F71** (the designed PL/pgSQL trigger sits on
+  `market_data_v6`, owned by `railway-gateway`, written by `gateway_ingest`, on the must-never-blip
+  ingest path; **entry criterion: 8-2 CLOSED**) · **13-1** Part 31 narrative engine + GIN indexes ·
+  **13-2** Part 32 NOTIFY/Redis → the **existing** F8/4B-17 socket gateway (no second socket server) ·
+  **13-3** Part 33 feed + quality-metrics UI on the Phase 9 terminal.
+
+### Phase 14 — Web Chat / Contabo support stack (4 sessions)
+
+Source: `seed-code/trading-conversational-ai-ui-pages-increment/docs/web-chat-stack/`.
+
+- **14-0** Decisions & contract (**F72**: domain/TLS, whether NLLB-200 ships in v1, LLM reuse,
+  and socket auth — the hand-off spec's `client_message` carries no identity at all) ·
+  **14-1** 4-container stack + Nginx TLS on Contabo · **14-2** Frontend binding + CSP
+  `connect-src` (the 4B-18c bug class) · **14-3** Cutover + runbook.
+- **You provide:** the chat subdomain, DNS/SSL, Contabo access.
+
+### Phase 15 — Mobile App Integration (5 sessions)
+
+`mobile-app/src` currently makes **zero** API calls; the backend has no FCM, no dispatcher and no
+device-token model.
+
+- **15-0** Contract & decisions (**F73** distribution + FCM ownership; mobile is a separate
+  origin — CORS/JWT, and BFF-vs-direct falls out of **F65**) · **15-1** Push infrastructure
+  (`DeviceToken`, FCM dispatcher wired into the existing alert-engine dispatcher — a channel, not
+  a parallel pipeline) · **15-2** Mobile data layer on a generated typed client ·
+  **15-3** Capacitor packaging, chimes, wake lock · **15-4** e2e on a real device + release.
+- **You provide:** F73 decision; FCM project; a physical Android device for 15-4.
+
+---
+
 ## Quick reference: where YOU are required
 
 | Session                           | Your input                                                                |
@@ -600,7 +744,9 @@ consent checkbox links to `/terms` and `/privacy` — which exist only behind au
 
 ---
 
-**Status:** v1.1 — companion to plan v1.2, now wired to the chained migration-order system
+**Status:** v1.2 (2026-08-20, PROPOSED) — companion to plan v1.3; Phases 0–8 as in v1.1, plus
+Phase 4X and Phases 9–15 and the Phase 8 split (see `MASTER-ROADMAP-PHASES-7-15.md`). Wired to
+the chained migration-order system
 (`docs/migration-orders/`): each playbook entry describes WHAT a session does; its migration
 order (drafted by the previous session, confirmed at start) describes HOW. Session counts
 are estimates; splitting a session that grows too large is always correct, merging two is

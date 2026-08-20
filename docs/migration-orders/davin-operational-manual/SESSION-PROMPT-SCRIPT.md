@@ -255,9 +255,140 @@ only."_ · [B]: U-B · [C]: U-C + _"produce the signed-off test report."_
 **8-4 (load test + cost):** [A]: U-A · [B]: U-B · [C]: U-C + _"include the capacity/cost
 sheet — real numbers, not estimates."_
 **8-5 (close-out):** U-FAST · [B]: U-B · [C]: U-C + _"regenerate migration-stack-analysis.md
-via the categorization script, close the Decision Log (all F1–F19 resolved or formally
+via the categorization script, close the Decision Log (all F1–F74 resolved or formally
 carried), and give me the migration completion summary."_ then U-WAIT if the 30-day joint
 window hasn't elapsed.
+
+---
+
+## Phase 4X — Carry-forward money cutovers (runs after 7-3, gates 8-1) — added 2026-08-20
+
+**4A-13 (Stripe webhook cutover, REAL MONEY):** [A]: U-A + _"the order already exists from
+4B-22's close — re-verify `4a-13-stripe-webhook-cutover.migration-order.md` against Stripe's
+current event shape and upgrade it to DRAFT. Receiving side has been dormant since 2026-07-27."_
+· [B]: U-B + money-audit prompt (Walkthrough F) · [C]: U-C. Mechanism: Stripe dashboard URL
+repoint, mirroring dLocal/4A-5. Rollback: point the URL back. Closes **F60**.
+**4A-14 (dLocal Group B cutover, REAL MONEY):** [A]: U-A + _"fix `payment_method_flow` in BOTH
+implementations before flipping anything — F49 is a pre-existing defect, not a migration
+artefact."_ · [B]: U-B + money-audit prompt · [C]: U-C. Flag:
+`MIGRATE_WRITE_APIS_MONEY_DLOCAL`. Closes **F49**, completing Slice 4.
+**4A-15 (Wise + outbox defect sweep):** [A]: U-A + _"F47 (non-USD quote targetAmount/currency
+unit) and F50 (COMMISSION_CREDITED aggregateId resolves to the payer, not the affiliate) — low
+dial, no new behaviour."_ · [B]: U-B · [C]: U-C.
+
+## Phase 9 — Frontend stack replacement (codebase 2 → main), cut on layout boundaries — added 2026-08-20
+
+**9-0 (swap contract & decisions, no code):** [A]: U-A + _"resolve F65 (BFF boundary) and F66
+(swap mechanism + brand-rename scope) as `Decisions taken`; F65 is ⚠ NEEDS EXPLICIT SIGN-OFF.
+Deliverable is `frontend-swap-route-map.md` — one row per route naming its TARGET LAYOUT BOUNDARY
+and the REAL endpoint it binds to, plus per-page effort so 9-7/9-8's split is evidence-based."_ ·
+[B]: U-B + _"no page ships in 9-1…9-9 without its row. A row that can't name a real endpoint is a
+finding for me, not a licence to mock. Also triage codebase 2's 4 extra admin pages — admin/login
+must NOT come over (F62), and test-api must not come back (6-12)."_ · [C]: U-C.
+**9-1 (root shell & design system):** [A]: U-A + _"nothing else migrates until this lands — root
+layout, providers, globals.css tokens, fonts, brand assets, theme provider, headers/sidebars, and
+the three root boundaries. Fix the 5 open Batch-0 findings while you're in here."_ · [B]: U-B ·
+[C]: U-C.
+**9-2 … 9-9 (one layout boundary per session):** [A]: U-A + _"UI-BUILD, high dial on presentation,
+zero dial on data: every page binds to the endpoint its 9-0 row names. You move exactly ONE
+layout.tsx plus its guard and nav this session. seed-code/\*\* is READ-ONLY — the target is app/ and
+components/ in the main repo."_ · [B]: U-B + _"show me the 9-0 rows this session closes, and the
+layout boundary you're transplanting, before you start."_ · [C]: U-C + _"give me the
+ROUTE-MANIFEST DIFF — URLs added, removed, unchanged — and confirm it matches this session's
+boundary and nothing else. Then confirm test:ci did not go backwards; a test needing its assertion
+changed is a finding, not a fix (L3)."_
+Order and size: **9-2** `(marketing)` 12 + `(public)` 2 (first because it needs no session —
+verifiable while I still owe you test credentials) · **9-3** `(auth)` 7 · **9-4** `(dashboard)`
+core 7 + `/terminal` + `/free` · **9-5** `settings` 11 · **9-6** payments flow (cross-boundary,
+money-audit prompt applies) · **9-7** affiliate 14 · **9-8** admin core 19 · **9-9**
+admin/disbursement 10. If 9-7 or 9-8 estimates over ~4h at 9-0, split them (9-7a/b, 9-8a/b) —
+splitting is always correct, merging almost never.
+**9-10 (Phase 9 exit review):** U-FAST · [B]: U-B + _"walk the 9-0 route map row by row with
+evidence per row — the Phase 6 A2-12 lesson: 'BUILT (Session N)' is not evidence."_ · [C]: U-C.
+
+## Phase 10 — Drawing engine & line-alert closure — added 2026-08-20
+
+**10-1 (live end-to-end smoke):** [A]: U-A + _"resolve F67 first — where this runs. Then
+PHASE-4-SMOKE-TEST-RUNBOOK.md for real: Flask redis_pub → Redis → operation-service worker →
+Notification + socket + chart marker. This link has never been proven live."_ · [B]: U-B · [C]: U-C.
+**10-2 (e2e + API coverage):** [A]: U-A + _"Playwright draw → attach alert → cross → fire; the
+only existing alert e2e is archived and tests the older generic flow."_ · [B]: U-B · [C]: U-C.
+**10-3 (blueprint reconciliation):** U-FAST · [B]: U-B + _"the blueprint still describes monolith
+lib/alert-engine/, Prisma 6 and the pre-split schema — all three moved. Correct the record, don't
+rebuild anything."_ · [C]: U-C.
+
+## Phase 11 — Preparatory tier-access & core refactoring — added 2026-08-20
+
+**11-1 (tier matrix + types/config):** [A]: U-A + _"F68 and F74 both ⚠ NEED EXPLICIT SIGN-OFF —
+this changes entitlements on a product with paying users. Cross-check every proposed FREE/PRO
+line against live Stripe entitlements and lib/tier-config.ts before writing code. Include the
+drawing tool-set entitlements deferred from Phase 10."_ · [B]: U-B · [C]: U-C.
+**11-2 (guards, JWT claims, header forwarding):** [A]: U-A + _"fix forwardedRequestContext()'s
+silent header drop while you're in there — that's why the 2026-08-19 GeoIP work couldn't be
+mirrored."_ · [B]: U-B · [C]: U-C.
+**11-3 (token metering + schema):** [A]: U-A + _"integrate with the EXISTING three-layer rate
+limiter, don't add a fourth. Schema via prisma db push, authored in prisma/non-market-data/ only
+(L1)."_ · [B]: U-B · [C]: U-C + _"show me a tier-gated dummy AI route returning 429 at quota."_
+
+## Phase 12 — Stack D: conversational AI analyst (Parts 26–30) — added 2026-08-20
+
+**12-0 (decisions & contracts, no code):** [A]: U-A + _"F69 (LLM provider + monthly cost ceiling,
+⚠ sign-off) and F70 (VANNA/txtai host + market-data read role). Confirm Part 24's mtf_render PNG
+pipeline actually exists and is reachable — the multimodal claim rests on it. Freeze the
+/api/ai/chat\* OpenAPI BEFORE building."_ · [B]: U-B · [C]: U-C.
+**12-1 (Part 26 dual-RAG infra):** [A]: U-A + _"reuse the existing Vercel Blob integration — no
+second storage backend."_ · [B]: U-B · [C]: U-C.
+**12-2 (Part 27 NL2SQL + quad-retrieval):** [A]: U-A + _"symbol='XAUUSD' and timeframe IN
+('M5','M15') enforced in CODE with an adversarial test, never by prompt instruction. The <150ms
+Promise.all budget needs a measured assertion."_ · [B]: U-B · [C]: U-C.
+**12-3 (Part 28 router + cost surveillance):** [A]: U-A + _"quotas come from 11-3; the
+ceiling behaviour comes from F69."_ · [B]: U-B · [C]: U-C.
+**12-4 (Part 29 chat management + AIAnalystPanel):** [A]: U-A + _"a firing alert appends to the
+active instrument thread without duplicating a sidebar entry — that's the invariant."_ · [B]: U-B
+· [C]: U-C.
+**12-5 (Part 30 SSE + action cards):** [A]: U-A + _"also close the language hand-off's §6.C — the
+LLM route it was waiting for now exists. Trade-setup cards render entry/TP/SL: show me the
+disclaimer copy displayed with them."_ · [B]: U-B · [C]: U-C.
+
+## Phase 13 — Stack E: market comments & quality metrics (Parts 31–33) — added 2026-08-20
+
+**13-0 (decisions & contract, no code):** [A]: U-A + _"F71 ⚠ NEEDS EXPLICIT SIGN-OFF — the
+designed trigger sits on market_data_v6, owned by railway-gateway, written by gateway_ingest, on
+the must-never-blip ingest path. Entry criterion: 8-2 CLOSED."_ · [B]: U-B · [C]: U-C.
+**13-1 (Part 31 narrative engine + indexes):** [A]: U-A + _"prove ingest throughput is unchanged
+before and after — a regression here is a data-pipeline outage, not a UI bug."_ · [B]: U-B ·
+[C]: U-C.
+**13-2 (Part 32 pub/sub → socket gateway):** [A]: U-A + _"reuse the F8/4B-17 socket architecture —
+no second socket server. Mind 4B-18b/18c/18d's CORS-origin, CSP connect-src and reconnect-loop
+lessons."_ · [B]: U-B · [C]: U-C.
+**13-3 (Part 33 feed + quality metrics UI):** [A]: U-A + _"replaces 9-4's empty state on the
+terminal's Panel 3."_ · [B]: U-B · [C]: U-C.
+
+## Phase 14 — Web chat / Contabo support stack — added 2026-08-20
+
+**14-0 (decisions & contract):** [A]: U-A + _"F72: domain/TLS, NLLB-200 in v1 or not, LLM-router
+reuse, and socket auth — the hand-off spec's client_message carries no identity at all. Close
+that here, not at 14-2."_ · [B]: U-B · [C]: U-C.
+**14-1 (container stack + deploy):** [A]: U-A + _"4 containers, Nginx TLS, health checks,
+restart policy. Contabo access and DNS are mine to provide."_ · [B]: U-B · [C]: U-C.
+**14-2 (frontend binding):** [A]: U-A + _"add the chat origin to next.config.js's CSP
+connect-src — exactly the bug class 4B-18c fixed for realtime."_ · [B]: U-B · [C]: U-C.
+**14-3 (cutover + runbook):** U-CUT · [B]: U-B + _"rollback is unsetting the env var — prove the
+widget degrades to the existing support-ticket form."_ · [C]: U-C.
+
+## Phase 15 — Mobile app integration — added 2026-08-20
+
+**15-0 (contract & decisions):** [A]: U-A + _"F73 (distribution + FCM ownership). Mobile is a
+separate origin: CORS, JWT issuance/refresh, and BFF-vs-direct falls out of F65."_ · [B]: U-B ·
+[C]: U-C.
+**15-1 (push infrastructure):** [A]: U-A + _"the FCM dispatcher is a new CHANNEL inside the
+existing alert-engine dispatcher, not a parallel pipeline."_ · [B]: U-B · [C]: U-C.
+**15-2 (mobile data layer):** [A]: U-A + _"typed client generated from the same specs Phase 7
+emits — don't hand-write a third client surface."_ · [B]: U-B · [C]: U-C.
+**15-3 (Capacitor packaging):** [A]: U-A + _"high-priority notification channel, custom chimes,
+wake lock, and the PWA/iOS path."_ · [B]: U-B · [C]: U-C.
+**15-4 (mobile e2e + release):** U-CUT · [B]: U-B + _"a real alert fires and lands on my physical
+device with the right chime — mocks don't close this session."_ · [C]: U-C.
 
 ---
 
@@ -269,6 +400,9 @@ window hasn't elapsed.
   (EXECUTOR-PROTOCOL §6) — same open/close rituals, labeled ADHOC-<date> in CLAUDE.md,
   phase/session unchanged.
 
-**Status:** v1.1 (complete per-session coverage: all 12×4A + 22×4B rows explicit) — matches playbook v1.1 / protocol §1–§7 / skeleton chain rules. If the
+**Status:** v1.2 (2026-08-20, PROPOSED) — v1.1's complete per-session coverage (all 12×4A +
+22×4B rows explicit) **plus Phase 4X and Phases 9–15**, matching the playbook's own 2026-08-20
+amendment and `docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md`. Protocol §1–§7 / skeleton
+chain rules unchanged. If the
 Advisor splits or inserts sessions, it must propose the matching update to THIS file in the
 same DRAFT (suffix rule: 4B-2b, never renumber).

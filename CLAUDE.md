@@ -479,8 +479,9 @@ consumers.migration-order.md` remains the literal next numbered session, unaffec
 
 | What                                 | Where                                                                                     |
 | ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| **Master roadmap (Phases 7–15)**     | `docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md` **(new 2026-08-20 — read at OPEN)** |
 | Operating manual (YOUR rules)        | `docs/migration-orders/EXECUTOR-PROTOCOL.md`                                              |
-| Migration plan (phases, flags)       | `docs/migration-orders/monolith-to-microservices-migration-implementation-plan.md` (v1.2) |
+| Migration plan (phases, flags)       | `docs/migration-orders/monolith-to-microservices-migration-implementation-plan.md` (v1.3) |
 | Session playbook                     | `docs/migration-orders/monolith-to-microservices-migration-session-playbook.md`           |
 | Order rules + templates              | `docs/migration-orders/00-SKELETON-AND-RULES.md` + `TEMPLATE-*.md`                        |
 | Decision Log                         | `docs/migration-orders/DECISION-LOG.md`                                                   |
@@ -499,6 +500,8 @@ consumers.migration-order.md` remains the literal next numbered session, unaffec
    the Advisor and Davin know what happened. Empty Deviations = starved next plan.
 4. **Scope discipline.** No drive-by fixes to change-frozen (CC-F) or out-of-scope code.
    `lib/api/index.ts` is known-broken BY DESIGN — do not fix until Phase 7.
+   _(2026-08-20: Phase 7 is open — `lib/api/index.ts` was rewritten at Session 7-1 and is no
+   longer on the do-not-touch list; `stackA`/`stackB` inside it remain Session 7-3's scope.)_
 5. **Money and auth changes escalate.** Anything touching payments, grants, secrets, CORS,
    or auth semantics beyond the order's explicit steps → stop and ask Davin.
 6. **Verification is never skipped, only strengthened.**

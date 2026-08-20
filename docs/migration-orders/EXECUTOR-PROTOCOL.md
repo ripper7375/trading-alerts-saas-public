@@ -41,6 +41,8 @@ The full rule is `00-SKELETON-AND-RULES.md` §1.0. What it means for you, concre
    before proceeding to step 1. The session does not start until active files are at
    target size — this prevents the archival backlog from compounding across sessions.
 1. Read `CLAUDE.md` (root) → identify current phase/session and the current order file.
+   Then read `docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md` — from Phase 7 onward it
+   is the sequencing authority (run order, entry criteria, flags F65–F74).
    Then read `docs/migration-orders/LESSONS-LEARNED.md` (short, Tier-1) — these are the
    reflexes learned from past failures; they apply to everything you do today.
 2. Read the order for THIS session in `docs/migration-orders/`. Its status must be
@@ -121,13 +123,18 @@ The full rule is `00-SKELETON-AND-RULES.md` §1.0. What it means for you, concre
 
 ## 5. Standing do-not-touch list
 
-- `lib/api/index.ts` — known-broken by design; Phase 7 fixes it, nobody else.
+- `lib/api/index.ts` — **released 2026-08-12**: Session 7-1 rewrote it (`operationApi`/`moneyApi`,
+  generated clients under `lib/api/generated/`). No longer do-not-touch. Its `stackA`/`stackB`
+  exports stay frozen and `@deprecated` until Session 7-3 decides their fate.
 - Change-frozen (CC-F) slices — bugfixes only, mirrored to old AND new implementations.
 - `package.json` overrides on feature branches (Security Override Policy in CLAUDE.md).
 - `railway-gateway/` ingest path — must never blip; touched only where an order says so
   (Phase 8.2).
 - SEPARATE_STACK code (`backend-stack-c/`, `mt5-service/`, `frontend/` mirror) — out of
   scope for this migration entirely.
+- `seed-code/**` — **read-only reference, always.** From Phase 9 onward this is load-bearing:
+  `seed-code/trading-conversational-ai-ui-pages-increment/` is the SOURCE of the frontend swap and
+  the target is `app/` + `components/` in the main repo. Never edit the seed to make a port easier.
 
 ## 6. Standing environment facts & precedence (learned 2026-07-12, git-workflow trial)
 
