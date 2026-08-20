@@ -9,7 +9,7 @@
 > Adapted from `TEMPLATE-PORT.md` — dial **LOW**: behavior preservation is the deliverable;
 > external HTTP contracts must remain byte-for-byte identical.
 
-**Session:** 7-2 · **Phase:** Phase 7 (API Client Rewrite) · **Variant:** PORT (internal refactor, dial LOW) · **Status:** CONFIRMED (Executor, 2026-08-20 — re-verified against live code and runtime; entry criteria all pass, see Deviations) · **Generated:** 2026-08-20 (Advisor upgrade from PRE-DRAFT) · **Flags touched:** none (pure client refactor, no traffic-routing flags touched) · **Estimated time:** 3–4h
+**Session:** 7-2 · **Phase:** Phase 7 (API Client Rewrite) · **Variant:** PORT (internal refactor, dial LOW) · **Status:** CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-20 · **Generated:** 2026-08-20 (Advisor upgrade from PRE-DRAFT) · **Flags touched:** none (pure client refactor, no traffic-routing flags touched) · **Estimated time:** 3–4h
 
 **Surface:** Every monolith route handler calling `operation-service` / `money-service` directly (e.g. `app/api/auth/token-*`, `app/api/admin/system/jobs/[jobId]/trigger/route.ts`, and `lib/money-service/routes.ts` wrappers), `eslint.config.mjs` (banning direct fetch to microservice base URLs), `app/api/auth/register/` (empty dir removal), and the 6 dead `app/api/auth/token-2fa-*` route files + `__tests__/api/auth/token-2fa-flows.test.ts` (retirement). `stackA`/`stackB` in `lib/api/index.ts` and `lib/*-service/write-routes.ts` raw proxy forwarders are explicitly **OUT of scope**.
 
@@ -173,15 +173,15 @@ Session 7-1 built and verified the generated typed clients `operationApi` and `m
 
 ## Done when
 
-- [ ] Step 0 discovery inventory completed and recorded in Deviations.
-- [ ] All in-scope money-service callers migrated to `createMoneyApi`/`unwrapMoneyApi`.
-- [ ] All 8 live `app/api/auth/token-*` bridge routes migrated to `createOperationApi`/`unwrapOperationApi`.
-- [ ] ESLint rule banning direct microservice `fetch()` added to `eslint.config.mjs` and proven via a planted violation.
-- [ ] Empty `app/api/auth/register/` directory removed.
-- [ ] 6 dead `token-2fa-*` routes and `__tests__/api/auth/token-2fa-flows.test.ts` deleted.
-- [ ] `tsc --noEmit` clean across all packages.
-- [ ] `eslint app components lib hooks --max-warnings 0` clean (0 errors, 5 pre-existing warnings).
-- [ ] `test:ci` clean (163/163 suites, 2415/2415 tests after dead 2FA test removal, zero regressions).
+- [x] Step 0 discovery inventory completed and recorded in Deviations.
+- [x] All in-scope money-service callers migrated to `createMoneyApi`/`unwrapMoneyApi`.
+- [x] All 8 live `app/api/auth/token-*` bridge routes migrated to `createOperationApi`/`unwrapOperationApi`.
+- [x] ESLint rule banning direct microservice `fetch()` added to `eslint.config.mjs` and proven via a planted violation.
+- [x] Empty `app/api/auth/register/` directory removed.
+- [x] 6 dead `token-2fa-*` routes and `__tests__/api/auth/token-2fa-flows.test.ts` deleted.
+- [x] `tsc --noEmit` clean across all packages.
+- [x] `eslint app components lib hooks --max-warnings 0` clean (0 errors, 5 pre-existing warnings).
+- [x] `test:ci` clean — **163/163 suites, 2412/2412 tests**, zero regressions (the order's own predicted "2415" was a citation-drift guess — `token-2fa-flows.test.ts` genuinely had 10 tests, not 7; -1 suite/-10 tests from the 164/2422 baseline, exactly matching the one deleted file, confirmed via `git show` on the deleted file's parent commit).
 
 ---
 
