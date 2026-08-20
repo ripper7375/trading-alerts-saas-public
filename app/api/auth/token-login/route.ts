@@ -1,9 +1,12 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
+import {
+  createOperationApi,
+  unwrapOperationApi,
+} from '@/lib/api/generated/operation-api/client';
 import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import {
-  callOperationService,
   forwardedRequestContext,
   OperationServiceError,
 } from '@/lib/operation-service/client';
@@ -68,13 +71,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const result = await callOperationService<
-      LoginSuccessBody | TwoFactorRequiredBody
-    >('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
+    const api = createOperationApi(null);
+    const apiResult = await api.POST('/auth/login', {
+      body: { email, password } as never,
       headers: forwardedRequestContext(request),
     });
+    const result = await unwrapOperationApi<
+      LoginSuccessBody | TwoFactorRequiredBody
+    >(apiResult);
 
     if ('twoFactorRequired' in result && result.twoFactorRequired) {
       // Same intermediate step the existing NextAuth flow already uses

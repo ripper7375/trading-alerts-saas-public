@@ -1,9 +1,12 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
+import {
+  createOperationApi,
+  unwrapOperationApi,
+} from '@/lib/api/generated/operation-api/client';
 import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import {
-  callOperationService,
   forwardedRequestContext,
   OperationServiceError,
 } from '@/lib/operation-service/client';
@@ -44,14 +47,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const result = await callOperationService<RefreshSuccessBody>(
-      '/auth/refresh',
-      {
-        method: 'POST',
-        body: JSON.stringify({ refreshToken }),
-        headers: forwardedRequestContext(request),
-      }
-    );
+    const api = createOperationApi(null);
+    const apiResult = await api.POST('/auth/refresh', {
+      body: { refreshToken } as never,
+      headers: forwardedRequestContext(request),
+    });
+    const result = await unwrapOperationApi<RefreshSuccessBody>(apiResult);
 
     cookieStore.set(
       SESSION_COOKIE_NAME,

@@ -23,6 +23,14 @@ import { POST as resetPassword } from '@/app/api/auth/token-reset-password/route
 import { GET as verifyEmail } from '@/app/api/auth/token-verify-email/route';
 import { validateOrigin } from '@/lib/csrf';
 
+// openapi-fetch (Session 7-2) reads response.headers.get(...) and falls back
+// to response.text() rather than response.json() -- a real Response is the
+// only mock shape that satisfies both, unlike the old hand-rolled
+// {ok, status, json} object the raw fetch() wrapper was content with.
+function mockFetchResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), { status });
+}
+
 function makePostRequest(body: unknown): NextRequest {
   return {
     json: async () => body,
@@ -53,15 +61,13 @@ describe('token-forgot-password / token-reset-password / token-resend-verificati
   });
 
   it('token-forgot-password: always forwards the generic success body', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockFetchResponse(200, {
         success: true,
         message:
           'If an account exists with this email, you will receive a password reset link.',
-      }),
-    });
+      })
+    );
     const response = await forgotPassword(
       makePostRequest({ email: 'a@b.com' })
     );
@@ -77,14 +83,12 @@ describe('token-forgot-password / token-reset-password / token-resend-verificati
   });
 
   it('token-reset-password: maps an INVALID_TOKEN error through with its status', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 401,
-      json: async () => ({
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockFetchResponse(401, {
         error: 'INVALID_TOKEN',
         message: 'Invalid or expired reset token',
-      }),
-    });
+      })
+    );
     const response = await resetPassword(
       makePostRequest({ token: 'bad', password: 'newpassword123' })
     );
@@ -94,16 +98,14 @@ describe('token-forgot-password / token-reset-password / token-resend-verificati
   });
 
   it('token-resend-verification: forwards a rate-limit error with retryAfter', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 429,
-      json: async () => ({
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockFetchResponse(429, {
         error: 'RATE_LIMIT_EXCEEDED',
         message:
           'Please wait 42 seconds before requesting another verification email.',
         retryAfter: 42,
-      }),
-    });
+      })
+    );
     const response = await resendVerification(
       makePostRequest({ email: 'a@b.com' })
     );
@@ -126,34 +128,32 @@ describe('token-verify-email (GET, unauthenticated, no CSRF)', () => {
   });
 
   it('forwards the token as a query param and returns success', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockFetchResponse(200, {
         success: true,
         message: 'Email verified successfully. You can now sign in.',
-      }),
-    });
+      })
+    );
 
     const response = await verifyEmail(makeGetRequest({ token: 'good-token' }));
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
-    const calledUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
-    expect(calledUrl).toContain('/auth/verify-email?token=good-token');
+    // openapi-fetch (Session 7-2) calls fetch(request, init) with a real
+    // Request object, not fetch(url, init) with a plain url string.
+    const [request] = (global.fetch as jest.Mock).mock.calls[0] as [Request];
+    expect(request.url).toContain('/auth/verify-email?token=good-token');
   });
 
   it('forwards a rate-limit (Gmail-preview guard) error with retryAfter', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 429,
-      json: async () => ({
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockFetchResponse(429, {
         error: 'RATE_LIMIT_EXCEEDED',
         message: 'Please wait 3 more seconds, then refresh this page.',
         retryAfter: 3,
-      }),
-    });
+      })
+    );
 
     const response = await verifyEmail(
       makeGetRequest({ token: 'fresh-token' })

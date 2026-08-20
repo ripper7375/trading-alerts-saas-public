@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import {
-  callOperationService,
-  OperationServiceError,
-} from '@/lib/operation-service/client';
+  createOperationApi,
+  unwrapOperationApi,
+} from '@/lib/api/generated/operation-api/client';
+import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
+import { OperationServiceError } from '@/lib/operation-service/client';
 
 interface ResendVerificationSuccessBody {
   success: true;
@@ -37,13 +38,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const result = await callOperationService<ResendVerificationSuccessBody>(
-      '/auth/resend-verification',
-      {
-        method: 'POST',
-        body: JSON.stringify({ email }),
-      }
-    );
+    const api = createOperationApi(null);
+    const apiResult = await api.POST('/auth/resend-verification', {
+      body: { email } as never,
+    });
+    const result =
+      await unwrapOperationApi<ResendVerificationSuccessBody>(apiResult);
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof OperationServiceError) {

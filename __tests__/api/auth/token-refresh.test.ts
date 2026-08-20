@@ -26,6 +26,14 @@ jest.mock('@/lib/csrf', () => ({
 import { POST } from '@/app/api/auth/token-refresh/route';
 import { validateOrigin } from '@/lib/csrf';
 
+// openapi-fetch (Session 7-2) reads response.headers.get(...) and falls back
+// to response.text() rather than response.json() -- a real Response is the
+// only mock shape that satisfies both, unlike the old hand-rolled
+// {ok, status, json} object the raw fetch() wrapper was content with.
+function mockFetchResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), { status });
+}
+
 function makeRequest(headers: Record<string, string> = {}): NextRequest {
   return {
     headers: {
@@ -60,14 +68,12 @@ describe('POST /api/auth/token-refresh', () => {
 
   it('rotates both cookies on a successful refresh', async () => {
     mockCookieStore.get.mockReturnValueOnce({ value: 'old-raw-refresh' });
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockFetchResponse(200, {
         accessToken: 'new-jwe',
         refreshToken: 'new-raw-refresh',
-      }),
-    });
+      })
+    );
 
     const response = await POST(makeRequest());
     const body = await response.json();
@@ -79,22 +85,22 @@ describe('POST /api/auth/token-refresh', () => {
     expect(sessionCall[1]).toBe('new-jwe');
     expect(refreshCall[1]).toBe('new-raw-refresh');
 
-    const [, requestInit] = (global.fetch as jest.Mock).mock.calls[0];
-    expect(JSON.parse(requestInit.body)).toEqual({
+    // openapi-fetch (Session 7-2) calls fetch(request, init) with a real
+    // Request object carrying the body, not fetch(url, {body: string}).
+    const [request] = (global.fetch as jest.Mock).mock.calls[0] as [Request];
+    expect(JSON.parse(await request.text())).toEqual({
       refreshToken: 'old-raw-refresh',
     });
   });
 
   it('clears both cookies when rotation fails (revoked/expired/invalid token)', async () => {
     mockCookieStore.get.mockReturnValueOnce({ value: 'dead-refresh' });
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 401,
-      json: async () => ({
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockFetchResponse(401, {
         error: 'INVALID_TOKEN',
         message: 'Refresh token is invalid or revoked',
-      }),
-    });
+      })
+    );
 
     const response = await POST(makeRequest());
 

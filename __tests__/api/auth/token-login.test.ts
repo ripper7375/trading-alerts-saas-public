@@ -29,6 +29,14 @@ jest.mock('@/lib/csrf', () => ({
 import { POST } from '@/app/api/auth/token-login/route';
 import { validateOrigin } from '@/lib/csrf';
 
+// openapi-fetch (Session 7-2) reads response.headers.get(...) and falls back
+// to response.text() rather than response.json() -- a real Response is the
+// only mock shape that satisfies both, unlike the old hand-rolled
+// {ok, status, json} object the raw fetch() wrapper was content with.
+function mockFetchResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), { status });
+}
+
 function makeRequest(
   body: unknown,
   headers: Record<string, string> = {}
@@ -79,10 +87,8 @@ describe('POST /api/auth/token-login', () => {
   });
 
   it('sets the session + refresh cookies and returns the user on success', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockFetchResponse(200, {
         accessToken: 'jwe-token',
         refreshToken: 'raw-refresh',
         user: {
@@ -92,8 +98,8 @@ describe('POST /api/auth/token-login', () => {
           role: 'USER',
           isAffiliate: false,
         },
-      }),
-    });
+      })
+    );
 
     const response = await POST(
       makeRequest({ email: 'a@b.com', password: 'secret123' })
@@ -113,11 +119,9 @@ describe('POST /api/auth/token-login', () => {
   });
 
   it('passes through a twoFactorRequired response without setting any cookie', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({ twoFactorRequired: true, token: '2fa-token' }),
-    });
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockFetchResponse(200, { twoFactorRequired: true, token: '2fa-token' })
+    );
 
     const response = await POST(
       makeRequest({ email: 'a@b.com', password: 'secret123' })
@@ -129,14 +133,12 @@ describe('POST /api/auth/token-login', () => {
   });
 
   it('maps an operation-service error response through with the same status/code', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 401,
-      json: async () => ({
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockFetchResponse(401, {
         error: 'INVALID_CREDENTIALS',
         message: 'Invalid email or password',
-      }),
-    });
+      })
+    );
 
     const response = await POST(
       makeRequest({ email: 'a@b.com', password: 'wrong' })

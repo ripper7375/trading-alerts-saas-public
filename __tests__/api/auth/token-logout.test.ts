@@ -24,6 +24,14 @@ jest.mock('@/lib/csrf', () => ({
 import { POST } from '@/app/api/auth/token-logout/route';
 import { validateOrigin } from '@/lib/csrf';
 
+// openapi-fetch (Session 7-2) reads response.headers.get(...) and falls back
+// to response.text() rather than response.json() -- a real Response is the
+// only mock shape that satisfies both, unlike the old hand-rolled
+// {ok, status, json} object the raw fetch() wrapper was content with.
+function mockFetchResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), { status });
+}
+
 describe('POST /api/auth/token-logout', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -39,11 +47,9 @@ describe('POST /api/auth/token-logout', () => {
 
   it('calls operation-service logout and clears both cookies when a refresh cookie exists', async () => {
     mockCookieStore.get.mockReturnValueOnce({ value: 'raw-refresh' });
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      status: 200,
-      json: async () => ({ success: true }),
-    });
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockFetchResponse(200, { success: true })
+    );
 
     const response = await POST();
     const body = await response.json();

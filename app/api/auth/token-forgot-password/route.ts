@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import {
-  callOperationService,
-  OperationServiceError,
-} from '@/lib/operation-service/client';
+  createOperationApi,
+  unwrapOperationApi,
+} from '@/lib/api/generated/operation-api/client';
+import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
+import { OperationServiceError } from '@/lib/operation-service/client';
 
 interface ForgotPasswordSuccessBody {
   success: true;
@@ -40,13 +41,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const result = await callOperationService<ForgotPasswordSuccessBody>(
-      '/auth/forgot-password',
-      {
-        method: 'POST',
-        body: JSON.stringify({ email }),
-      }
-    );
+    const api = createOperationApi(null);
+    const apiResult = await api.POST('/auth/forgot-password', {
+      body: { email } as never,
+    });
+    const result =
+      await unwrapOperationApi<ForgotPasswordSuccessBody>(apiResult);
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof OperationServiceError) {

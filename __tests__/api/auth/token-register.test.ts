@@ -21,6 +21,14 @@ jest.mock('@/lib/csrf', () => ({
 import { POST } from '@/app/api/auth/token-register/route';
 import { validateOrigin } from '@/lib/csrf';
 
+// openapi-fetch (Session 7-2) reads response.headers.get(...) and falls back
+// to response.text() rather than response.json() -- a real Response is the
+// only mock shape that satisfies both, unlike the old hand-rolled
+// {ok, status, json} object the raw fetch() wrapper was content with.
+function mockFetchResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), { status });
+}
+
 function makeRequest(
   body: unknown,
   headers: Record<string, string> = {}
@@ -81,16 +89,14 @@ describe('POST /api/auth/token-register', () => {
   });
 
   it('forwards to operation-service and returns 201 with the result on success', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      status: 201,
-      json: async () => ({
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockFetchResponse(201, {
         userId: 'user-1',
         message:
           'Registration successful. Please check your email to verify your account.',
         autoVerified: false,
-      }),
-    });
+      })
+    );
 
     const response = await POST(
       makeRequest({
@@ -106,8 +112,10 @@ describe('POST /api/auth/token-register', () => {
     expect(body.userId).toBe('user-1');
     expect(body.autoVerified).toBe(false);
 
-    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
-    expect(JSON.parse(init.body)).toEqual({
+    // openapi-fetch (Session 7-2) calls fetch(request, init) with a real
+    // Request object carrying the body, not fetch(url, {body: string}).
+    const [request] = (global.fetch as jest.Mock).mock.calls[0] as [Request];
+    expect(JSON.parse(await request.text())).toEqual({
       email: 'a@b.com',
       password: 'Sup3r$ecret1',
       name: 'Alice',
@@ -115,14 +123,12 @@ describe('POST /api/auth/token-register', () => {
   });
 
   it('maps an operation-service ACCOUNT_EXISTS error through with the same status/code', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 409,
-      json: async () => ({
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockFetchResponse(409, {
         error: 'ACCOUNT_EXISTS',
         message: 'An account with this email already exists',
-      }),
-    });
+      })
+    );
 
     const response = await POST(
       makeRequest({ email: 'a@b.com', password: 'Sup3r$ecret1' })
@@ -134,15 +140,13 @@ describe('POST /api/auth/token-register', () => {
   });
 
   it('maps an operation-service validation (weak password) error through with the same status', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      json: async () => ({
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+      mockFetchResponse(400, {
         statusCode: 400,
         message: ['password must be longer than or equal to 8 characters'],
         error: 'Bad Request',
-      }),
-    });
+      })
+    );
 
     const response = await POST(
       makeRequest({ email: 'a@b.com', password: 'short' })

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import {
-  callOperationService,
-  OperationServiceError,
-} from '@/lib/operation-service/client';
+  createOperationApi,
+  unwrapOperationApi,
+} from '@/lib/api/generated/operation-api/client';
+import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
+import { OperationServiceError } from '@/lib/operation-service/client';
 
 interface ResetPasswordSuccessBody {
   success: true;
@@ -39,13 +40,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const result = await callOperationService<ResetPasswordSuccessBody>(
-      '/auth/reset-password',
-      {
-        method: 'POST',
-        body: JSON.stringify({ token, password }),
-      }
-    );
+    const api = createOperationApi(null);
+    const apiResult = await api.POST('/auth/reset-password', {
+      body: { token, password } as never,
+    });
+    const result =
+      await unwrapOperationApi<ResetPasswordSuccessBody>(apiResult);
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof OperationServiceError) {

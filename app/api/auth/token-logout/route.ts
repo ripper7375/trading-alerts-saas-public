@@ -1,8 +1,11 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
+import {
+  createOperationApi,
+  unwrapOperationApi,
+} from '@/lib/api/generated/operation-api/client';
 import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
-import { callOperationService } from '@/lib/operation-service/client';
 import {
   REFRESH_COOKIE_NAME,
   SESSION_COOKIE_NAME,
@@ -21,10 +24,11 @@ export async function POST(): Promise<NextResponse> {
 
   if (refreshToken) {
     try {
-      await callOperationService('/auth/logout', {
-        method: 'POST',
-        body: JSON.stringify({ refreshToken }),
+      const api = createOperationApi(null);
+      const apiResult = await api.POST('/auth/logout', {
+        body: { refreshToken } as never,
       });
+      await unwrapOperationApi(apiResult);
     } catch (error) {
       // logout is idempotent server-side (revokeByRawToken) and these
       // cookies are being cleared either way — a network blip here must not

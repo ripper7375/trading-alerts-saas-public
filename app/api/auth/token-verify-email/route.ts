@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import {
-  callOperationService,
-  OperationServiceError,
-} from '@/lib/operation-service/client';
+  createOperationApi,
+  unwrapOperationApi,
+} from '@/lib/api/generated/operation-api/client';
+import { OperationServiceError } from '@/lib/operation-service/client';
 
 interface VerifyEmailSuccessBody {
   success: true;
@@ -24,9 +25,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const result = await callOperationService<VerifyEmailSuccessBody>(
-      `/auth/verify-email?token=${encodeURIComponent(token)}`
-    );
+    const api = createOperationApi(null);
+    const apiResult = await api.GET('/auth/verify-email', {
+      params: { query: { token } },
+    });
+    const result = await unwrapOperationApi<VerifyEmailSuccessBody>(apiResult);
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof OperationServiceError) {

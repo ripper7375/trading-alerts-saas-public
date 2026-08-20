@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import {
+  createOperationApi,
+  unwrapOperationApi,
+} from '@/lib/api/generated/operation-api/client';
 import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import {
-  callOperationService,
   forwardedRequestContext,
   OperationServiceError,
 } from '@/lib/operation-service/client';
@@ -60,14 +63,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const result = await callOperationService<RegisterSuccessBody>(
-      '/auth/register',
-      {
-        method: 'POST',
-        body: JSON.stringify({ email, password, name }),
-        headers: forwardedRequestContext(request),
-      }
-    );
+    const api = createOperationApi(null);
+    const apiResult = await api.POST('/auth/register', {
+      body: { email, password, name } as never,
+      headers: forwardedRequestContext(request),
+    });
+    const result = await unwrapOperationApi<RegisterSuccessBody>(apiResult);
 
     return NextResponse.json({ success: true, ...result }, { status: 201 });
   } catch (error) {
