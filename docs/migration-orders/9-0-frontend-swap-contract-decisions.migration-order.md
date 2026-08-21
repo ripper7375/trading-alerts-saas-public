@@ -77,7 +77,7 @@ regardless of F76/4A-16's own resolution timeline.
       `lib/api/generated/` (`operationApi`/`moneyApi`) is the settled client surface; re-verify
       `lib/api/index.ts` hasn't drifted since.
   - [ ] **Git drift check re-measured live**: `git log --oneline 8810b260..HEAD -- app/api/ lib/api/
-    seed-code/trading-conversational-ai-ui-pages-increment/` — confirm nothing has changed in
+seed-code/trading-conversational-ai-ui-pages-increment/` — confirm nothing has changed in
         either tree since this PRE-DRAFT (use a real, verified commit hash at CONFIRM time).
 - [ ] **Source documents exist and are current** (read, do not re-derive, per the roadmap's own
       "Inputs" note):
@@ -86,8 +86,8 @@ regardless of F76/4A-16's own resolution timeline.
       `batch-0…8`, `…/light-dark-mode-theme-migration/`,
       `docs/files-completion-list/page-comparison-PUBLIC-VS-PAGES-INCREMENT.xlsx`.
 - [ ] **`seed-code/**` still read-only, zero drift since 4A-15's own CONFIRM observed 2 unrelated
-    uncommitted edits** (`app/affiliate/dashboard/payouts/page.tsx`,
-    `.../statements/page.tsx`) — re-check `git status`on`seed-code/` fresh; if those 2 files
+  uncommitted edits** (`app/affiliate/dashboard/payouts/page.tsx`,
+  `.../statements/page.tsx`) — re-check `git status`on`seed-code/` fresh; if those 2 files
       are still uncommitted, ask Davin directly whether they're intentional in-progress work
       before this session's own route-map treats that subtree as settled.
 - [ ] **No-test-credentials gap re-confirmed** (Waiting-on #117, per the roadmap's own §5): can
@@ -155,7 +155,7 @@ _(each step = investigate → produce → verify; a claim without a source is no
 ## Rules specific to this variant
 
 - Ground truth priority: live code > live dashboards > recent docs > old build-orders.
-- Distinguish **verified facts** from **assumptions** in `frontend-swap-route-map.md\*\* — mark
+- Distinguish **verified facts** from **assumptions** in `frontend-swap-route-map.md` — mark
   assumptions explicitly; they become entry-criteria checks for Session 9-1 onward.
 - If investigation contradicts the plan/playbook/roadmap, that's a finding — record it, propose
   the amendment, don't silently absorb it (this is exactly what 4A-15's own CONFIRM found twice).
