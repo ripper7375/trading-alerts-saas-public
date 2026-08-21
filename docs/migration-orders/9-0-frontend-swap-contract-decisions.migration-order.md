@@ -86,10 +86,10 @@ seed-code/trading-conversational-ai-ui-pages-increment/` — confirm nothing has
       `batch-0…8`, `…/light-dark-mode-theme-migration/`,
       `docs/files-completion-list/page-comparison-PUBLIC-VS-PAGES-INCREMENT.xlsx`.
 - [ ] **`seed-code/**` still read-only, zero drift since 4A-15's own CONFIRM observed 2 unrelated
-  uncommitted edits** (`app/affiliate/dashboard/payouts/page.tsx`,
-  `.../statements/page.tsx`) — re-check `git status`on`seed-code/` fresh; if those 2 files
-      are still uncommitted, ask Davin directly whether they're intentional in-progress work
-      before this session's own route-map treats that subtree as settled.
+uncommitted edits** (`app/affiliate/dashboard/payouts/page.tsx`,
+`.../statements/page.tsx`) — run a fresh `git status` and confirm those 2 files are no longer
+      showing modified; if they still are, ask Davin directly whether they're intentional
+      in-progress work before this session's own route-map treats that subtree as settled.
 - [ ] **No-test-credentials gap re-confirmed** (Waiting-on #117, per the roadmap's own §5): can
       this session get real authenticated credentials for live click-through verification, or
       does the route-map's "auth gate" column stay design-only? Ask Davin directly — Phase 9
