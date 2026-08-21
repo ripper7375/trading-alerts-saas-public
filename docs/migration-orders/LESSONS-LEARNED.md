@@ -4,10 +4,11 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 35 (L1–L35), well within the cap after the
+**Hard cap ~40 active lessons.** Currently at 37 (L1–L37), well within the cap after the
 2026-08-12 consolidation pass (64 → 25: 28 archived, 11 merged into 8 master rules,
 then 4 unpromoted candidates promoted to L26–L29; L30 added 2026-08-20 ad-hoc, L31–L32
-added Session 7-2, L33 added Session 4A-13, L34–L35 added Session 4A-14).
+added Session 7-2, L33 added Session 4A-13, L34–L35 added Session 4A-14, L36–L37 added
+Session 4A-15).
 Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds 40 again.
 
 ---
@@ -70,9 +71,10 @@ Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds
   and was re-verified against the file itself, not the claim alone, before treating it as settled.
   Recurred again at Session 7-3 (2026-08-20) — benign: order arrived a bare `PRE-DRAFT` stub at
   committed HEAD but the full DRAFT→APPROVED upgrade on disk; confirmed live by Davin as authentic
-  before execution. 15+ recurrences total — this is the single most-recurring finding in the
-  migration; per this file's own hygiene rule, further benign recurrences get a count bump here,
-  not a new paragraph.
+  before execution. Recurred again at Sessions 4A-13, 4A-14, and 4A-15 (all 2026-08-21) — all
+  three benign, all three confirmed live by Davin as authentic before execution. 18+ recurrences
+  total — this is the single most-recurring finding in the migration; per this file's own hygiene
+  rule, further benign recurrences get a count bump here, not a new paragraph.
 
 ### L4 — Never use `railway variables --kv` (or any unfiltered dump) to check whether a secret is set
 
@@ -366,3 +368,17 @@ Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds
 - Root cause: a query returning zero rows is consistent with BOTH "the data was genuinely cleaned up" and "this connection isn't the database the data lives in" — nothing about a clean, error-free query result distinguishes the two, and a local `.env` file's `DATABASE_URL` can silently point at a stale/personal/dev database without any error at connection time.
 - Rule: before trusting ANY read-only DB query result as verification evidence (not just an absence-of-rows result), sanity-check the connection identifies the right database — a rough `count()` on a table known to have substantial real data (e.g., total `User` or `Payment` rows) should be in a plausible range, not suspiciously near zero. When a query result contradicts a first-party service log that just asserted the opposite (as happened here), trust the service log and re-verify the query's own target, not the other way around.
 - Source: Session 4A-14 (2026-08-21), `DECISION-LOG.md` F76 · Status: ACTIVE
+
+### L36 — This repo's pre-commit hook (lint-staged) can leave a purely-cosmetic working-tree/index diff after a commit has already succeeded; verify before trusting a post-commit `git status`
+
+- Symptom: twice in Session 4A-15, `git status` showed a file as `MM` (staged, then further modified) immediately after that file's own commit had already succeeded and was verified via `git log`. `git diff` against `HEAD` showed the difference was whitespace/line-wrapping only (prettier's multi-line style vs. the Edit tool's original single-line output) — zero logic change.
+- Root cause: the hook stashes pre-hook state, runs `eslint --fix`/`prettier --write` on staged content, commits the formatted version, then pops the stash as cleanup — which can reintroduce the pre-format (pre-hook) file content into the working tree and index on top of the commit that already happened, even though `HEAD` itself holds the correctly formatted version.
+- Rule: if `git status` shows a just-committed file as modified again, diff it against `HEAD` before assuming real uncommitted work exists. If the diff is whitespace/formatting-only, `git checkout HEAD -- <file>` to resync (safe — `HEAD` already holds the tested, committed version); never re-stage or re-commit a "revert to unformatted" as if it were new work, and never fold it into a later, unrelated step's commit.
+- Source: Session 4A-15 (2026-08-21) · Status: ACTIVE
+
+### L37 — An order's own risk-framing/runtime-state claims can be stale even on the day it's drafted; cross-check against the project's own already-correct maintained artifacts, not just live infrastructure
+
+- Symptom: Session 4A-15's order (PRE-DRAFTed and DRAFTed/APPROVED all on 2026-08-21) asserted `OUTBOX_PUBLISHER_ENABLED` was disabled ("zero production risk"). It had actually been `true` in production since Session 4A-12 (2026-07-30) — over three weeks earlier — and `migration-cutover-table.md`'s own Slice 5 row already recorded this correctly at the time the order was drafted.
+- Root cause: the order's narrative was carried forward from F50's original 2026-07-30 finding (written when the publisher genuinely was off) without being re-checked against either live infrastructure or this project's own other maintained artifact that already had the correct, current answer.
+- Rule: at CONFIRM, don't just re-verify an order's claims against live infrastructure (L22) — also check them against this project's other maintained documents (`migration-cutover-table.md`, `DECISION-LOG.md`'s register) that may already record the correct current state, especially for flag/toggle state tied to a past session's cutover. A same-day draft is not automatically fresh.
+- Source: Session 4A-15 (2026-08-21) · Status: ACTIVE

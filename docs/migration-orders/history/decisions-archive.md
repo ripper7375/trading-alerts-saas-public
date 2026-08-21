@@ -1945,7 +1945,8 @@ created` (`paymentId: cmt2yflxe00000fnw8gy7jm53`) → `Creating dLocal payment` 
 
 ## F50 — `COMMISSION_CREDITED` outbox event's `aggregateId` resolves to the wrong recipient
 
-- Status: OPEN
+- Status: **RESOLVED — Session 4A-15, 2026-08-21.** See the resolution note appended at the end
+  of this entry.
 - Session: 4A-11 · Date: 2026-07-30
 - Found while: building `operation-service`'s outbox consumer (File 3/5) — the order's own prose
   said to resolve every eventType's recipient via `prisma.user.findUnique({ where: { id:
@@ -1972,6 +1973,75 @@ aggregateId } })`, treated as a universal step. Reading `stripe-webhook.service.
   4A-12 can treat this eventType as done.
 - Owner: Davin/Advisor — due before 4A-12 (or its own dedicated follow-up) closes Slice 5 for
   `COMMISSION_CREDITED` specifically; the other 5 eventTypes are unaffected.
+- **RESOLVED — Session 4A-15 (2026-08-21).** Producer fix in `money-service`:
+  `ConversionProcessorService.processAffiliateConversion()` now selects `userId` on
+  `affiliateProfile` and returns `affiliateUserId`, `code`, and `totalEarnings` (captured from the
+  same `$transaction`'s `affiliateProfile.update()` result, previously discarded) in
+  `ConversionResult`. `stripe-webhook.service.ts`'s `emitOutboxEvent` call site now passes
+  `conversion.affiliateUserId` as `aggregateId` (the affiliate, not the buyer `userId`) and the
+  payload carries `{ commissionId, commissionAmount, totalEarnings, code, provider }`. Consumer
+  fix in `operation-service`: `OutboxConsumerService`'s `COMMISSION_CREDITED` skip block removed;
+  `dispatch()` now has a `case 'COMMISSION_CREDITED'` calling the pre-existing (4A-11)
+  `sendAffiliateCommissionEmail()`. Verified via unit tests only (money-service 62/62 suites
+  526/526 tests, +3 new; operation-service 42/42 suites 393/393 tests, 1 test rewritten from
+  "skips COMMISSION_CREDITED" to "dispatches to the affiliate email") — no live/synthetic event
+  was sent this session (PORT variant, low dial, no flag flip in scope).
+  **Live-risk correction found at this session's own CONFIRM, not anticipated by the DRAFT/
+  APPROVED order text:** `OUTBOX_PUBLISHER_ENABLED` is `true` in money-service production and has
+  been since **Session 4A-12 (2026-07-30)** — `migration-cutover-table.md`'s own Slice 5 row
+  already recorded this correctly, but the order's "Why this session exists"/Decisions-taken
+  framing asserted the opposite ("Outbox publisher is currently disabled... zero production
+  risk"), a stale premise carried from the original PRE-DRAFT through DRAFT and APPROVED without
+  being checked against the project's own maintained artifacts. Reported at CONFIRM; Davin
+  acknowledged live and updated the order's own text (risk framing, entry criteria, Decisions
+  taken #4) before authorizing execution — see `LESSONS-LEARNED.md` L37. Practical consequence:
+  since the publisher is genuinely live, the next real Stripe (or dLocal, once F76 closes)
+  affiliate conversion will emit a `COMMISSION_CREDITED` event that money-service's cron delivers
+  for real, and `operation-service` will now actually send `sendAffiliateCommissionEmail()` to a
+  real affiliate — the fix genuinely goes live on its own next natural trigger, not gated behind a
+  separate flag-flip session the way 4A-13/4A-14's cutovers were. No real event was observed this
+  session; first-real-delivery remains a monitoring item, same convention as Slice 5's original
+  4A-12 close.
+
+## F47 — Wise quote `targetAmount`/currency-unit correctness for non-USD payouts
+
+- Status: **RESOLVED — Session 4A-15, 2026-08-21**
+- Session: 4A-W7 (found) · 4A-15 (resolved) · Date: found during initial non-USD recipient smoke
+  tests (undated in this file's prior register-only entry) · resolved 2026-08-21
+- Found while: 4A-W7's initial non-USD recipient smoke tests. `wise-quote.service.ts` unconditionally
+  requested Wise quotes by `targetAmount`, passing the affiliate's raw USD `Commission.commissionAmount`
+  straight through regardless of the recipient's target currency — a $50 USD commission would be
+  quoted as 50 THB (severely short) or 50 GBP (severely inflated) instead of the equivalent
+  converted amount.
+- **Root cause:** `wise-payment.provider.ts`'s `prepareBatch()` always called
+  `wiseQuoteService.createQuote({ ..., targetAmount: item.amount, ... })` with no branch on
+  currency — correct only for the USD->USD case (where F38's platform-absorbs-fee decision means
+  fixing `targetAmount` so the affiliate receives exactly their earned USD). For USD->non-USD, the
+  USD figure needs to be the FIXED SOURCE leg (`sourceAmount`), letting Wise convert it at the
+  current rate into the target currency — the exact inverse of what the code did.
+- **Fix (Session 4A-15, `Decisions taken` #1):** `CreateQuoteInput` in `wise-quote.service.ts`
+  widened to accept either `sourceAmount?: number` or `targetAmount?: number` (mutually exclusive);
+  `createQuote()`'s request body sends whichever was provided. `wise-payment.provider.ts`'s
+  `prepareBatch()` now branches: `recipient.targetCurrency === input.sourceCurrency` ->
+  `targetAmount: item.amount` (USD->USD, F38 unchanged); otherwise -> `sourceAmount: item.amount`
+  (USD->non-USD). `feeBearer: 'PLATFORM'` (F38) unaffected either way.
+- **Verification: unit tests only, not live Wise sandbox proof.** The original PRE-DRAFT required
+  live/sandbox verification for at least one non-USD currency, citing 4A-14's own F49->F76
+  precedent (a unit-tests-only fix that still failed live) as the reason. At this session's CONFIRM,
+  `WISE_PROFILE_ID`/`WISE_API_TOKEN`/`WISE_ENVIRONMENT` were found to be undocumented in
+  `money-service/.env.example` and unset locally — no safe local path to Wise's real sandbox existed.
+  Davin authorized (order `Decisions taken` #4, `⚠ NEEDS EXPLICIT SIGN-OFF`, confirmed live) scoping
+  verification down to unit tests: 1 new `wise-quote.service.spec.ts` test (sourceAmount pass-through,
+  mirroring the existing targetAmount test) + 2 new `wise-payment.provider.spec.ts` tests (asserting
+  the exact currency-match/mismatch branch on `createQuote`'s call args). money-service full suite
+  62/62 suites, 526/526 tests (+3 new), zero regressions.
+- **Residual risk, disclosed not fixed:** the branch's correctness against Wise's real Quotes API
+  semantics (does `sourceAmount` alone, without `targetAmount`, behave as this fix assumes under
+  `feeBearer: 'PLATFORM'`?) remains unverified against a real Wise response. Wise payouts stay in
+  `MANUAL` funding mode (F37) and no non-USD payout has run live yet, so this is a pre-existing gap
+  narrowed, not a new one introduced. Live/sandbox verification for the first real non-USD payout
+  is a live open item, not closed by this session.
+- Owner: n/a — RESOLVED within bounds of Davin's session-level sign-off on `Decisions taken` #1/#4.
 
 ## F51 — Slice 5 cutover wait-clock: no shadow-run mechanism exists, F44 precedent applied
 

@@ -7,6 +7,68 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 4A-13 (Stripe Webhook Cutover, Phase 4X
+  gate 2/3, VERIFY-RETIRE/CUTOVER, dial near-zero), CONFIRMED, executed, CLOSED SUCCESSFUL
+  2026-08-21. First session of Phase 4X — closes `DECISION-LOG.md` **F60** (open since Session
+  4B-22, 2026-08-04).
+  **CONFIRM found the by-now-familiar L3/L11 pattern**: the order + `HANDOVER-PROMPT-phase-4X.md`
+  both carried the full Advisor DRAFT→APPROVED upgrade uncommitted over committed HEAD's bare
+  PRE-DRAFT stub. Reported before proceeding; Davin confirmed live, corroborated independently —
+  the handover prompt's own reproduced `[B]` command matched Davin's opening chat message
+  verbatim, including its closing sentence. Git-drift entry criterion's literal command returned
+  2 commits, not 0 (both benign — the 4A-9 port's own same-day tail commit, and an unrelated
+  successUrl fix); zero real webhook-logic drift confirmed by file-level `git log`. Test baselines
+  re-measured exact match to Session 7-3's close: monolith `tsc`/`eslint` clean, `test:ci`
+  160/160 suites, 2399/2399 tests; money-service 62/62 suites, 522/522 tests.
+  **Full Money-Audit given before touching anything**: walked every one of the 5 event handlers'
+  write paths, transaction boundaries, and idempotency mechanisms. Disclosed two pre-existing,
+  byte-identical-on-both-sides findings not fixed this session (matches its own "no drive-by
+  fixes" rule): wall-clock-computed billing-period extension on duplicate `checkout.completed`/
+  `invoice.succeeded` deliveries, and `handleSubscriptionUpdated` lacking a `$transaction` wrapper.
+  Also confirmed the affiliate-commission path (`ConversionProcessorService`) is idempotent by
+  code status AND more atomic than the monolith's own un-transacted equivalent.
+  **Executed the cutover with two real deviations from plan, both Davin-directed live:**
+  (1) Stripe Workbench's "Send test event" required the CLI (Davin's live observation); not
+  installed, browser-pairing login not completable non-interactively. Davin authorized a
+  self-signed synthetic `checkout.session.completed` instead (`STRIPE_WEBHOOK_SECRET` injected
+  only into a short-lived Node subprocess's env via `railway run`, never printed; payload
+  deliberately carried no real `userId` so the handler's own guard guaranteed a safe no-op) —
+  proved signature verification, dispatch, and the guard, zero DB writes by design.
+  (2) **Davin's real test-mode Stripe Checkout then found a genuine, previously-invisible
+  production defect**: the first two delivery attempts (initial + Stripe's automatic retry) of a
+  real `checkout.session.completed` **failed live** with `42501: permission denied for table
+"User"` — money-service's `money_svc` Postgres role had never been granted `UPDATE` on `User`
+  (nor adequate grants on 6 other tables, though those turned out already sufficient). Invisible
+  until this exact moment: `StripeWebhookController`'s write path had never executed against real
+  production credentials in its 25 dormant days. Registered as new `DECISION-LOG.md` **F75**,
+  resolved same session — Davin specified the exact `GRANT` SQL, Executor applied it via a scoped
+  script (Postgres connection value handled in-memory only, never printed) and independently
+  verified via direct grant introspection. A prior read-only diagnostic attempt using the same
+  elevated connection, before Davin's explicit direction, was blocked by the platform's own
+  auto-mode safety classifier — reported rather than worked around. Davin resent the event: HTTP
+  200, `[Webhook] User upgraded to PRO`, and direct DB read-back confirmed `User.tier='PRO'`, an
+  `ACTIVE` `Subscription` with correct Stripe IDs, and a `TIER_UPGRADED` `OutboxEvent` — all four
+  of the order's own Decision #3 proof points satisfied on a real event, closing F60 for real
+  rather than on synthetic-only evidence (an earlier "wrap up" request from Davin arrived before
+  this proof existed; flagged rather than silently marking F60 RESOLVED early).
+  **Monolith endpoint intentionally left registered** (not disabled this session) — Executor
+  recommendation pending Davin's decision: observe one further clean real event first, given a
+  real defect was just found on this route's very first live write (L11's own pattern: fixing one
+  bug can unmask what was hiding behind it — here, nothing else surfaced, but the caution held).
+  **`migration-cutover-table.md` Slice 4 row updated** (Stripe webhook added, dual-delivery noted;
+  still 3/4 write-API groups pending F49/4A-14). One new `LESSONS-LEARNED.md` entry: **L33** (a
+  service's DB role can be missing a grant on a table its code has always needed — invisible
+  until that table's first real write, catchable by no test or dry run).
+  **Artifacts updated:** `4a-13-stripe-webhook-cutover.migration-order.md` (Status → CONFIRMED →
+  CLOSED SUCCESSFUL; entry criteria all checked with CONFIRM-time findings; checklist steps
+  annotated with completion evidence; Deviations filled — 10 entries), `DECISION-LOG.md` (F60
+  RESOLVED, F75 registered and RESOLVED same session), `migration-cutover-table.md`,
+  `LESSONS-LEARNED.md` (L33), this file (Current/Previous rotation — Session 7-2 moved to
+  `history/sessions-archive.md`). **`4a-14-dlocal-write-api-group-b-cutover.migration-order.md`
+  PRE-DRAFTed** — closes **F49**, completes Slice 4 to 4/4. **Open item for next session's
+  Advisor/Davin attention, not blocking 4A-14 (independent scope):\*\* whether to disable the
+  monolith's Stripe webhook endpoint now that one real event is proven, or wait for one more.
+
 - _(superseded-by-above, retained for context)_ **Session 7-3 (API Client Contract Tests,
   Documentation & stackA/stackB Retirement, PORT/CONTRACT hybrid exit-review, dial LOW),
   CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-20. Third and final session of Phase 7 —
