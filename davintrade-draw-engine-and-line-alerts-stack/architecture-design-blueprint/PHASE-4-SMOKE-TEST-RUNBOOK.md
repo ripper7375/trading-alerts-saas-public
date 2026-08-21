@@ -54,7 +54,7 @@ REDIS_URL=redis://localhost:6379 DATABASE_URL=<your local postgres> \
 Live cross-process testing wasn't possible in that environment: no Docker, no root
 access to install a real `redis-server`, and the project's live Railway Postgres was
 unreachable (TCP connects, but the Postgres protocol handshake fails — looks paused,
-not a code issue). What *was* verified directly against source, with the actual code
+not a code issue). What _was_ verified directly against source, with the actual code
 (no reimplementation):
 
 - `app/redis_pub.py`'s publish payload matches `lib/alert-engine/types.ts`'s

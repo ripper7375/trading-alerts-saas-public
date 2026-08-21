@@ -72,8 +72,8 @@ Lightweight Charts.
 | Deployment                 | Railway, Vercel, Docker, nixpacks                                         | `railway.json`, `vercel.json`, `docker-compose.yml`, `nixpacks.toml`         |
 | Quality gates              | `npm run validate` (tsc + ESLint + policy + Jest)                         | `CLAUDE.md`                                                                  |
 
-*Note on the "Price persistence pipeline" (`sync/`) row above — see §14 for a verification note;*
-*the implementation files it imports aren't present in this repo (deployed separately).*
+_Note on the "Price persistence pipeline" (`sync/`) row above — see §14 for a verification note;_
+_the implementation files it imports aren't present in this repo (deployed separately)._
 
 **Key takeaway:** the only net-new infra for the whole feature is a **job queue** (BullMQ) and using
 the **already-present Redis** for pub/sub. Everything else is already in your stack. **As of
@@ -252,7 +252,7 @@ model DrawingAlert {
 > **Current Implementation Status (updated 2026-07-05 — gap closed):**
 >
 > - ✅ **Worker (Node) — built.** `lib/alert-engine/{types,detect,state,watches,evaluator,
->   dispatcher,queue,worker,notify-bridge}.ts` + entrypoint `scripts/alert-worker.ts` are
+dispatcher,queue,worker,notify-bridge}.ts` + entrypoint `scripts/alert-worker.ts` are
 >   implemented and match this section's design: it `psubscribe`s `prices:*` and `alerts:changed`,
 >   loads active `DrawingAlert`+`Drawing` via Prisma, and dispatches fires through the BullMQ queue.
 > - ✅ **Producer (Flask) — built.** `redis==5.0.1` added to `mt5-service/requirements.txt`;
@@ -268,7 +268,7 @@ model DrawingAlert {
 > - ⚠️ **Live cross-process round trip — not run in this pass.** No Docker, no root access to
 >   install a real `redis-server`, and the project's live Railway Postgres was unreachable from
 >   that environment (TCP connects; Postgres protocol handshake fails — looks paused). What
->   *was* verified: the existing `__tests__/alert-engine/*.test.ts` suite (23/23, untouched),
+>   _was_ verified: the existing `__tests__/alert-engine/*.test.ts` suite (23/23, untouched),
 >   the new `test_redis_pub.py` (3/3), and a `fakeredis`-based attempt that got as far as
 >   confirming `PUBLISH` is acknowledged with the correct subscriber count before hitting a
 >   known `fakeredis` TCP-server limitation (doesn't push messages across separate connections)

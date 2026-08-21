@@ -1,10 +1,26 @@
 # Antigravity Advisor — Handover Prompt for Phase 7 (Sessions 7-1 → 7-3)
 
+**Loaded for session 7-2.** Last updated 2026-08-20.
+
 **Supersedes** `HANDOVER-PROMPT-phase-6.md`, which is now stale (it says "Phase 6 starting now").
 Keep that file as an audit trail; do not paste it into a new chat.
 
 **How to use.** Copy everything between `=== BEGIN COPY ===` and `=== END COPY ===` into a fresh
-Antigravity chat. Standing prompt for all of Phase 7 — edit only `<YOUR_IMMEDIATE_TASK>`.
+Antigravity chat. **That single paste IS BEAT 1 (the `[A]` command).** Nothing else needs typing.
+
+Two blocks change per session, and they are already filled in for the session named below:
+the EXACT-COMMANDS block (the `[B]`/`[C]` prompts Davin later sends to Claude Code) and the
+IMMEDIATE-TASK block (what the Advisor must produce right now). Everything else is standing text
+that never changes during Phase 7.
+
+> ### Currently set for: SESSION 7-2 _(updated 2026-08-20)_
+>
+> Session 7-1 is CLOSED SUCCESSFUL (2026-08-12). Its IMMEDIATE-TASK block is archived after
+> `=== END COPY ===` for the audit trail — do not paste that one.
+
+**If the Phase 7 Antigravity chat from session 7-1 is still open, do NOT re-paste this file.**
+The standing context is already in that chat; just send the one-line `[A]` for 7-2 from handbook
+v12's `Instruction` sheet, row ลำดับ 86. Re-pasting the whole file is only for a fresh chat.
 
 ---
 
@@ -104,45 +120,46 @@ skimming. Everything outside that list: decide it and move on.
 <CANONICAL_DOCUMENTS>
 Where they disagree: **live code wins**, then the plan, then the playbook, then the handbook.
 
+0. `docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md` — **new 2026-08-20, read first.**
+   The sequencing authority from Phase 7 onward: run order, per-session scope, entry criteria,
+   and flags **F65–F74**. Phase 7 itself is unchanged; what changed is what comes after it.
 1. `CLAUDE.md` — Executor state block. Read the Current entry and the Waiting-on list,
    **especially items #132–#134** (the Phase 7 readiness findings).
-2. `docs/open-api-documents/OPENAPI-DRIFT-REPORT-pre-phase-7.md` — **read this before anything
-   else in Phase 7.** It is why 7-1's own premise had to be amended.
-3. `docs/migration-orders/7-1-api-client-reverify-and-generate.migration-order.md` — carries an
-   **AMENDMENT dated 2026-08-11** correcting its own Surface line.
+2. `docs/migration-orders/7-2-api-client-migrate-consumers.migration-order.md` — **the live
+   document.** The Executor's `PRE-DRAFT`, written at 7-1's close. This is what you upgrade.
+3. **Historical, read for context only — the questions in these are settled:**
+   `docs/open-api-documents/OPENAPI-DRIFT-REPORT-pre-phase-7.md` (why 7-1's premise was
+   amended) and `docs/migration-orders/7-1-api-client-reverify-and-generate.migration-order.md`
+   (CLOSED SUCCESSFUL, with 9 Deviations — the Deviations are the useful part for 7-2).
 4. `docs/migration-orders/00-SKELETON-AND-RULES.md` — §2 variant choice, §3 skeleton, §1 chain.
 5. `docs/migration-orders/monolith-to-microservices-migration-session-playbook.md` — §Phase 7.
 6. `docs/migration-orders/monolith-to-microservices-migration-implementation-plan.md` — §9, §11.
 7. `docs/migration-orders/DECISION-LOG.md` · `LESSONS-LEARNED.md` (**L11 and L27 bite hardest**).
-8. `docs/.../antigravity/migration-process-handbook-antigravity-v11.xlsx` — ⚠️ **v11 is current.**
-   v10 and below are superseded: v9 predates Phase 6's close, v10 predates the decision-model
-   change. **This is a binary spreadsheet — if you cannot open it, say so and move on.** You do
+8. `docs/.../antigravity/migration-process-handbook-antigravity-v12.xlsx` — ⚠️ **v12 is current.**
+   v11 and below are superseded: v11 predates Phases 9–15 and the Phase 8 split; v10 predates the
+   decision-model change; v9 predates Phase 6's close. **This is a binary spreadsheet — if you cannot open it, say so and move on.** You do
    not need it: everything you would have taken from it is reproduced in
    `<THE_EXACT_COMMANDS>` below. Reference only: sheets are `Runway` (Phase 7 block at the
    bottom), `Instruction` (`[A]`/`[B]`/`[C]` scripts), `Task_Description`, `Roles`, `Guide`.
    </CANONICAL_DOCUMENTS>
 
 <THE_EXACT_COMMANDS>
-**Reproduced verbatim from handbook v11's `Instruction` sheet, row 7-1.** Hand these to Davin
-as-is. Do not paraphrase, do not "improve", and above all do not invent an alternative —
-see the fabrication rule above.
+**Reproduced verbatim from handbook v12's `Instruction` sheet, row ลำดับ 86 (session 7-2).**
+Hand these to Davin as-is. Do not paraphrase, do not "improve", and above all do not invent an
+alternative — see the fabrication rule above. **Session-specific constraints belong in the DRAFT
+you write, not bolted onto `[B]`** — that is what keeps this text and the handbook identical.
 
 **`[B]` — Davin sends this to Claude Code at BEAT 3, after he marks the DRAFT APPROVED:**
 
-> Read CLAUDE.md and docs/migration-orders/EXECUTOR-PROTOCOL.md. CONFIRM the APPROVED order for
-> session 7-1 against the current codebase AND runtime state. Treat
-> docs/open-api-documents/OPENAPI-DRIFT-REPORT-pre-phase-7.md as INPUT, NOT TRUTH — re-verify its
-> path counts and its 107-service-route claim against the live controllers yourself, and tell me
-> if anything has drifted. The DRAFT contains a '## Decisions taken' section where the Advisor has
-> already chosen the Step 0 scope option — do not re-open that choice, but DO tell me if live code
-> contradicts it. Do not begin generating any client until I have approved the DRAFT. Show me:
-> what changed since drafting, the 'done when' checks, and any failing entry criterion. Do not
-> execute until I say go.
+> Read CLAUDE.md, docs/migration-orders/EXECUTOR-PROTOCOL.md and
+> docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md. CONFIRM the APPROVED order for session 7-2
+> against the current codebase AND runtime state, and show me: what changed since drafting, the
+> "done when" checks, and any failing entry criterion. Do not execute until I say go.
 
 **`[C]` — Davin sends this to Claude Code at BEAT 5, to close the session:**
 
 > Wrap up per EXECUTOR-PROTOCOL §3: tests + results, fill Deviations, update the artifacts,
-> harvest any lesson into LESSONS-LEARNED.md, then PRE-DRAFT session 7-2's order and show it to me.
+> harvest any lesson into LESSONS-LEARNED.md, then PRE-DRAFT session 7-3's order and show it to me.
 
 **`[A]`** is the command Davin already used to start you — you do not need to reproduce it.
 
@@ -162,11 +179,19 @@ Railway). One shared Postgres, per-service roles. Shared Redis. Strangler-fig cu
 - **Phase 0–3, 5:** closed.
 - **Phase 4:** CLOSED-WITH-NAMED-EXCEPTIONS (4B-22). Two independent tracks remain and do **not**
   block Phase 7: **F49** (dLocal `payment_method_flow`) and **F60** (Stripe webhook never
-  repointed; `4a-13-...migration-order.md` PRE-DRAFTed).
+  repointed; `4a-13-...migration-order.md` PRE-DRAFTed). **Both are now scheduled** — they become
+  **Phase 4X** (`4A-13`, `4A-14`, `4A-15`, with F47/F50), which runs immediately after 7-3 and
+  **must close before Session 8-1**, whose deletion sweep would otherwise remove routes still
+  carrying live dLocal and Stripe traffic (`MASTER-ROADMAP-PHASES-7-15.md` §0).
 - **Phase 6:** ✅ **CLOSED 2026-08-11** — 12 sessions + one ad-hoc exit-integrity repair.
   57 → **85 pages**, zero mock data (was 3 pages), **zero dead links** (was 14), orphaned
   endpoints **32 → 4** (all four with recorded decisions), F11/F61/F62/F63 all RESOLVED.
-- **Phase 7:** opening now. `7-1` is `PRE-DRAFT` and needs your DRAFT.
+- **Phase 7:** open. **`7-1` CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-12** — `lib/api/index.ts`
+  rewritten, `operationApi`/`moneyApi` generated under `lib/api/generated/`. **`7-2` is `PRE-DRAFT`
+  and needs your DRAFT** — that is the live task. `7-3` follows.
+- **After Phase 7:** Phase 4X → **Phase 9** (frontend replacement from codebase 2, 11 sessions) →
+  Phase 10 → Phase 8A → Phases 11–15 → Phase 8B. A dedicated `HANDOVER-PROMPT-phase-9.md` should be
+  written at 7-3's close; do **not** stretch this Phase 7 prompt to cover it.
 
 **What Phase 6's exit taught, and why it matters to you:** at the phase-exit review a gap-matrix
 row was marked `BUILT` for work the session it named had never scoped. It survived the review and
@@ -175,11 +200,13 @@ triage verdict must cite the commit or file that closed it — "BUILT (Session N
 unless session N's own order scoped it._ **Apply the same standard to every claim you put in a
 DRAFT: cite a file:line or a live route, never an assertion.**
 
-**Last measured baselines** (ad-hoc repair, 2026-08-11 — _last known_, not current; require
-re-measurement every session):
+**Last measured baselines** (marketing-resources ad-hoc session, 2026-08-20 — _last known_, not
+current; require re-measurement every session):
 
 - monolith: `tsc --noEmit` clean · `eslint app components lib hooks --max-warnings 0` → 0 errors,
-  4 known pre-existing warnings · `test:ci` **153/153 suites, 2344/2344 tests**
+  **5** known pre-existing warnings · `test:ci` **164/164 suites, 2422/2422 tests**
+  _(was 153/153, 2344/2344 on 2026-08-11 — three ad-hoc sessions have landed since: security-alerts
+  repair, language/GeoIP, marketing resources + MIME allowlist)_
 - `operation-service`: `tsc --noEmit` clean · **42/42 suites, 393/393 tests**
 - `money-service`: last recorded **62/62 suites, 522/522 tests**
 
@@ -197,99 +224,91 @@ stale by four sessions. Always instruct the Executor to re-measure.
   feature, so nothing is broken — but the two halves are not in sync in production.
   </CURRENT_PROJECT_STATE>
 
-<PHASE_7_STRUCTURE_AND_THE_ONE_BIG_PROBLEM>
-Phase 7 = 3 sessions: **7-1** re-verify + generate · **7-2** migrate consumers + lint rule ·
-**7-3** contract tests + docs (phase exit).
+<PHASE*7_STRUCTURE_AND_WHAT_7-1_SETTLED>
+Phase 7 = 3 sessions: **7-1** re-verify + generate *(CLOSED 2026-08-12)_ · **7-2** migrate
+consumers + lint rule _(**you are drafting this**)\_ · **7-3** contract tests + docs (phase exit).
 
-**Read this before drafting anything.** 7-1's original Surface line said
-`docs/open-api-documents/*` was "(read, not modified) the source of truth", and plan §9 step 7.2
-said to generate the client "from the OpenAPI specs." **Both are unworkable**, for one reason:
+**Read this before drafting.** The scope question that dominated 7-1 — the 21 specs in
+`docs/open-api-documents/` describe the **monolith's `/api/*` surface**, while `operationApi` and
+`moneyApi` must wrap **107 NestJS service routes** no spec documented — is **RESOLVED. Do not
+re-open it.** 7-1's `Decisions taken` chose **option (b): emit the specs from the running services
+via `@nestjs/swagger`**, on the reasoning that a generated spec cannot drift from the code because
+it _is_ the code. That is now built and merged.
 
-> The 21 specs describe the **monolith's `/api/*` surface**. Phase 7 must produce
-> `operationApi` and `moneyApi` clients wrapping **107 NestJS service routes**
-> (`operation-service` 62 across 10 controllers, `money-service` 45 across 15) — and **no spec
-> documents them.**
+**What 7-1 actually shipped — this is 7-2's raw material. Re-verify it against live code; do not
+take this list on trust (`LESSONS-LEARNED.md` L27):**
 
-Measured drift (path coverage only): 112 spec'd paths vs 129 real monolith endpoints · **42 real
-endpoints documented nowhere** · 27 spec'd paths absent from the monolith, of which **only 4 are
-genuinely wrong** (the rest are legitimately Flask-MT5, railway-gateway, `/internal/*`, NextAuth
-built-ins, or UI-page-route docs).
+| Thing              | Where                                                                                                                                |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Spec emitters      | `scripts/generate-openapi-spec.ts` in both services; `@nestjs/swagger@^11.4.6`; boots the real `AppModule`                           |
+| Emitted surface    | `operation-service` 47 paths / 62 operations · `money-service` 43 paths / 45 operations                                              |
+| Generated clients  | `lib/api/generated/{operation-api,money-api}/{schema.ts,client.ts}`                                                                  |
+| Factories          | `createOperationApi(token)` / `createMoneyApi(token)` — thin wrappers over `openapi-fetch`                                           |
+| Error mapping      | `unwrapOperationApi()` / `unwrapMoneyApi()` → the EXISTING `OperationServiceError` / `MoneyServiceError` throw-on-non-2xx convention |
+| Regeneration       | `generate:api-client` at the monolith root — verified idempotent (47/43 twice)                                                       |
+| `lib/api/index.ts` | Rewritten. Exports `operationApi`/`moneyApi` + `getOperationServiceToken`/`getMoneyServiceToken`                                     |
+| Contract tests     | `__tests__/lib/api/generated-clients.test.ts` — 12 tests against the real `Request` object                                           |
 
-**Step 0 of 7-1 is a scope decision — and under the updated operating model it is YOURS to make.**
-Evaluate all three, pick one, and record it in `## Decisions taken` with the rationale and the
-undo cost. Do not hand Davin an open question. Three options (drift report §1):
+**Four constraints 7-1 established that bind 7-2:**
 
-|     | Option                                                     | Trade-off                                                                                                                                                                                                                      |
-| --- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| (a) | Hand-author service specs first                            | Highest fidelity, durable contract. 107 routes of work.                                                                                                                                                                        |
-| (b) | Emit specs from the running services via `@nestjs/swagger` | Both services already define DTO classes — most of the work exists. A generated spec cannot drift from its code. **Evaluate this first**: it directly addresses the failure class that produced this drift in the first place. |
-| (c) | Narrow Phase 7 to the monolith surface only                | Smallest, and defensible if the invariant below holds. Leaves the services undocumented.                                                                                                                                       |
+1. **`lib/api/index.ts` is server-only in its entirety** (`LESSONS-LEARNED.md` **L6** — re-exporting
+   `operationApi`/`moneyApi` transitively pulls `next/headers` in through the error classes' home
+   modules). Its own header says so. A migrated call site must stay server-side.
+2. **`operation-service` has no global prefix; `money-service` uses `/v1`** (excluding `health` and
+   `health-auth`). The generated clients already encode this. **A call site must not re-encode it** —
+   if a migrated handler starts hand-writing `/v1/...`, that is a defect, not a port.
+3. **Request/response body schemas are deliberately generic (`type: object`).** Both services
+   validate through a custom `ZodValidationPipe`, not class-validator DTOs, so `@nestjs/swagger` had
+   no decorator metadata to read for bodies. This is documented, known, tracked as Waiting-on **#136**
+   — and is **explicitly not 7-2's job to fix**. Keep the call site's own explicit type annotation
+   where it already has one; do not loosen a route handler's contract to satisfy the generated types.
+4. **`stackA` / `stackB` stay frozen and `@deprecated`.** 7-1 deliberately left their known bugs
+   (alerts PUT-vs-PATCH, notification read path, preferences PATCH-vs-PUT, phantom market-data path)
+   unfixed — they are **Session 7-3's** retirement decision. No drive-by fixes while that file is
+   open for other reasons.
 
-**Evaluate (b) before defaulting to anything else.** The whole reason Phase 7 opened with a
-broken premise is that hand-maintained specs drifted from the code they described. A spec emitted
-from the running service cannot drift, because it _is_ the code. If you reject (b), the DRAFT
-must say why — "we didn't try it" is not a reason.
+**Two live findings 7-1 recorded that 7-2 must dispose of, not inherit:**
 
-**The invariant that decides whether (c) is even available — verify this yourself, before
-drafting. It is a fact, not a decision.**
+- **The 6 `token-2fa-*` monolith route files** (`app/api/auth/token-2fa-{setup,verify-setup,verify,
+status,disable,backup-codes}/route.ts`) were re-confirmed dead by a fresh zero-consumer grep and
+  documented in `lib/api/index.ts`'s own header — **not deleted.** 7-2 decides their fate.
+- **The empty leftover directory `app/api/auth/register/`** (no `route.ts` inside). Re-verify it is
+  genuinely empty at CONFIRM, then remove it.
 
-The question: _does the browser ever talk to `operation-service` / `money-service` directly?_
-If it never does, a browser-facing generated client only ever needs the monolith's surface, and
-(c) becomes defensible. Do not assume the answer in either direction — run the checks:
+**The transport invariant, restated accurately — it still holds and 7-2 must not break it.**
+No client-side code references any service URL, and both transport modules document that the
+browser never talks to the services directly. **The one deliberate exception:**
+`hooks/use-realtime-socket.ts` opens a **direct browser WebSocket to `operation-service`**, using a
+URL handed to it by `GET /api/realtime/token` (F8, Session 4B-17 — a persistent Socket.IO connection
+cannot be proxied through a Next.js route handler). A REST client generator does not cover the
+socket, so the invariant survives. Whether this stays the permanent architecture is **flag F65**,
+decided in Phase 9, **not here**.
 
-```bash
-# 1. Any client-side reference to a service URL?
-grep -rn "OPERATION_SERVICE_URL\|MONEY_SERVICE_URL\|NEXT_PUBLIC_.*API_URL" \
-  app components hooks --include=*.tsx --include=*.ts | grep -v "^app/api/"
-# 2. What do the transport modules assert about themselves?
-grep -n "server-only\|browser never" lib/operation-service/client.ts lib/money-service/client.ts
-# 3. The known exception:
-grep -n "url" hooks/use-realtime-socket.ts
-```
+**Found, not fixed, by 7-1 — flag it if 7-2 opens that file, do not chase it otherwise:** a stale
+CORS comment in `money-service/src/main.ts` claiming the browser calls money-service directly via a
+`NEXT_PUBLIC_MONEY_API_URL` that exists nowhere else in the repo.
 
-**A partial answer is already known and must be stated accurately in the DRAFT, not simplified:**
-no client-side code references any service URL, and both transport modules explicitly document
-"the browser never talks to \<service\> directly" — **but there is one real, deliberate
-exception.** `hooks/use-realtime-socket.ts` opens a **direct browser WebSocket to
-`operation-service`**, using a URL handed to it by `GET /api/realtime/token` (F8, Session 4B-17 —
-a persistent Socket.IO connection cannot be proxied through a Next.js route handler the way a
-REST call can).
-
-So the accurate framing is: **the browser makes no direct REST calls to either service, but does
-hold a direct WebSocket connection to `operation-service`.** A REST client generator does not
-need to cover the socket, so (c) survives this exception — but the DRAFT must say so explicitly
-rather than claiming a clean "never," and must state what the generated client does and does not
-cover. Re-verify all of the above at drafting time; do not take this paragraph on trust.
-
-**Three traps to write into the DRAFT explicitly:**
-
-1. Six `token-2fa-*` routes are believed **dead** (Session 4B-22, zero UI consumers, superseded by
-   the live `/api/user/2fa/*` cutover). Spec'ing them generates dead client methods.
-2. **`operation-service` sets no global prefix; `money-service` uses `/v1`** (excluding
-   `health`/`health-auth`). No spec records the asymmetry; a generated client must encode it.
-3. **Path coverage ≠ schema correctness.** The original `lib/api/` mismatch list (PUT vs PATCH on
-   alerts, wrong notification read path, PATCH vs PUT on preferences) proves verb/shape errors
-   exist. **Schema-level drift was not measured and may exceed path drift.**
-
-**Four genuinely-wrong spec entries** worth fixing regardless of scope: `/api/auth/register`
-(deleted at 4B-21), `/api/admin/disbursement/batches` and `.../batches/{id}/execute` (real paths
-have no `admin` segment), `/api/wise/recipients/{id}` (real route is `.../{id}/revalidate`).
-Also: `part-08-dashboard-layout-openapi.yaml` documents UI _page_ routes in an OpenAPI file and
-includes `/dashboard/watchlist` — a feature removed from the product (V8). Its fate needs a call.
-</PHASE_7_STRUCTURE_AND_THE_ONE_BIG_PROBLEM>
+**One environment fact that will bite:** dependency installs at the monolith root must use **pnpm**,
+not npm — `npm install` fails outright because `@trading-alerts/types` is referenced with a
+`workspace:*` specifier the plain npm CLI cannot parse (F9's pnpm-workspace setup, Session 4B-1).
+</PHASE_7_STRUCTURE_AND_WHAT_7-1_SETTLED>
 
 <STANDING_CAUTIONS>
 
-1. **`lib/api/index.ts` stops being untouchable.** It has been on `EXECUTOR-PROTOCOL.md` §5's
-   do-not-touch list for the whole migration; 7-1 is the session that finally touches it. Say so
-   explicitly in the DRAFT so the Executor doesn't refuse on the standing rule.
+1. **`lib/api/index.ts` is no longer on the do-not-touch list.** 7-1 released it and rewrote it;
+   `EXECUTOR-PROTOCOL.md` §5 was updated 2026-08-20 to record that. Its `stackA`/`stackB` exports
+   remain frozen and `@deprecated` until 7-3. Say so explicitly in the DRAFT so the Executor
+   neither refuses on a stale rule nor treats the whole file as open season.
 2. **`LESSONS-LEARNED.md` L11 — 13+ recurrences.** Orders arrive with a status header
    contradicting their own commit trail. When you upgrade PRE-DRAFT → DRAFT, commit that
    transition distinctly, and never silently resolve an open question the PRE-DRAFT flagged.
 3. **L27 — order text drifts from its own cited ground truth.** The drift report is order text.
    Require the Executor to re-verify its counts against live controllers at CONFIRM.
-4. **Dial is MEDIUM for 7-1** — how the audit is conducted is the Executor's judgment; what
-   counts as evidence is not. Every claim needs a live file:line or route citation.
+4. **Dial is LOW for 7-2** — this is a PORT. Behaviour preservation is the entire deliverable:
+   every migrated route's external HTTP contract (status codes, response shape, error body) must
+   be byte-for-byte identical before and after. Treat every "improvement" instinct as suspect.
+   How the discovery pass is run is the Executor's judgment; what counts as evidence is not —
+   every claim needs a live file:line or route citation.
 5. **Money/auth still escalate** (§7), even in a client-rewrite phase — the generated client will
    wrap payment and auth endpoints.
 6. **Value-blind on secrets always** — existence checks only (L17, two prior leaks).
@@ -311,6 +330,90 @@ copy it verbatim. Do not re-derive it from the spreadsheet, do not paraphrase it
 substitute an invented script invocation. Those per-session commands carry safeguards the
 generic baseline lacks.
 </WHAT_A_GOOD_DRAFT_LOOKS_LIKE>
+
+<YOUR_IMMEDIATE_TASK>
+
+<!-- EDIT THIS BLOCK EACH SESSION. Everything above stays unchanged. -->
+<!-- Currently set for: SESSION 7-2. 7-1's block is archived below === END COPY ===. -->
+
+**Session to draft:** `7-2` — API Client: Migrate Consumers
+**Variant:** PORT, dial **LOW** — behaviour preservation is the entire deliverable
+**Order file:** `docs/migration-orders/7-2-api-client-migrate-consumers.migration-order.md`
+(already exists as `PRE-DRAFT`, generated by the Executor at 7-1's close on 2026-08-12)
+
+Do this, in order:
+
+1. Confirm you have read `CLAUDE.md` (the Current entry now describes 7-1 as CLOSED SUCCESSFUL,
+   plus three ad-hoc sessions after it), the 7-2 PRE-DRAFT in full, and `<THE_EXACT_COMMANDS>`
+   above. State the current phase/session and the last measured baselines back to Davin so he can
+   see you are on current state.
+2. **Read `lib/api/generated/operation-api/client.ts` and `lib/api/generated/money-api/client.ts`
+   yourself** and report the real signatures of `createOperationApi` / `createMoneyApi` /
+   `unwrapOperationApi` / `unwrapMoneyApi`. The PRE-DRAFT's own entry criteria say not to trust
+   its citation of them. This is a fact you establish, not a decision you make.
+3. **Decide the one open judgment call the PRE-DRAFT deliberately left open** and record it in
+   `## Decisions taken`: are `lib/operation-service/write-routes.ts`'s
+   `forwardRequestToOperationService()` / `...OptionalAuth()` callers in scope for this session,
+   or out? They are a different, already-typed forwarding pattern from Sessions 4B-6/4B-11. Pick
+   one, give the rationale and the undo cost. Do not hand Davin an open question.
+4. **Decide the fate of the 6 dead `token-2fa-*` monolith route files** (documented in
+   `lib/api/index.ts`'s own header at 7-1, re-confirmed zero-consumer). Retire them for real, or
+   state why they stay. Same rule: a decision, not a question.
+5. Report anything in the PRE-DRAFT that contradicts live code **before** drafting. Do not
+   silently correct it.
+6. Produce the full `DRAFT`, opening with `## Decisions taken`. Keep Step 0 (the exhaustive
+   discovery pass) as the first ordered step — the PRE-DRAFT's own "6 + 1" call-site count is
+   explicitly a floor, not the real number, and the file list must be Step 0's live output rather
+   than anything this DRAFT guesses (`LESSONS-LEARNED.md` L27).
+7. Set `Status: DRAFT`. **Do not mark it APPROVED** — that remains Davin's, and it is where he
+   reviews your decisions.
+8. Give Davin the `[B]` command by **copying it verbatim from `<THE_EXACT_COMMANDS>` above**.
+
+**Session-specific constraints to write into the DRAFT:**
+
+- The session ends with a **lint rule banning direct `fetch()` to API base URLs, proven by a
+  planted violation** — the rule must be _seen_ to fail, not asserted to work.
+- `stackA` / `stackB` in `lib/api/index.ts` are **out of scope** (Session 7-3's retirement job).
+  Their known bugs must not be fixed as a drive-by while that file is open for other reasons.
+- Every migrated route's external HTTP contract — status codes, response shape, error body — must
+  be byte-for-byte identical before and after. A test needing its assertion changed is a finding,
+  not a fix (`LESSONS-LEARNED.md` **L3**).
+- `app/api-test/page.tsx` named in plan §9 step 7.3 was already deleted at Session 6-12, under its
+  real name `app/test-api/page.tsx`. **Confirm, do not re-delete.**
+- The empty leftover directory `app/api/auth/register/` is a small cleanup item for this session —
+  re-verify it is genuinely empty at CONFIRM before removing it.
+- Generated request/response bodies are deliberately generic (`type: object`) because both services
+  validate via Zod, not class-validator, so `@nestjs/swagger` had no decorator metadata to read.
+  That is a known, documented limitation — **not** a blocker for this session, and **not** this
+  session's job to fix.
+
+</YOUR_IMMEDIATE_TASK>
+
+Please confirm you have read and understood this context, inspect the PRE-DRAFT and its
+amendment, and present your plan before writing the DRAFT.
+
+=== END COPY ===
+
+---
+
+## Per-session `<YOUR_IMMEDIATE_TASK>` swaps
+
+| Session | Variant / dial            | Key constraints                                                                                                                                                                                                                                                                                                                              |
+| ------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **7-1** | CONTRACT/PORT · MEDIUM    | As above. Step 0 scope decision is mandatory.                                                                                                                                                                                                                                                                                                |
+| **7-2** | PORT · LOW                | Move Phase 6's interim wrappers onto the unified client; add a lint rule banning direct `fetch()` to API base URLs and **prove it with a planted violation** — the rule must be seen to fail. Note: `app/api-test/page.tsx` named in the plan was already deleted at Session 6-12 as `app/test-api/page.tsx`; confirm rather than re-delete. |
+| **7-3** | VERIFY-RETIRE · near zero | Contract tests against recorded real responses; update/retire the 3 stale api-client design docs; Phase 7 exit. At its close, PRE-DRAFT `4A-13` (Phase 4X), **not** `8-1` — see `MASTER-ROADMAP-PHASES-7-15.md` §0.                                                                                                                          |
+
+---
+
+## Archive — the IMMEDIATE-TASK block as it stood for session 7-1
+
+Session 7-1 was CONFIRMED, executed and CLOSED SUCCESSFUL on 2026-08-12. Kept as an audit
+trail only — **do not paste this into a chat.** The live block is inside the copy region
+above, set for 7-2.
+
+<details>
+<summary>7-1 task block (executed 2026-08-12)</summary>
 
 <YOUR_IMMEDIATE_TASK>
 
@@ -353,17 +456,4 @@ Do this, in order:
 
 </YOUR_IMMEDIATE_TASK>
 
-Please confirm you have read and understood this context, inspect the PRE-DRAFT and its
-amendment, and present your plan before writing the DRAFT.
-
-=== END COPY ===
-
----
-
-## Per-session `<YOUR_IMMEDIATE_TASK>` swaps
-
-| Session | Variant / dial            | Key constraints                                                                                                                                                                                                                                                                                                                              |
-| ------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **7-1** | CONTRACT/PORT · MEDIUM    | As above. Step 0 scope decision is mandatory.                                                                                                                                                                                                                                                                                                |
-| **7-2** | PORT · LOW                | Move Phase 6's interim wrappers onto the unified client; add a lint rule banning direct `fetch()` to API base URLs and **prove it with a planted violation** — the rule must be seen to fail. Note: `app/api-test/page.tsx` named in the plan was already deleted at Session 6-12 as `app/test-api/page.tsx`; confirm rather than re-delete. |
-| **7-3** | VERIFY-RETIRE · near zero | Contract tests against recorded real responses; update/retire the 3 stale api-client design docs; Phase 7 exit.                                                                                                                                                                                                                              |
+</details>

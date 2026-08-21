@@ -141,7 +141,10 @@ CONFIRMS against live code. Nothing here fast-paths that.
 
 Unfinished Phase 4 business, not new work. Named `4X` so nothing is renumbered.
 
-- **4A-13 — Stripe webhook cutover** (VERIFY-RETIRE). Order already PRE-DRAFTed 2026-08-04.
+- **4A-13 — Stripe webhook cutover** (VERIFY-RETIRE). **Its order already exists** — PRE-DRAFTed
+  2026-08-04 at Session 4B-22's close. It is **not re-PRE-DRAFTed** by 7-3; it is upgraded to
+  DRAFT by the Advisor and then fully re-verified at its own CONFIRM, because it is stale by
+  weeks and reasons in relative time ("8+ days since the port").
   Re-verify money-service's dormant `StripeWebhookController` against Stripe's current event
   shape (built 2026-07-27, never exercised), repoint the dashboard webhook URL mirroring the
   dLocal/4A-5 precedent, prove live with Davin present. Closes **F60**. ⚠ real money.
@@ -493,6 +496,24 @@ Sessions 8-3/8-4/8-5, **amended**:
 - **Cutover-table scope is unchanged:** traffic-carrying slices with a real rollback mechanism.
   Phases 9–15 are mostly additive builds, so most of them will correctly add **no rows** — the
   same call Phase 6 made deliberately. 4A-13/4A-14 _do_ move rows.
+
+---
+
+### Who writes the Advisor handover prompt (added 2026-08-20)
+
+Each phase needs a standing prompt the Advisor is opened with — `davin-operational-manual/
+antigravity/HANDOVER-PROMPT-phase-<N>.md`. **This is a phase-level artifact and is NOT the
+Executor's job**: `EXECUTOR-PROTOCOL.md` §3's close-out duties end at PRE-DRAFTing the next
+_order_. The handover prompt is written by Davin (or an Advisor-side assistant) **at the close
+of the last session of the preceding phase**, and must carry that session's real closing
+baselines rather than a figure copied forward.
+
+Currently written: `HANDOVER-PROMPT-phase-6.md` (history), `HANDOVER-PROMPT-phase-7.md`
+(history — Phase 7 CLOSED 2026-08-20), **`HANDOVER-PROMPT-phase-4X.md` (live, loaded for
+4A-13)**. Each phase below owes one, and the trigger is recorded in the _last_ row of that
+phase's own session table so it cannot be forgotten: **4A-15 writes phase-9's · 9-10 writes
+phase-10's · 10-3 writes 8A's · 8-2 writes phase-11's · 11-3 writes phase-12's · 12-5 writes
+phase-13's · 13-3 writes phase-14's · 14-3 writes phase-15's · 15-4 writes 8B's.**
 
 ---
 
