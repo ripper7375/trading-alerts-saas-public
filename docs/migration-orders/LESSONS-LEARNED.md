@@ -4,10 +4,10 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 33 (L1–L33), well within the cap after the
+**Hard cap ~40 active lessons.** Currently at 35 (L1–L35), well within the cap after the
 2026-08-12 consolidation pass (64 → 25: 28 archived, 11 merged into 8 master rules,
 then 4 unpromoted candidates promoted to L26–L29; L30 added 2026-08-20 ad-hoc, L31–L32
-added Session 7-2, L33 added Session 4A-13).
+added Session 7-2, L33 added Session 4A-13, L34–L35 added Session 4A-14).
 Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds 40 again.
 
 ---
@@ -352,3 +352,17 @@ Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds
   path after such a cutover, confirm the observed real event actually reached every write inside
   the same transaction, not just the first one that happened to fail loudest.
 - Source: Session 4A-13 (2026-08-21), `DECISION-LOG.md` F75 · Status: ACTIVE
+
+### L34 — `railway logs`/`railway status` silently default to the linked service, not the directory you ran them from or the service you meant
+
+- Symptom: querying money-service's logs during a live smoke test (`cd money-service && railway logs --http --path /v1/payments/dlocal/create`) returned nothing, twice, across two different query shapes — appearing to mean the request never reached money-service. It had. The commands were actually querying `operation-service-worker` (an unrelated alert-engine worker, and this Railway project's default _linked_ service), not `money-service` — `cd`ing into a subdirectory does not change which service Railway's CLI targets.
+- Root cause: `railway status`/`railway logs` resolve the target service from the project's linked-service config (set once via `railway link`/`railway service`), not from the current working directory or any inferred context. Running them from inside `money-service/` looks like it should scope to that service; it doesn't.
+- Rule: always pass `--service <exact-name>` explicitly on every `railway logs`/`railway status` call when more than one service exists in the project — never rely on directory context. An empty/negative result from an unscoped Railway CLI call is not evidence of absence; verify the service name first (`railway status` lists all services and which one is linked).
+- Source: Session 4A-14 (2026-08-21) · Status: ACTIVE
+
+### L35 — A local `.env`/`.env.local` `DATABASE_URL` is not guaranteed to be the real production database; a "clean" read-only query result needs a sanity check before it's trusted as verification
+
+- Symptom: a read-only Prisma query for a specific `Payment` row (needed to verify an orphaned-row cleanup) returned "not found," and a broader scan returned zero `PENDING` rows — appearing to confirm the row was cleaned up. It wasn't necessarily: a later query, for a DIFFERENT row that money-service's own first-party structured log had just proven was created seconds earlier, also returned "not found" — and a plain `count()` on the same connection showed **0 total `Payment` rows and 8 total `User` rows**, nowhere near consistent with months of real production/migration activity. The local `DATABASE_URL` was pointing at the wrong database the entire session; both "verified clean" results were false negatives.
+- Root cause: a query returning zero rows is consistent with BOTH "the data was genuinely cleaned up" and "this connection isn't the database the data lives in" — nothing about a clean, error-free query result distinguishes the two, and a local `.env` file's `DATABASE_URL` can silently point at a stale/personal/dev database without any error at connection time.
+- Rule: before trusting ANY read-only DB query result as verification evidence (not just an absence-of-rows result), sanity-check the connection identifies the right database — a rough `count()` on a table known to have substantial real data (e.g., total `User` or `Payment` rows) should be in a plausible range, not suspiciously near zero. When a query result contradicts a first-party service log that just asserted the opposite (as happened here), trust the service log and re-verify the query's own target, not the other way around.
+- Source: Session 4A-14 (2026-08-21), `DECISION-LOG.md` F76 · Status: ACTIVE

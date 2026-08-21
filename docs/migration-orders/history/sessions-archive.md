@@ -7,6 +7,89 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 7-3 (API Client Contract Tests,
+  Documentation & stackA/stackB Retirement, PORT/CONTRACT hybrid exit-review, dial LOW),
+  CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-20. Third and final session of Phase 7 —
+  **Phase 7 (API Client Rewrite) is now CLOSED.\*\*
+  **CONFIRM found the L3/L11 pattern again**: the order on disk carried the full Advisor
+  DRAFT→APPROVED upgrade (`Decisions taken`, 5 Ordered Steps, entry criteria, done-when) while
+  committed HEAD (from Session 7-2's close commit) was still the bare `PRE-DRAFT` stub with no
+  steps at all. Reported in full before proceeding; Davin confirmed live the APPROVED batch is
+  his authentic edit. All 4 entry criteria re-verified live and held (zero `stackA`/`stackB`
+  consumers; `tsc`/`eslint`/`test:ci` baseline exact match to the order's claim —
+  163/163 suites, 2412/2412 tests, 0 errors/5 warnings).
+  **Built all 4 Ordered Steps, one commit each, plus a Step 0 CONFIRM housekeeping commit:**
+  Step 0 — recorded the CONFIRM findings and the order's own citation-drift (Step 1's verification
+  text predicted "-37 tests" for the 3 files being deleted; the real static count is **44**, no
+  `.each()` blocks to explain the gap — corrected the expected post-Step-1 baseline before
+  executing, then confirmed it live). Step 1 — deleted `stackA`, `stackB`, the `api` export,
+  `apiCall`/`BASE_URL`, and the 6 unused legacy interfaces from `lib/api/index.ts` (module now
+  strictly re-exports the generated-client surface); deleted the 3 test files that exclusively
+  exercised the retired exports. `test:ci` **160/160 suites, 2368/2368 tests** (2412 − 44, zero
+  regressions) — exact match to the corrected prediction. Step 2 — expanded
+  `__tests__/lib/api/generated-clients.test.ts` from 12 to 43 tests: full domain coverage for
+  `operationApi` (alerts, auth, user preferences/profile, drawings, notifications) and `moneyApi`
+  (affiliates incl. the L32 `pathWithQuery`/`buildQuery` cast pattern, admin, wise disbursement,
+  cron trigger, health), plus a dedicated 400/401/403/404/500 error-mapping block, every route
+  re-verified directly against the generated `schema.ts` files rather than the order's prose
+  (`LESSONS-LEARNED.md` L22). **Found a second order/ground-truth mismatch**: the order's Surface
+  line names a templated `POST /v1/cron-trigger/{jobId}` money-service route that doesn't exist —
+  the real schema emits 8 separate literal-named job routes instead; tested against the real
+  `/v1/cron-trigger/daily-maintenance`. Also caught a genuine client-contract detail while writing
+  the DELETE-204 test: `unwrapOperationApi`/`unwrapMoneyApi` return `undefined` on a 204, not
+  `{}` — fixed the test's own first-draft assertion, not a flaky test. `test:ci`
+  **160/160 suites, 2399/2399 tests** (2368 + 31 new, zero regressions). Step 3 — prepended a
+  `HISTORICAL/SUPERSEDED` notice to the 5 legacy design docs in `backend-stack-a/api-client-
+between-frontend-and-stack-b/` (kept for audit trail, not deleted); authored
+  `docs/architecture/api-client-architecture.md` as the new canonical reference (client overview,
+  codegen chain, server-only constraint + error-unwrap conventions, the ESLint direct-fetch ban,
+  and the `/v1` prefix + L32 workaround with a worked example). Step 4 — full exit-review sweep:
+  `tsc --noEmit` clean, `eslint` clean (0 errors, same 5 pre-existing warnings), `test:ci`
+  **160/160 suites, 2399/2399 tests**. Repo-wide `stackA`/`stackB` grep swept 77 files but the
+  only live-surface hit (`app/`, `components/`, `lib/`, `hooks/`, `__tests__/`) is `lib/api/
+index.ts`'s own intentional retirement note — the rest are an unrelated third-party "Stack Auth"
+  library in `seed-code/` (read-only, out of scope), the `frontend/` SEPARATE_STACK mirror (never
+  in scope), and this session's own docs. Zero live code references to the retired exports remain.
+  **No flag flipped, no cutover-table row** — pure test/doc/retirement cleanup, `migration-
+cutover-table.md` unchanged. `migration-stack-analysis.md` updated (files deleted/created this
+  session). No new `LESSONS-LEARNED.md` entry — both recurring patterns hit this session (L3's
+  uncommitted-order pattern, L22's order-vs-ground-truth drift) already have active rules; see
+  L3's own recurrence note for this session.
+  **Artifacts updated:** `7-3-api-client-contract-tests-and-retirement.migration-order.md`
+  (Status → CONFIRMED → CLOSED SUCCESSFUL; entry criteria all checked with CONFIRM-time findings;
+  Done-when all checked; Deviations filled — 5 entries, 0–4), `migration-stack-analysis.md`, this
+  file (Current/Previous rotation — Session 7-1 moved to `history/sessions-archive.md`),
+  `LESSONS-LEARNED.md` (L3 recurrence note only, no new entry). **Next session is `4A-13`
+  (Stripe Webhook Cutover, Phase 4X — `MASTER-ROADMAP-PHASES-7-15.md` §0 Gate 2, run immediately
+  after 7-3, NOT Session 8-1** — 8-1's own deletion sweep is gated on all of 4A-13/4A-14/4A-15
+  CLOSED first). **Its order (`4a-13-stripe-webhook-cutover.migration-order.md`) already exists**
+  as `PRE-DRAFT`, generated 2026-08-04 at Session 4B-22's close — **not rewritten this session**;
+  it needs a full fresh re-verification at its own CONFIRM, not a rewrite now. What's concretely
+  stale about it, checked live at this session's close rather than assumed from its age:
+  - **17 days old** (generated 2026-08-04, today 2026-08-21); its own Entry Criterion 2 says
+    "8+ days have passed since the port" (Session 4A-9, 2026-07-27) — that framing is itself
+    stale, the real gap is now **25 days**.
+  - **Code-drift check (good news, but must be re-run live, not trusted from this note):**
+    `git log --oneline -- lib/stripe/ app/api/webhooks/stripe/ money-service/src/stripe/` shows
+    zero commits since `37700b51` (the Session 4A-9 port itself) — the only later Stripe-adjacent
+    commit is `86ef2299` (Session 6-8, a frontend upgrade-success page, unrelated to webhook
+    logic). No monolith-side or money-service-side webhook code has changed since the port, as of
+    this check.
+  - **`DECISION-LOG.md` F60 re-checked: still OPEN**, register text unchanged since Session 4B-22.
+  - **Entry Criterion 1's own phrasing is now inaccurate and needs correcting at CONFIRM**: it
+    says "no session between 4B-22 and this one's own CONFIRM has touched Stripe webhook code" —
+    three sessions have in fact run since 4B-22 (7-1, 7-2, 7-3, all Phase 7 API-client work);
+    none touched Stripe/webhook code (confirmed above), but the criterion's own wording assumed
+    zero intervening sessions, not zero intervening _relevant_ sessions.
+  - **What code-drift-checking cannot cover — genuinely needs live re-verification at CONFIRM,
+    not assumable from git history:** whether production Stripe events are still reaching the
+    monolith today (Entry Criterion 3), whether `STRIPE_WEBHOOK_SECRET`/money-service's real
+    Railway env is still correctly set (Entry Criterion 5, value-blind per L17), and Davin's live
+    availability for the webhook-URL repoint approval (Entry Criterion 4) — none of these are
+    derivable from the repo alone.\*\*
+
+---
+
 - _(superseded-by-above, retained for context)_ **Session 7-2 (API Client Migrate Consumers, PORT variant, dial LOW), CONFIRMED,
   executed, CLOSED SUCCESSFUL 2026-08-20. Second session of Phase 7 — the consumer rewiring
   Session 7-1 deliberately deferred. Also the session that landed `MASTER-ROADMAP-PHASES-7-15.md`

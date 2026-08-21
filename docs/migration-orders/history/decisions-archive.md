@@ -1838,8 +1838,8 @@ credentials`. A `400` is dLocal's own payload-validation layer responding, which
 
 ## F49 — dLocal outbound payment-creation request body is missing the required `payment_method_flow` field (pre-existing, both monolith and money-service; was masked by F48)
 
-- Status: OPEN
-- Session: 4A-10c · Date: 2026-07-30
+- Status: RESOLVED
+- Session: 4A-10c (found) → 4A-14 (fixed, 2026-08-21) · Date: 2026-07-30 / 2026-08-21
 - Found while: verifying F48's fix live. Once the corrected signing/auth headers let the request
   reach dLocal's real API for the first time ever (previously it 403'd before dLocal's payload
   validation ever ran), dLocal responded `400 {"code":5001,"message":"Missing parameter:
@@ -1873,6 +1873,75 @@ payment_method_flow","param":"payment_method_flow"}`.
   `fetch` cannot catch (L2), and exactly the class an auth fix can accidentally unmask (new lesson,
   this session).
 - Owner: Davin/Advisor — due before the next Group B (dLocal) cutover attempt.
+- **RESOLUTION (Session 4A-14, 2026-08-21):** Advisor decided `payment_method_flow: 'REDIRECT'`
+  (`Decisions taken` #1, `⚠ NEEDS EXPLICIT SIGN-OFF`) — all 8 supported countries (TH, VN, ID, IN,
+  NG, PK, ZA, TR) use redirect-based wallet/bank methods where dLocal returns `redirect_url`,
+  matching the existing response mapping on both sides. Added to `requestBody` in
+  `createPayment()`, both `lib/dlocal/dlocal-payment.service.ts` and
+  `money-service/src/dlocal/dlocal-payment.service.ts` (Steps 1–2, one commit each). Neither
+  file's existing test suite had ever exercised the real outbound `fetch()` call — both
+  short-circuit into a mock response whenever `NODE_ENV==='test'` (always true under Jest,
+  regardless of `DLOCAL_API_KEY`), so the pre-existing `mockFetch` spies were dead code. New tests
+  added using `jest.resetModules()` + a `process.env` override before a dynamic `require()`
+  re-import, to force the real code path and assert on the real outbound JSON body.
+  `money-service` deployed to Railway, confirmed `Online` + `/health` 200. Davin authorized and
+  the Executor flipped `MIGRATE_WRITE_APIS_MONEY_DLOCAL=true` on Vercel production, redeployed.
+  **Live proof the fix itself works:** Davin's real checkout click-through produced a genuinely
+  DIFFERENT dLocal rejection than F49's own signature — `400 {"code":5010,"message":"Method not
+  available"}`, not `5001 Missing parameter: payment_method_flow`. `payment_method_flow` is now
+  being accepted; F49 is closed. **But the request still failed end-to-end**, on a new,
+  previously-masked bug — registered separately as `DECISION-LOG.md` **F76** (below in spirit,
+  see main `DECISION-LOG.md` register; full entry follows this one). `MIGRATE_WRITE_APIS_MONEY_
+DLOCAL` reverted to `false` and redeployed clean per the order's own "any failure = stop and
+  revert flag" rule — Group B remains NOT cut over. This is the third recurrence of the exact
+  `LESSONS-LEARNED.md` L11 pattern on this one flag (F48 masked F49; F49 masked F76).
+
+## F76 — dLocal `payment_method_id` sent to the Payins API is a human-readable display name, not dLocal's real internal method code (masked by F49 until now)
+
+- Status: OPEN
+- Session: 4A-14 · Date: 2026-08-21
+- Found while: Davin's live, Davin-authorized test-mode checkout click-through against real
+  production, immediately after F49's fix was cut over. money-service's own structured logs show
+  the full request lifecycle up to the new failure point: `Creating payment` → `Payment record
+created` (`paymentId: cmt2yflxe00000fnw8gy7jm53`) → `Creating dLocal payment` →
+  `[ERRO] dLocal API error status=400 error={"code":5010,"message":"Method not available"}`.
+- **Root cause (not yet confirmed against dLocal's real docs/sandbox — inferred from code read):**
+  `lib/dlocal/payment-methods.service.ts`'s `getDefaultPaymentMethod()`/country tables return
+  human-readable display strings (`'TrueMoney'`, `'UPI'`, `'Bank Transfer'`, `'GoPay'`, …) that
+  `createPayment()` sends verbatim as `payment_method_id` in the outbound request body. dLocal's
+  real Payins API almost certainly expects its own short internal method codes, not display names
+  — `5010 "Method not available"` is consistent with dLocal parsing the request correctly (no
+  longer missing a field) but not recognizing `"TrueMoney"` as a valid method ID for the merchant
+  account/country. This specific request used `country="TH"`, `paymentMethod="TrueMoney"`.
+- **Scope: pre-existing in the monolith, not introduced by this migration** — same shape as F48
+  and F49. The monolith's own native dLocal route (currently carrying all real traffic while the
+  flag is `false`) has the identical bug; this isn't a migration-introduced regression, and the
+  flag flip that surfaced it live is not itself the cause.
+- **Side effect:** a real orphaned `Payment` row, `cmt2yflxe00000fnw8gy7jm53` (`status: PENDING`,
+  `provider: DLOCAL`, `country: TH`, `paymentMethod: TrueMoney`) — same shape as the F48/F49
+  precedent. Not deleted by the Executor (will not permanently delete production data even with
+  authorization) — flagged for Davin.
+- **A second, separate finding surfaced while investigating this:** the Executor's own local
+  `DATABASE_URL` (`.env`/`.env.local`) does not point at the real production database — a direct
+  query for this exact row, and a broader sanity check (`0` total `Payment` rows, `8` total `User`
+  rows), both returned results inconsistent with months of real production/migration activity,
+  directly contradicting money-service's own first-party log line proving the row was created.
+  This retroactively invalidates Session 4A-14's own CONFIRM-time "orphaned `Payment` row audit"
+  entry criterion (checked off against the same wrong connection) — the real status of the
+  ORIGINAL orphaned row from 4A-10c (`cms7hlmb900000fmpz9i9fv1q`) is therefore unknown again,
+  pending a real-database re-check. See `LESSONS-LEARNED.md` new entry this session.
+- **Not fixed this session**, per `LESSONS-LEARNED.md` L11's own explicit rule: a newly-unmasked
+  bug found live is its own correctly-scoped finding, not a reason to keep patching deeper into a
+  live money path in the same session. `MIGRATE_WRITE_APIS_MONEY_DLOCAL` reverted to `false`
+  immediately, redeployed, confirmed via alias.
+- **What a correct fix needs:** obtain dLocal's real, current list of valid `payment_method_id`
+  codes per supported country (from dLocal's dashboard/docs — not guessed), map this codebase's
+  existing display-name buckets to them, update both `createPayment()` call sites, and verify
+  against dLocal's real sandbox (with genuine sandbox credentials, which neither the local dev
+  environment nor this session had access to) before the next Group B cutover attempt.
+- Owner: Davin/Advisor — needs its own dedicated fix session (working title `4A-16` or similar;
+  not yet numbered) before Slice 4 can reach 4/4 and before Session 8-1's own entry criteria
+  (which require F49 AND this cutover complete) can be satisfied.
 
 ## F50 — `COMMISSION_CREDITED` outbox event's `aggregateId` resolves to the wrong recipient
 

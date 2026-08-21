@@ -26,7 +26,79 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 4A-13 (Stripe Webhook Cutover, Phase 4X gate 2/3, VERIFY-RETIRE/CUTOVER,
+- **Current:** Session 4A-14 (dLocal Write-API Group B Cutover, Phase 4X, PORT + CUTOVER,
+  dial LOW→near-zero), CONFIRMED, executed, **CLOSED — PARTIAL** 2026-08-21. Second session of
+  Phase 4X. Closes `DECISION-LOG.md` **F49** (RESOLVED, real fix, proven live) but the Group B
+  cutover itself FAILED live on a new, previously-masked bug — registers and is now blocked on
+  new flag **F76** (OPEN). Slice 4 stays at 3/4 write-API groups, unchanged from 4A-10c's close.
+  **CONFIRM found the by-now-familiar L3/L11 pattern again**: committed HEAD had only the bare
+  PRE-DRAFT stub; working copy carried the full DRAFT→APPROVED upgrade. Davin confirmed live it
+  was his authentic edit. Entry criteria re-verified: F49 still OPEN scope-unchanged; git drift
+  zero since 4A-10c (order's own cited commit `1a6e9a8f` doesn't exist in this repo — citation
+  drift, L22, corrected to the real close commit `333a108f`); all 4 test-baseline numbers exact
+  match (monolith `tsc`/`eslint` clean, `test:ci` 160/160 suites 2399/2399 tests; money-service
+  62/62 suites 522/522 tests). Orphaned-row entry criterion checked "clean" at CONFIRM time —
+  **later retracted as invalid, see below.** The Advisor also re-sequenced Step 4 (sandbox
+  verification) ahead of Step 5 (flag flip) between DRAFT and APPROVED, fixing a real ordering
+  defect flagged at CONFIRM.
+  **Steps 1–2 (money-service + monolith `payment_method_flow: 'REDIRECT'` fix): clean.** Neither
+  side's existing test suite had ever exercised the real outbound `fetch()` call — both
+  short-circuit into a mock response whenever `NODE_ENV==='test'` (always true under Jest), so
+  the pre-existing `mockFetch` spies were dead code. New tests use `jest.resetModules()` + a
+  `process.env` override before a dynamic `require()` re-import to force the real path and assert
+  on the real JSON body. Both sides +1 test, zero regressions, one commit each.
+  **Step 3 (deploy) needed more than "git push":** `money-service`'s Railway deploy auto-triggered
+  and settled clean (`GET /health` → 200, not log-reading, per L13). Vercel needed two separate
+  actions the order conflated — the env var itself (`vercel env rm`+`add`, no in-place update) AND
+  a `vercel redeploy`, since env var changes don't reach already-running serverless functions
+  without a fresh deployment. Confirmed the correct linked Vercel project (`trading-alerts-saas-
+frontend`) via `.vercel/project.json` before touching anything, rather than guessing among the 3
+  projects `vercel project ls` returned.
+  **Step 4's literal "sandbox verification" bullet was infeasible**: local `.env`/`.env.local`
+  have the `DLOCAL_*` keys present but empty. Substituted the order's own explicit fallback (real-
+  fetch-path unit tests) and disclosed the residual uncertainty to Davin before proceeding, rather
+  than treating it as equivalent proof.
+  **Step 5/6 (flag flip + live smoke test) — mixed result, third recurrence of L11's exact
+  pattern on this one flag (F48 masked F49; F49 masked F76):** Davin's real checkout click-through
+  got `"Failed to create payment"`, but money-service's own logs proved genuine progress — dLocal's
+  rejection changed from `5001 Missing parameter: payment_method_flow` (F49) to a DIFFERENT code,
+  `400 {"code":5010,"message":"Method not available"}`. F49 is real and fixed. The new bug
+  (**F76**, OPEN): `lib/dlocal/payment-methods.service.ts` sends human-readable display names
+  (`'TrueMoney'`, `'UPI'`, …) as dLocal's `payment_method_id`, not dLocal's real internal method
+  codes — inferred from the code, not yet confirmed against dLocal's docs/sandbox. Not fixed this
+  session per L11's own rule (a newly-unmasked live bug is its own correctly-scoped finding).
+  `MIGRATE_WRITE_APIS_MONEY_DLOCAL` reverted to `false`, redeployed, confirmed via alias — this
+  order's own "any failure = stop and revert flag" rule, executed exactly as written.
+  **A serious, separate finding: the Executor's own local `DATABASE_URL` does not point at the
+  real production database.** Discovered when a query for a NEW Payment row that money-service's
+  own log had just proven was created (`cmt2yflxe00000fnw8gy7jm53`) returned "not found" —
+  sanity-checked with a plain `count()`: **0 total `Payment` rows, 8 total `User` rows** on that
+  connection, nowhere near consistent with months of real activity. This retroactively **invalidates
+  this session's own CONFIRM-time "orphaned `Payment` row audit"** (checked off against the same
+  wrong connection) — the real status of the ORIGINAL orphaned row from 4A-10c
+  (`cms7hlmb900000fmpz9i9fv1q`) is unknown again, and the new row from this session
+  (`cmt2yflxe00000fnw8gy7jm53`) is unverified — both need Davin's real-DB attention. No safe path
+  to the real production `DATABASE_URL` was available this session (printing it would violate
+  L4; a similar elevated-access attempt was blocked by the platform's own auto-mode safety
+  classifier, same as Session 4A-13's precedent) — reported rather than worked around.
+  **Two new `LESSONS-LEARNED.md` entries: L34** (`railway logs`/`status` silently default to the
+  Railway-CLI-linked service, not the directory you run them from — caused two false-negative log
+  queries this session before being caught) **and L35** (a local `DATABASE_URL` isn't guaranteed
+  to be production; sanity-check row counts before trusting a "clean" query result, especially
+  when it contradicts a first-party service log).
+  **Artifacts updated:** `4a-14-dlocal-write-api-group-b-cutover.migration-order.md` (Status →
+  CONFIRMED → CLOSED — PARTIAL; entry criteria checked with CONFIRM-time evidence; Deviations
+  filled — 8 entries), `DECISION-LOG.md` (F49 RESOLVED, F76 registered OPEN, both full detail in
+  `history/decisions-archive.md`), `migration-cutover-table.md` (Slice 4 narrative extended, status
+  unchanged at 3/4 groups, now citing F76), `LESSONS-LEARNED.md` (L34, L35), this file
+  (Current/Previous rotation — Session 7-3 moved to `history/sessions-archive.md`).
+  **`4a-15-wise-outbox-defect-sweep.migration-order.md` PRE-DRAFTed** — F47/F50, independent of
+  dLocal Group B (different provider, no technical dependency), can proceed even though Slice 4
+  isn't at 4/4. **Open item for the Advisor/Davin, not blocking 4A-15:** dLocal Group B (F76)
+  needs its own dedicated fix-and-recutover session, not yet numbered (working title `4A-16`),
+  before Phase 4X's own gate for Session 8-1 ("all of 4A-13/14/15 CLOSED") is genuinely satisfied
+  — 4A-15 closing does not by itself satisfy that gate while F76 remains open.
+- **Previous:** Session 4A-13 (Stripe Webhook Cutover, Phase 4X gate 2/3, VERIFY-RETIRE/CUTOVER,
   dial near-zero), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-21. First session of Phase 4X —
   closes `DECISION-LOG.md` **F60** (open since Session 4B-22, 2026-08-04).
   **CONFIRM found the by-now-familiar L3/L11 pattern**: the order + `HANDOVER-PROMPT-phase-4X.md`
@@ -86,85 +158,6 @@
   PRE-DRAFTed** — closes **F49**, completes Slice 4 to 4/4. **Open item for next session's
   Advisor/Davin attention, not blocking 4A-14 (independent scope):** whether to disable the
   monolith's Stripe webhook endpoint now that one real event is proven, or wait for one more.
-- **Previous:** Session 7-3 (API Client Contract Tests, Documentation & stackA/stackB Retirement,
-  PORT/CONTRACT hybrid exit-review, dial LOW), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-20.
-  Third and final session of Phase 7 — **Phase 7 (API Client Rewrite) is now CLOSED.**
-  **CONFIRM found the L3/L11 pattern again**: the order on disk carried the full Advisor
-  DRAFT→APPROVED upgrade (`Decisions taken`, 5 Ordered Steps, entry criteria, done-when) while
-  committed HEAD (from Session 7-2's close commit) was still the bare `PRE-DRAFT` stub with no
-  steps at all. Reported in full before proceeding; Davin confirmed live the APPROVED batch is
-  his authentic edit. All 4 entry criteria re-verified live and held (zero `stackA`/`stackB`
-  consumers; `tsc`/`eslint`/`test:ci` baseline exact match to the order's claim —
-  163/163 suites, 2412/2412 tests, 0 errors/5 warnings).
-  **Built all 4 Ordered Steps, one commit each, plus a Step 0 CONFIRM housekeeping commit:**
-  Step 0 — recorded the CONFIRM findings and the order's own citation-drift (Step 1's verification
-  text predicted "-37 tests" for the 3 files being deleted; the real static count is **44**, no
-  `.each()` blocks to explain the gap — corrected the expected post-Step-1 baseline before
-  executing, then confirmed it live). Step 1 — deleted `stackA`, `stackB`, the `api` export,
-  `apiCall`/`BASE_URL`, and the 6 unused legacy interfaces from `lib/api/index.ts` (module now
-  strictly re-exports the generated-client surface); deleted the 3 test files that exclusively
-  exercised the retired exports. `test:ci` **160/160 suites, 2368/2368 tests** (2412 − 44, zero
-  regressions) — exact match to the corrected prediction. Step 2 — expanded
-  `__tests__/lib/api/generated-clients.test.ts` from 12 to 43 tests: full domain coverage for
-  `operationApi` (alerts, auth, user preferences/profile, drawings, notifications) and `moneyApi`
-  (affiliates incl. the L32 `pathWithQuery`/`buildQuery` cast pattern, admin, wise disbursement,
-  cron trigger, health), plus a dedicated 400/401/403/404/500 error-mapping block, every route
-  re-verified directly against the generated `schema.ts` files rather than the order's prose
-  (`LESSONS-LEARNED.md` L22). **Found a second order/ground-truth mismatch**: the order's Surface
-  line names a templated `POST /v1/cron-trigger/{jobId}` money-service route that doesn't exist —
-  the real schema emits 8 separate literal-named job routes instead; tested against the real
-  `/v1/cron-trigger/daily-maintenance`. Also caught a genuine client-contract detail while writing
-  the DELETE-204 test: `unwrapOperationApi`/`unwrapMoneyApi` return `undefined` on a 204, not
-  `{}` — fixed the test's own first-draft assertion, not a flaky test. `test:ci`
-  **160/160 suites, 2399/2399 tests** (2368 + 31 new, zero regressions). Step 3 — prepended a
-  `HISTORICAL/SUPERSEDED` notice to the 5 legacy design docs in `backend-stack-a/api-client-
-between-frontend-and-stack-b/` (kept for audit trail, not deleted); authored
-  `docs/architecture/api-client-architecture.md` as the new canonical reference (client overview,
-  codegen chain, server-only constraint + error-unwrap conventions, the ESLint direct-fetch ban,
-  and the `/v1` prefix + L32 workaround with a worked example). Step 4 — full exit-review sweep:
-  `tsc --noEmit` clean, `eslint` clean (0 errors, same 5 pre-existing warnings), `test:ci`
-  **160/160 suites, 2399/2399 tests**. Repo-wide `stackA`/`stackB` grep swept 77 files but the
-  only live-surface hit (`app/`, `components/`, `lib/`, `hooks/`, `__tests__/`) is `lib/api/
-index.ts`'s own intentional retirement note — the rest are an unrelated third-party "Stack Auth"
-  library in `seed-code/` (read-only, out of scope), the `frontend/` SEPARATE_STACK mirror (never
-  in scope), and this session's own docs. Zero live code references to the retired exports remain.
-  **No flag flipped, no cutover-table row** — pure test/doc/retirement cleanup, `migration-
-cutover-table.md` unchanged. `migration-stack-analysis.md` updated (files deleted/created this
-  session). No new `LESSONS-LEARNED.md` entry — both recurring patterns hit this session (L3's
-  uncommitted-order pattern, L22's order-vs-ground-truth drift) already have active rules; see
-  L3's own recurrence note for this session.
-  **Artifacts updated:** `7-3-api-client-contract-tests-and-retirement.migration-order.md`
-  (Status → CONFIRMED → CLOSED SUCCESSFUL; entry criteria all checked with CONFIRM-time findings;
-  Done-when all checked; Deviations filled — 5 entries, 0–4), `migration-stack-analysis.md`, this
-  file (Current/Previous rotation — Session 7-1 moved to `history/sessions-archive.md`),
-  `LESSONS-LEARNED.md` (L3 recurrence note only, no new entry). **Next session is `4A-13`
-  (Stripe Webhook Cutover, Phase 4X — `MASTER-ROADMAP-PHASES-7-15.md` §0 Gate 2, run immediately
-  after 7-3, NOT Session 8-1** — 8-1's own deletion sweep is gated on all of 4A-13/4A-14/4A-15
-  CLOSED first). **Its order (`4a-13-stripe-webhook-cutover.migration-order.md`) already exists**
-  as `PRE-DRAFT`, generated 2026-08-04 at Session 4B-22's close — **not rewritten this session**;
-  it needs a full fresh re-verification at its own CONFIRM, not a rewrite now. What's concretely
-  stale about it, checked live at this session's close rather than assumed from its age:
-  - **17 days old** (generated 2026-08-04, today 2026-08-21); its own Entry Criterion 2 says
-    "8+ days have passed since the port" (Session 4A-9, 2026-07-27) — that framing is itself
-    stale, the real gap is now **25 days**.
-  - **Code-drift check (good news, but must be re-run live, not trusted from this note):**
-    `git log --oneline -- lib/stripe/ app/api/webhooks/stripe/ money-service/src/stripe/` shows
-    zero commits since `37700b51` (the Session 4A-9 port itself) — the only later Stripe-adjacent
-    commit is `86ef2299` (Session 6-8, a frontend upgrade-success page, unrelated to webhook
-    logic). No monolith-side or money-service-side webhook code has changed since the port, as of
-    this check.
-  - **`DECISION-LOG.md` F60 re-checked: still OPEN**, register text unchanged since Session 4B-22.
-  - **Entry Criterion 1's own phrasing is now inaccurate and needs correcting at CONFIRM**: it
-    says "no session between 4B-22 and this one's own CONFIRM has touched Stripe webhook code" —
-    three sessions have in fact run since 4B-22 (7-1, 7-2, 7-3, all Phase 7 API-client work);
-    none touched Stripe/webhook code (confirmed above), but the criterion's own wording assumed
-    zero intervening sessions, not zero intervening _relevant_ sessions.
-  - **What code-drift-checking cannot cover — genuinely needs live re-verification at CONFIRM,
-    not assumable from git history:** whether production Stripe events are still reaching the
-    monolith today (Entry Criterion 3), whether `STRIPE_WEBHOOK_SECRET`/money-service's real
-    Railway env is still correctly set (Entry Criterion 5, value-blind per L17), and Davin's live
-    availability for the webhook-URL repoint approval (Entry Criterion 4) — none of these are
-    derivable from the repo alone.
 
 ## Key documents
 

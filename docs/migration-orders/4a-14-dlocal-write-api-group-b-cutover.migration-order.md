@@ -9,9 +9,12 @@
 > 4/4 write-API groups.
 
 **Session:** 4A-14 (dLocal Write-API Group B Cutover) · **Variant:** PORT + CUTOVER ·
-**Status:** CONFIRMED (Executor, 2026-08-21)
-**Generated:** 2026-08-21 (Executor, PRE-DRAFT) · **Upgraded to DRAFT:** 2026-08-21 (Advisor) · **Approved:** 2026-08-21 (Davin) · **Confirmed:** 2026-08-21 (Executor)
-**Flags touched:** F49 (OPEN → RESOLVED at session close), `MIGRATE_WRITE_APIS_MONEY_DLOCAL` (`false` → `true`)
+**Status:** CLOSED — PARTIAL (Executor, 2026-08-21)
+**Generated:** 2026-08-21 (Executor, PRE-DRAFT) · **Upgraded to DRAFT:** 2026-08-21 (Advisor) · **Approved:** 2026-08-21 (Davin) · **Confirmed:** 2026-08-21 (Executor) · **Closed:** 2026-08-21 (Executor)
+**Flags touched:** F49 (OPEN → RESOLVED), F76 (NEW → OPEN), `MIGRATE_WRITE_APIS_MONEY_DLOCAL` (`false` → `true` → reverted `false`)
+**Outcome:** F49 genuinely fixed and proven live. Group B cutover attempted and FAILED live on a
+new, previously-masked bug (F76) — flag reverted per this order's own rollback rule. Slice 4 stays
+at 3/4 groups, same as 4A-10c's close, now blocked on F76 instead of F49.
 **Estimated time:** ~1–2h (symmetrical 1-line fix on both sides, unit tests, sandbox verification, flag flip)
 **Target service:** monolith `lib/dlocal/dlocal-payment.service.ts` + money-service
 `money-service/src/dlocal/dlocal-payment.service.ts` (both sides — pre-existing bug, not money-service-only)
@@ -174,16 +177,66 @@ money-service/src/dlocal/` returned zero commits — confirmed zero drift in dLo
    fixes verified this way — money-service: 62/62 suites, 523/523 tests; monolith: 160/160
    suites, 2400/2400 tests, `tsc`/`eslint` clean (both pre-existing baselines +1 new test each,
    zero regressions).
-2. **Session paused after Step 2 by design** — Davin authorized Step 1/2 execution only; Steps
-   3–7 (deploy, sandbox verification, Money-Audit, flag flip, live smoke test, close-out) remain
-   pending Davin's separate go-ahead per the order's own Step 4 gate and `EXECUTOR-PROTOCOL.md`
-   §7 (cutover flag-flips require live authorization).
+2. **Session paused after Step 2, then resumed** — Davin authorized Step 1/2 first, reviewed
+   results, then separately authorized Step 3 (deploy/verify) and Step 4 (sandbox verification +
+   Money-Audit) per `EXECUTOR-PROTOCOL.md` §7's cutover-authorization requirement.
+3. **Step 3 — deploy mechanics needed more than "git push."** `money-service`'s Railway deploy
+   auto-triggered from the push and settled clean (`Building → Deploying → Online`, confirmed via
+   direct `GET /health` → 200, not log-reading, per L13). The monolith's Vercel side needed two
+   separate actions the order's text conflated into one: (a) the env var itself
+   (`vercel env rm` + `vercel env add`, since Vercel CLI has no in-place update), and (b) a
+   `vercel redeploy` of the already-live production deployment — env var changes do not take
+   effect on already-running Vercel serverless functions until a new deployment picks them up.
+   Confirmed via `.vercel/project.json` which specific Vercel project this repo is linked to
+   (`trading-alerts-saas-frontend`) before touching anything, rather than guessing from the 3
+   projects `vercel project ls` returned.
+4. **Step 4's "sandbox verification" bullet could not be executed as literally written.** Local
+   `.env`/`.env.local` have the `DLOCAL_*` keys present but empty — no usable sandbox credentials
+   exist in this environment to make a real outbound call to dLocal. Substituted the order's own
+   explicit alternative ("mock test suite with credentials") — the Step 1/2 real-fetch-path unit
+   tests — and disclosed the residual uncertainty (whether dLocal's real API actually accepts
+   `'REDIRECT'`) explicitly to Davin before proceeding, rather than treating unit-test evidence as
+   equivalent to a real sandbox proof.
+5. **Step 6's live smoke test failed — F49 proven fixed, but a new bug (F76) blocked the
+   cutover.** Full root-cause narrative, evidence, and resolution status: `DECISION-LOG.md` F49
+   (RESOLVED) and F76 (OPEN), both with full detail in `history/decisions-archive.md`. Summary:
+   dLocal's rejection changed from `5001 Missing parameter: payment_method_flow` to a different
+   code, `400 {"code":5010,"message":"Method not available"}` — proof the F49 fix itself works,
+   but the cutover still fails end-to-end on `lib/dlocal/payment-methods.service.ts` sending
+   human-readable display names (`'TrueMoney'`, etc.) as dLocal's `payment_method_id`. Not fixed
+   this session per `LESSONS-LEARNED.md` L11's own rule. `MIGRATE_WRITE_APIS_MONEY_DLOCAL`
+   reverted to `false`, redeployed, confirmed via alias — Rollback executed exactly as this
+   order's own Rollback section specifies.
+6. **A new orphaned `Payment` row** (`cmt2yflxe00000fnw8gy7jm53`, `PENDING`, `TrueMoney`/`TH`) —
+   confirmed created via money-service's own structured log, not deleted (same standing practice
+   as every prior orphaned-row incident), flagged for Davin's cleanup.
+7. **The Executor's own local `DATABASE_URL` was found NOT to point at the real production
+   database** (`0` total `Payment` rows, `8` total `User` rows on that connection — directly
+   contradicted by money-service's own log proving the row above was created). This retroactively
+   invalidates this order's own CONFIRM-time "orphaned `Payment` row audit" entry criterion,
+   checked off earlier this session against the same wrong connection — the real status of the
+   ORIGINAL orphaned row (`cms7hlmb900000fmpz9i9fv1q`, from 4A-10c) is unknown again, pending a
+   real-database re-check Davin will need to help arrange (safe production DB access wasn't
+   available to the Executor this session — a prior attempt was blocked by the platform's own
+   auto-mode safety classifier, same pattern as Session 4A-13). New `LESSONS-LEARNED.md` L35.
+8. **A second, independent diagnostic gotcha**: `railway logs`/`railway status` silently default
+   to whichever service is Railway-CLI-linked (`operation-service-worker` in this project), not
+   the directory the command is run from — two initial log queries returned false-negative empty
+   results before this was caught and corrected with explicit `--service money-service`. New
+   `LESSONS-LEARNED.md` L34.
 
 ---
 
 ## Next-session handoff
 
-- **Next session:** `4A-15` — Wise + Outbox Defect Sweep (F47 non-USD quote correctness, F50 `COMMISSION_CREDITED` `aggregateId`), completing Phase 4X.
+- **Next session:** `4A-15` — Wise + Outbox Defect Sweep (F47 non-USD quote correctness, F50 `COMMISSION_CREDITED` `aggregateId`), completing Phase 4X's originally-scoped Wise/outbox work.
 - **Variant:** PORT, low dial.
-- **Prerequisite:** 4A-14 CLOSED SUCCESSFUL (Slice 4 at 4/4).
+- **Prerequisite corrected:** the original text here said "4A-14 CLOSED SUCCESSFUL (Slice 4 at
+  4/4)" — that did not happen. 4A-14 closed PARTIAL: F49 RESOLVED, but Group B remains blocked on
+  a NEW flag (F76), Slice 4 stays at 3/4. F47/F50 (Wise/outbox) are a different provider entirely
+  and have no technical dependency on dLocal Group B — 4A-15 can proceed independently, same
+  scope-isolation convention used throughout this migration. **What does NOT yet hold:** Phase
+  4X's own gate for Session 8-1 ("all three of 4A-13/14/15 CLOSED") — even after 4A-15 closes,
+  dLocal Group B (F76) still needs its own dedicated fix-and-recutover session, not yet numbered
+  (working title `4A-16`), before that gate is genuinely satisfied.
 - **4A-15 obligation:** PRE-DRAFT Session 9-0 and author `HANDOVER-PROMPT-phase-9.md` at its close.
