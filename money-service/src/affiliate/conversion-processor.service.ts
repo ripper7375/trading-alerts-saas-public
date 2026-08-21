@@ -57,6 +57,14 @@ export interface ConversionResult {
   reason?: string;
   commissionId?: string;
   commissionAmount?: number;
+  /** The affiliate's own `User.id` (F50) -- the commission recipient, NOT
+   * `input.userId` (the paying subscriber). */
+  affiliateUserId?: string;
+  /** The affiliate code used for this conversion (F50). */
+  code?: string;
+  /** The affiliate's running total earnings in USD after this conversion
+   * (F50). */
+  totalEarnings?: number;
 }
 
 @Injectable()
@@ -82,7 +90,9 @@ export class ConversionProcessorService {
 
     const affiliateCode = await this.prisma.affiliateCode.findUnique({
       where: { code: normalizedCode },
-      include: { affiliateProfile: { select: { id: true, status: true } } },
+      include: {
+        affiliateProfile: { select: { id: true, status: true, userId: true } },
+      },
     });
 
     if (!affiliateCode) {
@@ -115,48 +125,53 @@ export class ConversionProcessorService {
     );
 
     // Atomic: code flip + commission + profile counters succeed or fail together
-    const commission = await this.prisma.$transaction(async (tx) => {
-      await tx.affiliateCode.update({
-        where: { id: affiliateCode.id },
-        data: {
-          status: 'USED',
-          usedAt: new Date(),
-          usedBy: input.userId,
-          subscriptionId: input.subscriptionId ?? null,
-        },
-      });
+    const { commission, updatedProfile } = await this.prisma.$transaction(
+      async (tx) => {
+        await tx.affiliateCode.update({
+          where: { id: affiliateCode.id },
+          data: {
+            status: 'USED',
+            usedAt: new Date(),
+            usedBy: input.userId,
+            subscriptionId: input.subscriptionId ?? null,
+          },
+        });
 
-      const created = await tx.commission.create({
-        data: {
-          affiliateProfileId: affiliateCode.affiliateProfileId,
-          affiliateCodeId: affiliateCode.id,
-          userId: input.userId,
-          subscriptionId: input.subscriptionId ?? null,
-          grossRevenue: breakdown.grossRevenue,
-          discountAmount: breakdown.discountAmount,
-          netRevenue: breakdown.netRevenue,
-          commissionAmount: breakdown.commissionAmount,
-          status: 'PENDING',
-          earnedAt: new Date(),
-        },
-      });
+        const commission = await tx.commission.create({
+          data: {
+            affiliateProfileId: affiliateCode.affiliateProfileId,
+            affiliateCodeId: affiliateCode.id,
+            userId: input.userId,
+            subscriptionId: input.subscriptionId ?? null,
+            grossRevenue: breakdown.grossRevenue,
+            discountAmount: breakdown.discountAmount,
+            netRevenue: breakdown.netRevenue,
+            commissionAmount: breakdown.commissionAmount,
+            status: 'PENDING',
+            earnedAt: new Date(),
+          },
+        });
 
-      await tx.affiliateProfile.update({
-        where: { id: affiliateCode.affiliateProfileId },
-        data: {
-          totalCodesUsed: { increment: 1 },
-          totalEarnings: { increment: breakdown.commissionAmount },
-          pendingCommissions: { increment: breakdown.commissionAmount },
-        },
-      });
+        const updatedProfile = await tx.affiliateProfile.update({
+          where: { id: affiliateCode.affiliateProfileId },
+          data: {
+            totalCodesUsed: { increment: 1 },
+            totalEarnings: { increment: breakdown.commissionAmount },
+            pendingCommissions: { increment: breakdown.commissionAmount },
+          },
+        });
 
-      return created;
-    });
+        return { commission, updatedProfile };
+      }
+    );
 
     return {
       processed: true,
       commissionId: commission.id,
       commissionAmount: breakdown.commissionAmount,
+      affiliateUserId: affiliateCode.affiliateProfile.userId,
+      code: affiliateCode.code,
+      totalEarnings: Number(updatedProfile.totalEarnings),
     };
   }
 }

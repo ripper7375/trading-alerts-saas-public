@@ -96,11 +96,14 @@ describe('StripeWebhookService', () => {
       expect(prismaMock.user.update).not.toHaveBeenCalled();
     });
 
-    it('credits an affiliate commission and emits COMMISSION_CREDITED when a code is present', async () => {
+    it('credits an affiliate commission and emits COMMISSION_CREDITED with the affiliate userId as aggregateId (F50)', async () => {
       conversionProcessorMock.processAffiliateConversion.mockResolvedValue({
         processed: true,
         commissionId: 'comm-1',
         commissionAmount: 5.8,
+        affiliateUserId: 'affiliate-user-1',
+        code: 'AFF10',
+        totalEarnings: 123.45,
       });
 
       await service.handleCheckoutCompleted({
@@ -119,7 +122,19 @@ describe('StripeWebhookService', () => {
       );
       expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
         prismaMock,
-        expect.objectContaining({ eventType: 'COMMISSION_CREDITED' })
+        expect.objectContaining({
+          eventType: 'COMMISSION_CREDITED',
+          // The affiliate who earned the commission, NOT the paying
+          // subscriber ('user-1' above).
+          aggregateId: 'affiliate-user-1',
+          payload: expect.objectContaining({
+            commissionId: 'comm-1',
+            commissionAmount: 5.8,
+            totalEarnings: 123.45,
+            code: 'AFF10',
+            provider: 'STRIPE',
+          }),
+        })
       );
     });
 

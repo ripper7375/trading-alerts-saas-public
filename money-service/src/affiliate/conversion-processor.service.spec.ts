@@ -112,18 +112,25 @@ describe('ConversionProcessorService', () => {
 
     expect(prismaMock.affiliateCode.findUnique).toHaveBeenCalledWith({
       where: { code: 'SAVE20' },
-      include: { affiliateProfile: { select: { id: true, status: true } } },
+      include: {
+        affiliateProfile: { select: { id: true, status: true, userId: true } },
+      },
     });
   });
 
   it('should use the dynamic base price when grossRevenueUsd is omitted', async () => {
     prismaMock.affiliateCode.findUnique.mockResolvedValue({
       id: 'code-1',
+      code: 'CODE-1',
       affiliateProfileId: 'aff-1',
       discountPercent: 20,
       commissionPercent: 20,
       status: 'ACTIVE',
-      affiliateProfile: { id: 'aff-1', status: 'ACTIVE' },
+      affiliateProfile: {
+        id: 'aff-1',
+        status: 'ACTIVE',
+        userId: 'affiliate-user-1',
+      },
     } as never);
     prismaMock.$transaction.mockImplementation(async (cb: unknown) =>
       (cb as (tx: unknown) => unknown)(prismaMock)
@@ -132,7 +139,9 @@ describe('ConversionProcessorService', () => {
     prismaMock.commission.create.mockResolvedValue({
       id: 'commission-1',
     } as never);
-    prismaMock.affiliateProfile.update.mockResolvedValue({} as never);
+    prismaMock.affiliateProfile.update.mockResolvedValue({
+      totalEarnings: 4.64,
+    } as never);
 
     const result = await service.processAffiliateConversion({
       code: 'code-1',
@@ -150,11 +159,16 @@ describe('ConversionProcessorService', () => {
   it('should flip the code to USED, create the commission, and update profile counters atomically', async () => {
     prismaMock.affiliateCode.findUnique.mockResolvedValue({
       id: 'code-1',
+      code: 'CODE-1',
       affiliateProfileId: 'aff-1',
       discountPercent: 10,
       commissionPercent: 30,
       status: 'ACTIVE',
-      affiliateProfile: { id: 'aff-1', status: 'ACTIVE' },
+      affiliateProfile: {
+        id: 'aff-1',
+        status: 'ACTIVE',
+        userId: 'affiliate-user-1',
+      },
     } as never);
     prismaMock.$transaction.mockImplementation(async (cb: unknown) =>
       (cb as (tx: unknown) => unknown)(prismaMock)
@@ -163,7 +177,9 @@ describe('ConversionProcessorService', () => {
     prismaMock.commission.create.mockResolvedValue({
       id: 'commission-2',
     } as never);
-    prismaMock.affiliateProfile.update.mockResolvedValue({} as never);
+    prismaMock.affiliateProfile.update.mockResolvedValue({
+      totalEarnings: 27,
+    } as never);
 
     const result = await service.processAffiliateConversion({
       code: 'code-1',
@@ -208,6 +224,9 @@ describe('ConversionProcessorService', () => {
       processed: true,
       commissionId: 'commission-2',
       commissionAmount: 27,
+      affiliateUserId: 'affiliate-user-1',
+      code: 'CODE-1',
+      totalEarnings: 27,
     });
   });
 });

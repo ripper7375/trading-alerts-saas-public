@@ -151,11 +151,20 @@ export class StripeWebhookService {
               commissionId: conversion.commissionId,
               commissionAmount: conversion.commissionAmount,
             });
-            await this.emitOutboxEvent(userId, 'COMMISSION_CREDITED', {
-              commissionId: conversion.commissionId,
-              commissionAmount: conversion.commissionAmount,
-              provider: 'STRIPE',
-            });
+            // F50: aggregateId is the affiliate who earned the commission,
+            // NOT the paying subscriber (`userId` above) -- the outbox
+            // consumer resolves the recipient from aggregateId.
+            await this.emitOutboxEvent(
+              conversion.affiliateUserId as string,
+              'COMMISSION_CREDITED',
+              {
+                commissionId: conversion.commissionId,
+                commissionAmount: conversion.commissionAmount,
+                totalEarnings: conversion.totalEarnings,
+                code: conversion.code,
+                provider: 'STRIPE',
+              }
+            );
           } else {
             logger.warn('[Webhook] Affiliate conversion not processed', {
               userId,
