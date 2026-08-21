@@ -75,7 +75,8 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F57  | 4B-21 Entry Criterion 1 — client-side session-cache staleness after a bridge login/logout (next-auth/react's `SessionProvider` cache can't see a cookie the bridge sets/clears server-side)                                                                                                                                               | RESOLVED — Session 4B-21 (Davin, live during CONFIRM): force a `getSession()` refresh at every auth-state-changing bridge call site (login, 2FA-login-completion, logout) rather than replacing `SessionProvider` with a custom auth-context                                                                                 |
 | F58  | Every operation-service `/user/*` route (profile, 2FA, sessions, preferences — cut over since Session 4B-11) returns "User not found" for a user created via `token-register` (this session's own bridge registration path), despite the row provably existing                                                                            | RESOLVED — Session 4B-21: false positive, caused by this session's own local dev server never having `MIGRATE_USER_PROFILE`/`MIGRATE_USER_2FA` set (silently falling through to the monolith's own native lookup against the wrong `DATABASE_URL`); operation-service itself was never broken, proven by calling it directly |
 | F59  | Phase 4 exit criterion 3 ("NextAuth fully retired; JWT auth is the only auth system") literally conflicts with F56's own indefinite OAuth-on-NextAuth retention                                                                                                                                                                           | RESOLVED — Session 4B-22 (Davin, via Antigravity Advisor approval): amend criterion 3's own wording, do not silently mark it checked                                                                                                                                                                                         |
-| F60  | Stripe webhook migration (part of the plan's own Slice 4 scope, "`Write APIs + Stripe webhook`") was never executed — money-service has a fully-built, dormant `StripeWebhookController`; Stripe's dashboard was never repointed, no flag exists                                                                                          | OPEN — found Session 4B-22 (Phase 4 exit review), needs its own scoped cutover session                                                                                                                                                                                                                                       |
+| F60  | Stripe webhook migration (part of the plan's own Slice 4 scope, "`Write APIs + Stripe webhook`") was never executed — money-service has a fully-built, dormant `StripeWebhookController`; Stripe's dashboard was never repointed, no flag exists                                                                                          | RESOLVED — Session 4A-13 (2026-08-21): dual-delivery endpoint registered, real event proven end-to-end after fixing F75                                                                                                                                                                                                      |
+| F75  | `money_svc` Postgres role missing `UPDATE` grant on `User` (found via Stripe webhook cutover's first real write)                                                                                                                                                                                                                          | RESOLVED — Session 4A-13 (2026-08-21), same session                                                                                                                                                                                                                                                                          |
 | F61  | `GET /api/geo/detect` is called by `app/(marketing)/pricing/page.tsx:155` and `components/payments/CountrySelector.tsx:69` but the route does not exist anywhere in `app/api/` — a 404 on every pricing-page load                                                                                                                         | RESOLVED — Session 6-8 (Davin): build it as a thin wrapper around the existing detectCountry(), keeping its IP-geolocation fallback as-is                                                                                                                                                                                    |
 | F62  | Admin information architecture is split across two incompatible trees — `app/(dashboard)/admin/*` (15 pages, `getServerSession` guard, 4-entry nav) and `app/admin/*` (8 pages, **no `layout.tsx` at all**); 19 of 23 admin pages are unreachable from the admin nav                                                                      | RESOLVED — Session 6-2 (Davin): Option (a) — merge `app/admin/*` into `app/(dashboard)/admin/*`, retire `app/admin/login` with a redirect to `/login`                                                                                                                                                                        |
 | F63  | Public legal pages (`/terms`, `/privacy`, `/disclaimer`) do not exist; the registration consent checkbox links to two of them, and `/disclaimer` is compliance-relevant for a trading product                                                                                                                                             | RESOLVED — Session 6-10 (Davin): ship production-grade legal template copy for `/terms`, `/privacy`, and `/disclaimer`                                                                                                                                                                                                       |
@@ -150,31 +151,10 @@ _(F56 RESOLVED & EXECUTED — decided Session 4B-20, executed Session 4B-21 (202
 resolution entry moved to `docs/migration-orders/history/decisions-archive.md` per this file's own
 hygiene rule.)_
 
-## F60 — Stripe webhook migration (plan's own Slice 4 scope) was never executed
+## F60 / F75 — RESOLVED, Session 4A-13 (2026-08-21)
 
-- Status: OPEN
-- Session: 4B-22 · Date: 2026-08-04
-- Found while: this session's fresh `app/api/**` census (Checklist step 3) — `app/api/webhooks/
-stripe/route.ts` is still 100% monolith-native: raw body read, `constructWebhookEvent`, and
-  `lib/stripe/webhook-handlers.ts`'s full tier/subscription/commission logic, unchanged.
-- **This is a real gap against the plan's own literal scope, not an out-of-scope route.** The
-  plan's own Phase 4 section (§6, 4A item 4) explicitly reads: "Write APIs **+ Stripe webhook**
-  (rollback: flip back)." Session 4A-9 (2026-07-27) built a complete, deployed
-  `StripeWebhookController`/`StripeWebhookService` in money-service — it has sat fully dormant,
-  never receiving a single real request, for the entire remainder of Phase 4B (roughly 8 days of
-  further migration work at the time this was found).
-- Confirmed, not assumed: `lib/money-service/flags.ts` has `shouldUseMoneyServiceForStripeWrite`
-  (checkout/subscription-cancel only) but no Stripe-webhook-specific reader anywhere in the
-  codebase; no session's close-out anywhere in `CLAUDE.md` records repointing Stripe's dashboard
-  webhook URL (unlike dLocal's explicit repoint at Session 4A-5); Stripe's own webhook subscription
-  was never touched.
-- **Not fixed this session** (AUDIT/VERIFY-RETIRE variant, near-zero dial — a real cutover
-  requiring Davin's live approval per `EXECUTOR-PROTOCOL.md` §7 is out of scope for an exit
-  review). Needs its own dedicated cutover session: verify money-service's `StripeWebhookController`
-  still matches Stripe's real event shape after 8 days of drift, repoint Stripe's dashboard webhook
-  URL (mirroring the dLocal precedent), and prove it live with Davin present.
-- Owner: Davin/Advisor — due before Phase 4 can be called genuinely, literally complete against
-  its own Slice 4 scope (does not block declaring Phase 4 CLOSED-WITH-NAMED-EXCEPTIONS now).
-- Follow-up: `4a-13-stripe-webhook-cutover.migration-order.md` PRE-DRAFTed at Session 4B-22's
-  close (VERIFY-RETIRE/CUTOVER block) — dashboard-repoint cutover, mirrors the dLocal/4A-5
-  precedent exactly, not a rebuild (money-service's receiving side is already fully built).
+Full resolution entries moved to `docs/migration-orders/history/decisions-archive.md` per this
+file's own hygiene rule (this addition would have pushed the file over its ~50KB target). Summary
+for the register table above: F60 (Stripe webhook cutover) closed via dual-delivery + a real
+production event proven end-to-end; F75 (a new finding surfaced by that same real event — `money_svc`
+Postgres role missing `UPDATE` grant on `User`) found and fixed same session, Davin-directed.

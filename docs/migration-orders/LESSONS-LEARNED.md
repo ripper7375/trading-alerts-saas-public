@@ -4,10 +4,10 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 32 (L1–L32), well within the cap after the
+**Hard cap ~40 active lessons.** Currently at 33 (L1–L33), well within the cap after the
 2026-08-12 consolidation pass (64 → 25: 28 archived, 11 merged into 8 master rules,
 then 4 unpromoted candidates promoted to L26–L29; L30 added 2026-08-20 ad-hoc, L31–L32
-added Session 7-2).
+added Session 7-2, L33 added Session 4A-13).
 Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds 40 again.
 
 ---
@@ -331,3 +331,24 @@ Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds
 - Root cause: `@nestjs/swagger` has no class-validator DTO metadata to introspect for a Zod-validated route's `@Query()` params, same underlying cause as the body gap (L29) — but the failure mode is silent (`never`, not a usable generic type), so a caller passing real query params gets a compile error, not a loose-but-working type.
 - Rule: before writing a call site against ANY generated OpenAPI client for a Zod-validated NestJS service, grep the real `schema.ts` for that operation's `parameters.query` (and `requestBody`) — don't assume from another service's or another session's disclosed gap that the shape is the same. Work around a `never` query type with a single narrowly-scoped cast (e.g., append the query string to a literal path, cast once) rather than casting every call site individually.
 - Source: Session 7-2 (2026-08-20), order Deviation 5 · Status: ACTIVE
+
+### L33 — A service's DB role can be missing a grant on a table its code has always needed; this stays invisible until that table's FIRST real write, not caught by any test or dry run
+
+- Symptom: money-service's `StripeWebhookController` (built Session 4A-9, dormant 25 days) hit
+  `Database error. Code: 42501. Message: permission denied for table "User"` on its very first
+  real production event — twice (initial delivery + Stripe's automatic retry), both failing the
+  identical way. `money_svc`'s Postgres role had never been granted `UPDATE` on `User`.
+- Root cause: unit tests use mocked Prisma clients (never touch real Postgres RBAC at all); a
+  local dev connection commonly runs under a more permissive role than production's per-service
+  grant; and a route that has genuinely never processed real traffic has never exercised its own
+  write path against the real role it will actually run under. None of L5's "first authenticated
+  call is the first schema test" logic catches this — a `42501` is a grant gap, not a schema gap,
+  and a request can pass every schema check while still failing here.
+- Rule: when cutting over a service's write route that is about to receive its FIRST real
+  production traffic (dual-delivery, shadow window, or otherwise), budget explicitly for a
+  DB-grant-gap failure class in addition to schema/logic drift — a `42501` on the exact tables the
+  route needs to write is diagnosable in minutes once seen, but nothing short of a real write
+  against real production credentials surfaces it beforehand. Before disabling any prior/fallback
+  path after such a cutover, confirm the observed real event actually reached every write inside
+  the same transaction, not just the first one that happened to fail loudest.
+- Source: Session 4A-13 (2026-08-21), `DECISION-LOG.md` F75 · Status: ACTIVE

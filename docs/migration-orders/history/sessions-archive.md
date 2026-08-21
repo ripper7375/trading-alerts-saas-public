@@ -7,6 +7,71 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 7-2 (API Client Migrate Consumers, PORT variant, dial LOW), CONFIRMED,
+  executed, CLOSED SUCCESSFUL 2026-08-20. Second session of Phase 7 — the consumer rewiring
+  Session 7-1 deliberately deferred. Also the session that landed `MASTER-ROADMAP-PHASES-7-15.md`
+  (registers F65–F74, resequences the whole remaining migration).
+  **CONFIRM found the by-now-familiar `LESSONS-LEARNED.md` L3/L11 pattern, this time as one large
+  batch spanning 8 files**: this order, `MASTER-ROADMAP-PHASES-7-15.md` (untracked, new), `CLAUDE.md`,
+  `DECISION-LOG.md`, `EXECUTOR-PROTOCOL.md`, the implementation plan, session playbook, and
+  `SESSION-PROMPT-SCRIPT.md` were all modified-but-uncommitted — the order itself had grown a new
+  `Decisions taken` section and expanded scope (an ESLint rule + dead-2FA retirement) beyond its
+  own committed PRE-DRAFT, and the roadmap's own header read "pending Davin's approval." Reported
+  in full before proceeding; Davin confirmed live the whole batch is his authentic edit and the
+  roadmap is approved.
+  **Two real gaps found at CONFIRM beyond the order's own text, both resolved by Davin's live
+  direction:** (1) the admin cron-trigger route (`app/api/admin/system/jobs/[jobId]/trigger/
+route.ts`) was calling money-service without the `/v1` prefix its global route prefix actually
+  requires — almost certainly a live 404 bug since Session 6-11 built the button; folded the fix
+  into Step 1 and updated the one test asserting the old path. (2) Step 3's planned ESLint-rule
+  allowlist omitted `lib/status/check-system-status.ts`'s legitimate direct `/health` fetch —
+  added it to the allowlist.
+  **Built all 4 Ordered Steps, one commit each, plus a Step 0 housekeeping commit for the
+  governance batch:** Step 0 — committed the confirmed 8-file batch above. Step 1 — migrated the
+  trigger route and all 18 `lib/money-service/routes.ts` wrapper functions onto
+  `createMoneyApi`/`unwrapMoneyApi` (17 downstream consumer routes needed zero changes — they call
+  the wrapper, not the transport). **Found a second, more severe generated-spec gap than Session
+  7-1 disclosed while doing this:** money-service's OpenAPI spec has `parameters.query?: never` on
+  every single operation (not just generic bodies) — `@nestjs/swagger` captured path/method/
+  path-param shape but zero query-parameter metadata for Zod-validated routes. Worked around with
+  one narrowly-scoped `pathWithQuery()` cast per query-bearing call, preserving byte-for-byte
+  identical request URLs via the same `buildQuery()` helper as before. Step 2 — migrated all 8
+  live `app/api/auth/token-*` routes onto `createOperationApi`/`unwrapOperationApi`. **Found that
+  `openapi-fetch` needs a real `Response`/`Request` object, not the old `{ok, status, json}` mock
+  shape** — broke all 5 affected test files uniformly with 500s until fixed (real `new Response()`
+  mocks, real `Request` reads for outbound-body/URL assertions); no assertion's expected value
+  changed, only the mock mechanics. Step 3 — `no-restricted-syntax` ESLint rule banning direct
+  `fetch()` against `OPERATION_SERVICE_URL`/`MONEY_SERVICE_URL`/bare microservice ports outside
+  `lib/api/generated/`, `lib/*-service/client.ts`, and the allowlisted health-check file; proven
+  via a planted violation (caught, then removed, clean rerun confirmed). Step 4 — removed the
+  empty `app/api/auth/register/` directory and retired all 6 dead `token-2fa-*` routes +
+  `__tests__/api/auth/token-2fa-flows.test.ts` (zero UI consumers, re-confirmed; superseded by
+  `/api/user/2fa/*` at Session 4B-21).
+  **Full verification:** `tsc --noEmit` clean throughout, re-checked after every step; `eslint app
+components lib hooks --max-warnings 0` — same 5 pre-existing warnings, 0 introduced; `test:ci`
+  **163/163 suites, 2412/2412 tests** (was 164/164, 2422/2422 — -1 suite/-10 tests, exactly the
+  deleted 2FA test file, zero regressions elsewhere; the order's own predicted "2415" was a
+  citation-drift guess — the file genuinely had 10 tests, not 7).
+  **No flag flipped, no cutover-table row** — pure internal client refactor, `migration-cutover-
+table.md` unchanged. `migration-stack-analysis.md` updated (Appendix note on the 6 retired
+  `token-2fa-*` files + their test, annotated not silently deleted from the historical record).
+  Two new `LESSONS-LEARNED.md` entries: **L31** (`openapi-fetch` needs real `Response`/`Request`
+  mocks, not the old bare-fetch shape) and **L32** (check a generated spec's `parameters.query`
+  for `never`, not just `requestBody` — a Zod-validated service can lose query-param metadata
+  entirely, worse than the disclosed generic-body gap).
+  **Artifacts updated:** `7-2-api-client-migrate-consumers.migration-order.md` (Status → CONFIRMED
+  → CLOSED SUCCESSFUL; entry criteria all checked with CONFIRM-time findings; Done-when all
+  checked; Deviations filled — 6 entries), `DECISION-LOG.md`/`MASTER-ROADMAP-PHASES-7-15.md`/
+  governance docs (committed as the confirmed batch, no new flag resolution — none was open for
+  this session), `migration-stack-analysis.md`, `LESSONS-LEARNED.md` (L31, L32), this file
+  (Current/Previous rotation — Session 6-12 and the 3 ad-hoc sessions between it and 7-1 moved to
+  `history/sessions-archive.md`, closing that piece of the long-standing Waiting-on #102/#129
+  backlog). **`7-3-api-client-contract-tests-and-retirement.migration-order.md` PRE-DRAFTed\*\* —
+  contract-test rewrite, stale-doc retirement, `stackA`/`stackB`'s fate, and the widened
+  generated-spec query-param gap (L32) — deliberately leaves Ordered Steps open pending a real
+  Step 0 discovery pass, same discipline as every recent PRE-DRAFT since the Phase 6 drift
+  pattern.
+
 - _(superseded-by-above, retained for context)_ **Session 7-1 (API Client Re-verify + Generate,
   CONTRACT/PORT hybrid, dial MEDIUM), CONFIRMED, executed, CLOSED SUCCESSFUL 2026-08-12.** First
   session of Phase 7 (API Client Rewrite) — `lib/api/index.ts` finally touched after being on

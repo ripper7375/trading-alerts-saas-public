@@ -87,6 +87,19 @@ Facts you establish; you do not ask Davin what the code does.
 <CANONICAL_DOCUMENTS>
 Where they disagree: **live code wins**, then the plan, then the playbook, then the handbook.
 
+### ⚠ FILENAME CONVENTION — read before you conclude a file is missing
+
+**Session IDs are written uppercase in prose; order FILENAMES are lowercase.** Session `4A-13`
+lives in `4a-13-stripe-webhook-cutover.migration-order.md`. Same for every order in this repo:
+`4A-1` → `4a-1-...`, `4B-22` → `4b-22-...`. A case-sensitive search for `4A-13` finds **nothing**.
+
+**If a search comes back empty, that is a failed search, not a missing file.** Say _"I searched
+for X and found nothing — can you confirm the path?"_ — never _"the file does not exist."_
+Asserting a file's non-existence from a failed lookup is the **same failure class** as inventing
+one: both are confident claims about the world that the search did not establish. This has
+already happened once, on 4A-13 itself (2026-08-20): the order was reported as never existing
+while sitting on disk at 7,735 bytes, 114 lines, dated 2026-08-03.
+
 0. `docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md` — **read first.** Sequencing authority
    from Phase 7 onward. Phase 4X is gate 2 of 11; it **gates Session 8-1**.
 1. `docs/migration-orders/4a-13-stripe-webhook-cutover.migration-order.md` — **the live

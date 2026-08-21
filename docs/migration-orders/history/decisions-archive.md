@@ -3049,3 +3049,80 @@ Executor found and reported 4 real drift-report citation errors the Advisor's ow
 inherited (a wrong "18" `token-_`count in Decision 3, corrected by the Advisor within the same
 session after the Executor's CONFIRM report), and none of it required a round-trip beyond Davin's
 single`APPROVED`/confirmation.
+
+---
+
+## F60 — Stripe webhook migration (plan's own Slice 4 scope) was never executed
+
+- Status: **RESOLVED — Session 4A-13, 2026-08-21**
+- Session: 4B-22 (found) · 4A-13 (resolved) · Date: 2026-08-04 found, 2026-08-21 resolved
+- Found while: 4B-22's fresh `app/api/**` census (Checklist step 3) — `app/api/webhooks/
+stripe/route.ts` was still 100% monolith-native: raw body read, `constructWebhookEvent`, and
+  `lib/stripe/webhook-handlers.ts`'s full tier/subscription/commission logic, unchanged.
+- **This was a real gap against the plan's own literal scope, not an out-of-scope route.** The
+  plan's own Phase 4 section (§6, 4A item 4) explicitly reads: "Write APIs **+ Stripe webhook**
+  (rollback: flip back)." Session 4A-9 (2026-07-27) built a complete, deployed
+  `StripeWebhookController`/`StripeWebhookService` in money-service — it sat fully dormant, never
+  receiving a single real request, for 25 days until this session.
+- **Resolution (Session 4A-13):** Davin registered money-service's webhook URL as a second,
+  concurrent Stripe Dashboard endpoint (dual-delivery, mirroring the dLocal/4A-5 precedent) with
+  its own signing secret. A self-signed synthetic test (Option B — Stripe CLI unavailable; secret
+  handled in-memory only, never printed) proved signature verification, dispatch, and the
+  no-real-userId guard. Davin's real test-mode Stripe Checkout then produced a genuine
+  `checkout.session.completed` event, which surfaced a new, previously-undetected defect (see
+  **F75**) on its first two delivery attempts. Once F75 was fixed, Davin resent the event: HTTP
+  200, `[Webhook] User upgraded to PRO`, and direct DB verification confirmed `User.tier='PRO'`,
+  an `ACTIVE` `Subscription` with correct Stripe IDs, and a `TIER_UPGRADED` `OutboxEvent` — all
+  four proof points of the order's own Decision #3 satisfied on a real event.
+- Evidence: money-service Railway logs (`[Webhook] Received event`/`User upgraded to PRO`,
+  `correlationId req_b3aa9e58-...`), HTTP access log (`POST /v1/webhooks/stripe 200`), direct
+  read-only Postgres query against `User`/`Subscription`/`OutboxEvent` for
+  `userId=cmkp6ftxd0000hr5xnjly47a3`.
+- **Monolith endpoint intentionally left registered** (not disabled this session) — Executor
+  recommendation, pending Davin's decision: observe one further clean real event before retiring
+  the safety net, given a real defect was just found on this route's very first live write.
+- Approved by: Davin (live, cutover authorization + Money-Audit walkthrough + F75 fix direction +
+  real-event trigger, all this session).
+
+## F75 — `money_svc` Postgres role missing `UPDATE` grant on `User` (found via Stripe webhook cutover's first real write)
+
+- Status: RESOLVED — same session
+- Session: 4A-13 · Date: 2026-08-21
+- Found while: verifying F60's real-event proof. Davin's genuine test-mode Stripe Checkout
+  produced a real `checkout.session.completed` delivery. Both the initial delivery and Stripe's
+  automatic retry **failed** with `Database error. Code: 42501. Message: permission denied for
+table "User"`, thrown from `tx.user.update()` inside `handleCheckoutCompleted`'s `$transaction`
+  (`money-service/src/stripe/stripe-webhook.service.ts:58`).
+- **Root cause:** `money_svc` — money-service's dedicated, narrower-scoped Postgres role
+  (`prisma.service.ts`'s own header comment: "a distinct, narrower-scoped role than
+  operation-service's `core_app`") — had never been granted `UPDATE` on `User`, nor `SELECT`/
+  `INSERT`/`UPDATE` on `Subscription`/`OutboxEvent`/`Payment`/`AffiliateCode`/`AffiliateProfile`/
+  `Commission` (the latter six turned out to already hold broader grants — only `User` was actually
+  missing, consistent with the error only ever naming `User`).
+- **Why invisible until now:** `StripeWebhookController`'s write path had never executed against
+  real production credentials before this exact event — built Session 4A-9 (2026-07-27), dormant
+  25 days (Davin's own words opening Session 4A-13: "has never received a single real event"). No
+  unit test, mocked-Prisma test, or the earlier synthetic verification test could have caught
+  this — none of them exercise real Postgres role-based access control.
+- **Fix:** Davin specified the exact SQL directly:
+  ```sql
+  GRANT SELECT, UPDATE ON "User" TO money_svc;
+  GRANT SELECT, INSERT, UPDATE ON "Subscription", "OutboxEvent", "Payment", "AffiliateCode",
+    "AffiliateProfile", "Commission" TO money_svc;
+  ```
+  Executor applied it via a scoped script against Postgres's own connection (value handled
+  in-memory only via `railway run`, never printed/logged), then independently verified via
+  `information_schema.role_table_grants` — confirmed `User` gained exactly `SELECT, UPDATE`.
+- **Verified live:** Davin resent the failed event from Stripe Dashboard. Retry succeeded: HTTP
+  200, `[Webhook] User upgraded to PRO`, and direct DB read-back confirmed `User.tier='PRO'`,
+  `Subscription` `ACTIVE`, `OutboxEvent(TIER_UPGRADED)` created.
+- **Process note:** a prior attempt to read the same DB state read-only (before Davin gave the
+  exact fix, to assess blast radius) using the same elevated Postgres connection was blocked by
+  the platform's own auto-mode safety classifier. Reported to Davin rather than worked around;
+  the equivalent action proceeded once Davin's direction was explicit and specific (the exact SQL,
+  then the explicit request to verify DB state).
+- **Scope check, not yet done:** whether other DB-role/grant gaps of this same shape exist for
+  money-service's other write paths (dLocal, disbursement, admin code distribution) that similarly
+  haven't had their first real production write yet. Not investigated this session — flagged for
+  whoever scopes 4A-14/4A-15 or a dedicated audit.
+- Approved by: Davin (live — provided the exact SQL and authorized its execution).
