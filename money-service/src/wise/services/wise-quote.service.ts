@@ -5,12 +5,12 @@
  * `POST /v3/profiles/{profileId}/quotes`).
  *
  * F38 (`DECISION-LOG.md`, RESOLVED Session 4A-W2, binding): the platform
- * absorbs the Wise fee. Quotes are taken by `targetAmount` (fixed) so the
- * affiliate always receives exactly their earned commission amount —
- * `sourceAmount` floats to cover the fee. Design §6.2's own example JSON
- * (`sourceAmount` fixed) predates F38's resolution and is superseded by it
- * (`LESSONS-LEARNED.md` L27 — ground truth can drift even within the same
- * docset; DECISION-LOG.md is dated after §6.2 was authored).
+ * absorbs the Wise fee, so the caller always fixes the leg that represents
+ * the affiliate's exact earned USD commission and lets the other leg float
+ * to cover the fee (F47, Session 4A-15): USD->USD payouts fix `targetAmount`;
+ * USD->non-USD payouts fix `sourceAmount` (the USD amount actually earned),
+ * letting Wise convert it at the current rate rather than misreading a raw
+ * USD figure as if it were already in the target currency.
  */
 
 import { Injectable } from '@nestjs/common';
@@ -26,8 +26,12 @@ const FEE_BEARER = 'PLATFORM' as const;
 export interface CreateQuoteInput {
   sourceCurrency: string;
   targetCurrency: string;
-  /** The exact amount the affiliate must receive (F38). */
-  targetAmount: number;
+  /** Fixed source-side USD amount (F47: USD->non-USD payouts). Mutually
+   * exclusive with `targetAmount`. */
+  sourceAmount?: number;
+  /** Fixed target-side amount (F38: USD->USD payouts, affiliate receives
+   * exactly this). Mutually exclusive with `sourceAmount`. */
+  targetAmount?: number;
   /** Wise recipient id (`AffiliateWiseRecipient.wiseRecipientId`). */
   targetAccountId: string;
 }
@@ -75,7 +79,9 @@ export class WiseQuoteService {
         body: {
           sourceCurrency: input.sourceCurrency,
           targetCurrency: input.targetCurrency,
-          targetAmount: input.targetAmount,
+          ...(input.sourceAmount !== undefined
+            ? { sourceAmount: input.sourceAmount }
+            : { targetAmount: input.targetAmount }),
           targetAccount: Number(input.targetAccountId),
         },
       }

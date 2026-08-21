@@ -108,6 +108,108 @@ describe('WisePaymentProvider', () => {
       expect(prismaMock.affiliateProfile.update).not.toHaveBeenCalled();
     });
 
+    it('requests the quote by targetAmount when the recipient currency matches the source currency (F47, USD->USD)', async () => {
+      batchGroupServiceMock.getOrCreateForPaymentBatch.mockResolvedValue({
+        id: 'wbg-1',
+        wiseBatchGroupId: 'wise-uuid-1',
+        wiseVersion: 1,
+      });
+      prismaMock.affiliateWiseRecipient.findUnique.mockResolvedValue({
+        id: 'rec-1',
+        wiseRecipientId: '999',
+        targetCurrency: 'USD',
+        status: 'ACTIVE',
+      } as never);
+      prismaMock.disbursementTransaction.findUnique.mockResolvedValue({
+        id: 'dtx-1',
+      } as never);
+      quoteServiceMock.createQuote.mockResolvedValue({
+        quoteId: 'quote-1',
+        sourceCurrency: 'USD',
+        targetCurrency: 'USD',
+        sourceValue: 100,
+        targetValue: 100,
+        rate: 1,
+        feeAmount: 0,
+        feeBearer: 'PLATFORM',
+      });
+      transferServiceMock.createBatchGroupTransfer.mockResolvedValue({
+        transfer: {
+          wiseTransferId: '4567890',
+          customerTransactionId: 'cid-1',
+          reference: 'ref-1',
+        },
+        created: true,
+      });
+
+      await provider.prepareBatch({
+        paymentBatchId: 'batch-1',
+        batchName: 'BATCH-2026-1',
+        sourceCurrency: 'USD',
+        items: [
+          { commissionId: 'comm-1', affiliateProfileId: 'aff-1', amount: 100 },
+        ],
+      });
+
+      expect(quoteServiceMock.createQuote).toHaveBeenCalledWith(
+        expect.objectContaining({ targetAmount: 100 })
+      );
+      expect(
+        quoteServiceMock.createQuote.mock.calls[0][0].sourceAmount
+      ).toBeUndefined();
+    });
+
+    it('requests the quote by sourceAmount when the recipient currency differs from the source currency (F47, USD->non-USD)', async () => {
+      batchGroupServiceMock.getOrCreateForPaymentBatch.mockResolvedValue({
+        id: 'wbg-1',
+        wiseBatchGroupId: 'wise-uuid-1',
+        wiseVersion: 1,
+      });
+      prismaMock.affiliateWiseRecipient.findUnique.mockResolvedValue({
+        id: 'rec-1',
+        wiseRecipientId: '999',
+        targetCurrency: 'THB',
+        status: 'ACTIVE',
+      } as never);
+      prismaMock.disbursementTransaction.findUnique.mockResolvedValue({
+        id: 'dtx-1',
+      } as never);
+      quoteServiceMock.createQuote.mockResolvedValue({
+        quoteId: 'quote-1',
+        sourceCurrency: 'USD',
+        targetCurrency: 'THB',
+        sourceValue: 50,
+        targetValue: 1762.5,
+        rate: 35.25,
+        feeAmount: 1.2,
+        feeBearer: 'PLATFORM',
+      });
+      transferServiceMock.createBatchGroupTransfer.mockResolvedValue({
+        transfer: {
+          wiseTransferId: '4567891',
+          customerTransactionId: 'cid-2',
+          reference: 'ref-2',
+        },
+        created: true,
+      });
+
+      await provider.prepareBatch({
+        paymentBatchId: 'batch-1',
+        batchName: 'BATCH-2026-1',
+        sourceCurrency: 'USD',
+        items: [
+          { commissionId: 'comm-2', affiliateProfileId: 'aff-2', amount: 50 },
+        ],
+      });
+
+      expect(quoteServiceMock.createQuote).toHaveBeenCalledWith(
+        expect.objectContaining({ sourceAmount: 50 })
+      );
+      expect(
+        quoteServiceMock.createQuote.mock.calls[0][0].targetAmount
+      ).toBeUndefined();
+    });
+
     it('records a non-fatal per-affiliate failure when the recipient is not ACTIVE, and continues the batch', async () => {
       batchGroupServiceMock.getOrCreateForPaymentBatch.mockResolvedValue({
         id: 'wbg-1',

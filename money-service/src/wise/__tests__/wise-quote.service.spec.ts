@@ -68,6 +68,45 @@ describe('WiseQuoteService', () => {
     expect(sentBody.sourceAmount).toBeUndefined();
   });
 
+  it('requests the quote by sourceAmount, never targetAmount, when sourceAmount is provided (F47)', async () => {
+    requestMock.mockResolvedValue({
+      id: 'quote-2',
+      sourceCurrency: 'USD',
+      targetCurrency: 'THB',
+      sourceAmount: 50,
+      targetAmount: 1762.5,
+      rate: 35.25,
+      paymentOptions: [
+        {
+          disabled: false,
+          sourceAmount: 50,
+          targetAmount: 1762.5,
+          fee: { total: 1.2 },
+        },
+      ],
+    });
+
+    await service.createQuote({
+      sourceCurrency: 'USD',
+      targetCurrency: 'THB',
+      sourceAmount: 50,
+      targetAccountId: '888',
+    });
+
+    expect(requestMock).toHaveBeenCalledWith(
+      '/v3/profiles/29617748/quotes',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.objectContaining({
+          sourceAmount: 50,
+          targetAccount: 888,
+        }),
+      })
+    );
+    const sentBody = requestMock.mock.calls[0][1].body;
+    expect(sentBody.targetAmount).toBeUndefined();
+  });
+
   it('the platform absorbs the fee -- affiliate receives the exact targetAmount', async () => {
     requestMock.mockResolvedValue({
       id: 'quote-1',

@@ -239,7 +239,12 @@ export class WisePaymentProvider
         const quote = await this.wiseQuoteService.createQuote({
           sourceCurrency: input.sourceCurrency,
           targetCurrency: recipient.targetCurrency,
-          targetAmount: item.amount,
+          // F47: item.amount is always the affiliate's earned commission in
+          // USD. Fixing targetAmount for a non-USD recipient would misread
+          // that USD figure as if it were already in the target currency.
+          ...(recipient.targetCurrency === input.sourceCurrency
+            ? { targetAmount: item.amount }
+            : { sourceAmount: item.amount }),
           targetAccountId: recipient.wiseRecipientId,
         });
 
