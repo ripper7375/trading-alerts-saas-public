@@ -2,6 +2,7 @@ import { InternalServerErrorException } from '@nestjs/common';
 
 import { sendSubscriptionConfirmationEmail } from '../email/email.util';
 import {
+  sendAffiliateCommissionEmail,
   sendCancellationEmail,
   sendPaymentFailedEmail,
   sendPaymentReceiptEmail,
@@ -14,6 +15,7 @@ jest.mock('../email/email.util', () => ({
   sendSubscriptionConfirmationEmail: jest.fn(),
 }));
 jest.mock('../email/subscription-email.util', () => ({
+  sendAffiliateCommissionEmail: jest.fn(),
   sendCancellationEmail: jest.fn(),
   sendPaymentFailedEmail: jest.fn(),
   sendPaymentReceiptEmail: jest.fn(),
@@ -36,6 +38,10 @@ const mockSendPaymentReceiptEmail =
 const mockSendSubscriptionCanceledEmail =
   sendSubscriptionCanceledEmail as jest.MockedFunction<
     typeof sendSubscriptionCanceledEmail
+  >;
+const mockSendAffiliateCommissionEmail =
+  sendAffiliateCommissionEmail as jest.MockedFunction<
+    typeof sendAffiliateCommissionEmail
   >;
 
 function makeEvent(
@@ -71,6 +77,7 @@ describe('OutboxConsumerService', () => {
     mockSendPaymentFailedEmail.mockResolvedValue({ success: true });
     mockSendPaymentReceiptEmail.mockResolvedValue({ success: true });
     mockSendSubscriptionCanceledEmail.mockResolvedValue({ success: true });
+    mockSendAffiliateCommissionEmail.mockResolvedValue({ success: true });
     findUnique.mockResolvedValue({
       email: 'ada@example.com',
       name: 'Ada',
@@ -170,19 +177,38 @@ describe('OutboxConsumerService', () => {
     );
   });
 
-  it('skips COMMISSION_CREDITED without looking up any user (recipient unresolvable)', async () => {
-    const result = await service.processEvent(
-      makeEvent('COMMISSION_CREDITED', {
-        commissionId: 'comm_1',
-        commissionAmount: 5.8,
-        provider: 'STRIPE',
-      })
-    );
-    expect(findUnique).not.toHaveBeenCalled();
-    expect(result).toEqual({
-      status: 'skipped',
-      reason: 'commission-recipient-unresolvable',
+  it('dispatches COMMISSION_CREDITED to the affiliate commission email, resolving the recipient from aggregateId (F50)', async () => {
+    findUnique.mockResolvedValue({
+      email: 'affiliate@example.com',
+      name: 'Affiliate Ada',
     });
+
+    const result = await service.processEvent(
+      makeEvent(
+        'COMMISSION_CREDITED',
+        {
+          commissionId: 'comm_1',
+          commissionAmount: 5.8,
+          totalEarnings: 123.45,
+          code: 'AFF10',
+          provider: 'STRIPE',
+        },
+        'affiliate_user_1'
+      )
+    );
+
+    expect(findUnique).toHaveBeenCalledWith({
+      where: { id: 'affiliate_user_1' },
+      select: { email: true, name: true },
+    });
+    expect(mockSendAffiliateCommissionEmail).toHaveBeenCalledWith(
+      'affiliate@example.com',
+      'Affiliate Ada',
+      'AFF10',
+      5.8,
+      123.45
+    );
+    expect(result).toEqual({ status: 'processed' });
   });
 
   it('skips an unrecognized eventType without throwing', async () => {

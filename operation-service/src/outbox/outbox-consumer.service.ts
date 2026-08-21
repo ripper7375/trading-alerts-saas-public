@@ -3,9 +3,11 @@
  *
  * The receiving end of money-service's OutboxPublisherCron (4A-8). Dispatches
  * by eventType to the ported/existing send functions, resolving the
- * recipient via `aggregateId` -> `User.id` (this event stream's aggregate is
- * always the `User` whose tier/subscription changed -- EXCEPT
- * `COMMISSION_CREDITED`, see the dedicated comment on that branch below).
+ * recipient via `aggregateId` -> `User.id`. For every eventType, `aggregateId`
+ * is the `User` who should receive the notification -- for `COMMISSION_CREDITED`
+ * (F50) that is the affiliate who earned the commission, not the paying
+ * subscriber; money-service's `stripe-webhook.service.ts` sets `aggregateId`
+ * accordingly at emission time.
  *
  * Response-code discipline (order's own Invariants): a transient send
  * failure (Resend API error) throws so the controller 5xx's and
@@ -20,6 +22,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 
 import { OutboxEventDto } from './dto/outbox-event.dto';
 import {
+  sendAffiliateCommissionEmail,
   sendCancellationEmail,
   sendPaymentFailedEmail,
   sendPaymentReceiptEmail,
@@ -58,23 +61,6 @@ export class OutboxConsumerService {
         { outboxEventId: event.id }
       );
       return { status: 'skipped', reason: 'unrecognized-event-type' };
-    }
-
-    if (event.eventType === 'COMMISSION_CREDITED') {
-      // Known gap, not a bug to silently paper over: money-service emits
-      // this event with aggregateId = the PAYING SUBSCRIBER's user id (see
-      // stripe-webhook.service.ts's emitOutboxEvent call site), not the
-      // affiliate who actually earned the commission -- and
-      // operation-service's Prisma schema subset has no Commission/
-      // AffiliateProfile model to resolve the real recipient from
-      // payload.commissionId. Sending to aggregateId here would email the
-      // WRONG person. Skip and flag rather than guess. See this order's
-      // Deviations / DECISION-LOG.md for the follow-up this needs.
-      console.warn(
-        '[Outbox] COMMISSION_CREDITED recipient cannot be resolved with the current payload/schema, skipping',
-        { outboxEventId: event.id }
-      );
-      return { status: 'skipped', reason: 'commission-recipient-unresolvable' };
     }
 
     const user = await this.prisma.user.findUnique({
@@ -169,10 +155,30 @@ export class OutboxConsumerService {
             : new Date();
         return sendPaymentReceiptEmail(email, name, amount, nextBillingDate);
       }
+      case 'COMMISSION_CREDITED': {
+        const code =
+          typeof payload['code'] === 'string'
+            ? (payload['code'] as string)
+            : '';
+        const commissionAmount =
+          typeof payload['commissionAmount'] === 'number'
+            ? (payload['commissionAmount'] as number)
+            : 0;
+        const totalEarnings =
+          typeof payload['totalEarnings'] === 'number'
+            ? (payload['totalEarnings'] as number)
+            : 0;
+        return sendAffiliateCommissionEmail(
+          email,
+          name,
+          code,
+          commissionAmount,
+          totalEarnings
+        );
+      }
       default:
-        // Unreachable: KNOWN_EVENT_TYPES already filtered to this set minus
-        // COMMISSION_CREDITED (handled above). Kept as a defensive throw
-        // rather than a silent fallthrough.
+        // Unreachable: KNOWN_EVENT_TYPES already filtered to exactly this
+        // set. Kept as a defensive throw rather than a silent fallthrough.
         throw new InternalServerErrorException(
           `Unhandled known eventType '${eventType}'`
         );
