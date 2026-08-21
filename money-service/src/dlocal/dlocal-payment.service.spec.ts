@@ -106,6 +106,54 @@ describe('dLocal Payment Service', () => {
     });
   });
 
+  describe('createPayment outbound request body (F49)', () => {
+    const ORIGINAL_ENV = process.env;
+
+    afterEach(() => {
+      process.env = ORIGINAL_ENV;
+      jest.resetModules();
+    });
+
+    it('includes payment_method_flow: REDIRECT in the request sent to dLocal', async () => {
+      jest.resetModules();
+      process.env = {
+        ...ORIGINAL_ENV,
+        NODE_ENV: 'production',
+        DLOCAL_API_KEY: 'test-api-key',
+        DLOCAL_LOGIN: 'test-login',
+        DLOCAL_SECRET_KEY: 'test-secret',
+      };
+
+      const freshFetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'dlocal-payment-1',
+          redirect_url: 'https://sandbox.dlocal.com/pay/1',
+        }),
+      });
+      global.fetch = freshFetch as unknown as typeof fetch;
+
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const {
+        createPayment: createPaymentFresh,
+      } = require('./dlocal-payment.service');
+
+      await createPaymentFresh({
+        userId: 'user-789',
+        amount: 29.0,
+        currency: 'THB',
+        country: 'TH',
+        paymentMethod: 'TrueMoney',
+        planType: 'MONTHLY',
+      });
+
+      expect(freshFetch).toHaveBeenCalledTimes(1);
+      const [, requestInit] = freshFetch.mock.calls[0];
+      const sentBody = JSON.parse(requestInit.body as string);
+      expect(sentBody.payment_method_flow).toBe('REDIRECT');
+    });
+  });
+
   describe('verifyWebhookSignature', () => {
     const testSecret = 'test-webhook-secret';
     const testXDate = '2026-07-24T09:23:38.899Z';
