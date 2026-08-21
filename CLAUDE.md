@@ -77,11 +77,34 @@ cutover-table.md` unchanged. `migration-stack-analysis.md` updated (files delete
   (Status → CONFIRMED → CLOSED SUCCESSFUL; entry criteria all checked with CONFIRM-time findings;
   Done-when all checked; Deviations filled — 5 entries, 0–4), `migration-stack-analysis.md`, this
   file (Current/Previous rotation — Session 7-1 moved to `history/sessions-archive.md`),
-  `LESSONS-LEARNED.md` (L3 recurrence note only, no new entry). **`MASTER-ROADMAP-PHASES-7-15.md`'s
-  own Gate 2 is next: Phase 4X** (carry-forward money cutovers — `4A-13` Stripe webhook cutover,
-  `4A-14` dLocal Group B, `4A-15` Wise/outbox defects). No PRE-DRAFT written yet for `4A-13` beyond
-  the existing 2026-08-04 draft — re-verify it against live code at its own CONFIRM per the
-  roadmap's own instruction, rather than trusting its age.
+  `LESSONS-LEARNED.md` (L3 recurrence note only, no new entry). **Next session is `4A-13`
+  (Stripe Webhook Cutover, Phase 4X — `MASTER-ROADMAP-PHASES-7-15.md` §0 Gate 2, run immediately
+  after 7-3, NOT Session 8-1** — 8-1's own deletion sweep is gated on all of 4A-13/4A-14/4A-15
+  CLOSED first). **Its order (`4a-13-stripe-webhook-cutover.migration-order.md`) already exists**
+  as `PRE-DRAFT`, generated 2026-08-04 at Session 4B-22's close — **not rewritten this session**;
+  it needs a full fresh re-verification at its own CONFIRM, not a rewrite now. What's concretely
+  stale about it, checked live at this session's close rather than assumed from its age:
+  - **17 days old** (generated 2026-08-04, today 2026-08-21); its own Entry Criterion 2 says
+    "8+ days have passed since the port" (Session 4A-9, 2026-07-27) — that framing is itself
+    stale, the real gap is now **25 days**.
+  - **Code-drift check (good news, but must be re-run live, not trusted from this note):**
+    `git log --oneline -- lib/stripe/ app/api/webhooks/stripe/ money-service/src/stripe/` shows
+    zero commits since `37700b51` (the Session 4A-9 port itself) — the only later Stripe-adjacent
+    commit is `86ef2299` (Session 6-8, a frontend upgrade-success page, unrelated to webhook
+    logic). No monolith-side or money-service-side webhook code has changed since the port, as of
+    this check.
+  - **`DECISION-LOG.md` F60 re-checked: still OPEN**, register text unchanged since Session 4B-22.
+  - **Entry Criterion 1's own phrasing is now inaccurate and needs correcting at CONFIRM**: it
+    says "no session between 4B-22 and this one's own CONFIRM has touched Stripe webhook code" —
+    three sessions have in fact run since 4B-22 (7-1, 7-2, 7-3, all Phase 7 API-client work);
+    none touched Stripe/webhook code (confirmed above), but the criterion's own wording assumed
+    zero intervening sessions, not zero intervening _relevant_ sessions.
+  - **What code-drift-checking cannot cover — genuinely needs live re-verification at CONFIRM,
+    not assumable from git history:** whether production Stripe events are still reaching the
+    monolith today (Entry Criterion 3), whether `STRIPE_WEBHOOK_SECRET`/money-service's real
+    Railway env is still correctly set (Entry Criterion 5, value-blind per L17), and Davin's live
+    availability for the webhook-URL repoint approval (Entry Criterion 4) — none of these are
+    derivable from the repo alone.
 - **Previous:** Session 7-2 (API Client Migrate Consumers, PORT variant, dial LOW), CONFIRMED,
   executed, CLOSED SUCCESSFUL 2026-08-20. Second session of Phase 7 — the consumer rewiring
   Session 7-1 deliberately deferred. Also the session that landed `MASTER-ROADMAP-PHASES-7-15.md`
