@@ -174,16 +174,18 @@ export default function DocsPage() {
           <div className="space-y-4 pt-4">
             {filtered.map((section, idx) => {
               const Icon = section.icon;
-              const isOpen = openSections[idx];
+              const isOpen = Boolean(openSections[idx]);
 
               return (
                 <Card
                   key={idx}
                   className="border-slate-200 bg-white shadow-md transition-colors hover:border-slate-300 dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl dark:hover:border-slate-700"
                 >
-                  <div
+                  <button
+                    type="button"
                     onClick={() => toggleSection(idx)}
-                    className="flex cursor-pointer select-none items-center justify-between p-5"
+                    aria-expanded={isOpen}
+                    className="flex w-full select-none items-center justify-between p-5 text-left"
                   >
                     <div className="flex items-center gap-3.5">
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
@@ -198,14 +200,14 @@ export default function DocsPage() {
                         </p>
                       </div>
                     </div>
-                    <button className="p-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+                    <span className="p-1 text-slate-500 dark:text-slate-400">
                       {isOpen ? (
-                        <ChevronUp className="h-5 w-5" />
+                        <ChevronUp className="h-5 w-5" aria-hidden="true" />
                       ) : (
-                        <ChevronDown className="h-5 w-5" />
+                        <ChevronDown className="h-5 w-5" aria-hidden="true" />
                       )}
-                    </button>
-                  </div>
+                    </span>
+                  </button>
 
                   {isOpen && (
                     <CardContent className="space-y-2 border-t border-slate-200 bg-slate-50/80 px-6 py-4 dark:border-slate-800/80 dark:bg-[#06080e]/60">
