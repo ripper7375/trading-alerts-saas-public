@@ -3414,3 +3414,27 @@ table "User"`, thrown from `tx.user.update()` inside `handleCheckoutCompleted`'s
 - Owner: next session touching `/alerts` or a dedicated repair session; re-verify the
   price-corruption finding isn't testing-artifact-specific before treating it as a proven
   data-integrity risk.
+
+## F78 — `AppHeader` tier-badge staleness after a server-side-only tier change
+
+- Status: OPEN
+- Session: 9-6 (2026-08-22)
+- Decision: not fixed — disclosed and registered, out of a UI-BUILD+verification session's scope.
+- Finding: `AppHeader` (built Session 9-1) reads `session.user.tier` directly for its nav gating
+  and the "🔒 FREE"/PRO badge. A server-side-only tier change — this session's own webhook-driven
+  Stripe upgrade being the concrete example — is invisible there until the NextAuth JWT next
+  rotates (next login, or whatever refresh interval NextAuth is configured with), so a freshly
+  upgraded user still sees a stale FREE badge and FREE-tier nav links (`/pricing`, `/free`) in the
+  header immediately after upgrading. This is the same class of staleness F57 fixed, but F57's fix
+  (force a `getSession()` refresh at every auth-state-changing bridge call site) only covers
+  user-initiated actions — a webhook has no call site to hook a refresh into.
+  The actual PRO pages are unaffected: both `/upgrade/success` and `/settings/billing` already
+  re-fetch `GET /api/subscription` fresh rather than trusting the session (by design — see the
+  code comment in `app/upgrade/success/page.tsx` itself, added precisely because a webhook can lag
+  a query param), so the substance of F64's lifecycle verification is correct; this is
+  header-chrome-only.
+- Evidence: live-observed during Session 9-6's own F64 lifecycle click-through — after the
+  webhook-simulated upgrade, `/settings/billing` correctly showed "PRO TIER Active" while the same
+  page's own top nav still read "🔒 FREE" and still showed the `/free`/`อัปเกรด` (Upgrade) links.
+- Approved by: n/a (technical finding, disclosed not fixed) — owner: a session touching
+  `AppHeader`, or the same class of fix F57 already applied at other bridge call sites.
