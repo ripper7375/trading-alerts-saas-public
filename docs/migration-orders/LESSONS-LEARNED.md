@@ -4,13 +4,13 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 40 (L1–L40), right at the cap after the
-2026-08-12 consolidation pass (64 → 25: 28 archived, 11 merged into 8 master rules,
-then 4 unpromoted candidates promoted to L26–L29; L30 added 2026-08-20 ad-hoc, L31–L32
-added Session 7-2, L33 added Session 4A-13, L34–L35 added Session 4A-14, L36–L37 added
-Session 4A-15, L38–L39 added Session 9-0, L40 added Session 9-1).
-Full history in `LESSONS-ARCHIVE.md`. **Next consolidation needed before any further lesson is
-added** (count is at the cap, not past it — the next new lesson must consolidate first).
+**Hard cap ~40 active lessons.** Currently at 41 (L1–L41), after the 2026-08-12 consolidation
+pass (64 → 25: 28 archived, 11 merged into 8 master rules, then 4 unpromoted candidates promoted
+to L26–L29; L30 added 2026-08-20 ad-hoc, L31–L32 added Session 7-2, L33 added Session 4A-13,
+L34–L35 added Session 4A-14, L36–L37 added Session 4A-15, L38–L39 added Session 9-0, L40 added
+Session 9-1, L3 compressed + L41 added Session 9-5).
+Full history in `LESSONS-ARCHIVE.md`. **At the cap again — the next new lesson must consolidate
+first**, same rule as always.
 
 ---
 
@@ -32,52 +32,34 @@ added** (count is at the cap, not past it — the next new lesson must consolida
 - Symptom: an order arrived with header `Status: APPROVED` while its own Entry Criteria list still had an unchecked "Davin approves this DRAFT" box, and the file was untracked with no PRE-DRAFT→DRAFT→APPROVED commit history at all.
 - Rule: at CONFIRM, cross-check the header's claimed status against (a) the order's own entry-criteria checkboxes and (b) git history for that file. A self-contradicting order is a stop-and-ask trigger, not something to silently trust or silently fix.
 - Source: Session 4A-6 · Status: ACTIVE
-- Recurrence count: 10+ times through Session 4B-3, each individually documented (full per-session
-  detail moved to `LESSONS-ARCHIVE.md` per this file's own "5+ recurrences → single count line"
-  hygiene rule) — Sessions 4A-3, 5-1, 4A-7b, 4A-W1, 4A-W2, 4A-W3a, 4A-W3b, 4B-2, 4B-3. Several
-  further Sessions between 4B-4 and 4B-18d also flagged this exact pattern in their own CLAUDE.md
-  close-outs (mostly benign — order body byte-identical to its committed PRE-DRAFT, only header
-  metadata changed) without a matching entry ever being appended here; not reconstructed
-  retroactively, flagged as its own gap. Recurred again at Session 4B-22: both the order file and
-  `CLAUDE.md` were modified-but-uncommitted, `PRE-DRAFT → APPROVED`, matching committed `HEAD`'s own
-  `PRE-DRAFT` — benign this time on two counts: the VERIFY-RETIRE variant is explicitly fast-path
-  eligible per `EXECUTOR-PROTOCOL.md` §4 (no dropped DRAFT-stage requirement, unlike 4B-20's own
-  case), and Davin's own chat message opening the session directly stated the APPROVED status and
-  the F56 reconciliation, serving as the live confirmation this check exists to obtain. Most recent,
-  and the most consequential to date:
-  **Session 4B-20** (2026-08-03) — NOT benign: the working copy dropped its own committed
-  PRE-DRAFT's explicit "not fast-path eligible under any circumstance... needs a full Advisor
-  DRAFT and Davin APPROVED" framing entirely, jumped straight to `Status: APPROVED`/"Option B
-  selected" with zero corresponding `DECISION-LOG.md` entry and all 4 Entry Criteria checkboxes
-  still unchecked — on the single highest-blast-radius session in the whole migration (auth
-  semantics). Resolved the same way as every prior instance (asked Davin directly rather than
-  silently trusting or correcting); confirmed live as his own authentic decision and recorded as
-  `DECISION-LOG.md` F56 before treating the entry criterion as satisfied. This is the single
-  most-recurring finding class in this migration — still worth the Advisor's attention on whether
-  the order-authoring pipeline itself should change (e.g. every status-field edit going through a
-  reviewable commit) rather than relying on CONFIRM-time detection every single session, and this
-  session is a concrete argument that the stakes of skipping that fix keep rising, not falling.
-  Recurred again at Session 6-1 (2026-08-10) — benign: order + 5 supporting artifacts (`CLAUDE.md`,
-  `DECISION-LOG.md`, cutover table, plan, playbook) rewritten in one internally consistent batch,
-  no DRAFT-stage commit; confirmed live by Davin as his own authentic edit before treating any of
-  it as trustworthy.
-  Recurred again at Session 6-3 (2026-08-10) — this time with real body-content drift, not just
-  header metadata: citation source swapped to a less-authoritative doc, an explicit "needs a
-  design decision" open question silently resolved with no visible rationale, and a carried-forward
-  Done-when item dropped. Confirmed live by Davin as authentic; he also resolved the design
-  question directly and explicitly reinstated the dropped item rather than letting it stay lost.
-  Recurred again at Session 6-12 (2026-08-11) — the working copy asserted F11 already resolved
-  with the one artifact that should carry that evidence (`phase-6-frontend-gap-matrix.md`) still
-  100% unfilled at first read. Confirmed live by Davin as authentic; the real triage then landed
-  and was re-verified against the file itself, not the claim alone, before treating it as settled.
-  Recurred again at Session 7-3 (2026-08-20) — benign: order arrived a bare `PRE-DRAFT` stub at
-  committed HEAD but the full DRAFT→APPROVED upgrade on disk; confirmed live by Davin as authentic
-  before execution. Recurred again at Sessions 4A-13, 4A-14, and 4A-15 (all 2026-08-21) — all
-  three benign, all three confirmed live by Davin as authentic before execution. Recurred again at
-  Sessions 9-0, 9-1, and 9-2 (all 2026-08-22) — all three benign, all three confirmed live by
-  Davin as authentic before execution. 21+ recurrences total — this is the single most-recurring
-  finding in the migration; per this file's own hygiene rule, further benign recurrences get a
-  count bump here, not a new paragraph.
+- Recurrence count: 26+ times through Session 9-5 — the single most-recurring finding class in the
+  migration, almost always benign (order body byte-identical to its own committed PRE-DRAFT, or a
+  DRAFT/corrected-DRAFT arriving as an uncommitted working-copy edit; Davin's own live confirmation
+  is what closes the check every time). One genuinely NOT benign, worth keeping as a worked
+  example — **Session 4B-20** (2026-08-03, auth semantics, the highest-blast-radius session in the
+  migration): the working copy silently dropped its own committed PRE-DRAFT's explicit "not
+  fast-path eligible... needs full Advisor DRAFT and Davin APPROVED" framing, jumping straight to
+  `Status: APPROVED` with zero `DECISION-LOG.md` entry and all 4 entry criteria still unchecked.
+  Resolved the same way as every recurrence: ask Davin directly, never silently trust or silently
+  correct. Compressed here 2026-08-22 (Session 9-5) per this file's own "5+ recurrences → single
+  count line" rule; full per-session detail through Session 9-2 in `LESSONS-ARCHIVE.md`.
+
+### L41 — A page's DOM carrying a hidden, duplicate copy of its own content is React/Next's own Suspense-streaming reveal mechanism, not an app bug — verify with computed style, not element count
+
+- Symptom: `querySelectorAll` on `/settings/appearance` (and independently `/login`) found 2 of
+  every heading/button in a real `next build && next start` production DOM. Traced the second copy
+  to `<div id="S:0">` alongside inline `$RC`/`$RT`/`$RV` scripts — this pinned Next.js version's own
+  streaming-SSR "reveal" mechanism (any route with a Suspense boundary, including a plain
+  `loading.tsx`, streams resolved content wrapped in a hidden `id="S:N"` div + a relocation script)
+  — apparently doesn't always clean up the wrapper after relocating its content.
+  `getComputedStyle` showed `display:none`, 0×0 rect: fully inert, non-interactive, invisible.
+- Rule: before treating a DOM element-count mismatch as a real double-render bug, check the
+  element's own `display`/`visibility`/bounding-rect, not just its count — an `id="S:N"` node with
+  `display:none` and a 0×0 rect is inert framework plumbing, not application-code duplication. This
+  is very likely `DECISION-LOG.md` F77's actual root cause (found on `/alerts`, closed undiagnosed
+  at Session 9-4 after extensive isolation found no trigger) — F77's own "SSR HTML verified clean
+  via `fetch()`" finding is consistent with exactly this mechanism.
+- Source: Session 9-5 (2026-08-22), `DECISION-LOG.md` F77 addendum · Status: ACTIVE
 
 ### L4 — Never use `railway variables --kv` (or any unfiltered dump) to check whether a secret is set
 

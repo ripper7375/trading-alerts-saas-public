@@ -108,7 +108,9 @@ start` production server (not dev/HMR) that `/settings/appearance` carries a sec
   **Artifacts updated:** `9-5-settings.migration-order.md` (Status → CONFIRMED → CLOSED SUCCESSFUL,
   7 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md` (F21/F64 register rows
   updated with this session's evidence, both still OPEN; F77 addendum), `migration-stack-analysis.md`
-  (Session 9-5 entry pending below), this file (Current/Previous rotation — Session 9-3 moved to
+  (Session 9-5 entry, 13 new files/13 deleted, all FRONTEND), `LESSONS-LEARNED.md` (L3 compressed
+  per its own 5+-recurrences rule, long overdue; L41 added — the F77-addendum Suspense-streaming
+  root-cause finding above), this file (Current/Previous rotation — Session 9-3 moved to
   `history/sessions-archive.md`). `migration-cutover-table.md` correctly needs no changes (Phase 9
   is additive builds, no route/slice moved).
 - **Previous:** Session 9-4 (`(dashboard)` core 7 + `/terminal` + `/free`, Phase 9, UI-BUILD),
