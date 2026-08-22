@@ -2,120 +2,168 @@
 
 > For sessions that **build or redesign frontend surfaces**: read `00-SKELETON-AND-RULES.md`
 > first — §4 applies with the dial at **High** for page-body content/layout, **Zero** on data
-> (every page binds to the endpoint its 9-0 row names). **PRE-DRAFTed by the Executor at Session
-> 9-6's close (2026-08-22)**, informed by `frontend-swap-route-map.md` and 9-6's own Deviations.
-> Per PD1, `Decisions taken` below is deliberately left as open questions with evidence, not
-> decisions — that's the Advisor's job at DRAFT.
+> (every page binds to the endpoint its 9-0 row names).
+> Corrected & upgraded to full **DRAFT** by Antigravity (Advisor & Architect), 2026-08-22.
+> Grounded in `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`.
 
-**Session:** 9-7a · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** PRE-DRAFT
-**Generated:** 2026-08-22 (Executor, at Session 9-6's close) · **Flags touched:** none identified
-at PRE-DRAFT time — flag if 9-7a's own build surfaces one.
-**Surface:** `app/affiliate/*` — the public/pre-affiliate cluster only, one of the two splits
-`MASTER-ROADMAP-PHASES-7-15.md` §3 and 9-6's own Next-session handoff both anticipated for the
-5-nested-layout, 14-page Session 9-7. Rows 43 (`/affiliate/join`), 44 (`/affiliate/register`),
-48 (`/affiliate`, landing), and the retirement of row 47 (`/affiliate/verify`, no CB2
-counterpart — folds into `/affiliate/register`'s own flow).
-**Feeds on:** `POST /api/affiliate/auth/register` (row 44); rows 43/48 are static, no API.
+**Session:** 9-7a · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CONFIRMED
+**Generated:** 2026-08-22 (Executor PRE-DRAFT) · **Upgraded & Corrected:** 2026-08-22 (Advisor DRAFT) · **Approved:** 2026-08-22 (Davin) · **Confirmed:** 2026-08-22 (Executor)
+**Flags touched:** none new (Affiliate program configuration active via F65/F66).
+**Surface:** `app/affiliate/*` public/pre-affiliate cluster — 3 active pages: `app/affiliate/page.tsx` [Row 48, program landing], `app/affiliate/join/page.tsx` [Row 43, partner onboarding highlights], `app/affiliate/register/page.tsx` [Row 44, partner registration application] + retirement of legacy `app/affiliate/verify` [Row 47]. (Rows 45 & 46 are authenticated partner portal pages cleanly scoped to **Session 9-7b**).
+**Feeds on:** `POST /api/affiliate/auth/register` (Row 44); Rows 43 and 48 are presentation surfaces with client-side interactive commission calculator and dynamic country/currency localization via `useLocale()`.
+**Estimated time:** ~2.5h (3 public affiliate onboarding pages with DavinTrade design tokens + live registration API verification).
+
+---
+
+## Decisions taken
+
+1. **Clean Scope Allocation: 9-7a Owns Rows 43, 44, 47 (Retired), 48 (Resolution of Open Question 1)**
+   - **Decision:** Session 9-7a owns the 4 public onboarding rows (Row 48 `/affiliate`, Row 43 `/affiliate/join`, Row 44 `/affiliate/register`, and Row 47 retired `/affiliate/verify`). Rows 45 (`/affiliate/resources`) and 46 (`/affiliate/settings/payout`) require active affiliate authentication and are cleanly assigned to **Session 9-7b** alongside `app/affiliate/dashboard/*`.
+   - **What was rejected:** Smearing authenticated portal pages across 9-7a or overloading a single 14-page session.
+   - **Rationale:** Keeps Session 9-7a tightly focused on public discovery and partner application, comfortably within the ~2.5h-3h envelope.
+   - **Undo Cost:** Low.
+
+2. **Retirement of Legacy Row 47 (`/affiliate/verify`) (Resolution of Open Question 2)**
+   - **Decision:** Delete the legacy `app/affiliate/verify` directory. In DavinTrade, `POST /api/affiliate/auth/register` activates the affiliate partner profile immediately and generates initial codes; no separate verification page exists in Codebase 2.
+   - **What was rejected:** Retaining an orphaned directory.
+   - **Rationale:** Matches Codebase 2's approved architecture.
+   - **Undo Cost:** Low.
+
+3. **Replace Legacy Redirect with Full Onboarding Page on `/affiliate/join` (Resolution of Open Question 3)**
+   - **Decision:** Replace the legacy 1-line redirect (`redirect('/affiliate/register')`) on `/affiliate/join` (Row 43) with the full, rich DavinTrade partner onboarding highlights page from Codebase 2, featuring program highlights, commission tiers, and direct CTA button to `/affiliate/register`.
+   - **What was rejected:** Leaving `/affiliate/join` as a bare redirect.
+   - **Rationale:** Restores full marketing value and conversion funnel for prospective partners.
+   - **Undo Cost:** Low.
+
+4. **Interactive Commission Calculator & Localization on `/affiliate`**
+   - **Decision:** In `app/affiliate/page.tsx` (Row 48), port the dynamic commission calculator (referral count slider, 30% recurring calculation) wired to `useLocale()` for live currency symbol formatting.
+   - **What was rejected:** Static hardcoded USD text without interactive slider.
+   - **Rationale:** High dial on presentation fidelity with theme-tokenized glassmorphism cards.
+   - **Undo Cost:** Low.
+
+5. **Real Registration API & Schema Mapping on `/affiliate/register`**
+   - **Decision:** Wire `app/affiliate/register/page.tsx` (Row 44) to `POST /api/affiliate/auth/register`. Map the form fields directly to `affiliateRegistrationSchema` (`lib/affiliate/validators.ts`):
+     - `fullName`: string (Partner / Channel name)
+     - `country`: string (Country code or selection)
+     - `paymentMethod`: `'WISE'`
+     - `paymentDetails`: `{ email: wiseEmail }`
+     - `socials`: `{ website, twitter, youtube, instagram, tiktok }`
+     - `terms`: `true`
+       _(Note: Unauthenticated visitors to `/affiliate/register` who submit will be prompted to log in / redirected to `/login?callbackUrl=/affiliate/register` so `requireAuth()` passes smoothly)._
+   - **What was rejected:** Fake `setTimeout` local-only transitions or submitting unmapped fields.
+   - **Rationale:** Strict Phase 9 zero-mock-data non-negotiable.
+   - **Undo Cost:** Low.
 
 ---
 
 ## Why this session exists
 
-Per `MASTER-ROADMAP-PHASES-7-15.md` §3: `app/affiliate/*` has **5 nested layouts**, and the
-roadmap explicitly expects "this to split into 9-7a (public/join/register) and 9-7b
-(`affiliate/dashboard/*`)" rather than one 14-page session. This order covers only the
-non-authenticated half — `/affiliate/join`, `/affiliate/register`, and the `/affiliate` landing
-page — none of which require a session, so they're verifiable end-to-end without the
-authenticated-affiliate test-account gap 9-7b will need to check.
+Per `MASTER-ROADMAP-PHASES-7-15.md` §3: `app/affiliate/*` spans 14 routes and 5 nested layouts. Splitting into 9-7a (public onboarding: `/affiliate`, `/affiliate/join`, `/affiliate/register`) and 9-7b (`affiliate/dashboard/*`) isolates the public partner discovery and registration funnel from the authenticated partner portal.
 
-`frontend-swap-route-map.md` assigns this session rows 43, 44, 47 (retired), 48. Rows 45
-(`/affiliate/resources`) and 46 (`/affiliate/settings/payout`) are marked `NON-LOGIN / SESSION
-mixed (see override)` in the route map with an `AFFILIATE (+FREE or +PRO)` tier gate — they read
-as authenticated-affiliate surfaces despite the map's own auth-gate column wording, and are
-scoped to 9-7b below as an open question rather than assumed here.
+`frontend-swap-route-map.md` assigns this session rows 43 (`/affiliate/join`), 44 (`/affiliate/register`), 47 (retired `/affiliate/verify`), and 48 (`/affiliate` landing).
 
 ---
 
 ## Entry criteria (re-verify all at CONFIRM)
 
-- [ ] **Session 9-6 CONFIRMED, executed, CLOSED** — payments flow live on `main`, route-manifest
-      diff clean.
+- [ ] **Session 9-6 CONFIRMED, executed, CLOSED** — payments flow live on `main`, route-manifest diff clean.
 - [ ] **Route-map rows 43, 44, 47, 48 re-verified directly** against `frontend-swap-route-map.md`.
-- [ ] **`app/affiliate/page.tsx`, `app/affiliate/join/page.tsx`, `app/affiliate/register/page.tsx`
-      confirmed existing** and read in full — confirm whether any of the 3 already carry
-      DavinTrade branding or still need a real gap-fill (not just a restyle), same check every
-      Phase 9 session has needed at its own CONFIRM.
-- [ ] **`POST /api/affiliate/auth/register` confirmed existing and its real request/response
-      shape read** before wiring `/affiliate/register`'s form to it.
-- [ ] **Row 47's retirement confirmed safe:** verify `app/affiliate/verify` (if it exists on
-      disk at all) has zero live inbound links/redirects depending on it before removing it, and
-      confirm what "folds into `/affiliate/register`'s own verification step" concretely means by
-      reading `register`'s real flow first (the route map itself says "confirm exact UX at 9-7a").
-- [ ] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24): monolith `tsc`/
-      `eslint`/`test:ci`; money-service `npm test -- --maxWorkers=1`; operation-service `npm test`
-      — each run in isolation per L24, not in parallel (Session 9-6's own CONFIRM hit two
-      worker-OOM/SIGTERM false negatives running all three at once).
+- [ ] **`app/affiliate/page.tsx`, `app/affiliate/join/page.tsx`, `app/affiliate/register/page.tsx` confirmed existing** and read in full.
+- [ ] **`app/affiliate/verify` confirmed ready for retirement/deletion** with zero incoming links.
+- [ ] **`POST /api/affiliate/auth/register` confirmed live and contract-verified**.
+- [ ] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24):
+
+  ```powershell
+  # 1. Monolith
+  npx tsc --noEmit
+  npx eslint app components lib hooks --max-warnings 5
+  npm run test:ci
+
+  # 2. Money service
+  cd money-service; npm test -- --maxWorkers=1; cd ..
+
+  # 3. Operation service
+  cd operation-service; npm test; cd ..
+  ```
 
 ---
 
-## Open questions (Advisor resolves at DRAFT, per PD1)
+## Ordered steps
 
-1. **Do rows 45/46 (`/affiliate/resources`, `/affiliate/settings/payout`) belong in 9-7a or
-   9-7b?** The route map's own auth-gate column reads "NON-LOGIN / SESSION mixed (see override)"
-   but both carry an `AFFILIATE (+FREE or +PRO)` tier gate, which reads as authenticated-only.
-   Resolve which cluster owns them before either 9-7a or 9-7b starts, so neither session silently
-   assumes the other has it.
-2. **What does row 47's "folds into `/affiliate/register`'s own verification step" mean
-   concretely?** Is there a distinct email/identity-verification step `/affiliate/register`
-   needs to gain, or does "verify" collapse into something `/affiliate/register` already does
-   post-signup? The route map defers this exact question to 9-7a's own build time.
-3. **Is `/affiliate/join` a real distinct page or a thin landing that just links to
-   `/affiliate/register`?** Read seed-code's real `join/page.tsx` before assuming either — this
-   order's own entry criteria requires reading it in full, but the Advisor may already have
-   evidence from the 9-0 route-map production pass worth citing here.
+1. **Port Affiliate Landing Page (`app/affiliate/page.tsx`, Row 48)**
+   - Mount `<MarketingNavbar />` and `<MarketingFooter />`.
+   - Port DavinTrade affiliate hero, value props, 30% recurring commission badges, and interactive earnings calculator with `Slider` and `useLocale()`.
+   - _Verify:_ `npx tsc --noEmit` clean; slider updates estimated earnings in real-time.
+
+2. **Port Partner Onboarding Highlights (`app/affiliate/join/page.tsx`, Row 43)**
+   - Mount `<MarketingNavbar />` and `<MarketingFooter />`.
+   - Replace legacy redirect with full Codebase 2 onboarding page: program highlights, payout methods overview (Wise/crypto), and primary CTA linking to `/affiliate/register`.
+   - _Verify:_ `npx tsc --noEmit` clean; CTA links route cleanly.
+
+3. **Port Partner Registration Form (`app/affiliate/register/page.tsx`, Row 44)**
+   - Port DavinTrade partner registration card with form fields mapped to `affiliateRegistrationSchema` (fullName, country, Wise email, socials, terms).
+   - Wire form submission to `POST /api/affiliate/auth/register`. If unauthenticated, redirect to `/login?callbackUrl=/affiliate/register`. On success (200/201), redirect to `/affiliate/dashboard`.
+   - Ensure proper `<Label htmlFor="...">` accessibility on all inputs.
+   - _Verify:_ `npx tsc --noEmit` clean; form validates required fields and dispatches real payload.
+
+4. **Retire Legacy `/affiliate/verify` (Row 47)**
+   - Remove legacy `app/affiliate/verify` directory.
+   - Audit codebase to verify zero remaining references point to `/affiliate/verify`.
+   - _Verify:_ No dead links remain; `git status` shows clean removal.
+
+5. **Live Verification & Click-Through**
+   - Public view: Visit `/affiliate` $\rightarrow$ interact with earnings calculator $\rightarrow$ click "Join Partner Program" $\rightarrow$ opens `/affiliate/join`.
+   - Click "Apply Now" $\rightarrow$ opens `/affiliate/register`.
+   - Logged-in user: Complete registration form $\rightarrow$ verify `POST /api/affiliate/auth/register` creates affiliate record in DB and redirects to `/affiliate/dashboard`.
+   - Verify Light Clean Mode and Dark Mode token rendering.
+
+6. **Route-Manifest Diff & Test Suites Verification**
+   - Verify route-manifest diff: exactly 3 active public affiliate routes updated + 1 retired route removed.
+   - Run sequential test baselines:
+     ```powershell
+     npx tsc --noEmit
+     npx eslint app components lib hooks --max-warnings 5
+     npm run test:ci
+     ```
 
 ---
 
 ## Rules specific to this variant
 
-- **Zero Mock Data:** `/affiliate/register`'s submit must hit the real
-  `POST /api/affiliate/auth/register`, not a fabricated success state.
-- **100%-fidelity invariant:** restyle to DavinTrade tokens (per the pattern established on
-  `/checkout`, `/checkout/return`, `/upgrade/success` at Session 9-6) while preserving any real
-  validation/error-handling logic already in the live page, if one already exists at a different
-  path.
-- **Scope discipline:** this order does not touch `app/affiliate/dashboard/*`,
-  `app/affiliate/settings/*`, or any authenticated-affiliate surface — those are 9-7b's, pending
-  Open Question 1's resolution.
+- **UI Creativity:** High for affiliate hero graphics, benefit cards, and earnings calculator layout.
+- **Zero Mock Data:** Registration form must submit to real `POST /api/affiliate/auth/register`.
+- **Accessibility:** Form fields must have associated labels and validation error announcements.
+- **Record Design Decisions:** Document all UI token adaptations in Deviations at close.
+
+---
 
 ## Done when
 
-- [ ] `/affiliate`, `/affiliate/join`, `/affiliate/register` live with DavinTrade branding,
-      real registration logic, zero mock data.
-- [ ] Row 47 retirement resolved per Open Question 2 — either a real verification step is added
-      or its absence is explicitly justified in Deviations.
+- [ ] `/affiliate`, `/affiliate/join`, and `/affiliate/register` live with DavinTrade branding and semantic tokens.
+- [ ] Interactive commission calculator on `/affiliate` functions cleanly.
+- [ ] Real partner registration submits to `POST /api/affiliate/auth/register` and successfully creates affiliate profile.
+- [ ] Legacy `/affiliate/verify` retired with zero dangling links.
 - [ ] Route-manifest diff matches this session's scope and nothing else.
-- [ ] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and
-      `npm run test:ci` all pass clean.
+- [ ] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
+
+---
 
 ## Rollback
 
-`git revert` of this session's commits. Prefer one commit per page/step.
+`git revert` of this session's commits. Prefer one commit per page/step so changes can be isolated cleanly.
+
+---
 
 ## Deviations
 
 <!-- Filled by Executor during execution per EXECUTOR-PROTOCOL.md §3 -->
 
+---
+
 ## Next-session handoff
 
-- **Next session:** `9-7b` — `app/affiliate/dashboard/*` + `/affiliate/settings/payout` (pending
-  Open Question 1) (UI-BUILD), per `MASTER-ROADMAP-PHASES-7-15.md` §3.
-  - Scope: rows 35–42 (dashboard cluster: code-inventory, codes, commissions, payouts,
-    profile/payment, profile, statements, dashboard root) plus rows 45/46 if Open Question 1
-    resolves them here.
-  - Known gaps to carry forward from the route map: row 38 (`/affiliate/dashboard/payouts`) and
-    row 41 (`/affiliate/dashboard/statements`) both have **no self-service backend endpoint** —
-    only admin-side `/api/disbursement/*` exists. 9-7b cannot ship real data for these two rows
-    without either a new endpoint or an explicit Davin-approved scope cut; flag at 9-7b's own
-    CONFIRM, don't silently mock.
-- **Prerequisite:** Session 9-7a CLOSED.
+- **Next session:** `9-7b` — `app/affiliate/dashboard/*` + `/affiliate/settings/payout` + `/affiliate/resources` (UI-BUILD).
+  - Scope: Rows 35–42 (code-inventory, referral codes, commissions, payouts, payment setup, partner profile, monthly statements, dashboard root) + Rows 45 (`/affiliate/resources`) & 46 (`/affiliate/settings/payout`).
+  - Known backend dependencies: verify self-service endpoints for payouts and statements.
+- **Prerequisite:** Session 9-7a CLOSED — public onboarding live on `main`.
+- **9-7a obligation carried to close:** PRE-DRAFT Session 9-7b's migration order per `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`.
