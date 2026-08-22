@@ -152,13 +152,17 @@ function UpgradeSuccessContent(): React.ReactElement {
           {isPro ? (
             <>
               <PartyPopper
-                className="mx-auto mb-2 h-12 w-12 text-blue-600"
+                className="mx-auto mb-2 h-12 w-12 text-primary"
                 aria-hidden="true"
               />
-              <CardTitle className="text-2xl" role="status" aria-live="polite">
+              <CardTitle
+                className="text-2xl text-foreground"
+                role="status"
+                aria-live="polite"
+              >
                 Welcome to PRO!
               </CardTitle>
-              <Badge className="mx-auto mt-2 w-fit bg-blue-100 text-blue-700">
+              <Badge className="bg-primary/10 mx-auto mt-2 w-fit text-primary">
                 {subscription?.provider === 'DLOCAL'
                   ? 'Activated'
                   : 'Subscription Active'}
@@ -170,7 +174,11 @@ function UpgradeSuccessContent(): React.ReactElement {
                 className="mx-auto mb-2 h-12 w-12 animate-spin text-muted-foreground"
                 aria-hidden="true"
               />
-              <CardTitle className="text-2xl" role="status" aria-live="polite">
+              <CardTitle
+                className="text-2xl text-foreground"
+                role="status"
+                aria-live="polite"
+              >
                 Finishing up your upgrade
               </CardTitle>
             </>
@@ -190,14 +198,16 @@ function UpgradeSuccessContent(): React.ReactElement {
                   const Icon = feature.icon;
                   return (
                     <li key={feature.name} className="flex items-start gap-3">
-                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100">
+                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
                         <Check
-                          className="h-4 w-4 text-green-600"
+                          className="h-4 w-4 text-emerald-600 dark:text-emerald-400"
                           aria-hidden="true"
                         />
                       </span>
                       <div>
-                        <p className="font-medium">{feature.name}</p>
+                        <p className="font-medium text-foreground">
+                          {feature.name}
+                        </p>
                         <p className="text-sm text-muted-foreground">
                           {feature.detail}
                         </p>

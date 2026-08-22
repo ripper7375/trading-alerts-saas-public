@@ -78,24 +78,26 @@ const STATUS_PRESENTATION: Record<
     label: 'Payment Successful',
     description: 'Your PRO subscription is now active. Welcome aboard!',
     icon: CheckCircle2,
-    badgeClassName: 'bg-green-100 text-green-700',
-    iconClassName: 'text-green-600',
+    badgeClassName:
+      'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    iconClassName: 'text-emerald-600 dark:text-emerald-400',
   },
   PENDING: {
     label: 'Payment Pending',
     description:
       "We're still waiting for confirmation from your payment method. This can take a few minutes for some local payment methods.",
     icon: Clock,
-    badgeClassName: 'bg-yellow-100 text-yellow-700',
-    iconClassName: 'text-yellow-600',
+    badgeClassName:
+      'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    iconClassName: 'text-amber-600 dark:text-amber-400',
   },
   FAILED: {
     label: 'Payment Failed',
     description:
       'Your payment could not be completed. No charge was made. You can try again with the same or a different payment method.',
     icon: XCircle,
-    badgeClassName: 'bg-red-100 text-red-700',
-    iconClassName: 'text-red-600',
+    badgeClassName: 'bg-destructive/10 text-destructive',
+    iconClassName: 'text-destructive',
   },
   CANCELLED: {
     label: 'Payment Cancelled',
@@ -109,8 +111,8 @@ const STATUS_PRESENTATION: Record<
     label: 'Payment Refunded',
     description: 'This payment has been refunded.',
     icon: RotateCcw,
-    badgeClassName: 'bg-blue-100 text-blue-700',
-    iconClassName: 'text-blue-600',
+    badgeClassName: 'bg-primary/10 text-primary',
+    iconClassName: 'text-primary',
   },
 };
 
@@ -204,11 +206,13 @@ function CheckoutReturnContent(): React.ReactElement {
         <Card className="w-full max-w-md">
           <CardContent className="space-y-4 p-6 text-center">
             <AlertTriangle
-              className="mx-auto h-10 w-10 text-yellow-600"
+              className="mx-auto h-10 w-10 text-amber-600 dark:text-amber-400"
               aria-hidden="true"
             />
             <div role="alert" aria-live="assertive">
-              <p className="font-medium">Unable to show payment status</p>
+              <p className="font-medium text-foreground">
+                Unable to show payment status
+              </p>
               <p className="mt-1 text-sm text-muted-foreground">{error}</p>
             </div>
             <div className="flex justify-center gap-3">
@@ -239,7 +243,11 @@ function CheckoutReturnContent(): React.ReactElement {
             className={`mx-auto mb-2 h-12 w-12 ${presentation.iconClassName}`}
             aria-hidden="true"
           />
-          <CardTitle className="text-2xl" role="status" aria-live="polite">
+          <CardTitle
+            className="text-2xl text-foreground"
+            role="status"
+            aria-live="polite"
+          >
             {presentation.label}
           </CardTitle>
           <Badge
