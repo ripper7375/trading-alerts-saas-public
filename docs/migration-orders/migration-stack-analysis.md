@@ -3540,7 +3540,48 @@ profit-loss,sales-performance}/page.tsx` (6 bare `grid-cols-3/4/5` stat-card/fil
 
 </details>
 
+<details>
+<summary>Session 9-1 (Root Shell & Design System, UI-BUILD) — 15 new files, 8 modified, all FRONTEND</summary>
+
+Every file below is **FRONTEND** (stays in the Next.js app) — Phase 9 is a frontend-only swap,
+so unlike Phase 7's split above there's no CORE/BUSINESS FUNCTION categorization question here.
+
+- **New — i18n subsystem** (ported from `seed-code/` verbatim, self-contained, no other
+  main-repo dependencies): `lib/country-config.ts`, `lib/i18n/locale-resolver.ts`,
+  `lib/i18n/get-dictionary.ts`, `lib/i18n/server-locale.ts`, `lib/i18n/dictionaries/*.json` (12
+  locale files), `lib/context/locale-context.tsx`.
+- **New — shared chrome:** `components/theme-sync.tsx`, `components/providers/client-providers.tsx`
+  (composes `LocaleProvider`+`AppearanceProvider` only — support-chat widget deliberately
+  deferred to Phase 14, see the order's own Deviation 3), `components/chat-sidebar.tsx`,
+  `components/layout/app-header.tsx`, `components/marketing/marketing-navbar.tsx`,
+  `components/marketing/marketing-footer.tsx` — all rewritten from seed-code's hardcoded
+  `slate-N`/`dark:bg-[hex]` classes onto this repo's own semantic design tokens (the Batch-0
+  "Light Clean Mode" fix for the two named files, extended to the two marketing ones too).
+- **New — brand assets:** `public/apple-icon.png`, `public/icon-light-32x32.png`,
+  `public/icon-dark-32x32.png`, `public/icon.svg` (copied from `seed-code/`, referenced by the
+  new `app/layout.tsx` metadata).
+- **Modified:** `app/layout.tsx` (ported root-shell structure, DavinTrade metadata, now `async`
+  and calls `cookies()`/`headers()` — the whole app is dynamically rendered as of this session,
+  see the order's Deviation 6); `app/providers.tsx` (composes `ThemeProvider`→`SessionProvider`
+  [preserved]→`ThemeSync`→`ClientProviders`); `app/not-found.tsx`, `app/global-error.tsx` (ported
+  from seed-code, already Batch-0 parity-fixed); `app/error.tsx` (rebranded, no codebase-2
+  counterpart existed); `app/globals.css` (added `--sidebar*` tokens + `.no-scrollbar`/
+  `.animate-marquee` utilities; did NOT touch `--accent`/`--accent-foreground` — already correct
+  by design, see Deviation 9); `tailwind.config.ts` (exposed `sidebar.*` colors);
+  `middleware.ts` (merged codebase-2's locale-prefix rewrite into the existing real auth gate);
+  `next.config.js` (added `https://ipapi.co` to CSP `connect-src`); `public/manifest.json`
+  (rebranded name/short_name/description/theme_color, per F66).
+- **Not done:** `components/header.tsx` deletion — confirmed the dead file only ever existed in
+  `seed-code/` (read-only, do-not-touch), never in the main repo; satisfied by omission, nothing
+  to delete here. `components/layout/header.tsx` (a different, still-live file used by the
+  current `app/(dashboard)/layout.tsx`) and `chat-panel.tsx`/`market-comments-panel.tsx`/
+  `settings/layout.tsx`'s own Light Clean Mode fix are explicitly Session 9-4's/9-5's, not
+  ported or touched here. Full detail: the order's own Deviations section
+  (`9-1-root-shell-design-system.migration-order.md`).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-12 (Session 7-1, API Client Re-verify + Generate — Phase 7 opened)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-22 (Session 9-1, Root Shell & Design System — Phase 9 shell landed)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

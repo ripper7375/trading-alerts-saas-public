@@ -4,12 +4,13 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 39 (L1–L39), well within the cap after the
+**Hard cap ~40 active lessons.** Currently at 40 (L1–L40), right at the cap after the
 2026-08-12 consolidation pass (64 → 25: 28 archived, 11 merged into 8 master rules,
 then 4 unpromoted candidates promoted to L26–L29; L30 added 2026-08-20 ad-hoc, L31–L32
 added Session 7-2, L33 added Session 4A-13, L34–L35 added Session 4A-14, L36–L37 added
-Session 4A-15, L38–L39 added Session 9-0).
-Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds 40 again.
+Session 4A-15, L38–L39 added Session 9-0, L40 added Session 9-1).
+Full history in `LESSONS-ARCHIVE.md`. **Next consolidation needed before any further lesson is
+added** (count is at the cap, not past it — the next new lesson must consolidate first).
 
 ---
 
@@ -277,6 +278,7 @@ Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds
 
 - Rule: Order text drifts from ground truth — always read SOURCE directly; never trust the order's paraphrase of existing code, tests, or behavior.
 - Source: Consolidated · Status: ACTIVE
+- Recurrence (Session 9-1, 2026-08-22): a specific sub-case worth naming — when a Phase-9 order says "delete/port file X," verify which TREE X actually lives in before acting, not just that X exists. `lib/i18n/locale-resolver.ts` was cited as an existing main-repo dependency but only existed in `seed-code/`; `components/header.tsx`'s Batch-0-flagged deletion target only ever existed in `seed-code/` (read-only, do-not-touch), never the main repo the order named. Both found by checking `ls` on both trees directly rather than trusting the order's tree attribution.
 
 ### L23 — Monolith/microservice code drift after cutover
 
@@ -396,3 +398,10 @@ Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds
 - Root cause: building a gap inventory under time pressure from a document's own paraphrase (or a prior citation of it) rather than reading the cited source's full text trades completeness for speed — the paraphrase can drop a scoping detail (here: which files, and their render-tree entanglement with a separately-documented Protected-pages list) that changes who owns the fix and how.
 - Rule: when a gap-inventory or route-map row cites a parity-audit/spec document, read that document in full at least once per phase (not just its citing session's own summary) before treating its "owning session" assignment as settled — especially for any gap touching shared/shell-level files, which are exactly where a dropped scoping detail does the most damage. If a fuller read changes an earlier session's own artifact, amend that artifact directly (with a dated addendum note) rather than only correcting it in the next session's own order.
 - Source: Session 9-0/9-1 PRE-DRAFT (2026-08-22) · Status: ACTIVE
+
+### L40 — `jest.setup.js` wires a REAL `fetch` (undici), not a mock; any component with an un-awaited network call crashes the worker on test teardown even after every assertion passes
+
+- Symptom: wrapping `app/not-found.tsx` in `LocaleProvider` for the first time in the test suite (Session 9-1, porting codebase 2's shell) passed all 8 assertions, then crashed the Jest worker process on teardown (`Cannot read properties of null (reading '_location')`) — `LocaleProvider`'s first-visit branch fires a real `fetch('https://ipapi.co/json/')` for geo-detection when no cookie/localStorage preference exists (always true in a clean jsdom test), which was still in flight when the test file's window tore down.
+- Root cause: `jest.setup.js` assigns `global.fetch` to a genuine `undici` fetch implementation (needed for other tests that exercise real HTTP semantics), not a mock — so any component rendered in a test that fires an un-awaited `fetch()` in a `useEffect` silently attempts a real network call, and jsdom's fast teardown after synchronous assertions finish races that pending promise.
+- Rule: before rendering any component that transitively mounts `LocaleProvider` (or any other provider with a fire-and-forget network call) in a test, mock `global.fetch` to reject/resolve immediately for that test file — don't rely on the "tests already passed" result as proof the file is clean. No repo-wide default mock exists yet; add one to `jest.setup.js` if this recurs a third time.
+- Source: Session 9-1 (2026-08-22) · Status: ACTIVE
