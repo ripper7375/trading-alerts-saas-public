@@ -27,7 +27,13 @@ if (typeof global.ReadableStream === 'undefined') {
 if (typeof global.Request === 'undefined') {
   try {
     // Try to use native Node.js undici (Node 18+)
-    const { Request, Response, Headers, fetch, FormData } = require('node:undici');
+    const {
+      Request,
+      Response,
+      Headers,
+      fetch,
+      FormData,
+    } = require('node:undici');
     global.Request = Request;
     global.Response = Response;
     global.Headers = Headers;
@@ -42,6 +48,18 @@ if (typeof global.Request === 'undefined') {
     global.fetch = fetch;
     global.FormData = FormData;
   }
+}
+
+// Polyfill ResizeObserver for jsdom environment
+// jsdom does not implement it; Radix UI primitives that measure their own
+// size (e.g. Slider, introduced Session 9-7a) call it on mount and throw
+// "ResizeObserver is not defined" without this stub.
+if (typeof global.ResizeObserver === 'undefined') {
+  global.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
 }
 
 // Extend Jest matchers with @testing-library/jest-dom

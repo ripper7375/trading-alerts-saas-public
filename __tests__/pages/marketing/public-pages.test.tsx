@@ -39,6 +39,18 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: mockRouterRefresh }),
 }));
 
+// ---- next-auth/react: app/affiliate/page.tsx calls useSession() to gate
+// its admin/already-affiliate branches -- unauthenticated by default so
+// the public marketing content (the branch under test) renders. Matches
+// the established mockUseSession pattern (e.g. settings/billing.test.tsx). ----
+const mockUseSession = jest.fn(() => ({
+  data: null,
+  status: 'unauthenticated',
+}));
+jest.mock('next-auth/react', () => ({
+  useSession: () => mockUseSession(),
+}));
+
 // ---- lib/db/prisma: mocked for the status page's real SELECT 1 check ----
 const mockQueryRaw = jest.fn();
 jest.mock('@/lib/db/prisma', () => ({
@@ -101,7 +113,7 @@ import CareersPage from '@/app/(marketing)/careers/page';
 import PublicHelpPage from '@/app/(marketing)/help/page';
 import StatusPage from '@/app/(marketing)/status/page';
 import AffiliateLandingPage from '@/app/affiliate/page';
-import AffiliateJoinRedirectPage from '@/app/affiliate/join/page';
+import AffiliateJoinPage from '@/app/affiliate/join/page';
 
 describe('Public legal pages (F63)', () => {
   it('renders /terms with the Terms of Service heading', () => {
@@ -255,26 +267,38 @@ describe('Public status page (B2-12)', () => {
   });
 });
 
-describe('Public affiliate landing page (B2-10)', () => {
+describe('Public affiliate landing page (B2-10, restyled Session 9-7a)', () => {
   it('renders live commission/discount rates and CTAs to /affiliate/register', () => {
     render(withLocale(<AffiliateLandingPage />));
     expect(
       screen.getByRole('heading', {
-        name: 'Become a Trading Alerts Affiliate',
+        name: 'Partner with the Leader in Quantitative AI Trading',
         level: 1,
       })
     ).toBeInTheDocument();
     expect(
-      screen.getAllByRole('link', { name: 'Become an Affiliate' })[0]
+      screen.getAllByRole('link', { name: /Join Affiliate Program/i })[0]
     ).toHaveAttribute('href', '/affiliate/register');
   });
 });
 
-describe('/affiliate/join redirect (B2-11)', () => {
-  it('redirects to /affiliate/register', () => {
-    expect(() => AffiliateJoinRedirectPage()).toThrow(
-      'NEXT_REDIRECT:/affiliate/register'
-    );
-    expect(mockRedirect).toHaveBeenCalledWith('/affiliate/register');
+// Session 9-7a (Decision 3, approved): the legacy 1-line redirect to
+// /affiliate/register was replaced with a real DavinTrade partner
+// onboarding page, per Codebase 2 -- this block replaces the retired
+// B2-11 redirect-only assertion (LESSONS-LEARNED.md L3: a test needing
+// its assertion changed for an intentional, approved content change is a
+// finding, not a bug).
+describe('/affiliate/join partner onboarding (B2-11, replaced Session 9-7a)', () => {
+  it('renders the partner onboarding highlights page with a CTA to /affiliate/register', () => {
+    render(withLocale(<AffiliateJoinPage />));
+    expect(
+      screen.getByRole('heading', {
+        name: 'Join the DavinTrade Partner Network',
+        level: 1,
+      })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Proceed to Partner Registration/i })
+    ).toHaveAttribute('href', '/affiliate/register');
   });
 });
