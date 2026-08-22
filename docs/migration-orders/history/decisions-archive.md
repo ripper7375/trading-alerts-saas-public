@@ -3337,3 +3337,80 @@ table "User"`, thrown from `tx.user.update()` inside `handleCheckoutCompleted`'s
   `docs/migration-orders/frontend-swap-route-map.md` §2, §7.
 - Approved by: Davin, live in chat, 2026-08-22 (⚠ NEEDS EXPLICIT SIGN-OFF on the Stripe-catalog
   clause — confirmed separately from the order's general approval).
+
+## F21 — 24h Account-Deletion GDPR gap
+
+- Status: OPEN
+- Session: 9-5 (2026-08-22), progress note archived at Session 9-6's own Step 0 size-gate pass
+- Decision: Wire `/settings/account`'s Delete Account button to the real, already-built
+  `POST /api/user/account/deletion-request` flow rather than build a new one. That endpoint is
+  genuinely DB-backed: a 7-day link-expiry window followed by a 24h post-confirm grace period,
+  both enforced server-side, not UI-only.
+- Evidence: `deletion-request`/`deletion-confirm` routes read in full at Session 9-5 — both still
+  carry live `// TODO` stubs (`console.log` only) for the confirmation and scheduling emails, and
+  a repo-wide grep found no cron/worker anywhere that actually executes the deletion once the 24h
+  grace period elapses. UI binding is complete and correct against what exists; the backend
+  completion gap (real email delivery, the actual deletion job, and the hard-delete-vs-anonymize
+  product decision) is out of a UI-BUILD session's scope and remains owed to a future session.
+- Approved by: n/a (technical, within bounds) — disclosed, not silently fixed or hidden.
+
+## F64 — `subscription-card.tsx` optimistic-cancel "Undo" bug / full reactivation lifecycle
+
+- Status: OPEN (component bug); lifecycle verification CLOSED Session 9-6
+- Session: 9-5 (2026-08-22) confirmed still-unmounted; 9-6 (2026-08-22) closed the lifecycle
+  question
+- Decision (9-5): `components/billing/subscription-card.tsx`'s optimistic-cancel "Undo" button
+  never calls a reactivation API — it only clears local state after the real `onCancel()` has
+  already resolved server-side, so a user who clicks Cancel then Undo within its 5s window sees
+  "still PRO" while the subscription was, in fact, already cancelled. Confirmed the component is
+  still unmounted and unused anywhere in the app; left as-is, unfixed, Davin's own call (deferred,
+  not silently repaired) — the real, live `/settings/billing` cancel flow is a different
+  component (confirm-before-cancel, no optimistic UI, no Undo step) and never had this bug.
+- Decision (9-6): Formally close the full-reactivation-lifecycle half of F64 by live-verifying,
+  in Stripe Test Mode, the complete round trip: Active PRO → cancel in `/settings/billing`
+  (immediate, full Stripe cancellation, downgrades to FREE) → `/pricing` → `/checkout` → Stripe
+  Test Checkout → `checkout.session.completed` webhook → `/upgrade/success` confirms PRO →
+  `/settings/billing` reflects active PRO again. No standalone "reactivate this exact
+  subscription" endpoint was built — `POST /api/subscription/cancel` performs a real, immediate
+  Stripe cancellation with no `cancelAtPeriodEnd` soft-cancel concept, so there is nothing
+  server-side to "undo"; a fresh checkout is the only correct re-subscription path, matching
+  standard SaaS payment architecture.
+- Evidence: `app/api/subscription/cancel/route.ts`, `app/settings/billing/page.tsx`, and
+  `app/checkout/page.tsx` / `app/upgrade/success/page.tsx` read in full; live Stripe Test Mode
+  click-through per Session 9-6's Ordered Step 4 (see that session's own Deviations for the test
+  transaction IDs).
+- Approved by: Davin (order APPROVED 2026-08-22); `subscription-card.tsx` itself remains
+  unmounted dead code, unchanged, Davin's own future call.
+
+## F77 — `/alerts` and `/alerts/new` client-side double-render on reload
+
+- Status: OPEN
+- Session: found 9-4 (2026-08-22); addendum 9-5 (2026-08-22); archived at 9-6's own Step 0
+- Decision: A genuine browser reload of `/alerts`/`/alerts/new` (verified in a real
+  `next build && next start` production server, not a dev/HMR artifact) renders the page's
+  client tree twice (2×`<main>`/`<header>`/`<form>`). Raw SSR HTML is verified clean (one copy)
+  via direct `fetch()`, zero console/hydration errors. A test alert submitted through the
+  duplicated form once stored target price `25002500` instead of `2500` (immediately deleted) —
+  a live-verified functional consequence, not purely cosmetic. Root cause not found despite
+  extensive isolation at Session 9-4 (a throwaway diagnostic route showed both `AlertForm`/
+  `CreateAlertClient` and the fetch-effect-free `AlertsClient` reproduce it standalone — no single
+  common trigger identified; ruled out: tier-branching pattern, `AppHeader` alone, a generic
+  client component with a fetch effect, `loading.tsx` alone). Davin's live call at 9-4: close
+  with this documented rather than chase further, matching the same call made on this defect
+  class before.
+  Session 9-5 addendum: the same class confirmed live on `/settings/appearance` (real
+  `next build && next start`) and independently on the pre-existing `/login` page — likely real
+  root cause identified as React/Next's own Suspense-streaming reveal mechanism (a
+  `<div id="S:0" style="display:none">` plus `$RC`/`$RT`/`$RV` inline scripts, left behind rather
+  than cleaned up after relocating streamed content). Confirmed inert on `/settings/appearance`
+  (`display:none`, 0×0 rect, non-interactive, zero console/hydration errors), consistent with the
+  original finding. Not root-caused further, matching Davin's own 9-4 call on the same defect
+  class; scope now known to extend app-wide wherever a route has a Suspense boundary (e.g. a
+  `loading.tsx`), not just `/alerts`.
+- Evidence: real production server reload testing, raw SSR `fetch()` diffing, a throwaway
+  diagnostic route (Session 9-4), and direct DOM inspection of the reveal-div artifact (Session
+  9-5). Full detail of both sessions' isolation work is in their own Deviations sections.
+- Approved by: Davin, live, both sessions (documented-and-close, not open-ended investigation).
+- Owner: next session touching `/alerts` or a dedicated repair session; re-verify the
+  price-corruption finding isn't testing-artifact-specific before treating it as a proven
+  data-integrity risk.
