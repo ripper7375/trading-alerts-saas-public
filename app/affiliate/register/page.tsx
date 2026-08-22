@@ -1,28 +1,30 @@
+'use client';
+
 /**
- * Affiliate Registration Page
+ * Partner Registration Form (Row 44, Session 9-7a)
  *
- * Allows authenticated users to register as affiliates.
- * Collects required information and submits to registration API.
+ * Requires an authenticated DavinTrade account -- POST
+ * /api/affiliate/auth/register calls requireAuth() server-side, so an
+ * anonymous visitor is redirected to /login?callbackUrl=/affiliate/register
+ * before the form ever renders (same pattern as app/checkout/page.tsx).
+ * Fields map 1:1 to affiliateRegistrationSchema (lib/affiliate/validators.ts).
  *
  * @module app/affiliate/register/page
  */
 
-'use client';
-
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Share2, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
+import { useLocale } from '@/lib/context/locale-context';
 import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TYPE DEFINITIONS
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 interface FormData {
   fullName: string;
@@ -36,27 +38,17 @@ interface FormData {
   tiktokUrl: string;
 }
 
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COMPONENT
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-/**
- * Affiliate Registration Page
- * Form for users to register as affiliates
- */
 export default function AffiliateRegisterPage(): React.ReactElement {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const { t } = useLocale();
+  const { commissionPercent, codesPerMonth } = useAffiliateConfig();
 
   useEffect(() => {
     if (session?.user?.role === 'ADMIN') {
       router.push('/admin');
     }
   }, [session, router]);
-
-  // Fetch dynamic config from SystemConfig
-  const { discountPercent, commissionPercent, codesPerMonth } =
-    useAffiliateConfig();
 
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -73,12 +65,8 @@ export default function AffiliateRegisterPage(): React.ReactElement {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ): void => {
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
@@ -96,7 +84,7 @@ export default function AffiliateRegisterPage(): React.ReactElement {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: formData.fullName,
-          country: formData.country,
+          country: formData.country.toUpperCase(),
           paymentMethod: 'WISE',
           paymentDetails: { email: formData.wiseEmail },
           terms: formData.terms,
@@ -122,23 +110,46 @@ export default function AffiliateRegisterPage(): React.ReactElement {
     }
   };
 
-  if (session?.user?.role === 'ADMIN') {
+  // Loading state -- mirrors app/checkout/page.tsx's established pattern
+  if (status === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-[#06070a]">
+        <div className="text-center">
+          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent text-amber-500" />
+          <p className="text-muted-foreground">{t('Loading...')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Auth check -- POST /api/affiliate/auth/register requires a real session
+  if (!session) {
+    router.push('/login?callbackUrl=/affiliate/register');
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-[#06070a]">
+        <p className="text-muted-foreground">{t('Redirecting to login...')}</p>
+      </div>
+    );
+  }
+
+  if (session.user?.role === 'ADMIN') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 dark:bg-[#06070a]">
         <Card className="w-full max-w-lg p-8 text-center shadow-lg">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600 dark:bg-red-900/30">
             <ShieldCheck className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Administrator Hub
+          <h1 className="text-2xl font-bold text-foreground">
+            {t('Administrator Hub')}
           </h1>
-          <p className="mt-2 text-gray-600">
-            You are signed in with System Administrator privileges. Affiliate
-            program oversight is managed from the Admin console.
+          <p className="mt-2 text-muted-foreground">
+            {t(
+              'You are signed in with System Administrator privileges. Affiliate program oversight is managed from the Admin console.'
+            )}
           </p>
           <div className="mt-6">
             <Button asChild className="w-full bg-blue-600 hover:bg-blue-700">
-              <Link href="/admin">Go to Admin Executive Dashboard</Link>
+              <Link href="/admin">{t('Go to Admin Executive Dashboard')}</Link>
             </Button>
           </div>
         </Card>
@@ -146,27 +157,29 @@ export default function AffiliateRegisterPage(): React.ReactElement {
     );
   }
 
-  if (session?.user?.isAffiliate) {
+  if (session.user?.isAffiliate) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 dark:bg-[#06070a]">
         <Card className="w-full max-w-lg p-8 text-center shadow-lg">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30">
             <CheckCircle2 className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            You&apos;re Already an Affiliate Partner
+          <h1 className="text-2xl font-bold text-foreground">
+            {t("You're Already an Affiliate Partner")}
           </h1>
-          <p className="mt-2 text-gray-600">
-            Your account is already active in our Affiliate Partner Program. You
-            can access your referral codes, earnings, and promotional resources
-            below.
+          <p className="mt-2 text-muted-foreground">
+            {t(
+              'Your account is already active in our Affiliate Partner Program. You can access your referral codes, earnings, and promotional resources below.'
+            )}
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Button asChild className="bg-blue-600 hover:bg-blue-700">
-              <Link href="/affiliate/dashboard">Go to Affiliate Dashboard</Link>
+              <Link href="/affiliate/dashboard">
+                {t('Go to Affiliate Dashboard')}
+              </Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/dashboard">Go to Trading Dashboard</Link>
+              <Link href="/dashboard">{t('Go to Trading Dashboard')}</Link>
             </Button>
           </div>
         </Card>
@@ -175,246 +188,233 @@ export default function AffiliateRegisterPage(): React.ReactElement {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-2xl">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Become an Affiliate
+    <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 p-4 text-slate-900 dark:bg-[#06070a] dark:text-slate-100">
+      <div className="w-full max-w-lg space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl dark:border-amber-500/30 dark:bg-[#0b0e17]">
+        <div className="flex flex-col items-center space-y-2 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-600 dark:text-amber-400">
+            <Share2 className="h-6 w-6" />
+          </div>
+          <h1 className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 bg-clip-text text-xl font-extrabold tracking-tight text-transparent dark:from-amber-400 dark:via-amber-200 dark:to-amber-500">
+            {t('Join Partner Program')}
           </h1>
-          <p className="mt-2 text-gray-600">
-            Earn {commissionPercent}% commission on every referral
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            {t(
+              `Earn ${commissionPercent}% monthly recurring commission on every trader you refer`
+            )}
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+          <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-400">
             {error}
           </div>
         )}
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-6 rounded-lg bg-white p-8 shadow-md"
-        >
-          {/* Personal Information */}
-          <div>
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">
-              Personal Information
-            </h2>
-
-            <div className="space-y-4">
-              <div>
-                <label
-                  htmlFor="fullName"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  id="fullName"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleInputChange}
-                  required
-                  minLength={2}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="John Doe"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="country"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Country Code *
-                </label>
-                <input
-                  type="text"
-                  id="country"
-                  name="country"
-                  value={formData.country}
-                  onChange={handleInputChange}
-                  required
-                  maxLength={2}
-                  pattern="[A-Za-z]{2}"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="US"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  2-letter country code (e.g., US, UK, CA)
-                </p>
-              </div>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="fullName"
+              className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+            >
+              {t('Partner Name / Channel')} *
+            </Label>
+            <Input
+              type="text"
+              id="fullName"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleInputChange}
+              required
+              minLength={2}
+              maxLength={100}
+              placeholder={t('e.g. Gold Traders Community')}
+              className="text-xs"
+            />
           </div>
 
-          {/* Payment Information */}
-          <div>
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">
-              Payment Information
-            </h2>
-            <p className="mb-4 text-sm text-gray-500">
-              Payouts are sent via Wise — enter the email tied to your Wise
-              account.
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="country"
+              className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+            >
+              {t('Country Code')} *
+            </Label>
+            <Input
+              type="text"
+              id="country"
+              name="country"
+              value={formData.country}
+              onChange={handleInputChange}
+              required
+              maxLength={2}
+              pattern="[A-Za-z]{2}"
+              placeholder="US"
+              className="text-xs uppercase"
+            />
+            <p className="text-[11px] text-slate-500">
+              {t('2-letter country code (e.g., US, UK, TH)')}
             </p>
-
-            <div>
-              <label
-                htmlFor="wiseEmail"
-                className="mb-1 block text-sm font-medium text-gray-700"
-              >
-                Wise Email *
-              </label>
-              <input
-                type="email"
-                id="wiseEmail"
-                name="wiseEmail"
-                value={formData.wiseEmail}
-                onChange={handleInputChange}
-                required
-                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                placeholder="your@wise.com"
-              />
-            </div>
           </div>
 
-          {/* Social Media (Optional) */}
-          <div>
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">
-              Social Media (Optional)
-            </h2>
-            <p className="mb-4 text-sm text-gray-500">
-              Add your social media profiles to help us verify your identity
+          <div className="space-y-1.5 border-t border-slate-200 pt-4 dark:border-slate-800/80">
+            <Label
+              htmlFor="wiseEmail"
+              className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+            >
+              {t('Wise Payout Email')} *
+            </Label>
+            <Input
+              type="email"
+              id="wiseEmail"
+              name="wiseEmail"
+              value={formData.wiseEmail}
+              onChange={handleInputChange}
+              required
+              placeholder="you@wise.com"
+              className="text-xs"
+            />
+            <p className="text-[11px] text-slate-500">
+              {t('Commissions are paid out via Wise to this email')}
             </p>
+          </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="twitterUrl"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Twitter/X
-                </label>
-                <input
+          <div className="space-y-2 border-t border-slate-200 pt-4 dark:border-slate-800/80">
+            <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              {t('Social Profiles (Optional)')}
+            </Label>
+            <p className="text-[11px] text-slate-500">
+              {t('Helps us verify your identity faster')}
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label htmlFor="twitterUrl" className="sr-only">
+                  {t('Twitter/X URL')}
+                </Label>
+                <Input
                   type="url"
                   id="twitterUrl"
                   name="twitterUrl"
                   value={formData.twitterUrl}
                   onChange={handleInputChange}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="https://twitter.com/username"
+                  placeholder={t('Twitter / X URL')}
+                  className="text-xs"
                 />
               </div>
-
-              <div>
-                <label
-                  htmlFor="youtubeUrl"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  YouTube
-                </label>
-                <input
+              <div className="space-y-1">
+                <Label htmlFor="youtubeUrl" className="sr-only">
+                  {t('YouTube URL')}
+                </Label>
+                <Input
                   type="url"
                   id="youtubeUrl"
                   name="youtubeUrl"
                   value={formData.youtubeUrl}
                   onChange={handleInputChange}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="https://youtube.com/@channel"
+                  placeholder={t('YouTube URL')}
+                  className="text-xs"
                 />
               </div>
-
-              <div>
-                <label
-                  htmlFor="instagramUrl"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Instagram
-                </label>
-                <input
+              <div className="space-y-1">
+                <Label htmlFor="instagramUrl" className="sr-only">
+                  {t('Instagram URL')}
+                </Label>
+                <Input
                   type="url"
                   id="instagramUrl"
                   name="instagramUrl"
                   value={formData.instagramUrl}
                   onChange={handleInputChange}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="https://instagram.com/username"
+                  placeholder={t('Instagram URL')}
+                  className="text-xs"
                 />
               </div>
-
-              <div>
-                <label
-                  htmlFor="tiktokUrl"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  TikTok
-                </label>
-                <input
+              <div className="space-y-1">
+                <Label htmlFor="facebookUrl" className="sr-only">
+                  {t('Facebook URL')}
+                </Label>
+                <Input
+                  type="url"
+                  id="facebookUrl"
+                  name="facebookUrl"
+                  value={formData.facebookUrl}
+                  onChange={handleInputChange}
+                  placeholder={t('Facebook URL')}
+                  className="text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="tiktokUrl" className="sr-only">
+                  {t('TikTok URL')}
+                </Label>
+                <Input
                   type="url"
                   id="tiktokUrl"
                   name="tiktokUrl"
                   value={formData.tiktokUrl}
                   onChange={handleInputChange}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="https://tiktok.com/@username"
+                  placeholder={t('TikTok URL')}
+                  className="text-xs"
                 />
               </div>
             </div>
           </div>
 
-          {/* Terms and Conditions */}
-          <div className="border-t border-gray-200 pt-4">
-            <label className="flex items-start">
-              <input
-                type="checkbox"
-                name="terms"
-                checked={formData.terms}
-                onChange={handleInputChange}
-                required
-                className="mr-3 mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-600">
-                I agree to the affiliate program terms and conditions. I
-                understand that I will earn {commissionPercent}% commission on
-                referrals and that payouts are processed monthly for balances
-                over ${AFFILIATE_CONFIG.MINIMUM_PAYOUT}.
-              </span>
-            </label>
-          </div>
+          <label className="flex items-start gap-2.5 border-t border-slate-200 pt-4 dark:border-slate-800/80">
+            <input
+              type="checkbox"
+              name="terms"
+              checked={formData.terms}
+              onChange={handleInputChange}
+              required
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-slate-300 text-amber-500 focus:ring-amber-500 dark:border-slate-700"
+            />
+            <span className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
+              {t(
+                `I agree to the affiliate program terms and conditions. I understand that I will earn ${commissionPercent}% commission on referrals and that payouts are processed monthly for balances over $${AFFILIATE_CONFIG.MINIMUM_PAYOUT}.`
+              )}
+            </span>
+          </label>
 
-          {/* Submit Button */}
-          <div>
-            <button
-              type="submit"
-              disabled={loading || !formData.terms}
-              className="w-full rounded-md bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading ? 'Submitting...' : 'Register as Affiliate'}
-            </button>
-          </div>
-
-          {/* Benefits Section */}
-          <div className="mt-8 border-t border-gray-200 pt-6">
-            <h3 className="mb-3 text-sm font-semibold text-gray-900">
-              Affiliate Benefits:
-            </h3>
-            <ul className="space-y-2 text-sm text-gray-600">
-              <li>
-                - Earn {commissionPercent}% commission on every successful
-                referral
-              </li>
-              <li>
-                - Your referrals get {discountPercent}% off their subscription
-              </li>
-              <li>- Receive {codesPerMonth} unique codes per month</li>
-              <li>
-                - Monthly payouts for balances over $
-                {AFFILIATE_CONFIG.MINIMUM_PAYOUT}
-              </li>
-            </ul>
-          </div>
+          <Button
+            type="submit"
+            disabled={loading || !formData.terms}
+            className="h-10 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
+          >
+            {loading
+              ? t('Creating Partner Account...')
+              : t('Apply for Partner Portal')}
+            {!loading && <ArrowRight className="ml-1.5 h-4 w-4" />}
+          </Button>
         </form>
+
+        <div className="space-y-2 border-t border-slate-200 pt-4 dark:border-slate-800/80">
+          <h3 className="text-xs font-bold text-slate-900 dark:text-slate-200">
+            {t('Partner Benefits')}
+          </h3>
+          <ul className="space-y-1 text-[11px] text-slate-600 dark:text-slate-400">
+            <li>
+              {t(
+                `- Earn ${commissionPercent}% recurring commission on every successful referral`
+              )}
+            </li>
+            <li>{t(`- Receive ${codesPerMonth} unique codes per month`)}</li>
+            <li>
+              {t(
+                `- Monthly automated payouts for balances over $${AFFILIATE_CONFIG.MINIMUM_PAYOUT}`
+              )}
+            </li>
+          </ul>
+        </div>
+
+        <div className="border-t border-slate-200 pt-2 text-center text-xs text-slate-600 dark:border-slate-800/80 dark:text-slate-400">
+          {t('Already registered?')}{' '}
+          <Link
+            href="/affiliate/dashboard"
+            className="font-bold text-amber-600 hover:underline dark:text-amber-400"
+          >
+            {t('Partner Dashboard')}
+          </Link>
+        </div>
       </div>
     </div>
   );
