@@ -14,6 +14,9 @@ const mockGet = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
   useSearchParams: () => ({ get: mockGet }),
+  // LocaleProvider (now mounted via withLocale() below) calls usePathname()
+  // -- Session 9-2's own public-pages.test.tsx established this same stub.
+  usePathname: () => '/',
 }));
 
 jest.mock('next/link', () => {
@@ -41,6 +44,21 @@ jest.mock('@/lib/auth/auth-bridge-flag', () => ({
 }));
 
 import TwoFactorVerificationPage from '@/app/(auth)/verify-2fa/page';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import {
+  LOCALE_STORAGE_KEY,
+  defaultPreferences,
+} from '@/lib/i18n/locale-resolver';
+
+// The verify-2fa page now calls useLocale() (Session 9-3) -- needs a
+// LocaleProvider ancestor. Pre-seed localStorage with a known preference so
+// LocaleProvider's first-visit branch never fires its real geo-IP fetch()
+// (LESSONS-LEARNED.md L40) -- this file's own tests assert an exact
+// global.fetch call count (only /api/user/2fa/verify), which a stray
+// LocaleProvider fetch would break.
+function withLocale(ui: React.ReactElement) {
+  return <LocaleProvider>{ui}</LocaleProvider>;
+}
 
 function typeCode(): void {
   const inputs = screen.getAllByLabelText(/^Digit \d$/);
@@ -56,6 +74,10 @@ describe('verify-2fa page', () => {
     global.fetch = jest.fn();
     mockGet.mockReturnValue('login-token-abc');
     mockGetSession.mockResolvedValue(null);
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify(defaultPreferences)
+    );
   });
 
   it('calls signIn (unchanged behavior) when the bridge flag is off', async () => {
@@ -66,7 +88,7 @@ describe('verify-2fa page', () => {
     });
     mockSignIn.mockResolvedValue({ ok: true, error: null });
 
-    render(<TwoFactorVerificationPage />);
+    render(withLocale(<TwoFactorVerificationPage />));
     typeCode();
 
     await waitFor(() =>
@@ -91,7 +113,7 @@ describe('verify-2fa page', () => {
         json: async () => ({ user: { id: '1', role: 'USER' } }),
       });
 
-    render(<TwoFactorVerificationPage />);
+    render(withLocale(<TwoFactorVerificationPage />));
     typeCode();
 
     await waitFor(() =>

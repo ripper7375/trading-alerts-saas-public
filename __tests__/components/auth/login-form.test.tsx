@@ -11,6 +11,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
+  // LocaleProvider (now mounted via withLocale() below) calls usePathname()
+  // -- Session 9-2's own public-pages.test.tsx established this same stub.
+  usePathname: () => '/',
 }));
 
 jest.mock('next/link', () => {
@@ -39,6 +42,20 @@ jest.mock('@/lib/auth/auth-bridge-flag', () => ({
 }));
 
 import LoginForm from '@/components/auth/login-form';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import {
+  LOCALE_STORAGE_KEY,
+  defaultPreferences,
+} from '@/lib/i18n/locale-resolver';
+
+// LoginForm now calls useLocale() (Session 9-3) -- needs a LocaleProvider
+// ancestor. Pre-seed localStorage with a known preference so
+// LocaleProvider's first-visit branch never fires its real geo-IP fetch()
+// (LESSONS-LEARNED.md L40) -- this file's own tests assert exact
+// global.fetch call counts/args for the auth-bridge endpoints.
+function withLocale(ui: React.ReactElement) {
+  return <LocaleProvider>{ui}</LocaleProvider>;
+}
 
 async function fillAndSubmit(): Promise<void> {
   fireEvent.change(screen.getByLabelText(/email address/i), {
@@ -57,13 +74,17 @@ describe('LoginForm', () => {
     jest.clearAllMocks();
     global.fetch = jest.fn();
     mockGetSession.mockResolvedValue(null);
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify(defaultPreferences)
+    );
   });
 
   it('calls next-auth/react signIn when the bridge flag is off (default, unchanged behavior)', async () => {
     mockIsAuthBridgeEnabled.mockReturnValue(false);
     mockSignIn.mockResolvedValue({ ok: true, error: null });
 
-    render(<LoginForm />);
+    render(withLocale(<LoginForm />));
     await fillAndSubmit();
 
     await waitFor(() =>
@@ -83,7 +104,7 @@ describe('LoginForm', () => {
       json: async () => ({ user: { id: '1', email: 'alice@example.com' } }),
     });
 
-    render(<LoginForm />);
+    render(withLocale(<LoginForm />));
     await fillAndSubmit();
 
     await waitFor(() =>
@@ -108,7 +129,7 @@ describe('LoginForm', () => {
       json: async () => ({ user: { id: '1', email: 'alice@example.com' } }),
     });
 
-    render(<LoginForm />);
+    render(withLocale(<LoginForm />));
     await fillAndSubmit();
 
     await waitFor(() => expect(mockGetSession).toHaveBeenCalled());
@@ -121,7 +142,7 @@ describe('LoginForm', () => {
       json: async () => ({ twoFactorRequired: true, token: 'tok-123' }),
     });
 
-    render(<LoginForm />);
+    render(withLocale(<LoginForm />));
     await fillAndSubmit();
 
     await waitFor(() =>
@@ -137,7 +158,7 @@ describe('LoginForm', () => {
       json: async () => ({ twoFactorRequired: true, token: 'tok-123' }),
     });
 
-    render(<LoginForm />);
+    render(withLocale(<LoginForm />));
     await fillAndSubmit();
 
     await waitFor(() =>
@@ -152,7 +173,7 @@ describe('LoginForm', () => {
       json: async () => ({ error: 'EMAIL_NOT_VERIFIED', message: 'nope' }),
     });
 
-    render(<LoginForm />);
+    render(withLocale(<LoginForm />));
     await fillAndSubmit();
 
     await waitFor(() =>
@@ -170,7 +191,7 @@ describe('LoginForm', () => {
       }),
     });
 
-    render(<LoginForm />);
+    render(withLocale(<LoginForm />));
     await fillAndSubmit();
 
     await waitFor(() =>
@@ -182,7 +203,7 @@ describe('LoginForm', () => {
   // with no accessible name and tabIndex={-1} (unreachable by keyboard).
   it('exposes a keyboard-focusable, accessibly-named password visibility toggle', () => {
     mockIsAuthBridgeEnabled.mockReturnValue(false);
-    render(<LoginForm />);
+    render(withLocale(<LoginForm />));
 
     const toggle = screen.getByRole('button', { name: 'Show password' });
     expect(toggle).not.toHaveAttribute('tabindex', '-1');

@@ -12,6 +12,9 @@ const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
   useSearchParams: () => new URLSearchParams(),
+  // LocaleProvider (now mounted via withLocale() below) calls usePathname()
+  // -- Session 9-2's own public-pages.test.tsx established this same stub.
+  usePathname: () => '/',
 }));
 
 jest.mock('next/link', () => {
@@ -45,6 +48,20 @@ jest.mock('@/lib/auth/auth-bridge-flag', () => ({
 }));
 
 import RegisterForm from '@/components/auth/register-form';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import {
+  LOCALE_STORAGE_KEY,
+  defaultPreferences,
+} from '@/lib/i18n/locale-resolver';
+
+// RegisterForm now calls useLocale() (Session 9-3) -- needs a LocaleProvider
+// ancestor. Pre-seed localStorage with a known preference so
+// LocaleProvider's first-visit branch never fires its real geo-IP fetch()
+// (LESSONS-LEARNED.md L40) -- this file's own tests assert exact
+// global.fetch call counts/args for the auth-bridge endpoints.
+function withLocale(ui: React.ReactElement) {
+  return <LocaleProvider>{ui}</LocaleProvider>;
+}
 
 async function fillAndSubmit(): Promise<void> {
   fireEvent.change(screen.getByLabelText(/full name/i), {
@@ -69,6 +86,10 @@ describe('RegisterForm', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     global.fetch = jest.fn();
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify(defaultPreferences)
+    );
   });
 
   it('posts to /api/auth/register when the bridge flag is off (default, unchanged behavior)', async () => {
@@ -84,7 +105,7 @@ describe('RegisterForm', () => {
       }),
     });
 
-    render(<RegisterForm />);
+    render(withLocale(<RegisterForm />));
     await fillAndSubmit();
 
     await waitFor(() =>
@@ -108,7 +129,7 @@ describe('RegisterForm', () => {
       }),
     });
 
-    render(<RegisterForm />);
+    render(withLocale(<RegisterForm />));
     await fillAndSubmit();
 
     await waitFor(() =>
@@ -132,7 +153,7 @@ describe('RegisterForm', () => {
       }),
     });
 
-    render(<RegisterForm />);
+    render(withLocale(<RegisterForm />));
     await fillAndSubmit();
 
     await waitFor(() =>
@@ -150,7 +171,7 @@ describe('RegisterForm', () => {
       json: async () => ({ error: 'ACCOUNT_EXISTS', message: 'exists' }),
     });
 
-    render(<RegisterForm />);
+    render(withLocale(<RegisterForm />));
     await fillAndSubmit();
 
     await waitFor(() =>
@@ -164,7 +185,7 @@ describe('RegisterForm', () => {
   // icon-only with no accessible name.
   it('exposes accessibly-named password and confirm-password visibility toggles', () => {
     mockIsAuthBridgeEnabled.mockReturnValue(false);
-    render(<RegisterForm />);
+    render(withLocale(<RegisterForm />));
 
     expect(
       screen.getByRole('button', { name: 'Show password' })
