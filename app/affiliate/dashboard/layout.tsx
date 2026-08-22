@@ -5,14 +5,22 @@
  * Requires authenticated affiliate access.
  * Provides navigation and common layout.
  *
+ * DECISION-LOG.md F79 fix (Session 9-7b): a freshly-registered affiliate's
+ * JWT doesn't carry `isAffiliate: true` until the token next rotates, so
+ * trusting `session.user.isAffiliate` here bounced them straight back to
+ * `/affiliate/register` in a redirect loop. `requireAffiliate()`
+ * (lib/auth/session.ts) already re-checks the DB directly when the JWT
+ * claim is false, closing the race.
+ *
  * @module app/affiliate/dashboard/layout
  */
 
 import React from 'react';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { getSession } from '@/lib/auth/session';
+import { getSession, requireAffiliate } from '@/lib/auth/session';
+import { AuthError } from '@/lib/auth/errors';
+import AffiliateNav from '@/components/affiliate/affiliate-nav';
 
 // Force dynamic rendering since this layout uses headers via getSession
 export const dynamic = 'force-dynamic';
@@ -24,22 +32,6 @@ export const dynamic = 'force-dynamic';
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// NAVIGATION LINKS
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-const navLinks = [
-  { href: '/affiliate/dashboard', label: 'Dashboard' },
-  { href: '/affiliate/dashboard/codes', label: 'My Codes' },
-  { href: '/affiliate/dashboard/code-inventory', label: 'Code Inventory' },
-  { href: '/affiliate/dashboard/commissions', label: 'Commissions' },
-  { href: '/affiliate/dashboard/payouts', label: 'Payouts' },
-  { href: '/affiliate/dashboard/statements', label: 'Statements' },
-  { href: '/affiliate/dashboard/resources', label: 'Resources' },
-  { href: '/affiliate/dashboard/profile', label: 'Profile' },
-  { href: '/affiliate/settings/payout', label: 'Payout Settings' },
-];
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COMPONENT
@@ -64,72 +56,20 @@ export default async function AffiliateDashboardLayout({
     redirect('/admin');
   }
 
-  // Check if user is an affiliate
-  if (!session.user.isAffiliate) {
-    redirect('/affiliate/register');
+  // F79: re-check the DB when the JWT hasn't caught up yet, instead of
+  // bouncing a genuine affiliate back to /register.
+  try {
+    await requireAffiliate();
+  } catch (err) {
+    if (err instanceof AuthError) {
+      redirect('/affiliate/register');
+    }
+    throw err;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation Header */}
-      <nav className="border-b border-gray-200 bg-white shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 justify-between">
-            <div className="flex">
-              {/* Logo/Brand */}
-              <div className="flex flex-shrink-0 items-center">
-                <Link
-                  href="/affiliate/dashboard"
-                  className="text-xl font-bold text-gray-900"
-                >
-                  Affiliate Portal
-                </Link>
-              </div>
-
-              {/* Navigation Links */}
-              <div className="hidden sm:ml-8 sm:flex sm:space-x-8">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-700 hover:border-b-2 hover:border-blue-500 hover:text-gray-900"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* User Menu */}
-            <div className="flex items-center">
-              <span className="text-sm text-gray-600">
-                {session.user.email}
-              </span>
-              <Link
-                href="/dashboard"
-                className="ml-4 text-sm text-blue-600 hover:text-blue-800"
-              >
-                Back to App
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile Navigation */}
-        <div className="border-t border-gray-200 sm:hidden">
-          <div className="space-y-1 px-2 pb-3 pt-2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-background">
+      <AffiliateNav />
 
       {/* Main Content */}
       <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
@@ -137,10 +77,10 @@ export default async function AffiliateDashboardLayout({
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-gray-200 bg-white">
+      <footer className="mt-auto border-t border-border bg-card">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-500">
-            Trading Alerts Affiliate Program
+          <p className="text-center text-sm text-muted-foreground">
+            DavinTrade Affiliate Partner Program
           </p>
         </div>
       </footer>

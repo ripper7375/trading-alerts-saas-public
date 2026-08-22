@@ -2,111 +2,87 @@
 
 > For sessions that **build or redesign frontend surfaces**: read `00-SKELETON-AND-RULES.md`
 > first — §4 applies with the dial at **High** for page-body content/layout, **Zero** on data
-> (every page binds to the endpoint its 9-0 row names). **PRE-DRAFTed by the Executor at Session
-> 9-7a's close (2026-08-22)**, informed by `frontend-swap-route-map.md` and 9-7a's own Deviations.
-> Per PD1, `Decisions taken` below is deliberately left as open questions with evidence, not
-> decisions — that's the Advisor's job at DRAFT.
+> (every page binds to the endpoint its 9-0 row names).
+> Corrected & upgraded to full **DRAFT** by Antigravity (Advisor & Architect), 2026-08-22.
+> Grounded in `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`.
 
-**Session:** 9-7b · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** PRE-DRAFT
-**Generated:** 2026-08-22 (Executor, at Session 9-7a's close) · **Flags touched:** F79 (`DECISION-LOG.md`,
-OPEN) is this session's own to resolve — see Open Question 1.
-**Surface:** `app/affiliate/dashboard/*` (8 subroutes) + `app/affiliate/resources` (Row 45) +
-`app/affiliate/settings/payout` (Row 46) — the authenticated partner-portal cluster, 10 rows
-total. Per 9-7a's Decision 1 (approved by Davin), rows 45/46 sit here rather than in the 9-0
-map's own literal Session-column assignment (which read `9-7a` for both) — see Open Question 2.
-**Feeds on:** `GET /api/affiliate/dashboard/stats` (row 42), `/code-inventory` (35), `/codes`
-(36), `/commission-report` (37, note: route map's own row 37 cites `prisma/non-market-data/
-schema.prisma` as the "backing API," which is not an endpoint — read the real route file before
-assuming what's live), `GET/PATCH /api/affiliate/profile` (40), `GET/PATCH /api/affiliate/
-profile/payment` (39 and 46, same endpoint, two pages), `GET /api/affiliate/dashboard/resources`
-(+ `/[id]/copy`, `/[id]/download`) (45). Rows 38 (`/payouts`) and 41 (`/statements`) have **no
-self-service backing endpoint at all** — confirmed in `frontend-swap-route-map.md` §3.3/§5 row 7;
-only admin-side `/api/disbursement/*` exists.
+**Session:** 9-7b · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CONFIRMED
+**Generated:** 2026-08-22 (Executor PRE-DRAFT) · **Upgraded & Corrected:** 2026-08-22 (Advisor DRAFT) · **Approved:** 2026-08-22 (Davin) · **Confirmed:** 2026-08-23 (Executor, live re-verification against codebase + runtime — DB fixture, `tsc`, all 10 rows' bindings)
+**Flags touched:** **F79** (`app/affiliate/dashboard/layout.tsx` DB check for fresh affiliates) $\rightarrow$ RESOLVED.
+**Surface:** `app/affiliate/dashboard/*` + `app/affiliate/settings/payout` — the complete 10-row authenticated partner portal cluster:
+
+- Row 42: `app/affiliate/dashboard/page.tsx` (Portal Overview & Quick Stats)
+- Row 36: `app/affiliate/dashboard/codes/page.tsx` (Active Referral Codes)
+- Row 35: `app/affiliate/dashboard/code-inventory/page.tsx` (Code Inventory Allocation)
+- Row 37: `app/affiliate/dashboard/commissions/page.tsx` (Commission History)
+- Row 38: `app/affiliate/dashboard/payouts/page.tsx` (Disbursement Payout Batches)
+- Row 41: `app/affiliate/dashboard/statements/page.tsx` (Monthly Statements & CSV Export)
+- Row 40: `app/affiliate/dashboard/profile/page.tsx` (Partner Profile)
+- Row 39: `app/affiliate/dashboard/profile/payment/page.tsx` (Retired redirect to `/affiliate/settings/payout`)
+- Row 45: `app/affiliate/dashboard/resources/page.tsx` (Marketing Media Kit & Assets)
+- Row 46: `app/affiliate/settings/payout/page.tsx` (Wise Payout Settings)
+  **Feeds on:**
+- `GET /api/affiliate/dashboard/stats` (Row 42)
+- `GET /api/affiliate/dashboard/codes` (Row 36)
+- `GET /api/affiliate/dashboard/code-inventory` (Row 35)
+- `GET /api/affiliate/dashboard/commission-report` (Row 37 & aggregated in Row 41)
+- Direct Prisma read `prisma.disbursementTransaction` (Row 38 Server Component)
+- `GET/PATCH /api/affiliate/profile` (Row 40)
+- `GET /api/wise/recipients/me` & `POST /api/wise/recipients/[id]/revalidate` via `<WiseRecipientForm />` (Row 46)
+- `GET /api/affiliate/dashboard/resources` (+ `/[id]/copy`, `/[id]/download`) (Row 45)
+  **Estimated time:** ~3h (Authenticated affiliate portal pages with DavinTrade design tokens, `AffiliateNav`, and live test fixture verification).
+
+---
+
+## Decisions taken
+
+1. **Resolution of F79 in `app/affiliate/dashboard/layout.tsx` (Resolution of Open Question 1)**
+   - **Decision:** Formally close **F79** (RESOLVED) by updating `app/affiliate/dashboard/layout.tsx` to verify affiliate status via `requireAffiliate()` (or a direct `prisma.user.findUnique` check if `!session.user.isAffiliate`). This permanently eliminates the JWT stale-session race condition upon initial registration, allowing newly registered affiliates to immediately access the dashboard without an extra re-login cycle.
+   - **What was rejected:** Leaving F79 unresolved and forcing artificial sign-out/sign-in steps during testing.
+   - **Rationale:** `requireAffiliate()` already implements this exact DB fallback in `lib/auth/session.ts:129-136`.
+   - **Undo Cost:** Low.
+
+2. **Formally Confirm Rows 45 & 46 in Session 9-7b (Resolution of Open Question 2)**
+   - **Decision:** Confirm that Rows 45 (`app/affiliate/dashboard/resources/page.tsx`) and 46 (`app/affiliate/settings/payout/page.tsx`) belong to Session 9-7b, as approved in Session 9-7a's Decision 1.
+   - **What was rejected:** Splitting resources/payouts into a disjoint session or targeting the orphaned public marketing splash `app/affiliate/resources/page.tsx`.
+   - **Rationale:** Preserves domain coherence; all authenticated affiliate portal surfaces mount under the unified affiliate navigation.
+   - **Undo Cost:** Low.
+
+3. **Complete 10-Row Scope in Single Session without Sub-Split (Resolution of Open Question 3)**
+   - **Decision:** Execute all 10 authenticated affiliate portal pages in Session 9-7b as a single session.
+   - **What was rejected:** Splitting into 9-7b1 and 9-7b2.
+   - **Rationale:** Codebase verification proves no missing backend endpoints exist: Row 38 (`/payouts`) is already an operational Server Component querying real `disbursementTransaction` records, Row 41 (`/statements`) aggregates real `commission-report` data client-side, and Row 39 is a transparent redirect. The session is pure UI restyling to DavinTrade tokens with existing, tested data bindings.
+   - **Undo Cost:** Low.
+
+4. **Binding Row 37 to Verified Commission Report Endpoint & Row 46 to Wise API (Resolution of Open Question 4)**
+   - **Decision:** Explicitly bind `app/affiliate/dashboard/commissions/page.tsx` (Row 37) to `GET /api/affiliate/dashboard/commission-report`, and bind `app/affiliate/settings/payout/page.tsx` (Row 46) to `GET /api/wise/recipients/me` and `POST /api/wise/recipients/[id]/revalidate` via `<WiseRecipientForm />`. Confirm Row 39 as a transparent redirect.
+   - **What was rejected:** Citing raw schema files or superseded endpoints.
+   - **Rationale:** Aligns with live codebase implementation verified in Phase 4A/Session 6-7.
+   - **Undo Cost:** Low.
+
+5. **DavinTrade Token Alignment & `AffiliateNav` Chrome**
+   - **Decision:** Mount `<AffiliateNav />` across all dashboard, resources, and settings pages, styled with DavinTrade semantic tokens (`bg-card`, `border-border`, amber active states, dark mode support).
+   - **What was rejected:** Hardcoded legacy blue/gray navigation headers.
+   - **Rationale:** 100% visual consistency with DavinTrade design system.
+   - **Undo Cost:** Low.
 
 ---
 
 ## Why this session exists
 
-Per `MASTER-ROADMAP-PHASES-7-15.md` §3 and 9-7a's own Next-session handoff: `app/affiliate/*`'s
-5 nested layouts split into 9-7a (public onboarding, CLOSED SUCCESSFUL 2026-08-22) and this
-session — the authenticated affiliate-portal half, requiring a real logged-in-and-registered
-affiliate account to verify, which 9-7a's own close now provides (see Waiting-on-turned-fixture
-below).
+Per `MASTER-ROADMAP-PHASES-7-15.md` §3: `app/affiliate/*` encompasses 14 routes. Session 9-7a closed the public onboarding routes (Rows 43, 44, 47 [retired], 48). Session 9-7b completes the frontend stack for the entire authenticated affiliate portal (Rows 35–42, 45, 46).
 
-`frontend-swap-route-map.md`'s own §7 sizing table already flagged an 8-row version of this
-session as **over the ~4h playbook threshold**, for two concrete reasons: it carries a real
-backend-gap that has to be _built_, not just bound (§5 row 7 — rows 38/41's missing endpoints),
-and this order now carries 10 rows, not 8, per 9-7a's Decision 1. Both facts are evidence for the
-Advisor to weigh at DRAFT — see Open Question 3.
-
----
-
-## A fixture this session did not have to build
-
-9-7a's own required live verification (its Step 5) registered the real test account
-`free-test@trading-alerts.test` as a genuine, DB-backed affiliate (`profileId:
-cmt4hxzk30005asv2vdq8bpws`) — the authenticated-affiliate session fixture this session needs to
-click-through its own pages now exists and does not need to be created here.
-
----
-
-## Open questions (Advisor resolves at DRAFT, per PD1)
-
-1. **Does this session fix `DECISION-LOG.md` F79, or just work around it to test its own pages?**
-   `app/affiliate/dashboard/layout.tsx:56-70` redirects to `/affiliate/register` whenever
-   `session.user.isAffiliate` is false — reading the JWT, not the DB — so the fixture above will
-   hit this exact redirect loop on first click-through until the JWT rotates (next sign-in) or the
-   guard is fixed. `lib/auth/session.ts`'s own `requireAffiliate()` helper already re-checks the
-   DB directly for exactly this race condition (its own code comment says so) — swapping
-   `dashboard/layout.tsx`'s guard to use it (or re-signing-in the fixture before each session's
-   click-through) are both live options. Recommend fixing it here, since this session already owns
-   the file and every one of its own 8 dashboard pages sits behind that same guard.
-2. **Is rows 45/46's assignment to this session settled, or does it need re-confirming against
-   the 9-0 map's own literal Session column?** 9-7a's Decision 1 (Davin-approved) put them here;
-   the 9-0 map's main table (`frontend-swap-route-map.md` lines 196-197) and its own §7 sizing
-   table both still read `9-7a` for both rows, unedited since 9-0. Recommend the Advisor treat
-   9-7a's Decision 1 as the standing resolution (a later, explicit, Davin-approved decision
-   overriding an earlier map assignment) and have this order note the map's own text as stale
-   rather than re-opening the question — but flagging it here rather than silently assuming, per
-   PD1's own rule that a settled choice isn't reopened on preference, only 9-0's own text is now
-   inconsistent with it and should eventually be corrected for future readers.
-3. **Does this 10-row, 2-real-backend-gap session need its own a/b split?** `frontend-swap-route-
-map.md` §7 already flagged an 8-row version as over threshold with 1 gap; this version is
-   larger (10 rows, same 2 gaps — rows 38/41). Options: build the two missing endpoints as part of
-   this session (as the map's own §5 row 7 suggests), ship rows 38/41 as an explicit, disclosed
-   gap (empty/placeholder state, not fabricated data) and defer the endpoints to a follow-up, or
-   split into 9-7b1 (rows 35-37,39,40,42 — bindable today) / 9-7b2 (38,41,45,46 — needs backend
-   work first, or at least 38/41 do).
-4. **Row 37's route-map citation needs a live read before trusting it.** The map's own "Backing
-   API" column for row 37 (`/affiliate/dashboard/commissions`) cites
-   `prisma/non-market-data/schema.prisma` — a schema file, not an endpoint — while its own
-   "Real Data Source" column separately names `GET /api/affiliate/dashboard/commission-report`.
-   Read `app/api/affiliate/dashboard/commission-report/route.ts` directly before assuming its
-   shape; do not carry the schema-file citation into this order's own Ordered Steps.
+Using the authenticated affiliate test account (`free-test@trading-alerts.test`, registered in Session 9-7a), this session validates all partner surfaces with real database records and zero mock data.
 
 ---
 
 ## Entry criteria (re-verify all at CONFIRM)
 
-- [ ] **Session 9-7a CONFIRMED, executed, CLOSED** — public onboarding live on `main`,
-      route-manifest diff clean.
-- [ ] **All 10 rows' current page files confirmed existing** and read in full: the 8 under
-      `app/affiliate/dashboard/*` plus `app/affiliate/resources/page.tsx` and
-      `app/affiliate/settings/payout/page.tsx` (both already exist on disk at Session 9-7a's
-      close — confirm whether they're stale codebase-1 pages needing a full port, or already
-      partially real).
-- [ ] **Each of the 8 real/likely-real endpoints confirmed live and its request/response shape
-      read** before binding — do not trust the route map's "Backing API" column at face value
-      (see Open Question 4).
-- [ ] **Rows 38/41's endpoint gap re-confirmed** — grep `app/api/affiliate/**` and
-      `app/api/disbursement/**` fresh; do not assume the 9-0 map's finding is still current
-      without a live check.
-- [ ] **`DECISION-LOG.md` F79 re-verified live** (see Open Question 1) — reproduce the redirect
-      loop against the real `free-test@trading-alerts.test` fixture before deciding whether to
-      fix it in this session or work around it.
-- [ ] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24 — run each in isolation,
-      not in parallel; Session 9-7a's own CONFIRM hit two worker-OOM/SIGTERM false negatives on
-      `operation-service` running right after the other two suites):
+- [x] **Session 9-7a CONFIRMED, executed, CLOSED** — public onboarding live on `main`, route-manifest diff clean. Verified via `git log` (commits `530b03e5`…`5d986cd3`).
+- [x] **Authenticated affiliate test fixture confirmed active** (`free-test@trading-alerts.test` with active DB affiliate profile). Live query 2026-08-23: `isAffiliate: true`, `AffiliateProfile cmt4hxzk30005asv2vdq8bpws`, `status: ACTIVE`.
+- [x] **All target page files confirmed existing** and read in full.
+- [x] **All backing API routes + Prisma Server Component read and contract-verified**. Row 46 corrected to real `/api/wise/recipients/*` endpoints; Row 39 confirmed as retired redirect; Row 45 confirmed at `dashboard/resources/page.tsx`.
+- [x] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24): `npx tsc --noEmit` re-verified clean 2026-08-23 at CONFIRM; full suite re-run in Step 6 at close.
 
   ```powershell
   # 1. Monolith
@@ -123,37 +99,82 @@ map.md` §7 already flagged an 8-row version as over threshold with 1 gap; this 
 
 ---
 
+## Ordered steps
+
+1. **Resolve F79 in `app/affiliate/dashboard/layout.tsx`**
+   - Update `app/affiliate/dashboard/layout.tsx` to verify affiliate status via `requireAffiliate()` / direct Prisma check when `session.user.isAffiliate` is not in JWT.
+   - Mount DavinTrade header and `<AffiliateNav />` component with active route highlighting.
+   - _Verify:_ `free-test@trading-alerts.test` navigates to `/affiliate/dashboard` without redirect loop.
+
+2. **Restyle Dashboard Overview & Codes Pages (Rows 42, 36, 35)**
+   - `app/affiliate/dashboard/page.tsx` (Row 42): Restyle stats cards (Total Earnings, Unpaid Commission, Conversion Rate, Active Codes) bound to `GET /api/affiliate/dashboard/stats`.
+   - `app/affiliate/dashboard/codes/page.tsx` (Row 36): Restyle promo codes table, discount percentage badges, and copy-link triggers bound to `GET /api/affiliate/dashboard/codes`.
+   - `app/affiliate/dashboard/code-inventory/page.tsx` (Row 35): Restyle code tier allocation and quota cards bound to `GET /api/affiliate/dashboard/code-inventory`.
+   - _Verify:_ `npx tsc --noEmit` clean; data tables and cards render with DavinTrade semantic tokens.
+
+3. **Restyle Commissions, Payouts & Statements Pages (Rows 37, 38, 41)**
+   - `app/affiliate/dashboard/commissions/page.tsx` (Row 37): Restyle commission history table with status badges (`PENDING`, `APPROVED`, `PAID`, `CANCELLED`) bound to `GET /api/affiliate/dashboard/commission-report`.
+   - `app/affiliate/dashboard/payouts/page.tsx` (Row 38): Restyle Server Component payout batch table with real `PaymentBatchStatus` badges querying `prisma.disbursementTransaction`.
+   - `app/affiliate/dashboard/statements/page.tsx` (Row 41): Restyle 12-month statement breakdown and CSV export trigger.
+   - _Verify:_ `npx tsc --noEmit` clean; CSV export functions and payout history reflects real DB state.
+
+4. **Restyle Partner Profile, Resources, Payout Settings & Confirm Redirect (Rows 40, 45, 46, 39)**
+   - `app/affiliate/dashboard/profile/page.tsx` (Row 40): Restyle partner channel name, email, country, and social handles bound to `GET/PATCH /api/affiliate/profile`.
+   - `app/affiliate/dashboard/resources/page.tsx` (Row 45): Restyle media kit banner downloads, brand assets, and embed code copy buttons bound to `GET /api/affiliate/dashboard/resources`.
+   - `app/affiliate/settings/payout/page.tsx` (Row 46): Restyle Wise payment recipient configuration bound to `GET /api/wise/recipients/me` & `POST /api/wise/recipients/[id]/revalidate` via `<WiseRecipientForm />`.
+   - `app/affiliate/dashboard/profile/payment/page.tsx` (Row 39): Confirm transparent redirect to `/affiliate/settings/payout`.
+   - _Verify:_ `npx tsc --noEmit` clean; profile and Wise settings save successfully.
+
+5. **Live Verification & Click-Through**
+   - Log in as `free-test@trading-alerts.test`.
+   - Navigate through all pages via `<AffiliateNav />`:
+     `/affiliate/dashboard` $\rightarrow$ `/codes` $\rightarrow$ `/code-inventory` $\rightarrow$ `/commissions` $\rightarrow$ `/payouts` $\rightarrow$ `/statements` $\rightarrow$ `/dashboard/resources` $\rightarrow$ `/profile` $\rightarrow$ `/settings/payout`.
+   - Verify zero layout shift, theme reactivity (Light Clean Mode & Dark Mode), and real API responses.
+
+6. **Route-Manifest Diff & Test Suites Verification**
+   - Verify route-manifest diff: exactly the target authenticated affiliate portal pages restyled.
+   - Run sequential test baselines:
+     ```powershell
+     npx tsc --noEmit
+     npx eslint app components lib hooks --max-warnings 5
+     npm run test:ci
+     ```
+
+---
+
 ## Rules specific to this variant
 
-- **Zero Mock Data:** every page binds to its real endpoint; rows 38/41 without one are a finding
-  for Davin/Antigravity (per Open Question 3), not a licence to fabricate payout/statement data.
-- **100%-fidelity invariant:** restyle to DavinTrade tokens while preserving any real
-  validation/error-handling logic already in the live pages at `app/affiliate/resources/page.tsx`
-  and `app/affiliate/settings/payout/page.tsx`.
-- **Scope discipline:** this order does not touch `app/affiliate/page.tsx`, `/join`, `/register`,
-  or the retired `/verify` — those are 9-7a's, CLOSED.
+- **Zero Mock Data:** Every page binds to its live API route or Prisma query. No synthetic fallback arrays.
+- **100%-Fidelity Invariant:** Preserve all existing query params, pagination, and CSV download logic.
+- **Scope Discipline:** Do not touch public affiliate pages (`/affiliate`, `/join`, `/register`, closed in 9-7a) or `/admin/*` routes.
+- **Record Design Decisions:** Document all UI token alignments in Deviations at close.
 
 ---
 
 ## Done when
 
-- [ ] All 10 rows live with DavinTrade branding, bound to real endpoints (or an explicitly
-      disclosed, Davin-acknowledged gap for rows 38/41).
-- [ ] `DECISION-LOG.md` F79 resolved or explicitly re-scoped with Davin's sign-off on the
-      work-around chosen.
+- [ ] `DECISION-LOG.md` F79 resolved and closed.
+- [ ] All authenticated partner portal pages live with DavinTrade branding, `<AffiliateNav />`, and semantic tokens.
+- [ ] Live test user traverses all pages with real API/DB data bindings and zero redirect loops.
 - [ ] Route-manifest diff matches this session's scope and nothing else.
-- [ ] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and
-      `npm run test:ci` all pass clean.
+- [ ] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
 
 ---
 
 ## Rollback
 
-`git revert` of this session's commits. Prefer one commit per page/step so changes can be
-isolated cleanly.
+`git revert` of this session's commits. Prefer one commit per logical page group so changes can be isolated cleanly.
 
 ---
 
 ## Deviations
 
 <!-- Filled by Executor during execution per EXECUTOR-PROTOCOL.md §3 -->
+
+---
+
+## Next-session handoff
+
+- **Next session:** `9-8` — `app/admin/*` cluster 1 (Admin Shell & Overview / Users), per `MASTER-ROADMAP-PHASES-7-15.md` §3.
+- **Prerequisite:** Session 9-7b CLOSED — authenticated partner portal live on `main`.
+- **9-7b obligation carried to close:** PRE-DRAFT Session 9-8's migration order per `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`.
