@@ -26,12 +26,48 @@ const mockBack = jest.fn();
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ back: mockBack, push: mockPush }),
+  // LocaleProvider (mounted around NotFound as of Session 9-1) also calls
+  // usePathname() to react to country-prefix navigation.
+  usePathname: () => '/',
 }));
 
 import NotFound from '@/app/not-found';
 import ErrorPage from '@/app/error';
 import GlobalError from '@/app/global-error';
 import { ToastContainer } from '@/components/ui/toast-container';
+import { LocaleProvider } from '@/lib/context/locale-context';
+
+/**
+ * Session 9-1 ported app/not-found.tsx from seed-code, which calls
+ * useLocale() -- needs a LocaleProvider ancestor even in a unit test.
+ *
+ * LocaleProvider's first-visit branch calls the REAL global.fetch()
+ * (jest.setup.js wires a genuine undici fetch, not a mock) to
+ * https://ipapi.co/json/ for geo-detection when no cookie/localStorage
+ * preference exists -- which it never does in a clean jsdom test. Left
+ * un-mocked, this fires a real network request that's still in flight when
+ * the test file's jsdom window tears down, crashing the worker process on
+ * teardown ("Cannot read properties of null (reading '_location')") even
+ * though every assertion had already passed. Reject it immediately instead
+ * so the provider's own catch block handles it synchronously-ish.
+ */
+const originalFetch = global.fetch;
+beforeAll(() => {
+  global.fetch = jest
+    .fn()
+    .mockRejectedValue(new Error('network disabled in tests'));
+});
+afterAll(() => {
+  global.fetch = originalFetch;
+});
+
+function renderNotFound() {
+  return render(
+    <LocaleProvider>
+      <NotFound />
+    </LocaleProvider>
+  );
+}
 
 describe('app/not-found.tsx (404 handling)', () => {
   beforeEach(() => {
@@ -39,23 +75,26 @@ describe('app/not-found.tsx (404 handling)', () => {
   });
 
   it('renders the 404 heading and recovery actions', () => {
-    render(<NotFound />);
+    renderNotFound();
 
+    // Session 9-1: seed-code's ported version renders "404" as the h1 and
+    // "Page Not Found" as an h2 subheading (was a single h1 "Page not
+    // found" before the port).
     expect(
-      screen.getByRole('heading', { name: 'Page not found', level: 1 })
+      screen.getByRole('heading', { name: 'Page Not Found', level: 2 })
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /dashboard/i })).toHaveAttribute(
       'href',
       '/dashboard'
     );
-    expect(screen.getByRole('link', { name: /^home$/i })).toHaveAttribute(
-      'href',
-      '/'
-    );
+    // "Return to Home" (was exactly "Home" before the port).
+    expect(
+      screen.getByRole('link', { name: /return to home/i })
+    ).toHaveAttribute('href', '/');
   });
 
   it('calls router.back() from the Go Back action', () => {
-    render(<NotFound />);
+    renderNotFound();
     fireEvent.click(screen.getByRole('button', { name: /go back/i }));
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
@@ -87,8 +126,13 @@ describe('app/global-error.tsx (root error boundary)', () => {
     const reset = jest.fn();
     render(<GlobalError error={new Error('fatal')} reset={reset} />);
 
+    // Session 9-1: ported from seed-code, whose copy is "System Error
+    // Encountered" (was "Something went wrong" before the port).
     expect(
-      screen.getByRole('heading', { name: /something went wrong/i, level: 1 })
+      screen.getByRole('heading', {
+        name: /system error encountered/i,
+        level: 1,
+      })
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /try again/i }));
     expect(reset).toHaveBeenCalledTimes(1);
