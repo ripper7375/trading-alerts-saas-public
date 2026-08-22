@@ -12,7 +12,7 @@ import { CodeTable } from '@/components/affiliate/code-table';
 
 // Mock date-fns format
 jest.mock('date-fns', () => ({
-  format: (date: Date, formatStr: string) => {
+  format: (date: Date, _formatStr: string) => {
     const d = new Date(date);
     const months = [
       'Jan',
@@ -100,7 +100,7 @@ describe('CodeTable Component', () => {
 
       const statusBadge = screen.getByText('USED');
       expect(statusBadge).toBeInTheDocument();
-      expect(statusBadge.className).toMatch(/blue/i);
+      expect(statusBadge.className).toMatch(/amber/i);
     });
 
     it('should show EXPIRED status badge', () => {
@@ -108,7 +108,7 @@ describe('CodeTable Component', () => {
 
       const statusBadge = screen.getByText('EXPIRED');
       expect(statusBadge).toBeInTheDocument();
-      expect(statusBadge.className).toMatch(/gray/i);
+      expect(statusBadge.className).toMatch(/muted/i);
     });
 
     it('should handle CANCELLED status', () => {

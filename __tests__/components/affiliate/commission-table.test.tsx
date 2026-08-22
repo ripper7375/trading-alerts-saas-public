@@ -130,7 +130,7 @@ describe('CommissionTable Component', () => {
 
       const statusBadge = screen.getByText('PENDING');
       expect(statusBadge).toBeInTheDocument();
-      expect(statusBadge.className).toMatch(/yellow/i);
+      expect(statusBadge.className).toMatch(/amber/i);
     });
 
     it('should show PAID status badge', () => {
