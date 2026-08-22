@@ -7,6 +7,79 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 4A-14 (dLocal Write-API Group B Cutover, Phase 4X, PORT + CUTOVER,
+  dial LOW→near-zero), CONFIRMED, executed, **CLOSED — PARTIAL** 2026-08-21. Second session of
+  Phase 4X. Closes `DECISION-LOG.md` **F49** (RESOLVED, real fix, proven live) but the Group B
+  cutover itself FAILED live on a new, previously-masked bug — registers and is now blocked on
+  new flag **F76** (OPEN). Slice 4 stays at 3/4 write-API groups, unchanged from 4A-10c's close.
+  **CONFIRM found the by-now-familiar L3/L11 pattern again**: committed HEAD had only the bare
+  PRE-DRAFT stub; working copy carried the full DRAFT→APPROVED upgrade. Davin confirmed live it
+  was his authentic edit. Entry criteria re-verified: F49 still OPEN scope-unchanged; git drift
+  zero since 4A-10c (order's own cited commit `1a6e9a8f` doesn't exist in this repo — citation
+  drift, L22, corrected to the real close commit `333a108f`); all 4 test-baseline numbers exact
+  match (monolith `tsc`/`eslint` clean, `test:ci` 160/160 suites 2399/2399 tests; money-service
+  62/62 suites 522/522 tests). Orphaned-row entry criterion checked "clean" at CONFIRM time —
+  **later retracted as invalid, see below.** The Advisor also re-sequenced Step 4 (sandbox
+  verification) ahead of Step 5 (flag flip) between DRAFT and APPROVED, fixing a real ordering
+  defect flagged at CONFIRM.
+  **Steps 1–2 (money-service + monolith `payment_method_flow: 'REDIRECT'` fix): clean.** Neither
+  side's existing test suite had ever exercised the real outbound `fetch()` call — both
+  short-circuit into a mock response whenever `NODE_ENV==='test'` (always true under Jest), so
+  the pre-existing `mockFetch` spies were dead code. New tests use `jest.resetModules()` + a
+  `process.env` override before a dynamic `require()` re-import to force the real path and assert
+  on the real JSON body. Both sides +1 test, zero regressions, one commit each.
+  **Step 3 (deploy) needed more than "git push":** `money-service`'s Railway deploy auto-triggered
+  and settled clean (`GET /health` → 200, not log-reading, per L13). Vercel needed two separate
+  actions the order conflated — the env var itself (`vercel env rm`+`add`, no in-place update) AND
+  a `vercel redeploy`, since env var changes don't reach already-running serverless functions
+  without a fresh deployment. Confirmed the correct linked Vercel project (`trading-alerts-saas-
+frontend`) via `.vercel/project.json` before touching anything, rather than guessing among the 3
+  projects `vercel project ls` returned.
+  **Step 4's literal "sandbox verification" bullet was infeasible**: local `.env`/`.env.local`
+  have the `DLOCAL_*` keys present but empty. Substituted the order's own explicit fallback (real-
+  fetch-path unit tests) and disclosed the residual uncertainty to Davin before proceeding, rather
+  than treating it as equivalent proof.
+  **Step 5/6 (flag flip + live smoke test) — mixed result, third recurrence of L11's exact
+  pattern on this one flag (F48 masked F49; F49 masked F76):** Davin's real checkout click-through
+  got `"Failed to create payment"`, but money-service's own logs proved genuine progress — dLocal's
+  rejection changed from `5001 Missing parameter: payment_method_flow` (F49) to a DIFFERENT code,
+  `400 {"code":5010,"message":"Method not available"}`. F49 is real and fixed. The new bug
+  (**F76**, OPEN): `lib/dlocal/payment-methods.service.ts` sends human-readable display names
+  (`'TrueMoney'`, `'UPI'`, …) as dLocal's `payment_method_id`, not dLocal's real internal method
+  codes — inferred from the code, not yet confirmed against dLocal's docs/sandbox. Not fixed this
+  session per L11's own rule (a newly-unmasked live bug is its own correctly-scoped finding).
+  `MIGRATE_WRITE_APIS_MONEY_DLOCAL` reverted to `false`, redeployed, confirmed via alias — this
+  order's own "any failure = stop and revert flag" rule, executed exactly as written.
+  **A serious, separate finding: the Executor's own local `DATABASE_URL` does not point at the
+  real production database.** Discovered when a query for a NEW Payment row that money-service's
+  own log had just proven was created (`cmt2yflxe00000fnw8gy7jm53`) returned "not found" —
+  sanity-checked with a plain `count()`: **0 total `Payment` rows, 8 total `User` rows** on that
+  connection, nowhere near consistent with months of real activity. This retroactively **invalidates
+  this session's own CONFIRM-time "orphaned `Payment` row audit"** (checked off against the same
+  wrong connection) — the real status of the ORIGINAL orphaned row from 4A-10c
+  (`cms7hlmb900000fmpz9i9fv1q`) is unknown again, and the new row from this session
+  (`cmt2yflxe00000fnw8gy7jm53`) is unverified — both need Davin's real-DB attention. No safe path
+  to the real production `DATABASE_URL` was available this session (printing it would violate
+  L4; a similar elevated-access attempt was blocked by the platform's own auto-mode safety
+  classifier, same as Session 4A-13's precedent) — reported rather than worked around.
+  **Two new `LESSONS-LEARNED.md` entries: L34** (`railway logs`/`status` silently default to the
+  Railway-CLI-linked service, not the directory you run them from — caused two false-negative log
+  queries this session before being caught) **and L35** (a local `DATABASE_URL` isn't guaranteed
+  to be production; sanity-check row counts before trusting a "clean" query result, especially
+  when it contradicts a first-party service log).
+  **Artifacts updated:** `4a-14-dlocal-write-api-group-b-cutover.migration-order.md` (Status →
+  CONFIRMED → CLOSED — PARTIAL; entry criteria checked with CONFIRM-time evidence; Deviations
+  filled — 8 entries), `DECISION-LOG.md` (F49 RESOLVED, F76 registered OPEN, both full detail in
+  `history/decisions-archive.md`), `migration-cutover-table.md` (Slice 4 narrative extended, status
+  unchanged at 3/4 groups, now citing F76), `LESSONS-LEARNED.md` (L34, L35), this file
+  (Current/Previous rotation — Session 7-3 moved to `history/sessions-archive.md`).
+  **`4a-15-wise-outbox-defect-sweep.migration-order.md` PRE-DRAFTed** — F47/F50, independent of
+  dLocal Group B (different provider, no technical dependency), can proceed even though Slice 4
+  isn't at 4/4. **Open item for the Advisor/Davin, not blocking 4A-15:\*\* dLocal Group B (F76)
+  needs its own dedicated fix-and-recutover session, not yet numbered (working title `4A-16`),
+  before Phase 4X's own gate for Session 8-1 ("all of 4A-13/14/15 CLOSED") is genuinely satisfied
+  — 4A-15 closing does not by itself satisfy that gate while F76 remains open.
+
 - _(superseded-by-above, retained for context)_ **Session 4A-13 (Stripe Webhook Cutover, Phase 4X
   gate 2/3, VERIFY-RETIRE/CUTOVER, dial near-zero), CONFIRMED, executed, CLOSED SUCCESSFUL
   2026-08-21. First session of Phase 4X — closes `DECISION-LOG.md` **F60** (open since Session

@@ -55,8 +55,8 @@ export default function AffiliatePayoutsPage() {
       method: 'Wise',
       currency: 'USD',
       amount: 441.0,
-      fee: 2.5,
-      netPayout: 438.5,
+      fee: 0,
+      netPayout: 441.0,
       status: 'COMPLETED',
       reference: 'WISE-TR-99824',
     },
@@ -66,8 +66,8 @@ export default function AffiliatePayoutsPage() {
       method: 'Wise',
       currency: 'USD',
       amount: 323.4,
-      fee: 2.5,
-      netPayout: 320.9,
+      fee: 0,
+      netPayout: 323.4,
       status: 'COMPLETED',
       reference: 'WISE-TR-87211',
     },
@@ -77,8 +77,8 @@ export default function AffiliatePayoutsPage() {
       method: 'Wise',
       currency: 'USD',
       amount: 196.0,
-      fee: 2.5,
-      netPayout: 193.5,
+      fee: 0,
+      netPayout: 196.0,
       status: 'COMPLETED',
       reference: 'WISE-TR-76120',
     },
@@ -182,7 +182,7 @@ export default function AffiliatePayoutsPage() {
                   {t('Gross Amount')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
-                  {t('Fee')}
+                  {t('Fee (Platform Covered)')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Net Received')}
@@ -213,8 +213,8 @@ export default function AffiliatePayoutsPage() {
                   <TableCell className="font-mono text-xs text-slate-700 dark:text-slate-300">
                     {formatCurrency(p.amount)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-500">
-                    {formatCurrency(p.fee)}
+                  <TableCell className="font-mono text-xs text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(p.fee)} ({t('Covered')})
                   </TableCell>
                   <TableCell className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     {formatCurrency(p.netPayout)}

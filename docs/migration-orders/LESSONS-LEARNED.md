@@ -4,11 +4,11 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 37 (L1–L37), well within the cap after the
+**Hard cap ~40 active lessons.** Currently at 39 (L1–L39), well within the cap after the
 2026-08-12 consolidation pass (64 → 25: 28 archived, 11 merged into 8 master rules,
 then 4 unpromoted candidates promoted to L26–L29; L30 added 2026-08-20 ad-hoc, L31–L32
 added Session 7-2, L33 added Session 4A-13, L34–L35 added Session 4A-14, L36–L37 added
-Session 4A-15).
+Session 4A-15, L38–L39 added Session 9-0).
 Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds 40 again.
 
 ---
@@ -382,3 +382,17 @@ Full history in `LESSONS-ARCHIVE.md`. Next consolidation needed if count exceeds
 - Root cause: the order's narrative was carried forward from F50's original 2026-07-30 finding (written when the publisher genuinely was off) without being re-checked against either live infrastructure or this project's own other maintained artifact that already had the correct, current answer.
 - Rule: at CONFIRM, don't just re-verify an order's claims against live infrastructure (L22) — also check them against this project's other maintained documents (`migration-cutover-table.md`, `DECISION-LOG.md`'s register) that may already record the correct current state, especially for flag/toggle state tied to a past session's cutover. A same-day draft is not automatically fresh.
 - Source: Session 4A-15 (2026-08-21) · Status: ACTIVE
+
+### L38 — `next lint` has been removed from this Next.js version's CLI entirely; `npm run lint`/`npm run eslint` both silently fail
+
+- Symptom: Session 9-0's entry-criteria checklist called `npm run eslint -- app components lib hooks --max-warnings 5` — that script doesn't exist in `package.json` (only `lint`/`lint:fix`, both `next lint`). Running the real `lint` script also failed: `next lint` errored with `Invalid project directory provided, no such directory: .../lint`, because `next --help` lists no `lint` subcommand at all in this version — the CLI parses the literal word "lint" as a positional directory argument instead.
+- Root cause: a Next.js version bump removed the `next lint` command outright (per this repo's own standing "this is NOT the Next.js you know" warning) without anyone updating `package.json`'s `lint`/`lint:fix` scripts, which still shell out to the now-nonexistent subcommand.
+- Rule: don't trust `npm run lint`/`npm run eslint` to produce real signal on this repo until `package.json` is fixed. Call `npx eslint <dirs> --max-warnings <n>` directly instead — it works today and matches the project's real `eslint.config.mjs`. Whoever next touches `package.json`'s scripts should replace `"lint": "next lint"` with a direct `eslint` invocation.
+- Source: Session 9-0 (2026-08-22) · Status: ACTIVE
+
+### L39 — Citing a source document by one-line summary (instead of reading it in full) can silently mischaracterize a gap's real scope
+
+- Symptom: `frontend-swap-route-map.md`'s own gap inventory (Session 9-0) described the 38-file "Light Clean Mode hardcoded-dark" bug as "distributed — each session fixes its own files as it ports them," citing `codebase-2-parity-audit/batch-0-shared-shell.md` only secondhand. Reading that file in full while PRE-DRAFTing Session 9-1 (same close-out pass) showed the bug's own root files render on 5 of the 6 Protected pages — no session can "fix its own files" without touching shared chrome one specific session (9-1) owns. A second finding from the same full read (a hard "6 Protected pages, never modify" constraint, confirmed live by Davin 2026-08-17) wasn't in `frontend-swap-route-map.md` at all — it exists only in the parity audit's own §0, which nothing in Phase 9 planning had surfaced up to that point.
+- Root cause: building a gap inventory under time pressure from a document's own paraphrase (or a prior citation of it) rather than reading the cited source's full text trades completeness for speed — the paraphrase can drop a scoping detail (here: which files, and their render-tree entanglement with a separately-documented Protected-pages list) that changes who owns the fix and how.
+- Rule: when a gap-inventory or route-map row cites a parity-audit/spec document, read that document in full at least once per phase (not just its citing session's own summary) before treating its "owning session" assignment as settled — especially for any gap touching shared/shell-level files, which are exactly where a dropped scoping detail does the most damage. If a fuller read changes an earlier session's own artifact, amend that artifact directly (with a dated addendum note) rather than only correcting it in the next session's own order.
+- Source: Session 9-0/9-1 PRE-DRAFT (2026-08-22) · Status: ACTIVE

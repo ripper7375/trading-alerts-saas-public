@@ -82,8 +82,8 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F62  | Admin information architecture is split across two incompatible trees — `app/(dashboard)/admin/*` (15 pages, `getServerSession` guard, 4-entry nav) and `app/admin/*` (8 pages, **no `layout.tsx` at all**); 19 of 23 admin pages are unreachable from the admin nav                                                                      | RESOLVED — Session 6-2 (Davin): Option (a) — merge `app/admin/*` into `app/(dashboard)/admin/*`, retire `app/admin/login` with a redirect to `/login`                                                                                                                                                                                 |
 | F63  | Public legal pages (`/terms`, `/privacy`, `/disclaimer`) do not exist; the registration consent checkbox links to two of them, and `/disclaimer` is compliance-relevant for a trading product                                                                                                                                             | RESOLVED — Session 6-10 (Davin): ship production-grade legal template copy for `/terms`, `/privacy`, and `/disclaimer`                                                                                                                                                                                                                |
 | F64  | `components/billing/subscription-card.tsx`'s optimistic-cancel "Undo" button never calls a reactivation API — it only clears local state after the real `onCancel()` has already resolved, so a user who clicks Cancel then Undo within its 5s window sees "still PRO" while the subscription was, in fact, already cancelled server-side | OPEN — found Session 6-1b (reading the component before wiring it, not by triggering the bug live); owner Davin — fix the undo flow or retire the component if it stays unused; not blocking, component still unmounted                                                                                                               |
-| F65  | **BFF boundary** — does the browser keep calling monolith `app/api/**`, or eventually call `operation-service`/`money-service` directly? Plan §10's 8-1 assumes the latter; F45/F30 and Session 7-1's server-only `lib/api/index.ts` assume the former                                                                                    | OPEN — registered 2026-08-20 with `MASTER-ROADMAP-PHASES-7-15.md`; **⚠ NEEDS EXPLICIT SIGN-OFF**; resolve at Session 9-0; gates Session 8-1's deletion list and Phase 9's whole data layer                                                                                                                                           |
-| F66  | **Frontend swap mechanism + brand scope** — big-bang branch swap vs progressive per-surface; and how far the "Trading Alerts" → "DavinTrade" rename reaches (page titles, email templates, legal copy, Stripe product/price names, `manifest.json`, OG images)                                                                            | OPEN — registered 2026-08-20; resolve at Session 9-0                                                                                                                                                                                                                                                                                  |
+| F65  | **BFF boundary** — does the browser keep calling monolith `app/api/**`, or eventually call `operation-service`/`money-service` directly? Plan §10's 8-1 assumes the latter; F45/F30 and Session 7-1's server-only `lib/api/index.ts` assume the former                                                                                    | RESOLVED — Session 9-0 (2026-08-22): retain `app/api/**` as the permanent BFF proxy layer; full rationale in `frontend-swap-route-map.md` §1                                                                                                                                                                                          |
+| F66  | **Frontend swap mechanism + brand scope** — big-bang branch swap vs progressive per-surface; and how far the "Trading Alerts" → "DavinTrade" rename reaches (page titles, email templates, legal copy, Stripe product/price names, `manifest.json`, OG images)                                                                            | RESOLVED — Session 9-0 (2026-08-22): progressive layout-boundary replacement (9-1…9-9); DavinTrade rebrand scoped to UI chrome/metadata/email; live Stripe catalog untouched in code. Full detail in `frontend-swap-route-map.md` §2                                                                                                  |
 | F67  | **Where the drawing-alert live smoke test runs** — never executed; the 2026-07-05 attempt had no Docker, no root, and an unreachable Railway Postgres. Contabo VPS vs local Docker vs a Railway scratch environment                                                                                                                       | OPEN — registered 2026-08-20; resolve at Session 10-1                                                                                                                                                                                                                                                                                 |
 | F68  | **The Parts 02–33 tier access matrix** — the preparatory spec redefines FREE/PRO entitlements platform-wide, including surfaces already sold                                                                                                                                                                                              | OPEN — registered 2026-08-20; **⚠ NEEDS EXPLICIT SIGN-OFF**; resolve at Session 11-1; cross-check every line against live Stripe entitlements first                                                                                                                                                                                  |
 | F69  | **Stack D LLM provider, model and monthly cost ceiling**, plus the behaviour when the ceiling is hit                                                                                                                                                                                                                                      | OPEN — registered 2026-08-20; **⚠ NEEDS EXPLICIT SIGN-OFF** (money-adjacent, §7); resolve at Session 12-0                                                                                                                                                                                                                            |
@@ -159,3 +159,39 @@ file's own hygiene rule (this addition would have pushed the file over its ~50KB
 for the register table above: F60 (Stripe webhook cutover) closed via dual-delivery + a real
 production event proven end-to-end; F75 (a new finding surfaced by that same real event — `money_svc`
 Postgres role missing `UPDATE` grant on `User`) found and fixed same session, Davin-directed.
+
+## F65 — BFF Boundary Definition
+
+- Status: RESOLVED
+- Session: 9-0 · Date: 2026-08-22
+- Decision: Retain Next.js `app/api/**` as the permanent Backend-For-Frontend (BFF) proxy layer.
+  The browser calls only its own origin (`/api/**`); Next.js route handlers read the `httpOnly`
+  NextAuth session cookie/JWE server-side, acquire service tokens via
+  `getOperationServiceToken()`/`getMoneyServiceToken()`, and call `operation-service`/
+  `money-service` through the server-only generated clients (`operationApi`/`moneyApi`,
+  `lib/api/index.ts`). Direct browser-to-microservice calls were rejected.
+- Evidence: `lib/api/index.ts` read live — confirmed server-only (transitively imports
+  `next/headers`), zero current importers in `app/`/`components`/`hooks` (L6 risk avoided);
+  git-drift check `8810b260..HEAD` on `app/api/`, `lib/api/`, `seed-code/` — zero commits;
+  F30 (Session 3-4, RESOLVED) already settled the CORS question this decision depends on,
+  re-confirmed live that `operation-service/src/main.ts`'s CORS config is untouched. Full
+  rationale in `docs/migration-orders/frontend-swap-route-map.md` §1.
+- Approved by: Davin, live in chat, 2026-08-22 (⚠ NEEDS EXPLICIT SIGN-OFF item — confirmed
+  separately from the order's general approval).
+
+## F66 — Swap Mechanism & Brand Scope
+
+- Status: RESOLVED
+- Session: 9-0 · Date: 2026-08-22
+- Decision: Progressive layout-boundary replacement (Sessions 9-1…9-9), not a big-bang branch
+  swap — each session transplants one `layout.tsx` boundary + guard + nav + data/auth bindings,
+  closing on a route-manifest diff. Brand scope: rebrand UI chrome (titles, headers, footers,
+  metadata, OG images, legal copy, `manifest.json`, email templates) from "Trading Alerts" to
+  "DavinTrade." Live Stripe Dashboard product/price objects are NOT touched in code during
+  Phase 9 — checkout UI renders "DavinTrade Pro" while binding to the existing
+  `STRIPE_PRO_MONTHLY_PRICE_ID`; any Stripe-side catalog renaming is Davin's own out-of-band
+  action.
+- Evidence: full rationale, session-by-session sizing, and the resulting route map in
+  `docs/migration-orders/frontend-swap-route-map.md` §2, §7.
+- Approved by: Davin, live in chat, 2026-08-22 (⚠ NEEDS EXPLICIT SIGN-OFF on the Stripe-catalog
+  clause — confirmed separately from the order's general approval).

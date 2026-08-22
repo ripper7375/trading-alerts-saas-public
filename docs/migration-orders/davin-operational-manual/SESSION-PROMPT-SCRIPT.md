@@ -275,6 +275,7 @@ artefact."_ · [B]: U-B + money-audit prompt · [C]: U-C. Flag:
 **4A-15 (Wise + outbox defect sweep):** [A]: U-A + _"F47 (non-USD quote targetAmount/currency
 unit) and F50 (COMMISSION_CREDITED aggregateId resolves to the payer, not the affiliate) — low
 dial, no new behaviour."_ · [B]: U-B · [C]: U-C.
+**4A-16 (dLocal Payment Method IDs Mapping & Recutover, REAL MONEY, runs before 8-1):** [A]: U-A + _"map display names ('TrueMoney', 'Thai QR', 'MoMo', 'GoPay') to dLocal's real API codes in payment-methods.service.ts on both monolith and money-service, verify against dLocal API, flip MIGRATE_WRITE_APIS_MONEY_DLOCAL=true, complete Slice 4 (4/4)."_ · [B]: U-B + money-audit prompt · [C]: U-C. Closes **F76**, gates Session 8-1.
 
 ## Phase 9 — Frontend stack replacement (codebase 2 → main), cut on layout boundaries — added 2026-08-20
 

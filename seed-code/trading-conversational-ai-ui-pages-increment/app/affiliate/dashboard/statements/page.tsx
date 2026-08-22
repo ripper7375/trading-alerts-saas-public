@@ -46,8 +46,8 @@ export default function AffiliateStatementsPage() {
       month: 'July 2026',
       grossSales: 1470.0,
       commission: 441.0,
-      fees: 2.5,
-      netPayout: 438.5,
+      fees: 0,
+      netPayout: 441.0,
       status: 'PAID',
       pdfUrl: '#',
     },
@@ -56,8 +56,8 @@ export default function AffiliateStatementsPage() {
       month: 'June 2026',
       grossSales: 1078.0,
       commission: 323.4,
-      fees: 2.5,
-      netPayout: 320.9,
+      fees: 0,
+      netPayout: 323.4,
       status: 'PAID',
       pdfUrl: '#',
     },
@@ -66,8 +66,8 @@ export default function AffiliateStatementsPage() {
       month: 'May 2026',
       grossSales: 653.33,
       commission: 196.0,
-      fees: 2.5,
-      netPayout: 193.5,
+      fees: 0,
+      netPayout: 196.0,
       status: 'PAID',
       pdfUrl: '#',
     },
@@ -99,22 +99,18 @@ export default function AffiliateStatementsPage() {
       .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${st.id}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${st.id}.csv`;
+    a.click();
     URL.revokeObjectURL(url);
   };
 
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-slate-50 text-slate-900 select-none dark:bg-[#06070a] dark:text-slate-100">
       <AppHeader
-        title={t('Affiliate Monthly Statements')}
-        subtitle={t(
-          'Official Tax Statements, Revenue Breakdown & CSV Download Archives'
-        )}
+        title={t('Commission Statements & Ledger')}
+        subtitle={t('Monthly Billing Cycles & Verified Settlement Archive')}
       />
 
       <AffiliateNav />
@@ -131,13 +127,13 @@ export default function AffiliateStatementsPage() {
                   {t('Billing Period')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
-                  {t('Gross Referred Sales')}
+                  {t('Referred Sales')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
-                  {t('Earned Commission (30%)')}
+                  {t('Earned Commission')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
-                  {t('Transfer Fee')}
+                  {t('Transfer Fee (Covered)')}
                 </TableHead>
                 <TableHead className="text-xs font-bold text-slate-900 dark:text-slate-300">
                   {t('Net Disbursed')}
@@ -168,8 +164,8 @@ export default function AffiliateStatementsPage() {
                   <TableCell className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     {formatCurrency(st.commission)}
                   </TableCell>
-                  <TableCell className="font-mono text-xs text-slate-500">
-                    {formatCurrency(st.fees)}
+                  <TableCell className="font-mono text-xs text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(st.fees)} ({t('Covered')})
                   </TableCell>
                   <TableCell className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-300">
                     {formatCurrency(st.netPayout)}

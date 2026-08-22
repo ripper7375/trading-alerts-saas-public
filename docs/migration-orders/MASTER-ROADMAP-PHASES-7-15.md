@@ -29,21 +29,21 @@ changes. Only the phase list grows.
 Phase **numbers** are identities, not a running order (`00-SKELETON-AND-RULES.md` §5: never
 renumber). The running order is this list, top to bottom:
 
-| #   | Gate                                               | Sessions            | Est. |
-| --- | -------------------------------------------------- | ------------------- | ---- |
-| 1   | **Phase 7** — API Client Rewrite _(resume here)_   | 7-2, 7-3            | 2    |
-| 2   | **Phase 4X** — carry-forward money cutovers        | 4A-13, 4A-14, 4A-15 | 3    |
-| 3   | **Phase 9** — Frontend Stack Replacement           | 9-0 … 9-10          | 11   |
-| 4   | **Phase 10** — Drawing Engine & Line-Alert closure | 10-1 … 10-3         | 3    |
-| 5   | **Phase 8A** — Decommission, part 1                | 8-1, 8-2            | 2    |
-| 6   | **Phase 11** — Preparatory Tier-Access Refactoring | 11-1 … 11-3         | 3    |
-| 7   | **Phase 12** — Stack D (Parts 26–30)               | 12-0 … 12-5         | 6    |
-| 8   | **Phase 13** — Stack E (Parts 31–33)               | 13-0 … 13-3         | 4    |
-| 9   | **Phase 14** — Web Chat / Contabo support stack    | 14-0 … 14-3         | 4    |
-| 10  | **Phase 15** — Mobile App Integration              | 15-0 … 15-4         | 5    |
-| 11  | **Phase 8B** — Final verification & close-out      | 8-3, 8-4, 8-5       | 3    |
+| #   | Gate                                               | Sessions                   | Est. |
+| --- | -------------------------------------------------- | -------------------------- | ---- |
+| 1   | **Phase 7** — API Client Rewrite _(resume here)_   | 7-2, 7-3                   | 2    |
+| 2   | **Phase 4X** — carry-forward money cutovers        | 4A-13, 4A-14, 4A-15, 4A-16 | 4    |
+| 3   | **Phase 9** — Frontend Stack Replacement           | 9-0 … 9-10                 | 11   |
+| 4   | **Phase 10** — Drawing Engine & Line-Alert closure | 10-1 … 10-3                | 3    |
+| 5   | **Phase 8A** — Decommission, part 1                | 8-1, 8-2                   | 2    |
+| 6   | **Phase 11** — Preparatory Tier-Access Refactoring | 11-1 … 11-3                | 3    |
+| 7   | **Phase 12** — Stack D (Parts 26–30)               | 12-0 … 12-5                | 6    |
+| 8   | **Phase 13** — Stack E (Parts 31–33)               | 13-0 … 13-3                | 4    |
+| 9   | **Phase 14** — Web Chat / Contabo support stack    | 14-0 … 14-3                | 4    |
+| 10  | **Phase 15** — Mobile App Integration              | 15-0 … 15-4                | 5    |
+| 11  | **Phase 8B** — Final verification & close-out      | 8-3, 8-4, 8-5              | 3    |
 
-**~46 sessions remaining.** Phase 8 is deliberately **split**, not moved: sessions 8-1/8-2 run
+**~47 sessions total.** Phase 8 is deliberately **split**, not moved: sessions 8-1/8-2 run
 early (deleting dead surface while it is still fresh in mind), 8-3/8-4/8-5 run last so the
 final e2e, load test and runbooks cover the AI, comments, chat and mobile stacks too. Session
 IDs are unchanged — only when they run changes.
@@ -55,10 +55,9 @@ IDs are unchanged — only when they run changes.
   client instead of two.
 - **Phase 4X before 8A — this is a hard block, newly identified.** Session 8-1 deletes migrated
   `app/api/**` routes. Two payment paths are still monolith-native and would break:
-  `MIGRATE_WRITE_APIS_MONEY_DLOCAL=false` (blocked on **F49**) and the Stripe webhook, never
+  `MIGRATE_WRITE_APIS_MONEY_DLOCAL=false` (blocked on **F49** -> unmasked **F76**) and the Stripe webhook, never
   repointed (**F60**, order `4a-13-…` PRE-DRAFTed 2026-08-04 and never run). Deleting first
-  would take real money traffic down. Recommend running 4X immediately after 7-3 — the three
-  sessions are 1–2 h each and none of them touches the frontend.
+  would take real money traffic down.
 - **Phase 9 before Stack D/E.** Stack D's `AIAnalystPanel` and Stack E's comments feed are
   Panels 2 and 3 of codebase 2's `/terminal` page. Building them against the current UI means
   building them twice.
@@ -131,32 +130,16 @@ road that a session downstream cannot answer for itself.
 
 ---
 
-## 3. Phase detail
-
-Every session below is a normal migration order: correct `TEMPLATE-*.md` variant, PRE-DRAFT at
-the previous session's close, `Decisions taken` from the Advisor, Davin APPROVES, Executor
-CONFIRMS against live code. Nothing here fast-paths that.
-
-### Phase 4X — Carry-forward money cutovers (3 sessions)
+### Phase 4X — Carry-forward money cutovers (4 sessions)
 
 Unfinished Phase 4 business, not new work. Named `4X` so nothing is renumbered.
 
-- **4A-13 — Stripe webhook cutover** (VERIFY-RETIRE). **Its order already exists** — PRE-DRAFTed
-  2026-08-04 at Session 4B-22's close. It is **not re-PRE-DRAFTed** by 7-3; it is upgraded to
-  DRAFT by the Advisor and then fully re-verified at its own CONFIRM, because it is stale by
-  weeks and reasons in relative time ("8+ days since the port").
-  Re-verify money-service's dormant `StripeWebhookController` against Stripe's current event
-  shape (built 2026-07-27, never exercised), repoint the dashboard webhook URL mirroring the
-  dLocal/4A-5 precedent, prove live with Davin present. Closes **F60**. ⚠ real money.
-- **4A-14 — dLocal write-API Group B cutover** (PORT + CUTOVER). Fix the missing
-  `payment_method_flow` field in both implementations, then flip
-  `MIGRATE_WRITE_APIS_MONEY_DLOCAL`. Closes **F49**, completing Slice 4 (currently 3/4 groups).
-  ⚠ real money.
-- **4A-15 — Wise + outbox defect sweep** (PORT, low dial). **F47** (non-USD quote
-  `targetAmount`/currency-unit correctness — due before any further non-USD payout) and **F50**
-  (`COMMISSION_CREDITED` `aggregateId` resolves to the payer, not the affiliate).
+- **4A-13 — Stripe webhook cutover** (VERIFY-RETIRE). Closed **F60** & **F75**. Dual-delivery live in production.
+- **4A-14 — dLocal write-API Group B cutover** (PORT + CUTOVER). Closed **F49** (missing `payment_method_flow` fixed). Unmasked **F76** (`5010 Method not available` due to display-name strings instead of dLocal API method IDs). Rolled back `MIGRATE_WRITE_APIS_MONEY_DLOCAL=false` pending 4A-16.
+- **4A-15 — Wise + outbox defect sweep** (PORT, low dial). Closed **F47** (Wise quote calculation) and **F50** (`COMMISSION_CREDITED` affiliate identity resolution).
+- **4A-16 — dLocal payment method ID mapping & recutover** (PORT + CUTOVER). Map human-readable payment method display names (`TrueMoney`, `Thai QR`, `MoMo`, `GoPay`, etc.) to dLocal's real API method codes (e.g. `TM`, `TH_QR`, `MOMO`, etc.) in `payment-methods.service.ts` on both monolith and `money-service`. Verify against dLocal API, flip `MIGRATE_WRITE_APIS_MONEY_DLOCAL=true`, and complete Slice 4 (4/4 groups). Closes **F76**. ⚠ real money. Scheduled before Session 8-1.
 
-**Gate:** all three CLOSED before Session 8-1 opens.
+**Gate:** all four CLOSED before Session 8-1 opens. Phase 9 through 10 can proceed without waiting for 4A-16.
 
 ---
 
@@ -338,8 +321,8 @@ error. It is scoped into Session 11-1.
 
 Sessions 8-1 and 8-2, unchanged in scope, moved earlier.
 
-- **8-1 — Deletion sweep.** **Entry criteria now include:** 4A-13, 4A-14, 4A-15 CLOSED (F49/F60
-  resolved); Phase 9-10 CLOSED; **F65** resolved (it defines what "migrated" means for a route
+- **8-1 — Deletion sweep.** **Entry criteria now include:** 4A-13, 4A-14, 4A-15, 4A-16 CLOSED (F49/F60/F76
+  resolved); Phase 9-10 CLOSED; Phase 10-3 CLOSED; **F65** resolved (it defines what "migrated" means for a route
   the browser still calls). Delete migrated `app/api/**` except keepers, the `frontend/` mirror
   dLocal slice, empty `vercel.json` crons, and the 6 dead `token-2fa-*` files if 7-2 left them.
 - **8-2 — Gateway deployment & schema dedup.** Unchanged — **and it must run before Session

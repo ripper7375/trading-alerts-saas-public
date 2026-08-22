@@ -608,14 +608,16 @@ consent checkbox links to `/terms` and `/privacy` — which exist only behind au
 > flags live in **`docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md`**. That file is the one
 > to read at session OPEN; this section exists so the playbook is not silently incomplete.
 
-### Phase 4X — Carry-forward money cutovers (3 sessions) — runs after 7-3, gates 8-1
+### Phase 4X — Carry-forward money cutovers (4 sessions) — runs after 7-3, gates 8-1
 
 - **4A-13 — Stripe webhook cutover** (VERIFY-RETIRE, real money). Closes **F60**. Order already
   PRE-DRAFTed 2026-08-04 and never run.
 - **4A-14 — dLocal write-API Group B cutover** (PORT+CUTOVER, real money). Fix the missing
-  `payment_method_flow` field, flip `MIGRATE_WRITE_APIS_MONEY_DLOCAL`. Closes **F49**, completing
-  Slice 4 (currently CUT-OVER 3/4 groups).
+  `payment_method_flow` field, flip `MIGRATE_WRITE_APIS_MONEY_DLOCAL`. Closes **F49**, unmasks **F76**.
 - **4A-15 — Wise + outbox defect sweep** (PORT, low dial). Closes **F47**, **F50**.
+- **4A-16 — dLocal payment method IDs mapping & recutover** (PORT+CUTOVER, real money). Map display
+  names to dLocal API codes in `payment-methods.service.ts` on both sides, flip
+  `MIGRATE_WRITE_APIS_MONEY_DLOCAL=true`. Closes **F76**, completes Slice 4 (4/4), gates Session 8-1.
 
 ### Phase 9 — Frontend Stack Replacement (11 sessions, cut on layout boundaries)
 
