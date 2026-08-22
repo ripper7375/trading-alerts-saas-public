@@ -3265,3 +3265,75 @@ table "User"`, thrown from `tx.user.update()` inside `handleCheckoutCompleted`'s
   haven't had their first real production write yet. Not investigated this session — flagged for
   whoever scopes 4A-14/4A-15 or a dedicated audit.
 - Approved by: Davin (live — provided the exact SQL and authorized its execution).
+
+## F47 — Wise quote `targetAmount`/currency-unit correctness for non-USD payouts
+
+- Status: RESOLVED
+- Session: 4A-15 · Date: 2026-08-21 (found: 4A-W7, 2026-07-27)
+- Found while: drafting a session's own single-affiliate THB smoke payout — the first time any
+  Wise payout code had ever run against a non-USD recipient (every prior test used USD/GBP sandbox
+  fixtures).
+- **The bug:** `money-service/src/wise/services/wise-quote.service.ts`'s `createQuote` was called
+  from `wise-payment.provider.ts`'s `prepareBatch` with `targetAmount: item.amount` —
+  `item.amount` is the `Commission.commissionAmount`, always denominated in **USD**
+  (`DEFAULT_CURRENCY`, the only currency commissions are ever computed/stored in). When
+  `targetCurrency` is anything other than USD (e.g. THB), this passed the raw USD number as if it
+  were ALREADY a target-currency amount — i.e., a `$50` commission became a quote request for
+  **50 THB** (≈ $1.49), not $50-worth of THB (≈ 1,394–1,679 THB depending on payment method).
+  Live-verified: a test script's call reproduced this exact bug
+  (`{"targetAmount":50,"targetCurrency":"THB",...}`) before separately failing on an unrelated 422.
+  This would have silently shorted every non-USD affiliate to roughly 1–3% of their real earned
+  commission had the 422 not also been present.
+- **A second, independent problem**, found reconciling the numbers on a transfer that DID
+  eventually complete (created out-of-band, not through this app's own code): that transfer used
+  `providedAmountType: "SOURCE"` with `sourceAmount: 50.00` fixed (spend exactly $50 total
+  including fees, convert the remainder). For the `BANK_TRANSFER` payment method actually used,
+  the fee was $8.49 (17%), so the recipient received THB worth only ~$41.51, not $50 — under this
+  shape, the AFFILIATE bears the fee, not the platform, which does not satisfy F38's own resolved
+  intent (platform absorbs the fee).
+- **Fix (Session 4A-15, `4496abb2`):** widened `CreateQuoteInput` to accept both
+  `sourceAmount`/`targetAmount`, and branched `wise-payment.provider.ts`'s quote call on currency
+  match — `targetAmount` for USD→USD (per F38), `sourceAmount` for USD→non-USD (so the commission's
+  full USD value converts correctly regardless of destination currency, fee absorbed on the source
+  side). 3 new tests, money-service 62/62 suites, 526/526 tests.
+- **Verified via unit tests only, not live Wise sandbox** — `WISE_PROFILE_ID`/`WISE_API_TOKEN`
+  were found undocumented in `.env.example` and unset locally; Davin approved the scope reduction
+  live (order `Decisions taken` #4). Disclosed as residual risk: the first real non-USD payout
+  after this fix is still the first live proof point.
+- Approved by: Davin, live, 2026-08-21 (scope-reduction to unit-tests-only).
+
+## F65 — BFF Boundary Definition
+
+- Status: RESOLVED
+- Session: 9-0 · Date: 2026-08-22
+- Decision: Retain Next.js `app/api/**` as the permanent Backend-For-Frontend (BFF) proxy layer.
+  The browser calls only its own origin (`/api/**`); Next.js route handlers read the `httpOnly`
+  NextAuth session cookie/JWE server-side, acquire service tokens via
+  `getOperationServiceToken()`/`getMoneyServiceToken()`, and call `operation-service`/
+  `money-service` through the server-only generated clients (`operationApi`/`moneyApi`,
+  `lib/api/index.ts`). Direct browser-to-microservice calls were rejected.
+- Evidence: `lib/api/index.ts` read live — confirmed server-only (transitively imports
+  `next/headers`), zero current importers in `app/`/`components`/`hooks` (L6 risk avoided);
+  git-drift check `8810b260..HEAD` on `app/api/`, `lib/api/`, `seed-code/` — zero commits;
+  F30 (Session 3-4, RESOLVED) already settled the CORS question this decision depends on,
+  re-confirmed live that `operation-service/src/main.ts`'s CORS config is untouched. Full
+  rationale in `docs/migration-orders/frontend-swap-route-map.md` §1.
+- Approved by: Davin, live in chat, 2026-08-22 (⚠ NEEDS EXPLICIT SIGN-OFF item — confirmed
+  separately from the order's general approval).
+
+## F66 — Swap Mechanism & Brand Scope
+
+- Status: RESOLVED
+- Session: 9-0 · Date: 2026-08-22
+- Decision: Progressive layout-boundary replacement (Sessions 9-1…9-9), not a big-bang branch
+  swap — each session transplants one `layout.tsx` boundary + guard + nav + data/auth bindings,
+  closing on a route-manifest diff. Brand scope: rebrand UI chrome (titles, headers, footers,
+  metadata, OG images, legal copy, `manifest.json`, email templates) from "Trading Alerts" to
+  "DavinTrade." Live Stripe Dashboard product/price objects are NOT touched in code during
+  Phase 9 — checkout UI renders "DavinTrade Pro" while binding to the existing
+  `STRIPE_PRO_MONTHLY_PRICE_ID`; any Stripe-side catalog renaming is Davin's own out-of-band
+  action.
+- Evidence: full rationale, session-by-session sizing, and the resulting route map in
+  `docs/migration-orders/frontend-swap-route-map.md` §2, §7.
+- Approved by: Davin, live in chat, 2026-08-22 (⚠ NEEDS EXPLICIT SIGN-OFF on the Stripe-catalog
+  clause — confirmed separately from the order's general approval).
