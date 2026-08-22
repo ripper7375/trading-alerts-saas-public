@@ -121,37 +121,37 @@ export default function AffiliateResourcesPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-foreground">
           Affiliate Resource Center
         </h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Everything you need to share your referral link and promote your codes
         </p>
       </div>
 
       {error && (
-        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-600 dark:text-red-400">
           {error}
         </div>
       )}
 
       {/* Referral Link & Code Generator */}
-      <div className="rounded-lg bg-white p-6 shadow-md">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-foreground">
           Your Referral Links
         </h2>
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-amber-500" />
           </div>
         ) : codes.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             You don&apos;t have any active codes right now. New codes are
             distributed monthly — check{' '}
             <a
               href="/affiliate/dashboard/codes"
-              className="text-blue-600 underline hover:text-blue-800"
+              className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
             >
               My Codes
             </a>{' '}
@@ -164,24 +164,24 @@ export default function AffiliateResourcesPage(): React.ReactElement {
               return (
                 <div
                   key={code.id}
-                  className="flex flex-wrap items-center gap-3 rounded-md border border-gray-200 p-3"
+                  className="flex flex-wrap items-center gap-3 rounded-md border border-border p-3"
                 >
-                  <span className="font-mono text-sm font-semibold text-gray-900">
+                  <span className="font-mono text-sm font-semibold text-foreground">
                     {code.code}
                   </span>
-                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                  <span className="rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                     {code.discountPercent}% OFF
                   </span>
                   <input
                     readOnly
                     value={link}
-                    className="min-w-[240px] flex-1 rounded border border-gray-200 bg-gray-50 px-2 py-1 font-mono text-sm"
+                    className="min-w-[240px] flex-1 rounded border border-border bg-background px-2 py-1 font-mono text-sm text-foreground"
                     onFocus={(e) => e.target.select()}
                     aria-label={`Referral link for code ${code.code}`}
                   />
                   <button
                     onClick={() => copyToClipboard(`link-${code.id}`, link)}
-                    className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                    className="rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-3 py-1.5 text-sm font-bold text-slate-950 hover:from-amber-400 hover:to-amber-500"
                   >
                     {copiedKey === `link-${code.id}` ? 'Copied!' : 'Copy Link'}
                   </button>
@@ -189,7 +189,7 @@ export default function AffiliateResourcesPage(): React.ReactElement {
                     onClick={() =>
                       copyToClipboard(`code-${code.id}`, code.code)
                     }
-                    className="rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                    className="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
                   >
                     {copiedKey === `code-${code.id}` ? 'Copied!' : 'Copy Code'}
                   </button>
@@ -201,17 +201,17 @@ export default function AffiliateResourcesPage(): React.ReactElement {
       </div>
 
       {/* Brand Assets */}
-      <div className="rounded-lg bg-white p-6 shadow-md">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-foreground">
           Brand Assets
         </h2>
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-amber-500" />
           </div>
         ) : downloadableAssets.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             No brand assets have been published yet — check back soon.
           </p>
         ) : (
@@ -219,7 +219,7 @@ export default function AffiliateResourcesPage(): React.ReactElement {
             {downloadableAssets.map((asset) => (
               <div
                 key={asset.id}
-                className="space-y-3 rounded-md border border-gray-200 p-4 text-center"
+                className="space-y-3 rounded-md border border-border p-4 text-center"
               >
                 {asset.fileUrl && (
                   // eslint-disable-next-line @next/next/no-img-element -- external Blob/public URLs, arbitrary formats (svg/jpg/png)
@@ -230,16 +230,16 @@ export default function AffiliateResourcesPage(): React.ReactElement {
                   />
                 )}
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900">
+                  <h4 className="text-sm font-semibold text-foreground">
                     {asset.title}
                   </h4>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {asset.format} · {asset.resolution}
                   </p>
                 </div>
                 <a
                   href={`/api/affiliate/dashboard/resources/${asset.id}/download`}
-                  className="inline-block w-full rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                  className="inline-block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
                 >
                   Download {asset.format}
                 </a>
@@ -251,30 +251,30 @@ export default function AffiliateResourcesPage(): React.ReactElement {
 
       {/* Copywriting Swipes */}
       {swipeAssets.length > 0 && (
-        <div className="rounded-lg bg-white p-6 shadow-md">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+          <h2 className="mb-4 text-lg font-semibold text-foreground">
             High-Converting Copywriting Swipes
           </h2>
           <div className="space-y-3">
             {swipeAssets.map((asset) => (
               <div
                 key={asset.id}
-                className="space-y-2 rounded-md border border-gray-200 p-4"
+                className="space-y-2 rounded-md border border-border p-4"
               >
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-gray-900">
+                  <h4 className="text-sm font-semibold text-foreground">
                     {asset.title}
                   </h4>
                   <button
                     onClick={() => copySwipe(asset)}
-                    className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                    className="rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-3 py-1.5 text-sm font-bold text-slate-950 hover:from-amber-400 hover:to-amber-500"
                   >
                     {copiedKey === `swipe-${asset.id}`
                       ? 'Copied!'
                       : 'Copy Text'}
                   </button>
                 </div>
-                <p className="select-all rounded bg-gray-50 p-3 font-mono text-xs text-gray-800">
+                <p className="bg-muted/40 select-all rounded p-3 font-mono text-xs text-foreground">
                   {asset.copyText}
                 </p>
               </div>
@@ -284,41 +284,41 @@ export default function AffiliateResourcesPage(): React.ReactElement {
       )}
 
       {/* FAQ */}
-      <div className="rounded-lg bg-white p-6 shadow-md">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-foreground">
           Frequently Asked Questions
         </h2>
         <dl className="space-y-4 text-sm">
           <div>
-            <dt className="font-medium text-gray-900">
+            <dt className="font-medium text-foreground">
               How much do I earn per referral?
             </dt>
-            <dd className="mt-1 text-gray-600">
+            <dd className="mt-1 text-muted-foreground">
               You earn {AFFILIATE_CONFIG.COMMISSION_PERCENT}% of net revenue on
               each referral&apos;s subscription — your dashboard&apos;s
               displayed rate always reflects the current program configuration.
             </dd>
           </div>
           <div>
-            <dt className="font-medium text-gray-900">
+            <dt className="font-medium text-foreground">
               How often do I get new codes?
             </dt>
-            <dd className="mt-1 text-gray-600">
+            <dd className="mt-1 text-muted-foreground">
               Up to {AFFILIATE_CONFIG.CODES_PER_MONTH} new codes are distributed
               monthly, each valid for {AFFILIATE_CONFIG.CODE_EXPIRY_DAYS} days
               from distribution.
             </dd>
           </div>
           <div>
-            <dt className="font-medium text-gray-900">
+            <dt className="font-medium text-foreground">
               What&apos;s the minimum payout?
             </dt>
-            <dd className="mt-1 text-gray-600">
+            <dd className="mt-1 text-muted-foreground">
               Balances need to reach ${AFFILIATE_CONFIG.MINIMUM_PAYOUT} before a
               payout is scheduled. See{' '}
               <a
                 href="/affiliate/dashboard/payouts"
-                className="text-blue-600 underline hover:text-blue-800"
+                className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
               >
                 Payouts
               </a>{' '}
@@ -326,13 +326,13 @@ export default function AffiliateResourcesPage(): React.ReactElement {
             </dd>
           </div>
           <div>
-            <dt className="font-medium text-gray-900">
+            <dt className="font-medium text-foreground">
               Where do I set up how I get paid?
             </dt>
-            <dd className="mt-1 text-gray-600">
+            <dd className="mt-1 text-muted-foreground">
               <a
                 href="/affiliate/settings/payout"
-                className="text-blue-600 underline hover:text-blue-800"
+                className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
               >
                 Payout Settings
               </a>{' '}

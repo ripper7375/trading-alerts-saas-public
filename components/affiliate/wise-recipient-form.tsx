@@ -240,8 +240,8 @@ export default function WiseRecipientForm({
       onBlur: field.refreshRequirementsOnChange
         ? handleFieldRefresh
         : undefined,
-      className: `w-full px-3 py-2 border rounded-md transition-colors focus:ring-2 focus:ring-blue-400 focus:outline-none ${
-        errorText ? 'border-red-400' : 'border-gray-300'
+      className: `w-full rounded-md border bg-background px-3 py-2 text-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 ${
+        errorText ? 'border-red-400' : 'border-border'
       }`,
     };
 
@@ -249,7 +249,7 @@ export default function WiseRecipientForm({
       <div key={field.key}>
         <label
           htmlFor={field.key}
-          className="mb-1 block text-sm font-medium text-gray-700"
+          className="mb-1 block text-sm font-medium text-foreground"
         >
           {field.name}
           {field.required && <span className="text-red-500"> *</span>}
@@ -271,7 +271,11 @@ export default function WiseRecipientForm({
             {...commonProps}
           />
         )}
-        {errorText && <p className="mt-1 text-xs text-red-600">{errorText}</p>}
+        {errorText && (
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+            {errorText}
+          </p>
+        )}
       </div>
     );
   }
@@ -282,8 +286,8 @@ export default function WiseRecipientForm({
 
   if (step === 'done') {
     return (
-      <div className="rounded-lg border border-green-200 bg-green-50 p-6 text-center">
-        <p className="font-medium text-green-800">
+      <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-6 text-center">
+        <p className="font-medium text-green-700 dark:text-green-400">
           Payout details submitted successfully.
         </p>
       </div>
@@ -291,9 +295,9 @@ export default function WiseRecipientForm({
   }
 
   return (
-    <div className="space-y-6 rounded-lg bg-white p-6 shadow-md">
+    <div className="space-y-6 rounded-lg border border-border bg-card p-6 shadow-sm">
       {error && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
           {error}
         </div>
       )}
@@ -301,13 +305,13 @@ export default function WiseRecipientForm({
       {step === 'select-currency' && (
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Payout currency
             </label>
             <select
               value={targetCurrency}
               onChange={(e) => setTargetCurrency(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
             >
               {CURRENCY_OPTIONS.map((c) => (
                 <option key={c} value={c}>
@@ -317,7 +321,7 @@ export default function WiseRecipientForm({
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Recipient country (2-letter code)
             </label>
             <input
@@ -328,20 +332,24 @@ export default function WiseRecipientForm({
               }
               maxLength={2}
               placeholder="TH"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 uppercase"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 uppercase text-foreground"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-foreground">
               Account type
             </label>
             <div className="flex gap-4">
               {(['PRIVATE', 'BUSINESS'] as const).map((lt) => (
-                <label key={lt} className="flex items-center gap-2 text-sm">
+                <label
+                  key={lt}
+                  className="flex items-center gap-2 text-sm text-foreground"
+                >
                   <input
                     type="radio"
                     checked={legalType === lt}
                     onChange={() => setLegalType(lt)}
+                    className="text-amber-500 focus:ring-amber-500"
                   />
                   {lt === 'PRIVATE' ? 'Individual' : 'Business'}
                 </label>
@@ -351,7 +359,7 @@ export default function WiseRecipientForm({
           <button
             onClick={handleFetchRequirements}
             disabled={loading}
-            className="w-full rounded-md bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            className="w-full rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 font-bold text-slate-950 shadow-md shadow-amber-500/20 transition-colors hover:from-amber-400 hover:to-amber-500 disabled:opacity-50"
           >
             {loading ? 'Loading…' : 'Continue'}
           </button>
@@ -362,7 +370,7 @@ export default function WiseRecipientForm({
         <div className="space-y-4">
           {groups.length > 1 && (
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-foreground">
                 Payment method
               </label>
               <div className="flex flex-wrap gap-2">
@@ -377,8 +385,8 @@ export default function WiseRecipientForm({
                     }}
                     className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
                       selectedGroupType === g.type
-                        ? 'border-blue-600 bg-blue-600 text-white'
-                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                        ? 'border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300'
+                        : 'border-border bg-background text-foreground hover:bg-accent'
                     }`}
                   >
                     {g.title}
@@ -391,7 +399,7 @@ export default function WiseRecipientForm({
           <div>
             <label
               htmlFor="accountHolderName"
-              className="mb-1 block text-sm font-medium text-gray-700"
+              className="mb-1 block text-sm font-medium text-foreground"
             >
               Account holder name<span className="text-red-500"> *</span>
             </label>
@@ -400,14 +408,14 @@ export default function WiseRecipientForm({
               type="text"
               value={accountHolderName}
               onChange={(e) => setAccountHolderName(e.target.value)}
-              className={`w-full rounded-md border px-3 py-2 ${
+              className={`w-full rounded-md border bg-background px-3 py-2 text-foreground ${
                 fieldErrors['__accountHolderName']
                   ? 'border-red-400'
-                  : 'border-gray-300'
+                  : 'border-border'
               }`}
             />
             {fieldErrors['__accountHolderName'] && (
-              <p className="mt-1 text-xs text-red-600">
+              <p className="mt-1 text-xs text-red-600 dark:text-red-400">
                 {fieldErrors['__accountHolderName']}
               </p>
             )}
@@ -419,7 +427,7 @@ export default function WiseRecipientForm({
             <button
               type="button"
               onClick={() => setStep('select-currency')}
-              className="rounded-md border border-gray-300 px-4 py-2 transition-colors hover:bg-gray-50"
+              className="rounded-md border border-border px-4 py-2 text-foreground transition-colors hover:bg-accent"
             >
               Back
             </button>
@@ -427,7 +435,7 @@ export default function WiseRecipientForm({
               type="button"
               onClick={handleSubmit}
               disabled={step === 'submitting'}
-              className="flex-1 rounded-md bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 font-bold text-slate-950 shadow-md shadow-amber-500/20 transition-colors hover:from-amber-400 hover:to-amber-500 disabled:opacity-50"
             >
               {step === 'submitting' ? 'Submitting…' : 'Submit payout details'}
             </button>

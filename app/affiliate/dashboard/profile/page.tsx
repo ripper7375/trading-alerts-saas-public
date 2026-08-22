@@ -165,7 +165,7 @@ export default function AffiliateProfilePage(): React.ReactElement {
   if (loading && !profile) {
     return (
       <div className="flex min-h-64 items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-amber-500" />
       </div>
     );
   }
@@ -173,12 +173,12 @@ export default function AffiliateProfilePage(): React.ReactElement {
   if (error && !profile) {
     return (
       <div className="space-y-4">
-        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-600 dark:text-red-400">
           {error}
         </div>
         <button
           onClick={() => void fetchProfile()}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+          className="rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
         >
           Try Again
         </button>
@@ -191,13 +191,13 @@ export default function AffiliateProfilePage(): React.ReactElement {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
-          <p className="text-gray-600">Manage your affiliate profile</p>
+          <h1 className="text-2xl font-bold text-foreground">Profile</h1>
+          <p className="text-muted-foreground">Manage your affiliate profile</p>
         </div>
         {!editing && (
           <button
             onClick={() => setEditing(true)}
-            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+            className="rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
           >
             Edit Profile
           </button>
@@ -205,23 +205,23 @@ export default function AffiliateProfilePage(): React.ReactElement {
       </div>
 
       {error && (
-        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-600 dark:text-red-400">
           {error}
         </div>
       )}
 
       {/* Profile Card */}
-      <div className="rounded-lg bg-white p-6 shadow-md">
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Personal Information */}
           <div>
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">
+            <h2 className="mb-4 text-lg font-semibold text-foreground">
               Personal Information
             </h2>
             {editing ? (
               <div className="space-y-4">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-sm font-medium text-foreground">
                     Full Name
                   </label>
                   <input
@@ -230,11 +230,11 @@ export default function AffiliateProfilePage(): React.ReactElement {
                     onChange={(e) =>
                       setFormData({ ...formData, fullName: e.target.value })
                     }
-                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                  <label className="mb-1 block text-sm font-medium text-foreground">
                     Country
                   </label>
                   <input
@@ -244,30 +244,34 @@ export default function AffiliateProfilePage(): React.ReactElement {
                       setFormData({ ...formData, country: e.target.value })
                     }
                     maxLength={2}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
                   />
                 </div>
               </div>
             ) : (
               <dl className="space-y-3">
                 <div>
-                  <dt className="text-sm text-gray-500">Full Name</dt>
-                  <dd className="font-medium">{profile?.fullName}</dd>
+                  <dt className="text-sm text-muted-foreground">Full Name</dt>
+                  <dd className="font-medium text-foreground">
+                    {profile?.fullName}
+                  </dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Country</dt>
-                  <dd className="font-medium">{profile?.country}</dd>
+                  <dt className="text-sm text-muted-foreground">Country</dt>
+                  <dd className="font-medium text-foreground">
+                    {profile?.country}
+                  </dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Status</dt>
+                  <dt className="text-sm text-muted-foreground">Status</dt>
                   <dd>
                     <span
                       className={`rounded px-2 py-1 text-xs font-medium ${
                         profile?.status === 'ACTIVE'
-                          ? 'bg-green-100 text-green-800'
+                          ? 'border border-green-500/30 bg-green-500/15 text-green-700 dark:text-green-400'
                           : profile?.status === 'SUSPENDED'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-800'
+                            ? 'border border-red-500/30 bg-red-500/15 text-red-700 dark:text-red-400'
+                            : 'border border-border bg-muted text-muted-foreground'
                       }`}
                     >
                       {profile?.status}
@@ -275,8 +279,10 @@ export default function AffiliateProfilePage(): React.ReactElement {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-gray-500">Member Since</dt>
-                  <dd className="font-medium">
+                  <dt className="text-sm text-muted-foreground">
+                    Member Since
+                  </dt>
+                  <dd className="font-medium text-foreground">
                     {profile?.createdAt
                       ? new Date(profile.createdAt).toLocaleDateString()
                       : 'N/A'}
@@ -288,35 +294,41 @@ export default function AffiliateProfilePage(): React.ReactElement {
 
           {/* Account Statistics */}
           <div>
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">
+            <h2 className="mb-4 text-lg font-semibold text-foreground">
               Account Statistics
             </h2>
             <dl className="space-y-3">
               <div>
-                <dt className="text-sm text-gray-500">Codes Distributed</dt>
-                <dd className="font-medium">
+                <dt className="text-sm text-muted-foreground">
+                  Codes Distributed
+                </dt>
+                <dd className="font-medium text-foreground">
                   {profile?.totalCodesDistributed || 0}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm text-gray-500">Codes Used</dt>
-                <dd className="font-medium">{profile?.totalCodesUsed || 0}</dd>
+                <dt className="text-sm text-muted-foreground">Codes Used</dt>
+                <dd className="font-medium text-foreground">
+                  {profile?.totalCodesUsed || 0}
+                </dd>
               </div>
               <div>
-                <dt className="text-sm text-gray-500">Total Earnings</dt>
-                <dd className="font-medium text-green-600">
+                <dt className="text-sm text-muted-foreground">
+                  Total Earnings
+                </dt>
+                <dd className="font-medium text-green-600 dark:text-green-400">
                   ${formatCurrency(profile?.totalEarnings)}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm text-gray-500">Pending</dt>
-                <dd className="font-medium text-yellow-600">
+                <dt className="text-sm text-muted-foreground">Pending</dt>
+                <dd className="font-medium text-amber-600 dark:text-amber-400">
                   ${formatCurrency(profile?.pendingCommissions)}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm text-gray-500">Paid</dt>
-                <dd className="font-medium">
+                <dt className="text-sm text-muted-foreground">Paid</dt>
+                <dd className="font-medium text-foreground">
                   ${formatCurrency(profile?.paidCommissions)}
                 </dd>
               </div>
@@ -326,8 +338,8 @@ export default function AffiliateProfilePage(): React.ReactElement {
       </div>
 
       {/* Social Media Links */}
-      <div className="rounded-lg bg-white p-6 shadow-md">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-foreground">
           Social Media Links
         </h2>
         {editing ? (
@@ -335,7 +347,7 @@ export default function AffiliateProfilePage(): React.ReactElement {
             {['twitter', 'youtube', 'instagram', 'facebook', 'tiktok'].map(
               (platform) => (
                 <div key={platform}>
-                  <label className="mb-1 block text-sm font-medium capitalize text-gray-700">
+                  <label className="mb-1 block text-sm font-medium capitalize text-foreground">
                     {platform}
                   </label>
                   <input
@@ -352,7 +364,7 @@ export default function AffiliateProfilePage(): React.ReactElement {
                       })
                     }
                     placeholder={`https://${platform}.com/username`}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
                   />
                 </div>
               )
@@ -368,19 +380,19 @@ export default function AffiliateProfilePage(): React.ReactElement {
               { key: 'tiktokUrl', label: 'TikTok' },
             ].map(({ key, label }) => (
               <div key={key}>
-                <dt className="text-sm text-gray-500">{label}</dt>
+                <dt className="text-sm text-muted-foreground">{label}</dt>
                 <dd className="font-medium">
                   {profile?.[key as keyof AffiliateProfile] ? (
                     <a
                       href={profile[key as keyof AffiliateProfile] as string}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-amber-600 hover:underline dark:text-amber-400"
                     >
                       {profile[key as keyof AffiliateProfile] as string}
                     </a>
                   ) : (
-                    <span className="text-gray-400">Not set</span>
+                    <span className="text-muted-foreground">Not set</span>
                   )}
                 </dd>
               </div>
@@ -390,19 +402,19 @@ export default function AffiliateProfilePage(): React.ReactElement {
       </div>
 
       {/* Payment Settings Link */}
-      <div className="rounded-lg bg-white p-6 shadow-md">
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-foreground">
               Payout Settings
             </h2>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Manage the bank details your commissions are paid out to
             </p>
           </div>
           <Link
             href="/affiliate/settings/payout"
-            className="rounded-md bg-gray-100 px-4 py-2 text-gray-700 hover:bg-gray-200"
+            className="rounded-md border border-border bg-background px-4 py-2 text-foreground hover:bg-accent"
           >
             Manage Payout Settings
           </Link>
@@ -414,14 +426,14 @@ export default function AffiliateProfilePage(): React.ReactElement {
         <div className="flex justify-end gap-4">
           <button
             onClick={() => setEditing(false)}
-            className="rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
+            className="rounded-md border border-border px-4 py-2 text-foreground hover:bg-accent"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </button>

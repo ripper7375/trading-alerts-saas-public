@@ -21,11 +21,14 @@ import WiseRecipientForm from '@/components/affiliate/wise-recipient-form';
 import type { WiseRecipientSummary } from '@/lib/money-service/wise-types';
 
 const STATUS_STYLES: Record<string, string> = {
-  ACTIVE: 'bg-green-100 text-green-800',
-  PENDING_DETAILS: 'bg-yellow-100 text-yellow-800',
-  DRAFT: 'bg-gray-100 text-gray-800',
-  INVALID: 'bg-red-100 text-red-800',
-  ARCHIVED: 'bg-gray-100 text-gray-500',
+  ACTIVE:
+    'bg-green-500/15 text-green-700 dark:text-green-400 border border-green-500/30',
+  PENDING_DETAILS:
+    'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30',
+  DRAFT: 'bg-muted text-muted-foreground border border-border',
+  INVALID:
+    'bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30',
+  ARCHIVED: 'bg-muted text-muted-foreground border border-border',
 };
 
 export default function AffiliatePayoutSettingsPage(): React.ReactElement {
@@ -85,7 +88,7 @@ export default function AffiliatePayoutSettingsPage(): React.ReactElement {
   if (loading) {
     return (
       <div className="flex min-h-64 items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-600" />
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-amber-500" />
       </div>
     );
   }
@@ -93,13 +96,13 @@ export default function AffiliatePayoutSettingsPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Payout Settings</h1>
-        <p className="text-gray-600">
+        <h1 className="text-2xl font-bold text-foreground">Payout Settings</h1>
+        <p className="text-muted-foreground">
           Manage the bank details your commissions are paid out to. This is the
           single place to configure how you get paid — see your{' '}
           <a
             href="/affiliate/dashboard/payouts"
-            className="text-blue-600 underline hover:text-blue-800"
+            className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
           >
             payout history
           </a>{' '}
@@ -108,40 +111,46 @@ export default function AffiliatePayoutSettingsPage(): React.ReactElement {
       </div>
 
       {recipient && (
-        <div className="rounded-lg bg-white p-6 shadow-md">
+        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="mb-3 text-lg font-semibold text-gray-900">
+              <h2 className="mb-3 text-lg font-semibold text-foreground">
                 Current Payout Details
               </h2>
               <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                 <div>
-                  <dt className="text-gray-500">Account holder</dt>
-                  <dd className="font-medium">{recipient.accountHolderName}</dd>
+                  <dt className="text-muted-foreground">Account holder</dt>
+                  <dd className="font-medium text-foreground">
+                    {recipient.accountHolderName}
+                  </dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Currency</dt>
-                  <dd className="font-medium">{recipient.targetCurrency}</dd>
+                  <dt className="text-muted-foreground">Currency</dt>
+                  <dd className="font-medium text-foreground">
+                    {recipient.targetCurrency}
+                  </dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Country</dt>
-                  <dd className="font-medium">{recipient.recipientCountry}</dd>
+                  <dt className="text-muted-foreground">Country</dt>
+                  <dd className="font-medium text-foreground">
+                    {recipient.recipientCountry}
+                  </dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Account</dt>
-                  <dd className="font-medium">
+                  <dt className="text-muted-foreground">Account</dt>
+                  <dd className="font-medium text-foreground">
                     {recipient.accountTail
                       ? `•••• ${recipient.accountTail}`
                       : 'N/A'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-gray-500">Status</dt>
+                  <dt className="text-muted-foreground">Status</dt>
                   <dd>
                     <span
                       className={`rounded px-2 py-0.5 text-xs font-medium ${
                         STATUS_STYLES[recipient.status] ??
-                        'bg-gray-100 text-gray-800'
+                        'border border-border bg-muted text-muted-foreground'
                       }`}
                     >
                       {recipient.status}
@@ -154,26 +163,28 @@ export default function AffiliatePayoutSettingsPage(): React.ReactElement {
               <button
                 onClick={handleRevalidate}
                 disabled={revalidating}
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
+                className="rounded-md border border-border px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent disabled:opacity-50"
               >
                 {revalidating ? 'Re-verifying…' : 'Re-verify with provider'}
               </button>
               <button
                 onClick={() => setShowForm((v) => !v)}
-                className="rounded-md bg-gray-100 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-200"
+                className="rounded-md border border-border bg-background px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent"
               >
                 {showForm ? 'Cancel' : 'Change payout details'}
               </button>
             </div>
           </div>
           {revalidateError && (
-            <p className="mt-3 text-sm text-red-600">{revalidateError}</p>
+            <p className="mt-3 text-sm text-red-600 dark:text-red-400">
+              {revalidateError}
+            </p>
           )}
         </div>
       )}
 
       {!recipient && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-300">
           You haven&apos;t set up payout details yet. Fill in the form below to
           get paid.
         </div>
