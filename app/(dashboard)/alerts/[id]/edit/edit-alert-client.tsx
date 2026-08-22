@@ -57,35 +57,38 @@ export function EditAlertClient({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="mx-auto max-w-2xl">
-        {/* Breadcrumb */}
-        <div className="mb-4 text-sm text-gray-500">
-          Dashboard &gt;{' '}
-          <Link href="/alerts" className="hover:text-blue-600">
-            Alerts
-          </Link>{' '}
-          &gt; Edit Alert
-        </div>
-
-        {/* Page Header */}
-        <div className="mb-6">
-          <h1 className="mb-2 text-3xl font-bold">Edit Alert</h1>
-          <p className="text-gray-600">
-            Update your alert&apos;s target price or name
-          </p>
-        </div>
-
-        <AlertForm
-          userTier={userTier}
-          currentCount={0}
-          limit={limit}
-          initialData={initialData}
-          isEditing={true}
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-        />
+    <div className="mx-auto max-w-2xl">
+      {/* Breadcrumb */}
+      <div className="mb-4 text-sm text-muted-foreground">
+        Dashboard &gt;{' '}
+        <Link
+          href="/alerts"
+          className="hover:text-amber-600 dark:hover:text-amber-400"
+        >
+          Alerts
+        </Link>{' '}
+        &gt; Edit Alert
       </div>
+
+      {/* Page Header */}
+      <div className="mb-6">
+        <h1 className="mb-2 text-2xl font-extrabold tracking-tight text-foreground">
+          Edit Alert
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Update your alert&apos;s target price or name
+        </p>
+      </div>
+
+      <AlertForm
+        userTier={userTier}
+        currentCount={0}
+        limit={limit}
+        initialData={initialData}
+        isEditing={true}
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+      />
     </div>
   );
 }

@@ -23,10 +23,12 @@ interface DbAlert {
   triggerCount: number;
   createdAt: Date;
 }
+import AppHeader from '@/components/layout/app-header';
 import { RecentAlerts } from '@/components/dashboard/recent-alerts';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import { UpgradePrompt } from '@/components/dashboard/upgrade-prompt';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
@@ -130,134 +132,156 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-            Welcome back, {userName.split(' ')[0]}!
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Here&apos;s what&apos;s happening with your trading alerts
-          </p>
-        </div>
-        <Badge
-          className={
-            userTier === 'PRO'
-              ? 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 px-4 py-2 text-sm'
-          }
-        >
-          {userTier === 'PRO' ? '⭐ PRO TIER' : '🆓 FREE TIER'}
-        </Badge>
-      </div>
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
+      <AppHeader
+        title="Main Terminal Dashboard"
+        subtitle="Real-Time XAUUSD Quantitative Overview & Alert Telemetry"
+        tier={userTier}
+      />
 
-      {/* Quick Start Tips */}
-      <Card className="border-l-4 border-l-blue-600 bg-blue-50 dark:bg-blue-900/20">
-        <CardContent className="p-4 sm:p-6">
-          <div className="flex items-start gap-3">
-            <Lightbulb className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h2 className="font-semibold text-gray-900 dark:text-white mb-2">
-                Quick Start Tips
-              </h2>
-              <ol className="space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
-                <li className="flex items-center gap-2">
-                  <span className="bg-blue-100 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">
-                    1
-                  </span>
-                  Open the XAUUSD chart on M5 or M15
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="bg-blue-100 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">
-                    2
-                  </span>
-                  Explore channel and structure overlays
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="bg-blue-100 text-blue-700 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">
-                    3
-                  </span>
-                  {userTier === 'PRO'
-                    ? 'Create alerts for price levels or from chart drawings'
-                    : 'Upgrade to PRO to create price alerts'}
-                </li>
-              </ol>
+      <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-6">
+        {/* Hero Banner */}
+        <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-card p-6 shadow-xl">
+          <div className="relative z-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+            <div className="max-w-xl space-y-1">
+              <Badge
+                className={
+                  userTier === 'PRO'
+                    ? 'border-amber-500/50 bg-amber-500/20 font-mono text-[10px] text-amber-700 dark:text-amber-300'
+                    : 'border-border bg-muted font-mono text-[10px] text-muted-foreground'
+                }
+              >
+                {userTier === 'PRO' ? '⚡ PRO TIER' : '🆓 FREE TIER'}
+              </Badge>
+              <h1 className="text-xl font-extrabold tracking-tight text-foreground">
+                Welcome back, {userName.split(' ')[0]}!
+              </h1>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Here&apos;s what&apos;s happening with your trading alerts.
+              </p>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                asChild
+                className="h-9 bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
+              >
+                <a href={userTier === 'PRO' ? '/terminal' : '/free'}>
+                  <LineChart className="mr-1.5 h-4 w-4" />
+                  Launch AI Analyst Workbench
+                </a>
+              </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Tier Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
-        <StatsCard
-          title="Symbol"
-          value="XAUUSD"
-          icon={BarChart3}
-          description="Gold — full data access"
-        />
-        <StatsCard
-          title="Timeframes"
-          value={`${tierStats.timeframes}`}
-          icon={Clock}
-          description="M5, M15"
-        />
-        <StatsCard
-          title="Charts"
-          value={`${tierStats.combinations}`}
-          icon={LineChart}
-          description="XAUUSD × M5/M15"
-        />
-        <StatsCard
-          title="Max Alerts"
-          value={`${tierStats.maxAlerts}`}
-          icon={Bell}
-          description={
-            userTier === 'PRO' ? `${alertCount} active` : 'PRO feature'
-          }
-        />
-      </div>
+        {/* Quick Start Tips */}
+        <Card className="border-l-4 border-l-amber-500 bg-amber-500/5">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-start gap-3">
+              <Lightbulb className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <div className="flex-1">
+                <h2 className="mb-2 font-semibold text-foreground">
+                  Quick Start Tips
+                </h2>
+                <ol className="space-y-1.5 text-sm text-muted-foreground">
+                  <li className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-xs font-medium text-amber-700 dark:text-amber-300">
+                      1
+                    </span>
+                    Open the XAUUSD chart on M5 or M15
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-xs font-medium text-amber-700 dark:text-amber-300">
+                      2
+                    </span>
+                    Explore channel and structure overlays
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-xs font-medium text-amber-700 dark:text-amber-300">
+                      3
+                    </span>
+                    {userTier === 'PRO'
+                      ? 'Create alerts for price levels or from chart drawings'
+                      : 'Upgrade to PRO to create price alerts'}
+                  </li>
+                </ol>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Usage Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-        <StatsCard
-          title="Active Alerts"
-          value={
-            userTier === 'PRO'
-              ? `${alertCount}/${tierConfig.maxAlerts}`
-              : 'PRO only'
-          }
-          icon={Bell}
-          variant="usage"
-          current={alertCount}
-          max={Math.max(tierConfig.maxAlerts, 1)}
-        />
-        <StatsCard
-          title="API Usage"
-          value="42/60"
-          description="requests this hour"
-          icon={Zap}
-          variant="usage"
-          current={42}
-          max={60}
-        />
-        <StatsCard
-          title="Chart Views"
-          value="156"
-          description="this week"
-          icon={TrendingUp}
-          change={12}
-          changeLabel="from last week"
-        />
-      </div>
+        {/* Tier Stats Cards */}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
+          <StatsCard
+            title="Symbol"
+            value="XAUUSD"
+            icon={BarChart3}
+            description="Gold — full data access"
+          />
+          <StatsCard
+            title="Timeframes"
+            value={`${tierStats.timeframes}`}
+            icon={Clock}
+            description="M5, M15"
+          />
+          <StatsCard
+            title="Charts"
+            value={`${tierStats.combinations}`}
+            icon={LineChart}
+            description="XAUUSD × M5/M15"
+          />
+          <StatsCard
+            title="Max Alerts"
+            value={`${tierStats.maxAlerts}`}
+            icon={Bell}
+            description={
+              userTier === 'PRO' ? `${alertCount} active` : 'PRO feature'
+            }
+          />
+        </div>
 
-      {/* Widgets Grid */}
-      <div className="grid grid-cols-1 gap-6">
-        <RecentAlerts alerts={recentAlerts} />
-      </div>
+        {/* Usage Stats Cards */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
+          <StatsCard
+            title="Active Alerts"
+            value={
+              userTier === 'PRO'
+                ? `${alertCount}/${tierConfig.maxAlerts}`
+                : 'PRO only'
+            }
+            icon={Bell}
+            variant="usage"
+            current={alertCount}
+            max={Math.max(tierConfig.maxAlerts, 1)}
+          />
+          <StatsCard
+            title="API Usage"
+            value="42/60"
+            description="requests this hour"
+            icon={Zap}
+            variant="usage"
+            current={42}
+            max={60}
+          />
+          <StatsCard
+            title="Chart Views"
+            value="156"
+            description="this week"
+            icon={TrendingUp}
+            change={12}
+            changeLabel="from last week"
+          />
+        </div>
 
-      {/* Upgrade Prompt for FREE Users */}
-      {userTier === 'FREE' && <UpgradePrompt />}
+        {/* Widgets Grid */}
+        <div className="grid grid-cols-1 gap-6">
+          <RecentAlerts alerts={recentAlerts} />
+        </div>
+
+        {/* Upgrade Prompt for FREE Users */}
+        {userTier === 'FREE' && <UpgradePrompt />}
+      </main>
     </div>
   );
 }

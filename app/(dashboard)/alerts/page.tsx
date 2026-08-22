@@ -10,6 +10,7 @@
 
 import { redirect } from 'next/navigation';
 
+import AppHeader from '@/components/layout/app-header';
 import { AlertsProUpgrade } from '@/components/alerts/alerts-pro-upgrade';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
@@ -98,7 +99,18 @@ export default async function AlertsPage(): Promise<React.JSX.Element> {
 
   // V8: Alerts are PRO-exclusive — show upgrade landing to FREE users
   if (tier !== 'PRO') {
-    return <AlertsProUpgrade />;
+    return (
+      <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
+        <AppHeader
+          title="Real-Time Alerts Manager"
+          subtitle="Configure & Monitor Server-Side Price & Line Triggers"
+          tier={tier}
+        />
+        <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
+          <AlertsProUpgrade />
+        </main>
+      </div>
+    );
   }
 
   const limit = PRO_TIER_CONFIG.maxAlerts;
@@ -135,11 +147,20 @@ export default async function AlertsPage(): Promise<React.JSX.Element> {
   };
 
   return (
-    <AlertsClient
-      initialAlerts={alertsWithStatus}
-      counts={counts}
-      userTier={tier}
-      limit={limit}
-    />
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
+      <AppHeader
+        title="Real-Time Alerts Manager"
+        subtitle="Configure & Monitor Server-Side Price & Line Triggers"
+        tier={tier}
+      />
+      <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
+        <AlertsClient
+          initialAlerts={alertsWithStatus}
+          counts={counts}
+          userTier={tier}
+          limit={limit}
+        />
+      </main>
+    </div>
   );
 }

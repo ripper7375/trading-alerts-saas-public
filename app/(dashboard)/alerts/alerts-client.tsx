@@ -292,9 +292,11 @@ export function AlertsClient({
     setDeleteModalOpen(true);
   };
 
-  // Navigate to chart
-  const handleViewChart = (symbol: string, timeframe: string): void => {
-    router.push(`/charts/${symbol}/${timeframe}`);
+  // Navigate to chart -- AlertsClient only ever renders for PRO users
+  // (FREE sees AlertsProUpgrade instead), and /charts is retired this
+  // session in favour of /terminal (Step 4).
+  const handleViewChart = (): void => {
+    router.push('/terminal');
   };
 
   // Render status badge
@@ -303,7 +305,7 @@ export function AlertsClient({
   ): React.JSX.Element => {
     const config = {
       active: { label: 'Active', className: 'bg-green-100 text-green-800' },
-      paused: { label: 'Paused', className: 'bg-gray-100 text-gray-700' },
+      paused: { label: 'Paused', className: 'bg-muted text-muted-foreground' },
       triggered: {
         label: 'Triggered',
         className: 'bg-orange-100 text-orange-800',
@@ -346,12 +348,14 @@ export function AlertsClient({
           {/* Card Header */}
           <div className="mb-4 flex items-start justify-between">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">
+              <h3 className="text-lg font-bold text-foreground">
                 {alert.name || `${alert.symbol} Alert`}
               </h3>
               <div className="mt-1 flex items-center gap-2">
                 <Badge variant="secondary">{alert.symbol}</Badge>
-                <span className="text-sm text-gray-500">{alert.timeframe}</span>
+                <span className="text-sm text-muted-foreground">
+                  {alert.timeframe}
+                </span>
               </div>
             </div>
             {renderStatusBadge(alert.status)}
@@ -359,8 +363,10 @@ export function AlertsClient({
 
           {/* Condition Info */}
           <div className="mb-4">
-            <p className="mb-1 text-sm text-gray-600">{conditionDisplay}</p>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="mb-1 text-sm text-muted-foreground">
+              {conditionDisplay}
+            </p>
+            <p className="text-2xl font-bold text-foreground">
               $
               {targetValue.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
@@ -370,8 +376,8 @@ export function AlertsClient({
 
           {/* Triggered Info */}
           {alert.status === 'triggered' && alert.lastTriggered && (
-            <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 p-3">
-              <p className="text-sm text-gray-700">
+            <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+              <p className="text-sm text-foreground">
                 Triggered:{' '}
                 {new Date(alert.lastTriggered).toLocaleDateString('en-US', {
                   month: 'short',
@@ -381,22 +387,22 @@ export function AlertsClient({
                   minute: '2-digit',
                 })}
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Trigger count: {alert.triggerCount}
               </p>
             </div>
           )}
 
           {/* Card Footer */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 pt-4">
-            <span className="text-xs text-gray-500">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-4">
+            <span className="text-xs text-muted-foreground">
               Created {new Date(alert.createdAt).toLocaleDateString()}
             </span>
 
             <div className="flex flex-wrap gap-2">
               <Button
-                onClick={() => handleViewChart(alert.symbol, alert.timeframe)}
-                className="bg-blue-600 text-white hover:bg-blue-700"
+                onClick={handleViewChart}
+                className="bg-amber-500 text-slate-950 hover:bg-amber-400"
                 size="sm"
               >
                 View Chart
@@ -449,20 +455,21 @@ export function AlertsClient({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="mx-auto max-w-7xl">
+    <div>
+      <div>
         {/* Page Header */}
         <div className="mb-4">
-          <div className="mb-4 text-sm text-gray-500">
-            Dashboard &gt; Alerts
-          </div>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="mb-2 text-3xl font-bold">Alerts</h1>
-              <p className="text-gray-600">Manage your price alerts</p>
+              <h1 className="mb-2 text-2xl font-extrabold tracking-tight text-foreground">
+                Alerts
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Manage your price alerts
+              </p>
             </div>
             <Link href="/alerts/new">
-              <Button className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700">
+              <Button className="rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-3 font-semibold text-slate-950 hover:from-amber-400 hover:to-amber-500">
                 + Create New Alert
               </Button>
             </Link>
@@ -472,19 +479,21 @@ export function AlertsClient({
         {/* Summary Cards */}
         <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
           {/* Active Alerts Card */}
-          <Card className="border-l-4 border-l-green-500 shadow-md">
+          <Card className="border-l-4 border-l-emerald-500 shadow-md">
             <CardContent className="p-6">
-              <div className="mb-2 text-sm font-semibold uppercase text-gray-600">
+              <div className="mb-2 text-sm font-semibold uppercase text-muted-foreground">
                 Active
               </div>
-              <div className="mb-1 text-4xl font-bold text-green-600">
+              <div className="mb-1 text-4xl font-bold text-emerald-600 dark:text-emerald-400">
                 {counts.active}/{limit}
               </div>
-              <div className="text-sm text-gray-500">alerts watching</div>
+              <div className="text-sm text-muted-foreground">
+                alerts watching
+              </div>
               {userTier === 'FREE' && counts.active >= limit && (
                 <Link
                   href="/pricing"
-                  className="mt-2 block text-sm text-blue-600 underline"
+                  className="mt-2 block text-sm text-amber-600 underline dark:text-amber-400"
                 >
                   Upgrade for more alerts
                 </Link>
@@ -493,34 +502,38 @@ export function AlertsClient({
           </Card>
 
           {/* Paused Alerts Card */}
-          <Card className="border-l-4 border-l-gray-300 shadow-md">
+          <Card className="border-l-4 border-l-border shadow-md">
             <CardContent className="p-6">
-              <div className="mb-2 text-sm font-semibold uppercase text-gray-600">
+              <div className="mb-2 text-sm font-semibold uppercase text-muted-foreground">
                 Paused
               </div>
-              <div className="mb-1 text-4xl font-bold text-gray-600">
+              <div className="mb-1 text-4xl font-bold text-foreground">
                 {counts.paused}
               </div>
-              <div className="text-sm text-gray-500">temporarily inactive</div>
+              <div className="text-sm text-muted-foreground">
+                temporarily inactive
+              </div>
             </CardContent>
           </Card>
 
           {/* Triggered Alerts Card */}
-          <Card className="border-l-4 border-l-orange-500 shadow-md">
+          <Card className="border-l-4 border-l-amber-500 shadow-md">
             <CardContent className="p-6">
-              <div className="mb-2 text-sm font-semibold uppercase text-gray-600">
+              <div className="mb-2 text-sm font-semibold uppercase text-muted-foreground">
                 Triggered
               </div>
-              <div className="mb-1 text-4xl font-bold text-orange-600">
+              <div className="mb-1 text-4xl font-bold text-amber-600 dark:text-amber-400">
                 {counts.triggered}
               </div>
-              <div className="text-sm text-gray-500">recently triggered</div>
+              <div className="text-sm text-muted-foreground">
+                recently triggered
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters & Tabs */}
-        <div className="mb-8 rounded-xl bg-white p-4 shadow-md">
+        <div className="mb-8 rounded-xl bg-card p-4 shadow-md">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             {/* Tabs */}
             <div className="flex gap-2">
@@ -531,7 +544,7 @@ export function AlertsClient({
                   onClick={() => setActiveTab(tab)}
                   className={
                     activeTab === tab
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      ? 'bg-amber-500 text-slate-950 hover:bg-amber-400'
                       : ''
                   }
                 >
@@ -591,21 +604,21 @@ export function AlertsClient({
         {/* Alerts List */}
         <div>
           {filteredAlerts.length === 0 ? (
-            <Card className="border-2 border-dashed border-gray-300 bg-gray-50">
+            <Card className="bg-muted/30 border-2 border-dashed border-border">
               <CardContent className="p-16 text-center">
-                <h3 className="mb-2 text-2xl text-gray-500">
+                <h3 className="mb-2 text-2xl text-muted-foreground">
                   {activeTab === 'all'
                     ? 'No alerts yet'
                     : `No ${activeTab} alerts`}
                 </h3>
-                <p className="mb-6 text-gray-400">
+                <p className="mb-6 text-muted-foreground">
                   {activeTab === 'all'
                     ? 'Create your first alert to get notified about price movements'
                     : `You don't have any ${activeTab} alerts`}
                 </p>
                 {activeTab === 'all' && (
                   <Link href="/alerts/new">
-                    <Button className="bg-blue-600 px-8 py-4 text-lg text-white hover:bg-blue-700">
+                    <Button className="bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-4 text-lg text-slate-950 hover:from-amber-400 hover:to-amber-500">
                       + Create Your First Alert
                     </Button>
                   </Link>

@@ -12,8 +12,10 @@
 
 import { redirect } from 'next/navigation';
 
+import AppHeader from '@/components/layout/app-header';
 import { NotificationList } from '@/components/notifications/notification-list';
 import { getSession } from '@/lib/auth/session';
+import type { Tier } from '@/lib/tier-config';
 
 // Force dynamic rendering since this page uses headers via getSession
 export const dynamic = 'force-dynamic';
@@ -25,5 +27,18 @@ export default async function NotificationsPage(): Promise<React.JSX.Element> {
     redirect('/login');
   }
 
-  return <NotificationList />;
+  const tier = (session.user?.tier as Tier) || 'FREE';
+
+  return (
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
+      <AppHeader
+        title="Notifications Centre"
+        subtitle="Live Signal Alerts, System Announcements & Security Events"
+        tier={tier}
+      />
+      <main className="mx-auto w-full max-w-4xl flex-1 p-4 md:p-6">
+        <NotificationList />
+      </main>
+    </div>
+  );
 }

@@ -12,6 +12,7 @@
 
 import { notFound, redirect } from 'next/navigation';
 
+import AppHeader from '@/components/layout/app-header';
 import { AlertsProUpgrade } from '@/components/alerts/alerts-pro-upgrade';
 import type { AlertFormData } from '@/components/alerts/alert-form';
 import { getSession } from '@/lib/auth/session';
@@ -65,7 +66,18 @@ export default async function EditAlertPage({
 
   // V8: Alerts are PRO-exclusive — show upgrade landing to FREE users
   if (tier !== 'PRO') {
-    return <AlertsProUpgrade />;
+    return (
+      <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
+        <AppHeader
+          title="Edit Quantitative Alert"
+          subtitle="Configuring Trigger Parameters"
+          tier={tier}
+        />
+        <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
+          <AlertsProUpgrade />
+        </main>
+      </div>
+    );
   }
 
   const { id } = await params;
@@ -99,11 +111,20 @@ export default async function EditAlertPage({
   };
 
   return (
-    <EditAlertClient
-      alertId={alert.id}
-      userTier={tier}
-      limit={PRO_TIER_CONFIG.maxAlerts}
-      initialData={initialData}
-    />
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
+      <AppHeader
+        title="Edit Quantitative Alert"
+        subtitle={`Configuring Trigger ID: ${alert.id}`}
+        tier={tier}
+      />
+      <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
+        <EditAlertClient
+          alertId={alert.id}
+          userTier={tier}
+          limit={PRO_TIER_CONFIG.maxAlerts}
+          initialData={initialData}
+        />
+      </main>
+    </div>
   );
 }

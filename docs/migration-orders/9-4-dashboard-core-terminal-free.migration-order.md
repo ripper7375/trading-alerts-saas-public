@@ -251,12 +251,39 @@ placeholder-user.jpg` regardless of who is actually logged in — would have sho
    `/api/auth/token-logout` + `signOut({redirect:false})` + `getSession()` + hard navigation when
    `isAuthBridgeEnabled()`, plain `signOut()` otherwise. `npx tsc --noEmit` clean after the fix.
 
-9. **F21/F64 confirmed out of scope, per Davin's live resolution of the roadmap's own internal
-   contradiction.** `MASTER-ROADMAP-PHASES-7-15.md`'s "Already-open flags" table lists both as
-   "owed by 9-4," but its own Phase 9 session breakdown assigns closure of both to 9-5 (correctly —
-   both are settings/billing surface, which 9-4 does not touch). Davin confirmed live: 9-5 closes
-   them. This session's own `Flags touched: none new` stands unchanged; the roadmap document's
-   table is a drafting error at its source, flagged for Davin to fix independent of this session.
+9. **Step 2: `CreateAlertClient` consolidated onto the shared `AlertForm` instead of keeping its
+   own duplicate hand-rolled form.** `app/(dashboard)/alerts/new/create-alert-client.tsx` had its
+   own separate form markup (radio-card condition-type picker, no tier-endpoint validation) rather
+   than using `components/alerts/alert-form.tsx` (only `EditAlertClient` used it) — despite the
+   order's own Step 2 text citing `alert-form.tsx` as feeding both `/alerts/new` and
+   `/alerts/[id]/edit`. `AlertForm` already fully supports create mode (`isEditing=false`) and adds
+   real functionality the old duplicate lacked (`GET /api/tier/symbols`,
+   `/api/tier/combinations`, `/api/tier/check/[symbol]` — Session 6-3/A1-11). Consolidated:
+   `CreateAlertClient` now renders `<AlertForm isEditing={false} onSubmit={...} />`, preserving its
+   own real server-computed `canCreate`/`limit`/`currentCount` gate and the `AlertsProUpgrade`
+   FREE-tier landing. `AlertForm`, `AlertsClient`, `AlertsProUpgrade`, and both alert page shells
+   restyled to DavinTrade semantic tokens (amber primary actions, `bg-card`/`text-foreground`/
+   `border-border` throughout) — all real handlers (optimistic toggle/delete/undo, PATCH/POST/
+   DELETE `/api/alerts*`) preserved byte-for-byte. Also fixed a stale reference:
+   `AlertsClient`'s "View Chart" button called `router.push('/charts/[symbol]/[timeframe]')` —
+   this session retires that route in Step 4, so it now routes to `/terminal` (the component only
+   ever renders for PRO users, who always see `/terminal`).
+   `app/(dashboard)/dashboard/page.tsx` and `app/(dashboard)/notifications/page.tsx` restyled the
+   same way (AppHeader mounted per-page per Deviation 7, real Prisma-fetched data and the real
+   `NotificationList` component — pagination, realtime socket, optimistic mutations — both
+   untouched). **Known pre-existing gap, not fixed this session (scope discipline,
+   `EXECUTOR-PROTOCOL.md` non-negotiable #4):** `dashboard/page.tsx`'s "API Usage 42/60" and
+   "Chart Views 156" stat cards are hardcoded placeholders that predate this session (present,
+   identical values, in the live app before Session 9-4 touched anything — confirmed at CONFIRM's
+   live browser check) — no real usage-tracking/analytics endpoint exists to bind them to.
+   Preserved as-is, not newly introduced; flagged for a future session, not silently hidden.
+
+10. **F21/F64 confirmed out of scope, per Davin's live resolution of the roadmap's own internal
+    contradiction.** `MASTER-ROADMAP-PHASES-7-15.md`'s "Already-open flags" table lists both as
+    "owed by 9-4," but its own Phase 9 session breakdown assigns closure of both to 9-5 (correctly —
+    both are settings/billing surface, which 9-4 does not touch). Davin confirmed live: 9-5 closes
+    them. This session's own `Flags touched: none new` stands unchanged; the roadmap document's
+    table is a drafting error at its source, flagged for Davin to fix independent of this session.
 
 ---
 

@@ -259,29 +259,33 @@ export function AlertForm({
   };
 
   return (
-    <Card>
+    <Card className="border-slate-200 bg-white/90 backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#090b14]/90">
       <CardHeader>
-        <CardTitle>{isEditing ? 'Edit Alert' : 'Create Alert'}</CardTitle>
+        <CardTitle className="text-slate-900 dark:text-slate-100">
+          {isEditing ? 'Edit Alert' : 'Create Alert'}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {/* Alert Limit Progress */}
         {!isEditing && (
           <div
-            className={`mb-6 rounded-lg border p-4 ${
+            className={`mb-6 rounded-xl border p-4 ${
               progressPercent >= 80
-                ? 'border-yellow-300 bg-yellow-50'
-                : 'border-gray-200 bg-gray-50'
+                ? 'border-amber-500/40 bg-amber-500/10'
+                : 'bg-muted/50 border-border'
             }`}
           >
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-foreground">
                 Alert Usage: {currentCount}/{limit}
               </span>
-              <span className="text-sm text-gray-500">{userTier} Tier</span>
+              <span className="text-sm text-muted-foreground">
+                {userTier} Tier
+              </span>
             </div>
             <Progress value={progressPercent} className="h-2" />
             {!canCreate && (
-              <p className="mt-2 text-sm text-red-600">
+              <p className="mt-2 text-sm text-rose-600 dark:text-rose-400">
                 You have reached your alert limit. Upgrade to PRO for more.
               </p>
             )}
@@ -289,7 +293,7 @@ export function AlertForm({
         )}
 
         {isEditing && (
-          <p className="mb-6 text-sm text-gray-500">
+          <p className="mb-6 text-sm text-muted-foreground">
             Symbol, timeframe, and condition type can&apos;t be changed after
             creation — delete and recreate the alert instead.
           </p>
@@ -300,7 +304,7 @@ export function AlertForm({
           {error && (
             <div
               role="alert"
-              className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700"
+              className="rounded-xl border border-rose-500/30 bg-rose-50 px-4 py-3 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
             >
               {error}
             </div>
@@ -310,7 +314,7 @@ export function AlertForm({
           {tierDataError && (
             <div
               role="status"
-              className="rounded border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800"
+              className="rounded-xl border border-amber-500/30 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"
             >
               {tierDataError}
             </div>
@@ -320,7 +324,7 @@ export function AlertForm({
           {symbolDenied && (
             <div
               role="alert"
-              className="rounded border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-800"
+              className="rounded-xl border border-amber-500/30 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"
             >
               {symbolCheck?.reason ||
                 'This symbol is not accessible on your tier.'}
@@ -331,9 +335,9 @@ export function AlertForm({
           <div>
             <label
               htmlFor="alert-symbol"
-              className="mb-2 block text-sm font-medium text-gray-700"
+              className="mb-2 block text-sm font-medium text-foreground"
             >
-              Symbol <span className="text-red-500">*</span>
+              Symbol <span className="text-rose-500">*</span>
             </label>
             {tierDataLoading ? (
               <Skeleton className="h-10 w-full" />
@@ -366,9 +370,9 @@ export function AlertForm({
           <div>
             <label
               htmlFor="alert-timeframe"
-              className="mb-2 block text-sm font-medium text-gray-700"
+              className="mb-2 block text-sm font-medium text-foreground"
             >
-              Timeframe <span className="text-red-500">*</span>
+              Timeframe <span className="text-rose-500">*</span>
             </label>
             {tierDataLoading ? (
               <Skeleton className="h-10 w-full" />
@@ -394,21 +398,21 @@ export function AlertForm({
 
           {/* Condition Type */}
           <fieldset disabled={isEditing}>
-            <legend className="mb-2 block text-sm font-medium text-gray-700">
-              Condition Type <span className="text-red-500">*</span>
+            <legend className="mb-2 block text-sm font-medium text-foreground">
+              Condition Type <span className="text-rose-500">*</span>
             </legend>
             <div className="space-y-2">
               {CONDITION_TYPES.map((type) => (
                 <div
                   key={type.value}
-                  className={`rounded-lg border-2 p-4 transition-all ${
+                  className={`rounded-xl border-2 p-4 transition-all ${
                     isEditing
                       ? 'cursor-not-allowed opacity-60'
                       : 'cursor-pointer'
                   } ${
                     conditionType === type.value
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-gray-200 hover:border-blue-300'
+                      ? 'border-amber-500 bg-amber-500/10'
+                      : 'border-border hover:border-amber-500/40'
                   }`}
                   onClick={() => !isEditing && setConditionType(type.value)}
                 >
@@ -421,16 +425,16 @@ export function AlertForm({
                       checked={conditionType === type.value}
                       onChange={() => setConditionType(type.value)}
                       disabled={isEditing}
-                      className="h-4 w-4 text-blue-600"
+                      className="h-4 w-4 text-amber-600"
                     />
                     <label
                       htmlFor={`condition-${type.value}`}
-                      className="ml-2 font-medium"
+                      className="ml-2 font-medium text-foreground"
                     >
                       {type.label}
                     </label>
                   </div>
-                  <p className="ml-6 text-sm text-gray-500">
+                  <p className="ml-6 text-sm text-muted-foreground">
                     {type.description}
                   </p>
                 </div>
@@ -442,12 +446,12 @@ export function AlertForm({
           <div>
             <label
               htmlFor="alert-target-value"
-              className="mb-2 block text-sm font-medium text-gray-700"
+              className="mb-2 block text-sm font-medium text-foreground"
             >
-              Target Price <span className="text-red-500">*</span>
+              Target Price <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                 $
               </span>
               <Input
@@ -462,7 +466,7 @@ export function AlertForm({
               />
             </div>
             {conditionType === 'price_equals' && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Alert will trigger when price is within 0.5% of target
               </p>
             )}
@@ -472,9 +476,10 @@ export function AlertForm({
           <div>
             <label
               htmlFor="alert-name"
-              className="mb-2 block text-sm font-medium text-gray-700"
+              className="mb-2 block text-sm font-medium text-foreground"
             >
-              Alert Name <span className="text-gray-400">(optional)</span>
+              Alert Name{' '}
+              <span className="text-muted-foreground">(optional)</span>
             </label>
             <Input
               id="alert-name"
@@ -491,7 +496,7 @@ export function AlertForm({
           </div>
 
           {/* Submit Buttons */}
-          <div className="flex gap-4 border-t pt-4">
+          <div className="flex gap-4 border-t border-border pt-4">
             <Button
               type="button"
               variant="outline"
@@ -503,7 +508,7 @@ export function AlertForm({
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-blue-600 text-white hover:bg-blue-700"
+              className="flex-1 bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
               disabled={isSubmitting || !canCreate || tierDataLoading}
             >
               {isSubmitting
