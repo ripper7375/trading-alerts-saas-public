@@ -14,7 +14,7 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import NotificationsPage from '@/app/(dashboard)/notifications/page';
+import NotificationsPage from '@/app/notifications/page';
 import { LocaleProvider } from '@/lib/context/locale-context';
 import {
   LOCALE_STORAGE_KEY,

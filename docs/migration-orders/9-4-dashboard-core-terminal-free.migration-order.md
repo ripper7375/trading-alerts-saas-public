@@ -329,7 +329,58 @@ sidebar,footer,mobile-nav}.tsx` are now fully orphaned (zero importers anywhere 
     no tests dropped. Not written as a new L41 (repo is at its 40-entry cap per the file's own
     header; this is a straightforward recurrence of L40 itself, which already documents the fix).
 
-13. **F21/F64 confirmed out of scope, per Davin's live resolution of the roadmap's own internal
+13. **Architecture correction discovered live: restoring `app/(dashboard)/layout.tsx` and moving
+    the 5 core pages to top-level routes, Davin's live decision, `AskUserQuestion`.** Step 1's
+    original restyle removed the legacy `Header`/`Sidebar`/`Footer` from `app/(dashboard)/
+layout.tsx` entirely (since the 5 core pages now mount their own `AppHeader`, Deviation 7) — but
+    that layout also wraps `/settings/*` (11 pages, 9-5's own scope) and `/admin/*` (19+ pages,
+    9-8's own scope), neither touched this session. Live-verified via a real browser check:
+    `/settings/appearance` rendered with **zero navigation chrome at all** (0 `<main>`,
+    0 `<header>`) — a real regression on ~30 out-of-scope pages, not caught by `tsc`/`eslint`/
+    `test:ci` (none of which render the actual DOM). Corrected by extending the exact pattern
+    already approved for `/terminal`/`/free` (Deviation 6): `app/(dashboard)/dashboard/`,
+    `app/(dashboard)/alerts/{,new,[id]/edit}/`, and `app/(dashboard)/notifications/` all moved to
+    top-level routes (`app/dashboard/`, `app/alerts/`, `app/notifications/`), each with its own
+    minimal `layout.tsx` (auth gate + `AppearanceProvider`, no chrome — identical shape to
+    `app/terminal/layout.tsx`). `app/(dashboard)/layout.tsx` restored to its exact original,
+    pre-session form (`git show` against the commit before Step 1) so `/settings/*` and
+    `/admin/*` are completely untouched by this session, as originally intended. URLs unaffected
+    (route groups are URL-neutral). Two test files' import paths updated to match
+    (`__tests__/pages/alerts/edit.test.tsx`, `__tests__/pages/notifications/
+notifications-page.test.tsx`); `test:ci` re-run clean after (160/160, 2400/2400).
+    Live-reverified: `/settings/appearance` chrome restored (1 main/1 header); `/dashboard`,
+    `/alerts`, `/alerts/new`, `/notifications` all still render correctly under their new minimal
+    layouts.
+
+14. **Known, unresolved, disclosed defect — see `DECISION-LOG.md` F77 (OPEN).** `/alerts` and
+    `/alerts/new` duplicate their client-rendered content on a genuine browser reload (2×`<main>`/
+    `<header>`/`<form>` in the live DOM) — confirmed in a real production build
+    (`next build && next start`), not a dev-mode/HMR/Turbopack artifact. Raw SSR HTML is verified
+    clean (exactly one copy) via direct `fetch()` inspection; zero console or hydration errors at
+    any point. Extensive isolation via a throwaway diagnostic route (`app/zzdiag/`, deleted before
+    commit) found the real `AlertForm`/`CreateAlertClient` component reproduces it standalone, but
+    so does `AlertsClient` (the `/alerts` list, which has zero fetch effects) — no single common
+    trigger identified across both. Ruled out as sole causes: the tier-branching return pattern
+    (fixed to a single-return ternary independently on `/alerts/new`, did not resolve it),
+    `AppHeader` alone, a generic client component with one fetch effect, `loading.tsx` alone.
+    **Live-verified this has a real functional consequence, not just a cosmetic one:** a test
+    alert submitted through the duplicated `/alerts/new` form stored target price `25002500`
+    instead of the entered `2500` — immediately deleted via the real DELETE flow, which itself
+    worked correctly. Davin's live call, `AskUserQuestion`, after reviewing the full diagnostic
+    trail: close this session with the defect documented rather than open-ended further
+    investigation. Owner: next session touching `/alerts`, or a dedicated repair session — should
+    re-verify the price-corruption finding isn't specific to this session's own testing
+    methodology before treating it as a proven data-integrity risk, then continue the isolation
+    process this session started (candidates: bisect `AlertForm`'s 3 `useEffect`s one at a time;
+    determine what `AlertsClient` and `AlertForm` actually share since neither "tier branching"
+    nor "fetch effects" cleanly explains both).
+
+15. **`DECISION-LOG.md` crossed its ~50KB size-gate target during this session's own F77
+    registration (50,308 bytes).** Not archived this session — flagged as a housekeeping item for
+    the next session's own OPEN step 0, matching `LESSONS-LEARNED.md`'s L3-adjacent precedent of
+    disclosing a housekeeping gap rather than silently absorbing the time cost mid-session.
+
+16. **F21/F64 confirmed out of scope, per Davin's live resolution of the roadmap's own internal
     contradiction.** `MASTER-ROADMAP-PHASES-7-15.md`'s "Already-open flags" table lists both as
     "owed by 9-4," but its own Phase 9 session breakdown assigns closure of both to 9-5 (correctly —
     both are settings/billing surface, which 9-4 does not touch). Davin confirmed live: 9-5 closes

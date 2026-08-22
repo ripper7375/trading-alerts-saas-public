@@ -38,30 +38,18 @@ export default async function CreateAlertPage(): Promise<React.JSX.Element> {
   const tier = (session.user?.tier as Tier) || 'FREE';
 
   // V8: Alerts are PRO-exclusive — show upgrade landing to FREE users
-  if (tier !== 'PRO') {
-    return (
-      <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
-        <AppHeader
-          title="New Alert Rule Wizard"
-          subtitle="Define Technical Channel & Line Breach Triggers"
-          tier={tier}
-        />
-        <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
-          <AlertsProUpgrade />
-        </main>
-      </div>
-    );
-  }
-
+  const isPro = tier === 'PRO';
   const limit = PRO_TIER_CONFIG.maxAlerts;
 
-  // Count existing active alerts
-  const activeAlertCount = await prisma.alert.count({
-    where: {
-      userId: session.user.id,
-      isActive: true,
-    },
-  });
+  // Count existing active alerts (PRO only -- FREE never reaches CreateAlertClient)
+  const activeAlertCount = isPro
+    ? await prisma.alert.count({
+        where: {
+          userId: session.user.id,
+          isActive: true,
+        },
+      })
+    : 0;
 
   const canCreate = activeAlertCount < limit;
 
@@ -73,14 +61,18 @@ export default async function CreateAlertPage(): Promise<React.JSX.Element> {
         tier={tier}
       />
       <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
-        <CreateAlertClient
-          userTier={tier}
-          limit={limit}
-          currentCount={activeAlertCount}
-          canCreate={canCreate}
-          availableSymbols={[...SYMBOLS]}
-          availableTimeframes={[...TIMEFRAMES]}
-        />
+        {isPro ? (
+          <CreateAlertClient
+            userTier={tier}
+            limit={limit}
+            currentCount={activeAlertCount}
+            canCreate={canCreate}
+            availableSymbols={[...SYMBOLS]}
+            availableTimeframes={[...TIMEFRAMES]}
+          />
+        ) : (
+          <AlertsProUpgrade />
+        )}
       </main>
     </div>
   );

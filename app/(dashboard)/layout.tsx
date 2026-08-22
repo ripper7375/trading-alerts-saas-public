@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth';
 
 import { LoginTracker } from '@/components/auth/login-tracker';
 import { TokenRefreshProvider } from '@/components/auth/token-refresh-provider';
+import { Footer } from '@/components/layout/footer';
+import { Header } from '@/components/layout/header';
+import { Sidebar } from '@/components/layout/sidebar';
 import { AppearanceProvider } from '@/components/providers/appearance-provider';
 import { authOptions } from '@/lib/auth/auth-options';
 import { getServerAppearance } from '@/lib/appearance/server-appearance';
@@ -12,23 +15,13 @@ interface DashboardLayoutProps {
 }
 
 /**
- * Dashboard Layout (core) — `/dashboard`, `/alerts`, `/alerts/new`,
- * `/alerts/[id]/edit`, `/notifications`.
+ * Dashboard Layout
  *
- * Session 9-4: this is now a thin wrapper, not a chrome-rendering shell.
- * Every seed-code page under `app/(dashboard)/` mounts its own `<AppHeader
- * />` directly (confirmed by reading all 5 source files — none of them
- * consume a shared header/sidebar from a parent layout, and none of them use
- * `ChatSidebar` at all). This layout's only job is the server-side auth gate
- * (defense-in-depth alongside middleware.ts, LESSONS-LEARNED.md L17) plus the
- * zero-FOUC appearance/theme context every dashboard page needs.
- *
- * `/terminal` and `/free` deliberately live OUTSIDE this route group (see
- * app/terminal/layout.tsx, app/free/layout.tsx) — seed-code's own versions
- * of those two pages are full-screen 4-panel workspaces that mount
- * `ChatSidebar` themselves as an internal resizable panel and never use
- * `AppHeader`; nesting them under this layout would double the sidebar and
- * add a header bar neither page's real design has.
+ * Wraps all dashboard pages with:
+ * - Authentication check (redirects to /login if not authenticated)
+ * - Header with user menu and notifications
+ * - Sidebar navigation (desktop) / Mobile nav (mobile)
+ * - Footer with links
  *
  * Protected route - requires valid session
  */
@@ -42,6 +35,16 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
+  // Extract user info for components
+  const user = {
+    id: session.user.id,
+    name: session.user.name || 'User',
+    email: session.user.email || '',
+    image: session.user.image,
+    tier: session.user.tier || 'FREE',
+    role: session.user.role || 'USER',
+  };
+
   // This layout already gates on a per-request getServerSession() call
   // (dynamic rendering is unavoidable here), so resolving appearance here —
   // rather than in the root layout — gets zero-FOUC accent/chart tokens for
@@ -54,7 +57,7 @@ export default async function DashboardLayout({
   return (
     <AppearanceProvider initialSettings={appearance}>
       <div
-        className="min-h-screen bg-background"
+        className="min-h-screen bg-gray-50 dark:bg-gray-900"
         data-accent={appearance.accent}
         style={
           {
@@ -72,7 +75,25 @@ export default async function DashboardLayout({
             own doc comment) */}
         <TokenRefreshProvider />
 
-        {children}
+        {/* Header - sticky at top */}
+        <Header user={user} />
+
+        <div className="flex">
+          {/* Sidebar - hidden on mobile, fixed on desktop */}
+          <aside className="hidden lg:fixed lg:inset-y-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:pt-16">
+            <Sidebar userTier={user.tier} userRole={user.role} />
+          </aside>
+
+          {/* Main content area */}
+          <main className="min-h-[calc(100vh-4rem)] flex-1 pt-16 lg:pl-64">
+            <div className="px-4 py-6 sm:px-6 lg:px-8">{children}</div>
+          </main>
+        </div>
+
+        {/* Footer */}
+        <div className="lg:pl-64">
+          <Footer />
+        </div>
       </div>
     </AppearanceProvider>
   );

@@ -13,8 +13,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import EditAlertPage from '@/app/(dashboard)/alerts/[id]/edit/page';
-import { EditAlertClient } from '@/app/(dashboard)/alerts/[id]/edit/edit-alert-client';
+import EditAlertPage from '@/app/alerts/[id]/edit/page';
+import { EditAlertClient } from '@/app/alerts/[id]/edit/edit-alert-client';
 import type { AlertFormData } from '@/components/alerts/alert-form';
 import { LocaleProvider } from '@/lib/context/locale-context';
 import {
