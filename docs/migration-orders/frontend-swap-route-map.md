@@ -118,6 +118,18 @@ session that inherits it.
    trees — no downstream session can fix "its own files" without touching shared chrome Session
    9-1 owns. Table below corrected; full reasoning in `9-1-root-shell-design-system.migration-
 order.md`'s Open Question 2.
+   8a. **Addendum (2026-08-22, Session 9-2 CONFIRM), correction to rows 3 & 4's own "Main-Repo
+   Target" cell.** That column names `app/account/deletion-cancel/page.tsx [d]` / `app/account/
+deletion-confirm/page.tsx [d]` — stale. Live `ls` confirms the pages actually live at
+   `app/(public)/settings/account/delete/cancel/page.tsx` and `.../delete/confirm/page.tsx`
+   (built Session 6-5), and `middleware.ts`'s `PUBLIC_SETTINGS_PATHS` allowlist is keyed on
+   exactly this path, not the row's cited target. Per the roadmap's own standing rule
+   ("every codebase-2 URL must match codebase 1 exactly," codebase 1 is the URL authority) and
+   Session 9-2's own `Decisions taken` #1 (Davin-approved), **the canonical main-repo target for
+   rows 3 & 4 is `app/(public)/settings/account/delete/{cancel,confirm}/page.tsx`** — the
+   existing files, ported into in place, not a new/moved route. The table row cells below are
+   left as originally generated (historical record of the 9-0 build); this addendum is the
+   corrected reading. Rows 3/4 backing APIs are unaffected and were already correct.
 8. **A real Tailwind major-version gap between the two trees, found while PRE-DRAFTing 9-1.**
    The monolith is pinned to `tailwindcss@^3.3.0` (classic `tailwind.config.ts`); codebase 2 is
    on `tailwindcss@^4.1.9` (CSS-first `@theme` tokens in `globals.css`, no config file). Neither
