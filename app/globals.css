@@ -27,6 +27,13 @@
     --ring: 0.546 0.245 264.1;
     --radius: 0.5rem;
 
+    /* Sidebar (ChatSidebar) - oklch. Same neutral hue family (285.8) as the
+       rest of the palette rather than a separate achromatic gray, so the
+       sidebar surface reads as part of the same design system. */
+    --sidebar: 0.985 0.002 285.8;
+    --sidebar-foreground: 0.145 0.014 285.8;
+    --sidebar-border: 0.929 0.013 255.5;
+
     /* Trading-specific colors - oklch */
     --success: 0.527 0.176 142.5;
     --success-foreground: 0.977 0.006 142.5;
@@ -74,6 +81,16 @@
     --border: 0.269 0.043 258.3;
     --input: 0.269 0.043 258.3;
     --ring: 0.515 0.205 264.1;
+
+    /* Sidebar (ChatSidebar), dark mode - oklch */
+    --sidebar: 0.205 0.014 285.8;
+    --sidebar-foreground: 0.985 0 0;
+    --sidebar-primary: 0.623 0.214 259.1;
+    --sidebar-primary-foreground: 0.21 0.043 264.5;
+    --sidebar-accent: 0.269 0.043 258.3;
+    --sidebar-accent-foreground: 0.977 0.006 247.8;
+    --sidebar-border: 0.269 0.043 258.3;
+    --sidebar-ring: 0.515 0.205 264.1;
 
     /* Trading-specific colors (dark mode) - oklch */
     --success: 0.578 0.174 148.5;
@@ -272,15 +289,44 @@
     background: linear-gradient(to right, oklch(var(--success)), oklch(var(--success) / 0.8));
   }
 
-  /* Hide scrollbar but keep functionality */
-  .scrollbar-hide {
+  /* Hide scrollbar but keep functionality. .no-scrollbar is the class name
+     the ported chat-sidebar/app-header components reference -- same rule,
+     aliased rather than duplicated. */
+  .scrollbar-hide,
+  .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
 
-  .scrollbar-hide::-webkit-scrollbar {
+  .scrollbar-hide::-webkit-scrollbar,
+  .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  @keyframes marquee {
+    0% {
+      transform: translateX(0%);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
+  }
+}
+
+/* Hide TradingView logo link in lightweight-charts */
+a[href*='tradingview'],
+a[title*='TradingView'],
+.tv-lightweight-charts-logo,
+[class*='logo'] a,
+td a[target='_blank'] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* Animations */

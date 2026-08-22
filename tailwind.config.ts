@@ -71,6 +71,17 @@ const config: Config = {
           grid: 'oklch(var(--chart-grid))',
           crosshair: 'oklch(var(--chart-crosshair))',
         },
+        // Sidebar (ChatSidebar)
+        sidebar: {
+          DEFAULT: 'oklch(var(--sidebar))',
+          foreground: 'oklch(var(--sidebar-foreground))',
+          border: 'oklch(var(--sidebar-border))',
+          primary: 'oklch(var(--sidebar-primary))',
+          'primary-foreground': 'oklch(var(--sidebar-primary-foreground))',
+          accent: 'oklch(var(--sidebar-accent))',
+          'accent-foreground': 'oklch(var(--sidebar-accent-foreground))',
+          ring: 'oklch(var(--sidebar-ring))',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
