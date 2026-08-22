@@ -26,7 +26,78 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 9-0 (Frontend Swap Contract & Decisions, Phase 9, CONTRACT, no code),
+- **Current:** Session 9-1 (Root Shell & Design System, Phase 9, UI-BUILD), CONFIRMED, executed,
+  **CLOSED SUCCESSFUL** 2026-08-22. Second session of Phase 9 — every subsequent Phase 9 session
+  (9-2…9-9) renders inside the root shell, design tokens, headers, sidebars, and providers landed
+  here. Closes rows 92/93 of `frontend-swap-route-map.md` plus gap-inventory items 1, 2, 5, 6a-6e,
+  10; fixes all 5 Batch-0 shared-shell findings.
+  **CONFIRM found the by-now-familiar L3 pattern again** (20th+ recurrence): committed HEAD held
+  only the bare PRE-DRAFT stub; working copy carried the full Advisor DRAFT→APPROVED upgrade.
+  Davin confirmed live it was his authentic edit. **All test baselines re-verified live at CONFIRM,
+  all green, exact match to 9-0's own close:** monolith `tsc` clean, `eslint` 0 errors/5 warnings,
+  `test:ci` 160/160 suites/2400/2400 tests; money-service 62/62 suites/526/526 tests;
+  operation-service 42/42 suites/393/393 tests. `seed-code/` found fully clean (better than the
+  entry criterion's own "except 2 files" expectation — those 2 files were already committed by
+  9-0's own close). Batch-0's two root-boundary fixes re-diffed byte-for-byte, still intact.
+  **CONFIRM surfaced 6 corrections, all approved live by Davin before execution** (full detail in
+  the order's own CONFIRM note): `lib/i18n/locale-resolver.ts` needed porting, not just citing
+  (only existed in `seed-code/`); `--chart*` tokens stay runtime-dynamic, not static `globals.css`
+  rules; `app/providers.tsx`'s `SessionProvider` was already live, to be preserved not rebuilt;
+  the main repo's own `middleware.ts` already had the real auth gate (codebase 2's had the
+  locale-rewrite half) — merge direction confirmed; gap-6e's residual (`chat-panel.tsx`,
+  `market-comments-panel.tsx`, `settings/layout.tsx`) explicitly handed to Sessions 9-4/9-5, not
+  silently dropped; `components/layout/header.tsx` (live, 9-4's to retire) is distinct from the
+  dead `components/header.tsx` this session's Decision 5 deletes.
+  **Mid-execution, a 7th finding not in any prior document, escalated to Davin rather than decided
+  unilaterally:** wiring `ClientProviders` as literally described would have mounted seed-code's
+  support-chat widget — its socket client points at an unset `NEXT_PUBLIC_SOCKET_CHAT_URL` (Phase
+  14, unbuilt) and falls back to a hardcoded canned-response generator presented as a live "AI
+  Support Specialist." Davin's live call: defer the whole widget to Phase 14, ship
+  `ClientProviders` with only `LocaleProvider`+`AppearanceProvider` for now.
+  **Execution found the main repo's own `components/providers/appearance-provider.tsx` already
+  exists and is MORE complete than seed-code's version** (it additionally syncs `next-themes`'
+  `setTheme()`) — preserved as-is rather than overwritten, which would have been a regression.
+  Also found its sibling `components/providers/theme-provider.tsx` (hand-rolled) is dead code,
+  zero importers — flagged, not deleted (only `components/header.tsx`'s deletion carried explicit
+  go-ahead this session).
+  **Real, disclosed architecture change:** `app/layout.tsx` now calls `cookies()`/`headers()` on
+  every request — the whole app is dynamically rendered as of this session (previously the root
+  layout was static-compatible). Direct, unavoidable cost of porting codebase 2's unified
+  root-layout design; not re-optimized back to static this session, flagged for later if TTFB/
+  build-time on marketing routes becomes a concern.
+  **`AppHeader`/`ChatSidebar` rewritten from seed-code's hardcoded `slate-N`/`dark:bg-[hex]`
+  classes onto semantic design tokens** — the actual Batch-0 "Light Clean Mode" fix for the two
+  files the parity audit named; extended the identical treatment to `marketing-navbar.tsx`/
+  `marketing-footer.tsx` (not in Batch-0's named list, but same defect pattern, same session's own
+  Surface) so 9-2 doesn't rediscover it. Fixed the missing sidebar Help item directly inside this
+  rewrite. Found and fixed a middleware-merge bug before commit (two early-return branches skipped
+  the locale rewrite) via code-path tracing, not live testing. Found and fixed a CSP gap
+  (`ipapi.co` blocked, breaking the newly-ported geo-detection) and a stale globals.css comment.
+  **Regressed then fixed 3 test assertions** in `__tests__/pages/phase-6-exit.test.tsx` (intentional
+  rebrand changed rendered copy — `test:ci` must never go backwards) and a latent test-infra gap
+  (`LocaleProvider`'s real, un-mocked geo-IP `fetch` crashing the Jest worker on teardown) — new
+  `LESSONS-LEARNED.md` **L40**, plus a recurrence note on **L22**.
+  **Live-verified via dev server, not just `tsc`/`test:ci`:** all 4 currently-existing Protected
+  pages (`/`, `/dashboard`, `/settings/appearance`, `/settings/help`, the last 3 via a real login
+  using the login page's own test-credential autofill) render correctly under the new shell;
+  `/terminal`/`/free` don't exist yet (Session 9-4's own new pages, confirmed via `ls`, nothing to
+  verify there this session); all 3 middleware auth×locale interaction cases verified live; the 4
+  new shared-chrome components smoke-tested together via a throwaway route, deleted before commit.
+  **Also found and fixed, unrelated to this session's own scope but caught mid-close:**
+  `DECISION-LOG.md` had drifted to 53,361 bytes, over its ~50KB size-gate target (should have been
+  caught at this session's own OPEN) — ran the archival pass, moved F47/F65/F66's full entries to
+  `history/decisions-archive.md`, and fixed F47's own detail-entry status header (stale at "OPEN"
+  since 4A-W7 even though the register table and CLAUDE.md both already said RESOLVED — Session
+  4A-15). Back to 48,988 bytes.
+  **Artifacts updated:** `9-1-root-shell-design-system.migration-order.md` (Status → CONFIRMED →
+  CLOSED SUCCESSFUL, CONFIRM note + 16 Deviations + checked Done-when/entry-criteria boxes),
+  `DECISION-LOG.md` (size-gate archival pass), `history/decisions-archive.md` (F47/F65/F66 full
+  entries), `migration-stack-analysis.md` (Session 9-1 entry, 15 new files/8 modified, all
+  FRONTEND), `LESSONS-LEARNED.md` (L40, L22 recurrence — now at the 40-lesson cap, next lesson
+  needs a consolidation pass first), this file (Current/Previous rotation — Session 4A-15 moved to
+  `history/sessions-archive.md`). `migration-cutover-table.md` correctly needs no changes (Phase 9
+  is additive builds, no route/slice moved).
+- **Previous:** Session 9-0 (Frontend Swap Contract & Decisions, Phase 9, CONTRACT, no code),
   CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-22. First session of Phase 9 — resolves
   `DECISION-LOG.md` **F65** (BFF boundary, ⚠ NEEDS EXPLICIT SIGN-OFF) and **F66** (swap mechanism
   - brand scope, ⚠ NEEDS EXPLICIT SIGN-OFF on live Stripe catalog).
@@ -105,72 +176,6 @@ order.md` PRE-DRAFTed.** Grounded in `frontend-swap-route-map.md` plus a full re
     `9-1-root-shell-design-system.migration-order.md` (new, Status: PRE-DRAFT).
     **Committed and pushed to `origin/main`** at Davin's explicit request — see git log for exact
     commit(s).
-- **Previous:** Session 4A-15 (Wise + Outbox Defect Sweep, Phase 4X, PORT, dial LOW), CONFIRMED,
-  executed, **CLOSED SUCCESSFUL** 2026-08-21. Third and final session of Phase 4X's originally-
-  scoped Wise/outbox work — closes `DECISION-LOG.md` **F47** (Wise quote currency correctness,
-  OPEN since 4A-W7) and **F50** (`COMMISSION_CREDITED` recipient resolution, OPEN since 4A-11).
-  **CONFIRM found the by-now-familiar L3/L11 pattern again** (18+ recurrences, `LESSONS-LEARNED.md`
-  L3 bumped): committed HEAD had only the bare PRE-DRAFT stub; working copy carried the full
-  DRAFT→APPROVED upgrade. Davin confirmed live it was his authentic edit.
-  **CONFIRM found two entry criteria genuinely failing, both pre-dating this order and unrelated
-  to F47/F50:** (1) operation-service's claimed 42/42-suite baseline was false — 3 suites failed
-  to compile on `this.prisma.affiliateProfile` in `auth.service.ts` (operation-service's schema
-  has no such model by design), a pre-existing defect from commit `70299f13` (2026-08-15), a full
-  week before this order's own PRE-DRAFT ancestor session. (2) The order's "Outbox publisher is
-  currently disabled, zero production risk" framing was wrong — `OUTBOX_PUBLISHER_ENABLED` has
-  been `true` in production since **Session 4A-12 (2026-07-30)**, which `migration-cutover-
-table.md`'s own Slice 5 row already recorded correctly; the order's narrative simply never
-  cross-checked it. New `LESSONS-LEARNED.md` **L37**. Both reported to Davin before any execution;
-  he live-authorized a new Step 0 (remove the invalid seed call) and updated the order's own text
-  (risk framing, entry criteria, a new `Decisions taken` #4) before saying go.
-  **Steps 0–3 executed clean, one commit each, full suite green after every step:**
-  Step 0 (`1f147116`) removed the dead `if (fixed.isAffiliate) {...}` affiliate-seed block from
-  `auth.service.ts` — operation-service back to 42/42 suites, 393/393 tests. Step 1 (`4496abb2`,
-  F47) widened `CreateQuoteInput` to accept `sourceAmount`/`targetAmount` and branched
-  `wise-payment.provider.ts`'s quote call on currency match (targetAmount for USD->USD per F38,
-  sourceAmount for USD->non-USD) — 3 new tests, money-service 62/62 suites, 526/526 tests.
-  **Verified via unit tests only, not live Wise sandbox** — `WISE_PROFILE_ID`/`WISE_API_TOKEN`
-  were found undocumented in `.env.example` and unset locally; Davin approved the scope reduction
-  live (order `Decisions taken` #4), disclosed as residual risk in `DECISION-LOG.md`'s F47 entry
-  and `migration-cutover-table.md`'s Slice 2W row — the first real non-USD payout after this fix
-  is still the first live proof point. Step 2 (`ca27c04d`, F50 producer) widened
-  `ConversionProcessorService`'s Prisma `select` to include `affiliateProfile.userId`, captured
-  the previously-discarded `affiliateProfile.update()` result to read `totalEarnings`, and changed
-  `stripe-webhook.service.ts`'s `emitOutboxEvent` call to pass the affiliate's `userId` (not the
-  buyer's) as `aggregateId` — money-service 62/62 suites, 526/526 tests. Step 3 (`8810b260`, F50
-  consumer) removed `OutboxConsumerService`'s `COMMISSION_CREDITED` skip block and wired
-  `dispatch()` to the pre-existing (4A-11) `sendAffiliateCommissionEmail()` — operation-service
-  42/42 suites, 393/393 tests. **Because the publisher is genuinely live**, this fix has no
-  separate flag-flip gate the way 4A-13/4A-14's cutovers did — the next real affiliate conversion
-  (Stripe now, dLocal once F76 closes) will trigger a real email send on its own next natural
-  trigger; no real/synthetic event was sent this session (PORT variant, zero live traffic risk in
-  scope), first-real-delivery stays a monitoring item.
-  **Step 4 (full validation) needed a re-run**: launching monolith `tsc`+`eslint`+`test:ci` and
-  both services' full suites in parallel (5 concurrent heavy processes) crashed 4 money-service +
-  3 operation-service Jest workers on OOM — false failures, not real ones (`tsc`/`eslint` in the
-  same batch passed clean). Re-run sequentially per `LESSONS-LEARNED.md` L24: monolith `tsc` clean,
-  `eslint` 0 errors/5 warnings, `test:ci` 160/160 suites/2400/2400 tests; money-service 62/62
-  suites/526/526 tests; operation-service 42/42 suites/393/393 tests. All green.
-  **Two more incidental findings, neither blocking:** the pre-commit hook's stash-backup/restore
-  mechanism twice left a purely-cosmetic (whitespace-only) working-tree/index diff after a commit
-  had already succeeded — verified via diff, reset via `git checkout HEAD -- <file>`, new
-  `LESSONS-LEARNED.md` **L36**. An unrelated, uncommitted edit to 2 `seed-code/**` files
-  (`app/affiliate/dashboard/payouts/page.tsx` and `.../statements/page.tsx`) was observed
-  mid-session, matching F38's fee-framing — not present at session start, not touched or
-  committed by this session (`seed-code/**` is read-only, CLAUDE.md §5); flagged for Davin.
-  **Artifacts updated:** `4a-15-wise-outbox-defect-sweep.migration-order.md` (Status → CONFIRMED →
-  CLOSED SUCCESSFUL; entry criteria and slice-level verification all checked with CONFIRM/CLOSE-
-  time evidence; Deviations filled — 9 entries), `DECISION-LOG.md` (F47 RESOLVED, F50 RESOLVED,
-  both full detail in `history/decisions-archive.md`), `migration-cutover-table.md` (Slice 2W row
-  updated for F47, Slice 5 row updated for F50), `LESSONS-LEARNED.md` (L3 recurrence bump, L36,
-  L37), this file (Current/Previous rotation — Session 4A-13 moved to
-  `history/sessions-archive.md`). **`9-0-frontend-swap-contract-decisions.migration-order.md`
-  PRE-DRAFTed and `HANDOVER-PROMPT-phase-9.md` authored** per this order's own Step 5 and the
-  master roadmap's own per-phase trigger table ("4A-15 writes phase-9's"). **Open item for the
-  Advisor/Davin, not blocking 9-0:** dLocal Group B (F76) still needs its own dedicated
-  fix-and-recutover session (working title `4A-16`) before Phase 4X's own gate for Session 8-1
-  ("all of 4A-13/14/15 CLOSED") is genuinely satisfied — with 4A-15 now closed, that gate's only
-  remaining blocker is F76/4A-16.
 
 ## Key documents
 
