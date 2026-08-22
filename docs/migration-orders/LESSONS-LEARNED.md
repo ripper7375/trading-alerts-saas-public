@@ -73,9 +73,11 @@ added** (count is at the cap, not past it — the next new lesson must consolida
   Recurred again at Session 7-3 (2026-08-20) — benign: order arrived a bare `PRE-DRAFT` stub at
   committed HEAD but the full DRAFT→APPROVED upgrade on disk; confirmed live by Davin as authentic
   before execution. Recurred again at Sessions 4A-13, 4A-14, and 4A-15 (all 2026-08-21) — all
-  three benign, all three confirmed live by Davin as authentic before execution. 18+ recurrences
-  total — this is the single most-recurring finding in the migration; per this file's own hygiene
-  rule, further benign recurrences get a count bump here, not a new paragraph.
+  three benign, all three confirmed live by Davin as authentic before execution. Recurred again at
+  Sessions 9-0, 9-1, and 9-2 (all 2026-08-22) — all three benign, all three confirmed live by
+  Davin as authentic before execution. 21+ recurrences total — this is the single most-recurring
+  finding in the migration; per this file's own hygiene rule, further benign recurrences get a
+  count bump here, not a new paragraph.
 
 ### L4 — Never use `railway variables --kv` (or any unfiltered dump) to check whether a secret is set
 

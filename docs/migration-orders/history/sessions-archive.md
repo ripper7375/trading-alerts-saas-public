@@ -7,6 +7,86 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 9-0 (Frontend Swap Contract & Decisions,
+  Phase 9, CONTRACT, no code), CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-22. First session
+  of Phase 9 — resolves `DECISION-LOG.md` **F65** (BFF boundary, ⚠ NEEDS EXPLICIT SIGN-OFF) and
+  **F66** (swap mechanism + brand scope, ⚠ NEEDS EXPLICIT SIGN-OFF on live Stripe catalog).
+  **CONFIRM found the by-now-familiar L3 pattern again** (19th+ recurrence): committed HEAD held
+  only the bare PRE-DRAFT stub; working copy carried the full Advisor DRAFT→APPROVED upgrade plus
+  4 consistent companion-doc edits (`MASTER-ROADMAP-PHASES-7-15.md` adding 4A-16/F76,
+  `SESSION-PROMPT-SCRIPT.md`, the session playbook, the antigravity `.xlsx` handbook). Davin
+  confirmed live it was his authentic edit before any of it was trusted.
+  **CONFIRM surfaced two items needing Davin's live word before execution, both resolved same
+  session:** (1) Waiting-on #117 (no test credentials) — Davin scoped 9-0 to proceed as a design
+  contract across all 5 roles + NON-LOGIN, with live authenticated click-through becoming an
+  active requirement starting Session 9-3, not 9-0. (2) `seed-code/` drift beyond the order's own
+  claim (`payouts/page.tsx` + `statements/page.tsx` carry a CSV-download DOM refactor and rebrand
+  copy beyond the claimed F38 fee-bearer-only scope) — Davin confirmed both are his own intentional
+  in-progress edits; kept as-is, `seed-code/**` treated as settled source of truth.
+  **All three test baselines re-verified live, all green, exact match to 4A-15's own closing
+  numbers:** monolith `tsc` clean; `eslint` (run directly, see finding below) 0 errors/5 warnings;
+  `test:ci` 160/160 suites/2400/2400 tests. money-service 62/62 suites/526/526 tests (one transient
+  timeout on the `prisma.shutdown.spec.ts` SIGTERM test on the first full run — reproduced clean
+  in isolation and on a fresh full re-run; resource-contention flake, not a regression). operation-
+  service 42/42 suites/393/393 tests.
+  **Two real environment findings, neither pre-existing-knowledge, both disclosed rather than
+  silently worked around:** `npm run eslint` doesn't exist in `package.json` (only `lint`/
+  `lint:fix`) — order-text bug, worked around with `npx eslint` directly. More seriously,
+  **`next lint` has been removed entirely from this Next.js version's CLI** (`next --help` lists
+  no `lint` subcommand), so `npm run lint`/`next lint` both fail outright — new
+  `LESSONS-LEARNED.md` **L38**; `package.json`'s `lint`/`lint:fix` scripts need fixing in a future
+  session, not this one (out of a CONTRACT/no-code session's scope).
+  **Execution produced `docs/migration-orders/frontend-swap-route-map.md`** — all 97 census rows
+  mapped in both directions (zero unmapped), each naming its target layout boundary, session
+  owner, real backing endpoint (or an explicit GAP where none exists yet), auth gate, tier gate,
+  and S/M/L effort. **Two real backend gaps found and disclosed, not fabricated around:**
+  `/affiliate/dashboard/payouts` and `/statements` (9-7b) have no self-service backing endpoint at
+  all — only admin-side `/api/disbursement/*` exists; `/admin/system/jobs` and `/admin/system/
+outbox` (9-8a) have no list/GET route, only `/[jobId]/trigger` and `/retry` action sub-routes.
+  Both flagged in the route-map's own gap inventory as work Sessions 9-7b/9-8a must build, not
+  just bind. **One inherited-claim correction:** `middleware.ts` is NOT a no-op as the roadmap's
+  Batch-0 findings describe it — live read shows real country-prefix URL-rewrite + locale-cookie
+  logic; what it genuinely lacks is auth/session gating only. **One stale-citation correction:**
+  the census's row 26 (`admin/login`) and row 86 (`test-api`) both cite codebase-1 source paths
+  that no longer exist on disk (`app/admin` is fully gone per F62's Session 6-2 merge, not just
+  `admin/login`; `test-api` confirmed deleted at Session 6-12) — dispositions unchanged (retire
+  both), just corrected the evidence trail. Session-sizing table confirms the roadmap's own flags
+  that 9-4, 9-7b and 9-8 are likely over the ~4h split threshold, and adds the concrete reason for
+  9-7b/9-8a specifically (a real backend gap to build, not just page count).
+  **Docs-reorg residual (Step 6) was already resolved before this session touched anything** —
+  `git status docs/` showed zero untracked files/deletions; the roadmap §5-cited items no longer
+  exist in the working tree.
+  **Artifacts updated:** `9-0-frontend-swap-contract-decisions.migration-order.md` (Status →
+  CONFIRMED, executed — Deviations to be filled at formal CLOSE), `DECISION-LOG.md` (F65 RESOLVED,
+  F66 RESOLVED, both full detail inline — register table + dedicated entries), `frontend-swap-
+route-map.md` (new — the phase's binding contract), `LESSONS-LEARNED.md` (L38), this file
+  (Current/Previous rotation — Session 4A-14 moved to `history/sessions-archive.md`).
+  `migration-cutover-table.md` and `migration-stack-analysis.md` were reviewed and correctly
+  need no changes (no route/slice moved, no files created/moved/deleted — only doc files were
+  added under `docs/migration-orders/`, which isn't a stack-analysis entry).
+  **Session-close pass (same day, 2026-08-22): `9-1-root-shell-design-system.migration-
+order.md` PRE-DRAFTed.** Grounded in `frontend-swap-route-map.md` plus a full read of
+  `codebase-2-parity-audit/batch-0-shared-shell.md` (not just its citation) — surfaced two real
+  corrections to this session's own route map, amended directly rather than left stranded in
+  9-1's order alone: **(1)** a "6 Protected pages" constraint (`/`, `/terminal`, `/free`,
+  `/dashboard`, `/settings/appearance`, `/settings/help` — Davin, live, 2026-08-17) that nothing
+  in Phase 9 planning had surfaced before now, since every one of them renders through
+  `AppHeader`/`ChatSidebar`, which 9-1 is about to build; **(2)** the route map's own gap-6e
+  entry ("distributed — each session fixes its own files") was wrong — the 38-file
+  hardcoded-dark-mode bug's root files render on 5 of the 6 Protected pages, so no downstream
+  session can fix "its own files" in isolation; 9-1 owns it. **A third, independent finding**:
+  the monolith is pinned to `tailwindcss@^3.3.0` (classic config file) while codebase 2 is on
+  `tailwindcss@^4.1.9` (CSS-first, no config file) — a real version decision nothing in Phase 9
+  planning names. All three carried into 9-1's PRE-DRAFT as Open Questions 1-3 (left for the
+  Advisor/Davin, per PD1 — not decided by the Executor at PRE-DRAFT) and amended into
+  `frontend-swap-route-map.md` §3/§5 with dated addenda. New `LESSONS-LEARNED.md` **L39** on the
+  underlying pattern (citing a source secondhand vs. reading it in full).
+  **Artifacts updated (this pass):** `frontend-swap-route-map.md` (§3 items 6-8, §5 gap-6e/gap-10
+  correction), `9-0-…migration-order.md` (Deviation 10), `LESSONS-LEARNED.md` (L39),
+  `9-1-root-shell-design-system.migration-order.md` (new, Status: PRE-DRAFT).
+  **Committed and pushed to `origin/main`** at Davin's explicit request — see git log for exact
+  commit(s).
+
 - _(superseded-by-above, retained for context)_ **Session 4A-15 (Wise + Outbox Defect Sweep, Phase 4X, PORT, dial LOW), CONFIRMED,
   executed, CLOSED SUCCESSFUL** 2026-08-21. Third and final session of Phase 4X's originally-
   scoped Wise/outbox work — closes `DECISION-LOG.md` **F47** (Wise quote currency correctness,

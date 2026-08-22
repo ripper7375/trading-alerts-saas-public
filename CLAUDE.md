@@ -1,4 +1,4 @@
-﻿# CLAUDE.md — Executor State & Standing Rules (Migration Mode)
+# CLAUDE.md — Executor State & Standing Rules (Migration Mode)
 
 > **This repo is in MIGRATION MODE.**
 > **Role Distinction:**
@@ -26,7 +26,81 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 9-1 (Root Shell & Design System, Phase 9, UI-BUILD), CONFIRMED, executed,
+- **Current:** Session 9-2 (`(marketing)` 12 + `(public)` 2, Phase 9, UI-BUILD), CONFIRMED, executed,
+  **CLOSED SUCCESSFUL** 2026-08-22. Third session of Phase 9 — ships all 14 route-map rows (1-2,
+  3-4, 52-54, 63-64, 66, 69-70, 84-85, 91): the 12 `(marketing)` pages + 2 `(public)` account-
+  deletion pages, the only pages that render without a session. `app/(marketing)/layout.tsx` now
+  renders `MarketingNavbar`/`MarketingFooter` (built 9-1) instead of inline "Trading Alerts" chrome
+  — the one `layout.tsx` boundary this session moves.
+  **CONFIRM found the by-now-familiar L3 pattern again** (21st+ recurrence): committed HEAD held
+  only the bare PRE-DRAFT stub; working copy carried the full Advisor DRAFT→APPROVED upgrade.
+  Davin confirmed live it was his authentic edit. Also confirmed, in scope: the route-map addendum
+  for rows 3-4 (recording `app/(public)/settings/account/delete/{cancel,confirm}/page.tsx` as the
+  canonical target, correcting the table's stale `app/account/deletion-*` citation).
+  **Landing page (row 1) needed far more than a content swap, escalated live before touching any
+  file:** seed-code's landing page is a 6-component composition with its OWN `LandingNavbar`/
+  `LandingFooter` (distinct from the shared `MarketingNavbar`/`MarketingFooter` the other 11 pages
+  use) — porting verbatim would have quadruple-stacked chrome, the exact bug Decision 3 exists to
+  prevent, from the opposite direction. Escalated via `AskUserQuestion`; Davin chose "strip
+  seed-code's own chrome, keep the real affiliate pricing." The current live landing page had real,
+  `SystemConfig`-backed affiliate-discount pricing (`useAffiliateConfig()`, `?ref=CODE`-driven
+  banner + discount + commission calc) that seed-code's replacement lacked entirely — grafted
+  forward into the new `components/landing/landing-pricing.tsx` rather than dropped; live-verified
+  via dev server (`/?ref=TESTCODE` shows the real 20%-off banner and correct $29.00→$23.20 price).
+  **The same "seed-code page looks like a restyle but silently regresses or fabricates data"
+  pattern recurred twice more, independently, at higher stakes each time:** `/status` bound to the
+  real 4-component `getSystemStatus()` (API/Database/Realtime/Payment Gateways) instead of
+  seed-code's 6 fabricated components with invented static latency/uptime figures — live-verified
+  this dev environment correctly shows "Some Systems Are Degraded," not a fabricated "All Systems
+  Operational." `/pricing` + `TierComparison` bound to `lib/tier-config.ts`'s real
+  `PRO_MONTHLY_PRICE` (Davin's explicit instruction) instead of seed-code's hardcoded $39/$49, and
+  its feature list replaced seed-code's fabricated Stack D/E claims (multi-model AI chat, quad-RAG,
+  a live market-comments feed — Phase 12/13 work, not built) with the real V8 entitlements. Flagged
+  as a candidate lesson for the Advisor's attention — `LESSONS-LEARNED.md` is at its 40-entry cap,
+  needs a consolidation pass before a 41st entry can be added; full candidate text in the order's
+  own Deviation 11.
+  **`components/chat-widget/*`'s Phase-14 deferral (decided at 9-1) reached further than that
+  order anticipated:** seed-code's `/help` page and `landing-hero.tsx` both call
+  `useSupportChat()` with no provider in the tree — neither ported as-is; `/help` gets a second
+  real `mailto:` channel instead, the landing hero drops its chat-wired "Support Centre" sandbox
+  entirely.
+  **Account-deletion pages restyled, safety-critical logic untouched:** both pages already
+  correctly implemented Decision 5's human-in-the-loop requirement before this session (predates
+  the order); seed-code's own confirm page auto-executes the deletion in a `useEffect` on mount
+  with zero confirmation step — explicitly not ported. Live-verified: confirm page fires ZERO
+  `deletion-confirm` calls until clicked.
+  **A real, pre-existing a11y gap found and fixed while porting `/docs`:** seed-code's expand/
+  collapse toggle was a bare `<div onClick>` with an icon-only nested `<button>` (invalid HTML,
+  button-in-button) and no `aria-expanded` at all. Converted to a real `<button aria-expanded>`.
+  **Route-manifest diff clean:** `git diff --stat` across every commit this session touches only
+  the 14 rows' own page files plus their non-route component/asset dependencies — zero pages
+  created or dropped outside scope.
+  **A genuine test regression found and fixed at Step 6, not just discovered and left:**
+  `__tests__/pages/marketing/public-pages.test.tsx` (Session 6-10, written against the old
+  "Trading Alerts" copy) broke on every one of its 10 content-bearing assertions once this
+  session's rebrand landed, plus two mocking gaps this session's own new code exposed
+  (`MarketingNavbar` needs `usePathname`, `StatusRefreshButton` needs `useRouter`+`useLocale`/
+  `LocaleProvider`) — rewritten in full per `LESSONS-LEARNED.md` L3's "test:ci must never go
+  backwards" rule and 9-1's own identical precedent; same 13 tests, same file, all green.
+  **All test baselines re-verified live, all green, exact match to 9-1's own close:** monolith
+  `tsc` clean, `eslint` 0 errors/5 warnings (pre-existing, none in touched files), `test:ci`
+  160/160 suites/2400/2400 tests; money-service 62/62 suites/526/526 tests (one known
+  `prisma.shutdown.spec.ts` SIGTERM flake — same one documented at 9-0's own CONFIRM,
+  money-service untouched this session, reproduced clean in isolation); operation-service 42/42
+  suites/393/393 tests.
+  **Live-verified via dev server, not just `tsc`/`test:ci`:** all 14 routes smoke-tested — single
+  `<header>`/`<footer>` each, correct content, zero console errors; `/status`'s refresh button
+  triggers a genuine `router.refresh()` server round-trip (`SELECT 1` re-ran); the account-deletion
+  cancel page's real dual-mode auto-fire POSTs and fails gracefully to a styled error state only
+  because `operation-service` isn't running in local dev (`ECONNREFUSED`, not a page defect).
+  **Artifacts updated:** `9-2-marketing-public-pages.migration-order.md` (Status → CONFIRMED →
+  CLOSED SUCCESSFUL, 11 Deviations + checked Done-when/entry-criteria boxes), `frontend-swap-
+route-map.md` (§3 dated addendum for rows 3-4), `migration-stack-analysis.md` (Session 9-2 entry,
+  7 new files/15 modified/1 deleted, all FRONTEND), `LESSONS-LEARNED.md` (L3 recurrence bump to
+  21st+; candidate lesson flagged, not written — file at 40-entry cap), this file (Current/Previous
+  rotation — Session 9-0 moved to `history/sessions-archive.md`). `migration-cutover-table.md`
+  correctly needs no changes (Phase 9 is additive builds, no route/slice moved).
+- **Previous:** Session 9-1 (Root Shell & Design System, Phase 9, UI-BUILD), CONFIRMED, executed,
   **CLOSED SUCCESSFUL** 2026-08-22. Second session of Phase 9 — every subsequent Phase 9 session
   (9-2…9-9) renders inside the root shell, design tokens, headers, sidebars, and providers landed
   here. Closes rows 92/93 of `frontend-swap-route-map.md` plus gap-inventory items 1, 2, 5, 6a-6e,
@@ -97,85 +171,6 @@
   needs a consolidation pass first), this file (Current/Previous rotation — Session 4A-15 moved to
   `history/sessions-archive.md`). `migration-cutover-table.md` correctly needs no changes (Phase 9
   is additive builds, no route/slice moved).
-- **Previous:** Session 9-0 (Frontend Swap Contract & Decisions, Phase 9, CONTRACT, no code),
-  CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-22. First session of Phase 9 — resolves
-  `DECISION-LOG.md` **F65** (BFF boundary, ⚠ NEEDS EXPLICIT SIGN-OFF) and **F66** (swap mechanism
-  - brand scope, ⚠ NEEDS EXPLICIT SIGN-OFF on live Stripe catalog).
-    **CONFIRM found the by-now-familiar L3 pattern again** (19th+ recurrence): committed HEAD held
-    only the bare PRE-DRAFT stub; working copy carried the full Advisor DRAFT→APPROVED upgrade plus
-    4 consistent companion-doc edits (`MASTER-ROADMAP-PHASES-7-15.md` adding 4A-16/F76,
-    `SESSION-PROMPT-SCRIPT.md`, the session playbook, the antigravity `.xlsx` handbook). Davin
-    confirmed live it was his authentic edit before any of it was trusted.
-    **CONFIRM surfaced two items needing Davin's live word before execution, both resolved same
-    session:** (1) Waiting-on #117 (no test credentials) — Davin scoped 9-0 to proceed as a design
-    contract across all 5 roles + NON-LOGIN, with live authenticated click-through becoming an
-    active requirement starting Session 9-3, not 9-0. (2) `seed-code/` drift beyond the order's own
-    claim (`payouts/page.tsx` + `statements/page.tsx` carry a CSV-download DOM refactor and rebrand
-    copy beyond the claimed F38 fee-bearer-only scope) — Davin confirmed both are his own intentional
-    in-progress edits; kept as-is, `seed-code/**` treated as settled source of truth.
-    **All three test baselines re-verified live, all green, exact match to 4A-15's own closing
-    numbers:** monolith `tsc` clean; `eslint` (run directly, see finding below) 0 errors/5 warnings;
-    `test:ci` 160/160 suites/2400/2400 tests. money-service 62/62 suites/526/526 tests (one transient
-    timeout on the `prisma.shutdown.spec.ts` SIGTERM test on the first full run — reproduced clean
-    in isolation and on a fresh full re-run; resource-contention flake, not a regression). operation-
-    service 42/42 suites/393/393 tests.
-    **Two real environment findings, neither pre-existing-knowledge, both disclosed rather than
-    silently worked around:** `npm run eslint` doesn't exist in `package.json` (only `lint`/
-    `lint:fix`) — order-text bug, worked around with `npx eslint` directly. More seriously,
-    **`next lint` has been removed entirely from this Next.js version's CLI** (`next --help` lists
-    no `lint` subcommand), so `npm run lint`/`next lint` both fail outright — new
-    `LESSONS-LEARNED.md` **L38**; `package.json`'s `lint`/`lint:fix` scripts need fixing in a future
-    session, not this one (out of a CONTRACT/no-code session's scope).
-    **Execution produced `docs/migration-orders/frontend-swap-route-map.md`** — all 97 census rows
-    mapped in both directions (zero unmapped), each naming its target layout boundary, session
-    owner, real backing endpoint (or an explicit GAP where none exists yet), auth gate, tier gate,
-    and S/M/L effort. **Two real backend gaps found and disclosed, not fabricated around:**
-    `/affiliate/dashboard/payouts` and `/statements` (9-7b) have no self-service backing endpoint at
-    all — only admin-side `/api/disbursement/*` exists; `/admin/system/jobs` and `/admin/system/
-outbox` (9-8a) have no list/GET route, only `/[jobId]/trigger` and `/retry` action sub-routes.
-    Both flagged in the route-map's own gap inventory as work Sessions 9-7b/9-8a must build, not
-    just bind. **One inherited-claim correction:** `middleware.ts` is NOT a no-op as the roadmap's
-    Batch-0 findings describe it — live read shows real country-prefix URL-rewrite + locale-cookie
-    logic; what it genuinely lacks is auth/session gating only. **One stale-citation correction:**
-    the census's row 26 (`admin/login`) and row 86 (`test-api`) both cite codebase-1 source paths
-    that no longer exist on disk (`app/admin` is fully gone per F62's Session 6-2 merge, not just
-    `admin/login`; `test-api` confirmed deleted at Session 6-12) — dispositions unchanged (retire
-    both), just corrected the evidence trail. Session-sizing table confirms the roadmap's own flags
-    that 9-4, 9-7b and 9-8 are likely over the ~4h split threshold, and adds the concrete reason for
-    9-7b/9-8a specifically (a real backend gap to build, not just page count).
-    **Docs-reorg residual (Step 6) was already resolved before this session touched anything** —
-    `git status docs/` showed zero untracked files/deletions; the roadmap §5-cited items no longer
-    exist in the working tree.
-    **Artifacts updated:** `9-0-frontend-swap-contract-decisions.migration-order.md` (Status →
-    CONFIRMED, executed — Deviations to be filled at formal CLOSE), `DECISION-LOG.md` (F65 RESOLVED,
-    F66 RESOLVED, both full detail inline — register table + dedicated entries), `frontend-swap-
-route-map.md` (new — the phase's binding contract), `LESSONS-LEARNED.md` (L38), this file
-    (Current/Previous rotation — Session 4A-14 moved to `history/sessions-archive.md`).
-    `migration-cutover-table.md` and `migration-stack-analysis.md` were reviewed and correctly
-    need no changes (no route/slice moved, no files created/moved/deleted — only doc files were
-    added under `docs/migration-orders/`, which isn't a stack-analysis entry).
-    **Session-close pass (same day, 2026-08-22): `9-1-root-shell-design-system.migration-
-order.md` PRE-DRAFTed.** Grounded in `frontend-swap-route-map.md` plus a full read of
-    `codebase-2-parity-audit/batch-0-shared-shell.md` (not just its citation) — surfaced two real
-    corrections to this session's own route map, amended directly rather than left stranded in
-    9-1's order alone: **(1)** a "6 Protected pages" constraint (`/`, `/terminal`, `/free`,
-    `/dashboard`, `/settings/appearance`, `/settings/help` — Davin, live, 2026-08-17) that nothing
-    in Phase 9 planning had surfaced before now, since every one of them renders through
-    `AppHeader`/`ChatSidebar`, which 9-1 is about to build; **(2)** the route map's own gap-6e
-    entry ("distributed — each session fixes its own files") was wrong — the 38-file
-    hardcoded-dark-mode bug's root files render on 5 of the 6 Protected pages, so no downstream
-    session can fix "its own files" in isolation; 9-1 owns it. **A third, independent finding**:
-    the monolith is pinned to `tailwindcss@^3.3.0` (classic config file) while codebase 2 is on
-    `tailwindcss@^4.1.9` (CSS-first, no config file) — a real version decision nothing in Phase 9
-    planning names. All three carried into 9-1's PRE-DRAFT as Open Questions 1-3 (left for the
-    Advisor/Davin, per PD1 — not decided by the Executor at PRE-DRAFT) and amended into
-    `frontend-swap-route-map.md` §3/§5 with dated addenda. New `LESSONS-LEARNED.md` **L39** on the
-    underlying pattern (citing a source secondhand vs. reading it in full).
-    **Artifacts updated (this pass):** `frontend-swap-route-map.md` (§3 items 6-8, §5 gap-6e/gap-10
-    correction), `9-0-…migration-order.md` (Deviation 10), `LESSONS-LEARNED.md` (L39),
-    `9-1-root-shell-design-system.migration-order.md` (new, Status: PRE-DRAFT).
-    **Committed and pushed to `origin/main`** at Davin's explicit request — see git log for exact
-    commit(s).
 
 ## Key documents
 

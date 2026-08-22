@@ -3581,7 +3581,60 @@ so unlike Phase 7's split above there's no CORE/BUSINESS FUNCTION categorization
 
 </details>
 
+<details>
+<summary>Session 9-2 (`(marketing)` 12 + `(public)` 2, UI-BUILD) — 7 new files, 15 modified, 1 deleted, all FRONTEND</summary>
+
+All 14 route-map rows (1-2, 3-4, 52-54, 63-64, 66, 69-70, 84-85, 91) shipped. Route-manifest diff
+confirmed: zero page files created or dropped beyond this session's own 14 rows.
+
+- **New — landing page composition** (`app/(marketing)/page.tsx`'s prior body,
+  `landing-content.tsx`, deleted — see below): `components/landing/ticker-tape.tsx`,
+  `components/landing/landing-hero.tsx`, `components/landing/landing-features.tsx`,
+  `components/landing/landing-pricing.tsx`. Ported from seed-code's separate `LandingNavbar`/
+  `LandingFooter`-wrapped composition, stripped of that inner chrome (the shared
+  `(marketing)/layout.tsx` already renders `MarketingNavbar`/`MarketingFooter` once — Decision 3)
+  and of seed-code's `useSupportChat()`-wired "Support Centre" input sandbox (`components/
+chat-widget/*` deferred to Phase 14 at Session 9-1's own close). `landing-pricing.tsx` grafts
+  the main repo's real `useAffiliateConfig()`/`SystemConfig`-backed discount banner + dynamic PRO
+  price onto seed-code's hardcoded static figure, per Davin's live call at CONFIRM.
+- **New — status refresh:** `components/marketing/status-refresh-button.tsx` — a client island
+  that calls `router.refresh()` on the force-dynamic `/status` page, giving the "Refresh Status"
+  button a real telemetry reload instead of seed-code's fake timed spinner.
+- **New — brand asset:** `public/davintrade-landing-page_home.png` (10.3 MB) — referenced by
+  seed-code's `landing-hero.tsx` but never copied into `public/` by any prior session; copied
+  as-is (no re-compression, out of this session's scope).
+- **Modified — 9 static pages:** `app/(marketing)/{about,blog,careers,changelog,disclaimer,
+docs,help,privacy,terms}/page.tsx` — content ported from seed-code, DavinTrade branding, inner
+  `MarketingNavbar`/`MarketingFooter` JSX stripped per Decision 3. `/help` additionally drops
+  seed-code's `useSupportChat()` "Live AI Support" card (same Phase-14 deferral as the landing
+  hero), replaced with a second real `mailto:` channel.
+- **Modified — real-data pages:** `app/(marketing)/status/page.tsx` (seed-code's visual layout,
+  bound to the real 4-component `getSystemStatus()` — API/Database/Realtime/Payment Gateways —
+  not seed-code's 6 fabricated components with hardcoded latency/uptime figures);
+  `app/(marketing)/pricing/page.tsx` + `components/pricing/tier-comparison.tsx` (seed-code's
+  card layout + billing toggle, bound to `lib/tier-config.ts`'s `PRO_MONTHLY_PRICE` via
+  `useLocale().formatCurrency` per Davin's explicit instruction; feature list replaced with the
+  real V8 entitlements — seed-code's own list advertised Phase 12/13 AI-chat/quad-RAG features
+  not built in this repo; annual-savings badge now computed, not a wrong hardcoded "20%").
+- **Modified — layout boundary:** `app/(marketing)/layout.tsx` — now renders `MarketingNavbar`/
+  `MarketingFooter` (built Session 9-1) instead of inline "Trading Alerts" chrome. This is the
+  one `layout.tsx` this session moves, per the order's own header.
+- **Modified — account deletion (restyled, logic preserved):** `app/(public)/settings/account/
+delete/{cancel,confirm}/page.tsx` — DavinTrade visuals only; the existing human-in-the-loop
+  confirm gate and dual-mode (token-or-session) cancel logic are unchanged. Seed-code's own
+  confirm page auto-executes the deletion in a `useEffect` on mount with no confirmation step —
+  explicitly NOT ported (Decision 5).
+- **Deleted:** `app/(marketing)/landing-content.tsx` (512 lines) — superseded by the
+  `components/landing/*` composition above; its own `useAffiliateConfig()`/`useSearchParams()`
+  wiring was carried forward into `landing-pricing.tsx`, not dropped.
+- **Docs (not stack-analysis targets, listed for completeness):** `frontend-swap-route-map.md`
+  (dated addendum correcting rows 3-4's stale target path), this session's own migration order
+  (CONFIRMED, Deviations filled).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-22 (Session 9-1, Root Shell & Design System — Phase 9 shell landed)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-22 (Session 9-2, `(marketing)` + `(public)` — 14
+route-map rows shipped)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
