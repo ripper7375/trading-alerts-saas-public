@@ -1,12 +1,12 @@
 {
-  "name": "Trading Alerts",
-  "short_name": "Trading Alerts",
-  "description": "Real-time trading alerts for Gold, Forex, Crypto, and Indices with advanced fractal analysis",
+  "name": "DavinTrade AI",
+  "short_name": "DavinTrade",
+  "description": "AI-powered trading analysis platform for Gold, Forex, Crypto, and Indices with advanced fractal analysis",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "theme_color": "#f59e0b",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -71,7 +71,7 @@
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Mobile view of Trading Alerts"
+      "label": "Mobile view of DavinTrade"
     }
   ],
   "categories": ["finance", "business", "productivity"],

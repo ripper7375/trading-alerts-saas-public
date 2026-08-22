@@ -91,19 +91,22 @@
   }
 
   /* Hybrid Appearance System — Accent Color Scheme overrides.
-     Set via a `data-accent` attribute (SSR-injected on the dashboard layout's
-     wrapper element in app/(dashboard)/layout.tsx — deliberately NOT <html>
-     in the root layout, since resolving it there would force cookies()/
-     headers() reads on every route in the app, including static marketing
-     pages that have no accent-dependent UI; kept in sync client-side by
-     components/providers/appearance-provider.tsx, which does still apply it
-     to <html> for instant reactive feedback). Plain attribute selectors (not
-     :root-scoped) so this works whether data-accent ends up on <html> or on
-     a nested element — CSS custom properties cascade to descendants either
-     way. Only --primary/--primary-foreground/--ring move; --accent/
-     --accent-foreground stay untouched (that pair is the separate shadcn
-     hover-surface token, not this "accent color scheme" feature — see the
-     Contrast & Hover Safety note below for why that distinction matters).
+     Set via a `data-accent` attribute, SSR-injected on <html> itself in the
+     root layout (app/layout.tsx, Session 9-1) from getServerAppearance()'s
+     resolved value. That layout already calls cookies()/headers() for the
+     locale/session resolution codebase 2's shell requires, so the whole app
+     is dynamically rendered regardless of where data-accent lives -- the
+     prior placement on a nested dashboard wrapper (to avoid forcing dynamic
+     rendering on static marketing pages) is no longer load-bearing; kept in
+     sync client-side by components/providers/appearance-provider.tsx, which
+     applies it to <html> too for instant reactive feedback. Plain attribute
+     selectors (not :root-scoped) so this still works if a future session
+     ever re-scopes data-accent to a nested element -- CSS custom properties
+     cascade to descendants either way. Only --primary/--primary-foreground/
+     --ring move; --accent/--accent-foreground stay untouched (that pair is
+     the separate shadcn hover-surface token, not this "accent color scheme"
+     feature — see the Contrast & Hover Safety note below for why that
+     distinction matters).
      Values are oklch approximations of Tailwind's amber/emerald/blue/violet
      -500 (dark mode) and -600 (light mode, for AA contrast against a white
      background) swatches. Amber gets a dark --primary-foreground: white text
