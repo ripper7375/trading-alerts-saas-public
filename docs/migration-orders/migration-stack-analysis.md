@@ -3734,8 +3734,49 @@ terminal,free}/layout.tsx` — each a thin auth-gate + `AppearanceProvider` wrap
 
 </details>
 
+<details>
+<summary>Session 9-5 (`settings/` 11, UI-BUILD) — 13 new files, 0 modified outside test imports, 13 deleted, all FRONTEND</summary>
+
+All 11 route-map rows (73–83) shipped under one new top-level layout boundary,
+`app/settings/layout.tsx`. Route-manifest diff confirmed clean via `git diff --stat` against the
+session's own start commit: `app/(dashboard)/layout.tsx` and `app/(dashboard)/admin/*` show zero
+diff; exactly the 11 rows' own files (mostly detected as git renames) plus the new layout/nav pair
+and 5 test-import fixes.
+
+- **New — layout + shared nav:** `app/settings/layout.tsx` (auth gate + `AppearanceProvider` +
+  `AppHeader` + shared sub-nav, mounted once — unlike 9-4's per-page `AppHeader` pattern, these 11
+  sibling pages genuinely share one shell), `app/settings/_components/settings-nav.tsx` (desktop
+  sticky sidebar / mobile horizontal tabs, both always in the DOM per standard Tailwind responsive
+  pattern — not a duplicate-render bug), `app/settings/loading.tsx` (retheme of the legacy
+  skeleton).
+- **New — 11 pages, retheme-only ports preserving all real data logic:** `app/settings/{page,
+profile,appearance,help,language,privacy,terms,security/page,security/activity/page}.tsx`,
+  `app/settings/account/{page,account-settings-client}.tsx`, `app/settings/billing/page.tsx`. Two
+  pages needed more than a retheme: `appearance` (Protected #5) ported near-verbatim from the
+  already-DavinTrade-quality legacy version; `help` (Protected #6) ported from seed-code's visual
+  design with its chat-widget CTA and fake ticket-submit swapped for real `mailto:` actions
+  (Deviation 4 — no chat widget or support-ticket API exists in this repo).
+- **Deleted — legacy `app/(dashboard)/settings/*`, all 13 files:** superseded by the top-level
+  move; `app/(dashboard)/layout.tsx` (still serving `/admin/*` until 9-8) untouched.
+- **Modified — test infrastructure (import-path fix only, zero assertion changes):**
+  `__tests__/pages/settings/{account-settings-page,billing,overview,security-activity,
+security-login-history-pagination}.test.tsx` — `@/app/(dashboard)/settings/*` → `@/app/settings/*`.
+- **Known unchanged dead code, confirmed not touched:** `components/billing/subscription-card.tsx`
+  — still unmounted, still carrying F64's original bug; the real live billing page never used it
+  (Deviation 1).
+- **Known unresolved defects, not stack-analysis artifacts but material to this entry:**
+  `DECISION-LOG.md` F21 (backend email/cron stubs, UI now wired) and F64 (billing cancel UI wired,
+  reactivation deferred to 9-6), both still OPEN; F77 addendum (same double-render class confirmed
+  on `/settings/appearance` and `/login`, likely root-caused to a Suspense-streaming reveal-div
+  artifact, confirmed benign).
+- **Docs (not stack-analysis targets, listed for completeness):** this session's own migration
+  order (CONFIRMED → CLOSED SUCCESSFUL, 7 Deviations filled), `DECISION-LOG.md` (F21/F64 updated,
+  F77 addendum).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-22 (Session 9-4, `(dashboard)` core + `/terminal` +
-`/free` — 8 active route-map rows shipped, 2 retired)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-22 (Session 9-5, `settings/` 11 — all 11 route-map
+rows shipped)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

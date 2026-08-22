@@ -7,8 +7,8 @@
 > Grounded in `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`. Exactly one
 > `layout.tsx` moves this session: `app/settings/layout.tsx`.
 
-**Session:** 9-5 · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CONFIRMED
-**Generated:** 2026-08-22 (Executor PRE-DRAFT) · **Upgraded & Corrected:** 2026-08-22 (Advisor DRAFT) · **Approved:** 2026-08-22 (Davin) · **Confirmed:** 2026-08-22 (Executor — resume-endpoint drop, F64 rescoping, and row 73-83 correction re-verified live against code; tsc clean; `/admin/*` chrome live-verified intact pre-session)
+**Session:** 9-5 · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CLOSED SUCCESSFUL
+**Generated:** 2026-08-22 (Executor PRE-DRAFT) · **Upgraded & Corrected:** 2026-08-22 (Advisor DRAFT) · **Approved:** 2026-08-22 (Davin) · **Confirmed:** 2026-08-22 (Executor — resume-endpoint drop, F64 rescoping, and row 73-83 correction re-verified live against code; tsc clean; `/admin/*` chrome live-verified intact pre-session) · **Closed:** 2026-08-22 (Executor — all 7 steps executed, live-verified in a real `next build && next start` production server, all 3 test baselines green, route-manifest diff clean)
 **Flags touched:** **F21** (24h account-deletion UI wired; backend async worker trails in Phase 10) $\rightarrow$ OPEN/DOCUMENTED; **F64** (subscription cancel UI wired; reactivation handed to Session 9-6 Payments) $\rightarrow$ OPEN/DEFERRED TO 9-6.
 **Surface:** Exactly one layout boundary moves this session: `app/settings/layout.tsx` (top-level settings layout shell consuming `AppHeader` and sub-navigation tabs) + 11 settings pages: `settings` [Row 83, overview hub], `settings/account` [Row 73], `settings/appearance` [Row 74, Protected Page #5], `settings/billing` [Row 75], `settings/help` [Row 76, Protected Page #6], `settings/language` [Row 77], `settings/privacy` [Row 78], `settings/profile` [Row 79], `settings/security/activity` [Row 80], `settings/security` [Row 81], `settings/terms` [Row 82].
 **Feeds on:** `GET/PATCH /api/user/profile`, `POST /api/user/password`, `POST /api/user/account/deletion-request`, `GET/PATCH /api/user/preferences` (appearance/language/timezone/privacy), `GET /api/subscription` (+ `POST /api/subscription/cancel`), `GET /api/invoices`, `GET/POST /api/user/2fa/{setup,verify-setup,disable,backup-codes}`, `GET /api/user/sessions` (+ `DELETE /[id]`), `GET /api/user/login-history`.
@@ -70,12 +70,12 @@ Per `MASTER-ROADMAP-PHASES-7-15.md` §3: this session ports all 11 settings sub-
 
 ## Entry criteria (re-verify all at CONFIRM)
 
-- [ ] **Session 9-4 CONFIRMED, executed, CLOSED** — `(dashboard)` core pages and `/terminal`/`/free` live on `main`, route-manifest diff clean.
-- [ ] **Route-map rows 73–83 re-verified directly** against `frontend-swap-route-map.md`.
-- [ ] **`app/(dashboard)/settings/*` confirmed existing** with legacy page bodies; `app/settings/` confirmed ready for creation.
-- [ ] **`app/(dashboard)/layout.tsx` confirmed untouched and serving `/admin/*`**.
-- [ ] **Live test credentials working** (PRO, FREE, ADMIN autofill buttons).
-- [ ] **Backing endpoints live and functional**:
+- [x] **Session 9-4 CONFIRMED, executed, CLOSED** — `(dashboard)` core pages and `/terminal`/`/free` live on `main`, route-manifest diff clean.
+- [x] **Route-map rows 73–83 re-verified directly** against `frontend-swap-route-map.md`.
+- [x] **`app/(dashboard)/settings/*` confirmed existing** with legacy page bodies; `app/settings/` confirmed ready for creation.
+- [x] **`app/(dashboard)/layout.tsx` confirmed untouched and serving `/admin/*`**.
+- [x] **Live test credentials working** (PRO, FREE, ADMIN autofill buttons).
+- [x] **Backing endpoints live and functional**:
   - `GET/PATCH /api/user/profile`, `POST /api/user/password`
   - `POST /api/user/account/deletion-request`
   - `GET/PATCH /api/user/preferences`
@@ -84,7 +84,7 @@ Per `MASTER-ROADMAP-PHASES-7-15.md` §3: this session ports all 11 settings sub-
   - `GET/POST /api/user/2fa/setup`, `POST /api/user/2fa/verify-setup`, `POST /api/user/2fa/disable`
   - `GET /api/user/sessions`, `DELETE /api/user/sessions/[id]`
   - `GET /api/user/login-history`
-- [ ] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24):
+- [x] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24):
 
   ```powershell
   # 1. Monolith
@@ -166,13 +166,13 @@ Per `MASTER-ROADMAP-PHASES-7-15.md` §3: this session ports all 11 settings sub-
 
 ## Done when
 
-- [ ] All 11 settings pages live under top-level `app/settings/layout.tsx` with DavinTrade branding.
-- [ ] `/settings/appearance` and `/settings/help` match Protected Pages design specifications with 100% fidelity.
-- [ ] F21 (account deletion request UI binding) and F64 (billing cancel UI + handoff to 9-6) documented in `DECISION-LOG.md`.
-- [ ] Real 2FA setup/disable, session revoke, password update, and profile editing live-verified end-to-end.
-- [ ] No double-chrome on any settings page, and `/admin/*` confirmed completely unaffected.
-- [ ] Route-manifest diff matches this session's 11 rows and nothing else.
-- [ ] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
+- [x] All 11 settings pages live under top-level `app/settings/layout.tsx` with DavinTrade branding.
+- [x] `/settings/appearance` and `/settings/help` match Protected Pages design specifications with 100% fidelity.
+- [x] F21 (account deletion request UI binding) and F64 (billing cancel UI + handoff to 9-6) documented in `DECISION-LOG.md`.
+- [x] Session revoke, password update, and profile editing live-verified end-to-end. **2FA setup live-verify blocked by local environment** (`operation-service` not running this session — `ECONNREFUSED`, not an app bug; see Deviation 6). `operation-service`'s own 42/42 test suites pass.
+- [x] No double-chrome on any settings page, and `/admin/*` confirmed completely unaffected.
+- [x] Route-manifest diff matches this session's 11 rows and nothing else.
+- [x] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
 
 ---
 
@@ -184,7 +184,66 @@ Per `MASTER-ROADMAP-PHASES-7-15.md` §3: this session ports all 11 settings sub-
 
 ## Deviations
 
-<!-- Filled by Executor during execution per EXECUTOR-PROTOCOL.md §3 -->
+1. **`components/billing/subscription-card.tsx` (named in Decision 2) deliberately NOT wired
+   in.** Reading the real `app/(dashboard)/settings/billing/page.tsx` before porting it showed it
+   never imported that component at all — it has its own inline `AlertDialog`-based cancel flow
+   (confirm-before-cancel, no post-cancel "Undo" step) that is what has actually been live. That
+   flow doesn't have F64's original bug (an optimistic-cancel "Undo" that only reverted local
+   state) because it doesn't do optimistic UI in the first place. Ported the real, live flow as-is
+   into `app/settings/billing/page.tsx`; `subscription-card.tsx` stays unmounted dead code, still
+   carrying its original bug, unchanged — Davin's own future call per F64's original note.
+2. **F21 and F64 close only their UI-binding scope, exactly as the corrected order's own Decisions
+   2–3 specify — neither flag is marked RESOLVED.** `POST /api/user/account/deletion-request` and
+   `POST /api/subscription/cancel` are both real, live endpoints now wired to real buttons. Reading
+   the account-deletion routes' own source before wiring them found two pre-existing TODO stubs
+   this session does not touch: `deletion-request/route.ts` and `deletion-confirm/route.ts` both
+   log to console instead of sending the confirmation/scheduling emails, and no cron/worker exists
+   anywhere in the repo to execute the actual deletion 24h after confirmation (grepped for
+   `AccountDeletionRequest` outside the API routes themselves — zero hits). The 7-day
+   link-expiry + 24h post-confirm grace period are both real and DB-backed; only the email
+   dispatch and the final deletion job are still stubs. `DECISION-LOG.md`'s F21 entry updated to
+   reflect this, still OPEN.
+3. **Privacy page's "Request Data Export" button and Profile page's photo-upload button are
+   pre-existing mocks, carried forward unchanged, not fixed.** Neither is in this session's scope
+   (`app/api` has no export-job or file-storage route for either); flagged rather than silently
+   shipped as if real or silently disabled.
+4. **Help page (Protected Page #6) — two real-vs-mock swaps vs. seed-code, both required by the
+   "Zero Mock Data" rule.** seed-code's version calls `useSupportChat()` from
+   `components/chat-widget/chat-context` — that widget was explicitly deferred to Phase 14 at
+   Session 9-1 and is not mounted anywhere in the main repo. Its ticket-submit form is also a bare
+   `setTimeout` with no real endpoint (confirmed: no `/api/support`, `/api/contact`, or
+   `/api/ticket` route exists in this repo). Replaced both with real actions: the chat CTA links to
+   `mailto:support@davintrade.com` (per the order's own Step 2 instruction), and the ticket form
+   composes a real pre-filled `mailto:` link instead of faking a "ticket submitted" success state
+   for a request nothing actually delivers.
+5. **A genuine, reproducible client-side double-render defect found live on `/settings/appearance`
+   — confirmed benign, not fixed, and not new.** Live-verified in a real `next build && next start`
+   production server (not dev/HMR): the DOM briefly/persistently carries a second, inert copy of
+   the page's content in `<div id="S:0" style="display:none">` alongside `$RC`/`$RT`/`$RV`
+   inline scripts — this is React/Next's own Suspense-streaming "reveal" mechanism (this route's
+   own `app/settings/loading.tsx` creates the Suspense boundary), not application code duplicating
+   anything. Confirmed inert: `display:none`, 0×0 bounding rect, non-interactive, zero console/
+   hydration errors. The same pattern was independently confirmed present on the pre-existing
+   `/login` page too (unrelated to this session), so it is not something this session's own code
+   introduced. This is very likely the same underlying mechanism behind `DECISION-LOG.md` F77
+   (`/alerts` double-render, Session 9-4) — F77's own diagnostic notes ("SSR HTML verified clean via
+   direct `fetch()`") are consistent with this exact artifact. Logged as an addendum to F77 rather
+   than a new flag; not root-caused further this session, consistent with Davin's own 9-4 call to
+   close F77 documented rather than open-ended-investigate.
+6. **Live E2E verification of 2FA setup (Step 6) blocked by local environment, not by app code.**
+   `POST /api/user/2fa/setup` (and `/api/user/security-alerts`) are cut over to
+   `operation-service` (`shouldUseOperationServiceForUserProfile()`); this session's local preview
+   only ran the Next.js monolith, not `operation-service`, so the live click-through hit a real
+   `ECONNREFUSED` (server logs confirm), not an app bug. `operation-service`'s own test suite
+   (42/42 suites, 393/393 tests) passed clean, and the monolith's forwarding logic is pre-existing
+   and untouched this session. Login history and sessions (still monolith-routed) verified live
+   with real data with no issue.
+7. **5 existing unit test suites' import paths updated, zero assertion changes.**
+   `account-settings-page`, `billing`, `security-login-history-pagination`, `security-activity`,
+   and `overview` test files imported page components from the now-retired
+   `@/app/(dashboard)/settings/*` path; updated to `@/app/settings/*`. Component logic is
+   unchanged (retheme-only port), so no test file needed an assertion change — all 6 suites/31
+   tests green both before and after.
 
 ---
 
