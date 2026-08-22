@@ -2,83 +2,75 @@
 
 import Link from 'next/link';
 import { useEffect } from 'react';
+import { AlertOctagon, RefreshCw, Home } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
   reset: () => void;
 }
 
+/**
+ * Route-segment error boundary (Next.js App Router convention) — catches
+ * exceptions thrown inside `app/layout.tsx`'s tree, unlike `app/global-error.tsx`
+ * which only catches throws from the root layout itself. Unlike global-error,
+ * this file renders inside the normal provider tree, so it uses semantic design
+ * tokens (theme/accent-reactive) rather than hardcoded colors.
+ */
 export default function Error({
   error,
   reset,
 }: ErrorPageProps): React.ReactElement {
   useEffect(() => {
-    // Log the error to an error reporting service
     console.error('Application error:', error);
   }, [error]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-      <div className="text-center">
-        {/* Error icon */}
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-          <svg
-            className="h-8 w-8 text-destructive"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            />
-          </svg>
-        </div>
+      <Card className="border-destructive/30 w-full max-w-md text-center">
+        <CardContent className="flex flex-col items-center p-8">
+          <div className="border-destructive/40 bg-destructive/10 mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border text-destructive">
+            <AlertOctagon className="h-8 w-8" aria-hidden="true" />
+          </div>
 
-        {/* Error message */}
-        <h1 className="mb-2 text-2xl font-bold text-foreground">
-          Something went wrong
-        </h1>
-        <p className="mb-6 text-muted-foreground">
-          {error.message || 'An unexpected error occurred. Please try again.'}
-        </p>
-
-        {/* Error digest (for debugging) */}
-        {error.digest && (
-          <p className="mb-6 text-xs text-muted-foreground">
-            Error ID: {error.digest}
+          <h1 className="mb-2 text-2xl font-bold text-foreground">
+            Something went wrong
+          </h1>
+          <p className="mb-6 text-muted-foreground">
+            {error.message || 'An unexpected error occurred. Please try again.'}
           </p>
-        )}
 
-        {/* Action buttons */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <button
-            onClick={reset}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-          >
-            Try again
-          </button>
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            Go to Homepage
-          </Link>
-        </div>
+          {error.digest && (
+            <p className="mb-6 font-mono text-xs text-muted-foreground">
+              Error ID: {error.digest}
+            </p>
+          )}
 
-        {/* Help text */}
-        <p className="mt-8 text-sm text-muted-foreground">
-          If the problem persists, please{' '}
-          <a
-            href="mailto:support@tradingalerts.com"
-            className="text-primary underline underline-offset-4 hover:text-primary/80"
-          >
-            contact support
-          </a>
-        </p>
-      </div>
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
+            <Button onClick={reset} className="w-full sm:w-auto">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Try again
+            </Button>
+            <Link href="/" className="w-full sm:w-auto">
+              <Button variant="outline" className="w-full">
+                <Home className="mr-2 h-4 w-4" />
+                Go to Homepage
+              </Button>
+            </Link>
+          </div>
+
+          <p className="mt-8 text-sm text-muted-foreground">
+            If the problem persists, please{' '}
+            <a
+              href="mailto:support@davintrade.com"
+              className="hover:text-primary/80 text-primary underline underline-offset-4"
+            >
+              contact support
+            </a>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
