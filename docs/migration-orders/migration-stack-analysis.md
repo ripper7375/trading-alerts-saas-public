@@ -3633,8 +3633,50 @@ delete/{cancel,confirm}/page.tsx` — DavinTrade visuals only; the existing huma
 
 </details>
 
+<details>
+<summary>Session 9-3 (`(auth)` 7 + `welcome`, UI-BUILD) — 1 new file, 16 modified, all FRONTEND</summary>
+
+All 8 route-map rows (65, 67, 71, 72, 88, 89, 90, 95) shipped. Route-manifest diff confirmed: only
+`app/(auth)/welcome/` is a new route; zero pages created or dropped beyond this session's own 8 rows.
+
+- **New — onboarding page:** `app/(auth)/welcome/page.tsx` — the 3-step post-registration flow
+  (feature intro, real `useAppearance()` accent picker with a persisted `saveSettings()` call,
+  workspace launcher). Feature-intro copy replaced seed-code's fabricated Phase-14 chat-widget
+  claim with two capabilities live today (price alerts, drawing tools/line alerts). Session-gated
+  client-side via `useSession()` (soft redirect to `/login`, not a server-side hard gate), per
+  Decision 1.
+- **Modified — layout boundary:** `app/(auth)/layout.tsx` — DavinTrade logo header + ambient amber
+  backdrop, built from scratch (seed-code has no `(auth)/layout.tsx` of its own). This is the one
+  `layout.tsx` this session moves, per the order's own header.
+- **Modified — real form components:** `components/auth/{login-form,register-form,
+social-auth-buttons}.tsx` — DavinTrade visuals + `useLocale()` translations layered onto each
+  component's existing real logic (NextAuth `signIn()`, auth-bridge `token-login`/`token-register`
+  fetch branching, referral-code verification, quick-fill test credentials, OAuth provider
+  buttons). `social-auth-buttons.tsx` was already real (not mocked) in the main repo prior to this
+  session — confirmed by reading both trees directly, not inherited from the roadmap's citation.
+- **Modified — auth pages, real logic preserved or restored where seed-code was a mock:**
+  `app/(auth)/{login,register,forgot-password,reset-password,verify-2fa,verify-email,
+verify-email/pending}/page.tsx`. `verify-2fa` and `forgot-password` restyle the monolith's own
+  real implementations rather than porting seed-code's mock prototypes (seed-code's `verify-2fa`
+  never called `POST /api/user/2fa/verify`; its `forgot-password` never called any endpoint).
+  `reset-password` gained proper `htmlFor`/`id` label association (a real a11y gap in seed-code's
+  own markup, fixed). `verify-email`'s success state routes to `/login`, not seed-code's
+  `/welcome` — verification runs pre-session, and `/welcome` is `SESSION REQUIRED`.
+- **Modified — test infrastructure (regression fix, not new coverage):**
+  `__tests__/{app/auth-verify-2fa,app/auth-bridge-endpoint-swaps,components/auth/login-form,
+components/auth/register-form}.test.tsx` — wrapped renders in a real `LocaleProvider` (with a
+  `localStorage`-seeded `defaultPreferences` to skip its geo-IP fetch) and added the
+  `usePathname: () => '/'` stub it needs, after adding `useLocale()` to the components/pages above
+  broke all 4 suites (`LESSONS-LEARNED.md` L40's exact failure class, 3rd occurrence). Two
+  assertions updated to match this session's own real copy/a11y changes, not reverted.
+- **Docs (not stack-analysis targets, listed for completeness):** this session's own migration
+  order (CONFIRMED → CLOSED SUCCESSFUL, 11 Deviations filled), `LESSONS-LEARNED.md` (L40
+  recurrence note).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-22 (Session 9-2, `(marketing)` + `(public)` — 14
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-22 (Session 9-3, `(auth)` + `welcome` — 8
 route-map rows shipped)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

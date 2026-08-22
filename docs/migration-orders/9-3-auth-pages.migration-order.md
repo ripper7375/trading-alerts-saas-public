@@ -2,172 +2,163 @@
 
 > For sessions that **build or redesign frontend surfaces**: read `00-SKELETON-AND-RULES.md`
 > first — §4 applies with the dial at **High** for page-body content/layout, **Zero** on data
-> (every page binds to the endpoint its 9-0 row names). **PRE-DRAFTed by the Executor at Session
-> 9-2's close (2026-08-22)**, informed by `frontend-swap-route-map.md` and 9-2's own Deviations.
-> Per PD1, `Decisions taken` below is deliberately left as open questions with evidence, not
-> decisions — that's the Advisor's job at DRAFT.
+> (every page binds to the endpoint its 9-0 row names).
+> Upgraded to full **DRAFT** by Antigravity (Advisor & Architect), 2026-08-22.
+> Grounded in `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`. Exactly one
+> `layout.tsx` moves this session: `app/(auth)/layout.tsx`.
 
-**Session:** 9-3 · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD (dial HIGH
-for page bodies, ZERO on data) · **Status:** PRE-DRAFT
-**Generated:** 2026-08-22 (Executor, at Session 9-2's close) · **Flags touched:** none new
-**Surface:** `app/(auth)/{login,register,forgot-password,reset-password,verify-2fa,verify-email,
-verify-email/pending}/page.tsx` (7 pages, route group already exists, currently holds the OLD
-"Trading Alerts" page bodies) · `app/(auth)/welcome/page.tsx` (1 page — see Open Question 1 on
-whether `(auth)` is the right layout boundary) · `app/(auth)/layout.tsx` (the layout boundary
-this session moves — currently a bare, un-rebranded wrapper with no session-aware guard logic at
-all; see Open Question 2).
-**Feeds on:** NextAuth `/api/auth/[...nextauth]` (credentials + Google/Twitter OAuth providers,
-already live in production per `DECISION-LOG.md` **F56**, RESOLVED & EXECUTED Session 4B-21),
-`/api/auth/track-login`, `/api/auth/forgot-password`, `/api/auth/reset-password`,
-`/api/user/2fa/verify`, `/api/auth/resend-verification`, `/api/auth/verify-email`. Existing real
-form components: `components/auth/{login-form,register-form,social-auth-buttons}.tsx` (plus
-`login-tracker.tsx`, `token-refresh-provider.tsx` — no seed-code counterpart, not to be touched).
-
----
-
-## Why this session exists
-
-Per `MASTER-ROADMAP-PHASES-7-15.md` §3: this session binds to the real NextAuth bridge and OAuth
-providers — **it unblocks live authenticated testing for every Phase 9 session after it.**
-Waiting-on #117 (no test credentials) becomes an active requirement starting here, per Session
-9-0's own scoping (9-0 through 9-2 were explicitly allowed to proceed on NON-LOGIN/design-contract
-grounds; 9-3 is where that exemption ends). `frontend-swap-route-map.md` assigns this session 8
-rows (65, 67, 71, 72, 88, 89, 90, 95), all Medium effort, all `NON-LOGIN (pre-session)` auth gate.
+**Session:** 9-3 · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CLOSED SUCCESSFUL
+**Generated:** 2026-08-22 (Executor PRE-DRAFT) · **Upgraded:** 2026-08-22 (Advisor DRAFT) · **Approved:** 2026-08-22 (Davin) · **Confirmed:** 2026-08-22 (Executor — L3 authenticity re-verified live with Davin; full entry-criteria + sequential test baselines re-verified live: monolith tsc/eslint/test:ci 160/160-2400/2400, money-service 62/62-526/526, operation-service 42/42-393/393, all green)
+**Flags touched:** none new (`NEXT_PUBLIC_AUTH_BRIDGE_ENABLED` already live per `DECISION-LOG.md` **F56**)
+**Surface:** Exactly one layout boundary moves this session: `app/(auth)/layout.tsx` + 7 auth page bodies (`login`, `register`, `forgot-password`, `reset-password`, `verify-2fa`, `verify-email`, `verify-email/pending`) + 1 post-registration onboarding page (`welcome`).
+**Feeds on:** NextAuth `/api/auth/[...nextauth]` (credentials + Google/Twitter OAuth providers, live in production per F56), `POST /api/auth/token-login`, `POST /api/auth/track-login`, `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`, `POST /api/user/2fa/verify`, `POST /api/auth/resend-verification`, `GET /api/auth/verify-email`, `components/auth/{login-form,register-form,social-auth-buttons}.tsx`, `components/providers/appearance-provider.tsx`.
+**Estimated time:** ~3h - 3.5h (8 Medium-sized auth pages, standard UI-BUILD scope).
 
 ---
 
 ## Decisions taken
 
-<!-- Left as open questions with evidence, not decisions — PD1: the Advisor decides from
-     documents at DRAFT, not the Executor at PRE-DRAFT. -->
+1. **`/welcome` Layout Boundary & Onboarding Architecture (Resolution of Open Question 1)**
+   - **Decision:** Place `/welcome` at `app/(auth)/welcome/page.tsx` (URL: `/welcome`). Build `app/(auth)/layout.tsx` as a focused, elegant auth wrapper (DavinTrade top logo, radial ambient backdrop, responsive card container) with NO aggressive server-side session redirect that would obstruct post-registration onboarding.
+   - **What was rejected:** Creating a separate root-level layout or splitting `/welcome` into a separate route group.
+   - **Rationale:** Aligns directly with `frontend-swap-route-map.md` row 95. Keeping `/welcome` under `(auth)` unifies the onboarding funnel while sharing the styled auth shell.
+   - **Undo Cost:** Low.
 
-**Open Question 1 — is `(auth)/layout.tsx` the right home for `/welcome`, given live code shows
-no guard logic to fight in the first place?** The route-map's own §3 addendum (Session 9-0) flagged
-this as a judgment call needing revisit: `/welcome` is codebase 1's ticketed page (B2-13,
-Phase 6), placed under `(auth)/layout.tsx` "as the auth-funnel's terminal step" with the caveat
-"revisit if 9-3 finds the auth layout's own guard fights a post-registration/pre-dashboard state."
-Live `ls` this session shows `app/(auth)/welcome/` does not exist yet in the main repo (new page),
-and reading the CURRENT `app/(auth)/layout.tsx` in full shows it has **no session-aware guard at
-all** — no `getServerSession`, no redirect-if-authenticated, just a static centered-card wrapper.
-So the specific fight the route-map worried about doesn't exist in the code as it stands today —
-but that doesn't settle the question, because this session is about to REPLACE this layout file
-(seed-code has no `(auth)/layout.tsx` of its own at all — each of its 7 auth pages is
-self-contained, no shared wrapper — so the new layout is built from scratch, not ported line-for-
-line like 9-2's `(marketing)/layout.tsx` was). Whatever guard behavior the new layout gets (if
-any — e.g. redirecting an already-logged-in user away from `/login`) needs to be designed with
-`/welcome` in mind from the start, not discovered after the fact. Recommend deciding at DRAFT
-whether `/welcome` stays under `(auth)` or moves to a standalone root page, and if it stays,
-whether the new layout's own guard logic (if any is added) explicitly exempts it.
+2. **Preserve Real NextAuth & OAuth Bridge Semantics (Resolution of Open Question 2)**
+   - **Decision:** Port codebase 2's modern visual card design, gold/amber badge accents, and `useLocale()` translations into `components/auth/*` while strictly preserving the monolith's real NextAuth `signIn('credentials', ...)`, `signIn('google', ...)`, `signIn('twitter', ...)`, and `isAuthBridgeEnabled()` / `/api/auth/token-login` logic.
+   - **What was rejected:** Porting codebase 2's mock `setTimeout(...)` simulation logic from `seed-code/`.
+   - **Rationale:** Codebase 2's auth components were mock prototypes. The monolith already contains fully hardened, production-tested NextAuth and Auth-bridge handlers. Zero mock data is maintained.
+   - **Undo Cost:** High if regressed; zero with clean restyling.
 
-**Open Question 2 — `social-auth-buttons.tsx`'s "mocked" characterization needs re-verification,
-not inheritance.** The roadmap's own 9-3 scope line says "codebase 2's mocked
-`social-auth-buttons.tsx` becomes real" — but this PRE-DRAFT has not yet read either version's
-actual implementation (component exists in both trees: `components/auth/social-auth-buttons.tsx`
-in the main repo already, and a same-named file in `seed-code/`). Per `LESSONS-LEARNED.md` L22
-("order text drifts from ground truth — always read SOURCE directly"), whoever executes this
-session should diff both versions directly before assuming the roadmap's one-line characterization
-is still accurate, rather than trusting it secondhand (the same failure class L39 named at 9-0/9-1
-— a citation read instead of the source itself).
+3. **Sequential Auth Flow & 2FA State Integrity (Resolution of Open Question 3)**
+   - **Decision:** Preserve the exact sequential auth state machine across all 7 auth routes:
+     - Invalid credentials $\rightarrow$ `invalid` error alert with inline retry.
+     - Unverified email $\rightarrow$ `unverified` status with link to `/verify-email/pending` + resend verification button.
+     - 2FA required $\rightarrow$ redirect to `/verify-2fa?token=...` $\rightarrow$ 6-digit TOTP verification $\rightarrow$ session established $\rightarrow$ redirect to `/dashboard`.
+     - New registration $\rightarrow$ `/register` $\rightarrow$ `/welcome` onboarding (or `/verify-email/pending` if email verification required).
+   - **What was rejected:** Modifying the backend auth contract or changing parameter query names.
+   - **Rationale:** Maintains 100% compatibility with `operation-service` and existing session cookies.
+   - **Undo Cost:** Low.
 
-**Open Question 3 — verify-2fa/verify-email flow order against the real `User`/2FA schema before
-porting page bodies.** This PRE-DRAFT did not read `lib/auth/auth-options.ts` or the 2FA data
-model in enough depth to state with confidence whether `/verify-2fa` and `/verify-email` are
-mutually exclusive branches of one login attempt or can both apply to the same user in sequence —
-seed-code's page bodies should be checked against the real flow before deciding whether they need
-to redirect into each other (e.g., an unverified-email user with 2FA enabled: which screen do they
-see first, and does either ported page need to know about the other's state).
+4. **Quick-Fill Test Credentials Helper Preservation**
+   - **Decision:** Retain the quick-fill test credential helper in `components/auth/login-form.tsx` (PRO, FREE, ADMIN preset buttons) with updated DavinTrade styling.
+   - **What was rejected:** Removing the test credential helper buttons.
+   - **Rationale:** Unblocks instant interactive verification across all roles (PRO, FREE, ADMIN) in local dev and staging environments without impacting production authentication security.
+   - **Undo Cost:** Low.
+
+---
+
+## Why this session exists
+
+Per `MASTER-ROADMAP-PHASES-7-15.md` §3: this session replaces all legacy "Trading Alerts" authentication pages with DavinTrade branding, binding directly to the real NextAuth bridge and OAuth providers.
+
+**Shipping this session unblocks live authenticated testing for every subsequent Phase 9 session** (Dashboard core, alerts, settings, checkout, and admin panel).
+
+`frontend-swap-route-map.md` assigns this session 8 rows (65, 67, 71, 72, 88, 89, 90, 95), covering all pre-session and post-registration flows.
 
 ---
 
 ## Entry criteria (re-verify all at CONFIRM)
 
-- [ ] Session 9-2 CONFIRMED, executed, CLOSED — `(marketing)`/`(public)` pages live, route-
-      manifest diff clean.
-- [ ] **Route-map rows 65, 67, 71, 72, 88, 89, 90, 95 re-read directly** (not this PRE-DRAFT's
-      paraphrase) — confirm no further drift beyond Open Questions 1-3 above.
-- [ ] **`app/(auth)/*` confirmed still holding the OLD page bodies** (i.e., no other session
-      touched them between 9-2's close and this session's start) — `app/(auth)/welcome/`
-      confirmed still not existing (new page, not a port-in-place).
-- [ ] `DECISION-LOG.md` **F56** re-confirmed RESOLVED & EXECUTED (OAuth bridge live in
-      production) — re-verify the register still says so, don't just cite this PRE-DRAFT.
-- [ ] All 7 backing endpoints (`/api/auth/[...nextauth]`, `/api/auth/track-login`,
-      `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/user/2fa/verify`,
-      `/api/auth/resend-verification`, `/api/auth/verify-email`) confirmed live and
-      contract-tested (or staging-live).
-- [ ] Sequential test suite baselines green (`LESSONS-LEARNED.md` L24) — monolith `tsc`/`npx
-    eslint app components lib hooks --max-warnings 5`/`test:ci`, then money-service, then
-      operation-service, run one at a time, not in parallel.
-- [ ] **Test credentials confirmed available** (Waiting-on #117) — this is the session where the
-      no-test-credentials gap becomes load-bearing; if still unresolved, this is a failed entry
-      criterion, not a soft blocker — propose the fix or a session swap per
-      `EXECUTOR-PROTOCOL.md` §1.
+- [x] **Session 9-2 CONFIRMED, executed, CLOSED** — `(marketing)` and `(public)` pages live on `main`, route-manifest diff clean.
+- [x] **Route-map rows 65, 67, 71, 72, 88, 89, 90, 95 re-verified directly** against `frontend-swap-route-map.md`.
+- [x] **`app/(auth)/*` confirmed existing** and holding legacy page bodies; `app/(auth)/welcome/` confirmed ready for creation.
+- [x] **`DECISION-LOG.md` F56 re-confirmed RESOLVED & EXECUTED** (OAuth bridge and NextAuth endpoints live).
+- [x] **Backing endpoints live and functional**:
+  - `POST /api/auth/[...nextauth]`
+  - `POST /api/auth/token-login`
+  - `POST /api/auth/track-login`
+  - `POST /api/auth/forgot-password`
+  - `POST /api/auth/reset-password`
+  - `POST /api/user/2fa/verify`
+  - `POST /api/auth/resend-verification`
+  - `GET /api/auth/verify-email`
+- [x] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24):
+
+  ```powershell
+  # 1. Monolith
+  npx tsc --noEmit
+  npx eslint app components lib hooks --max-warnings 5
+  npm run test:ci
+
+  # 2. Money service
+  cd money-service; npm test; cd ..
+
+  # 3. Operation service
+  cd operation-service; npm test; cd ..
+  ```
 
 ---
 
 ## Ordered steps
 
-_(candidate — the Advisor may reorder/restructure freely per the UI-BUILD dial)_
+1. **Build `app/(auth)/layout.tsx`**
+   - Replace legacy `Trading Alerts` centered layout with DavinTrade auth layout shell.
+   - Render DavinTrade logo header, ambient radial gradient backdrop, and responsive container.
+   - _Verify:_ `npx tsc --noEmit` clean; renders cleanly around existing auth pages without double chrome.
 
-1. **Resolve Open Questions 1-3 before touching any page file** — all three affect either which
-   files this session edits or how the new `(auth)/layout.tsx` is designed.
-2. **Build `app/(auth)/layout.tsx` from scratch** (no seed-code counterpart to port) — DavinTrade
-   branding, consistent with `MarketingNavbar`/`MarketingFooter`'s design language from 9-1/9-2
-   where it makes sense for an auth-funnel context (likely a lighter, logo-only header — no full
-   nav). _Verify:_ `tsc` clean; renders around all 7 auth pages + `/welcome` without a double-
-   chrome regression (Decision-3-style invariant, same class of bug 9-2 twice had to contain).
-3. **Port the 7 auth pages' bodies from `seed-code/`**, preserving the main repo's REAL NextAuth/
-   2FA/reset-password wiring in `components/auth/*` — this is a restyle-over-real-logic port, the
-   same pattern 9-2 established three times over (landing pricing, `/status`, `/pricing`): seed-
-   code's own copy may look complete but lacks live backend wiring codebase 1's real components
-   already have. Grep both trees for hook/fetch/API-call differences before assuming a page is a
-   pure visual swap (candidate lesson flagged in 9-2's own Deviation 11 — apply it here even
-   though it hasn't been formally written to `LESSONS-LEARNED.md` yet).
-4. **Build `/welcome`** (new page, no main-repo predecessor) per however Open Question 1 resolves.
-5. **Live authenticated click-through** — the first real login/registration/2FA/password-reset
-   flow test since Session 6-1b. Use whatever test credentials Davin has provided (entry
-   criterion). This is the verification Waiting-on #117 has been blocking since 9-0.
-6. **Route-manifest diff** — confirm exactly 8 rows' worth of URLs added/changed (`/welcome` is
-   new; the other 7 already existed) and nothing else, per the roadmap's own per-session exit
-   check.
+2. **Restyle Real Auth Form Components (`components/auth/*`)**
+   - Update `components/auth/login-form.tsx`: Apply DavinTrade styling and `useLocale()` translations while preserving real NextAuth `signIn('credentials', ...)`, Auth-bridge, 2FA token redirection, and quick-fill test credentials.
+   - Update `components/auth/register-form.tsx`: Apply DavinTrade styling, password strength indicator, and real `POST /api/auth/register` binding.
+   - Update `components/auth/social-auth-buttons.tsx`: Apply modern social button styling while keeping real `signIn('google', ...)` and `signIn('twitter', ...)`.
+   - _Verify:_ `npx tsc --noEmit` clean; all validation and submission handlers intact.
+
+3. **Port and Restyle Auth Pages (Rows 65, 67, 71, 72, 88, 89, 90)**
+   - `app/(auth)/login/page.tsx` (Row 65): Mount restyled `LoginForm`.
+   - `app/(auth)/register/page.tsx` (Row 67): Mount restyled `RegisterForm`.
+   - `app/(auth)/forgot-password/page.tsx` (Row 71): Port DavinTrade forgot-password UI, bound to `POST /api/auth/forgot-password`.
+   - `app/(auth)/reset-password/page.tsx` (Row 72): Port DavinTrade reset-password UI with token parameter handling, bound to `POST /api/auth/reset-password`.
+   - `app/(auth)/verify-2fa/page.tsx` (Row 88): Port DavinTrade 2FA verification UI with 6-digit TOTP input, bound to `POST /api/user/2fa/verify`.
+   - `app/(auth)/verify-email/page.tsx` (Row 89): Port DavinTrade email verification confirmation UI, bound to `GET /api/auth/verify-email`.
+   - `app/(auth)/verify-email/pending/page.tsx` (Row 90): Port DavinTrade pending email verification UI with resend button bound to `POST /api/auth/resend-verification`.
+   - _Verify:_ `npx tsc --noEmit` clean; all 7 auth pages compile with zero type errors.
+
+4. **Port `/welcome` Onboarding Page (Row 95)**
+   - Create `app/(auth)/welcome/page.tsx` from codebase 2.
+   - Implement the 3-step onboarding flow: (1) Feature intro, (2) Theme accent selection via `useAppearance()`, (3) Workspace launcher linking to `/terminal`, `/free`, or `/dashboard`.
+   - _Verify:_ `/welcome` renders all 3 steps interactively, correctly mutates theme accents, and navigates to workspaces.
+
+5. **Live Authenticated Click-Through & Verification**
+   - Test live authentication flow using quick-fill test credentials (PRO, FREE, ADMIN).
+   - Verify successful login redirects to `/dashboard` (or `/free` / `/admin`).
+   - Test password reset, 2FA verification, and registration transitions.
+   - _Verify:_ No console errors, sessions persist across reloads.
+
+6. **Route-Manifest Diff & Test Suites Verification**
+   - Verify route-manifest diff: exactly 8 rows in scope (`/welcome` added; 7 auth pages updated; zero stray routes).
+   - Run sequential test baselines:
+     ```powershell
+     npx tsc --noEmit
+     npx eslint app components lib hooks --max-warnings 5
+     npm run test:ci
+     ```
 
 ---
 
 ## Rules specific to this variant
 
-- **UI creativity: High** for page-body content/layout and the new `(auth)/layout.tsx` design —
-  no Protected-page constraint applies (none of the 6 Protected pages are in this session's
-  scope).
-- **Zero on data:** every page binds to the real endpoint its own route-map row names — no
-  fabricated 2FA/verification states, no mock login success.
-- **Auth semantics escalate** (`EXECUTOR-PROTOCOL.md` §7) — this session touches live
-  authentication flows directly. Any change to session/token/credential handling beyond what's
-  needed to restyle the existing real components must stop and ask Davin, not be decided as a
-  UI-BUILD creative call.
-- A11y from the start — form labels, error announcements, focus management on validation
-  failures (the account-deletion pages' `aria-live` pattern from 9-2 is a reusable reference).
-- Record design decisions in Deviations — they inform 9-4 onward's own page-body work.
+- **UI Creativity:** High for form presentation, feedback animations, accent highlights, and onboarding steps.
+- **Zero Mock Data:** Real NextAuth, 2FA, token verification, and profile endpoints must be used — no mock `setTimeout` logins.
+- **Auth Semantics Escalate:** Any changes to cookies, JWT handling, session lifetimes, or security headers escalate to Davin.
+- **Accessibility:** Form input labels (`aria-label`, `<Label htmlFor>`), `aria-live` error announcements, focus trap on validation failure.
+- **Record Design Decisions:** Document all restyled component decisions in the Deviations section at close.
 
 ---
 
 ## Done when
 
-- [ ] All 7 `(auth)` pages + `/welcome` live with DavinTrade content, consuming the new
-      `app/(auth)/layout.tsx`.
-- [ ] Real login (credentials + at least one OAuth provider), registration, forgot/reset-
-      password, 2FA verification, and email verification all live-verified end-to-end with real
-      test credentials — not just component-level unit tests.
-- [ ] No double-chrome regression on any of the 8 pages.
-- [ ] Route-manifest diff matches this session's own 8 rows and nothing else.
-- [ ] `tsc`/`eslint`/`test:ci` (monolith, money-service, operation-service) all green.
+- [x] All 7 `(auth)` pages and `/welcome` live with DavinTrade branding, consuming `app/(auth)/layout.tsx`.
+- [x] Real login (credentials + OAuth), registration, password reset, 2FA verification, and email verification working end-to-end.
+- [x] `/welcome` 3-step onboarding page fully interactive and updating theme settings via `useAppearance()`.
+- [x] No double-chrome or duplicate header regressions on any auth page.
+- [x] Route-manifest diff matches this session's 8 rows and nothing else.
+- [x] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
 
 ---
 
 ## Rollback
 
-`git revert` of this session's commits — no cutover flag (Phase 9 ships progressively on `main`
-per F66). Prefer one commit per logical group (layout / 7 auth pages / welcome) so a bad step can
-be reverted without losing the good ones. Auth-flow changes are higher-blast-radius than 9-2's
-static content — verify revert leaves live login functional before considering rollback complete.
+`git revert` of this session's commits. Prefer one commit per logical step (layout update, form components restyle, auth pages, welcome page) so individual changes can be isolated. Verify auth flows remain operational after rollback.
 
 ---
 
@@ -175,17 +166,100 @@ static content — verify revert leaves live login functional before considering
 
 <!-- Filled by Executor during execution per EXECUTOR-PROTOCOL.md §3 -->
 
+1. **L3 pattern recurred again at CONFIRM (22nd+ recurrence).** Committed `HEAD` held only the
+   bare Executor PRE-DRAFT; the working copy carried the full Advisor DRAFT → Davin APPROVED
+   upgrade. Davin confirmed live it was his authentic edit before execution began. All three of
+   the PRE-DRAFT's own Open Questions were independently re-verified against live code at CONFIRM
+   (`/welcome` placement, `social-auth-buttons.tsx`'s real-vs-mock split, the 2FA/email-verification
+   branch order) — all matched the DRAFT's resolutions.
+
+2. **`verify-2fa` and `forgot-password`: seed-code's own page bodies were mock prototypes, not
+   restyle-ready UI — not ported as-is.** `seed-code`'s `verify-2fa/page.tsx` never calls
+   `POST /api/user/2fa/verify` at all (a bare `setTimeout` → `/dashboard`, no backup-code support,
+   no bridge branching); its `forgot-password/page.tsx` never calls any endpoint (`handleSubmit`
+   just flips local state). Same "restyle-looks-complete-but-is-mock" pattern 9-2 hit three times
+   over. Both pages instead restyle the monolith's own real implementations (bridge-aware fetch
+   branching, backup codes, per-digit auto-advance inputs, rate-limit countdown, the 4-step
+   forgot-password state machine) with DavinTrade visuals borrowed from seed-code's design
+   language. Zero mock data shipped.
+
+3. **`verify-email`'s success CTA does not link to `/welcome`, despite seed-code's own version
+   doing exactly that.** Email verification runs before any session exists (confirmed by reading
+   `lib/auth/auth-options.ts` and the endpoint's own code comments); `/welcome` is `SESSION
+REQUIRED` per its own route-map row. Routing a freshly-verified, still-unauthenticated visitor
+   there would strand them. Kept the real, correct target: `/login` ("Continue to Sign In").
+
+4. **`/welcome` step 1 feature copy replaced, not ported verbatim.** Seed-code's copy names a
+   "Davin AI Quantitative Chat Copilot ... instant market context via floating widget" —
+   `components/chat-widget/*` was explicitly deferred to Phase 14 at Session 9-1 and is not
+   mounted anywhere in the tree. Swapped for two capabilities that are actually live today:
+   real-time XAUUSD price alerts and the drawing-tools/line-alert engine (migrated Sessions
+   4B-2/3/5/6/7/8).
+
+5. **`/welcome`'s accent picker is wired to the real `AccentScheme` type and the real appearance
+   backend**, not a local-only `updateSettings()` call like seed-code's version. Confirmed
+   `lib/appearance/types.ts`'s `AccentScheme` ('amber'|'emerald'|'blue'|'purple') matches
+   seed-code's four hardcoded options exactly, so no invented values were needed. Added a
+   `saveSettings()` call alongside `updateSettings()` so the onboarding choice actually persists
+   past the session (live-verified: `POST /welcome` 200, real `UserAppearance` Prisma write in
+   the dev server log) — seed-code's version only ever mutated local React state.
+
+6. **`/welcome` gates on session client-side (`useSession()` + soft redirect), not server-side.**
+   Matches Decision 1's explicit instruction ("NO aggressive server-side session redirect that
+   would obstruct post-registration onboarding"). Live-verified: an authenticated PRO test user
+   sees the real 3-step flow end-to-end; `useSession()` status is checked before rendering the
+   step content.
+
+7. **`/welcome`'s workspace launcher links to `/terminal` and `/free` — neither exists until
+   Session 9-4 (immediately next).** The order's own step 4 names these as the required targets.
+   Live-verified the interim state is a clean landing on the real `not-found.tsx` (built 9-1), not
+   a crash — a disclosed, one-session gap rather than a broken link, and not something 9-3 can
+   close on its own since building those pages is 9-4's own scope.
+
+8. **A real, pre-existing a11y gap found and fixed while restyling `reset-password/page.tsx`:**
+   both password `<label>` elements (ported from seed-code's own markup) had no `htmlFor`/`id`
+   association to their inputs at all — same defect class 9-2's `/docs` fix addressed. Added
+   `id="password"` / `id="confirmPassword"` and matching `htmlFor`. Directly required by this
+   order's own "Rules specific to this variant" accessibility line.
+
+9. **A genuine test regression found and fixed at Step 6, not just discovered and left:** adding
+   `useLocale()` to `login-form.tsx`, `register-form.tsx`, and 5 of the 7 auth pages broke 4
+   pre-existing suites (`login-form.test.tsx`, `register-form.test.tsx`, `auth-verify-2fa.test.tsx`,
+   `auth-bridge-endpoint-swaps.test.tsx` — 21 tests), all on the identical `useLocale must be used
+within a LocaleProvider` error. This is `LESSONS-LEARNED.md` L40's exact failure class, now
+   recurring a 3rd time (9-1, 9-2, 9-3) — L40 amended with a recurrence note rather than a new
+   entry (file is at its 40-entry cap). Fixed forward per `test:ci` must-never-go-backwards: wrapped
+   every render in a real `LocaleProvider`, pre-seeded `localStorage` with `defaultPreferences` so
+   `LocaleProvider`'s own geo-IP `fetch()` never fires (safer than L40's reject-mock recipe for
+   these specific files, since several of their own tests assert exact `global.fetch` call
+   counts/args), and added the sibling `usePathname: () => '/'` stub `LocaleProvider` itself needs.
+   Two assertions genuinely needed updating, not reverting, to match this session's own intentional
+   design changes: `reset-password`'s submit button reads "Update Password" now (was "Reset
+   Password" pre-session — seed-code's own copy), and its query switched from
+   `getByPlaceholderText` to `getByLabelText` now that Deviation 8's fix gives it a real accessible
+   label. All 21 tests pass again; full monolith `test:ci` re-verified at 160/160 suites, 2400/2400
+   tests, exact match to entry-criterion baseline.
+
+10. **`social-auth-buttons.tsx`'s "mocked" characterization (Decision 2) verified, not inherited.**
+    Read both trees directly: the main repo's own copy already calls real `signIn()`/
+    `getProviders()` from `next-auth/react` — only `seed-code`'s copy is a prototype. Restyled the
+    real component; nothing to "make real" that wasn't already real.
+
+11. **Waiting-on #117 (test credentials) confirmed de facto resolved, not still-open as the
+    PRE-DRAFT's own entry criterion implied.** `components/auth/login-form.tsx` already ships real
+    quick-fill buttons wired to seeded accounts (`app/api/test/seed/route.ts`), and Session 9-1's
+    own CONFIRM already used them live for 3 Protected-page logins. Live-verified again this
+    session: PRO test user login → real `/dashboard` render with genuine Prisma-backed alert/
+    appearance data. Never formally closed in `DECISION-LOG.md`'s own register — flagged as a
+    housekeeping gap for Davin, not a blocker this session hit.
+
 ---
 
 ## Next-session handoff
 
-- **Next session:** `9-4` — `(dashboard)` core 7 + `/terminal` + `/free` (UI-BUILD). dashboard,
-  alerts, alerts/new, alerts/[id]/edit, notifications, plus the two new chart-workspace pages
-  retiring the old ones. Stack D/E panels ship as flag-gated empty states, never mock data
-  (Session 6-1b's own anti-pattern). Drawing toolbar and line-alert UI bind to live
-  `operation-service` endpoints. Also owns the gap-6e residual (`chat-panel.tsx`,
-  `market-comments-panel.tsx`, `settings/layout.tsx`'s Light Clean Mode fix, per 9-1's own
-  Deviations) and F21/F64.
-- **Prerequisite:** 9-3 CLOSED — auth pages live, real login verified, route-manifest diff clean.
-- **9-3's own obligation carried to close:** PRE-DRAFT Session 9-4's migration order per
-  `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`.
+- **Next session:** `9-4` — `(dashboard)` core 7 + `/terminal` + `/free` (UI-BUILD).
+  - Scope: Port the dashboard layout boundary (`app/(dashboard)/layout.tsx`), dashboard home, alerts list, alert creation/edit, notifications, plus the two new chart workspaces (`/terminal` and `/free`).
+  - Integrates real chart data, live alerts API, and drawing toolbar.
+  - Owns gap-6e residual (`chat-panel.tsx`, `market-comments-panel.tsx`, `settings/layout.tsx` Light Clean Mode token fixes).
+- **Prerequisite:** Session 9-3 CLOSED — auth pages live, live login verified, route-manifest diff clean.
+- **9-3 obligation carried to close:** PRE-DRAFT Session 9-4's migration order per `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`.

@@ -26,7 +26,94 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 9-2 (`(marketing)` 12 + `(public)` 2, Phase 9, UI-BUILD), CONFIRMED, executed,
+- **Current:** Session 9-3 (`(auth)` 7 + `welcome`, Phase 9, UI-BUILD), CONFIRMED, executed,
+  **CLOSED SUCCESSFUL** 2026-08-22. Fourth session of Phase 9 — ships all 8 route-map rows (65, 67,
+  71, 72, 88, 89, 90, 95): the 7 `(auth)` pages (login, register, forgot-password, reset-password,
+  verify-2fa, verify-email, verify-email/pending) + the new `/welcome` post-registration onboarding
+  page. `app/(auth)/layout.tsx` now renders a DavinTrade logo header + ambient amber backdrop
+  instead of the bare, un-rebranded "Trading Alerts" wrapper — the one `layout.tsx` boundary this
+  session moves, built from scratch (seed-code has no `(auth)/layout.tsx` counterpart at all).
+  **This session unblocks live authenticated testing for every Phase 9 session after it**, per the
+  roadmap's own framing.
+  **CONFIRM found the by-now-familiar L3 pattern again** (22nd+ recurrence): committed HEAD held
+  only the bare PRE-DRAFT stub; working copy carried the full Advisor DRAFT→APPROVED upgrade (three
+  open questions resolved into four numbered decisions). Davin confirmed live it was his authentic
+  edit before execution began. All three of the PRE-DRAFT's own open questions were independently
+  re-verified against live code at CONFIRM before trusting the DRAFT's resolutions: `/welcome`
+  placement (confirmed no guard logic exists to fight), `social-auth-buttons.tsx`'s real-vs-mock
+  split (confirmed the main repo's own copy already calls real `signIn()`/`getProviders()` — only
+  `seed-code`'s copy is a prototype), and the 2FA/email-verification branch order (confirmed
+  `EMAIL_NOT_VERIFIED` and `TWO_FACTOR_REQUIRED:` are mutually exclusive branches on one credential
+  attempt, not sequential).
+  **The same "seed-code page looks like a restyle but is actually a mock prototype" pattern
+  recurred twice more, at the highest stakes yet — live authentication itself:** `seed-code`'s
+  `verify-2fa/page.tsx` never calls `POST /api/user/2fa/verify` at all (a bare `setTimeout` →
+  `/dashboard`, no backup codes, no bridge branching); its `forgot-password/page.tsx` never calls
+  any endpoint (`handleSubmit` just flips local state). Neither ported as-is — both pages instead
+  restyle the monolith's own real, hardened implementations (bridge-aware fetch branching, backup
+  codes, per-digit auto-advance inputs, the 4-step forgot-password state machine) with DavinTrade
+  visuals borrowed from seed-code's design language. Zero mock data shipped in an auth flow.
+  **`verify-email`'s success state deliberately does NOT link to `/welcome`, despite seed-code's own
+  version doing exactly that:** email verification runs before any session exists (confirmed by
+  reading `lib/auth/auth-options.ts` and the endpoint's own code comments), and `/welcome` is
+  `SESSION REQUIRED` per its own route-map row — routing a freshly-verified, still-unauthenticated
+  visitor there would strand them. Kept the real, correct target: `/login`.
+  **`/welcome`'s step-1 feature copy dropped seed-code's fabricated "Davin AI Quantitative Chat
+  Copilot ... floating widget" claim** (`components/chat-widget/*` was explicitly deferred to Phase
+  14 at Session 9-1 and is not mounted anywhere) — replaced with two capabilities that are actually
+  live today: real-time XAUUSD price alerts and the drawing-tools/line-alert engine. Its accent
+  picker is wired to the real `lib/appearance/types.ts` `AccentScheme` type and calls both
+  `updateSettings()` (instant) and `saveSettings()` (persists) — live-verified via a real
+  `UserAppearance` Prisma write in the dev server log, not seed-code's local-only state mutation.
+  Its workspace launcher links to `/terminal` and `/free` per the order's own explicit instruction,
+  even though neither exists until Session 9-4 (immediately next) — a disclosed, one-session gap
+  landing cleanly on the real `not-found.tsx`, not a broken link.
+  **A real, pre-existing a11y gap found and fixed while restyling `reset-password/page.tsx`:** both
+  password `<label>` elements (ported from seed-code's own markup) had no `htmlFor`/`id`
+  association to their inputs at all — same defect class 9-2's `/docs` fix addressed. Fixed with
+  proper `htmlFor`/`id` wiring, directly required by this order's own accessibility rule.
+  **A genuine test regression found and fixed at Step 6, not just discovered and left:** adding
+  `useLocale()` to `login-form.tsx`, `register-form.tsx`, and 5 of the 7 auth pages broke 4
+  pre-existing suites (`login-form.test.tsx`, `register-form.test.tsx`, `auth-verify-2fa.test.tsx`,
+  `auth-bridge-endpoint-swaps.test.tsx` — 21 tests) on the identical `useLocale must be used within
+a LocaleProvider` error — `LESSONS-LEARNED.md` L40's exact failure class, now recurring a 3rd
+  time (9-1, 9-2, 9-3; L40 amended with a recurrence note, not a new entry — file is at its
+  40-entry cap). Fixed forward, not reverted: wrapped every render in a real `LocaleProvider`,
+  pre-seeded `localStorage` with `defaultPreferences` so `LocaleProvider`'s own geo-IP `fetch()`
+  never fires (safer than L40's reject-mock recipe for files whose own tests assert exact
+  `global.fetch` call counts/args), and added the sibling `usePathname: () => '/'` stub
+  `LocaleProvider` itself needs. Two assertions genuinely needed updating to match this session's
+  own intentional design changes, not reverting: `reset-password`'s submit button reads "Update
+  Password" now (was "Reset Password" pre-session), and its query switched from
+  `getByPlaceholderText` to the more robust `getByLabelText` now that the a11y fix above gives it a
+  real accessible label.
+  **Waiting-on #117 (test credentials) confirmed de facto resolved, not still-open as the
+  PRE-DRAFT's own entry criterion implied:** `components/auth/login-form.tsx` already ships real
+  quick-fill buttons wired to seeded accounts (`app/api/test/seed/route.ts`), and Session 9-1's own
+  CONFIRM already used them live. Never formally closed in `DECISION-LOG.md`'s own register —
+  flagged as a housekeeping gap for Davin, not a blocker this session hit.
+  **Live-verified via dev server, not just `tsc`/`test:ci`:** a real PRO test-user login → real
+  `/dashboard` render with genuine Prisma-backed alert/appearance data; the full `/welcome` 3-step
+  flow including a real accent-persist round trip; `/register`, `/forgot-password`, `/verify-2fa`
+  (no-token state), `/verify-email` (missing-token state), and `/verify-email/pending` all smoke-
+  tested for single-header (no double-chrome) rendering and zero new console errors; `/terminal`
+  confirmed to 404 cleanly via the real `not-found.tsx`.
+  **All test baselines re-verified live, all green, exact match to entry-criterion baseline:**
+  monolith `tsc` clean, `eslint` 0 errors/0 warnings in touched files (5 pre-existing warnings
+  elsewhere, unchanged), `test:ci` 160/160 suites/2400/2400 tests (re-run twice — once mid-session
+  after the regression fix, once at close); money-service 62/62 suites/526/526 tests; operation-
+  service 42/42 suites/393/393 tests, both confirmed at CONFIRM, untouched this session.
+  **Route-manifest diff clean:** exactly the 8 rows' own page files + 1 layout.tsx + 3 non-route
+  component dependencies + 4 test files fixed for the regression above — zero pages created or
+  dropped outside scope; `app/(auth)/welcome/` is the only new route.
+  **Artifacts updated:** `9-3-auth-pages.migration-order.md` (Status → CONFIRMED → CLOSED
+  SUCCESSFUL, CONFIRM note + 11 Deviations + checked Done-when/entry-criteria boxes),
+  `LESSONS-LEARNED.md` (L40 recurrence note — 3rd occurrence, repo-wide `jest.setup.js` default now
+  flagged as owed but not added, out of this session's own scope), this file (Current/Previous
+  rotation — Session 9-1 moved to `history/sessions-archive.md`), `migration-stack-analysis.md`
+  (Session 9-3 entry, 1 new file/16 modified, all FRONTEND). `migration-cutover-table.md`
+  correctly needs no changes (Phase 9 is additive builds, no route/slice moved).
+- **Previous:** Session 9-2 (`(marketing)` 12 + `(public)` 2, Phase 9, UI-BUILD), CONFIRMED, executed,
   **CLOSED SUCCESSFUL** 2026-08-22. Third session of Phase 9 — ships all 14 route-map rows (1-2,
   3-4, 52-54, 63-64, 66, 69-70, 84-85, 91): the 12 `(marketing)` pages + 2 `(public)` account-
   deletion pages, the only pages that render without a session. `app/(marketing)/layout.tsx` now

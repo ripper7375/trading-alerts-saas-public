@@ -7,6 +7,78 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 9-1 (Root Shell & Design System, Phase 9,
+  UI-BUILD), CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-22. Second session of Phase 9 —
+  every subsequent Phase 9 session (9-2…9-9) renders inside the root shell, design tokens, headers,
+  sidebars, and providers landed here. Closes rows 92/93 of `frontend-swap-route-map.md` plus
+  gap-inventory items 1, 2, 5, 6a-6e, 10; fixes all 5 Batch-0 shared-shell findings.
+  **CONFIRM found the by-now-familiar L3 pattern again** (20th+ recurrence): committed HEAD held
+  only the bare PRE-DRAFT stub; working copy carried the full Advisor DRAFT→APPROVED upgrade.
+  Davin confirmed live it was his authentic edit. **All test baselines re-verified live at CONFIRM,
+  all green, exact match to 9-0's own close:** monolith `tsc` clean, `eslint` 0 errors/5 warnings,
+  `test:ci` 160/160 suites/2400/2400 tests; money-service 62/62 suites/526/526 tests;
+  operation-service 42/42 suites/393/393 tests. `seed-code/` found fully clean (better than the
+  entry criterion's own "except 2 files" expectation — those 2 files were already committed by
+  9-0's own close). Batch-0's two root-boundary fixes re-diffed byte-for-byte, still intact.
+  **CONFIRM surfaced 6 corrections, all approved live by Davin before execution** (full detail in
+  the order's own CONFIRM note): `lib/i18n/locale-resolver.ts` needed porting, not just citing
+  (only existed in `seed-code/`); `--chart*` tokens stay runtime-dynamic, not static `globals.css`
+  rules; `app/providers.tsx`'s `SessionProvider` was already live, to be preserved not rebuilt;
+  the main repo's own `middleware.ts` already had the real auth gate (codebase 2's had the
+  locale-rewrite half) — merge direction confirmed; gap-6e's residual (`chat-panel.tsx`,
+  `market-comments-panel.tsx`, `settings/layout.tsx`) explicitly handed to Sessions 9-4/9-5, not
+  silently dropped; `components/layout/header.tsx` (live, 9-4's to retire) is distinct from the
+  dead `components/header.tsx` this session's Decision 5 deletes.
+  **Mid-execution, a 7th finding not in any prior document, escalated to Davin rather than decided
+  unilaterally:** wiring `ClientProviders` as literally described would have mounted seed-code's
+  support-chat widget — its socket client points at an unset `NEXT_PUBLIC_SOCKET_CHAT_URL` (Phase
+  14, unbuilt) and falls back to a hardcoded canned-response generator presented as a live "AI
+  Support Specialist." Davin's live call: defer the whole widget to Phase 14, ship
+  `ClientProviders` with only `LocaleProvider`+`AppearanceProvider` for now.
+  **Execution found the main repo's own `components/providers/appearance-provider.tsx` already
+  exists and is MORE complete than seed-code's version** (it additionally syncs `next-themes`'
+  `setTheme()`) — preserved as-is rather than overwritten, which would have been a regression.
+  Also found its sibling `components/providers/theme-provider.tsx` (hand-rolled) is dead code,
+  zero importers — flagged, not deleted (only `components/header.tsx`'s deletion carried explicit
+  go-ahead this session).
+  **Real, disclosed architecture change:** `app/layout.tsx` now calls `cookies()`/`headers()` on
+  every request — the whole app is dynamically rendered as of this session (previously the root
+  layout was static-compatible). Direct, unavoidable cost of porting codebase 2's unified
+  root-layout design; not re-optimized back to static this session, flagged for later if TTFB/
+  build-time on marketing routes becomes a concern.
+  **`AppHeader`/`ChatSidebar` rewritten from seed-code's hardcoded `slate-N`/`dark:bg-[hex]`
+  classes onto semantic design tokens** — the actual Batch-0 "Light Clean Mode" fix for the two
+  files the parity audit named; extended the identical treatment to `marketing-navbar.tsx`/
+  `marketing-footer.tsx` (not in Batch-0's named list, but same defect pattern, same session's own
+  Surface) so 9-2 doesn't rediscover it. Fixed the missing sidebar Help item directly inside this
+  rewrite. Found and fixed a middleware-merge bug before commit (two early-return branches skipped
+  the locale rewrite) via code-path tracing, not live testing. Found and fixed a CSP gap
+  (`ipapi.co` blocked, breaking the newly-ported geo-detection) and a stale globals.css comment.
+  **Regressed then fixed 3 test assertions** in `__tests__/pages/phase-6-exit.test.tsx` (intentional
+  rebrand changed rendered copy — `test:ci` must never go backwards) and a latent test-infra gap
+  (`LocaleProvider`'s real, un-mocked geo-IP `fetch` crashing the Jest worker on teardown) — new
+  `LESSONS-LEARNED.md` **L40**, plus a recurrence note on **L22**.
+  **Live-verified via dev server, not just `tsc`/`test:ci`:** all 4 currently-existing Protected
+  pages (`/`, `/dashboard`, `/settings/appearance`, `/settings/help`, the last 3 via a real login
+  using the login page's own test-credential autofill) render correctly under the new shell;
+  `/terminal`/`/free` don't exist yet (Session 9-4's own new pages, confirmed via `ls`, nothing to
+  verify there this session); all 3 middleware auth×locale interaction cases verified live; the 4
+  new shared-chrome components smoke-tested together via a throwaway route, deleted before commit.
+  **Also found and fixed, unrelated to this session's own scope but caught mid-close:**
+  `DECISION-LOG.md` had drifted to 53,361 bytes, over its ~50KB size-gate target (should have been
+  caught at this session's own OPEN) — ran the archival pass, moved F47/F65/F66's full entries to
+  `history/decisions-archive.md`, and fixed F47's own detail-entry status header (stale at "OPEN"
+  since 4A-W7 even though the register table and CLAUDE.md both already said RESOLVED — Session
+  4A-15). Back to 48,988 bytes.
+  **Artifacts updated:** `9-1-root-shell-design-system.migration-order.md` (Status → CONFIRMED →
+  CLOSED SUCCESSFUL, CONFIRM note + 16 Deviations + checked Done-when/entry-criteria boxes),
+  `DECISION-LOG.md` (size-gate archival pass), `history/decisions-archive.md` (F47/F65/F66 full
+  entries), `migration-stack-analysis.md` (Session 9-1 entry, 15 new files/8 modified, all
+  FRONTEND), `LESSONS-LEARNED.md` (L40, L22 recurrence — now at the 40-lesson cap, next lesson
+  needs a consolidation pass first), this file (Current/Previous rotation — Session 4A-15 moved to
+  `history/sessions-archive.md`). `migration-cutover-table.md` correctly needs no changes (Phase 9
+  is additive builds, no route/slice moved).
+
 - _(superseded-by-above, retained for context)_ **Session 9-0 (Frontend Swap Contract & Decisions,
   Phase 9, CONTRACT, no code), CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-22. First session
   of Phase 9 — resolves `DECISION-LOG.md` **F65** (BFF boundary, ⚠ NEEDS EXPLICIT SIGN-OFF) and
