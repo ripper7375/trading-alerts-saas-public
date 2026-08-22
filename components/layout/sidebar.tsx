@@ -37,7 +37,7 @@ const navigationItems: NavItem[] = [
   },
   {
     name: 'Charts',
-    href: '/charts',
+    href: '/terminal',
     icon: LineChart,
     tier: 'FREE',
     description: 'Live price charts',

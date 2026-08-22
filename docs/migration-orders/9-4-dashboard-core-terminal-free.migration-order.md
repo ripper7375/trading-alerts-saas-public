@@ -278,7 +278,42 @@ placeholder-user.jpg` regardless of who is actually logged in — would have sho
    live browser check) — no real usage-tracking/analytics endpoint exists to bind them to.
    Preserved as-is, not newly introduced; flagged for a future session, not silently hidden.
 
-10. **F21/F64 confirmed out of scope, per Davin's live resolution of the roadmap's own internal
+10. **Step 3: reused the real, pre-existing `components/charts/trading-chart.tsx` for Panel 1
+    instead of porting seed-code's own 856-line `trading-chart.tsx`.** The real component (259
+    lines) already does everything the order's own Panel 1 requirement asks for — live Socket.IO
+    OHLCV data (`useOhlcvSocket`), a real drawing toolbar (`DrawingLayer`), fired-alert markers
+    (`useFiredAlertMarkers`), and a real PRO-gated multi-timeframe overlay (`MtfToggle`,
+    `useMtfOverlay`, already checks `session.user.tier === 'PRO'`) — none of which seed-code's
+    own mock version has. **Order text correction (L22):** the order's `Feeds on` line cites
+    `GET /api/candles/[symbol]` and `GET /api/market-data/channel` for Panel 1; the real component
+    uses neither — it's Socket.IO-only (confirmed: `useOhlcvSocket` makes zero `fetch()` calls).
+    `/api/drawings` and `/api/alerts/line` are correctly cited (used by `DrawingLayer`).
+    `components/chat-panel.tsx`, `components/market-comments-panel.tsx`, and
+    `components/ui/pro-upgrade-modal.tsx` ported fresh per Deviation 2 as genuine empty
+    states/real-navigation, not seed-code's mock chat history / fabricated comment feed / fake
+    in-place upgrade. `components/ui/resizable.tsx` ported verbatim (generic shadcn wrapper, no
+    seed-code-specific logic) plus `react-resizable-panels@^2.1.7` added
+    (`pnpm add -w`, matching seed-code's own pinned version per `LESSONS-LEARNED.md` L9).
+
+11. **Step 4: retired the 2 real legacy `/charts` files as permanent redirects to `/terminal`,
+    deleted 3 now-orphaned dependency files.** `app/(dashboard)/charts/page.tsx` and
+    `app/(dashboard)/charts/[symbol]/[timeframe]/page.tsx` both now just `redirect('/terminal')`
+    (a FREE session gets a second hop to `/free` from `/terminal`'s own tier gate). Deleted
+    `trading-chart-client.tsx`, `components/charts/chart-controls.tsx`, and
+    `components/ui/upgrade-button.tsx` after confirming (grep, whole tree) each had zero
+    importers left anywhere outside the 2 retired page files. Fixed the 2 remaining `/charts` nav
+    links repo-wide (`components/layout/sidebar.tsx`, `components/layout/mobile-nav.tsx` → both
+    now point at `/terminal`) — zero remaining internal links to `/charts`, confirmed by a
+    whole-tree grep after the fix.
+    **Found but NOT deleted this session (scope discipline):** `components/layout/{header,
+sidebar,footer,mobile-nav}.tsx` are now fully orphaned (zero importers anywhere in `app/`) as a
+    direct consequence of Step 1 removing their only mount point. `MASTER-ROADMAP-PHASES-7-15.md`
+    §3 explicitly scopes "dead codebase-1 components deleted" to Session 9-10 (Phase 9 exit), not
+    per-session — left in place, flagged here rather than deleted unilaterally, matching Session
+    9-1's own precedent for incidentally-discovered dead code (`theme-provider.tsx`, flagged not
+    deleted absent explicit go-ahead).
+
+12. **F21/F64 confirmed out of scope, per Davin's live resolution of the roadmap's own internal
     contradiction.** `MASTER-ROADMAP-PHASES-7-15.md`'s "Already-open flags" table lists both as
     "owed by 9-4," but its own Phase 9 session breakdown assigns closure of both to 9-5 (correctly —
     both are settings/billing surface, which 9-4 does not touch). Davin confirmed live: 9-5 closes
