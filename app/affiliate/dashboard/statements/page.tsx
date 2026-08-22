@@ -181,25 +181,27 @@ export default function AffiliateStatementsPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Monthly Statements</h1>
-        <p className="text-gray-600">
+        <h1 className="text-2xl font-bold text-foreground">
+          Monthly Statements
+        </h1>
+        <p className="text-muted-foreground">
           A month-by-month summary of your commission activity, built from your
           real commission history
         </p>
       </div>
 
       {error && (
-        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-600 dark:text-red-400">
           {error}
         </div>
       )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-amber-500" />
         </div>
       ) : statements.length === 0 ? (
-        <div className="rounded-lg bg-white p-8 text-center text-gray-500 shadow-md">
+        <div className="rounded-lg border border-border bg-card p-8 text-center text-muted-foreground shadow-sm">
           No commission activity in the last 12 months yet.
         </div>
       ) : (
@@ -207,34 +209,34 @@ export default function AffiliateStatementsPage(): React.ReactElement {
           {statements.map((statement) => (
             <div
               key={statement.monthKey}
-              className="rounded-lg bg-white p-6 shadow-md"
+              className="rounded-lg border border-border bg-card p-6 shadow-sm"
             >
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
+                  <h2 className="text-lg font-semibold text-foreground">
                     {statement.monthLabel}
                   </h2>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     {statement.rows.length} commission
                     {statement.rows.length === 1 ? '' : 's'}
                   </p>
                 </div>
                 <div className="flex gap-6 text-sm">
                   <div>
-                    <p className="text-gray-500">Earned</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-muted-foreground">Earned</p>
+                    <p className="font-semibold text-foreground">
                       ${statement.totalEarned.toFixed(2)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Paid</p>
-                    <p className="font-semibold text-green-600">
+                    <p className="text-muted-foreground">Paid</p>
+                    <p className="font-semibold text-green-600 dark:text-green-400">
                       ${statement.totalPaid.toFixed(2)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Pending</p>
-                    <p className="font-semibold text-yellow-600">
+                    <p className="text-muted-foreground">Pending</p>
+                    <p className="font-semibold text-amber-600 dark:text-amber-400">
                       ${statement.totalPending.toFixed(2)}
                     </p>
                   </div>
@@ -246,7 +248,7 @@ export default function AffiliateStatementsPage(): React.ReactElement {
                       statement.rows
                     )
                   }
-                  className="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                  className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
                 >
                   Download CSV
                 </button>
@@ -257,9 +259,9 @@ export default function AffiliateStatementsPage(): React.ReactElement {
       )}
 
       {/* Tax Summary Note */}
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
-        <h3 className="mb-2 font-semibold text-gray-900">Tax Summary Note</h3>
-        <p className="text-sm text-gray-600">
+      <div className="bg-muted/40 rounded-lg border border-border p-6">
+        <h3 className="mb-2 font-semibold text-foreground">Tax Summary Note</h3>
+        <p className="text-sm text-muted-foreground">
           These statements summarize commission activity and are not tax
           documents. Amounts shown are in USD before any local withholding or
           currency-conversion fees applied by our payout provider. Consult a tax

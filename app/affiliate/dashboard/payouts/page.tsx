@@ -32,12 +32,17 @@ export const dynamic = 'force-dynamic';
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 const BATCH_STATUS_STYLES: Record<string, string> = {
-  PENDING: 'bg-gray-100 text-gray-800',
-  QUEUED: 'bg-yellow-100 text-yellow-800',
-  PROCESSING: 'bg-blue-100 text-blue-800',
-  COMPLETED: 'bg-green-100 text-green-800',
-  FAILED: 'bg-red-100 text-red-800',
-  CANCELLED: 'bg-red-100 text-red-800',
+  PENDING: 'bg-muted text-muted-foreground border border-border',
+  QUEUED:
+    'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30',
+  PROCESSING:
+    'bg-blue-500/15 text-blue-700 dark:text-blue-400 border border-blue-500/30',
+  COMPLETED:
+    'bg-green-500/15 text-green-700 dark:text-green-400 border border-green-500/30',
+  FAILED:
+    'bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30',
+  CANCELLED:
+    'bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30',
 };
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -91,13 +96,13 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Payout History</h1>
-        <p className="text-gray-600">
+        <h1 className="text-2xl font-bold text-foreground">Payout History</h1>
+        <p className="text-muted-foreground">
           Real payment-batch status for every commission that has entered a
           payout run. To configure where payouts are sent, visit{' '}
           <a
             href="/affiliate/settings/payout"
-            className="text-blue-600 underline hover:text-blue-800"
+            className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
           >
             Payout Settings
           </a>
@@ -106,92 +111,92 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
       </div>
 
       {transactions.length === 0 ? (
-        <div className="rounded-lg bg-white p-8 text-center text-gray-500 shadow-md">
+        <div className="rounded-lg border border-border bg-card p-8 text-center text-muted-foreground shadow-sm">
           No payout batches yet. Commissions enter a batch once approved and
           scheduled for payout.
         </div>
       ) : (
-        <div className="overflow-hidden overflow-x-auto rounded-lg bg-white shadow-md">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="overflow-hidden overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-muted/40">
               <tr>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
                   Batch
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
                   Code
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
                   Amount
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
                   Batch Status
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
                   Wise Transfer
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
                   Scheduled
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
                   Completed
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
+            <tbody className="divide-y divide-border bg-card">
               {transactions.map((tx) => (
                 <tr key={tx.id}>
-                  <td className="whitespace-nowrap px-6 py-4 font-mono text-xs text-gray-600">
+                  <td className="whitespace-nowrap px-6 py-4 font-mono text-xs text-muted-foreground">
                     {tx.batch.batchNumber}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 font-mono text-sm">
+                  <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-foreground">
                     {tx.commission.affiliateCode.code}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-foreground">
                     ${Number(tx.commission.commissionAmount).toFixed(2)}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <span
                       className={`rounded px-2 py-1 text-xs font-medium ${
                         BATCH_STATUS_STYLES[tx.batch.status] ??
-                        'bg-gray-100 text-gray-800'
+                        'border border-border bg-muted text-muted-foreground'
                       }`}
                     >
                       {tx.batch.status}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                     {tx.wiseTransfer
                       ? `${tx.wiseTransfer.currentState} (${Number(tx.wiseTransfer.targetValue).toFixed(2)} ${tx.wiseTransfer.targetCurrency})`
                       : '—'}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                     {tx.batch.scheduledAt
                       ? new Date(tx.batch.scheduledAt).toLocaleDateString()
                       : '—'}
                   </td>
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-600">
+                  <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                     {tx.batch.completedAt
                       ? new Date(tx.batch.completedAt).toLocaleDateString()
                       : '—'}
@@ -204,8 +209,8 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
       )}
 
       {/* Status Guide */}
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-6">
-        <h3 className="mb-3 font-semibold text-gray-900">
+      <div className="bg-muted/40 rounded-lg border border-border p-6">
+        <h3 className="mb-3 font-semibold text-foreground">
           Payout Batch Status Guide
         </h3>
         <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-3 lg:grid-cols-6">
