@@ -15,6 +15,11 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import NotificationsPage from '@/app/(dashboard)/notifications/page';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import {
+  LOCALE_STORAGE_KEY,
+  defaultPreferences,
+} from '@/lib/i18n/locale-resolver';
 
 const mockPush = jest.fn();
 // A stable object reference, matching next/navigation's real useRouter()
@@ -25,10 +30,23 @@ const mockPush = jest.fn();
 const mockRouter = { push: mockPush };
 jest.mock('next/navigation', () => ({
   useRouter: () => mockRouter,
+  // Session 9-4: the page now mounts AppHeader (components/layout/
+  // app-header.tsx), which calls usePathname() directly, and LocaleProvider
+  // (wrapped in tests below) needs its own usePathname() too --
+  // LESSONS-LEARNED.md L40's own stub.
+  usePathname: () => '/notifications',
   redirect: jest.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);
   }),
 }));
+
+// AppHeader calls useLocale() -- needs a LocaleProvider ancestor. Pre-seed
+// localStorage with a known preference so LocaleProvider's first-visit
+// branch never fires its real geo-IP fetch() (LESSONS-LEARNED.md L40) --
+// this file's own tests assert exact global.fetch call counts/args.
+function withLocale(ui: React.ReactElement): React.ReactElement {
+  return <LocaleProvider>{ui}</LocaleProvider>;
+}
 
 const mockGetSession = jest.fn();
 jest.mock('@/lib/auth/session', () => ({
@@ -108,6 +126,10 @@ function listResponse(
 describe('NotificationsPage (server component)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify(defaultPreferences)
+    );
   });
 
   it('redirects unauthenticated callers to /login', async () => {
@@ -124,7 +146,7 @@ describe('NotificationsPage (server component)', () => {
     ) as unknown as typeof fetch;
 
     const jsx = await NotificationsPage();
-    render(jsx);
+    render(withLocale(jsx));
 
     expect(await screen.findByText('XAUUSD alert fired')).toBeInTheDocument();
     expect(screen.getByText('Notifications')).toBeInTheDocument();
@@ -137,6 +159,10 @@ describe('NotificationList interactions (mounted via NotificationsPage)', () => 
     jest.clearAllMocks();
     mockUseSession.mockReturnValue({ data: { user: { tier: 'FREE' } } });
     mockGetSession.mockResolvedValue({ user: { id: 'user-1', tier: 'FREE' } });
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify(defaultPreferences)
+    );
   });
 
   async function renderList(
@@ -148,7 +174,7 @@ describe('NotificationList interactions (mounted via NotificationsPage)', () => 
     }) as unknown as typeof fetch;
 
     const jsx = await NotificationsPage();
-    render(jsx);
+    render(withLocale(jsx));
     await screen.findByText('XAUUSD alert fired');
   }
 

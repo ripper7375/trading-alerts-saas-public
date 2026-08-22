@@ -313,7 +313,23 @@ sidebar,footer,mobile-nav}.tsx` are now fully orphaned (zero importers anywhere 
     9-1's own precedent for incidentally-discovered dead code (`theme-provider.tsx`, flagged not
     deleted absent explicit go-ahead).
 
-12. **F21/F64 confirmed out of scope, per Davin's live resolution of the roadmap's own internal
+12. **Genuine test regression found and fixed at Step 6, `LESSONS-LEARNED.md` L40 recurrence
+    (4th occurrence).** Mounting `AppHeader` into `app/(dashboard)/notifications/page.tsx` and
+    `app/(dashboard)/alerts/[id]/edit/page.tsx` broke `notifications-page.test.tsx` (7 tests) and
+    `edit.test.tsx` (2 tests) — `AppHeader` calls `usePathname()` (unmocked in both files) and
+    `useLocale()` (needs a `LocaleProvider` ancestor). Fixed forward per the exact pattern L40's
+    Session 9-3 recurrence established: added a `usePathname` stub to each file's `next/navigation`
+    mock, wrapped every affected `render()` call in a real `LocaleProvider` with `localStorage`
+    pre-seeded from `defaultPreferences` (both files assert exact `global.fetch` call counts/args,
+    the same reason 9-3 chose the real-`LocaleProvider` route over a reject-mock). `edit.test.tsx`
+    additionally had no `next-auth/react` mock at all — added one (`useSession`/`getSession`/
+    `signOut`, matching `AppHeader`'s own imports) so `useSession()` doesn't fall through to the
+    real module's own `fetch('/api/auth/session')` during a render test. `test:ci` re-run clean
+    afterward: 160/160 suites, 2400/2400 tests — same count as this session's own CONFIRM baseline,
+    no tests dropped. Not written as a new L41 (repo is at its 40-entry cap per the file's own
+    header; this is a straightforward recurrence of L40 itself, which already documents the fix).
+
+13. **F21/F64 confirmed out of scope, per Davin's live resolution of the roadmap's own internal
     contradiction.** `MASTER-ROADMAP-PHASES-7-15.md`'s "Already-open flags" table lists both as
     "owed by 9-4," but its own Phase 9 session breakdown assigns closure of both to 9-5 (correctly —
     both are settings/billing surface, which 9-4 does not touch). Davin confirmed live: 9-5 closes

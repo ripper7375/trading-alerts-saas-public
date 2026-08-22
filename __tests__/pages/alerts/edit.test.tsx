@@ -16,11 +16,20 @@ import userEvent from '@testing-library/user-event';
 import EditAlertPage from '@/app/(dashboard)/alerts/[id]/edit/page';
 import { EditAlertClient } from '@/app/(dashboard)/alerts/[id]/edit/edit-alert-client';
 import type { AlertFormData } from '@/components/alerts/alert-form';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import {
+  LOCALE_STORAGE_KEY,
+  defaultPreferences,
+} from '@/lib/i18n/locale-resolver';
 
 const mockPush = jest.fn();
 const mockRefresh = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush, refresh: mockRefresh }),
+  // Session 9-4: EditAlertPage now mounts AppHeader, which calls
+  // usePathname() directly, and LocaleProvider (wrapped below) needs its
+  // own usePathname() too -- LESSONS-LEARNED.md L40's own stub.
+  usePathname: () => '/alerts/alert-1/edit',
   redirect: jest.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);
   }),
@@ -29,9 +38,32 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
+// AppHeader calls useLocale() -- needs a LocaleProvider ancestor. Pre-seed
+// localStorage with a known preference so LocaleProvider's first-visit
+// branch never fires its real geo-IP fetch() (LESSONS-LEARNED.md L40) --
+// this file's own mockTierFetches() rejects any unexpected fetch URL.
+function withLocale(ui: React.ReactElement): React.ReactElement {
+  return <LocaleProvider>{ui}</LocaleProvider>;
+}
+
 const mockGetSession = jest.fn();
 jest.mock('@/lib/auth/session', () => ({
   getSession: () => mockGetSession(),
+}));
+
+// AppHeader (mounted by EditAlertPage, Session 9-4) calls useSession() for
+// real user identity/tier and getSession()/signOut() inside its logout
+// handler -- not exercised by these tests, stubbed so the real
+// next-auth/react module (and its own fetch('/api/auth/session')) never
+// loads.
+const mockUseSession = jest.fn(() => ({
+  data: null,
+  status: 'unauthenticated',
+}));
+jest.mock('next-auth/react', () => ({
+  useSession: () => mockUseSession(),
+  getSession: jest.fn(),
+  signOut: jest.fn(),
 }));
 
 const mockFindUnique = jest.fn();
@@ -90,6 +122,10 @@ function mockTierFetches(patchImpl?: () => Promise<Response>): void {
 describe('EditAlertPage (server component)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify(defaultPreferences)
+    );
   });
 
   it('renders existing alert data in the form for a PRO user', async () => {
@@ -100,7 +136,7 @@ describe('EditAlertPage (server component)', () => {
     const jsx = await EditAlertPage({
       params: Promise.resolve({ id: 'alert-1' }),
     });
-    render(jsx);
+    render(withLocale(jsx));
 
     expect(
       await screen.findByRole('heading', { name: 'Edit Alert', level: 1 })
@@ -120,7 +156,7 @@ describe('EditAlertPage (server component)', () => {
     const jsx = await EditAlertPage({
       params: Promise.resolve({ id: 'alert-1' }),
     });
-    render(jsx);
+    render(withLocale(jsx));
 
     expect(screen.getByText('Alerts are a PRO feature')).toBeInTheDocument();
     expect(mockFindUnique).not.toHaveBeenCalled();
