@@ -7,8 +7,8 @@
 > Grounded in `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`. Exactly one
 > `layout.tsx` moves this session: `app/(dashboard)/layout.tsx`.
 
-**Session:** 9-4 · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CONFIRMED
-**Generated:** 2026-08-22 (Executor PRE-DRAFT) · **Upgraded:** 2026-08-22 (Advisor DRAFT) · **Approved:** 2026-08-22 (Davin) · **Confirmed:** 2026-08-22 (Executor)
+**Session:** 9-4 · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CLOSED SUCCESSFUL
+**Generated:** 2026-08-22 (Executor PRE-DRAFT) · **Upgraded:** 2026-08-22 (Advisor DRAFT) · **Approved:** 2026-08-22 (Davin) · **Confirmed:** 2026-08-22 (Executor) · **Closed:** 2026-08-22 (Executor)
 **Flags touched:** none new (Stack D/E panels are flag-gated empty states pending F69/F71 in Phases 12/13)
 **Surface:** Exactly one layout boundary moves this session: `app/(dashboard)/layout.tsx` (consuming `AppHeader` and `ChatSidebar` from Session 9-1) + 5 core dashboard pages (`dashboard`, `alerts`, `alerts/new`, `alerts/[id]/edit`, `notifications`) + 2 new chart workspaces (`app/(dashboard)/terminal/page.tsx` [PRO], `app/(dashboard)/free/page.tsx` [FREE]) + 2 retired `/charts` routes (`app/(dashboard)/charts/page.tsx` and `app/(dashboard)/charts/[symbol]/[timeframe]/page.tsx`).
 **Feeds on:** `GET /api/alerts` (+ `POST`, `GET/PATCH /api/alerts/[id]`), `GET /api/notifications` (+ `/[id]/read`), `GET /api/user/profile`, `GET /api/drawings`, `GET /api/alerts/line`, `GET /api/candles/[symbol]`, `GET /api/market-data/channel`, `GET /api/realtime/token`, `components/alerts/alert-form.tsx`, `components/notifications/notification-bell.tsx`.
@@ -60,11 +60,11 @@ Per `MASTER-ROADMAP-PHASES-7-15.md` §3: this session replaces all legacy dashbo
 
 ## Entry criteria (re-verify all at CONFIRM)
 
-- [ ] **Session 9-3 CONFIRMED, executed, CLOSED** — `(auth)` pages and `/welcome` live on `main`, route-manifest diff clean.
-- [ ] **Route-map rows 49, 50, 51, 55, 56, 57, 58, 59, 62, 68 re-verified directly** against `frontend-swap-route-map.md`.
-- [ ] **`app/(dashboard)/{dashboard,alerts,alerts/new,alerts/[id]/edit,notifications}` confirmed existing** and holding legacy page bodies; `app/(dashboard)/{terminal,free}/` confirmed ready for creation; `app/(dashboard)/charts*` confirmed present for retirement.
-- [ ] **Live test credentials working** (PRO, FREE, ADMIN autofill buttons verified at 9-3).
-- [ ] **Backing endpoints live and functional**:
+- [x] **Session 9-3 CONFIRMED, executed, CLOSED** — `(auth)` pages and `/welcome` live on `main`, route-manifest diff clean.
+- [x] **Route-map rows 49, 50, 51, 55, 56, 57, 58, 59, 62, 68 re-verified directly** against `frontend-swap-route-map.md`.
+- [x] **`app/(dashboard)/{dashboard,alerts,alerts/new,alerts/[id]/edit,notifications}` confirmed existing** and holding legacy page bodies; `app/(dashboard)/{terminal,free}/` confirmed ready for creation; `app/(dashboard)/charts*` confirmed present for retirement.
+- [x] **Live test credentials working** (PRO, FREE, ADMIN autofill buttons verified at 9-3).
+- [x] **Backing endpoints live and functional**:
   - `GET/POST /api/alerts`, `GET/PATCH/DELETE /api/alerts/[id]`
   - `GET /api/notifications`, `PATCH /api/notifications/[id]/read`
   - `GET /api/user/profile`
@@ -73,7 +73,7 @@ Per `MASTER-ROADMAP-PHASES-7-15.md` §3: this session replaces all legacy dashbo
   - `GET /api/drawings`
   - `GET /api/alerts/line`
   - `GET /api/realtime/token`
-- [ ] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24):
+- [x] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24):
 
   ```powershell
   # 1. Monolith
@@ -150,13 +150,13 @@ Per `MASTER-ROADMAP-PHASES-7-15.md` §3: this session replaces all legacy dashbo
 
 ## Done when
 
-- [ ] All 5 `(dashboard)` core pages + `/terminal` + `/free` live with DavinTrade branding, consuming `app/(dashboard)/layout.tsx`.
-- [ ] `/dashboard`, `/terminal`, and `/free` faithfully match Protected Pages design specifications.
-- [ ] Real alert CRUD, notification read states, and real chart/drawing toolbar rendering live-verified.
-- [ ] Stack D/E panels render genuine empty states with zero mock data.
-- [ ] Legacy `/charts` routes retired with zero dangling internal links.
-- [ ] Route-manifest diff matches this session's rows and nothing else.
-- [ ] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
+- [x] All 5 `(dashboard)` core pages + `/terminal` + `/free` live with DavinTrade branding. Corrected from "consuming `app/(dashboard)/layout.tsx`" per Deviation 13 — each now has its own minimal top-level layout; `app/(dashboard)/layout.tsx` was restored to serve only `/settings/*` and `/admin/*`.
+- [x] `/dashboard`, `/terminal`, and `/free` faithfully match Protected Pages design specifications.
+- [x] Real alert CRUD, notification read states, and real chart/drawing toolbar rendering live-verified.
+- [x] Stack D/E panels render genuine empty states with zero mock data.
+- [x] Legacy `/charts` routes retired with zero dangling internal links.
+- [x] Route-manifest diff matches this session's rows and nothing else — confirmed via `git diff --stat` against the session's start commit; `settings/`/`admin/` show zero diff.
+- [x] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean. **Not fully green: `DECISION-LOG.md` F77 (OPEN)** — a live, reproducible defect (`/alerts`, `/alerts/new` client-side double-render on reload, confirmed functional impact) was found and is being closed as a disclosed, unresolved item per Davin's live direction rather than blocking session close.
 
 ---
 

@@ -26,7 +26,87 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 9-3 (`(auth)` 7 + `welcome`, Phase 9, UI-BUILD), CONFIRMED, executed,
+- **Current:** Session 9-4 (`(dashboard)` core 7 + `/terminal` + `/free`, Phase 9, UI-BUILD),
+  CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-22. Fifth session of Phase 9 — ships all 8
+  active route-map rows (49, 50, 51, 57, 58, 62, 68 + 2 retired: 55/56, 59): the 5 `(dashboard)`
+  core pages (dashboard, alerts, alerts/new, alerts/[id]/edit, notifications), the flagship
+  4-panel PRO `/terminal` and 3-panel FREE `/free` quantitative workspaces, and retirement of the
+  2 legacy `/charts` routes (now permanent redirects to `/terminal`).
+  **CONFIRM found the by-now-familiar L3 pattern again** (24th+ recurrence): committed HEAD held
+  only the bare PRE-DRAFT stub; working copy carried the full Advisor DRAFT→APPROVED upgrade (5
+  numbered decisions). Davin's own chat message opening the session independently restated two of
+  the five decisions verbatim, serving as live confirmation before execution began.
+  **A real architecture conflict found and corrected before writing any layout code, escalated via
+  `AskUserQuestion` rather than guessed:** the order's own Step 1 (and the 9-0 route map's own
+  "Main-Repo Target" column) put `/terminal` and `/free` under `app/(dashboard)/`, sharing
+  `app/(dashboard)/layout.tsx`'s chrome — but reading `seed-code`'s real `terminal/page.tsx` and
+  `free/page.tsx` in full showed both are full-screen 4-panel workspaces that mount `ChatSidebar`
+  themselves as an internal panel and never use `AppHeader`. Corrected: both moved to top-level
+  routes (`app/terminal/`, `app/free/`) with their own minimal layout (auth gate only). A second,
+  mechanical correction followed directly from reading all 5 core pages' own seed-code sources:
+  none of them consume a shared header from a layout either — each mounts its own `AppHeader`
+  directly — so `app/(dashboard)/layout.tsx` was restyled as a thin auth-gate wrapper with zero
+  chrome of its own, not an `AppHeader`+`ChatSidebar` shell as Decision 3 originally described.
+  **Live browser testing at Step 5 found a second, more serious architecture conflict this
+  session's own earlier reasoning missed:** removing the shared layout's chrome broke `/settings/*`
+  (11 pages, 9-5's scope) and `/admin/*` (19+ pages, 9-8's scope) — neither touched this session,
+  both now silently rendering with **zero navigation chrome** (`tsc`/`eslint`/`test:ci` cannot
+  catch this; only a real browser check can). Escalated via a second `AskUserQuestion`; Davin's
+  call extended the exact same terminal/free pattern to the 5 core pages too — moved to top-level
+  routes (`app/dashboard/`, `app/alerts/`, `app/notifications/`), `app/(dashboard)/layout.tsx`
+  restored byte-identical to its pre-session form via `git show`, so `/settings/*`/`/admin/*` are
+  now completely untouched by this session, as originally intended.
+  **Pre-existing latent defects fixed in `AppHeader`/`ChatSidebar` before their first real mount,
+  per `LESSONS-LEARNED.md` L15:** both were built at Session 9-1 but never mounted anywhere
+  (confirmed zero importers repo-wide before this session) — reading their full implementation
+  before wiring them into a real authenticated surface found both hardcoded a static "Trader
+  User" identity regardless of who's actually logged in, and both "Log out" buttons were a bare
+  `<Link href="/login">` that never called `signOut()`, leaving the real session cookie live
+  server-side. Fixed both identically: real identity via `useSession()`, the same bridge-aware
+  logout flow `components/layout/header.tsx` already uses.
+  **Panel 1 of `/terminal`/`/free` reuses the real, pre-existing `components/charts/
+trading-chart.tsx`** (live Socket.IO OHLCV, real drawing toolbar, PRO-gated multi-timeframe
+  overlay) instead of porting seed-code's own 856-line mock chart component. `ChatPanel`/
+  `MarketCommentsPanel` (Stack D/E) ship as genuine empty states, zero mock data, per Decision 2 —
+  seed-code's own versions were full mock prototypes (fabricated chat history, fake token
+  counters, invented market comments and a fictional trade-setup card). `ProUpgradeModal` ported
+  with its fake in-place "upgrade succeeded" behavior replaced by a real `/pricing` navigation.
+  **A genuine test regression found and fixed at Step 6, `LESSONS-LEARNED.md` L40's exact failure
+  class, 4th occurrence:** mounting `AppHeader` broke `notifications-page.test.tsx` (7 tests) and
+  `edit.test.tsx` (2 tests) — fixed forward per 9-3's own established pattern (real `LocaleProvider`
+  - localStorage-seeded `defaultPreferences` + `usePathname` stub); `edit.test.tsx` also had zero
+    `next-auth/react` mock at all, added one.
+    **A known, unresolved, disclosed defect closed this session rather than chased indefinitely —
+    see `DECISION-LOG.md` F77:** `/alerts` and `/alerts/new` duplicate their client-rendered content
+    on a genuine browser reload (confirmed in a real `next build && next start` production server,
+    not a dev/HMR artifact; raw SSR HTML verified clean via direct `fetch()`; zero console/hydration
+    errors). Live-verified this has a real functional consequence, not just cosmetic: a test alert
+    submitted through the duplicated form stored `25002500` instead of `2500` (immediately deleted).
+    Extensive isolation via a throwaway diagnostic route found `AlertForm`/`CreateAlertClient`
+    reproduces it standalone, but so does `AlertsClient` (zero fetch effects) — no single common
+    trigger identified. Davin's live call, after reviewing the full diagnostic trail: close with it
+    documented rather than open-ended further investigation.
+    **All test baselines re-verified live, all green:** monolith `tsc` clean, `eslint` 0 errors/5
+    warnings (pre-existing, none in touched files), `test:ci` 160/160 suites/2400/2400 tests
+    (re-run three times across the session's own corrections); money-service 62/62 suites/526/526
+    tests (one worker-OOM false-negative on a shared-resource run, clean on single-worker re-run —
+    L24's own "re-run fresh, nothing in flight" rule); operation-service 42/42 suites/393/393 tests.
+    A real production build (`next build`) also verified clean (exit 0) as part of the F77
+    investigation.
+    **Route-manifest diff clean:** `git diff --stat` against the session's own start commit confirms
+    `app/(dashboard)/settings/*` and `app/(dashboard)/admin/*` show zero diff;
+    `app/(dashboard)/layout.tsx` is byte-identical to its pre-session form; exactly the 7 active +
+    2 retired rows' own files moved/changed, plus their real dependency chain (5 new/ported
+    components, 2 shared-component fixes, 3 orphaned files deleted, 2 stale nav links fixed).
+    **Artifacts updated:** `9-4-dashboard-core-terminal-free.migration-order.md` (Status →
+    CONFIRMED → CLOSED SUCCESSFUL, CONFIRM note + 16 Deviations + checked Done-when/entry-criteria
+    boxes), `DECISION-LOG.md` (F77 registered, OPEN), `migration-stack-analysis.md` (Session 9-4
+    entry, 12 new files/12 modified/6 deleted, all FRONTEND), `LESSONS-LEARNED.md` (L40 recurrence
+    note, 4th occurrence), this file (Current/Previous rotation — Sessions 9-1 and 9-2 moved to
+    `history/sessions-archive.md`; 9-1 was already there from a hygiene gap at 9-3's own close, now
+    corrected). `migration-cutover-table.md` correctly needs no changes (Phase 9 is additive
+    builds, no route/slice moved).
+- **Previous:** Session 9-3 (`(auth)` 7 + `welcome`, Phase 9, UI-BUILD), CONFIRMED, executed,
   **CLOSED SUCCESSFUL** 2026-08-22. Fourth session of Phase 9 — ships all 8 route-map rows (65, 67,
   71, 72, 88, 89, 90, 95): the 7 `(auth)` pages (login, register, forgot-password, reset-password,
   verify-2fa, verify-email, verify-email/pending) + the new `/welcome` post-registration onboarding
@@ -113,151 +193,6 @@ a LocaleProvider` error — `LESSONS-LEARNED.md` L40's exact failure class, now 
   rotation — Session 9-1 moved to `history/sessions-archive.md`), `migration-stack-analysis.md`
   (Session 9-3 entry, 1 new file/16 modified, all FRONTEND). `migration-cutover-table.md`
   correctly needs no changes (Phase 9 is additive builds, no route/slice moved).
-- **Previous:** Session 9-2 (`(marketing)` 12 + `(public)` 2, Phase 9, UI-BUILD), CONFIRMED, executed,
-  **CLOSED SUCCESSFUL** 2026-08-22. Third session of Phase 9 — ships all 14 route-map rows (1-2,
-  3-4, 52-54, 63-64, 66, 69-70, 84-85, 91): the 12 `(marketing)` pages + 2 `(public)` account-
-  deletion pages, the only pages that render without a session. `app/(marketing)/layout.tsx` now
-  renders `MarketingNavbar`/`MarketingFooter` (built 9-1) instead of inline "Trading Alerts" chrome
-  — the one `layout.tsx` boundary this session moves.
-  **CONFIRM found the by-now-familiar L3 pattern again** (21st+ recurrence): committed HEAD held
-  only the bare PRE-DRAFT stub; working copy carried the full Advisor DRAFT→APPROVED upgrade.
-  Davin confirmed live it was his authentic edit. Also confirmed, in scope: the route-map addendum
-  for rows 3-4 (recording `app/(public)/settings/account/delete/{cancel,confirm}/page.tsx` as the
-  canonical target, correcting the table's stale `app/account/deletion-*` citation).
-  **Landing page (row 1) needed far more than a content swap, escalated live before touching any
-  file:** seed-code's landing page is a 6-component composition with its OWN `LandingNavbar`/
-  `LandingFooter` (distinct from the shared `MarketingNavbar`/`MarketingFooter` the other 11 pages
-  use) — porting verbatim would have quadruple-stacked chrome, the exact bug Decision 3 exists to
-  prevent, from the opposite direction. Escalated via `AskUserQuestion`; Davin chose "strip
-  seed-code's own chrome, keep the real affiliate pricing." The current live landing page had real,
-  `SystemConfig`-backed affiliate-discount pricing (`useAffiliateConfig()`, `?ref=CODE`-driven
-  banner + discount + commission calc) that seed-code's replacement lacked entirely — grafted
-  forward into the new `components/landing/landing-pricing.tsx` rather than dropped; live-verified
-  via dev server (`/?ref=TESTCODE` shows the real 20%-off banner and correct $29.00→$23.20 price).
-  **The same "seed-code page looks like a restyle but silently regresses or fabricates data"
-  pattern recurred twice more, independently, at higher stakes each time:** `/status` bound to the
-  real 4-component `getSystemStatus()` (API/Database/Realtime/Payment Gateways) instead of
-  seed-code's 6 fabricated components with invented static latency/uptime figures — live-verified
-  this dev environment correctly shows "Some Systems Are Degraded," not a fabricated "All Systems
-  Operational." `/pricing` + `TierComparison` bound to `lib/tier-config.ts`'s real
-  `PRO_MONTHLY_PRICE` (Davin's explicit instruction) instead of seed-code's hardcoded $39/$49, and
-  its feature list replaced seed-code's fabricated Stack D/E claims (multi-model AI chat, quad-RAG,
-  a live market-comments feed — Phase 12/13 work, not built) with the real V8 entitlements. Flagged
-  as a candidate lesson for the Advisor's attention — `LESSONS-LEARNED.md` is at its 40-entry cap,
-  needs a consolidation pass before a 41st entry can be added; full candidate text in the order's
-  own Deviation 11.
-  **`components/chat-widget/*`'s Phase-14 deferral (decided at 9-1) reached further than that
-  order anticipated:** seed-code's `/help` page and `landing-hero.tsx` both call
-  `useSupportChat()` with no provider in the tree — neither ported as-is; `/help` gets a second
-  real `mailto:` channel instead, the landing hero drops its chat-wired "Support Centre" sandbox
-  entirely.
-  **Account-deletion pages restyled, safety-critical logic untouched:** both pages already
-  correctly implemented Decision 5's human-in-the-loop requirement before this session (predates
-  the order); seed-code's own confirm page auto-executes the deletion in a `useEffect` on mount
-  with zero confirmation step — explicitly not ported. Live-verified: confirm page fires ZERO
-  `deletion-confirm` calls until clicked.
-  **A real, pre-existing a11y gap found and fixed while porting `/docs`:** seed-code's expand/
-  collapse toggle was a bare `<div onClick>` with an icon-only nested `<button>` (invalid HTML,
-  button-in-button) and no `aria-expanded` at all. Converted to a real `<button aria-expanded>`.
-  **Route-manifest diff clean:** `git diff --stat` across every commit this session touches only
-  the 14 rows' own page files plus their non-route component/asset dependencies — zero pages
-  created or dropped outside scope.
-  **A genuine test regression found and fixed at Step 6, not just discovered and left:**
-  `__tests__/pages/marketing/public-pages.test.tsx` (Session 6-10, written against the old
-  "Trading Alerts" copy) broke on every one of its 10 content-bearing assertions once this
-  session's rebrand landed, plus two mocking gaps this session's own new code exposed
-  (`MarketingNavbar` needs `usePathname`, `StatusRefreshButton` needs `useRouter`+`useLocale`/
-  `LocaleProvider`) — rewritten in full per `LESSONS-LEARNED.md` L3's "test:ci must never go
-  backwards" rule and 9-1's own identical precedent; same 13 tests, same file, all green.
-  **All test baselines re-verified live, all green, exact match to 9-1's own close:** monolith
-  `tsc` clean, `eslint` 0 errors/5 warnings (pre-existing, none in touched files), `test:ci`
-  160/160 suites/2400/2400 tests; money-service 62/62 suites/526/526 tests (one known
-  `prisma.shutdown.spec.ts` SIGTERM flake — same one documented at 9-0's own CONFIRM,
-  money-service untouched this session, reproduced clean in isolation); operation-service 42/42
-  suites/393/393 tests.
-  **Live-verified via dev server, not just `tsc`/`test:ci`:** all 14 routes smoke-tested — single
-  `<header>`/`<footer>` each, correct content, zero console errors; `/status`'s refresh button
-  triggers a genuine `router.refresh()` server round-trip (`SELECT 1` re-ran); the account-deletion
-  cancel page's real dual-mode auto-fire POSTs and fails gracefully to a styled error state only
-  because `operation-service` isn't running in local dev (`ECONNREFUSED`, not a page defect).
-  **Artifacts updated:** `9-2-marketing-public-pages.migration-order.md` (Status → CONFIRMED →
-  CLOSED SUCCESSFUL, 11 Deviations + checked Done-when/entry-criteria boxes), `frontend-swap-
-route-map.md` (§3 dated addendum for rows 3-4), `migration-stack-analysis.md` (Session 9-2 entry,
-  7 new files/15 modified/1 deleted, all FRONTEND), `LESSONS-LEARNED.md` (L3 recurrence bump to
-  21st+; candidate lesson flagged, not written — file at 40-entry cap), this file (Current/Previous
-  rotation — Session 9-0 moved to `history/sessions-archive.md`). `migration-cutover-table.md`
-  correctly needs no changes (Phase 9 is additive builds, no route/slice moved).
-- **Previous:** Session 9-1 (Root Shell & Design System, Phase 9, UI-BUILD), CONFIRMED, executed,
-  **CLOSED SUCCESSFUL** 2026-08-22. Second session of Phase 9 — every subsequent Phase 9 session
-  (9-2…9-9) renders inside the root shell, design tokens, headers, sidebars, and providers landed
-  here. Closes rows 92/93 of `frontend-swap-route-map.md` plus gap-inventory items 1, 2, 5, 6a-6e,
-  10; fixes all 5 Batch-0 shared-shell findings.
-  **CONFIRM found the by-now-familiar L3 pattern again** (20th+ recurrence): committed HEAD held
-  only the bare PRE-DRAFT stub; working copy carried the full Advisor DRAFT→APPROVED upgrade.
-  Davin confirmed live it was his authentic edit. **All test baselines re-verified live at CONFIRM,
-  all green, exact match to 9-0's own close:** monolith `tsc` clean, `eslint` 0 errors/5 warnings,
-  `test:ci` 160/160 suites/2400/2400 tests; money-service 62/62 suites/526/526 tests;
-  operation-service 42/42 suites/393/393 tests. `seed-code/` found fully clean (better than the
-  entry criterion's own "except 2 files" expectation — those 2 files were already committed by
-  9-0's own close). Batch-0's two root-boundary fixes re-diffed byte-for-byte, still intact.
-  **CONFIRM surfaced 6 corrections, all approved live by Davin before execution** (full detail in
-  the order's own CONFIRM note): `lib/i18n/locale-resolver.ts` needed porting, not just citing
-  (only existed in `seed-code/`); `--chart*` tokens stay runtime-dynamic, not static `globals.css`
-  rules; `app/providers.tsx`'s `SessionProvider` was already live, to be preserved not rebuilt;
-  the main repo's own `middleware.ts` already had the real auth gate (codebase 2's had the
-  locale-rewrite half) — merge direction confirmed; gap-6e's residual (`chat-panel.tsx`,
-  `market-comments-panel.tsx`, `settings/layout.tsx`) explicitly handed to Sessions 9-4/9-5, not
-  silently dropped; `components/layout/header.tsx` (live, 9-4's to retire) is distinct from the
-  dead `components/header.tsx` this session's Decision 5 deletes.
-  **Mid-execution, a 7th finding not in any prior document, escalated to Davin rather than decided
-  unilaterally:** wiring `ClientProviders` as literally described would have mounted seed-code's
-  support-chat widget — its socket client points at an unset `NEXT_PUBLIC_SOCKET_CHAT_URL` (Phase
-  14, unbuilt) and falls back to a hardcoded canned-response generator presented as a live "AI
-  Support Specialist." Davin's live call: defer the whole widget to Phase 14, ship
-  `ClientProviders` with only `LocaleProvider`+`AppearanceProvider` for now.
-  **Execution found the main repo's own `components/providers/appearance-provider.tsx` already
-  exists and is MORE complete than seed-code's version** (it additionally syncs `next-themes`'
-  `setTheme()`) — preserved as-is rather than overwritten, which would have been a regression.
-  Also found its sibling `components/providers/theme-provider.tsx` (hand-rolled) is dead code,
-  zero importers — flagged, not deleted (only `components/header.tsx`'s deletion carried explicit
-  go-ahead this session).
-  **Real, disclosed architecture change:** `app/layout.tsx` now calls `cookies()`/`headers()` on
-  every request — the whole app is dynamically rendered as of this session (previously the root
-  layout was static-compatible). Direct, unavoidable cost of porting codebase 2's unified
-  root-layout design; not re-optimized back to static this session, flagged for later if TTFB/
-  build-time on marketing routes becomes a concern.
-  **`AppHeader`/`ChatSidebar` rewritten from seed-code's hardcoded `slate-N`/`dark:bg-[hex]`
-  classes onto semantic design tokens** — the actual Batch-0 "Light Clean Mode" fix for the two
-  files the parity audit named; extended the identical treatment to `marketing-navbar.tsx`/
-  `marketing-footer.tsx` (not in Batch-0's named list, but same defect pattern, same session's own
-  Surface) so 9-2 doesn't rediscover it. Fixed the missing sidebar Help item directly inside this
-  rewrite. Found and fixed a middleware-merge bug before commit (two early-return branches skipped
-  the locale rewrite) via code-path tracing, not live testing. Found and fixed a CSP gap
-  (`ipapi.co` blocked, breaking the newly-ported geo-detection) and a stale globals.css comment.
-  **Regressed then fixed 3 test assertions** in `__tests__/pages/phase-6-exit.test.tsx` (intentional
-  rebrand changed rendered copy — `test:ci` must never go backwards) and a latent test-infra gap
-  (`LocaleProvider`'s real, un-mocked geo-IP `fetch` crashing the Jest worker on teardown) — new
-  `LESSONS-LEARNED.md` **L40**, plus a recurrence note on **L22**.
-  **Live-verified via dev server, not just `tsc`/`test:ci`:** all 4 currently-existing Protected
-  pages (`/`, `/dashboard`, `/settings/appearance`, `/settings/help`, the last 3 via a real login
-  using the login page's own test-credential autofill) render correctly under the new shell;
-  `/terminal`/`/free` don't exist yet (Session 9-4's own new pages, confirmed via `ls`, nothing to
-  verify there this session); all 3 middleware auth×locale interaction cases verified live; the 4
-  new shared-chrome components smoke-tested together via a throwaway route, deleted before commit.
-  **Also found and fixed, unrelated to this session's own scope but caught mid-close:**
-  `DECISION-LOG.md` had drifted to 53,361 bytes, over its ~50KB size-gate target (should have been
-  caught at this session's own OPEN) — ran the archival pass, moved F47/F65/F66's full entries to
-  `history/decisions-archive.md`, and fixed F47's own detail-entry status header (stale at "OPEN"
-  since 4A-W7 even though the register table and CLAUDE.md both already said RESOLVED — Session
-  4A-15). Back to 48,988 bytes.
-  **Artifacts updated:** `9-1-root-shell-design-system.migration-order.md` (Status → CONFIRMED →
-  CLOSED SUCCESSFUL, CONFIRM note + 16 Deviations + checked Done-when/entry-criteria boxes),
-  `DECISION-LOG.md` (size-gate archival pass), `history/decisions-archive.md` (F47/F65/F66 full
-  entries), `migration-stack-analysis.md` (Session 9-1 entry, 15 new files/8 modified, all
-  FRONTEND), `LESSONS-LEARNED.md` (L40, L22 recurrence — now at the 40-lesson cap, next lesson
-  needs a consolidation pass first), this file (Current/Previous rotation — Session 4A-15 moved to
-  `history/sessions-archive.md`). `migration-cutover-table.md` correctly needs no changes (Phase 9
-  is additive builds, no route/slice moved).
 
 ## Key documents
 

@@ -3675,8 +3675,67 @@ components/auth/register-form}.test.tsx` — wrapped renders in a real `LocalePr
 
 </details>
 
+<details>
+<summary>Session 9-4 (`(dashboard)` core 7 + `/terminal` + `/free`, UI-BUILD) — 12 new files, 12 modified, 6 deleted, all FRONTEND</summary>
+
+All 8 active route-map rows (49, 50, 51, 55/56 retired, 57, 58, 59 retired, 62, 68) shipped, plus a
+real, live-verified scope correction: the 5 core pages and `/terminal`/`/free` all moved to
+top-level routes (`app/dashboard/`, `app/alerts/`, `app/notifications/`, `app/terminal/`,
+`app/free/`) rather than staying under `app/(dashboard)/`. Route-manifest diff confirmed clean via
+`git diff --stat` against the session's own start commit: `app/(dashboard)/settings/*` and
+`app/(dashboard)/admin/*` show zero diff, `app/(dashboard)/layout.tsx` restored byte-identical to
+its pre-session form.
+
+- **New — top-level route + minimal layout pairs:** `app/{dashboard,alerts,notifications,
+terminal,free}/layout.tsx` — each a thin auth-gate + `AppearanceProvider` wrapper (no shared
+  chrome), matching the pattern the order's own Step 1 originally described for
+  `app/(dashboard)/layout.tsx` before live testing found it broke `/settings/*` and `/admin/*`
+  (Deviation 13). `app/{terminal,free}/{page.tsx,*-workspace.tsx}` — the 4-panel PRO / FREE
+  quantitative workspaces, Panel 1 bound to the real, pre-existing
+  `components/charts/trading-chart.tsx` (live Socket.IO OHLCV, drawing toolbar, PRO multi-timeframe
+  overlay); Panels 2/3 genuine empty states, zero mock data.
+- **New — Stack D/E empty-state + upgrade components:** `components/chat-panel.tsx`,
+  `components/market-comments-panel.tsx` (ported from seed-code's mock prototypes as real empty
+  states, Decision 2), `components/ui/pro-upgrade-modal.tsx` (ported with its fake in-place
+  upgrade-success behavior replaced by a real `/pricing` navigation), `components/ui/resizable.tsx`
+  (generic shadcn wrapper, ported verbatim).
+- **Modified — 5 core pages relocated + restyled:** `app/{dashboard,notifications}/page.tsx`,
+  `app/alerts/{page.tsx,new/page.tsx,new/create-alert-client.tsx,[id]/edit/page.tsx,
+[id]/edit/edit-alert-client.tsx,alerts-client.tsx}` — each mounts its own `AppHeader` (matching
+  every seed-code source file's real pattern, not a shared-layout mount), all real logic preserved
+  byte-for-byte (Prisma-fetched dashboard data, `AlertsClient`'s optimistic toggle/delete/undo,
+  `NotificationList`'s pagination/realtime-socket, `PRO`-exclusive `AlertsProUpgrade` gating).
+  `CreateAlertClient` consolidated onto the shared `AlertForm` (previously duplicated its own form
+  with no tier-endpoint validation).
+- **Modified — shared identity/logout fix:** `components/layout/app-header.tsx`,
+  `components/chat-sidebar.tsx` — both built Session 9-1 but never mounted anywhere until this
+  session; found and fixed two real pre-mount defects (`LESSONS-LEARNED.md` L15) — hardcoded fake
+  "Trader User" identity regardless of real session, and a "Log out" that never called `signOut()`.
+- **Deleted — orphaned after `/charts` retirement:** `app/(dashboard)/charts/
+[symbol]/[timeframe]/trading-chart-client.tsx`, `components/charts/chart-controls.tsx`,
+  `components/ui/upgrade-button.tsx` (zero importers left outside the 2 retired page files, which
+  now permanently redirect to `/terminal`).
+- **Modified — stale nav links:** `components/layout/{sidebar,mobile-nav}.tsx` — `/charts` →
+  `/terminal` (2-line fix; both components are now themselves fully orphaned dead code as a direct
+  consequence of restoring `app/(dashboard)/layout.tsx`, flagged for Session 9-10's own dead-code
+  exit criterion, not deleted this session).
+- **Modified — test infrastructure (regression fix, not new coverage):**
+  `__tests__/pages/{notifications/notifications-page,alerts/edit}.test.tsx` — `LESSONS-LEARNED.md`
+  L40's exact failure class, 4th occurrence, after mounting `AppHeader` broke 9 tests; also updated
+  both files' import paths for the route relocation.
+- **Known unresolved defect, not a stack-analysis artifact but material to this entry:**
+  `DECISION-LOG.md` F77 — `/alerts` and `/alerts/new` duplicate client-side on a genuine reload
+  (verified in a real production build), with a confirmed real functional consequence (a
+  submitted target price was corrupted). Closed this session per Davin's live direction; owner is
+  the next session touching `/alerts` or a dedicated repair session.
+- **Docs (not stack-analysis targets, listed for completeness):** this session's own migration
+  order (CONFIRMED → CLOSED SUCCESSFUL, 16 Deviations filled), `DECISION-LOG.md` (F77 registered),
+  `LESSONS-LEARNED.md` (L40 recurrence note, 4th occurrence).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-22 (Session 9-3, `(auth)` + `welcome` — 8
-route-map rows shipped)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-22 (Session 9-4, `(dashboard)` core + `/terminal` +
+`/free` — 8 active route-map rows shipped, 2 retired)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
