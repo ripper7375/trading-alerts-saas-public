@@ -90,15 +90,23 @@ layout.tsx` (Session 9-7b's file, not this session's) reads `session.user.isAffi
   unrelated route changes. One commit-hygiene deviation: the `verify` deletion rode along with the
   Step-1 commit rather than getting its own, since a broad staged deletion commits with whatever's
   next regardless of a narrower `git add`.
+  **`LESSONS-LEARNED.md` L43 harvested, file now at the 40-lesson cap:** the browser-automation
+  `form_input`-on-checkbox gotcha found mid-verification (sets the DOM `checked` property without
+  firing React's `onChange`, silently leaving a `disabled={!checked}` submit button disabled) is a
+  reusable reflex for any future session's own live click-through — the other two findings this
+  session surfaced (the route-map/Decision-1 scope conflict, F79's redirect loop) are one-off
+  narratives already fully captured in `DECISION-LOG.md`/above, not generalizable reflexes, so
+  neither became a lesson.
   **Artifacts updated:** `9-7a-affiliate-public.migration-order.md` (Status → CONFIRMED → CLOSED
-  SUCCESSFUL, 8 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md` (F79
+  SUCCESSFUL, 9 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md` (F79
   registered OPEN), `history/decisions-archive.md` (F79 full narrative appended),
   `migration-stack-analysis.md` (Session 9-7a entry, 1 new/3 modified/1 deleted, all FRONTEND),
   `9-7b-affiliate-portal.migration-order.md` (new, PRE-DRAFT — the authenticated partner-portal
   cluster, 10 rows per Decision 1 rather than the 9-0 map's own uncorrected 8, both known backend
-  gaps and F79 carried forward as open questions for the Advisor), this file (Current/Previous
-  rotation — Session 9-5 moved to `history/sessions-archive.md`). `migration-cutover-table.md`
-  correctly needs no changes (Phase 9 is additive builds, no route/slice moved).
+  gaps and F79 carried forward as open questions for the Advisor), `LESSONS-LEARNED.md` (L43
+  added, cap note updated), this file (Current/Previous rotation — Session 9-5 moved to
+  `history/sessions-archive.md`). `migration-cutover-table.md` correctly needs no changes (Phase 9
+  is additive builds, no route/slice moved).
 - **Previous:** Session 9-6 (Payments flow, cross-boundary, Phase 9, UI-BUILD + PORT), CONFIRMED,
   executed, **CLOSED SUCCESSFUL** 2026-08-22. Seventh session of Phase 9 — ships route-map rows
   60 (`/checkout/return`), 61 (`/checkout`), 87 (`/upgrade/success`), plus a re-verification pass

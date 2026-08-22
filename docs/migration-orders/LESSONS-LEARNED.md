@@ -4,14 +4,15 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 39 (L1–L42, with L20/L21/L34 merged away), after the
+**Hard cap ~40 active lessons.** Currently at 40 (L1–L43, with L20/L21/L34 merged away), after the
 2026-08-12 consolidation pass (64 → 25: 28 archived, 11 merged into 8 master rules, then 4
 unpromoted candidates promoted to L26–L29; L30 added 2026-08-20 ad-hoc, L31–L32 added Session 7-2,
 L33 added Session 4A-13, L34–L35 added Session 4A-14, L36–L37 added Session 4A-15, L38–L39 added
 Session 9-0, L40 added Session 9-1, L3 compressed + L41 added Session 9-5, Session 9-6: L20+L21
 merged into L19, L34 merged into L13 — both were already-terse Railway-CLI one-liners covering the
-same theme as their merge target — and L42 added).
-Full history in `LESSONS-ARCHIVE.md`. One slot of headroom before the next consolidation is owed.
+same theme as their merge target — and L42 added; L43 added Session 9-7a).
+Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
+(same rule Session 9-6 hit at 41; nothing to merge yet, all 40 are still genuinely distinct).
 
 ---
 
@@ -408,3 +409,17 @@ Full history in `LESSONS-ARCHIVE.md`. One slot of headroom before the next conso
   that service's own `.env.example`) rather than flipping the cutover flag off to dodge it — that
   tests the frozen fallback path, not the real one.
 - Source: Session 9-6 (2026-08-22) · Status: ACTIVE
+
+### L43 — Browser-tool `form_input` on a checkbox/radio sets the DOM property without firing React's `onChange` — controlled state goes stale and a `disabled={!checked}` submit button silently stays disabled
+
+- Symptom (Session 9-7a): `form_input` on the register form's terms checkbox showed
+  `checked: true` in the DOM, but `formData.terms` (React state) stayed `false` and the submit
+  button stayed disabled — no error, just a click that silently did nothing.
+- Root cause: `form_input` writes the DOM property directly; React's controlled-input tracking
+  relies on a real `input`/`change` event reaching its listener, which a direct property write
+  doesn't dispatch.
+- Rule: for a React-controlled checkbox/radio, use a real `computer` `left_click` on the element,
+  not `form_input` — then verify with a quick `javascript_tool` read of `.checked` and the
+  submit button's `disabled` state before clicking submit. `form_input` is fine for text/select
+  inputs, whose value assignment does trigger React's listener.
+- Source: Session 9-7a (2026-08-22) · Status: ACTIVE

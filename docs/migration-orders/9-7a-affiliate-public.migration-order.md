@@ -205,6 +205,14 @@ Per `MASTER-ROADMAP-PHASES-7-15.md` §3: `app/affiliate/*` spans 14 routes and 5
    (`LESSONS-LEARNED.md` L24's exact documented pattern, from resource contention with the other
    two suites just run plus a concurrently-running dev server) — resolved cleanly on an isolated
    re-run (`--maxWorkers=1`): 42/42 suites, 393/393 tests.
+9. **`LESSONS-LEARNED.md` L43 harvested at close, not the two other candidates.** Live
+   verification (Step 5) surfaced two other real findings — the route-map/Decision-1 scope
+   conflict and the F79 stale-JWT redirect loop — but both are one-off narratives already fully
+   captured in `DECISION-LOG.md`/CLAUDE.md, not generalizable executor reflexes, so neither became
+   a new lesson. The browser-automation `form_input`-on-checkbox gotcha found mid-verification
+   (DOM `checked` flips without React's controlled state updating, silently leaving submit
+   disabled) _is_ a reusable reflex for any future session's own live click-through, so that one
+   became L43. File now at the 40-lesson cap; nothing else was ready to consolidate.
 
 ---
 
