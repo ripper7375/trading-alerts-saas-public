@@ -29,7 +29,7 @@ jest.mock('next/link', () => {
   };
 });
 
-import SecurityActivityPage from '@/app/(dashboard)/settings/security/activity/page';
+import SecurityActivityPage from '@/app/settings/security/activity/page';
 
 function jsonResponse(status: number, body: unknown): Response {
   return {

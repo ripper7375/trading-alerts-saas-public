@@ -12,7 +12,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import BillingSettingsPage from '@/app/(dashboard)/settings/billing/page';
+import BillingSettingsPage from '@/app/settings/billing/page';
 
 jest.mock('@/lib/hooks/useAffiliateConfig', () => ({
   useAffiliateConfig: () => ({

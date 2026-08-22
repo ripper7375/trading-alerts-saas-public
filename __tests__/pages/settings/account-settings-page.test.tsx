@@ -52,7 +52,7 @@ jest.mock('next-auth/react', () => ({
   useSession: () => mockUseSession(),
 }));
 
-import AccountSettingsPage from '@/app/(dashboard)/settings/account/page';
+import AccountSettingsPage from '@/app/settings/account/page';
 
 function sessionsResponse(): Response {
   return {

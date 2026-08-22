@@ -9,7 +9,7 @@
 
 import { render, screen, waitFor } from '@testing-library/react';
 
-import SettingsPage from '@/app/(dashboard)/settings/page';
+import SettingsPage from '@/app/settings/page';
 
 jest.mock('@/lib/hooks/useAffiliateConfig', () => ({
   useAffiliateConfig: () => ({
