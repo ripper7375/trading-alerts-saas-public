@@ -8,8 +8,8 @@
 > Grounded in `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`. Exactly one
 > `layout.tsx` moves this session: `app/layout.tsx`.
 
-**Session:** 9-1 · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CONFIRMED
-**Generated:** 2026-08-22 (Executor PRE-DRAFT) · **Upgraded:** 2026-08-22 (Advisor DRAFT) · **Approved:** 2026-08-22 (Davin) · **Confirmed:** 2026-08-22 (Executor, live code re-verified — see CONFIRM note below)
+**Session:** 9-1 · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CLOSED SUCCESSFUL
+**Generated:** 2026-08-22 (Executor PRE-DRAFT) · **Upgraded:** 2026-08-22 (Advisor DRAFT) · **Approved:** 2026-08-22 (Davin) · **Confirmed:** 2026-08-22 (Executor, live code re-verified — see CONFIRM note below) · **Closed:** 2026-08-22 (Executor — all Done-when items checked, 16 Deviations recorded, baselines green)
 **Flags touched:** none new (F65/F66 already RESOLVED at 9-0)
 **Surface:** Exactly one layout boundary moves this session: `app/layout.tsx` (root shell), `app/providers.tsx`, `app/globals.css` design tokens, `tailwind.config.ts`, brand assets/icons, `theme-provider`, appearance engine (`getServerAppearance()` + `UserAppearance`), `components/layout/app-header.tsx`, `components/chat-sidebar.tsx`, `components/marketing/marketing-navbar.tsx` + `marketing-footer.tsx`, `app/not-found.tsx` (Row 93), `app/global-error.tsx` (Row 92), and `app/error.tsx`.
 **Feeds on:** `lib/appearance/server-appearance.ts` + `UserAppearance` Prisma model (server-side persistence), `lib/i18n/locale-resolver.ts`, `lib/operation-service/cookies.ts`, NextAuth session cookie (`SESSION_COOKIE_NAME`).

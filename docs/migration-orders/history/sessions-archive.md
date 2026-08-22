@@ -7,6 +7,73 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 4A-15 (Wise + Outbox Defect Sweep, Phase 4X, PORT, dial LOW), CONFIRMED,
+  executed, CLOSED SUCCESSFUL** 2026-08-21. Third and final session of Phase 4X's originally-
+  scoped Wise/outbox work — closes `DECISION-LOG.md` **F47** (Wise quote currency correctness,
+  OPEN since 4A-W7) and **F50** (`COMMISSION_CREDITED` recipient resolution, OPEN since 4A-11).
+  **CONFIRM found the by-now-familiar L3/L11 pattern again** (18+ recurrences, `LESSONS-LEARNED.md`
+  L3 bumped): committed HEAD had only the bare PRE-DRAFT stub; working copy carried the full
+  DRAFT→APPROVED upgrade. Davin confirmed live it was his authentic edit.
+  **CONFIRM found two entry criteria genuinely failing, both pre-dating this order and unrelated
+  to F47/F50:** (1) operation-service's claimed 42/42-suite baseline was false — 3 suites failed
+  to compile on `this.prisma.affiliateProfile` in `auth.service.ts` (operation-service's schema
+  has no such model by design), a pre-existing defect from commit `70299f13` (2026-08-15), a full
+  week before this order's own PRE-DRAFT ancestor session. (2) The order's "Outbox publisher is
+  currently disabled, zero production risk" framing was wrong — `OUTBOX_PUBLISHER_ENABLED` has
+  been `true` in production since **Session 4A-12 (2026-07-30)**, which `migration-cutover-
+table.md`'s own Slice 5 row already recorded correctly; the order's narrative simply never
+  cross-checked it. New `LESSONS-LEARNED.md` **L37**. Both reported to Davin before any execution;
+  he live-authorized a new Step 0 (remove the invalid seed call) and updated the order's own text
+  (risk framing, entry criteria, a new `Decisions taken` #4) before saying go.
+  **Steps 0–3 executed clean, one commit each, full suite green after every step:**
+  Step 0 (`1f147116`) removed the dead `if (fixed.isAffiliate) {...}` affiliate-seed block from
+  `auth.service.ts` — operation-service back to 42/42 suites, 393/393 tests. Step 1 (`4496abb2`,
+  F47) widened `CreateQuoteInput` to accept `sourceAmount`/`targetAmount` and branched
+  `wise-payment.provider.ts`'s quote call on currency match (targetAmount for USD->USD per F38,
+  sourceAmount for USD->non-USD) — 3 new tests, money-service 62/62 suites, 526/526 tests.
+  **Verified via unit tests only, not live Wise sandbox** — `WISE_PROFILE_ID`/`WISE_API_TOKEN`
+  were found undocumented in `.env.example` and unset locally; Davin approved the scope reduction
+  live (order `Decisions taken` #4), disclosed as residual risk in `DECISION-LOG.md`'s F47 entry
+  and `migration-cutover-table.md`'s Slice 2W row — the first real non-USD payout after this fix
+  is still the first live proof point. Step 2 (`ca27c04d`, F50 producer) widened
+  `ConversionProcessorService`'s Prisma `select` to include `affiliateProfile.userId`, captured
+  the previously-discarded `affiliateProfile.update()` result to read `totalEarnings`, and changed
+  `stripe-webhook.service.ts`'s `emitOutboxEvent` call to pass the affiliate's `userId` (not the
+  buyer's) as `aggregateId` — money-service 62/62 suites, 526/526 tests. Step 3 (`8810b260`, F50
+  consumer) removed `OutboxConsumerService`'s `COMMISSION_CREDITED` skip block and wired
+  `dispatch()` to the pre-existing (4A-11) `sendAffiliateCommissionEmail()` — operation-service
+  42/42 suites, 393/393 tests. **Because the publisher is genuinely live**, this fix has no
+  separate flag-flip gate the way 4A-13/4A-14's cutovers did — the next real affiliate conversion
+  (Stripe now, dLocal once F76 closes) will trigger a real email send on its own next natural
+  trigger; no real/synthetic event was sent this session (PORT variant, zero live traffic risk in
+  scope), first-real-delivery stays a monitoring item.
+  **Step 4 (full validation) needed a re-run**: launching monolith `tsc`+`eslint`+`test:ci` and
+  both services' full suites in parallel (5 concurrent heavy processes) crashed 4 money-service +
+  3 operation-service Jest workers on OOM — false failures, not real ones (`tsc`/`eslint` in the
+  same batch passed clean). Re-run sequentially per `LESSONS-LEARNED.md` L24: monolith `tsc` clean,
+  `eslint` 0 errors/5 warnings, `test:ci` 160/160 suites/2400/2400 tests; money-service 62/62
+  suites/526/526 tests; operation-service 42/42 suites/393/393 tests. All green.
+  **Two more incidental findings, neither blocking:** the pre-commit hook's stash-backup/restore
+  mechanism twice left a purely-cosmetic (whitespace-only) working-tree/index diff after a commit
+  had already succeeded — verified via diff, reset via `git checkout HEAD -- <file>`, new
+  `LESSONS-LEARNED.md` **L36**. An unrelated, uncommitted edit to 2 `seed-code/**` files
+  (`app/affiliate/dashboard/payouts/page.tsx` and `.../statements/page.tsx`) was observed
+  mid-session, matching F38's fee-framing — not present at session start, not touched or
+  committed by this session (`seed-code/**` is read-only, CLAUDE.md §5); flagged for Davin.
+  **Artifacts updated:** `4a-15-wise-outbox-defect-sweep.migration-order.md` (Status → CONFIRMED →
+  CLOSED SUCCESSFUL; entry criteria and slice-level verification all checked with CONFIRM/CLOSE-
+  time evidence; Deviations filled — 9 entries), `DECISION-LOG.md` (F47 RESOLVED, F50 RESOLVED,
+  both full detail in `history/decisions-archive.md`), `migration-cutover-table.md` (Slice 2W row
+  updated for F47, Slice 5 row updated for F50), `LESSONS-LEARNED.md` (L3 recurrence bump, L36,
+  L37), this file (Current/Previous rotation — Session 4A-13 moved to
+  `history/sessions-archive.md`). **`9-0-frontend-swap-contract-decisions.migration-order.md`
+  PRE-DRAFTed and `HANDOVER-PROMPT-phase-9.md` authored** per this order's own Step 5 and the
+  master roadmap's own per-phase trigger table ("4A-15 writes phase-9's"). **Open item for the
+  Advisor/Davin, not blocking 9-0:** dLocal Group B (F76) still needs its own dedicated
+  fix-and-recutover session (working title `4A-16`) before Phase 4X's own gate for Session 8-1
+  ("all of 4A-13/14/15 CLOSED") is genuinely satisfied — with 4A-15 now closed, that gate's only
+  remaining blocker is F76/4A-16.
+
 - _(superseded-by-above, retained for context)_ **Session 4A-14 (dLocal Write-API Group B Cutover, Phase 4X, PORT + CUTOVER,
   dial LOW→near-zero), CONFIRMED, executed, **CLOSED — PARTIAL** 2026-08-21. Second session of
   Phase 4X. Closes `DECISION-LOG.md` **F49** (RESOLVED, real fix, proven live) but the Group B
