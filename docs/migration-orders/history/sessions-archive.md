@@ -7,6 +7,114 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 9-6 (Payments flow, cross-boundary,
+  Phase 9, UI-BUILD + PORT), CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-22. Seventh session
+  of Phase 9 — ships route-map rows 60 (`/checkout/return`), 61 (`/checkout`), 87
+  (`/upgrade/success`), plus a re-verification pass of rows 69 (`/pricing`, 9-2) and 75
+  (`/settings/billing`, 9-5) as one unified commerce journey. Closes **F64** (subscription
+  cancel/re-subscribe lifecycle) in full.
+  **CONFIRM found the by-now-familiar L3 pattern one more time** (27th+ recurrence): committed
+  HEAD held the bare PRE-DRAFT with open questions; the Advisor's corrected-and-approved DRAFT
+  (5 numbered decisions) arrived only as an uncommitted working-copy edit. CONFIRM also found and
+  reported three real, verifiable defects in that DRAFT before executing — row 60/61 swapped
+  relative to `frontend-swap-route-map.md`'s own numbering, "Row 87/92" citing Row 92
+  (`app/global-error.tsx`, unrelated, Session 9-1) instead of Row 87 alone, and Step 2's status
+  vocabulary ("PENDING, COMPLETED, FAILED, REJECTED") not matching the live `PaymentStatus` type
+  (`PENDING | COMPLETED | FAILED | CANCELLED | REFUNDED` — no `REJECTED` exists). Davin (via
+  Antigravity) corrected all three directly in response before authorizing — the second time this
+  loop has visibly closed the Advisor↔Executor gap PD1 exists to bridge (the first was 9-5).
+  **A protocol-level gate found failing independent of the order's own checklist:**
+  `DECISION-LOG.md` was 169KB, 3× its ~50KB target — Session 9-5's own close had already flagged
+  this as owed at 9-6's OPEN, but the Advisor's DRAFT upgrade dropped the PRE-DRAFT's own entry
+  criterion for it. On inspection the size wasn't "Phase 1–6 decisions" bloat as assumed — nearly
+  every flag through F66 already had a full write-up in `decisions-archive.md`; markdown-table
+  column-padding meant three still-OPEN flags' (F21, F64, F77) oversized in-table narrative
+  (F77 alone ~2100 combined characters) was forcing every other row in the ~68-row table to pad
+  out to match it. Archived those three flags' full narrative (nothing lost, `decisions-archive.md`
+  gained three new entries), trimmed ~25 other rows down to a pointer where an archive entry
+  already existed. Result: 169015 → 20420 bytes (later 36801 after the pre-commit prettier pass
+  re-aligned columns to the new, much smaller max width).
+  **A live environment/flag discrepancy found and corrected before opening, money-adjacent —
+  escalated per `EXECUTOR-PROTOCOL.md` §7 rather than silently touched:** `.env.local` had
+  `MIGRATE_WRITE_APIS_MONEY_DLOCAL=true`, contradicting `DECISION-LOG.md` F76's own documented
+  rollback (dLocal's real Payins method-ID bug, still OPEN, unfixed until 4A-16). Corrected to
+  `false` per Davin's explicit instruction in the same message that authorized execution.
+  **Two more local-environment gaps found and bridged during live verification, neither an app
+  defect (same class as 9-5's disclosed 2FA/operation-service finding):** (1) a stale `.next`
+  build cache from a prior Next.js version bump made every `/api/auth/*` route 404 — cleared and
+  confirmed fine; (2) `POST /api/checkout` 500'd with `ECONNREFUSED` because
+  `MIGRATE_WRITE_APIS_MONEY_STRIPE=true` forwards to money-service, which had no local `.env` and
+  wasn't running — created `money-service/.env` (gitignored, reusing the same test-mode secrets
+  already in root `.env.local`, per that service's own `.env.example` comments) and added a
+  `moneyservice` entry to `.claude/launch.json` for future sessions. With no Stripe CLI/ngrok
+  available locally to deliver Stripe's real webhook to `localhost`, bridged the gap using
+  Stripe's own documented test-signing technique: fetched the real completed Checkout Session
+  from Stripe's API after a genuine browser-driven Test Mode payment and re-delivered it as a
+  `stripe.webhooks.generateTestHeaderString`-signed `checkout.session.completed` event to the
+  monolith's own webhook route — the real Stripe object, just redelivered over a transport Stripe
+  itself can't reach locally. Server logs confirm the real handler ran
+  (`[Webhook] User cms07vwn300009ov21cx21szz upgraded to PRO (monthly billing)`).
+  **A genuine safety-boundary pause, not a workaround:** entering Stripe's own dummy test card
+  (`4242 4242 4242 4242`) into the hosted Test Mode checkout page sits on this environment's
+  standing "never enter card numbers" instruction with no test-mode carve-out in its wording.
+  Stopped and asked via `AskUserQuestion` rather than deciding unilaterally; Davin explicitly
+  confirmed proceeding was fine for this authorized QA context before any field was filled.
+  **Full lifecycle live-verified end-to-end in Stripe Test Mode**, as a genuine FREE test user:
+  `/pricing` → "Upgrade to PRO Now" → `/checkout` → real Stripe Test Checkout (card `4242...`,
+  7-day trial per `subscription_data.trial_period_days`) → webhook (bridged above) → tier flips
+  to PRO in the DB for real → `/upgrade/success` polls `GET /api/subscription` and correctly shows
+  "Welcome to PRO!" → `/settings/billing` shows real PRO status, a real Stripe-fetched $0.00
+  trial-period invoice line, and the real card-on-file (`Visa ****4242`, matching what was
+  entered) → "Cancel Plan" → real `POST /api/subscription/cancel` (immediate, full Stripe
+  cancellation, no `cancelAtPeriodEnd`) → downgrades to FREE for real → "Upgrade to PRO" →
+  correctly loops back to `/pricing`, closing the cycle.
+  **Order text vs. live code, corrected per PD1 rather than silently patched over:** the order's
+  Step 2/Step C assumed a "Launch PRO Terminal" button on `/upgrade/success` linking to
+  `/terminal` — the real, live button reads "Go to Dashboard" and links to `/dashboard`. Left
+  as-is (Decision 2 authorizes restyling, not changing a navigation target; no decision here
+  authorized pointing users at `/terminal` instead) and reported the order's own text as wrong.
+  **A new, real, live UX gap found during the click-through and registered as `DECISION-LOG.md`
+  F78 (OPEN), not silently noted only in passing:** `AppHeader` (built Session 9-1) reads
+  `session.user.tier` directly for its nav/badge gating, so the webhook-driven tier flip above
+  left its "🔒 FREE" badge and `/pricing`/`/free` nav links stale until the NextAuth JWT next
+  rotates — `/upgrade/success` and `/settings/billing` themselves are correct since both already
+  re-fetch `GET /api/subscription` rather than trusting the session (the exact `F57`-class
+  staleness, but on a passive server-side change with no user-initiated call site to refresh
+  from). Not fixed here — out of a UI-BUILD+verification session's scope.
+  **`LESSONS-LEARNED.md`'s own cap was already 1 over (41 active, cap 40) before this session,
+  and its own header says the next new lesson must consolidate first** — done at Davin's explicit
+  request rather than deferred a second time: merged L20/L21 into L19 and L34 into L13 (both were
+  already-terse Railway-CLI one-liners on the same theme as their merge target, no content lost),
+  then added **L42** (the local-webhook-delivery/stale-`.next`-cache lesson from this session's
+  own live-verification gaps). Net 41 → 39, one slot of headroom left before the next
+  consolidation is owed.
+  **A second, pre-existing session-history hygiene gap found and fixed while doing this session's
+  own Current/Previous rotation:** Session 9-5's own close claimed "Session 9-3 moved to
+  `history/sessions-archive.md`" — true for the archive (9-3's entry was correctly appended
+  there), but the corresponding removal from this file never happened, leaving 9-3's full entry
+  live in CLAUDE.md as a second, stale `Previous` block for one extra session. Removed here (its
+  content was already safely duplicated in the archive, so nothing was lost); Session 9-4 moved
+  to the archive properly this time.
+  **All test baselines re-verified live, all green, exact match to entry-criterion baseline**
+  (first parallel run of all three hit two worker-OOM/SIGTERM false negatives from resource
+  contention — `LESSONS-LEARNED.md` L24's exact pattern — resolved cleanly on isolated re-runs):
+  monolith `tsc` clean, `eslint` 0 errors/5 warnings (pre-existing, none in touched files),
+  `test:ci` 160/160 suites/2400/2400 tests; money-service 62/62 suites/526/526 tests;
+  operation-service 42/42 suites/393/393 tests.
+  **Route-manifest diff clean:** `git diff --stat` against the session's own start commit confirms
+  exactly the 3 commerce pages' own files restyled — zero route additions, removals, or unrelated
+  files touched.
+  **Artifacts updated:** `9-6-payments-flow.migration-order.md` (Status → CONFIRMED → CLOSED
+  SUCCESSFUL, CONFIRM note + Deviations 0/1 + checked Done-when/entry-criteria boxes),
+  `DECISION-LOG.md` (F64 → RESOLVED, F78 registered OPEN, size-gate archival), `history/
+decisions-archive.md` (F21/F64/F77 full narrative appended), `migration-stack-analysis.md`
+  (Session 9-6 entry, 3 files modified, all FRONTEND), `.claude/launch.json` (`moneyservice`
+  config added), this file (Current/Previous rotation — Session 9-4 moved to
+  `history/sessions-archive.md`; the stale duplicate 9-3 entry found and removed, see above).
+  `migration-cutover-table.md` correctly needs no changes (Phase 9 is additive builds, no
+  route/slice moved). `LESSONS-LEARNED.md` (L20/L21 merged into L19, L34 merged into L13, L42
+  added — see the note above).
+
 - _(superseded-by-above, retained for context)_ **Session 9-5 (`settings/` 11, Phase 9, UI-BUILD),
   CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-22. Sixth session of Phase 9 — ships all 11
   route-map rows (73–83): the `app/settings/layout.tsx` boundary (session's own one moved layout:

@@ -6,8 +6,8 @@
 > Corrected & upgraded to full **DRAFT** by Antigravity (Advisor & Architect), 2026-08-22.
 > Grounded in `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`.
 
-**Session:** 9-7b · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CONFIRMED
-**Generated:** 2026-08-22 (Executor PRE-DRAFT) · **Upgraded & Corrected:** 2026-08-22 (Advisor DRAFT) · **Approved:** 2026-08-22 (Davin) · **Confirmed:** 2026-08-23 (Executor, live re-verification against codebase + runtime — DB fixture, `tsc`, all 10 rows' bindings)
+**Session:** 9-7b · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CLOSED SUCCESSFUL
+**Generated:** 2026-08-22 (Executor PRE-DRAFT) · **Upgraded & Corrected:** 2026-08-22 (Advisor DRAFT) · **Approved:** 2026-08-22 (Davin) · **Confirmed:** 2026-08-23 (Executor, live re-verification against codebase + runtime — DB fixture, `tsc`, all 10 rows' bindings) · **Closed:** 2026-08-23 (Executor — all Done-when boxes verified, F79 RESOLVED, F80 registered)
 **Flags touched:** **F79** (`app/affiliate/dashboard/layout.tsx` DB check for fresh affiliates) $\rightarrow$ RESOLVED.
 **Surface:** `app/affiliate/dashboard/*` + `app/affiliate/settings/payout` — the complete 10-row authenticated partner portal cluster:
 
@@ -153,11 +153,11 @@ Using the authenticated affiliate test account (`free-test@trading-alerts.test`,
 
 ## Done when
 
-- [ ] `DECISION-LOG.md` F79 resolved and closed.
-- [ ] All authenticated partner portal pages live with DavinTrade branding, `<AffiliateNav />`, and semantic tokens.
-- [ ] Live test user traverses all pages with real API/DB data bindings and zero redirect loops.
-- [ ] Route-manifest diff matches this session's scope and nothing else.
-- [ ] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
+- [x] `DECISION-LOG.md` F79 resolved and closed.
+- [x] All authenticated partner portal pages live with DavinTrade branding, `<AffiliateNav />`, and semantic tokens.
+- [x] Live test user traverses all pages with real API/DB data bindings and zero redirect loops.
+- [x] Route-manifest diff matches this session's scope and nothing else.
+- [x] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
 
 ---
 
@@ -169,12 +169,50 @@ Using the authenticated affiliate test account (`free-test@trading-alerts.test`,
 
 ## Deviations
 
-<!-- Filled by Executor during execution per EXECUTOR-PROTOCOL.md §3 -->
+1. **Row 39 was a no-op, not a restyle.** `app/affiliate/dashboard/profile/payment/page.tsx` was
+   already a transparent redirect to `/affiliate/settings/payout` (Session 6-7). Confirmed and
+   left untouched rather than restyled, per Decision 4.
+2. **Two hung local dev servers, unrelated to this session's own code.** Port 3000 was held by an
+   unresponsive `node` process (started ~6h earlier, pre-dating this session) that accepted TCP
+   connections but never responded — killed and restarted via the project's own `nextdev` launch
+   config. Separately, `GET /api/wise/recipients/me` 500'd because `money-service` (port 3002)
+   wasn't running locally — started via the existing `moneyservice` launch config (Session 9-6
+   precedent, `LESSONS-LEARNED.md` L42). Neither is an app defect.
+3. **A real, live bug found during this session's own required Step 5 click-through, registered as
+   `DECISION-LOG.md` F80 (OPEN), not silently patched or worked around in place:**
+   `lib/auth/auth-options.ts`'s `FIXED_TEST_ACCOUNTS` credentials-authorize path unconditionally
+   `upsert`s a hardcoded `isAffiliate` value on every login — this silently reset
+   `free-test@trading-alerts.test`'s real, Session-9-7a-earned `isAffiliate: true` back to `false`
+   the moment it was used to sign in for this session's own verification. Restored the DB value
+   directly (a disclosed workaround, not a fix) to complete verification without re-triggering the
+   reset. A second, related gap surfaced downstream of the same staleness: money-service's own
+   `AffiliateGuard` (backing Row 46's Wise endpoints) trusts the JWT's `isAffiliate` claim directly
+   with no DB-fallback equivalent to F79's fix — confirmed the page/`WiseRecipientForm` render
+   correctly once verified against a fresh, non-stale JWT (`affiliate-test@trading-alerts.test`).
+   Neither is a 9-7b file; both left for Davin/Antigravity to scope as their own session — see F80.
+4. **Two Jest assertions in `components/affiliate/{commission-table,code-table}` tests needed
+   re-deriving, not reverting, per `LESSONS-LEARNED.md` L3/L18:** they checked for legacy hardcoded
+   color-class names (`yellow`/`blue`/`gray`) this session's own Decision 5 intentionally replaced
+   with semantic DavinTrade tokens (amber/muted) — updated to match the real, intentional new
+   classes. A third, pre-existing unused-param lint error in `code-table.test.tsx`'s `date-fns`
+   mock (surfaced only once this file was re-staged) was fixed alongside (underscore-prefix,
+   matching `commission-table.test.tsx`'s own existing convention).
+5. **A lint-staged hook failure left a transient, self-corrected git-index/working-tree mismatch**
+   on the two test files above (`LESSONS-LEARNED.md` L36's exact pattern, one level worse — the
+   hook's own revert-on-failure step also failed, on an unrelated already-modified binary file).
+   No data was lost: the correct fix survived in the git index; `git checkout -- <file>` resynced
+   the working tree before re-committing. Not this session's own file, not touched further.
+6. **All test baselines verified live, all green, exact match to the entry-criterion baseline:**
+   monolith `tsc` clean, `eslint` 0 errors/4 warnings (pre-existing, none in touched files),
+   `test:ci` 160/160 suites/2400/2400 tests; money-service 62/62 suites/526/526 tests;
+   operation-service 42/42 suites/393/393 tests.
 
 ---
 
 ## Next-session handoff
 
-- **Next session:** `9-8` — `app/admin/*` cluster 1 (Admin Shell & Overview / Users), per `MASTER-ROADMAP-PHASES-7-15.md` §3.
+- **Next session:** `9-8a` — `app/(dashboard)/admin/*` core cluster 1 (overview, users, system,
+  api-usage, errors, notifications/broadcast preview), per `MASTER-ROADMAP-PHASES-7-15.md` §3.
 - **Prerequisite:** Session 9-7b CLOSED — authenticated partner portal live on `main`.
-- **9-7b obligation carried to close:** PRE-DRAFT Session 9-8's migration order per `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`.
+- **9-7b obligation carried to close:** PRE-DRAFTed as
+  `9-8a-admin-core.migration-order.md` (done).

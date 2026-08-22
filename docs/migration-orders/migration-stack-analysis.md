@@ -3837,8 +3837,55 @@ exactly these 3 pages + 1 new component + 1 deletion, zero unrelated route chang
 
 </details>
 
+<details>
+<summary>Session 9-7b (Affiliate authenticated partner portal, UI-BUILD) — 1 new, 16 modified, all FRONTEND</summary>
+
+Route-map rows 35–42/45/46 restyled to DavinTrade tokens and bound to real data; row 39 confirmed
+as a no-op (already a transparent redirect). Route-manifest diff confirmed clean via
+`git diff --stat` against the session's own start commit: exactly these pages + 1 new component +
+2 test fixes, zero unrelated route changes.
+
+- **New:** `components/affiliate/affiliate-nav.tsx` (shared sticky nav/header mounted by both
+  `app/affiliate/dashboard/layout.tsx` and `app/affiliate/settings/layout.tsx`, DavinTrade tokens,
+  amber active-route highlighting).
+- **Modified — layouts:** `app/affiliate/dashboard/layout.tsx` and `app/affiliate/settings/
+layout.tsx` (F79 fix — both now call `requireAffiliate()`'s DB fallback instead of trusting
+  `session.user.isAffiliate` from the JWT; both mount `<AffiliateNav />`, replacing duplicated
+  inline nav markup).
+- **Modified — pages:** `app/affiliate/dashboard/{page,codes,code-inventory,commissions,payouts,
+statements,profile,resources}/page.tsx` and `app/affiliate/settings/payout/page.tsx` — DavinTrade
+  semantic tokens (`bg-card`/`border-border`/`text-foreground`/`text-muted-foreground`, amber
+  accents) applied to page chrome; all existing API/Prisma bindings, pagination, CSV export, and
+  Wise recipient logic preserved unchanged. `payouts/page.tsx` stays a Server Component with its
+  direct, correctly-scoped `prisma.disbursementTransaction` read; `statements/page.tsx` keeps its
+  client-side `commission-report` aggregation (both pre-existing since Session 6-7, confirmed live
+  via CONFIRM rather than rebuilt, per Decision 3).
+- **Modified — shared components:** `components/affiliate/{stats-card,code-table,commission-table,
+wise-recipient-form}.tsx` — same token restyle, zero logic change.
+- **Confirmed no-op:** `app/affiliate/dashboard/profile/payment/page.tsx` (Row 39) — already a
+  transparent redirect to `/affiliate/settings/payout` (Session 6-7); left untouched.
+- **Test infra (not stack-analysis targets, listed for completeness):** `__tests__/components/
+affiliate/{commission-table,code-table}.test.tsx` — 3 assertions checking legacy hardcoded color
+  names (yellow/blue/gray) updated to match the intentional amber/muted token rebrand, per
+  `LESSONS-LEARNED.md` L3/L18; one pre-existing unused-param lint error fixed alongside.
+- **Known unresolved defects, not stack-analysis artifacts but material to this entry:**
+  `DECISION-LOG.md` F79 (RESOLVED this session) and **F80** (registered this session, OPEN) — a
+  pre-existing `lib/auth/auth-options.ts` bug where the credentials `authorize()` callback's
+  `FIXED_TEST_ACCOUNTS` upsert silently resets `free-test@trading-alerts.test`'s `isAffiliate` to
+  its hardcoded fixture value on every login, discovered live while verifying F79; also unmasked a
+  related, separate gap where money-service's own `AffiliateGuard` (Row 46's Wise endpoints)
+  trusts the JWT's `isAffiliate` claim directly with no DB-fallback equivalent to F79's fix.
+  Neither is a 9-7b file; both are out of scope to fix here (auth-semantics, `EXECUTOR-PROTOCOL.md`
+  §7).
+- **Docs (not stack-analysis targets, listed for completeness):** this session's own migration
+  order (CONFIRMED → CLOSED SUCCESSFUL, Deviations filled), `DECISION-LOG.md` (F79 → RESOLVED, F80
+  registered), `history/decisions-archive.md` (F79/F80 full narrative appended),
+  `LESSONS-LEARNED.md` (L26 merged into L23, L44 added, L43 addendum).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-22 (Session 9-7a, affiliate public onboarding —
-rows 43/44/48 shipped, row 47 retired, F79 registered)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-23 (Session 9-7b, affiliate authenticated partner
+portal — rows 35–42/45/46 shipped, row 39 confirmed no-op, F79 resolved, F80 registered)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

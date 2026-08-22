@@ -3472,3 +3472,73 @@ table "User"`, thrown from `tx.user.update()` inside `handleCheckoutCompleted`'s
   affiliate in the DB — useful, not harmful, since Session 9-7b's own authenticated-affiliate
   surfaces need exactly such a fixture and previously had none.
 - Approved by: n/a (technical finding, disclosed not fixed) — owner: Session 9-7b.
+
+## F79 — RESOLVED, Session 9-7b (2026-08-23)
+
+- Status: RESOLVED
+- Session: 9-7b · Date: 2026-08-23
+- Decision: `app/affiliate/dashboard/layout.tsx` and `app/affiliate/settings/layout.tsx` (a
+  separate route tree serving the same JWT-staleness exposure, per F39's own recorded URL) both
+  now call `requireAffiliate()` (`lib/auth/session.ts`) instead of doing their own `getSession()` +
+  `session.user.isAffiliate` check. `requireAffiliate()` already re-checks the DB directly when
+  the JWT claim is false, closing the race a freshly-registered affiliate hits before their token
+  next rotates — exactly the fix 9-7a's own F79 write-up recommended.
+- Evidence: live click-through against the real `free-test@trading-alerts.test` fixture. With the
+  session JWT still claiming `isAffiliate: false` (confirmed via `GET /api/auth/session`) and the
+  DB correctly showing `true`, navigating to `/affiliate/dashboard` and `/affiliate/settings/
+payout` both reached their real content with zero redirect — confirmed via `window.location.href`
+  after navigation, not just page text. All 9 authenticated-portal pages traversed successfully in
+  the same session. `npx tsc --noEmit` clean; `test:ci` 160/160 suites/2400/2400 tests,
+  money-service 62/62/526/526, operation-service 42/42/393/393 — all matching baseline.
+- Approved by: n/a (technical, within the order's own Decision 1, itself Davin-approved).
+
+## F80 — OPEN, found Session 9-7b (2026-08-23)
+
+- Status: OPEN
+- Session: 9-7b (found; not owned — the file is pre-existing core auth code, out of this
+  session's scope to fix) · Date: 2026-08-23
+- Symptom: while live-verifying F79's fix, `free-test@trading-alerts.test` was reconfirmed
+  `isAffiliate: true` in the DB immediately before this session's own browser click-through began.
+  Signing in via the login page's "FREE User" quick-fill button (the same fixture, per its own
+  autofilled email) flipped `isAffiliate` straight back to `false` — subsequently confirmed via a
+  direct Prisma query showing `User.updatedAt` had moved to the exact timestamp of that login, and
+  the session's own `GET /api/auth/session` response showing `isAffiliate: false` moments later.
+- Root cause, found by reading `lib/auth/auth-options.ts` directly rather than guessing from the
+  symptom: the credentials-provider `authorize()` callback maintains a `FIXED_TEST_ACCOUNTS` map
+  (one entry per known test email) and, for any email present in that map, runs
+  `prisma.user.upsert()` with `update: { ..., isAffiliate: fixed.isAffiliate, ... }` on **every**
+  successful login — not just first-ever account creation. For `free-test@trading-alerts.test`
+  the map hardcodes `isAffiliate: false`; the upsert has no notion that a real, later product flow
+  (here, Session 9-7a's own `POST /api/affiliate/auth/register`) may have legitimately changed
+  that field since the account was first seeded, and silently reverts it every time the fixture is
+  used to sign in again. The sibling fixtures `affiliate-test@trading-alerts.test` and
+  `affiliate-pro-test@trading-alerts.test` hardcode `isAffiliate: true` instead, so they are not
+  affected by this specific direction of the bug — only accounts whose hardcoded map value
+  disagrees with real, live-earned state are at risk, and only from their next login onward.
+- A second, related gap surfaced downstream of the same staleness, not the same bug: even after
+  F79's fix lets the monolith's own `dashboard`/`settings` layouts through on a stale JWT,
+  `GET /api/wise/recipients/me` (backing Row 46, `/affiliate/settings/payout`) returned
+  `403 Forbidden` — `"Affiliate access required"` — from money-service's own logs. money-service's
+  `AffiliateGuard` (a completely separate NestJS service) authorizes directly off the forwarded
+  JWT's `isAffiliate` claim, with no DB-fallback equivalent to F79's fix; the stale claim (`false`)
+  is all it ever sees. Confirmed this is a propagation/staleness gap, not a defect in Row 46's own
+  restyled UI, by signing in as `affiliate-test@trading-alerts.test` instead (a fresh, non-stale
+  JWT correctly claiming `isAffiliate: true`): the identical page then rendered the full
+  `WiseRecipientForm` (currency select, country input, account-type radios) exactly as built.
+- Workaround used to complete this session's own required verification (explicitly not a fix):
+  restored `isAffiliate: true` directly via a one-off Prisma script for
+  `free-test@trading-alerts.test` after the reset, then completed the remaining click-through
+  without signing in as that account a second time (which would have re-triggered the same reset).
+- Not fixed here, deliberately: `lib/auth/auth-options.ts` is core NextAuth credentials-provider
+  code shared by every login on the platform, not a file this session's Surface names, and any
+  change to it is an auth-semantics change (`EXECUTOR-PROTOCOL.md` §7 — stop and ask, never
+  drive-by). Candidate directions for whoever scopes the fix session: (a) only apply the
+  `FIXED_TEST_ACCOUNTS` payload on `create`, leaving `update` alone for fields a real product flow
+  legitimately owns (`isAffiliate`, arguably `tier`/`role` too); (b) drop `isAffiliate` from the
+  hardcoded `update` payload specifically, since it's the one field these particular fixtures are
+  meant to gain through the real registration flow rather than carry as a fixed seed value. The
+  money-service `AffiliateGuard` gap is a separate, cross-service decision — grow its own
+  DB-fallback mirroring F79's fix, or force a session/JWT refresh at the point of registration
+  instead (the same shape of question F57/F78 already raised for tier-change staleness).
+- Approved by: n/a (technical finding, not yet resolved — Davin/Antigravity to scope the fix
+  session; registered here rather than silently patched or worked around in app code).

@@ -4,13 +4,15 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 40 (L1–L43, with L20/L21/L34 merged away), after the
-2026-08-12 consolidation pass (64 → 25: 28 archived, 11 merged into 8 master rules, then 4
+**Hard cap ~40 active lessons.** Currently at 40 (L1–L44, with L20/L21/L26/L34 merged away), after
+the 2026-08-12 consolidation pass (64 → 25: 28 archived, 11 merged into 8 master rules, then 4
 unpromoted candidates promoted to L26–L29; L30 added 2026-08-20 ad-hoc, L31–L32 added Session 7-2,
 L33 added Session 4A-13, L34–L35 added Session 4A-14, L36–L37 added Session 4A-15, L38–L39 added
 Session 9-0, L40 added Session 9-1, L3 compressed + L41 added Session 9-5, Session 9-6: L20+L21
 merged into L19, L34 merged into L13 — both were already-terse Railway-CLI one-liners covering the
-same theme as their merge target — and L42 added; L43 added Session 9-7a).
+same theme as their merge target — and L42 added; L43 added Session 9-7a; Session 9-7b: L26 merged
+into L23 — same "post-cutover monolith code looks alive but isn't" theme, no content lost — and
+L44 added, plus an addendum to L43).
 Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
 (same rule Session 9-6 hit at 41; nothing to merge yet, all 40 are still genuinely distinct).
 
@@ -266,10 +268,10 @@ Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must 
 - Source: Consolidated · Status: ACTIVE
 - Recurrence (Session 9-1, 2026-08-22): a specific sub-case worth naming — when a Phase-9 order says "delete/port file X," verify which TREE X actually lives in before acting, not just that X exists. `lib/i18n/locale-resolver.ts` was cited as an existing main-repo dependency but only existed in `seed-code/`; `components/header.tsx`'s Batch-0-flagged deletion target only ever existed in `seed-code/` (read-only, do-not-touch), never the main repo the order named. Both found by checking `ls` on both trees directly rather than trusting the order's tree attribution.
 
-### L23 — Monolith/microservice code drift after cutover
+### L23 — Post-cutover monolith code is deceptive: it compiles, passes tests, and may still take edits, but carries zero live traffic
 
-- Rule: After cutover, duplicated logic between monolith and microservice drifts silently; the monolith's forwarding copy becomes dead code where edits have zero live effect. Always check both sides.
-- Source: Consolidated · Status: ACTIVE
+- Rule: After cutover, duplicated logic between monolith and microservice drifts silently — the monolith's forwarding copy becomes dead code where edits have zero live effect, and old monolith endpoints stay on disk, compile, and pass their own tests with nothing routing to them. Always check `migration-cutover-table.md` for a slice's actual routing status before treating a route/handler as live, and check both sides (monolith + service) for drift, not just one.
+- Source: Consolidated; merged L26 (Session 6-11, promoted 2026-08-12) into this entry, Session 9-7b (2026-08-23) — same root theme, no content lost · Status: ACTIVE
 
 ### L24 — Verification context reliability
 
@@ -280,11 +282,6 @@ Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must 
 
 - Rule: Non-browser clients bypass CORS and CSP. Use a real browser with DevTools Network WS filter to confirm cross-origin connections; diff repeated success-log timestamps to detect reconnect loops.
 - Source: Consolidated · Status: ACTIVE
-
-### L26 — A cut-over monolith route still compiles and passes tests; check `migration-cutover-table.md` before treating it as live
-
-- Rule: After cutover, old monolith endpoints remain on disk, compile, and pass their tests — but carry zero live traffic. Before building admin/ops UI that triggers or monitors "the scheduled jobs," check the cutover table for that slice's actual routing status, not just that route files exist.
-- Source: Session 6-11 (promoted 2026-08-12) · Status: ACTIVE
 
 ### L27 — A gap-matrix row's `BUILT` verdict must cite its own independent evidence, not a sibling row
 
@@ -423,3 +420,34 @@ Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must 
   submit button's `disabled` state before clicking submit. `form_input` is fine for text/select
   inputs, whose value assignment does trigger React's listener.
 - Source: Session 9-7a (2026-08-22) · Status: ACTIVE
+- Recurrence (Session 9-7b, 2026-08-23): a second, distinct browser-tool gotcha in the same
+  family — `computer` (`left_click`, `screenshot`, etc.) fails with "the Browser pane is not
+  displayed" whenever the pane isn't actually visible in the user's UI, even though the tab is
+  live and correctly loaded. `read_page`, `get_page_text`, `javascript_tool`, `form_input`, and
+  `navigate` all work fine in this state — none of them need the pane composited. For headless/
+  background live-verification (no user watching the pane), drive forms with `form_input` +
+  `javascript_tool` (e.g. `el.click()`, `form.requestSubmit()`) and read results with
+  `get_page_text`/`read_page`/network requests instead of retrying `computer`.
+
+### L44 — A hardcoded test-fixture `upsert` in a credentials `authorize()` callback can silently overwrite a real, live-earned DB state on every login
+
+- Symptom (Session 9-7b): `free-test@trading-alerts.test` was confirmed `isAffiliate: true` in the
+  DB at CONFIRM (a real Session 9-7a registration). Live-verifying F79's fix, logging in via the
+  login page's own "FREE User" quick-fill flipped it straight back to `false` — `User.updatedAt`
+  moved to the exact login timestamp. `lib/auth/auth-options.ts`'s `FIXED_TEST_ACCOUNTS` map
+  hardcodes `isAffiliate: false` for this email, and its `prisma.user.upsert()` writes that
+  hardcoded value on **every** login (not just first-ever creation), unconditionally clobbering
+  any real state a product flow (registration, tier upgrade, etc.) had since given the account.
+- Root cause: an `authorize()`-time upsert meant to guarantee a seeded test account always exists
+  can't distinguish "first login, create with defaults" from "Nth login, an app flow already
+  changed this row for a real reason" — using one hardcoded `update` payload for both silently
+  regresses the second case every time.
+- Rule: before trusting a named test-fixture account's DB state as stable across a session, check
+  whether the login path itself (`authorize()`/credentials callback, any bridge login route) does
+  an unconditional `upsert`/`update` on that email — if so, its hardcoded fields will reset on the
+  next login, and a state your own session's earlier step (registration, upgrade) established can
+  vanish the moment you or a later session logs in again. Never fix this by hand-holding around it
+  silently; if it blocks a session's own required live-verification, restore the DB value directly
+  (documented as a workaround, not a fix) and register the upsert itself as its own flag — it's
+  auth-semantics, out of scope for a UI session to patch inline (`EXECUTOR-PROTOCOL.md` §7).
+- Source: Session 9-7b (2026-08-23), `DECISION-LOG.md` F80 · Status: ACTIVE
