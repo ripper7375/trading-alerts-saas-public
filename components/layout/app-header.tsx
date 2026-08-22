@@ -76,10 +76,12 @@ export default function AppHeader({
       await fetch('/api/auth/token-logout', { method: 'POST' });
       await signOut({ redirect: false });
       await getSession();
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full browser navigation is deliberate here, see components/layout/header.tsx's own handleLogout comment
       window.location.href = '/login';
       return;
     }
     await signOut({ redirect: false });
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- same as above
     window.location.href = '/login';
   };
 
