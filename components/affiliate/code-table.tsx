@@ -38,10 +38,12 @@ interface CodeTableProps {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 const statusStyles: Record<CodeStatus, string> = {
-  ACTIVE: 'bg-green-100 text-green-800',
-  USED: 'bg-blue-100 text-blue-800',
-  EXPIRED: 'bg-gray-100 text-gray-800',
-  CANCELLED: 'bg-red-100 text-red-800',
+  ACTIVE:
+    'bg-green-500/15 text-green-700 dark:text-green-400 border border-green-500/30',
+  USED: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30',
+  EXPIRED: 'bg-muted text-muted-foreground border border-border',
+  CANCELLED:
+    'bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30',
 };
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -62,70 +64,72 @@ export function CodeTable({
 }: CodeTableProps): React.ReactElement {
   if (codes.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">No codes available</div>
+      <div className="py-8 text-center text-muted-foreground">
+        No codes available
+      </div>
     );
   }
 
   return (
     <div className={cn('overflow-x-auto', className)}>
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+      <table className="min-w-full divide-y divide-border">
+        <thead className="bg-muted/40">
           <tr>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
               Code
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
               Status
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
               Distributed
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
               Expires
             </th>
             <th
               scope="col"
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
               Used
             </th>
           </tr>
         </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
+        <tbody className="divide-y divide-border bg-card">
           {codes.map((code) => (
             <tr key={code.id}>
-              <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">
+              <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-foreground">
                 {code.code}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="whitespace-nowrap px-6 py-4">
                 <span
                   className={cn(
-                    'px-2 py-1 text-xs font-medium rounded',
+                    'rounded px-2 py-1 text-xs font-medium',
                     statusStyles[code.status]
                   )}
                 >
                   {code.status}
                 </span>
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                 {format(new Date(code.distributedAt), 'MMM d, yyyy')}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                 {format(new Date(code.expiresAt), 'MMM d, yyyy')}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+              <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                 {code.usedAt
                   ? format(new Date(code.usedAt), 'MMM d, yyyy')
                   : '-'}

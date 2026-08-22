@@ -89,19 +89,19 @@ export default function AffiliateCodeInventoryPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Code Inventory</h1>
-        <p className="text-gray-600">
+        <h1 className="text-2xl font-bold text-foreground">Code Inventory</h1>
+        <p className="text-muted-foreground">
           Track how your referral codes moved in and out over a period
         </p>
       </div>
 
       {/* Date Range */}
-      <div className="rounded-lg bg-white p-4 shadow-md">
+      <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-end gap-4">
           <div>
             <label
               htmlFor="startDate"
-              className="mb-1 block text-sm font-medium text-gray-700"
+              className="mb-1 block text-sm font-medium text-foreground"
             >
               Start Date
             </label>
@@ -111,13 +111,13 @@ export default function AffiliateCodeInventoryPage(): React.ReactElement {
               value={startDate}
               max={endDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
             />
           </div>
           <div>
             <label
               htmlFor="endDate"
-              className="mb-1 block text-sm font-medium text-gray-700"
+              className="mb-1 block text-sm font-medium text-foreground"
             >
               End Date
             </label>
@@ -128,36 +128,36 @@ export default function AffiliateCodeInventoryPage(): React.ReactElement {
               min={startDate}
               max={isoDate(today)}
               onChange={(e) => setEndDate(e.target.value)}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
             />
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-600 dark:text-red-400">
           {error}
         </div>
       )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-amber-500" />
         </div>
       ) : (
         report && (
           <>
             {/* Balance Summary */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-lg bg-white p-4 shadow">
-                <p className="text-sm text-gray-600">Opening Balance</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+                <p className="text-sm text-muted-foreground">Opening Balance</p>
+                <p className="text-2xl font-bold text-foreground">
                   {report.openingBalance}
                 </p>
               </div>
-              <div className="rounded-lg bg-white p-4 shadow">
-                <p className="text-sm text-gray-600">Closing Balance</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+                <p className="text-sm text-muted-foreground">Closing Balance</p>
+                <p className="text-2xl font-bold text-foreground">
                   {report.closingBalance}
                 </p>
               </div>
@@ -165,48 +165,56 @@ export default function AffiliateCodeInventoryPage(): React.ReactElement {
 
             {/* Additions / Reductions Breakdown */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-lg bg-white p-6 shadow-md">
-                <h3 className="mb-4 font-semibold text-gray-900">
+              <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+                <h3 className="mb-4 font-semibold text-foreground">
                   Additions ({report.additions.total})
                 </h3>
                 <dl className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <dt className="text-gray-600">Monthly distribution</dt>
-                    <dd className="font-medium">
+                    <dt className="text-muted-foreground">
+                      Monthly distribution
+                    </dt>
+                    <dd className="font-medium text-foreground">
                       {report.additions.monthlyDistribution}
                     </dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-gray-600">Initial distribution</dt>
-                    <dd className="font-medium">
+                    <dt className="text-muted-foreground">
+                      Initial distribution
+                    </dt>
+                    <dd className="font-medium text-foreground">
                       {report.additions.initialDistribution}
                     </dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-gray-600">Admin bonus</dt>
-                    <dd className="font-medium">
+                    <dt className="text-muted-foreground">Admin bonus</dt>
+                    <dd className="font-medium text-foreground">
                       {report.additions.bonusDistribution}
                     </dd>
                   </div>
                 </dl>
               </div>
 
-              <div className="rounded-lg bg-white p-6 shadow-md">
-                <h3 className="mb-4 font-semibold text-gray-900">
+              <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+                <h3 className="mb-4 font-semibold text-foreground">
                   Reductions ({report.reductions.total})
                 </h3>
                 <dl className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <dt className="text-gray-600">Used</dt>
-                    <dd className="font-medium">{report.reductions.used}</dd>
+                    <dt className="text-muted-foreground">Used</dt>
+                    <dd className="font-medium text-foreground">
+                      {report.reductions.used}
+                    </dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-gray-600">Expired</dt>
-                    <dd className="font-medium">{report.reductions.expired}</dd>
+                    <dt className="text-muted-foreground">Expired</dt>
+                    <dd className="font-medium text-foreground">
+                      {report.reductions.expired}
+                    </dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-gray-600">Cancelled</dt>
-                    <dd className="font-medium">
+                    <dt className="text-muted-foreground">Cancelled</dt>
+                    <dd className="font-medium text-foreground">
                       {report.reductions.cancelled}
                     </dd>
                   </div>
@@ -214,7 +222,7 @@ export default function AffiliateCodeInventoryPage(): React.ReactElement {
               </div>
             </div>
 
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-muted-foreground">
               Period: {new Date(report.period.start).toLocaleDateString()} –{' '}
               {new Date(report.period.end).toLocaleDateString()}
             </p>

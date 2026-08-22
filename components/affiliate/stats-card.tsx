@@ -61,18 +61,23 @@ export function StatsCard({
 }: StatsCardProps): React.ReactElement {
   return (
     <div
-      className={cn('bg-white p-6 rounded-lg shadow', className)}
+      className={cn(
+        'rounded-lg border border-border bg-card p-6 shadow-sm',
+        className
+      )}
       data-testid={dataTestId}
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-600">{title}</p>
-          <p className="text-2xl font-bold mt-2">{value}</p>
+          <p className="text-sm text-muted-foreground">{title}</p>
+          <p className="mt-2 text-2xl font-bold text-foreground">{value}</p>
           {trend && (
             <p
               className={cn(
-                'text-sm mt-1',
-                trend.direction === 'up' ? 'text-green-600' : 'text-red-600'
+                'mt-1 text-sm',
+                trend.direction === 'up'
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-red-600 dark:text-red-400'
               )}
             >
               {trend.direction === 'up' ? '↑' : '↓'} {trend.value}%
@@ -80,7 +85,7 @@ export function StatsCard({
           )}
         </div>
         {icon && (
-          <div className="text-gray-400" data-testid="icon-container">
+          <div className="text-amber-500" data-testid="icon-container">
             {icon}
           </div>
         )}

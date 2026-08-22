@@ -73,15 +73,15 @@ export default function AffiliateDashboardPage(): React.ReactElement {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      <div className="flex min-h-64 items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-amber-500" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+      <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-600 dark:text-red-400">
         <p>{error}</p>
         <button
           onClick={() => window.location.reload()}
@@ -96,21 +96,23 @@ export default function AffiliateDashboardPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Welcome to your affiliate dashboard</p>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome to your affiliate dashboard
+          </p>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Active Codes"
           value={String(stats?.activeCodes || 0)}
           icon={
             <svg
-              className="w-8 h-8"
+              className="h-8 w-8"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -130,7 +132,7 @@ export default function AffiliateDashboardPage(): React.ReactElement {
           value={String(stats?.usedCodes || 0)}
           icon={
             <svg
-              className="w-8 h-8"
+              className="h-8 w-8"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -150,7 +152,7 @@ export default function AffiliateDashboardPage(): React.ReactElement {
           value={`$${(stats?.totalEarnings || 0).toFixed(2)}`}
           icon={
             <svg
-              className="w-8 h-8"
+              className="h-8 w-8"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -170,7 +172,7 @@ export default function AffiliateDashboardPage(): React.ReactElement {
           value={`$${(stats?.pendingBalance || 0).toFixed(2)}`}
           icon={
             <svg
-              className="w-8 h-8"
+              className="h-8 w-8"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -187,7 +189,7 @@ export default function AffiliateDashboardPage(): React.ReactElement {
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <StatsCard
           title="Conversion Rate"
           value={`${(stats?.conversionRate || 0).toFixed(1)}%`}
@@ -203,18 +205,18 @@ export default function AffiliateDashboardPage(): React.ReactElement {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-foreground">
           Quick Actions
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Link
             href="/affiliate/dashboard/codes"
-            className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex items-center rounded-lg border border-border bg-background p-4 transition-colors hover:bg-accent"
           >
-            <div className="bg-blue-100 p-3 rounded-lg mr-4">
+            <div className="mr-4 rounded-lg bg-amber-500/15 p-3">
               <svg
-                className="w-6 h-6 text-blue-600"
+                className="h-6 w-6 text-amber-600 dark:text-amber-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -228,8 +230,8 @@ export default function AffiliateDashboardPage(): React.ReactElement {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-gray-900">View My Codes</p>
-              <p className="text-sm text-gray-500">
+              <p className="font-medium text-foreground">View My Codes</p>
+              <p className="text-sm text-muted-foreground">
                 Manage your affiliate codes
               </p>
             </div>
@@ -237,11 +239,11 @@ export default function AffiliateDashboardPage(): React.ReactElement {
 
           <Link
             href="/affiliate/dashboard/commissions"
-            className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex items-center rounded-lg border border-border bg-background p-4 transition-colors hover:bg-accent"
           >
-            <div className="bg-green-100 p-3 rounded-lg mr-4">
+            <div className="mr-4 rounded-lg bg-green-500/15 p-3">
               <svg
-                className="w-6 h-6 text-green-600"
+                className="h-6 w-6 text-green-600 dark:text-green-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -255,8 +257,8 @@ export default function AffiliateDashboardPage(): React.ReactElement {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-gray-900">View Commissions</p>
-              <p className="text-sm text-gray-500">
+              <p className="font-medium text-foreground">View Commissions</p>
+              <p className="text-sm text-muted-foreground">
                 Track your earnings history
               </p>
             </div>
@@ -264,11 +266,11 @@ export default function AffiliateDashboardPage(): React.ReactElement {
 
           <Link
             href="/affiliate/dashboard/profile"
-            className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex items-center rounded-lg border border-border bg-background p-4 transition-colors hover:bg-accent"
           >
-            <div className="bg-purple-100 p-3 rounded-lg mr-4">
+            <div className="mr-4 rounded-lg bg-blue-500/15 p-3">
               <svg
-                className="w-6 h-6 text-purple-600"
+                className="h-6 w-6 text-blue-600 dark:text-blue-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -282,8 +284,8 @@ export default function AffiliateDashboardPage(): React.ReactElement {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-gray-900">Edit Profile</p>
-              <p className="text-sm text-gray-500">
+              <p className="font-medium text-foreground">Edit Profile</p>
+              <p className="text-sm text-muted-foreground">
                 Update your affiliate profile
               </p>
             </div>
@@ -292,11 +294,11 @@ export default function AffiliateDashboardPage(): React.ReactElement {
       </div>
 
       {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-2">
+      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-6">
+        <h3 className="mb-2 font-semibold text-amber-800 dark:text-amber-300">
           How the Affiliate Program Works
         </h3>
-        <ul className="text-sm text-blue-800 space-y-1">
+        <ul className="space-y-1 text-sm text-amber-800/90 dark:text-amber-200/90">
           <li>- Share your unique codes with potential customers</li>
           <li>- They get {discountPercent}% off their subscription</li>
           <li>

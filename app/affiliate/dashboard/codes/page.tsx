@@ -94,20 +94,20 @@ export default function AffiliateCodesPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Codes</h1>
-          <p className="text-gray-600">Manage your affiliate codes</p>
+          <h1 className="text-2xl font-bold text-foreground">My Codes</h1>
+          <p className="text-muted-foreground">Manage your affiliate codes</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-md p-4">
+      <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-4">
           <div>
             <label
               htmlFor="statusFilter"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="mb-1 block text-sm font-medium text-foreground"
             >
               Status
             </label>
@@ -118,7 +118,7 @@ export default function AffiliateCodesPage(): React.ReactElement {
                 setStatusFilter(e.target.value as CodeStatus | 'ALL');
                 setPage(1);
               }}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
             >
               <option value="ALL">All Codes</option>
               <option value="ACTIVE">Active</option>
@@ -128,7 +128,7 @@ export default function AffiliateCodesPage(): React.ReactElement {
             </select>
           </div>
 
-          <div className="ml-auto text-sm text-gray-600">
+          <div className="ml-auto text-sm text-muted-foreground">
             Showing {codes.length} of {total} codes
           </div>
         </div>
@@ -136,16 +136,16 @@ export default function AffiliateCodesPage(): React.ReactElement {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-600 dark:text-red-400">
           {error}
         </div>
       )}
 
       {/* Codes Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-amber-500" />
           </div>
         ) : (
           <CodeTable codes={codes} />
@@ -154,23 +154,23 @@ export default function AffiliateCodesPage(): React.ReactElement {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2">
+        <div className="flex items-center justify-center gap-2">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             Previous
           </button>
 
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-muted-foreground">
             Page {page} of {totalPages}
           </span>
 
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             Next
           </button>
@@ -178,32 +178,34 @@ export default function AffiliateCodesPage(): React.ReactElement {
       )}
 
       {/* Info Section */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-        <h3 className="font-semibold text-gray-900 mb-3">Code Status Guide</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+      <div className="bg-muted/40 rounded-lg border border-border p-6">
+        <h3 className="mb-3 font-semibold text-foreground">
+          Code Status Guide
+        </h3>
+        <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2 lg:grid-cols-4">
           <div className="flex items-center gap-2">
-            <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+            <span className="rounded border border-green-500/30 bg-green-500/15 px-2 py-1 text-xs font-medium text-green-700 dark:text-green-400">
               ACTIVE
             </span>
-            <span className="text-gray-600">Ready to share</span>
+            <span className="text-muted-foreground">Ready to share</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+            <span className="rounded border border-amber-500/30 bg-amber-500/15 px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
               USED
             </span>
-            <span className="text-gray-600">Successfully redeemed</span>
+            <span className="text-muted-foreground">Successfully redeemed</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-medium">
+            <span className="rounded border border-border bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
               EXPIRED
             </span>
-            <span className="text-gray-600">Past expiration date</span>
+            <span className="text-muted-foreground">Past expiration date</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-medium">
+            <span className="rounded border border-red-500/30 bg-red-500/15 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400">
               CANCELLED
             </span>
-            <span className="text-gray-600">Manually cancelled</span>
+            <span className="text-muted-foreground">Manually cancelled</span>
           </div>
         </div>
       </div>
