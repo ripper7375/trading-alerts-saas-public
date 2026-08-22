@@ -4,13 +4,14 @@
 
 **Who writes:** the Executor, at session close. Write the RULE, not the story — one entry, ≤6 lines.
 **Who reads:** the Executor, at every session OPEN.
-**Hard cap ~40 active lessons.** Currently at 41 (L1–L41), after the 2026-08-12 consolidation
-pass (64 → 25: 28 archived, 11 merged into 8 master rules, then 4 unpromoted candidates promoted
-to L26–L29; L30 added 2026-08-20 ad-hoc, L31–L32 added Session 7-2, L33 added Session 4A-13,
-L34–L35 added Session 4A-14, L36–L37 added Session 4A-15, L38–L39 added Session 9-0, L40 added
-Session 9-1, L3 compressed + L41 added Session 9-5).
-Full history in `LESSONS-ARCHIVE.md`. **At the cap again — the next new lesson must consolidate
-first**, same rule as always.
+**Hard cap ~40 active lessons.** Currently at 39 (L1–L42, with L20/L21/L34 merged away), after the
+2026-08-12 consolidation pass (64 → 25: 28 archived, 11 merged into 8 master rules, then 4
+unpromoted candidates promoted to L26–L29; L30 added 2026-08-20 ad-hoc, L31–L32 added Session 7-2,
+L33 added Session 4A-13, L34–L35 added Session 4A-14, L36–L37 added Session 4A-15, L38–L39 added
+Session 9-0, L40 added Session 9-1, L3 compressed + L41 added Session 9-5, Session 9-6: L20+L21
+merged into L19, L34 merged into L13 — both were already-terse Railway-CLI one-liners covering the
+same theme as their merge target — and L42 added).
+Full history in `LESSONS-ARCHIVE.md`. One slot of headroom before the next consolidation is owed.
 
 ---
 
@@ -202,12 +203,17 @@ first**, same rule as always.
   `RAILWAY_SERVICE_NAME`, checked against the specific worker service's name), not by an env var
   that could legitimately be set the same way across replicas of the wrong process.
 
-### L13 — Railway logs are unreliable for freshness or absence of output
+### L13 — Railway CLI observability has two independent failure modes: stale/absent log output, and silently targeting the wrong service
 
-- Symptom: `railway logs` returned stale output or nothing at all for failed/successful builds.
-- Root cause: Railway CLI caches logs and `--latest` behaves inconsistently across build states.
-- Rule: Always pair `--http` with `-n`/`--lines`. Use `--latest --build` for failed builds. For success, a direct HTTP/protocol check is more reliable than reading logs.
-- Source: Sessions 4B-8, 4B-17 (Extends L38) · Status: ACTIVE
+- Rule (freshness): `railway logs` can return stale output or nothing for failed/successful
+  builds — pair `--http` with `-n`/`--lines`, use `--latest --build` for failed builds, and prefer
+  a direct HTTP/protocol check over reading logs to confirm success.
+- Rule (targeting): `railway logs`/`railway status` resolve from the project's linked-service
+  config, NOT the current directory — `cd`ing into a service's subdirectory does not scope the
+  command to it. Always pass `--service <exact-name>` explicitly whenever more than one service
+  exists; an empty/negative result is not evidence of absence until the service name is verified
+  (`railway status` lists all services and which is linked).
+- Source: Sessions 4B-8, 4B-17, 4A-14 (merged L13+L34, Session 9-6) · Status: ACTIVE
 
 ### L14 — Spot-check real DB schema after Prisma baseline
 
@@ -243,20 +249,15 @@ first**, same rule as always.
 - Rule: Mocks and assertions must reflect real data contracts; a ported test that needs its assertion changed is a finding; never mock a field name the real model doesn't have.
 - Source: Consolidated · Status: ACTIVE
 
-### L19 — Railway monorepo deployment
+### L19 — Railway deployment, networking, and config-presence gotchas
 
-- Rule: Railway builds need explicit rootDirectory in railway.toml; deploying a monorepo subdirectory requires Nixpacks, not Dockerfile, and root-level install configs must not interfere.
-- Source: Consolidated · Status: ACTIVE
-
-### L20 — Railway internal networking
-
-- Rule: Use _.railway.internal:PORT for service-to-service; _\_PUBLIC_URL is external only and costs egress. Never use a public URL for internal traffic.
-- Source: Consolidated · Status: ACTIVE
-
-### L21 — Config presence vs documentation
-
-- Rule: .env.example proves a key is known, not deployed; verify real values via `railway variables` or the deployment dashboard, never infer presence from documentation.
-- Source: Consolidated · Status: ACTIVE
+- Rule (deployment): a monorepo subdirectory build needs explicit `rootDirectory` in
+  `railway.toml` and Nixpacks (not Dockerfile); root-level install configs must not interfere.
+- Rule (networking): use `*.railway.internal:PORT` for service-to-service calls —
+  `*_PUBLIC_URL` is external-only and costs egress; never use a public URL for internal traffic.
+- Rule (config presence): `.env.example` proves a key is known, not deployed — verify real
+  values via `railway variables` or the dashboard, never infer presence from documentation.
+- Source: Consolidated (merged L19+L20+L21, Session 9-6) · Status: ACTIVE
 
 ### L22 — Order text vs ground truth
 
@@ -341,13 +342,6 @@ first**, same rule as always.
   the same transaction, not just the first one that happened to fail loudest.
 - Source: Session 4A-13 (2026-08-21), `DECISION-LOG.md` F75 · Status: ACTIVE
 
-### L34 — `railway logs`/`railway status` silently default to the linked service, not the directory you ran them from or the service you meant
-
-- Symptom: querying money-service's logs during a live smoke test (`cd money-service && railway logs --http --path /v1/payments/dlocal/create`) returned nothing, twice, across two different query shapes — appearing to mean the request never reached money-service. It had. The commands were actually querying `operation-service-worker` (an unrelated alert-engine worker, and this Railway project's default _linked_ service), not `money-service` — `cd`ing into a subdirectory does not change which service Railway's CLI targets.
-- Root cause: `railway status`/`railway logs` resolve the target service from the project's linked-service config (set once via `railway link`/`railway service`), not from the current working directory or any inferred context. Running them from inside `money-service/` looks like it should scope to that service; it doesn't.
-- Rule: always pass `--service <exact-name>` explicitly on every `railway logs`/`railway status` call when more than one service exists in the project — never rely on directory context. An empty/negative result from an unscoped Railway CLI call is not evidence of absence; verify the service name first (`railway status` lists all services and which one is linked).
-- Source: Session 4A-14 (2026-08-21) · Status: ACTIVE
-
 ### L35 — A local `.env`/`.env.local` `DATABASE_URL` is not guaranteed to be the real production database; a "clean" read-only query result needs a sanity check before it's trusted as verification
 
 - Symptom: a read-only Prisma query for a specific `Payment` row (needed to verify an orphaned-row cleanup) returned "not found," and a broader scan returned zero `PENDING` rows — appearing to confirm the row was cleaned up. It wasn't necessarily: a later query, for a DIFFERENT row that money-service's own first-party structured log had just proven was created seconds earlier, also returned "not found" — and a plain `count()` on the same connection showed **0 total `Payment` rows and 8 total `User` rows**, nowhere near consistent with months of real production/migration activity. The local `DATABASE_URL` was pointing at the wrong database the entire session; both "verified clean" results were false negatives.
@@ -389,5 +383,28 @@ first**, same rule as always.
 - Root cause: `jest.setup.js` assigns `global.fetch` to a genuine `undici` fetch implementation (needed for other tests that exercise real HTTP semantics), not a mock — so any component rendered in a test that fires an un-awaited `fetch()` in a `useEffect` silently attempts a real network call, and jsdom's fast teardown after synchronous assertions finish races that pending promise.
 - Rule: before rendering any component that transitively mounts `LocaleProvider` (or any other provider with a fire-and-forget network call) in a test, mock `global.fetch` to reject/resolve immediately for that test file — don't rely on the "tests already passed" result as proof the file is clean. No repo-wide default mock exists yet; add one to `jest.setup.js` if this recurs a third time.
 - Source: Session 9-1 (2026-08-22) · Status: ACTIVE
-- Recurrence (Session 9-3, 2026-08-22) — 3rd occurrence, this lesson's own stated trigger for a repo-wide default: `login-form`/`register-form`/`verify-2fa`/`auth-bridge-endpoint-swaps` tests broke after adding `useLocale()` to those components. Fix used here: pre-seed `localStorage[LOCALE_STORAGE_KEY]` with `defaultPreferences` in `beforeEach` so `LocaleProvider` skips its fetch branch entirely — safer than the reject-mock for files whose own tests assert exact `global.fetch` call counts/args. Same render also needs `usePathname: () => '/'` in the file's `next/navigation` mock. Repo-wide `jest.setup.js` default flagged as owed, not added — out of this session's own scope to touch shared test infra untested.
-- Recurrence (Session 9-4, 2026-08-22) — 4th occurrence: mounting `AppHeader` (calls both `usePathname()` and `useLocale()`) into `notifications-page.test.tsx` and `edit.test.tsx` broke 9 tests the same way; same fix as 9-3 (real `LocaleProvider` + localStorage pre-seed + `usePathname` stub). `edit.test.tsx` also had zero `next-auth/react` mock at all — added one so `useSession()` doesn't fall through to a real `fetch('/api/auth/session')`. Repo-wide `jest.setup.js` default still owed, now 4 sessions running — the next session that hits this should add it rather than defer again.
+- Recurrence (Sessions 9-3, 9-4, 2026-08-22) — 3rd/4th occurrences, both fixed the same way: real
+  `LocaleProvider` + `localStorage[LOCALE_STORAGE_KEY]` pre-seeded with `defaultPreferences` (skips
+  the fetch branch entirely) + a `usePathname: () => '/'` stub; 9-4 also needed a `next-auth/react`
+  mock it was missing entirely. Repo-wide `jest.setup.js` default still owed, 4 sessions running —
+  this lesson's own stated trigger for adding one; the next session that hits this should add it.
+
+### L42 — A local dev environment that doesn't mirror production's service wiring produces real-looking errors that are environment gaps, not app bugs — verify with a curl/log check before touching app code
+
+- Symptom (Session 9-6): `POST /api/checkout` 500'd with `ECONNREFUSED` because
+  `MIGRATE_WRITE_APIS_MONEY_STRIPE=true` forwards to money-service, which had no local `.env` and
+  wasn't running. Separately, every `/api/auth/*` route 404'd after a Next.js version bump left a
+  stale `.next` build cache behind (fixed by deleting `.next` and restarting — confirmed via a
+  direct `curl` to the route returning 200 once cleared, not by reading app code).
+- Root cause: a cutover flag or route can be 100% correct while the sibling service it forwards to
+  simply isn't running locally (same class as Session 9-5's disclosed operation-service/2FA gap);
+  a stale build cache from a framework version bump can present as a routing bug with no code
+  change involved at all.
+- Rule: before editing any code in response to a 500/404 that "shouldn't happen," check (a) is the
+  forwarded-to service actually running (`curl` its health route or the failing route directly),
+  and (b) does a clean `rm -rf .next` + restart change anything, especially right after any
+  Next.js/framework version bump. If a sibling service needs its own local `.env` to test a real
+  cutover path, create one reusing the same test-mode secrets already in root `.env.local` (per
+  that service's own `.env.example`) rather than flipping the cutover flag off to dodge it — that
+  tests the frozen fallback path, not the real one.
+- Source: Session 9-6 (2026-08-22) · Status: ACTIVE

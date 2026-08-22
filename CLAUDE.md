@@ -99,12 +99,13 @@
   re-fetch `GET /api/subscription` rather than trusting the session (the exact `F57`-class
   staleness, but on a passive server-side change with no user-initiated call site to refresh
   from). Not fixed here — out of a UI-BUILD+verification session's scope.
-  **`LESSONS-LEARNED.md`'s own cap was already 1 over (41 active, cap 40) before this session, and
-  its own header says the next new lesson must consolidate first** — this session's own two
-  genuine candidate lessons (the local-webhook-delivery-gap technique above, and the stale-`.next`
-  -after-a-version-bump symptom) were NOT added, rather than pushing the file further over cap.
-  Flagged explicitly as owed at Session 9-7's own OPEN, matching this session's own
-  DECISION-LOG-gate precedent instead of silently deferred again.
+  **`LESSONS-LEARNED.md`'s own cap was already 1 over (41 active, cap 40) before this session,
+  and its own header says the next new lesson must consolidate first** — done at Davin's explicit
+  request rather than deferred a second time: merged L20/L21 into L19 and L34 into L13 (both were
+  already-terse Railway-CLI one-liners on the same theme as their merge target, no content lost),
+  then added **L42** (the local-webhook-delivery/stale-`.next`-cache lesson from this session's
+  own live-verification gaps). Net 41 → 39, one slot of headroom left before the next
+  consolidation is owed.
   **A second, pre-existing session-history hygiene gap found and fixed while doing this session's
   own Current/Previous rotation:** Session 9-5's own close claimed "Session 9-3 moved to
   `history/sessions-archive.md`" — true for the archive (9-3's entry was correctly appended
@@ -129,7 +130,8 @@ decisions-archive.md` (F21/F64/F77 full narrative appended), `migration-stack-an
   config added), this file (Current/Previous rotation — Session 9-4 moved to
   `history/sessions-archive.md`; the stale duplicate 9-3 entry found and removed, see above).
   `migration-cutover-table.md` correctly needs no changes (Phase 9 is additive builds, no
-  route/slice moved). `LESSONS-LEARNED.md` unchanged this session — see the cap note above.
+  route/slice moved). `LESSONS-LEARNED.md` (L20/L21 merged into L19, L34 merged into L13, L42
+  added — see the note above).
 - **Previous:** Session 9-5 (`settings/` 11, Phase 9, UI-BUILD), CONFIRMED, executed, **CLOSED
   SUCCESSFUL** 2026-08-22. Sixth session of Phase 9 — ships all 11 route-map rows (73–83): the
   `app/settings/layout.tsx` boundary (session's own one moved layout: auth gate, `AppearanceProvider`,
