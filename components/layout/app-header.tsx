@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { getSession, signOut, useSession } from 'next-auth/react';
 import {
   Bell,
   Sparkles,
@@ -29,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
 import { useLocale } from '@/lib/context/locale-context';
 import { SUPPORTED_COUNTRIES } from '@/lib/country-config';
 
@@ -53,7 +55,33 @@ export default function AppHeader({
 }: AppHeaderProps) {
   const pathname = usePathname();
   const { t, countryCode, countryConfig, setCountryCode } = useLocale();
-  const currentTier = pathname.startsWith('/free') ? 'FREE' : tier;
+  const { data: session } = useSession();
+  const currentTier = pathname.startsWith('/free')
+    ? 'FREE'
+    : ((session?.user?.tier as 'PRO' | 'FREE' | undefined) ?? tier);
+  const userName = session?.user?.name || 'Trader';
+  const userInitials = userName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+  const isAdmin = session?.user?.role === 'ADMIN';
+
+  // Same bridge-aware logout as components/layout/header.tsx (the component
+  // this file retires) -- see that file's own comment for why both the
+  // token-logout endpoint AND next-auth's own signOut() are called.
+  const handleLogout = async (): Promise<void> => {
+    if (isAuthBridgeEnabled()) {
+      await fetch('/api/auth/token-logout', { method: 'POST' });
+      await signOut({ redirect: false });
+      await getSession();
+      window.location.href = '/login';
+      return;
+    }
+    await signOut({ redirect: false });
+    window.location.href = '/login';
+  };
 
   return (
     <header className="z-20 flex h-14 w-full shrink-0 select-none items-center justify-between border-b border-border bg-card px-4 shadow-sm">
@@ -219,19 +247,19 @@ export default function AppHeader({
               className="h-8 gap-2 p-1 hover:bg-accent"
             >
               <Avatar className="h-6 w-6 ring-1 ring-amber-500/40">
-                <AvatarImage src="/placeholder-user.jpg" />
+                <AvatarImage src={session?.user?.image || undefined} />
                 <AvatarFallback className="bg-muted text-[10px] text-muted-foreground">
-                  TU
+                  {userInitials}
                 </AvatarFallback>
               </Avatar>
               <span className="hidden text-xs font-bold text-foreground sm:inline">
-                {t('Trader User', 'Trader User')}
+                {userName}
               </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-52 border-border bg-popover text-xs text-popover-foreground">
             <DropdownMenuLabel className="font-bold text-amber-600 dark:text-amber-400">
-              {t('Trader Account')}
+              {session?.user?.email || t('Trader Account')}
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem asChild>
@@ -271,20 +299,23 @@ export default function AppHeader({
                 {t('Affiliate Partner Dashboard')}
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/admin" className="flex cursor-pointer items-center">
-                <ShieldAlert className="mr-2 h-3.5 w-3.5 text-muted-foreground" />{' '}
-                {t('nav.admin', 'Admin Control')}
-              </Link>
-            </DropdownMenuItem>
+            {isAdmin && (
+              <DropdownMenuItem asChild>
+                <Link
+                  href="/admin"
+                  className="flex cursor-pointer items-center"
+                >
+                  <ShieldAlert className="mr-2 h-3.5 w-3.5 text-muted-foreground" />{' '}
+                  {t('nav.admin', 'Admin Control')}
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem asChild>
-              <Link
-                href="/login"
-                className="flex cursor-pointer items-center text-rose-600 dark:text-rose-400"
-              >
-                <LogOut className="mr-2 h-3.5 w-3.5" /> {t('Log out')}
-              </Link>
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="flex cursor-pointer items-center text-rose-600 dark:text-rose-400"
+            >
+              <LogOut className="mr-2 h-3.5 w-3.5" /> {t('Log out')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

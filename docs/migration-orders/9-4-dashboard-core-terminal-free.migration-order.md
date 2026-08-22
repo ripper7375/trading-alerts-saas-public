@@ -205,7 +205,53 @@ Per `MASTER-ROADMAP-PHASES-7-15.md` §3: this session replaces all legacy dashbo
    backing APIs the order names for both pages are otherwise correct; only the parenthetical row
    numbers were wrong.
 
-6. **F21/F64 confirmed out of scope, per Davin's live resolution of the roadmap's own internal
+6. **Architecture correction: `/terminal` and `/free` moved out of the `(dashboard)` route group
+   entirely — Davin's live decision, `AskUserQuestion`.** Reading `seed-code`'s actual
+   `app/terminal/page.tsx` and `app/free/page.tsx` in full (not just their route-map citation)
+   showed both are full-screen `h-screen` 4-panel resizable workspaces that mount `ChatSidebar`
+   themselves as an internal Panel A and never use `AppHeader` at all. The order's own Step 1 and
+   the 9-0 route map's "Main-Repo Target" column both put these two pages under
+   `app/(dashboard)/terminal|free/page.tsx`, sharing `app/(dashboard)/layout.tsx`'s chrome — which
+   would have doubled `ChatSidebar` (once from the shared layout, once as the page's own Panel A)
+   and added an `AppHeader` bar neither page's real design has, violating Decision 5's
+   100%-fidelity invariant. Corrected to top-level `app/terminal/page.tsx` + `app/free/page.tsx`,
+   each with its own minimal `layout.tsx` (auth gate + `AppearanceProvider` only, no shared
+   chrome) — matching both seed-code's real file location and its real, chrome-free design. URLs
+   are unaffected (route groups are URL-neutral). This deviates from the 9-0 route map's own
+   "Main-Repo Target" citation for rows 57/58, written before that file's source was read in full
+   — a `LESSONS-LEARNED.md` L39 recurrence in the 9-0 contract itself, not this session's error.
+
+7. **Step 1 corrected: `app/(dashboard)/layout.tsx` does not render `AppHeader`/`ChatSidebar`
+   chrome at all.** Reading all 5 core-page source files in `seed-code` (`dashboard/
+_components/dashboard-content.tsx`, `alerts/page.tsx`, `alerts/new/page.tsx`,
+   `alerts/[id]/edit/page.tsx`, `notifications/page.tsx`) shows every one of them mounts its own
+   `<AppHeader title=... subtitle=... />` directly — none consume a shared header from a parent
+   layout, and none import `ChatSidebar` (which is workspace-only, per Deviation 6). Decision 3's
+   "replace legacy header/sidebar with `<AppHeader />` and `<ChatSidebar />`" language described
+   the swap at the wrong layer. Corrected: `app/(dashboard)/layout.tsx` stays a thin auth-gate +
+   `AppearanceProvider` wrapper (session gate, `LoginTracker`, `TokenRefreshProvider` all
+   preserved per Decision 3's own rationale); each of the 5 core pages mounts its own `AppHeader`
+   in Step 2, matching seed-code exactly. This is a mechanical correction (unanimous, zero
+   exceptions across all 5 source files) rather than a judgment call, so executed directly per
+   EXECUTOR-PROTOCOL.md §0 ("you decide from live code") rather than re-escalated.
+
+8. **Pre-existing latent defects fixed in `AppHeader`/`ChatSidebar` before their first real
+   mount, per `LESSONS-LEARNED.md` L15.** Both components were built at Session 9-1 but never
+   mounted anywhere (confirmed: zero importers repo-wide before this session) — reading their full
+   implementation, not just their prop signatures, before wiring them into a real authenticated
+   surface found two real bugs: (a) both hardcoded a static "Trader User" / "TU" avatar / `/
+placeholder-user.jpg` regardless of who is actually logged in — would have shown every real PRO/
+   FREE/Admin/Affiliate test user the same fake identity on every one of the 7 pages this session
+   ships; (b) both "Log out" menu items were a bare `<Link href="/login">` — navigates away
+   without ever calling `signOut()` or clearing the session cookie, leaving the NextAuth session
+   fully live server-side. Fixed both components identically: real identity via `useSession()`
+   (name/email/avatar/tier/initials, admin-menu-item gated on `session.user.role === 'ADMIN'`
+   matching the legacy `Header`'s own established pattern) and the same bridge-aware logout flow
+   `components/layout/header.tsx` (the file this session retires) already uses —
+   `/api/auth/token-logout` + `signOut({redirect:false})` + `getSession()` + hard navigation when
+   `isAuthBridgeEnabled()`, plain `signOut()` otherwise. `npx tsc --noEmit` clean after the fix.
+
+9. **F21/F64 confirmed out of scope, per Davin's live resolution of the roadmap's own internal
    contradiction.** `MASTER-ROADMAP-PHASES-7-15.md`'s "Already-open flags" table lists both as
    "owed by 9-4," but its own Phase 9 session breakdown assigns closure of both to 9-5 (correctly —
    both are settings/billing surface, which 9-4 does not touch). Davin confirmed live: 9-5 closes

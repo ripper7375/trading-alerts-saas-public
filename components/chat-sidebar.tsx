@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getSession, signOut, useSession } from 'next-auth/react';
 import {
   LayoutDashboard,
   Bell,
@@ -37,6 +38,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import type { Tier } from '@/lib/tier-config';
+import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
 import { useLocale } from '@/lib/context/locale-context';
 
 interface ChatSidebarProps {
@@ -65,10 +67,34 @@ export function ChatSidebar({
 }: ChatSidebarProps) {
   const pathname = usePathname();
   const { t } = useLocale();
-  const currentTier: Tier = pathname === '/free' ? 'FREE' : tier;
+  const { data: session } = useSession();
+  const currentTier: Tier =
+    pathname === '/free'
+      ? 'FREE'
+      : ((session?.user?.tier as Tier | undefined) ?? tier);
+  const userName = session?.user?.name || 'Trader';
+  const userInitials = userName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
   const [activeSession, setActiveSession] = useState<string>(
     'XAUUSD M5 Scalp Setup'
   );
+
+  // Same bridge-aware logout as components/layout/header.tsx.
+  const handleLogout = async (): Promise<void> => {
+    if (isAuthBridgeEnabled()) {
+      await fetch('/api/auth/token-logout', { method: 'POST' });
+      await signOut({ redirect: false });
+      await getSession();
+      window.location.href = '/login';
+      return;
+    }
+    await signOut({ redirect: false });
+    window.location.href = '/login';
+  };
 
   const sessions = [
     'XAUUSD M5 Scalp Setup',
@@ -403,15 +429,15 @@ export function ChatSidebar({
               )}
             >
               <Avatar className="h-7 w-7 shrink-0 ring-1 ring-amber-500/40">
-                <AvatarImage src="/placeholder-user.jpg" />
+                <AvatarImage src={session?.user?.image || undefined} />
                 <AvatarFallback className="bg-muted text-xs text-muted-foreground">
-                  TU
+                  {userInitials}
                 </AvatarFallback>
               </Avatar>
               {!isCollapsed && (
                 <div className="flex flex-1 flex-col overflow-hidden">
                   <span className="truncate text-xs font-bold text-sidebar-foreground">
-                    {t('Trader User')}
+                    {userName}
                   </span>
                   <span
                     className={cn(
@@ -452,13 +478,11 @@ export function ChatSidebar({
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem asChild>
-              <Link
-                href="/login"
-                className="flex cursor-pointer items-center text-rose-600 dark:text-rose-400"
-              >
-                <LogOut className="mr-1.5 h-3.5 w-3.5" /> {t('Log out')}
-              </Link>
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="flex cursor-pointer items-center text-rose-600 dark:text-rose-400"
+            >
+              <LogOut className="mr-1.5 h-3.5 w-3.5" /> {t('Log out')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
