@@ -26,7 +26,80 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 9-6 (Payments flow, cross-boundary, Phase 9, UI-BUILD + PORT), CONFIRMED,
+- **Current:** Session 9-7a (`app/affiliate/*` public onboarding, Phase 9, UI-BUILD), CONFIRMED,
+  executed, **CLOSED SUCCESSFUL** 2026-08-22. Eighth session of Phase 9 — ships route-map rows 48
+  (`/affiliate`), 43 (`/affiliate/join`), 44 (`/affiliate/register`), plus retirement of row 47
+  (`/affiliate/verify`).
+  **CONFIRM found the by-now-familiar L3 pattern one more time** (28th+ recurrence): committed
+  HEAD held the bare PRE-DRAFT with three open questions; the Advisor's corrected-and-approved
+  DRAFT (5 numbered decisions) arrived only as an uncommitted working-copy edit. CONFIRM also
+  found and reported a genuine conflict the Advisor could not have seen from documents alone:
+  `frontend-swap-route-map.md`'s own Session column and its own §7 sizing table both assigned
+  **6** rows to 9-7a (43, 44, 45, 46, 47, 48), not the order's own 4 — the order's Decision 1
+  silently reassigned rows 45/46 to 9-7b without acknowledging it was overriding the map's own
+  literal text. Separately, live code contradicted the order's "public/pre-affiliate,
+  NON-LOGIN" framing for row 44: `POST /api/affiliate/auth/register` calls `requireAuth()` and
+  401s an anonymous caller — this is an already-logged-in customer applying to become a partner,
+  not a pre-signup form — and `/affiliate/join`'s own Decision 3 described "a bare redirect" as a
+  rejected alternative when that is literally the current live page (a stale citation, L27's
+  class). Reported all three; Davin resolved them live in chat (rows 45/46 stay 9-7b, register
+  maps 1:1 to the real `affiliateRegistrationSchema` with an explicit
+  `/login?callbackUrl=/affiliate/register` redirect, join gets real ported content) before
+  authorizing — the third time this loop has visibly closed the Advisor↔Executor gap PD1 exists
+  to bridge (after 9-5 and 9-6).
+  **A live, reproducible bug found during the order's own required Step 5 click-through, registered
+  as `DECISION-LOG.md` F79 (OPEN), not silently patched or silently ignored:** the real
+  `POST /api/affiliate/auth/register` correctly created a genuine affiliate profile (201,
+  real `profileId`) for the real test account `free-test@trading-alerts.test`, and the register
+  page correctly called `router.push('/affiliate/dashboard')` — but `affiliate/dashboard/
+layout.tsx` (Session 9-7b's file, not this session's) reads `session.user.isAffiliate` from the
+  stale JWT and redirect-trapped the freshly-registered affiliate straight back to
+  `/affiliate/register`. Same staleness class as F78 (a passive DB write with no session-refresh
+  call site), different, more disruptive surface (an inescapable loop, not a cosmetic badge). A
+  working fix already exists in the codebase (`requireAffiliate()` in `lib/auth/session.ts`
+  re-checks the DB directly) for 9-7b to reuse. Useful side effect, not a defect: the test account
+  is now a real, DB-registered affiliate — exactly the fixture 9-7b's own authenticated-portal
+  pages need and previously had none of.
+  **A live schema-vs-chat-shorthand mismatch reconciled per PD1, not re-escalated:** Davin's own
+  approval message described the register form's social-field mapping as
+  `{ website, twitter, youtube, instagram, tiktok }`, but the live `affiliateRegistrationSchema`
+  has no `website` field — it has `facebookUrl` instead, exactly matching the pre-restyle live
+  page. Mapped to the real schema (swapped seed-code's "website" input for Facebook) rather than
+  re-asking over a one-field, non-money, non-auth mechanical correction.
+  **Two real gaps found and fixed in the test/tooling environment, not worked around:** jsdom has
+  no `ResizeObserver`, and this session's new `components/ui/slider.tsx` (a port of an existing
+  seed-code primitive — `@radix-ui/react-slider` was already a dependency, just never wrapped)
+  calls it on mount — added a global stub to `jest.setup.js` rather than a per-file workaround,
+  since any future test rendering `Slider` would hit the same gap. Two pre-existing tests in
+  `__tests__/pages/marketing/public-pages.test.tsx` asserted content/behavior this session's own
+  approved decisions intentionally retired (the old "Become a Trading Alerts Affiliate" copy, and
+  `/affiliate/join`'s own redirect) — re-derived both from the real ported content per
+  `LESSONS-LEARNED.md` L3, not patched to merely pass.
+  **All test baselines re-verified live, all green, exact match to entry-criterion baseline**
+  (running `operation-service` immediately after the other two suites hit the exact
+  worker-OOM/SIGTERM false-negative pattern `LESSONS-LEARNED.md` L24 already documents — this
+  time as a hard V8 crash with no test output at all, and a `git commit` in between briefly failed
+  on the same machine-wide memory pressure — both resolved cleanly on an isolated `--maxWorkers=1`
+  re-run): monolith `tsc` clean, `eslint` 0 errors/5 warnings (pre-existing, none in touched
+  files), `test:ci` 160/160 suites/2400/2400 tests; money-service 62/62 suites/526/526 tests;
+  operation-service 42/42 suites/393/393 tests.
+  **Route-manifest diff clean:** `git diff --stat` against the session's own start commit confirms
+  exactly 3 pages restyled, 1 new supporting component (`components/ui/slider.tsx`), and 1 file
+  deleted (`app/affiliate/verify/layout.tsx` — the directory held only a passthrough layout, no
+  `page.tsx`, so the route was already non-functional before this session touched it) — zero
+  unrelated route changes. One commit-hygiene deviation: the `verify` deletion rode along with the
+  Step-1 commit rather than getting its own, since a broad staged deletion commits with whatever's
+  next regardless of a narrower `git add`.
+  **Artifacts updated:** `9-7a-affiliate-public.migration-order.md` (Status → CONFIRMED → CLOSED
+  SUCCESSFUL, 8 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md` (F79
+  registered OPEN), `history/decisions-archive.md` (F79 full narrative appended),
+  `migration-stack-analysis.md` (Session 9-7a entry, 1 new/3 modified/1 deleted, all FRONTEND),
+  `9-7b-affiliate-portal.migration-order.md` (new, PRE-DRAFT — the authenticated partner-portal
+  cluster, 10 rows per Decision 1 rather than the 9-0 map's own uncorrected 8, both known backend
+  gaps and F79 carried forward as open questions for the Advisor), this file (Current/Previous
+  rotation — Session 9-5 moved to `history/sessions-archive.md`). `migration-cutover-table.md`
+  correctly needs no changes (Phase 9 is additive builds, no route/slice moved).
+- **Previous:** Session 9-6 (Payments flow, cross-boundary, Phase 9, UI-BUILD + PORT), CONFIRMED,
   executed, **CLOSED SUCCESSFUL** 2026-08-22. Seventh session of Phase 9 — ships route-map rows
   60 (`/checkout/return`), 61 (`/checkout`), 87 (`/upgrade/success`), plus a re-verification pass
   of rows 69 (`/pricing`, 9-2) and 75 (`/settings/billing`, 9-5) as one unified commerce journey.
@@ -132,93 +205,6 @@ decisions-archive.md` (F21/F64/F77 full narrative appended), `migration-stack-an
   `migration-cutover-table.md` correctly needs no changes (Phase 9 is additive builds, no
   route/slice moved). `LESSONS-LEARNED.md` (L20/L21 merged into L19, L34 merged into L13, L42
   added — see the note above).
-- **Previous:** Session 9-5 (`settings/` 11, Phase 9, UI-BUILD), CONFIRMED, executed, **CLOSED
-  SUCCESSFUL** 2026-08-22. Sixth session of Phase 9 — ships all 11 route-map rows (73–83): the
-  `app/settings/layout.tsx` boundary (session's own one moved layout: auth gate, `AppearanceProvider`,
-  `AppHeader`, shared sub-nav) plus `settings` (hub), `account`, `appearance` (Protected #5),
-  `billing`, `help` (Protected #6), `language`, `privacy`, `profile`, `security`,
-  `security/activity`, `terms`. Formally documents progress on **F21** (24h account-deletion) and
-  **F64** (subscription cancel) in `DECISION-LOG.md`, both left OPEN per the corrected order's own
-  scoping — see below.
-  **CONFIRM found real, material problems in the order Davin hadn't yet seen, escalated rather than
-  silently fixed or silently trusted:** the committed PRE-DRAFT's row-73–83 mapping didn't match
-  `frontend-swap-route-map.md`'s real rows at all (scrambled numbers, a fabricated `settings/
-notifications` page with zero route-map row/legacy source/seed-code source, and the real row 82
-  `/settings/terms` dropped from the Ordered Steps entirely); `POST /api/subscription/resume` was
-  required by the entry criteria and Decision 2 but does not exist anywhere in the repo; and
-  `/api/subscription/cancel` (which Decision 2 assumed sets `cancelAtPeriodEnd`) actually performs
-  an immediate, full Stripe cancellation — architecturally incompatible with the "Undo" flow the
-  order described. Reported all three as failing entry criteria rather than starting; **Davin (via
-  Antigravity) corrected the order directly in response** — resume dropped, F64 rescoped to
-  cancel-only with reactivation deferred to Session 9-6, notifications swapped for terms across all
-  11 rows — the first time this session-close/PRE-DRAFT loop has visibly closed the Advisor↔Executor
-  gap PD1 exists to bridge.
-  **CONFIRM found the by-now-familiar L3 pattern one more time** (26th+ recurrence, one commit total
-  in the order file's own history): committed HEAD held the bare PRE-DRAFT; the corrected-and-
-  approved text arrived as an uncommitted working-copy edit. Davin's own chat message directly
-  restated the layout-boundary decision, the Protected Pages note, and the F21/F64 framing before
-  authorizing execution — treated as live confirmation, matching the established pattern.
-  **`LESSONS-LEARNED.md` L15's exact failure class recurred a second time, on the opposite side of
-  the same bug:** the order's own Decision 2 named `components/billing/subscription-card.tsx` as
-  what to wire for F64 — reading the REAL, live `app/(dashboard)/settings/billing/page.tsx` before
-  porting it found it never imports that component at all. The real billing page has its own
-  inline, confirm-before-cancel flow with no optimistic "Undo" step, so it never had F64's bug to
-  begin with. Ported the real live flow unchanged; `subscription-card.tsx` stays unmounted dead
-  code, unchanged, still carrying its original bug — Davin's own future call, not this session's.
-  **F21's real backend state read directly from source before wiring the UI, not assumed from the
-  order's framing:** `deletion-request`/`deletion-confirm` routes already implement a real, DB-
-  backed 7-day link-expiry + 24h post-confirm grace period — but both still have live `// TODO`
-  stubs (console.log only) for the confirmation/scheduling emails, and no cron/worker exists
-  anywhere in the repo (grepped) to execute the actual deletion. Wired the UI to the real endpoint
-  as the corrected order's own Decision 3 asks; the backend completion gap is disclosed in
-  Deviations and `DECISION-LOG.md`, not silently fixed (real email/cron infra is well outside a
-  UI-BUILD session) and not silently hidden.
-  **Help page (Protected Page #6) needed two real-vs-mock swaps to satisfy both the 100%-fidelity
-  invariant and the Zero-Mock-Data rule at once:** seed-code's version calls a chat widget deferred
-  to Phase 14 (confirmed unmounted, per 9-1's own finding) and fakes its ticket-submit with a bare
-  `setTimeout` (confirmed: no `/api/support`/`/api/contact`/`/api/ticket` route exists anywhere).
-  Ported the real DavinTrade visual design, swapped the chat CTA for a real
-  `mailto:support@davintrade.com` link (per the order's own Step 2) and the fake ticket-submit for
-  a real pre-filled `mailto:` compose, rather than shipping a "ticket submitted" success state for
-  a request nothing delivers.
-  **A live, reproducible instance of `DECISION-LOG.md` F77's own defect class found on this
-  session's own new page, root cause now identified:** confirmed via a real `next build && next
-start` production server (not dev/HMR) that `/settings/appearance` carries a second, inert copy
-  of its own content in `<div id="S:0" style="display:none">` alongside React/Next's own
-  `$RC`/`$RT`/`$RV` Suspense-streaming "reveal" scripts — this route's own `app/settings/loading.tsx`
-  creates the Suspense boundary. Confirmed benign (`display:none`, 0×0 rect, non-interactive, zero
-  console/hydration errors) and confirmed present on the unrelated, pre-existing `/login` page too,
-  ruling out this session's own code as the cause. Logged as an addendum to F77 (likely its real
-  root cause) rather than a new flag or further open-ended chase, matching Davin's own 9-4 call on
-  the same defect class.
-  **Live 2FA click-through blocked by local environment, not app code, and disclosed as such:**
-  `POST /api/user/2fa/setup` is cut over to `operation-service`, which wasn't running in this
-  session's local preview (only the monolith was) — server logs show a genuine `ECONNREFUSED`, not
-  an app error. `operation-service`'s own 42/42 test suites pass; login history and sessions (still
-  monolith-routed) verified live with real data with no issue.
-  **All test baselines re-verified live, all green, exact match to entry-criterion baseline:**
-  monolith `tsc` clean, `eslint` 0 errors/5 warnings (pre-existing, none in touched files), `test:ci`
-  160/160 suites/2400/2400 tests; money-service 62/62 suites/526/526 tests; operation-service 42/42
-  suites/393/393 tests. A real production build (`next build`) also verified clean, used for the
-  F77-addendum investigation above.
-  **Route-manifest diff clean:** `git diff --stat` against the session's own start commit confirms
-  `app/(dashboard)/layout.tsx` and `app/(dashboard)/admin/*` show zero diff; exactly the 11 rows'
-  own files moved/rewritten (mostly detected as renames), the new layout + nav component, and 5
-  pre-existing test files' import paths fixed (zero assertion changes needed).
-  **A real hygiene gap found at close, not silently skipped:** `DECISION-LOG.md` is 101.5KB,
-  roughly double its ~50KB target — this predates this session (this session's own edits added
-  only ~3KB) and was missed at this session's own OPEN (the §1 step-0 size gate check was skipped).
-  Not fixed this session — a full archival pass done quickly at session-close risked more harm than
-  the oversized file itself — flagged explicitly as owed at Session 9-6's own OPEN step 0 instead of
-  silently deferred again.
-  **Artifacts updated:** `9-5-settings.migration-order.md` (Status → CONFIRMED → CLOSED SUCCESSFUL,
-  7 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md` (F21/F64 register rows
-  updated with this session's evidence, both still OPEN; F77 addendum), `migration-stack-analysis.md`
-  (Session 9-5 entry, 13 new files/13 deleted, all FRONTEND), `LESSONS-LEARNED.md` (L3 compressed
-  per its own 5+-recurrences rule, long overdue; L41 added — the F77-addendum Suspense-streaming
-  root-cause finding above), this file (Current/Previous rotation — Session 9-3 moved to
-  `history/sessions-archive.md`). `migration-cutover-table.md` correctly needs no changes (Phase 9
-  is additive builds, no route/slice moved).
 
 ## Key documents
 

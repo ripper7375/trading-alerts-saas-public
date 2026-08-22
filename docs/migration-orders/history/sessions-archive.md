@@ -7,6 +7,94 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 9-5 (`settings/` 11, Phase 9, UI-BUILD),
+  CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-22. Sixth session of Phase 9 — ships all 11
+  route-map rows (73–83): the `app/settings/layout.tsx` boundary (session's own one moved layout:
+  auth gate, `AppearanceProvider`, `AppHeader`, shared sub-nav) plus `settings` (hub), `account`,
+  `appearance` (Protected #5), `billing`, `help` (Protected #6), `language`, `privacy`, `profile`,
+  `security`, `security/activity`, `terms`. Formally documents progress on **F21** (24h
+  account-deletion) and **F64** (subscription cancel) in `DECISION-LOG.md`, both left OPEN per the
+  corrected order's own scoping — see below.
+  **CONFIRM found real, material problems in the order Davin hadn't yet seen, escalated rather than
+  silently fixed or silently trusted:** the committed PRE-DRAFT's row-73–83 mapping didn't match
+  `frontend-swap-route-map.md`'s real rows at all (scrambled numbers, a fabricated `settings/
+notifications` page with zero route-map row/legacy source/seed-code source, and the real row 82
+  `/settings/terms` dropped from the Ordered Steps entirely); `POST /api/subscription/resume` was
+  required by the entry criteria and Decision 2 but does not exist anywhere in the repo; and
+  `/api/subscription/cancel` (which Decision 2 assumed sets `cancelAtPeriodEnd`) actually performs
+  an immediate, full Stripe cancellation — architecturally incompatible with the "Undo" flow the
+  order described. Reported all three as failing entry criteria rather than starting; **Davin (via
+  Antigravity) corrected the order directly in response** — resume dropped, F64 rescoped to
+  cancel-only with reactivation deferred to Session 9-6, notifications swapped for terms across all
+  11 rows — the first time this session-close/PRE-DRAFT loop has visibly closed the Advisor↔Executor
+  gap PD1 exists to bridge.
+  **CONFIRM found the by-now-familiar L3 pattern one more time** (26th+ recurrence, one commit total
+  in the order file's own history): committed HEAD held the bare PRE-DRAFT; the corrected-and-
+  approved text arrived as an uncommitted working-copy edit. Davin's own chat message directly
+  restated the layout-boundary decision, the Protected Pages note, and the F21/F64 framing before
+  authorizing execution — treated as live confirmation, matching the established pattern.
+  **`LESSONS-LEARNED.md` L15's exact failure class recurred a second time, on the opposite side of
+  the same bug:** the order's own Decision 2 named `components/billing/subscription-card.tsx` as
+  what to wire for F64 — reading the REAL, live `app/(dashboard)/settings/billing/page.tsx` before
+  porting it found it never imports that component at all. The real billing page has its own
+  inline, confirm-before-cancel flow with no optimistic "Undo" step, so it never had F64's bug to
+  begin with. Ported the real live flow unchanged; `subscription-card.tsx` stays unmounted dead
+  code, unchanged, still carrying its original bug — Davin's own future call, not this session's.
+  **F21's real backend state read directly from source before wiring the UI, not assumed from the
+  order's framing:** `deletion-request`/`deletion-confirm` routes already implement a real, DB-
+  backed 7-day link-expiry + 24h post-confirm grace period — but both still have live `// TODO`
+  stubs (console.log only) for the confirmation/scheduling emails, and no cron/worker exists
+  anywhere in the repo (grepped) to execute the actual deletion. Wired the UI to the real endpoint
+  as the corrected order's own Decision 3 asks; the backend completion gap is disclosed in
+  Deviations and `DECISION-LOG.md`, not silently fixed (real email/cron infra is well outside a
+  UI-BUILD session) and not silently hidden.
+  **Help page (Protected Page #6) needed two real-vs-mock swaps to satisfy both the 100%-fidelity
+  invariant and the Zero-Mock-Data rule at once:** seed-code's version calls a chat widget deferred
+  to Phase 14 (confirmed unmounted, per 9-1's own finding) and fakes its ticket-submit with a bare
+  `setTimeout` (confirmed: no `/api/support`/`/api/contact`/`/api/ticket` route exists anywhere).
+  Ported the real DavinTrade visual design, swapped the chat CTA for a real
+  `mailto:support@davintrade.com` link (per the order's own Step 2) and the fake ticket-submit for
+  a real pre-filled `mailto:` compose, rather than shipping a "ticket submitted" success state for
+  a request nothing delivers.
+  **A live, reproducible instance of `DECISION-LOG.md` F77's own defect class found on this
+  session's own new page, root cause now identified:** confirmed via a real `next build && next
+start` production server (not dev/HMR) that `/settings/appearance` carries a second, inert copy
+  of its own content in `<div id="S:0" style="display:none">` alongside React/Next's own
+  `$RC`/`$RT`/`$RV` Suspense-streaming "reveal" scripts — this route's own `app/settings/loading.tsx`
+  creates the Suspense boundary. Confirmed benign (`display:none`, 0×0 rect, non-interactive, zero
+  console/hydration errors) and confirmed present on the unrelated, pre-existing `/login` page too,
+  ruling out this session's own code as the cause. Logged as an addendum to F77 (likely its real
+  root cause) rather than a new flag or further open-ended chase, matching Davin's own 9-4 call on
+  the same defect class.
+  **Live 2FA click-through blocked by local environment, not app code, and disclosed as such:**
+  `POST /api/user/2fa/setup` is cut over to `operation-service`, which wasn't running in this
+  session's local preview (only the monolith was) — server logs show a genuine `ECONNREFUSED`, not
+  an app error. `operation-service`'s own 42/42 test suites pass; login history and sessions (still
+  monolith-routed) verified live with real data with no issue.
+  **All test baselines re-verified live, all green, exact match to entry-criterion baseline:**
+  monolith `tsc` clean, `eslint` 0 errors/5 warnings (pre-existing, none in touched files), `test:ci`
+  160/160 suites/2400/2400 tests; money-service 62/62 suites/526/526 tests; operation-service 42/42
+  suites/393/393 tests. A real production build (`next build`) also verified clean, used for the
+  F77-addendum investigation above.
+  **Route-manifest diff clean:** `git diff --stat` against the session's own start commit confirms
+  `app/(dashboard)/layout.tsx` and `app/(dashboard)/admin/*` show zero diff; exactly the 11 rows'
+  own files moved/rewritten (mostly detected as renames), the new layout + nav component, and 5
+  pre-existing test files' import paths fixed (zero assertion changes needed).
+  **A real hygiene gap found at close, not silently skipped:** `DECISION-LOG.md` is 101.5KB,
+  roughly double its ~50KB target — this predates this session (this session's own edits added
+  only ~3KB) and was missed at this session's own OPEN (the §1 step-0 size gate check was skipped).
+  Not fixed this session — a full archival pass done quickly at session-close risked more harm than
+  the oversized file itself — flagged explicitly as owed at Session 9-6's own OPEN step 0 instead of
+  silently deferred again.
+  **Artifacts updated:** `9-5-settings.migration-order.md` (Status → CONFIRMED → CLOSED SUCCESSFUL,
+  7 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md` (F21/F64 register rows
+  updated with this session's evidence, both still OPEN; F77 addendum), `migration-stack-analysis.md`
+  (Session 9-5 entry, 13 new files/13 deleted, all FRONTEND), `LESSONS-LEARNED.md` (L3 compressed
+  per its own 5+-recurrences rule, long overdue; L41 added — the F77-addendum Suspense-streaming
+  root-cause finding above), this file (Current/Previous rotation — Session 9-3 moved to
+  `history/sessions-archive.md`). `migration-cutover-table.md` correctly needs no changes (Phase 9
+  is additive builds, no route/slice moved).
+
 - _(superseded-by-above, retained for context)_ \*\*Session 9-4 (`(dashboard)` core 7 + `/terminal`
   - `/free`, Phase 9, UI-BUILD), CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-22. Fifth
     session of Phase 9 — ships all 8 active route-map rows (49, 50, 51, 57, 58, 62, 68 + 2 retired:

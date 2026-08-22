@@ -6,8 +6,8 @@
 > Corrected & upgraded to full **DRAFT** by Antigravity (Advisor & Architect), 2026-08-22.
 > Grounded in `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`.
 
-**Session:** 9-7a · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CONFIRMED
-**Generated:** 2026-08-22 (Executor PRE-DRAFT) · **Upgraded & Corrected:** 2026-08-22 (Advisor DRAFT) · **Approved:** 2026-08-22 (Davin) · **Confirmed:** 2026-08-22 (Executor)
+**Session:** 9-7a · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CLOSED SUCCESSFUL
+**Generated:** 2026-08-22 (Executor PRE-DRAFT) · **Upgraded & Corrected:** 2026-08-22 (Advisor DRAFT) · **Approved:** 2026-08-22 (Davin) · **Confirmed & Executed:** 2026-08-22 (Executor)
 **Flags touched:** none new (Affiliate program configuration active via F65/F66).
 **Surface:** `app/affiliate/*` public/pre-affiliate cluster — 3 active pages: `app/affiliate/page.tsx` [Row 48, program landing], `app/affiliate/join/page.tsx` [Row 43, partner onboarding highlights], `app/affiliate/register/page.tsx` [Row 44, partner registration application] + retirement of legacy `app/affiliate/verify` [Row 47]. (Rows 45 & 46 are authenticated partner portal pages cleanly scoped to **Session 9-7b**).
 **Feeds on:** `POST /api/affiliate/auth/register` (Row 44); Rows 43 and 48 are presentation surfaces with client-side interactive commission calculator and dynamic country/currency localization via `useLocale()`.
@@ -66,12 +66,12 @@ Per `MASTER-ROADMAP-PHASES-7-15.md` §3: `app/affiliate/*` spans 14 routes and 5
 
 ## Entry criteria (re-verify all at CONFIRM)
 
-- [ ] **Session 9-6 CONFIRMED, executed, CLOSED** — payments flow live on `main`, route-manifest diff clean.
-- [ ] **Route-map rows 43, 44, 47, 48 re-verified directly** against `frontend-swap-route-map.md`.
-- [ ] **`app/affiliate/page.tsx`, `app/affiliate/join/page.tsx`, `app/affiliate/register/page.tsx` confirmed existing** and read in full.
-- [ ] **`app/affiliate/verify` confirmed ready for retirement/deletion** with zero incoming links.
-- [ ] **`POST /api/affiliate/auth/register` confirmed live and contract-verified**.
-- [ ] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24):
+- [x] **Session 9-6 CONFIRMED, executed, CLOSED** — payments flow live on `main`, route-manifest diff clean.
+- [x] **Route-map rows 43, 44, 47, 48 re-verified directly** against `frontend-swap-route-map.md`.
+- [x] **`app/affiliate/page.tsx`, `app/affiliate/join/page.tsx`, `app/affiliate/register/page.tsx` confirmed existing** and read in full.
+- [x] **`app/affiliate/verify` confirmed ready for retirement/deletion** with zero incoming links.
+- [x] **`POST /api/affiliate/auth/register` confirmed live and contract-verified**.
+- [x] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24):
 
   ```powershell
   # 1. Monolith
@@ -139,12 +139,12 @@ Per `MASTER-ROADMAP-PHASES-7-15.md` §3: `app/affiliate/*` spans 14 routes and 5
 
 ## Done when
 
-- [ ] `/affiliate`, `/affiliate/join`, and `/affiliate/register` live with DavinTrade branding and semantic tokens.
-- [ ] Interactive commission calculator on `/affiliate` functions cleanly.
-- [ ] Real partner registration submits to `POST /api/affiliate/auth/register` and successfully creates affiliate profile.
-- [ ] Legacy `/affiliate/verify` retired with zero dangling links.
-- [ ] Route-manifest diff matches this session's scope and nothing else.
-- [ ] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
+- [x] `/affiliate`, `/affiliate/join`, and `/affiliate/register` live with DavinTrade branding and semantic tokens.
+- [x] Interactive commission calculator on `/affiliate` functions cleanly.
+- [x] Real partner registration submits to `POST /api/affiliate/auth/register` and successfully creates affiliate profile.
+- [x] Legacy `/affiliate/verify` retired with zero dangling links.
+- [x] Route-manifest diff matches this session's scope and nothing else.
+- [x] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
 
 ---
 
@@ -156,7 +156,55 @@ Per `MASTER-ROADMAP-PHASES-7-15.md` §3: `app/affiliate/*` spans 14 routes and 5
 
 ## Deviations
 
-<!-- Filled by Executor during execution per EXECUTOR-PROTOCOL.md §3 -->
+1. **Social-field mapping corrected to the real schema, not Decision 5's literal shorthand.**
+   Decision 5 listed the mapping as `socials: { website, twitter, youtube, instagram, tiktok }`,
+   but the live `affiliateRegistrationSchema` (`lib/affiliate/validators.ts`) has no `website`
+   field — it has `facebookUrl` instead, exactly matching the current (pre-restyle) live page.
+   Ported seed-code's 5-social-input layout but swapped its "website" input for Facebook, so the
+   form submits only fields the real API accepts. Low-impact, mechanical, no re-ask needed per
+   PD1 (live schema wins over a chat shorthand).
+2. **`/affiliate/verify`'s deletion landed in the Step-1 commit, not its own Step-4 commit.** It
+   was `git rm`'d before Step 1's `git add`, and a broad staged deletion rides along with the next
+   commit regardless of what else is explicitly added. No functional effect — the deletion is
+   correct and complete either way — but the Rollback section's "one commit per page/step"
+   preference isn't quite met for this one file.
+3. **`DECISION-LOG.md` F79 registered, not fixed (out of scope).** Required Step 5 live
+   verification (real logged-in test user, real `POST /api/affiliate/auth/register`, real 201,
+   real DB `profileId`) surfaced a redirect loop: `app/affiliate/dashboard/layout.tsx` reads
+   `session.user.isAffiliate` from the JWT and bounces the newly-registered affiliate straight
+   back to `/affiliate/register`, because the JWT still carries the pre-registration value — same
+   staleness class as F78, different (and more disruptive) surface. `dashboard/layout.tsx` is
+   Session 9-7b's file, not this session's; disclosed and registered rather than silently patched.
+   A working fix already exists elsewhere in the codebase (`requireAffiliate()` in
+   `lib/auth/session.ts` re-checks the DB directly) for 9-7b to reuse. Useful side effect: the
+   real test account `free-test@trading-alerts.test` is now a real, DB-registered affiliate —
+   exactly the authenticated-affiliate fixture 9-7b needs and previously had none of.
+4. **`jest.setup.js` gained a `ResizeObserver` polyfill.** jsdom doesn't implement it, and Radix's
+   `Slider` (new this session) calls it on mount; any test rendering the new earnings calculator
+   would hit this regardless of which test file, so fixed globally rather than per-file.
+5. **Two pre-existing tests updated for content this session intentionally changed, per
+   `LESSONS-LEARNED.md` L3.** `__tests__/pages/marketing/public-pages.test.tsx`'s "Public affiliate
+   landing page (B2-10)" asserted the retired "Become a Trading Alerts Affiliate"/"Become an
+   Affiliate" copy (Decision 4's rebrand); its "/affiliate/join redirect (B2-11)" asserted the
+   retired `redirect()` behavior itself (Decision 3). Both re-derived from the real ported content,
+   not patched to merely pass — `test:ci` re-verified net-neutral at 160/160 suites, 2400/2400
+   tests.
+6. **Earnings calculator and copy wired to live `useAffiliateConfig()` values, not Codebase 2's
+   hardcoded 30%/$49.** The pre-existing live pages already used this hook for real,
+   admin-configurable commission/price data; keeping that binding (rather than regressing to
+   Codebase 2's static marketing numbers) was necessary to satisfy the order's own Zero-Mock-Data
+   rule. Not a Decision 4 conflict — the decision only specified porting the calculator's
+   interaction model (slider), not its data source.
+7. **One `eslint` warning fixed in passing on the landing page:** the pre-existing admin-redirect
+   effect used `window.location.assign('/admin')`, flagged by
+   `@next/next/no-location-assign-relative-destination`. Swapped for `useRouter().push()`, matching
+   the pattern already used elsewhere on the same page and on the register page's own admin
+   redirect — a one-line, same-behavior fix needed to keep this session's own `eslint --max-warnings 5`
+   entry criterion clean, not a drive-by unrelated to this session's files.
+8. **Two Jest worker-OOM/SIGTERM false negatives hit running `operation-service`'s suite once**
+   (`LESSONS-LEARNED.md` L24's exact documented pattern, from resource contention with the other
+   two suites just run plus a concurrently-running dev server) — resolved cleanly on an isolated
+   re-run (`--maxWorkers=1`): 42/42 suites, 393/393 tests.
 
 ---
 

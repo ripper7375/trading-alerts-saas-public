@@ -3438,3 +3438,37 @@ table "User"`, thrown from `tx.user.update()` inside `handleCheckoutCompleted`'s
   page's own top nav still read "🔒 FREE" and still showed the `/free`/`อัปเกรด` (Upgrade) links.
 - Approved by: n/a (technical finding, disclosed not fixed) — owner: a session touching
   `AppHeader`, or the same class of fix F57 already applied at other bridge call sites.
+
+## F79 — `affiliate/dashboard/layout.tsx` redirect-traps a freshly-registered affiliate (same class as F78)
+
+- Status: OPEN
+- Session: 9-7a (2026-08-22)
+- Decision: not fixed — disclosed and registered; `dashboard/layout.tsx` is Session 9-7b's own
+  surface (rows 35-42), out of a public-onboarding UI-BUILD session's scope.
+- Finding: `POST /api/affiliate/auth/register` (Row 44, this session) correctly creates a real,
+  DB-backed affiliate profile and returns 201, and the register page correctly calls
+  `router.push('/affiliate/dashboard')` on success. But `app/affiliate/dashboard/layout.tsx:56-70`
+  is a server component that calls `getSession()` and redirects to `/affiliate/register` whenever
+  `!session.user.isAffiliate` — reading the value baked into the NextAuth JWT at last sign-in, not
+  the DB row this session's own POST just flipped to true. The result is a redirect **loop**: a
+  freshly-registered affiliate is bounced straight back to `/affiliate/register`, which (correctly)
+  shows the plain form again rather than the "already an affiliate" card, because that page's own
+  `session.user.isAffiliate` check reads the same stale JWT claim. Same root cause as F78 (a
+  passive, non-bridge-call-site DB write with no session refresh hook), different surface: F78 is
+  cosmetic (a stale badge); this one actively traps the user in a redirect loop with no escape
+  short of signing out and back in.
+- Concrete fix available for 9-7b (not applied here — out of scope): `lib/auth/session.ts`'s own
+  `requireAffiliate()` helper already re-checks `dbUser.isAffiliate` directly against the database
+  "to eliminate JWT stale session race condition" (its own code comment) rather than trusting the
+  session/JWT. `dashboard/layout.tsx` does not call it — it does its own `getSession()` +
+  `session.user.isAffiliate` check instead. Swapping that guard for `requireAffiliate()` (or an
+  equivalent direct DB check) removes the loop.
+- Evidence: live-observed during Session 9-7a's own required Step 5 click-through (real Stripe-
+  Test-Mode-adjacent live verification, same standing pattern as 9-5/9-6) — real POST 201
+  (`profileId: cmt4hxzk30005asv2vdq8bpws`, test account `free-test@trading-alerts.test`), followed
+  by network trace showing `GET /affiliate/dashboard` (200) immediately followed by a second
+  navigation back to `GET /affiliate/register`.
+- Side effect, not a defect: this run left `free-test@trading-alerts.test` registered as a real
+  affiliate in the DB — useful, not harmful, since Session 9-7b's own authenticated-affiliate
+  surfaces need exactly such a fixture and previously had none.
+- Approved by: n/a (technical finding, disclosed not fixed) — owner: Session 9-7b.

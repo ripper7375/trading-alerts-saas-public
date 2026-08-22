@@ -3804,8 +3804,41 @@ success/page.tsx` (Row 87 — same token swap; the order's assumed "Launch PRO T
 
 </details>
 
+<details>
+<summary>Session 9-7a (Affiliate public onboarding, UI-BUILD) — 1 new, 3 modified, 1 deleted, all FRONTEND</summary>
+
+Route-map rows 43/44/48 restyled to DavinTrade tokens and bound to real data; row 47 retired.
+Route-manifest diff confirmed clean via `git diff --stat` against the session's own start commit:
+exactly these 3 pages + 1 new component + 1 deletion, zero unrelated route changes.
+
+- **New:** `components/ui/slider.tsx` (shadcn wrapper over `@radix-ui/react-slider`, already a
+  dependency but never wrapped — needed by Row 48's earnings calculator).
+- **Modified:** `app/affiliate/page.tsx` (Row 48 — DavinTrade hero/calculator/benefits; the
+  calculator's commission rate and plan price are read live from `useAffiliateConfig()` rather
+  than Codebase 2's own hardcoded 30%/$49, matching the pre-existing page's real-data binding),
+  `app/affiliate/join/page.tsx` (Row 43 — the legacy 1-line `redirect()` replaced with Codebase
+  2's real onboarding content, per Decision 3), `app/affiliate/register/page.tsx` (Row 44 — real
+  `POST /api/affiliate/auth/register` wiring, fields mapped 1:1 to `affiliateRegistrationSchema`,
+  unauthenticated visitors redirected to `/login?callbackUrl=/affiliate/register`).
+- **Deleted:** `app/affiliate/verify/layout.tsx` (Row 47 — the directory held only a passthrough
+  layout, no `page.tsx`; already non-functional, zero incoming links confirmed via repo-wide grep
+  before removal).
+- **Test infra (not stack-analysis targets, listed for completeness):** `jest.setup.js` gained a
+  `ResizeObserver` stub (jsdom doesn't implement it; Radix `Slider` calls it on mount) —
+  `__tests__/pages/marketing/public-pages.test.tsx` updated per `LESSONS-LEARNED.md` L3 (2 stale
+  assertions from the intentional rebrand/redirect-replacement, not a regression).
+- **Known unresolved defect, not a stack-analysis artifact but material to this entry:**
+  `DECISION-LOG.md` F79 (registered this session) — `affiliate/dashboard/layout.tsx` reads
+  `session.user.isAffiliate` from the stale JWT and redirect-traps a freshly-registered affiliate
+  back to `/affiliate/register`; owned by Session 9-7b, which owns that file.
+- **Docs (not stack-analysis targets, listed for completeness):** this session's own migration
+  order (CONFIRMED → CLOSED SUCCESSFUL, Deviations filled), `DECISION-LOG.md` (F79 registered),
+  `history/decisions-archive.md` (F79 full narrative appended).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-22 (Session 9-6, payments flow — rows 60/61/87
-shipped, F64 closed)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-22 (Session 9-7a, affiliate public onboarding —
+rows 43/44/48 shipped, row 47 retired, F79 registered)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
