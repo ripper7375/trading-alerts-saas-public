@@ -3775,8 +3775,37 @@ security-login-history-pagination}.test.tsx` — `@/app/(dashboard)/settings/*` 
 
 </details>
 
+<details>
+<summary>Session 9-6 (Payments flow, cross-boundary, UI-BUILD + PORT) — 0 new, 3 modified, 0 deleted, all FRONTEND</summary>
+
+Route-map rows 60/61/87 restyled to DavinTrade semantic tokens; rows 69/75 re-verified as
+consumers, not modified. Route-manifest diff confirmed clean via `git diff --stat` against the
+session's own start commit: exactly these 3 files, zero route additions/removals.
+
+- **Modified — retheme-only, zero logic changes:** `app/checkout/page.tsx` (Row 61 — hardcoded
+  blue Tailwind literals → `bg-primary`/`text-foreground`/`border-border`/`bg-destructive`
+  semantic tokens; all Stripe/dLocal handlers, country detection, and discount-code validation
+  byte-for-byte preserved), `app/checkout/return/page.tsx` (Row 60 — the 5-state
+  `STATUS_PRESENTATION` map gained real dark-mode variants it never had, plus the correction to
+  the actual 5-value `PaymentStatus` vocabulary the order's own draft had wrong), `app/upgrade/
+success/page.tsx` (Row 87 — same token swap; the order's assumed "Launch PRO Terminal" button
+  does not exist in the live code and was not invented, see this session's own Deviations).
+- **New — local dev tooling only, not app code:** `.claude/launch.json` gained a `moneyservice`
+  entry; `money-service/.env` created (gitignored, not a stack-analysis artifact) so the real
+  Stripe write-path cutover could be exercised locally instead of the frozen monolith fallback.
+- **Known unresolved defects, not stack-analysis artifacts but material to this entry:**
+  `DECISION-LOG.md` F76 (dLocal method-ID bug, still OPEN, `.env.local` flag confirmed/kept
+  `false`) and the newly-registered F78 (`AppHeader` tier-badge staleness after a server-side-only
+  tier change, e.g. this session's own webhook-driven upgrade).
+- **Docs (not stack-analysis targets, listed for completeness):** this session's own migration
+  order (CONFIRMED → CLOSED SUCCESSFUL, Deviations 0/1 filled), `DECISION-LOG.md` (F64 → RESOLVED,
+  F78 registered, size-gate archival 169KB → 20KB), `history/decisions-archive.md` (F21/F64/F77
+  full narrative appended).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-22 (Session 9-5, `settings/` 11 — all 11 route-map
-rows shipped)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-22 (Session 9-6, payments flow — rows 60/61/87
+shipped, F64 closed)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

@@ -26,7 +26,111 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 9-5 (`settings/` 11, Phase 9, UI-BUILD), CONFIRMED, executed, **CLOSED
+- **Current:** Session 9-6 (Payments flow, cross-boundary, Phase 9, UI-BUILD + PORT), CONFIRMED,
+  executed, **CLOSED SUCCESSFUL** 2026-08-22. Seventh session of Phase 9 — ships route-map rows
+  60 (`/checkout/return`), 61 (`/checkout`), 87 (`/upgrade/success`), plus a re-verification pass
+  of rows 69 (`/pricing`, 9-2) and 75 (`/settings/billing`, 9-5) as one unified commerce journey.
+  Closes **F64** (subscription cancel/re-subscribe lifecycle) in full.
+  **CONFIRM found the by-now-familiar L3 pattern one more time** (27th+ recurrence): committed
+  HEAD held the bare PRE-DRAFT with open questions; the Advisor's corrected-and-approved DRAFT
+  (5 numbered decisions) arrived only as an uncommitted working-copy edit. CONFIRM also found and
+  reported three real, verifiable defects in that DRAFT before executing — row 60/61 swapped
+  relative to `frontend-swap-route-map.md`'s own numbering, "Row 87/92" citing Row 92
+  (`app/global-error.tsx`, unrelated, Session 9-1) instead of Row 87 alone, and Step 2's status
+  vocabulary ("PENDING, COMPLETED, FAILED, REJECTED") not matching the live `PaymentStatus` type
+  (`PENDING | COMPLETED | FAILED | CANCELLED | REFUNDED` — no `REJECTED` exists). Davin (via
+  Antigravity) corrected all three directly in response before authorizing — the second time this
+  loop has visibly closed the Advisor↔Executor gap PD1 exists to bridge (the first was 9-5).
+  **A protocol-level gate found failing independent of the order's own checklist:**
+  `DECISION-LOG.md` was 169KB, 3× its ~50KB target — Session 9-5's own close had already flagged
+  this as owed at 9-6's OPEN, but the Advisor's DRAFT upgrade dropped the PRE-DRAFT's own entry
+  criterion for it. On inspection the size wasn't "Phase 1–6 decisions" bloat as assumed — nearly
+  every flag through F66 already had a full write-up in `decisions-archive.md`; markdown-table
+  column-padding meant three still-OPEN flags' (F21, F64, F77) oversized in-table narrative
+  (F77 alone ~2100 combined characters) was forcing every other row in the ~68-row table to pad
+  out to match it. Archived those three flags' full narrative (nothing lost, `decisions-archive.md`
+  gained three new entries), trimmed ~25 other rows down to a pointer where an archive entry
+  already existed. Result: 169015 → 20420 bytes (later 36801 after the pre-commit prettier pass
+  re-aligned columns to the new, much smaller max width).
+  **A live environment/flag discrepancy found and corrected before opening, money-adjacent —
+  escalated per `EXECUTOR-PROTOCOL.md` §7 rather than silently touched:** `.env.local` had
+  `MIGRATE_WRITE_APIS_MONEY_DLOCAL=true`, contradicting `DECISION-LOG.md` F76's own documented
+  rollback (dLocal's real Payins method-ID bug, still OPEN, unfixed until 4A-16). Corrected to
+  `false` per Davin's explicit instruction in the same message that authorized execution.
+  **Two more local-environment gaps found and bridged during live verification, neither an app
+  defect (same class as 9-5's disclosed 2FA/operation-service finding):** (1) a stale `.next`
+  build cache from a prior Next.js version bump made every `/api/auth/*` route 404 — cleared and
+  confirmed fine; (2) `POST /api/checkout` 500'd with `ECONNREFUSED` because
+  `MIGRATE_WRITE_APIS_MONEY_STRIPE=true` forwards to money-service, which had no local `.env` and
+  wasn't running — created `money-service/.env` (gitignored, reusing the same test-mode secrets
+  already in root `.env.local`, per that service's own `.env.example` comments) and added a
+  `moneyservice` entry to `.claude/launch.json` for future sessions. With no Stripe CLI/ngrok
+  available locally to deliver Stripe's real webhook to `localhost`, bridged the gap using
+  Stripe's own documented test-signing technique: fetched the real completed Checkout Session
+  from Stripe's API after a genuine browser-driven Test Mode payment and re-delivered it as a
+  `stripe.webhooks.generateTestHeaderString`-signed `checkout.session.completed` event to the
+  monolith's own webhook route — the real Stripe object, just redelivered over a transport Stripe
+  itself can't reach locally. Server logs confirm the real handler ran
+  (`[Webhook] User cms07vwn300009ov21cx21szz upgraded to PRO (monthly billing)`).
+  **A genuine safety-boundary pause, not a workaround:** entering Stripe's own dummy test card
+  (`4242 4242 4242 4242`) into the hosted Test Mode checkout page sits on this environment's
+  standing "never enter card numbers" instruction with no test-mode carve-out in its wording.
+  Stopped and asked via `AskUserQuestion` rather than deciding unilaterally; Davin explicitly
+  confirmed proceeding was fine for this authorized QA context before any field was filled.
+  **Full lifecycle live-verified end-to-end in Stripe Test Mode**, as a genuine FREE test user:
+  `/pricing` → "Upgrade to PRO Now" → `/checkout` → real Stripe Test Checkout (card `4242...`,
+  7-day trial per `subscription_data.trial_period_days`) → webhook (bridged above) → tier flips
+  to PRO in the DB for real → `/upgrade/success` polls `GET /api/subscription` and correctly shows
+  "Welcome to PRO!" → `/settings/billing` shows real PRO status, a real Stripe-fetched $0.00
+  trial-period invoice line, and the real card-on-file (`Visa ****4242`, matching what was
+  entered) → "Cancel Plan" → real `POST /api/subscription/cancel` (immediate, full Stripe
+  cancellation, no `cancelAtPeriodEnd`) → downgrades to FREE for real → "Upgrade to PRO" →
+  correctly loops back to `/pricing`, closing the cycle.
+  **Order text vs. live code, corrected per PD1 rather than silently patched over:** the order's
+  Step 2/Step C assumed a "Launch PRO Terminal" button on `/upgrade/success` linking to
+  `/terminal` — the real, live button reads "Go to Dashboard" and links to `/dashboard`. Left
+  as-is (Decision 2 authorizes restyling, not changing a navigation target; no decision here
+  authorized pointing users at `/terminal` instead) and reported the order's own text as wrong.
+  **A new, real, live UX gap found during the click-through and registered as `DECISION-LOG.md`
+  F78 (OPEN), not silently noted only in passing:** `AppHeader` (built Session 9-1) reads
+  `session.user.tier` directly for its nav/badge gating, so the webhook-driven tier flip above
+  left its "🔒 FREE" badge and `/pricing`/`/free` nav links stale until the NextAuth JWT next
+  rotates — `/upgrade/success` and `/settings/billing` themselves are correct since both already
+  re-fetch `GET /api/subscription` rather than trusting the session (the exact `F57`-class
+  staleness, but on a passive server-side change with no user-initiated call site to refresh
+  from). Not fixed here — out of a UI-BUILD+verification session's scope.
+  **`LESSONS-LEARNED.md`'s own cap was already 1 over (41 active, cap 40) before this session, and
+  its own header says the next new lesson must consolidate first** — this session's own two
+  genuine candidate lessons (the local-webhook-delivery-gap technique above, and the stale-`.next`
+  -after-a-version-bump symptom) were NOT added, rather than pushing the file further over cap.
+  Flagged explicitly as owed at Session 9-7's own OPEN, matching this session's own
+  DECISION-LOG-gate precedent instead of silently deferred again.
+  **A second, pre-existing session-history hygiene gap found and fixed while doing this session's
+  own Current/Previous rotation:** Session 9-5's own close claimed "Session 9-3 moved to
+  `history/sessions-archive.md`" — true for the archive (9-3's entry was correctly appended
+  there), but the corresponding removal from this file never happened, leaving 9-3's full entry
+  live in CLAUDE.md as a second, stale `Previous` block for one extra session. Removed here (its
+  content was already safely duplicated in the archive, so nothing was lost); Session 9-4 moved
+  to the archive properly this time.
+  **All test baselines re-verified live, all green, exact match to entry-criterion baseline**
+  (first parallel run of all three hit two worker-OOM/SIGTERM false negatives from resource
+  contention — `LESSONS-LEARNED.md` L24's exact pattern — resolved cleanly on isolated re-runs):
+  monolith `tsc` clean, `eslint` 0 errors/5 warnings (pre-existing, none in touched files),
+  `test:ci` 160/160 suites/2400/2400 tests; money-service 62/62 suites/526/526 tests;
+  operation-service 42/42 suites/393/393 tests.
+  **Route-manifest diff clean:** `git diff --stat` against the session's own start commit confirms
+  exactly the 3 commerce pages' own files restyled — zero route additions, removals, or unrelated
+  files touched.
+  **Artifacts updated:** `9-6-payments-flow.migration-order.md` (Status → CONFIRMED → CLOSED
+  SUCCESSFUL, CONFIRM note + Deviations 0/1 + checked Done-when/entry-criteria boxes),
+  `DECISION-LOG.md` (F64 → RESOLVED, F78 registered OPEN, size-gate archival), `history/
+decisions-archive.md` (F21/F64/F77 full narrative appended), `migration-stack-analysis.md`
+  (Session 9-6 entry, 3 files modified, all FRONTEND), `.claude/launch.json` (`moneyservice`
+  config added), this file (Current/Previous rotation — Session 9-4 moved to
+  `history/sessions-archive.md`; the stale duplicate 9-3 entry found and removed, see above).
+  `migration-cutover-table.md` correctly needs no changes (Phase 9 is additive builds, no
+  route/slice moved). `LESSONS-LEARNED.md` unchanged this session — see the cap note above.
+- **Previous:** Session 9-5 (`settings/` 11, Phase 9, UI-BUILD), CONFIRMED, executed, **CLOSED
   SUCCESSFUL** 2026-08-22. Sixth session of Phase 9 — ships all 11 route-map rows (73–83): the
   `app/settings/layout.tsx` boundary (session's own one moved layout: auth gate, `AppearanceProvider`,
   `AppHeader`, shared sub-nav) plus `settings` (hub), `account`, `appearance` (Protected #5),
@@ -113,173 +217,6 @@ start` production server (not dev/HMR) that `/settings/appearance` carries a sec
   root-cause finding above), this file (Current/Previous rotation — Session 9-3 moved to
   `history/sessions-archive.md`). `migration-cutover-table.md` correctly needs no changes (Phase 9
   is additive builds, no route/slice moved).
-- **Previous:** Session 9-4 (`(dashboard)` core 7 + `/terminal` + `/free`, Phase 9, UI-BUILD),
-  CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-22. Fifth session of Phase 9 — ships all 8
-  active route-map rows (49, 50, 51, 57, 58, 62, 68 + 2 retired: 55/56, 59): the 5 `(dashboard)`
-  core pages (dashboard, alerts, alerts/new, alerts/[id]/edit, notifications), the flagship
-  4-panel PRO `/terminal` and 3-panel FREE `/free` quantitative workspaces, and retirement of the
-  2 legacy `/charts` routes (now permanent redirects to `/terminal`).
-  **CONFIRM found the by-now-familiar L3 pattern again** (24th+ recurrence): committed HEAD held
-  only the bare PRE-DRAFT stub; working copy carried the full Advisor DRAFT→APPROVED upgrade (5
-  numbered decisions). Davin's own chat message opening the session independently restated two of
-  the five decisions verbatim, serving as live confirmation before execution began.
-  **A real architecture conflict found and corrected before writing any layout code, escalated via
-  `AskUserQuestion` rather than guessed:** the order's own Step 1 (and the 9-0 route map's own
-  "Main-Repo Target" column) put `/terminal` and `/free` under `app/(dashboard)/`, sharing
-  `app/(dashboard)/layout.tsx`'s chrome — but reading `seed-code`'s real `terminal/page.tsx` and
-  `free/page.tsx` in full showed both are full-screen 4-panel workspaces that mount `ChatSidebar`
-  themselves as an internal panel and never use `AppHeader`. Corrected: both moved to top-level
-  routes (`app/terminal/`, `app/free/`) with their own minimal layout (auth gate only). A second,
-  mechanical correction followed directly from reading all 5 core pages' own seed-code sources:
-  none of them consume a shared header from a layout either — each mounts its own `AppHeader`
-  directly — so `app/(dashboard)/layout.tsx` was restyled as a thin auth-gate wrapper with zero
-  chrome of its own, not an `AppHeader`+`ChatSidebar` shell as Decision 3 originally described.
-  **Live browser testing at Step 5 found a second, more serious architecture conflict this
-  session's own earlier reasoning missed:** removing the shared layout's chrome broke `/settings/*`
-  (11 pages, 9-5's scope) and `/admin/*` (19+ pages, 9-8's scope) — neither touched this session,
-  both now silently rendering with **zero navigation chrome** (`tsc`/`eslint`/`test:ci` cannot
-  catch this; only a real browser check can). Escalated via a second `AskUserQuestion`; Davin's
-  call extended the exact same terminal/free pattern to the 5 core pages too — moved to top-level
-  routes (`app/dashboard/`, `app/alerts/`, `app/notifications/`), `app/(dashboard)/layout.tsx`
-  restored byte-identical to its pre-session form via `git show`, so `/settings/*`/`/admin/*` are
-  now completely untouched by this session, as originally intended.
-  **Pre-existing latent defects fixed in `AppHeader`/`ChatSidebar` before their first real mount,
-  per `LESSONS-LEARNED.md` L15:** both were built at Session 9-1 but never mounted anywhere
-  (confirmed zero importers repo-wide before this session) — reading their full implementation
-  before wiring them into a real authenticated surface found both hardcoded a static "Trader
-  User" identity regardless of who's actually logged in, and both "Log out" buttons were a bare
-  `<Link href="/login">` that never called `signOut()`, leaving the real session cookie live
-  server-side. Fixed both identically: real identity via `useSession()`, the same bridge-aware
-  logout flow `components/layout/header.tsx` already uses.
-  **Panel 1 of `/terminal`/`/free` reuses the real, pre-existing `components/charts/
-trading-chart.tsx`** (live Socket.IO OHLCV, real drawing toolbar, PRO-gated multi-timeframe
-  overlay) instead of porting seed-code's own 856-line mock chart component. `ChatPanel`/
-  `MarketCommentsPanel` (Stack D/E) ship as genuine empty states, zero mock data, per Decision 2 —
-  seed-code's own versions were full mock prototypes (fabricated chat history, fake token
-  counters, invented market comments and a fictional trade-setup card). `ProUpgradeModal` ported
-  with its fake in-place "upgrade succeeded" behavior replaced by a real `/pricing` navigation.
-  **A genuine test regression found and fixed at Step 6, `LESSONS-LEARNED.md` L40's exact failure
-  class, 4th occurrence:** mounting `AppHeader` broke `notifications-page.test.tsx` (7 tests) and
-  `edit.test.tsx` (2 tests) — fixed forward per 9-3's own established pattern (real `LocaleProvider`
-  - localStorage-seeded `defaultPreferences` + `usePathname` stub); `edit.test.tsx` also had zero
-    `next-auth/react` mock at all, added one.
-    **A known, unresolved, disclosed defect closed this session rather than chased indefinitely —
-    see `DECISION-LOG.md` F77:** `/alerts` and `/alerts/new` duplicate their client-rendered content
-    on a genuine browser reload (confirmed in a real `next build && next start` production server,
-    not a dev/HMR artifact; raw SSR HTML verified clean via direct `fetch()`; zero console/hydration
-    errors). Live-verified this has a real functional consequence, not just cosmetic: a test alert
-    submitted through the duplicated form stored `25002500` instead of `2500` (immediately deleted).
-    Extensive isolation via a throwaway diagnostic route found `AlertForm`/`CreateAlertClient`
-    reproduces it standalone, but so does `AlertsClient` (zero fetch effects) — no single common
-    trigger identified. Davin's live call, after reviewing the full diagnostic trail: close with it
-    documented rather than open-ended further investigation.
-    **All test baselines re-verified live, all green:** monolith `tsc` clean, `eslint` 0 errors/5
-    warnings (pre-existing, none in touched files), `test:ci` 160/160 suites/2400/2400 tests
-    (re-run three times across the session's own corrections); money-service 62/62 suites/526/526
-    tests (one worker-OOM false-negative on a shared-resource run, clean on single-worker re-run —
-    L24's own "re-run fresh, nothing in flight" rule); operation-service 42/42 suites/393/393 tests.
-    A real production build (`next build`) also verified clean (exit 0) as part of the F77
-    investigation.
-    **Route-manifest diff clean:** `git diff --stat` against the session's own start commit confirms
-    `app/(dashboard)/settings/*` and `app/(dashboard)/admin/*` show zero diff;
-    `app/(dashboard)/layout.tsx` is byte-identical to its pre-session form; exactly the 7 active +
-    2 retired rows' own files moved/changed, plus their real dependency chain (5 new/ported
-    components, 2 shared-component fixes, 3 orphaned files deleted, 2 stale nav links fixed).
-    **Artifacts updated:** `9-4-dashboard-core-terminal-free.migration-order.md` (Status →
-    CONFIRMED → CLOSED SUCCESSFUL, CONFIRM note + 16 Deviations + checked Done-when/entry-criteria
-    boxes), `DECISION-LOG.md` (F77 registered, OPEN), `migration-stack-analysis.md` (Session 9-4
-    entry, 12 new files/12 modified/6 deleted, all FRONTEND), `LESSONS-LEARNED.md` (L40 recurrence
-    note, 4th occurrence), this file (Current/Previous rotation — Sessions 9-1 and 9-2 moved to
-    `history/sessions-archive.md`; 9-1 was already there from a hygiene gap at 9-3's own close, now
-    corrected). `migration-cutover-table.md` correctly needs no changes (Phase 9 is additive
-    builds, no route/slice moved).
-- **Previous:** Session 9-3 (`(auth)` 7 + `welcome`, Phase 9, UI-BUILD), CONFIRMED, executed,
-  **CLOSED SUCCESSFUL** 2026-08-22. Fourth session of Phase 9 — ships all 8 route-map rows (65, 67,
-  71, 72, 88, 89, 90, 95): the 7 `(auth)` pages (login, register, forgot-password, reset-password,
-  verify-2fa, verify-email, verify-email/pending) + the new `/welcome` post-registration onboarding
-  page. `app/(auth)/layout.tsx` now renders a DavinTrade logo header + ambient amber backdrop
-  instead of the bare, un-rebranded "Trading Alerts" wrapper — the one `layout.tsx` boundary this
-  session moves, built from scratch (seed-code has no `(auth)/layout.tsx` counterpart at all).
-  **This session unblocks live authenticated testing for every Phase 9 session after it**, per the
-  roadmap's own framing.
-  **CONFIRM found the by-now-familiar L3 pattern again** (22nd+ recurrence): committed HEAD held
-  only the bare PRE-DRAFT stub; working copy carried the full Advisor DRAFT→APPROVED upgrade (three
-  open questions resolved into four numbered decisions). Davin confirmed live it was his authentic
-  edit before execution began. All three of the PRE-DRAFT's own open questions were independently
-  re-verified against live code at CONFIRM before trusting the DRAFT's resolutions: `/welcome`
-  placement (confirmed no guard logic exists to fight), `social-auth-buttons.tsx`'s real-vs-mock
-  split (confirmed the main repo's own copy already calls real `signIn()`/`getProviders()` — only
-  `seed-code`'s copy is a prototype), and the 2FA/email-verification branch order (confirmed
-  `EMAIL_NOT_VERIFIED` and `TWO_FACTOR_REQUIRED:` are mutually exclusive branches on one credential
-  attempt, not sequential).
-  **The same "seed-code page looks like a restyle but is actually a mock prototype" pattern
-  recurred twice more, at the highest stakes yet — live authentication itself:** `seed-code`'s
-  `verify-2fa/page.tsx` never calls `POST /api/user/2fa/verify` at all (a bare `setTimeout` →
-  `/dashboard`, no backup codes, no bridge branching); its `forgot-password/page.tsx` never calls
-  any endpoint (`handleSubmit` just flips local state). Neither ported as-is — both pages instead
-  restyle the monolith's own real, hardened implementations (bridge-aware fetch branching, backup
-  codes, per-digit auto-advance inputs, the 4-step forgot-password state machine) with DavinTrade
-  visuals borrowed from seed-code's design language. Zero mock data shipped in an auth flow.
-  **`verify-email`'s success state deliberately does NOT link to `/welcome`, despite seed-code's own
-  version doing exactly that:** email verification runs before any session exists (confirmed by
-  reading `lib/auth/auth-options.ts` and the endpoint's own code comments), and `/welcome` is
-  `SESSION REQUIRED` per its own route-map row — routing a freshly-verified, still-unauthenticated
-  visitor there would strand them. Kept the real, correct target: `/login`.
-  **`/welcome`'s step-1 feature copy dropped seed-code's fabricated "Davin AI Quantitative Chat
-  Copilot ... floating widget" claim** (`components/chat-widget/*` was explicitly deferred to Phase
-  14 at Session 9-1 and is not mounted anywhere) — replaced with two capabilities that are actually
-  live today: real-time XAUUSD price alerts and the drawing-tools/line-alert engine. Its accent
-  picker is wired to the real `lib/appearance/types.ts` `AccentScheme` type and calls both
-  `updateSettings()` (instant) and `saveSettings()` (persists) — live-verified via a real
-  `UserAppearance` Prisma write in the dev server log, not seed-code's local-only state mutation.
-  Its workspace launcher links to `/terminal` and `/free` per the order's own explicit instruction,
-  even though neither exists until Session 9-4 (immediately next) — a disclosed, one-session gap
-  landing cleanly on the real `not-found.tsx`, not a broken link.
-  **A real, pre-existing a11y gap found and fixed while restyling `reset-password/page.tsx`:** both
-  password `<label>` elements (ported from seed-code's own markup) had no `htmlFor`/`id`
-  association to their inputs at all — same defect class 9-2's `/docs` fix addressed. Fixed with
-  proper `htmlFor`/`id` wiring, directly required by this order's own accessibility rule.
-  **A genuine test regression found and fixed at Step 6, not just discovered and left:** adding
-  `useLocale()` to `login-form.tsx`, `register-form.tsx`, and 5 of the 7 auth pages broke 4
-  pre-existing suites (`login-form.test.tsx`, `register-form.test.tsx`, `auth-verify-2fa.test.tsx`,
-  `auth-bridge-endpoint-swaps.test.tsx` — 21 tests) on the identical `useLocale must be used within
-a LocaleProvider` error — `LESSONS-LEARNED.md` L40's exact failure class, now recurring a 3rd
-  time (9-1, 9-2, 9-3; L40 amended with a recurrence note, not a new entry — file is at its
-  40-entry cap). Fixed forward, not reverted: wrapped every render in a real `LocaleProvider`,
-  pre-seeded `localStorage` with `defaultPreferences` so `LocaleProvider`'s own geo-IP `fetch()`
-  never fires (safer than L40's reject-mock recipe for files whose own tests assert exact
-  `global.fetch` call counts/args), and added the sibling `usePathname: () => '/'` stub
-  `LocaleProvider` itself needs. Two assertions genuinely needed updating to match this session's
-  own intentional design changes, not reverting: `reset-password`'s submit button reads "Update
-  Password" now (was "Reset Password" pre-session), and its query switched from
-  `getByPlaceholderText` to the more robust `getByLabelText` now that the a11y fix above gives it a
-  real accessible label.
-  **Waiting-on #117 (test credentials) confirmed de facto resolved, not still-open as the
-  PRE-DRAFT's own entry criterion implied:** `components/auth/login-form.tsx` already ships real
-  quick-fill buttons wired to seeded accounts (`app/api/test/seed/route.ts`), and Session 9-1's own
-  CONFIRM already used them live. Never formally closed in `DECISION-LOG.md`'s own register —
-  flagged as a housekeeping gap for Davin, not a blocker this session hit.
-  **Live-verified via dev server, not just `tsc`/`test:ci`:** a real PRO test-user login → real
-  `/dashboard` render with genuine Prisma-backed alert/appearance data; the full `/welcome` 3-step
-  flow including a real accent-persist round trip; `/register`, `/forgot-password`, `/verify-2fa`
-  (no-token state), `/verify-email` (missing-token state), and `/verify-email/pending` all smoke-
-  tested for single-header (no double-chrome) rendering and zero new console errors; `/terminal`
-  confirmed to 404 cleanly via the real `not-found.tsx`.
-  **All test baselines re-verified live, all green, exact match to entry-criterion baseline:**
-  monolith `tsc` clean, `eslint` 0 errors/0 warnings in touched files (5 pre-existing warnings
-  elsewhere, unchanged), `test:ci` 160/160 suites/2400/2400 tests (re-run twice — once mid-session
-  after the regression fix, once at close); money-service 62/62 suites/526/526 tests; operation-
-  service 42/42 suites/393/393 tests, both confirmed at CONFIRM, untouched this session.
-  **Route-manifest diff clean:** exactly the 8 rows' own page files + 1 layout.tsx + 3 non-route
-  component dependencies + 4 test files fixed for the regression above — zero pages created or
-  dropped outside scope; `app/(auth)/welcome/` is the only new route.
-  **Artifacts updated:** `9-3-auth-pages.migration-order.md` (Status → CONFIRMED → CLOSED
-  SUCCESSFUL, CONFIRM note + 11 Deviations + checked Done-when/entry-criteria boxes),
-  `LESSONS-LEARNED.md` (L40 recurrence note — 3rd occurrence, repo-wide `jest.setup.js` default now
-  flagged as owed but not added, out of this session's own scope), this file (Current/Previous
-  rotation — Session 9-1 moved to `history/sessions-archive.md`), `migration-stack-analysis.md`
-  (Session 9-3 entry, 1 new file/16 modified, all FRONTEND). `migration-cutover-table.md`
-  correctly needs no changes (Phase 9 is additive builds, no route/slice moved).
 
 ## Key documents
 

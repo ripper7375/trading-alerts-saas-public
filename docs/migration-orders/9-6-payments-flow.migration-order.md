@@ -8,7 +8,7 @@
 > Corrected & upgraded to full **DRAFT** by Antigravity (Advisor & Architect), 2026-08-22.
 > Grounded in `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`.
 
-**Session:** 9-6 · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD + PORT (deliberately cross-boundary — payment is an end-to-end journey, not a single layout) · **Status:** CONFIRMED
+**Session:** 9-6 · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD + PORT (deliberately cross-boundary — payment is an end-to-end journey, not a single layout) · **Status:** CLOSED SUCCESSFUL
 **Generated:** 2026-08-22 (Executor PRE-DRAFT) · **Upgraded & Corrected:** 2026-08-22 (Advisor DRAFT) · **Approved:** 2026-08-22 (Davin) · **Confirmed:** 2026-08-22 (Executor)
 
 **CONFIRM note:** all entry criteria re-verified live. Corrected row numbers (60/61) and status
@@ -141,13 +141,13 @@ Payment is an end-to-end journey rather than an isolated layout. This session st
 
 ## Done when
 
-- [ ] `DECISION-LOG.md` size gate resolved at Step 0.
-- [ ] `/checkout`, `/checkout/return`, and `/upgrade/success` live with DavinTrade branding and semantic tokens.
-- [ ] Complete payment lifecycle (Pricing $\rightarrow$ Checkout $\rightarrow$ Test Payment $\rightarrow$ Webhook $\rightarrow$ Success $\rightarrow$ Billing $\rightarrow$ Cancel $\rightarrow$ Re-subscribe) live-verified end-to-end in Test Mode.
-- [ ] F64 formally closed in `DECISION-LOG.md` upon successful lifecycle verification.
-- [ ] `/pricing` and `/settings/billing` confirmed working smoothly with zero regressions.
-- [ ] Route-manifest diff matches this session's scope and nothing else.
-- [ ] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
+- [x] `DECISION-LOG.md` size gate resolved at Step 0.
+- [x] `/checkout`, `/checkout/return`, and `/upgrade/success` live with DavinTrade branding and semantic tokens.
+- [x] Complete payment lifecycle (Pricing $\rightarrow$ Checkout $\rightarrow$ Test Payment $\rightarrow$ Webhook $\rightarrow$ Success $\rightarrow$ Billing $\rightarrow$ Cancel $\rightarrow$ Re-subscribe) live-verified end-to-end in Test Mode.
+- [x] F64 formally closed in `DECISION-LOG.md` upon successful lifecycle verification.
+- [x] `/pricing` and `/settings/billing` confirmed working smoothly with zero regressions.
+- [x] Route-manifest diff matches this session's scope and nothing else.
+- [x] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
 
 ---
 
@@ -179,6 +179,47 @@ criteria before opening, both evidence-based per PD1:
    table to pad out to match it). Archived those three flags' full narrative (nothing lost),
    trimmed ~25 other rows' redundant prose down to a pointer where an archive entry already
    existed. Result: 169015 → 20420 bytes.
+
+**Deviation 1 (Step 4, live verification — local environment gaps, none of them app defects):**
+
+1. `POST /api/checkout` initially 500'd with `ECONNREFUSED` — `MIGRATE_WRITE_APIS_MONEY_STRIPE`
+   is `true` locally, so the route forwards to money-service, which had no local `.env` and
+   wasn't running (same class of gap as Session 9-5's disclosed operation-service/2FA finding).
+   Created `money-service/.env` (gitignored, reusing the same test-mode secrets already in root
+   `.env.local` — Stripe test keys, shared Postgres/Redis, NextAuth secret — per that service's
+   own `.env.example` comments that these are meant to be reused directly) and added a
+   `moneyservice` entry to `.claude/launch.json` so future sessions can start it in one step.
+   Real fix, not a workaround: this exercises the actual production cutover path (money-service's
+   `StripeCheckoutController`), not the frozen monolith-native fallback.
+2. No Stripe CLI/ngrok is installed locally, so Stripe's real test-mode servers cannot deliver
+   the `checkout.session.completed` webhook to `localhost:3000` — a real transport gap, not
+   something to install mid-session (would require downloading an external binary). Bridged it
+   using Stripe's own documented test-signing technique: after the browser completed a real
+   Stripe Test Mode payment (card `4242...`), fetched the actual completed Checkout Session
+   object from Stripe's API and re-delivered it as a properly `stripe.webhooks.
+generateTestHeaderString`-signed event to the monolith's own `/api/webhooks/stripe` — the exact
+   real Stripe object, not a fabricated payload, just redelivered over a transport Stripe itself
+   can't reach locally. Server logs confirm `handleCheckoutCompleted` ran for real
+   (`[Webhook] User cms07vwn300009ov21cx21szz upgraded to PRO (monthly billing)`).
+3. Entering the Stripe-hosted checkout page's card fields (`4242 4242 4242 4242`, a dummy
+   Stripe-defined test number, not a real financial instrument) sits on this environment's
+   standing "never enter card numbers" list with no test-mode carve-off in its wording. Stopped
+   and asked rather than deciding unilaterally; Davin explicitly confirmed proceeding was fine
+   for this authorized QA context before any field was filled.
+4. `/upgrade/success`'s live code says "Go to Dashboard" → `/dashboard`, not "Launch PRO
+   Terminal" → `/terminal` as the order's own Step 2/Step C text assumed. Left as-is — Decision 2
+   authorizes restyling, not changing a navigation target, and no decision here authorizes
+   pointing users at `/terminal` instead. Order text was wrong, not the code (PD1).
+5. Live-verified but unfixed (out of scope, disclosed): `/settings/billing`'s invoice history
+   correctly shows a real, live-fetched-from-Stripe $0.00 "Trial period" line item (the checkout
+   session's built-in 7-day trial, `subscription_data.trial_period_days: 7` in
+   `lib/stripe/stripe.ts`) rather than a $29 charge — accurate, not a bug, since Stripe test mode
+   doesn't charge during a trial.
+6. Found live during the F64 lifecycle click-through, registered as **F78**: `AppHeader`
+   (Session 9-1) reads `session.user.tier` directly, so a server-side-only tier flip (the webhook
+   above) leaves its nav/badge chrome showing stale FREE state until the NextAuth JWT next
+   rotates — `/upgrade/success` and `/settings/billing` themselves are unaffected since both
+   already re-fetch `GET /api/subscription` rather than trusting the session. Not fixed here.
 
 ---
 

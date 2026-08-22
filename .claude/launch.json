@@ -23,6 +23,12 @@
         "dev"
       ],
       "port": 3009
+    },
+    {
+      "name": "moneyservice",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start:dev", "--prefix", "money-service"],
+      "port": 3002
     }
   ]
 }

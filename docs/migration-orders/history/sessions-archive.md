@@ -7,6 +7,88 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ \*\*Session 9-4 (`(dashboard)` core 7 + `/terminal`
+  - `/free`, Phase 9, UI-BUILD), CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-22. Fifth
+    session of Phase 9 — ships all 8 active route-map rows (49, 50, 51, 57, 58, 62, 68 + 2 retired:
+    55/56, 59): the 5 `(dashboard)` core pages (dashboard, alerts, alerts/new, alerts/[id]/edit,
+    notifications), the flagship 4-panel PRO `/terminal` and 3-panel FREE `/free` quantitative
+    workspaces, and retirement of the 2 legacy `/charts` routes (now permanent redirects to
+    `/terminal`).
+    **CONFIRM found the by-now-familiar L3 pattern again** (24th+ recurrence): committed HEAD held
+    only the bare PRE-DRAFT stub; working copy carried the full Advisor DRAFT→APPROVED upgrade (5
+    numbered decisions). Davin's own chat message opening the session independently restated two of
+    the five decisions verbatim, serving as live confirmation before execution began.
+    **A real architecture conflict found and corrected before writing any layout code, escalated via
+    `AskUserQuestion` rather than guessed:** the order's own Step 1 (and the 9-0 route map's own
+    "Main-Repo Target" column) put `/terminal` and `/free` under `app/(dashboard)/`, sharing
+    `app/(dashboard)/layout.tsx`'s chrome — but reading `seed-code`'s real `terminal/page.tsx` and
+    `free/page.tsx` in full showed both are full-screen 4-panel workspaces that mount `ChatSidebar`
+    themselves as an internal panel and never use `AppHeader`. Corrected: both moved to top-level
+    routes (`app/terminal/`, `app/free/`) with their own minimal layout (auth gate only). A second,
+    mechanical correction followed directly from reading all 5 core pages' own seed-code sources:
+    none of them consume a shared header from a layout either — each mounts its own `AppHeader`
+    directly — so `app/(dashboard)/layout.tsx` was restyled as a thin auth-gate wrapper with zero
+    chrome of its own, not an `AppHeader`+`ChatSidebar` shell as Decision 3 originally described.
+    **Live browser testing at Step 5 found a second, more serious architecture conflict this
+    session's own earlier reasoning missed:** removing the shared layout's chrome broke `/settings/*`
+    (11 pages, 9-5's scope) and `/admin/*` (19+ pages, 9-8's scope) — neither touched this session,
+    both now silently rendering with **zero navigation chrome** (`tsc`/`eslint`/`test:ci` cannot
+    catch this; only a real browser check can). Escalated via a second `AskUserQuestion`; Davin's
+    call extended the exact same terminal/free pattern to the 5 core pages too — moved to top-level
+    routes (`app/dashboard/`, `app/alerts/`, `app/notifications/`), `app/(dashboard)/layout.tsx`
+    restored byte-identical to its pre-session form via `git show`, so `/settings/*`/`/admin/*` are
+    now completely untouched by this session, as originally intended.
+    **Pre-existing latent defects fixed in `AppHeader`/`ChatSidebar` before their first real mount,
+    per `LESSONS-LEARNED.md` L15:** both were built at Session 9-1 but never mounted anywhere
+    (confirmed zero importers repo-wide before this session) — reading their full implementation
+    before wiring them into a real authenticated surface found both hardcoded a static "Trader
+    User" identity regardless of who's actually logged in, and both "Log out" buttons were a bare
+    `<Link href="/login">` that never called `signOut()`, leaving the real session cookie live
+    server-side. Fixed both identically: real identity via `useSession()`, the same bridge-aware
+    logout flow `components/layout/header.tsx` already uses.
+    **Panel 1 of `/terminal`/`/free` reuses the real, pre-existing `components/charts/
+trading-chart.tsx`** (live Socket.IO OHLCV, real drawing toolbar, PRO-gated multi-timeframe
+    overlay) instead of porting seed-code's own 856-line mock chart component. `ChatPanel`/
+    `MarketCommentsPanel` (Stack D/E) ship as genuine empty states, zero mock data, per Decision 2 —
+    seed-code's own versions were full mock prototypes (fabricated chat history, fake token
+    counters, invented market comments and a fictional trade-setup card). `ProUpgradeModal` ported
+    with its fake in-place "upgrade succeeded" behavior replaced by a real `/pricing` navigation.
+    **A genuine test regression found and fixed at Step 6, `LESSONS-LEARNED.md` L40's exact failure
+    class, 4th occurrence:\*\* mounting `AppHeader` broke `notifications-page.test.tsx` (7 tests) and
+    `edit.test.tsx` (2 tests) — fixed forward per 9-3's own established pattern (real `LocaleProvider`
+  * localStorage-seeded `defaultPreferences` + `usePathname` stub); `edit.test.tsx` also had zero
+    `next-auth/react` mock at all, added one.
+    **A known, unresolved, disclosed defect closed this session rather than chased indefinitely —
+    see `DECISION-LOG.md` F77:** `/alerts` and `/alerts/new` duplicate their client-rendered content
+    on a genuine browser reload (confirmed in a real `next build && next start` production server,
+    not a dev/HMR artifact; raw SSR HTML verified clean via direct `fetch()`; zero console/hydration
+    errors). Live-verified this has a real functional consequence, not just cosmetic: a test alert
+    submitted through the duplicated form stored `25002500` instead of `2500` (immediately deleted).
+    Extensive isolation via a throwaway diagnostic route found `AlertForm`/`CreateAlertClient`
+    reproduces it standalone, but so does `AlertsClient` (zero fetch effects) — no single common
+    trigger identified. Davin's live call, after reviewing the full diagnostic trail: close with it
+    documented rather than open-ended further investigation.
+    **All test baselines re-verified live, all green:** monolith `tsc` clean, `eslint` 0 errors/5
+    warnings (pre-existing, none in touched files), `test:ci` 160/160 suites/2400/2400 tests
+    (re-run three times across the session's own corrections); money-service 62/62 suites/526/526
+    tests (one worker-OOM false-negative on a shared-resource run, clean on single-worker re-run —
+    L24's own "re-run fresh, nothing in flight" rule); operation-service 42/42 suites/393/393 tests.
+    A real production build (`next build`) also verified clean (exit 0) as part of the F77
+    investigation.
+    **Route-manifest diff clean:** `git diff --stat` against the session's own start commit confirms
+    `app/(dashboard)/settings/*` and `app/(dashboard)/admin/*` show zero diff;
+    `app/(dashboard)/layout.tsx` is byte-identical to its pre-session form; exactly the 7 active +
+    2 retired rows' own files moved/changed, plus their real dependency chain (5 new/ported
+    components, 2 shared-component fixes, 3 orphaned files deleted, 2 stale nav links fixed).
+    **Artifacts updated:** `9-4-dashboard-core-terminal-free.migration-order.md` (Status →
+    CONFIRMED → CLOSED SUCCESSFUL, CONFIRM note + 16 Deviations + checked Done-when/entry-criteria
+    boxes), `DECISION-LOG.md` (F77 registered, OPEN), `migration-stack-analysis.md` (Session 9-4
+    entry, 12 new files/12 modified/6 deleted, all FRONTEND), `LESSONS-LEARNED.md` (L40 recurrence
+    note, 4th occurrence), this file (Current/Previous rotation — Sessions 9-1 and 9-2 moved to
+    `history/sessions-archive.md`; 9-1 was already there from a hygiene gap at 9-3's own close, now
+    corrected). `migration-cutover-table.md` correctly needs no changes (Phase 9 is additive
+    builds, no route/slice moved).
+
 - _(superseded-by-above, retained for context)_ **Session 9-3 (`(auth)` 7 + `welcome`, Phase 9,
   UI-BUILD), CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-22. Fourth session of Phase 9 —
   ships all 8 route-map rows (65, 67, 71, 72, 88, 89, 90, 95): the 7 `(auth)` pages (login,
