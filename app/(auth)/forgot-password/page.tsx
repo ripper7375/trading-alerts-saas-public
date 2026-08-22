@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  Lock,
+  Mail,
   Key,
   Eye,
   EyeOff,
@@ -12,6 +12,8 @@ import {
   Loader2,
   Check,
   X,
+  ArrowLeft,
+  RefreshCw,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -20,6 +22,8 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+import { useLocale } from '@/lib/context/locale-context';
+import { Button } from '@/components/ui/button';
 
 // Validation schemas
 const emailSchema = z.object({
@@ -159,6 +163,7 @@ function RequestResetStep({
   countdown: number;
   formatTime: (seconds: number) => string;
 }): JSX.Element {
+  const { t } = useLocale();
   const [isLoading, setIsLoading] = useState(false);
 
   const {
@@ -206,33 +211,33 @@ function RequestResetStep({
   };
 
   return (
-    <div className="animate-in fade-in rounded-lg bg-card p-8 shadow-xl duration-300">
+    <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
       <Link
         href="/login"
-        className="mb-6 inline-flex cursor-pointer items-center gap-1 text-sm text-primary hover:underline"
+        className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 hover:underline dark:text-amber-400"
       >
-        ← Back to login
+        <ArrowLeft className="h-3.5 w-3.5" /> {t('Back to Sign In')}
       </Link>
 
-      <div className="mb-8 text-center">
-        <div className="mb-4 flex justify-center">
-          <Lock className="h-16 w-16 text-muted-foreground" />
+      <div className="text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-600 dark:text-amber-400">
+          <Mail className="h-6 w-6" />
         </div>
-        <h1 className="mb-2 text-3xl font-bold text-foreground">
-          Forgot Password?
+        <h1 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
+          {t('Forgot Password?')}
         </h1>
-        <p className="text-muted-foreground">
-          No worries, we&apos;ll send you reset instructions
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {t("No worries, we'll send you reset instructions")}
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-1.5">
           <label
             htmlFor="email"
-            className="mb-2 block text-sm font-medium text-foreground"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300"
           >
-            Email Address
+            {t('Email Address')}
           </label>
           <input
             id="email"
@@ -240,90 +245,83 @@ function RequestResetStep({
             placeholder="john@example.com"
             autoFocus
             {...register('email')}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            className="dark:border-slate-750 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-[#06080e] dark:text-slate-100"
           />
           {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+            <p className="text-xs text-rose-600">{errors.email.message}</p>
           )}
-          <p className="mt-1 text-xs text-muted-foreground">
-            Enter the email address associated with your account
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            {t('Enter the email address associated with your account')}
           </p>
         </div>
 
         {error === 'not-found' && (
-          <div className="animate-in fade-in rounded-lg border-l-4 border-yellow-500 bg-yellow-50 p-4">
-            <div className="flex gap-3">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
-              <div>
-                <p className="text-sm text-yellow-800">
-                  No account found with that email address. Please check and try
-                  again.
-                </p>
-                <Link
-                  href="/register"
-                  className="mt-1 block text-sm text-blue-600 underline"
-                >
-                  Create an account
-                </Link>
-              </div>
+          <div className="flex gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <div>
+              <p className="text-amber-700 dark:text-amber-300">
+                {t(
+                  'No account found with that email address. Please check and try again.'
+                )}
+              </p>
+              <Link
+                href="/register"
+                className="mt-1 block font-semibold text-amber-600 underline dark:text-amber-400"
+              >
+                {t('Create an account')}
+              </Link>
             </div>
           </div>
         )}
 
         {error === 'rate-limit' && (
-          <div className="animate-in fade-in rounded-lg border-l-4 border-orange-500 bg-orange-50 p-4">
-            <div className="flex gap-3">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-orange-600" />
-              <div>
-                <p className="text-sm text-orange-800">
-                  Too many password reset requests. Please wait 10 minutes
-                  before trying again.
-                </p>
-                <p className="mt-1 font-mono text-sm text-orange-800">
-                  Try again in {formatTime(countdown)}
-                </p>
-              </div>
+          <div className="flex gap-2.5 rounded-xl border border-orange-500/40 bg-orange-500/10 p-3 text-xs">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-orange-600" />
+            <div>
+              <p className="text-orange-700 dark:text-orange-300">
+                {t(
+                  'Too many password reset requests. Please wait 10 minutes before trying again.'
+                )}
+              </p>
+              <p className="mt-1 font-mono text-orange-700 dark:text-orange-300">
+                {t('Try again in')} {formatTime(countdown)}
+              </p>
             </div>
           </div>
         )}
 
         {error === 'server' && (
-          <div className="animate-in fade-in rounded-lg border-l-4 border-red-500 bg-red-50 p-4">
-            <div className="flex gap-3">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-              <div>
-                <p className="text-sm text-red-800">
-                  Something went wrong. Please try again later.
-                </p>
-              </div>
-            </div>
+          <div className="flex gap-2.5 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+            <p className="text-rose-700 dark:text-rose-300">
+              {t('Something went wrong. Please try again later.')}
+            </p>
           </div>
         )}
 
         <button
           type="submit"
           disabled={!isValid || isLoading || error === 'rate-limit'}
-          className="hover:bg-primary/90 w-full rounded-md bg-primary py-3 text-lg font-semibold text-primary-foreground shadow-lg transition-all duration-200 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+          className="h-10 w-full rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoading ? (
             <>
-              <Loader2 className="mr-2 inline h-5 w-5 animate-spin" />
-              Sending...
+              <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
+              {t('Sending...')}
             </>
           ) : (
-            'Send Reset Link'
+            t('Send Reset Link')
           )}
         </button>
       </form>
 
-      <div className="mt-6 rounded-lg border-l-4 border-blue-500 bg-blue-50 p-4 dark:bg-blue-900/20">
-        <div className="flex gap-3">
-          <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" />
-          <p className="text-sm text-blue-800 dark:text-blue-300">
-            You&apos;ll receive an email with a link to reset your password. The
-            link will expire in 1 hour.
-          </p>
-        </div>
+      <div className="flex gap-2.5 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
+        <p className="text-blue-700 dark:text-blue-300">
+          {t(
+            "You'll receive an email with a link to reset your password. The link will expire in 1 hour."
+          )}
+        </p>
       </div>
     </div>
   );
@@ -339,6 +337,7 @@ function ConfirmationStep({
   setStep: (step: Step) => void;
   setError: (error: ErrorType) => void;
 }): JSX.Element {
+  const { t } = useLocale();
   const [isResending, setIsResending] = useState(false);
 
   const handleResend = async (): Promise<void> => {
@@ -354,79 +353,77 @@ function ConfirmationStep({
   };
 
   return (
-    <div className="animate-in fade-in rounded-lg bg-card p-8 shadow-xl duration-300">
+    <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
       <div className="text-center">
-        <div className="mb-6 flex justify-center">
-          <CheckCircle2 className="animate-in zoom-in h-20 w-20 text-green-600 duration-500 dark:text-green-400" />
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+          <CheckCircle2 className="h-6 w-6" />
         </div>
-        <h1 className="mb-2 text-3xl font-bold text-foreground">
-          Check Your Email
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+          {t('Check Your Email')}
         </h1>
-        <p className="mb-2 text-muted-foreground">
-          We&apos;ve sent password reset instructions to:
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {t("We've sent password reset instructions to:")}
         </p>
-        <div className="inline-block rounded-lg bg-muted px-4 py-2">
-          <p className="text-lg font-semibold text-foreground">{email}</p>
+        <div className="mt-2 inline-block rounded-lg bg-slate-100 px-4 py-2 dark:bg-slate-800">
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            {email}
+          </p>
         </div>
       </div>
 
-      <div className="mt-8 rounded-xl border-2 border-border bg-card p-6">
-        <h2 className="mb-4 text-lg font-semibold text-foreground">
-          Next Steps:
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-[#06080e]">
+        <h2 className="mb-2 text-xs font-bold text-slate-900 dark:text-slate-200">
+          {t('Next Steps:')}
         </h2>
-        <ol className="list-inside list-decimal space-y-2">
-          <li className="text-muted-foreground">
-            Open the email from Trading Alerts
-          </li>
-          <li className="text-muted-foreground">
-            Click the &apos;Reset Password&apos; button
-          </li>
-          <li className="text-muted-foreground">Create your new password</li>
+        <ol className="list-inside list-decimal space-y-1 text-xs text-slate-600 dark:text-slate-400">
+          <li>{t('Open the email from DavinTrade')}</li>
+          <li>{t("Click the 'Reset Password' button")}</li>
+          <li>{t('Create your new password')}</li>
         </ol>
       </div>
 
-      <div className="mt-8 text-center">
-        <p className="mb-3 text-muted-foreground">
-          Didn&apos;t receive the email?
+      <div className="text-center">
+        <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+          {t("Didn't receive the email?")}
         </p>
-        <div className="flex justify-center gap-3">
-          <button
+        <div className="flex justify-center gap-2">
+          <Button
             onClick={handleResend}
             disabled={isResending}
-            className="hover:bg-primary/10 rounded-lg border-2 border-primary bg-transparent px-6 py-2 text-primary transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            variant="outline"
           >
             {isResending ? (
               <>
-                <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
-                Resending...
+                <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                {t('Resending...')}
               </>
             ) : (
-              'Resend Email'
+              t('Resend Email')
             )}
-          </button>
-          <button
-            onClick={handleTryAnother}
-            className="rounded-lg border-2 border-border bg-transparent px-6 py-2 text-muted-foreground transition-colors hover:bg-muted"
-          >
-            Try Another Email
-          </button>
+          </Button>
+          <Button onClick={handleTryAnother} variant="outline">
+            {t('Try Another Email')}
+          </Button>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">
-          Check your spam folder
+        <p className="mt-3 text-[11px] text-slate-400 dark:text-slate-500">
+          {t('Check your spam folder')}
         </p>
       </div>
 
       <Link
         href="/login"
-        className="mx-auto mt-8 block text-center text-primary hover:underline"
+        className="block text-center text-xs font-semibold text-amber-600 hover:underline dark:text-amber-400"
       >
-        ← Back to login
+        <ArrowLeft className="mr-1 inline h-3.5 w-3.5" /> {t('Back to login')}
       </Link>
     </div>
   );
 }
 
-// Step 3: Reset Password Form
+// Step 3: Reset Password Form (legacy combined-flow path — the live reset
+// email links to /reset-password?token=... instead; this step stays wired
+// for the token-in-this-page-URL shape but is effectively unreachable in
+// production, matching 4b-21-auth-cutover.migration-order.md's own note).
 function ResetPasswordStep({
   setStep,
   tokenExpired,
@@ -441,6 +438,7 @@ function ResetPasswordStep({
   searchParams: ReturnType<typeof useSearchParams>;
 }): JSX.Element {
   const router = useRouter();
+  const { t } = useLocale();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -459,30 +457,11 @@ function ResetPasswordStep({
   const password = watch('password', '');
   const confirmPassword = watch('confirmPassword', '');
 
-  // Password validation checks
   const validations = {
     length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
     lowercase: /[a-z]/.test(password),
     number: /[0-9]/.test(password),
-  };
-
-  // Password strength
-  const strength = Object.values(validations).filter(Boolean).length;
-  const getStrengthColor = (): string => {
-    if (strength <= 2) return 'bg-red-500';
-    if (strength <= 3) return 'bg-yellow-500';
-    return 'bg-green-500';
-  };
-  const getStrengthWidth = (): string => {
-    if (strength <= 2) return 'w-1/3';
-    if (strength <= 3) return 'w-2/3';
-    return 'w-full';
-  };
-  const getStrengthLabel = (): string => {
-    if (strength <= 2) return 'Weak';
-    if (strength <= 3) return 'Medium';
-    return 'Strong';
   };
 
   const onSubmit = async (data: ResetPasswordFormData): Promise<void> => {
@@ -504,7 +483,7 @@ function ResetPasswordStep({
       // Deviations) — this component's own reset step is unreachable in
       // practice (nothing links to /forgot-password?token=..., the real
       // reset email points at /reset-password?token=... instead). Preserved
-      // byte-for-byte, not fixed — out of this session's PORT-variant scope.
+      // byte-for-byte, not fixed — out of this session's UI-BUILD scope.
       const endpoint = isAuthBridgeEnabled()
         ? '/api/auth/token-reset-password'
         : '/api/auth/reset-password';
@@ -540,23 +519,20 @@ function ResetPasswordStep({
 
   if (tokenExpired || tokenInvalid) {
     return (
-      <div className="animate-in fade-in rounded-lg bg-card p-8 shadow-xl duration-300">
-        <div className="rounded-lg border-l-4 border-red-500 bg-red-50 p-4 dark:bg-red-900/20">
-          <div className="flex gap-3">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600 dark:text-red-400" />
-            <div>
-              <p className="text-sm text-red-800 dark:text-red-300">
-                {tokenExpired
-                  ? 'This password reset link has expired. Please request a new one.'
-                  : 'Invalid password reset link. Please request a new one.'}
-              </p>
-              <button
-                onClick={handleRequestNewLink}
-                className="hover:bg-primary/90 mt-4 rounded-md bg-primary px-6 py-2 text-primary-foreground transition-colors"
-              >
-                Request New Link
-              </button>
-            </div>
+      <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
+        <div className="flex gap-2.5 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+          <div>
+            <p className="text-rose-700 dark:text-rose-300">
+              {tokenExpired
+                ? t(
+                    'This password reset link has expired. Please request a new one.'
+                  )
+                : t('Invalid password reset link. Please request a new one.')}
+            </p>
+            <Button onClick={handleRequestNewLink} className="mt-3" size="sm">
+              {t('Request New Link')}
+            </Button>
           </div>
         </div>
       </div>
@@ -564,205 +540,149 @@ function ResetPasswordStep({
   }
 
   return (
-    <div className="animate-in fade-in rounded-lg bg-card p-8 shadow-xl duration-300">
-      <div className="mb-8 text-center">
-        <div className="mb-4 flex justify-center">
-          <Key className="h-16 w-16 text-muted-foreground" />
+    <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
+      <div className="text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-600 dark:text-amber-400">
+          <Key className="h-6 w-6" />
         </div>
-        <h1 className="mb-2 text-3xl font-bold text-foreground">
-          Create New Password
+        <h1 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
+          {t('Create New Password')}
         </h1>
-        <p className="text-muted-foreground">
-          Choose a strong password for your account
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {t('Choose a strong password for your account')}
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-1.5">
           <label
             htmlFor="password"
-            className="mb-2 block text-sm font-medium text-foreground"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300"
           >
-            New Password
+            {t('New Password')}
           </label>
           <div className="relative">
             <input
               id="password"
               type={showPassword ? 'text' : 'password'}
-              placeholder="Enter new password"
+              placeholder={t('Enter new password')}
               {...register('password')}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 pr-10 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="dark:border-slate-750 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 pr-10 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-[#06080e] dark:text-slate-100"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              aria-label={
+                showPassword ? t('Hide password') : t('Show password')
+              }
             >
               {showPassword ? (
-                <EyeOff className="h-5 w-5" />
+                <EyeOff className="h-4 w-4" />
               ) : (
-                <Eye className="h-5 w-5" />
+                <Eye className="h-4 w-4" />
               )}
             </button>
           </div>
 
           {password && (
-            <div className="mt-3 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
-                  Password strength:
-                </span>
-                <span
-                  className={`font-medium ${
-                    strength <= 2
-                      ? 'text-red-600 dark:text-red-400'
-                      : strength <= 3
-                        ? 'text-yellow-600 dark:text-yellow-400'
-                        : 'text-green-600 dark:text-green-400'
-                  }`}
-                >
-                  {getStrengthLabel()}
-                </span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-muted">
-                <div
-                  className={`h-full transition-all duration-300 ${getStrengthColor()} ${getStrengthWidth()}`}
-                />
-              </div>
-
-              <div className="mt-3 space-y-1">
-                <div className="flex items-center gap-2 text-sm">
-                  {validations.length ? (
-                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span
-                    className={
-                      validations.length
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-muted-foreground'
-                    }
+            <div className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-800 dark:bg-[#070910]">
+              {[
+                { key: 'length', label: t('At least 8 characters') },
+                { key: 'uppercase', label: t('One uppercase letter') },
+                { key: 'lowercase', label: t('One lowercase letter') },
+                { key: 'number', label: t('One number') },
+              ].map(({ key, label }) => {
+                const passed = validations[key as keyof typeof validations];
+                return (
+                  <div
+                    key={key}
+                    className="flex items-center gap-1.5 text-[11px]"
                   >
-                    At least 8 characters
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  {validations.uppercase ? (
-                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span
-                    className={
-                      validations.uppercase
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-muted-foreground'
-                    }
-                  >
-                    One uppercase letter
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  {validations.lowercase ? (
-                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span
-                    className={
-                      validations.lowercase
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-muted-foreground'
-                    }
-                  >
-                    One lowercase letter
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  {validations.number ? (
-                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span
-                    className={
-                      validations.number
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-muted-foreground'
-                    }
-                  >
-                    One number
-                  </span>
-                </div>
-              </div>
+                    {passed ? (
+                      <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <X className="h-3 w-3 text-slate-400 dark:text-slate-600" />
+                    )}
+                    <span
+                      className={
+                        passed
+                          ? 'text-emerald-700 dark:text-emerald-400'
+                          : 'text-slate-600 dark:text-slate-500'
+                      }
+                    >
+                      {label}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
 
-        <div>
+        <div className="space-y-1.5">
           <label
             htmlFor="confirmPassword"
-            className="mb-2 block text-sm font-medium text-foreground"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300"
           >
-            Confirm New Password
+            {t('Confirm New Password')}
           </label>
           <div className="relative">
             <input
               id="confirmPassword"
               type={showConfirmPassword ? 'text' : 'password'}
-              placeholder="Confirm new password"
+              placeholder={t('Confirm new password')}
               {...register('confirmPassword')}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 pr-10 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="dark:border-slate-750 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 pr-10 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-[#06080e] dark:text-slate-100"
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
               aria-label={
                 showConfirmPassword
-                  ? 'Hide password confirmation'
-                  : 'Show password confirmation'
+                  ? t('Hide password confirmation')
+                  : t('Show password confirmation')
               }
             >
               {showConfirmPassword ? (
-                <EyeOff className="h-5 w-5" />
+                <EyeOff className="h-4 w-4" />
               ) : (
-                <Eye className="h-5 w-5" />
+                <Eye className="h-4 w-4" />
               )}
             </button>
-            {confirmPassword &&
-              password === confirmPassword &&
-              !errors.confirmPassword && (
-                <Check className="absolute right-10 top-1/2 h-5 w-5 -translate-y-1/2 text-green-600" />
-              )}
           </div>
+          {confirmPassword && confirmPassword !== password && (
+            <p className="flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400">
+              <X className="h-3 w-3" />
+              {t('Passwords do not match')}
+            </p>
+          )}
           {errors.confirmPassword && (
-            <p className="mt-1 text-sm text-red-600">
+            <p className="text-xs text-rose-600">
               {errors.confirmPassword.message}
             </p>
           )}
         </div>
 
         {error && (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="text-sm text-red-700">{error}</div>
+          <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-700 dark:text-rose-300">
+            {error}
           </div>
         )}
 
         <button
           type="submit"
           disabled={!isValid || isLoading}
-          className="hover:bg-primary/90 w-full rounded-md bg-primary py-3 text-lg font-semibold text-primary-foreground shadow-lg transition-all duration-200 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+          className="h-10 w-full rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoading ? (
             <>
-              <Loader2 className="mr-2 inline h-5 w-5 animate-spin" />
-              Resetting...
+              <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
+              {t('Resetting...')}
             </>
           ) : (
-            'Reset Password'
+            t('Update Password')
           )}
         </button>
       </form>
@@ -776,31 +696,28 @@ function SuccessStep({
 }: {
   autoRedirectCountdown: number;
 }): JSX.Element {
+  const { t } = useLocale();
   return (
-    <div className="animate-in fade-in rounded-lg bg-card p-8 shadow-xl duration-300">
-      <div className="text-center">
-        <div className="mb-6 flex justify-center">
-          <CheckCircle2 className="animate-in zoom-in h-20 w-20 text-green-600 duration-500 dark:text-green-400" />
-        </div>
-        <h1 className="mb-2 text-3xl font-bold text-foreground">
-          Password Reset Successful!
-        </h1>
-        <p className="mb-8 text-muted-foreground">
-          Your password has been successfully reset. You can now log in with
-          your new password.
-        </p>
-
-        <Link
-          href="/login"
-          className="hover:bg-primary/90 inline-flex items-center rounded-md bg-primary px-8 py-3 text-lg font-semibold text-primary-foreground shadow-lg transition-colors"
-        >
-          Go to Login
-        </Link>
-
-        <p className="mt-4 text-sm text-muted-foreground">
-          Redirecting in {autoRedirectCountdown} seconds...
-        </p>
+    <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-2xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+        <CheckCircle2 className="h-7 w-7" />
       </div>
+      <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+        {t('Password Reset Successful!')}
+      </h1>
+      <p className="text-xs text-slate-500 dark:text-slate-400">
+        {t(
+          'Your password has been successfully reset. You can now log in with your new password.'
+        )}
+      </p>
+
+      <Button asChild className="w-full">
+        <Link href="/login">{t('Go to Login')}</Link>
+      </Button>
+
+      <p className="text-[11px] text-slate-400 dark:text-slate-500">
+        {t('Redirecting in')} {autoRedirectCountdown} {t('seconds...')}
+      </p>
     </div>
   );
 }
@@ -810,12 +727,12 @@ export default function ForgotPasswordPage(): JSX.Element {
   return (
     <Suspense
       fallback={
-        <div className="w-full max-w-md">
-          <div className="rounded-lg bg-card p-8 shadow-xl">
-            <div className="py-8 text-center">
-              <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
-              <p className="mt-4 text-muted-foreground">Loading...</p>
-            </div>
+        <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
+          <div className="py-8 text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-amber-500" />
+            <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+              Loading...
+            </p>
           </div>
         </div>
       }

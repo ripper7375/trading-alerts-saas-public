@@ -1,7 +1,17 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Eye, EyeOff, Check, X } from 'lucide-react';
+import {
+  Lock,
+  KeyRound,
+  ArrowRight,
+  CheckCircle2,
+  AlertCircle,
+  Check,
+  X,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, Suspense } from 'react';
@@ -9,6 +19,8 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+import { useLocale } from '@/lib/context/locale-context';
+import { Card } from '@/components/ui/card';
 
 const resetPasswordSchema = z
   .object({
@@ -35,11 +47,13 @@ function ResetPasswordForm(): JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const { t } = useLocale();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -52,8 +66,8 @@ function ResetPasswordForm(): JSX.Element {
   });
 
   const password = watch('password');
+  const confirmPassword = watch('confirmPassword');
 
-  // Password validation checks
   const passwordValidation = {
     minLength: (password?.length || 0) >= 8,
     hasUppercase: /[A-Z]/.test(password || ''),
@@ -91,7 +105,6 @@ function ResetPasswordForm(): JSX.Element {
 
       if (response.ok) {
         setSuccess(true);
-        // Redirect after 3 seconds
         setTimeout(() => {
           router.push('/login');
         }, 3000);
@@ -110,64 +123,87 @@ function ResetPasswordForm(): JSX.Element {
 
   if (!token) {
     return (
-      <div className="w-full max-w-md space-y-8 text-center">
-        <div className="rounded-md bg-red-50 p-4">
-          <h3 className="text-sm font-medium text-red-800">Invalid Link</h3>
-          <p className="mt-2 text-sm text-red-700">
-            This password reset link is invalid or missing.
+      <div className="w-full max-w-md space-y-4">
+        <Card className="space-y-3 border-slate-200 bg-white p-6 text-center shadow-2xl dark:border-slate-800/80 dark:bg-[#090b14]/95">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/15 text-rose-600 dark:text-rose-400">
+            <AlertCircle className="h-6 w-6" />
+          </div>
+          <h3 className="text-sm font-bold text-rose-700 dark:text-rose-300">
+            {t('Invalid Link')}
+          </h3>
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            {t('This password reset link is invalid or missing.')}
           </p>
-        </div>
-        <Link
-          href="/forgot-password"
-          className="font-medium text-indigo-600 hover:text-indigo-500"
-        >
-          Request a new link
-        </Link>
+          <Link
+            href="/forgot-password"
+            className="block text-xs font-semibold text-amber-600 hover:underline dark:text-amber-400"
+          >
+            {t('Request a new link')}
+          </Link>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-md space-y-8">
-      <div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold tracking-tight text-gray-900">
-          Set new password
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Please enter your new password below.
+    <div className="w-full max-w-md space-y-6">
+      <div className="space-y-1 text-center">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+          {t('Set New Password')}
+        </h1>
+        <p className="text-xs text-slate-600 dark:text-slate-400">
+          {t('Enter your new secure account password below.')}
         </p>
       </div>
 
-      {success ? (
-        <div className="rounded-md bg-green-50 p-4 text-center">
-          <h3 className="text-lg font-medium text-green-800">
-            Password reset successful!
-          </h3>
-          <p className="mt-2 text-sm text-green-700">
-            Your password has been updated. Redirecting to login...
-          </p>
-        </div>
-      ) : (
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="password" className="sr-only">
-                New Password
+      <Card className="space-y-4 border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800/80 dark:bg-[#090b14]/95 dark:backdrop-blur-2xl md:p-8">
+        {success ? (
+          <div className="space-y-3 py-6 text-center">
+            <div className="flex justify-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-6 w-6" />
+              </div>
+            </div>
+            <h3 className="text-base font-bold text-emerald-700 dark:text-emerald-200">
+              {t('Password Reset Successfully!')}
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              {t('Redirecting you to login portal...')}
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {error && (
+              <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-rose-950/40 dark:text-rose-300">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="password"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
+                {t('New Password')}
               </label>
               <div className="relative">
+                <KeyRound className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
                 <input
                   id="password"
-                  {...register('password')}
                   type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  {...register('password')}
+                  className="dark:border-slate-750 h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-10 text-xs text-slate-900 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-[#06080e] dark:text-slate-200"
                   required
-                  className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                  placeholder="New Password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-3 top-3 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                  aria-label={
+                    showPassword ? t('Hide password') : t('Show password')
+                  }
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -176,156 +212,134 @@ function ResetPasswordForm(): JSX.Element {
                   )}
                 </button>
               </div>
-              {/* Password Requirements */}
+
               {password && (
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-center gap-2 text-sm">
-                    {passwordValidation.minLength ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <X className="h-4 w-4 text-gray-400" />
-                    )}
-                    <span
-                      className={
-                        passwordValidation.minLength
-                          ? 'text-green-600'
-                          : 'text-gray-500'
-                      }
-                    >
-                      At least 8 characters
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {passwordValidation.hasUppercase ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <X className="h-4 w-4 text-gray-400" />
-                    )}
-                    <span
-                      className={
-                        passwordValidation.hasUppercase
-                          ? 'text-green-600'
-                          : 'text-gray-500'
-                      }
-                    >
-                      One uppercase letter
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {passwordValidation.hasLowercase ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <X className="h-4 w-4 text-gray-400" />
-                    )}
-                    <span
-                      className={
-                        passwordValidation.hasLowercase
-                          ? 'text-green-600'
-                          : 'text-gray-500'
-                      }
-                    >
-                      One lowercase letter
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {passwordValidation.hasNumber ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <X className="h-4 w-4 text-gray-400" />
-                    )}
-                    <span
-                      className={
-                        passwordValidation.hasNumber
-                          ? 'text-green-600'
-                          : 'text-gray-500'
-                      }
-                    >
-                      One number
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {passwordValidation.hasSpecial ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <X className="h-4 w-4 text-gray-400" />
-                    )}
-                    <span
-                      className={
-                        passwordValidation.hasSpecial
-                          ? 'text-green-600'
-                          : 'text-gray-500'
-                      }
-                    >
-                      One special character (!@#$%^&*)
-                    </span>
-                  </div>
+                <div className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-800 dark:bg-[#070910]">
+                  {[
+                    { key: 'minLength', label: t('At least 8 characters') },
+                    { key: 'hasUppercase', label: t('One uppercase letter') },
+                    { key: 'hasLowercase', label: t('One lowercase letter') },
+                    { key: 'hasNumber', label: t('One number') },
+                    {
+                      key: 'hasSpecial',
+                      label: t('One special character (!@#$%^&*)'),
+                    },
+                  ].map(({ key, label }) => {
+                    const passed =
+                      passwordValidation[
+                        key as keyof typeof passwordValidation
+                      ];
+                    return (
+                      <div
+                        key={key}
+                        className="flex items-center gap-1.5 text-[11px]"
+                      >
+                        {passed ? (
+                          <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                        ) : (
+                          <X className="h-3 w-3 text-slate-400 dark:text-slate-600" />
+                        )}
+                        <span
+                          className={
+                            passed
+                              ? 'text-emerald-700 dark:text-emerald-400'
+                              : 'text-slate-600 dark:text-slate-500'
+                          }
+                        >
+                          {label}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
+              )}
+              {errors.password && (
+                <p className="text-xs text-rose-600">
+                  {errors.password.message}
+                </p>
               )}
             </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="sr-only">
-                Confirm Password
+            <div className="space-y-1.5">
+              <label
+                htmlFor="confirmPassword"
+                className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+              >
+                {t('Confirm New Password')}
               </label>
-              <input
-                id="confirmPassword"
-                {...register('confirmPassword')}
-                type="password"
-                required
-                className="relative block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                placeholder="Confirm New Password"
-              />
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                <input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  {...register('confirmPassword')}
+                  className="dark:border-slate-750 h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-10 text-xs text-slate-900 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-[#06080e] dark:text-slate-200"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-3 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                  aria-label={
+                    showConfirmPassword
+                      ? t('Hide password confirmation')
+                      : t('Show password confirmation')
+                  }
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {confirmPassword && confirmPassword !== password && (
+                <p className="flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400">
+                  <X className="h-3 w-3" />
+                  {t('Passwords do not match')}
+                </p>
+              )}
               {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="text-xs text-rose-600">
                   {errors.confirmPassword.message}
                 </p>
               )}
             </div>
-          </div>
 
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{error}</div>
-            </div>
-          )}
-
-          <div>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="group relative flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-gray-400"
+              className="flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? (
-                <>
-                  <Loader2 className="-ml-1 mr-3 h-4 w-4 animate-spin text-white" />
-                  Updating...
-                </>
+                <span>{t('Resetting...')}</span>
               ) : (
-                'Reset Password'
+                <>
+                  {t('Update Password')}
+                  <ArrowRight className="h-4 w-4" />
+                </>
               )}
             </button>
-          </div>
-        </form>
-      )}
+          </form>
+        )}
+
+        <div className="border-t border-slate-200 pt-3 text-center dark:border-slate-800/80">
+          <Link
+            href="/login"
+            className="text-xs text-slate-600 transition-colors hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400"
+          >
+            ← {t('Back to Login')}
+          </Link>
+        </div>
+      </Card>
     </div>
   );
 }
 
-// Wrap with Suspense for useSearchParams
 export default function ResetPasswordPage(): JSX.Element {
   return (
-    <Suspense
-      fallback={
-        <div className="w-full max-w-md">
-          <div className="rounded-lg bg-white p-8 shadow-xl">
-            <div className="py-8 text-center">
-              <Loader2 className="mx-auto h-10 w-10 animate-spin text-indigo-600" />
-              <p className="mt-4 text-gray-600">Loading...</p>
-            </div>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={null}>
       <ResetPasswordForm />
     </Suspense>
   );

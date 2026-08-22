@@ -1,16 +1,19 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useState, useEffect, Suspense } from 'react';
 
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+import { useLocale } from '@/lib/context/locale-context';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 function VerifyEmailContent(): JSX.Element {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const token = searchParams.get('token');
+  const { t } = useLocale();
 
   const [status, setStatus] = useState<
     'loading' | 'success' | 'error' | 'missing'
@@ -19,7 +22,6 @@ function VerifyEmailContent(): JSX.Element {
 
   useEffect(() => {
     const verifyEmail = async (): Promise<void> => {
-      // If no token, show missing state
       if (!token) {
         setStatus('missing');
         return;
@@ -37,173 +39,128 @@ function VerifyEmailContent(): JSX.Element {
 
         if (response.ok) {
           setStatus('success');
-          // Redirect to login after 2 seconds
-          setTimeout(() => {
-            router.push('/login');
-          }, 2000);
         } else {
           const data = await response.json();
-          setError(data.error || 'Invalid or expired token');
+          setError(data.error || t('Invalid or expired token'));
           setStatus('error');
         }
       } catch (err) {
         console.error(err);
-        setError('Verification failed');
+        setError(t('Verification failed'));
         setStatus('error');
       }
     };
 
     verifyEmail();
-  }, [token, router]);
-
-  // Render different states
-  const renderContent = (): JSX.Element | null => {
-    switch (status) {
-      case 'loading':
-        return (
-          <div className="text-center">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-indigo-600" />
-            <h2 className="mt-4 text-xl font-semibold text-gray-900">
-              Verifying your email...
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Please wait while we verify your email address.
-            </p>
-          </div>
-        );
-
-      case 'success':
-        return (
-          <div className="text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-              <svg
-                className="h-6 w-6 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M5 13l4 4L19 7"
-                ></path>
-              </svg>
-            </div>
-            <h2 className="mt-4 text-xl font-semibold text-green-600">
-              Email verified successfully!
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Your account is now active. Redirecting to sign in...
-            </p>
-          </div>
-        );
-
-      case 'error':
-        return (
-          <div className="text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-              <svg
-                className="h-6 w-6 text-red-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M6 18L18 6M6 6l12 12"
-                ></path>
-              </svg>
-            </div>
-            <h2 className="mt-4 text-xl font-semibold text-red-600">
-              Verification failed
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">{error}</p>
-            <p className="mt-2 text-sm text-gray-500">
-              The link may have expired. Try signing in to request a new
-              verification email.
-            </p>
-            <div className="mt-6">
-              <Link
-                href="/login"
-                className="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              >
-                Go to Sign In
-              </Link>
-            </div>
-          </div>
-        );
-
-      case 'missing':
-        return (
-          <div className="text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
-              <svg
-                className="h-6 w-6 text-amber-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                ></path>
-              </svg>
-            </div>
-            <h2 className="mt-4 text-xl font-semibold text-amber-600">
-              Verification link missing
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              The verification token is missing from the link.
-            </p>
-            <p className="mt-2 text-sm text-gray-500">
-              Please click the link in your verification email, or sign in to
-              request a new one.
-            </p>
-            <div className="mt-6">
-              <Link
-                href="/login"
-                className="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              >
-                Go to Sign In
-              </Link>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <div className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10">
-          {renderContent()}
-        </div>
-      </div>
+    <div className="w-full max-w-md space-y-6">
+      <Card className="space-y-6 border-slate-200 bg-white p-6 text-center shadow-2xl dark:border-slate-800/80 dark:bg-[#090b14]/95 dark:backdrop-blur-2xl md:p-8">
+        {status === 'loading' && (
+          <div className="space-y-4 py-8">
+            <div className="flex justify-center">
+              <Loader2 className="h-10 w-10 animate-spin text-amber-600 dark:text-amber-400" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-200">
+              {t('Verifying your email address...')}
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              {t('Please wait while we activate your account permissions.')}
+            </p>
+          </div>
+        )}
+
+        {status === 'success' && (
+          <div className="space-y-4 py-6">
+            <div className="flex justify-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-8 w-8" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-emerald-700 dark:text-emerald-300">
+                {t('Email Successfully Verified!')}
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {t(
+                  'Your DavinTrade account is fully verified and ready for live market telemetry.'
+                )}
+              </p>
+            </div>
+
+            <Button asChild className="w-full">
+              <Link
+                href="/login"
+                className="flex items-center justify-center gap-1.5"
+              >
+                {t('Continue to Sign In')}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        )}
+
+        {status === 'error' && (
+          <div className="space-y-4 py-6">
+            <div className="flex justify-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-rose-500/40 bg-rose-500/20 text-rose-600 dark:text-rose-400">
+                <AlertCircle className="h-8 w-8" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-rose-700 dark:text-rose-300">
+                {t('Verification Failed')}
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {error || t('The token might be expired or already used.')}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <Button asChild className="w-full">
+                <Link href="/verify-email/pending">
+                  {t('Request New Verification Link')}
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/login">{t('Back to Login')}</Link>
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {status === 'missing' && (
+          <div className="space-y-4 py-6">
+            <div className="flex justify-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                <AlertCircle className="h-8 w-8" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-amber-700 dark:text-amber-300">
+                {t('Verification link missing')}
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {t(
+                  'Please click the link in your verification email, or sign in to request a new one.'
+                )}
+              </p>
+            </div>
+            <Button asChild className="w-full">
+              <Link href="/login">{t('Go to Sign In')}</Link>
+            </Button>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
 
-// Wrap with Suspense for useSearchParams
 export default function VerifyEmailPage(): JSX.Element {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <Loader2 className="mx-auto h-10 w-10 animate-spin text-indigo-600" />
-            <p className="mt-4 text-gray-600">Loading...</p>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={null}>
       <VerifyEmailContent />
     </Suspense>
   );

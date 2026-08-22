@@ -15,20 +15,22 @@ export default function LoginPage(): JSX.Element {
     const dashboardHref = userRole === 'ADMIN' ? '/admin' : '/dashboard';
 
     return (
-      <div className="w-full max-w-md space-y-6 rounded-lg border bg-card p-6 text-card-foreground shadow-xl">
-        <div className="flex flex-col items-center space-y-3 text-center">
-          <div className="bg-primary/10 flex h-14 w-14 items-center justify-center rounded-full text-primary">
+      <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-2xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
+        <div className="flex flex-col items-center space-y-3">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-400">
             <UserCheck className="h-7 w-7" />
           </div>
-          <h1 className="text-2xl font-bold">Already Signed In</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+            Already Signed In
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             You are currently signed in as{' '}
-            <span className="font-semibold text-foreground">
+            <span className="font-semibold text-slate-800 dark:text-slate-200">
               {session.user.name || session.user.email}
             </span>
+            .
           </p>
         </div>
-
         <div className="space-y-3 pt-2">
           <Button asChild className="w-full" size="lg">
             <Link
@@ -36,37 +38,21 @@ export default function LoginPage(): JSX.Element {
               className="flex items-center justify-center gap-2"
             >
               <LayoutDashboard className="h-4 w-4" />
-              Continue to Dashboard
+              Go to Dashboard
             </Link>
           </Button>
-
           <Button
             variant="outline"
             className="flex w-full items-center justify-center gap-2"
             onClick={() => signOut({ callbackUrl: '/login' })}
           >
             <LogOut className="h-4 w-4" />
-            Sign Out / Switch Account
+            Sign Out
           </Button>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <LoginForm />
-      <div className="text-center text-sm">
-        <span className="text-muted-foreground">
-          Don&apos;t have an account?{' '}
-        </span>
-        <Link
-          href="/register"
-          className="hover:text-primary/80 font-medium text-primary transition-colors duration-200"
-        >
-          Sign up
-        </Link>
-      </div>
-    </div>
-  );
+  return <LoginForm />;
 }

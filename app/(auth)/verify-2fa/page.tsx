@@ -4,11 +4,12 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
-  Shield,
+  ShieldCheck,
   ArrowLeft,
   UserCheck,
   LayoutDashboard,
   LogOut,
+  KeyRound,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -16,6 +17,7 @@ import { signIn, getSession, signOut } from 'next-auth/react';
 import { useState, useEffect, useRef, Suspense } from 'react';
 
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+import { useLocale } from '@/lib/context/locale-context';
 import { Button } from '@/components/ui/button';
 
 interface SafeUserSession {
@@ -30,6 +32,7 @@ function TwoFactorVerificationContent(): JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const { t } = useLocale();
   const [session, setSession] = useState<SafeUserSession | null>(null);
 
   useEffect(() => {
@@ -49,20 +52,13 @@ function TwoFactorVerificationContent(): JSX.Element {
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Focus first input on mount
   useEffect(() => {
     if (!isBackupCode && inputRefs.current[0]) {
       inputRefs.current[0].focus();
     }
   }, [isBackupCode]);
 
-  // Check session status if no token
-  useEffect(() => {
-    // Let user stay on page to see informative message if no token is present
-  }, [token]);
-
   const handleCodeChange = (index: number, value: string): void => {
-    // Only allow digits
     if (value && !/^\d$/.test(value)) return;
 
     const newCode = [...code];
@@ -70,12 +66,10 @@ function TwoFactorVerificationContent(): JSX.Element {
     setCode(newCode);
     setError(null);
 
-    // Auto-focus next input
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
 
-    // Auto-submit when all 6 digits are entered
     if (value && index === 5 && newCode.every((c) => c !== '')) {
       handleSubmit(newCode.join(''));
     }
@@ -104,13 +98,11 @@ function TwoFactorVerificationContent(): JSX.Element {
 
     setCode(newCode);
 
-    // Focus the next empty input or the last one
     const nextEmptyIndex = newCode.findIndex((c) => c === '');
     if (nextEmptyIndex !== -1) {
       inputRefs.current[nextEmptyIndex]?.focus();
     } else {
       inputRefs.current[5]?.focus();
-      // Auto-submit if all filled
       handleSubmit(newCode.join(''));
     }
   };
@@ -121,12 +113,12 @@ function TwoFactorVerificationContent(): JSX.Element {
       : codeValue || code.join('');
 
     if (!isBackupCode && verificationCode.length !== 6) {
-      setError('Please enter all 6 digits');
+      setError(t('Please enter all 6 digits'));
       return;
     }
 
     if (isBackupCode && verificationCode.length < 8) {
-      setError('Please enter a valid backup code');
+      setError(t('Please enter a valid backup code'));
       return;
     }
 
@@ -135,11 +127,10 @@ function TwoFactorVerificationContent(): JSX.Element {
 
     try {
       if (!token) {
-        setError('Session expired. Please log in again.');
+        setError(t('Session expired. Please log in again.'));
         return;
       }
 
-      // Verify the 2FA code
       const response = await fetch('/api/user/2fa/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -149,8 +140,7 @@ function TwoFactorVerificationContent(): JSX.Element {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Invalid verification code');
-        // Clear code on error
+        setError(data.error || t('Invalid verification code'));
         if (!isBackupCode) {
           setCode(['', '', '', '', '', '']);
           inputRefs.current[0]?.focus();
@@ -174,10 +164,6 @@ function TwoFactorVerificationContent(): JSX.Element {
         if (bridgeResponse.ok) {
           await getSession();
         }
-        // Matches the non-bridge branch below: the 2FA code was already
-        // verified above regardless of this completion call's own result, so
-        // the user sees success and is sent to the dashboard either way (its
-        // own server-side session check is the real gate).
         setIsSuccess(true);
         setTimeout(() => {
           router.push('/dashboard');
@@ -193,8 +179,6 @@ function TwoFactorVerificationContent(): JSX.Element {
       });
 
       if (result?.error) {
-        // If direct login fails, redirect to login page
-        // The user will need to log in again but 2FA is now verified
         setIsSuccess(true);
         setTimeout(() => {
           router.push('/dashboard');
@@ -207,26 +191,25 @@ function TwoFactorVerificationContent(): JSX.Element {
       }
     } catch (err) {
       console.error('2FA verification error:', err);
-      setError('Something went wrong. Please try again.');
+      setError(t('Something went wrong. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Success state
   if (isSuccess) {
     return (
-      <div className="w-full max-w-md">
-        <div className="rounded-lg bg-card p-8 shadow-xl">
-          <div className="py-8 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 animate-bounce items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-              <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
-            </div>
-            <h2 className="mb-2 text-2xl font-bold text-foreground">
-              Verified!
-            </h2>
-            <p className="text-muted-foreground">Redirecting to dashboard...</p>
+      <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
+        <div className="py-6 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="h-7 w-7" />
           </div>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+            {t('Verified!')}
+          </h2>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {t('Redirecting to dashboard...')}
+          </p>
         </div>
       </div>
     );
@@ -235,210 +218,187 @@ function TwoFactorVerificationContent(): JSX.Element {
   if (!token) {
     if (session?.user) {
       const userRole = (session.user as { role?: string }).role;
-
       const dashboardHref = userRole === 'ADMIN' ? '/admin' : '/dashboard';
 
       return (
-        <div className="w-full max-w-md">
-          <div className="space-y-4 rounded-lg border bg-card p-8 text-center shadow-xl">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
-              <UserCheck className="h-7 w-7" />
-            </div>
-            <h1 className="text-2xl font-bold text-foreground">
-              Already Authenticated
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              You are currently signed in as{' '}
-              <span className="font-semibold text-foreground">
-                {session.user.name || session.user.email}
-              </span>
-              . Two-Factor Authentication is not pending.
-            </p>
-            <div className="space-y-3 pt-2">
-              <Button asChild className="w-full" size="lg">
-                <Link
-                  href={dashboardHref}
-                  className="flex items-center justify-center gap-2"
-                >
-                  <LayoutDashboard className="h-4 w-4" />
-                  Go to Dashboard
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                className="flex w-full items-center justify-center gap-2"
-                onClick={() => signOut({ callbackUrl: '/login' })}
+        <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-2xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+            <UserCheck className="h-7 w-7" />
+          </div>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+            {t('Already Authenticated')}
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {t('You are currently signed in as')}{' '}
+            <span className="font-semibold text-slate-800 dark:text-slate-200">
+              {session.user.name || session.user.email}
+            </span>
+            . {t('Two-Factor Authentication is not pending.')}
+          </p>
+          <div className="space-y-3 pt-2">
+            <Button asChild className="w-full" size="lg">
+              <Link
+                href={dashboardHref}
+                className="flex items-center justify-center gap-2"
               >
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </Button>
-            </div>
+                <LayoutDashboard className="h-4 w-4" />
+                {t('Go to Dashboard')}
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              className="flex w-full items-center justify-center gap-2"
+              onClick={() => signOut({ callbackUrl: '/login' })}
+            >
+              <LogOut className="h-4 w-4" />
+              {t('Sign Out')}
+            </Button>
           </div>
         </div>
       );
     }
 
     return (
-      <div className="w-full max-w-md">
-        <div className="space-y-4 rounded-lg border bg-card p-8 text-center shadow-xl">
-          <div className="bg-primary/10 mx-auto flex h-14 w-14 items-center justify-center rounded-full">
-            <Shield className="h-7 w-7 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Two-Factor Authentication
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            No active 2FA verification challenge found. Please sign in to
-            generate a challenge.
-          </p>
-          <div className="pt-2">
-            <Button asChild className="w-full" size="lg">
-              <Link href="/login">Return to Sign In</Link>
-            </Button>
-          </div>
+      <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-2xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/15 text-amber-600 dark:text-amber-400">
+          <ShieldCheck className="h-7 w-7" />
         </div>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+          {t('Two-Factor Authentication')}
+        </h1>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          {t(
+            'No active 2FA verification challenge found. Please sign in to generate a challenge.'
+          )}
+        </p>
+        <Button asChild className="w-full" size="lg">
+          <Link href="/login">{t('Return to Sign In')}</Link>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-md">
-      <div className="rounded-lg bg-card p-8 shadow-xl">
-        <div className="mb-6 text-center">
-          <div className="bg-primary/10 mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full">
-            <Shield className="h-7 w-7 text-primary" />
-          </div>
-          <h1 className="mb-2 text-2xl font-bold text-foreground">
-            Two-Factor Authentication
-          </h1>
-          <p className="text-muted-foreground">
-            {isBackupCode
-              ? 'Enter one of your backup codes'
-              : 'Enter the 6-digit code from your authenticator app'}
+    <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
+      <div className="text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/15 text-amber-600 dark:text-amber-400">
+          <ShieldCheck className="h-6 w-6" />
+        </div>
+        <h1 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-xl font-extrabold tracking-tight text-transparent">
+          {t('Two-Factor Authentication')}
+        </h1>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {isBackupCode
+            ? t('Enter one of your backup codes')
+            : t('Enter the 6-digit code from your authenticator app')}
+        </p>
+      </div>
+
+      {error && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
+          <p className="font-medium text-rose-700 dark:text-rose-300">
+            {error}
           </p>
         </div>
+      )}
 
-        {/* Error Alert */}
-        {error && (
-          <div className="animate-in slide-in-from-top mb-6 rounded-lg border-l-4 border-red-500 bg-red-50 p-4 duration-300 dark:bg-red-900/20">
-            <div className="flex items-start gap-3">
-              <AlertCircle
-                className="mt-0.5 flex-shrink-0 text-red-600 dark:text-red-400"
-                size={20}
-              />
-              <p className="text-sm font-medium text-red-800 dark:text-red-200">
-                {error}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {!isBackupCode ? (
-          <>
-            {/* 6-digit code input */}
-            <div className="mb-6 flex justify-center gap-2">
-              {code.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={(el) => {
-                    inputRefs.current[index] = el;
-                  }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleCodeChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  onPaste={handlePaste}
-                  disabled={isSubmitting}
-                  className="h-14 w-12 rounded-lg border bg-background text-center text-2xl font-bold text-foreground transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
-                  aria-label={`Digit ${index + 1}`}
-                />
-              ))}
-            </div>
-
-            {/* Submit button */}
-            <button
-              onClick={() => handleSubmit()}
-              disabled={isSubmitting || code.some((c) => c === '')}
-              className="hover:bg-primary/90 w-full rounded-md bg-primary py-3 text-lg font-semibold text-primary-foreground shadow-lg transition-all duration-200 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 inline h-5 w-5 animate-spin" />
-                  <span className="opacity-70">Verifying...</span>
-                </>
-              ) : (
-                'Verify'
-              )}
-            </button>
-          </>
-        ) : (
-          <>
-            {/* Backup code input */}
-            <div className="mb-6">
+      {!isBackupCode ? (
+        <>
+          <div className="flex justify-center gap-2">
+            {code.map((digit, index) => (
               <input
-                type="text"
-                placeholder="xxxx-xxxx"
-                value={backupCode}
-                onChange={(e) => {
-                  setBackupCode(e.target.value);
-                  setError(null);
+                key={index}
+                ref={(el) => {
+                  inputRefs.current[index] = el;
                 }}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                value={digit}
+                onChange={(e) => handleCodeChange(index, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(index, e)}
+                onPaste={handlePaste}
                 disabled={isSubmitting}
-                className="w-full rounded-lg border bg-background px-4 py-3 text-center font-mono text-xl text-foreground transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-                aria-label="Backup code"
+                className="dark:border-slate-750 h-12 w-10 rounded-xl border border-slate-200 bg-slate-50 text-center font-mono text-lg font-bold text-amber-600 transition-all focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#06080e] dark:text-amber-300"
+                aria-label={`Digit ${index + 1}`}
               />
-              <p className="mt-2 text-center text-sm text-muted-foreground">
-                Enter one of your 8-character backup codes
-              </p>
-            </div>
+            ))}
+          </div>
 
-            {/* Submit button */}
-            <button
-              onClick={() => handleSubmit()}
-              disabled={isSubmitting || backupCode.length < 8}
-              className="hover:bg-primary/90 w-full rounded-md bg-primary py-3 text-lg font-semibold text-primary-foreground shadow-lg transition-all duration-200 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 inline h-5 w-5 animate-spin" />
-                  <span className="opacity-70">Verifying...</span>
-                </>
-              ) : (
-                'Use Backup Code'
-              )}
-            </button>
-          </>
-        )}
-
-        {/* Toggle between TOTP and backup code */}
-        <div className="mt-6 text-center">
           <button
-            onClick={() => {
-              setIsBackupCode(!isBackupCode);
-              setError(null);
-              setCode(['', '', '', '', '', '']);
-              setBackupCode('');
-            }}
-            className="text-sm text-primary hover:underline"
+            onClick={() => handleSubmit()}
+            disabled={isSubmitting || code.some((c) => c === '')}
+            className="h-10 w-full rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isBackupCode
-              ? 'Use authenticator app instead'
-              : 'Use a backup code instead'}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
+                {t('Verifying...')}
+              </>
+            ) : (
+              t('Verify & Continue')
+            )}
           </button>
-        </div>
+        </>
+      ) : (
+        <>
+          <div>
+            <input
+              type="text"
+              placeholder="xxxx-xxxx"
+              value={backupCode}
+              onChange={(e) => {
+                setBackupCode(e.target.value);
+                setError(null);
+              }}
+              disabled={isSubmitting}
+              className="dark:border-slate-750 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-center font-mono text-lg text-slate-900 transition-all focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50 dark:bg-[#06080e] dark:text-slate-100"
+              aria-label={t('Backup code')}
+            />
+            <p className="mt-2 text-center text-[11px] text-slate-500 dark:text-slate-400">
+              {t('Enter one of your 8-character backup codes')}
+            </p>
+          </div>
 
-        {/* Back to login */}
-        <div className="mt-6 text-center">
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          <button
+            onClick={() => handleSubmit()}
+            disabled={isSubmitting || backupCode.length < 8}
+            className="h-10 w-full rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <ArrowLeft size={16} />
-            Back to login
-          </Link>
-        </div>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
+                {t('Verifying...')}
+              </>
+            ) : (
+              t('Use Backup Code')
+            )}
+          </button>
+        </>
+      )}
+
+      <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-xs dark:border-slate-800/80">
+        <button
+          type="button"
+          onClick={() => {
+            setIsBackupCode(!isBackupCode);
+            setError(null);
+            setCode(['', '', '', '', '', '']);
+            setBackupCode('');
+          }}
+          className="flex items-center gap-1 font-semibold text-amber-600 hover:underline dark:text-amber-400"
+        >
+          <KeyRound className="h-3.5 w-3.5" />
+          {isBackupCode ? t('Use Authenticator App') : t('Use Backup Code')}
+        </button>
+
+        <Link
+          href="/login"
+          className="flex items-center gap-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> {t('Back to Login')}
+        </Link>
       </div>
     </div>
   );
@@ -448,11 +408,9 @@ export default function TwoFactorVerificationPage(): JSX.Element {
   return (
     <Suspense
       fallback={
-        <div className="w-full max-w-md">
-          <div className="rounded-lg bg-card p-8 shadow-xl">
-            <div className="py-8 text-center">
-              <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
+          <div className="py-8 text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-amber-500" />
           </div>
         </div>
       }
