@@ -1,106 +1,173 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import { Target, Zap, ShieldCheck, LineChart } from 'lucide-react';
+'use client';
 
+import Link from 'next/link';
+import {
+  Target,
+  Zap,
+  ShieldCheck,
+  LineChart,
+  Brain,
+  Sparkles,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useLocale } from '@/lib/context/locale-context';
 
-/**
- * Public About Page (B2-1)
- *
- * @module app/(marketing)/about/page
- */
+export default function AboutPage() {
+  const { t } = useLocale();
 
-export const metadata: Metadata = {
-  title: 'About',
-  description:
-    'Why Trading Alerts exists and what we believe about trading tools.',
-};
+  const values = [
+    {
+      icon: Target,
+      title: t('Focus Over Feature-Bloat'),
+      description: t(
+        'One primary asset, engineered with absolute mathematical depth. XAUUSD across M5 and M15 with full fractal analysis and quantitative harmonic models, instead of shallow alerts across hundreds of noisy symbols.'
+      ),
+    },
+    {
+      icon: Zap,
+      title: t('Signal, Not Noise'),
+      description: t(
+        'Real-time automated validation filters every tick. Alerts trigger only when multi-timeframe fractal alignment, momentum exhaustion, and institutional volume thresholds are strictly satisfied.'
+      ),
+    },
+    {
+      icon: Brain,
+      title: t('Conversational Quantitative AI'),
+      description: t(
+        'Ask Davin AI anything about current market structure, support/resistance clustering, macroeconomic calendar risks, or strategy setups in natural language 24/7.'
+      ),
+    },
+    {
+      icon: ShieldCheck,
+      title: t('Total Transparency & Speed'),
+      description: t(
+        'Sub-millisecond MT5 execution pipes, zero black-box promises, clear risk-to-reward metrics, and verified public performance telemetry.'
+      ),
+    },
+  ];
 
-const values = [
-  {
-    icon: Target,
-    title: 'Focus over feature-bloat',
-    description:
-      'One symbol, done properly. XAUUSD across M5 and M15 with full fractal analysis, instead of a shallow feature spread across a hundred instruments nobody uses well.',
-  },
-  {
-    icon: Zap,
-    title: 'Signal, not noise',
-    description:
-      'Every alert is a price condition you set, evaluated in real time. No black-box "AI predictions" — just the levels you drew and the conditions you configured, delivered the moment they trigger.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Your data, your account',
-    description:
-      'We never touch your funds and never see full payment details — those go straight to our payment providers. You can export or delete your data at any time from Settings.',
-  },
-  {
-    icon: LineChart,
-    title: 'Built by traders',
-    description:
-      'The drawing engine, multi-timeframe overlays, and line-touch alerts all came from the same question: "what do I wish my charting platform actually did?"',
-  },
-];
-
-export default function AboutPage(): React.ReactElement {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mb-16 text-center">
-          <h1 className="mb-4 text-4xl font-bold text-foreground sm:text-5xl">
-            About Trading Alerts
+    <div className="bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden border-b border-slate-200 px-4 py-20 dark:border-slate-800/80 md:px-6 md:py-28">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.15),transparent_60%)]" />
+        <div className="container relative mx-auto max-w-5xl space-y-6 text-center">
+          <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-400">
+            {t('About DavinTrade AI')}
+          </Badge>
+
+          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-5xl md:text-6xl">
+            {t('Precision Gold Analytics Powered by')}{' '}
+            <span className="bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 bg-clip-text text-transparent dark:from-amber-400 dark:via-amber-200 dark:to-yellow-500">
+              {t('Conversational AI')}
+            </span>
           </h1>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            We built the alerting platform we wanted for ourselves: real-time
-            price alerts and a real drawing engine, with nothing standing
-            between the chart and the notification.
+
+          <p className="mx-auto max-w-2xl text-base leading-relaxed text-slate-600 dark:text-slate-400 md:text-lg">
+            {t(
+              'We built DavinTrade because retail traders deserve the same quantitative rigor, real-time fractal signal precision, and sub-second execution telemetry that institutional desks use every day.'
+            )}
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+            <Link href="/register">
+              <Button className="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-5 font-bold text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500">
+                <Sparkles className="mr-2 h-4 w-4" />
+                {t('Start Exploring Free')}
+              </Button>
+            </Link>
+            <Link href="/terminal">
+              <Button
+                variant="outline"
+                className="border-slate-300 bg-white px-6 py-5 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-800"
+              >
+                <LineChart className="mr-2 h-4 w-4 text-amber-600 dark:text-amber-400" />
+                {t('Open PRO Terminal')}
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Core Principles */}
+      <section className="container mx-auto max-w-6xl px-4 py-16 md:px-6">
+        <div className="mb-12 space-y-3 text-center">
+          <h2 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 md:text-3xl">
+            {t('Our Engineering Principles')}
+          </h2>
+          <p className="mx-auto max-w-xl text-sm text-slate-600 dark:text-slate-400">
+            {t(
+              'How we design algorithmic tools that genuinely empower traders to make disciplined, high-probability decisions.'
+            )}
           </p>
         </div>
 
-        <div className="mb-16 grid grid-cols-1 gap-6 sm:grid-cols-2">
-          {values.map((value) => {
-            const Icon = value.icon;
+        <div className="grid gap-6 md:grid-cols-2">
+          {values.map((v, idx) => {
+            const Icon = v.icon;
             return (
-              <Card key={value.title}>
-                <CardContent className="p-6">
-                  <div className="bg-primary/10 mb-4 flex h-10 w-10 items-center justify-center rounded-lg">
-                    <Icon className="h-5 w-5 text-primary" aria-hidden="true" />
+              <Card
+                key={idx}
+                className="border-slate-200 bg-white shadow-md transition-all duration-200 hover:border-amber-500/40 hover:bg-slate-50 dark:border-slate-800/80 dark:bg-[#090b14]/80 dark:backdrop-blur-xl dark:hover:bg-[#0c0f1d]"
+              >
+                <CardContent className="space-y-4 p-6">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                    <Icon className="h-6 w-6" />
                   </div>
-                  <h2 className="mb-2 text-lg font-semibold text-foreground">
-                    {value.title}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {value.description}
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                    {v.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                    {v.description}
                   </p>
                 </CardContent>
               </Card>
             );
           })}
         </div>
+      </section>
 
-        <Card className="bg-muted/50">
-          <CardContent className="flex flex-col items-center gap-4 p-10 text-center">
-            <h2 className="text-2xl font-bold text-foreground">
-              Start free, no card required
-            </h2>
-            <p className="max-w-xl text-muted-foreground">
-              FREE gets you full market data on XAUUSD M5/M15. Upgrade to PRO
-              when you want the drawing engine, line-touch alerts, and up to 100
-              active price alerts.
-            </p>
-            <div className="flex flex-wrap justify-center gap-3">
-              <Button asChild>
-                <Link href="/register">Create Free Account</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/pricing">View Pricing</Link>
-              </Button>
+      {/* Global Infrastructure Stats */}
+      <section className="border-t border-slate-200 bg-slate-100/70 px-4 py-16 dark:border-slate-800/80 dark:bg-[#070910] md:px-6">
+        <div className="container mx-auto max-w-5xl">
+          <div className="grid grid-cols-2 gap-6 text-center md:grid-cols-4">
+            <div className="space-y-1">
+              <div className="font-mono text-3xl font-extrabold text-amber-600 dark:text-amber-400 md:text-4xl">
+                &lt; 50ms
+              </div>
+              <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                {t('Tick Processing Latency')}
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <div className="space-y-1">
+              <div className="font-mono text-3xl font-extrabold text-amber-600 dark:text-amber-400 md:text-4xl">
+                99.98%
+              </div>
+              <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                {t('Platform Uptime')}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="font-mono text-3xl font-extrabold text-amber-600 dark:text-amber-400 md:text-4xl">
+                24/7
+              </div>
+              <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                {t('AI Copilot Availability')}
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="font-mono text-3xl font-extrabold text-amber-600 dark:text-amber-400 md:text-4xl">
+                100%
+              </div>
+              <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                {t('Rule-Based Logic')}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

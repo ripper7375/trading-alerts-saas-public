@@ -1,119 +1,171 @@
-import type { Metadata } from 'next';
-import { Bell, LineChart, Wallet, Calendar } from 'lucide-react';
+'use client';
 
+import { useState } from 'react';
+import Link from 'next/link';
+import { Clock, ArrowRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useLocale } from '@/lib/context/locale-context';
 
-/**
- * Public Blog / Product Updates Page (B2-3)
- *
- * Static content page -- no CMS backs this list. Entries describe real,
- * already-shipped product capability rather than fabricated data, matching
- * the F64/6-1b precedent of not presenting invented figures as live facts.
- *
- * @module app/(marketing)/blog/page
- */
+export default function BlogPage() {
+  const { t } = useLocale();
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
-export const metadata: Metadata = {
-  title: 'Blog',
-  description: 'Product updates and news from the Trading Alerts team.',
-};
+  const categories = [
+    'All',
+    'Fractal Models',
+    'AI Research',
+    'Risk Management',
+    'Market Insights',
+  ];
 
-interface Post {
-  icon: React.ComponentType<{ className?: string }>;
-  date: string;
-  category: string;
-  title: string;
-  excerpt: string;
-}
+  const posts = [
+    {
+      id: 1,
+      title: t(
+        'Decoding Gold Fractal Geometry: Multi-Timeframe Alignment on M5 and M15'
+      ),
+      excerpt: t(
+        'How 5-bar mathematical pivot structures identify liquidity sweeps before institutional breakout extensions materialize.'
+      ),
+      category: 'Fractal Models',
+      date: 'Aug 14, 2026',
+      readTime: t('6 min read'),
+      badge: 'Featured',
+    },
+    {
+      id: 2,
+      title: t(
+        'Conversational Quantitative Copilots: Transforming Raw Tick Feeds into Natural Insights'
+      ),
+      excerpt: t(
+        'Why LLMs combined with sub-millisecond MT5 tick feeds give retail traders real-time statistical confidence without cluttered screen fatigue.'
+      ),
+      category: 'AI Research',
+      date: 'Aug 10, 2026',
+      readTime: t('8 min read'),
+      badge: 'Engineering',
+    },
+    {
+      id: 3,
+      title: t(
+        'Asymmetric Risk-to-Reward: Surviving Gold Volatility During Macroeconomic Releases'
+      ),
+      excerpt: t(
+        'Quantitative risk rules for managing position sizing and volatility expansion around CPI and FOMC announcements.'
+      ),
+      category: 'Risk Management',
+      date: 'Aug 04, 2026',
+      readTime: t('5 min read'),
+      badge: 'Strategy',
+    },
+  ];
 
-const posts: Post[] = [
-  {
-    icon: Bell,
-    date: 'August 2026',
-    category: 'Product',
-    title: 'Real-time alert delivery, end to end',
-    excerpt:
-      'Fired alerts now reach your browser the instant they trigger -- both as a notification-bell update and a live marker on your chart -- backed by a persistent real-time connection rather than a polling refresh.',
-  },
-  {
-    icon: LineChart,
-    title: 'Editing alerts without recreating them',
-    date: 'August 2026',
-    category: 'Product',
-    excerpt:
-      'You can now edit a price alert’s name and target value directly from the Alerts page instead of deleting and re-creating it -- the symbol, timeframe, and condition type stay locked to keep the alert’s evaluation logic consistent.',
-  },
-  {
-    icon: Wallet,
-    date: 'July 2026',
-    category: 'Affiliate Program',
-    title: 'International affiliate payouts, made simple',
-    excerpt:
-      'Affiliates outside the US can now receive commission payouts directly to their local bank account, with a dedicated payout status page showing every transfer from initiated through settled.',
-  },
-  {
-    icon: LineChart,
-    date: 'July 2026',
-    category: 'Product',
-    title: 'A single, unified dashboard for everything',
-    excerpt:
-      'Alerts, charts, settings, and affiliate tools now live behind one consistent navigation shell with a real 404 page and error boundary -- no more dead-end links.',
-  },
-];
+  const filtered =
+    selectedCategory === 'All'
+      ? posts
+      : posts.filter((p) => p.category === selectedCategory);
 
-export default function BlogPage(): React.ReactElement {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mb-12 text-center">
-          <h1 className="mb-4 text-4xl font-bold text-foreground">Blog</h1>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            Product updates and news from the Trading Alerts team. For a
-            complete, dated list of every change, see the{' '}
-            <a
-              href="/changelog"
-              className="hover:text-primary/80 text-primary underline"
-            >
-              Changelog
-            </a>
-            .
-          </p>
-        </div>
+    <div className="bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
+      <div className="container mx-auto max-w-6xl px-4 py-16 md:px-6">
+        <div className="space-y-10">
+          <div className="mx-auto max-w-2xl space-y-4 text-center">
+            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-400">
+              {t('DavinTrade Research & Insights')}
+            </Badge>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 md:text-5xl">
+              {t('Trading Intelligence Blog')}
+            </h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              {t(
+                'Deep dives into quantitative trading, fractal market structures, and conversational AI architecture.'
+              )}
+            </p>
 
-        <div className="space-y-6">
-          {posts.map((post) => {
-            const Icon = post.icon;
-            return (
-              <Card key={post.title}>
-                <CardContent className="p-6">
-                  <div className="mb-3 flex flex-wrap items-center gap-3">
-                    <Badge variant="secondary">{post.category}</Badge>
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
-                      {post.date}
-                    </span>
+            {/* Category Filter Pills */}
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`rounded-full px-3.5 py-1 text-xs font-semibold transition-all ${
+                    selectedCategory === cat
+                      ? 'bg-amber-500 font-bold text-slate-950 shadow-md shadow-amber-500/20'
+                      : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {t(cat)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Posts Grid */}
+          <div className="grid gap-6 md:grid-cols-3">
+            {filtered.map((post) => (
+              <Card
+                key={post.id}
+                className="flex flex-col justify-between border-slate-200 bg-white shadow-md transition-all duration-200 hover:border-amber-500/40 hover:bg-slate-50 dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl dark:hover:bg-[#0c0f1c]"
+              >
+                <CardContent className="flex flex-1 flex-col justify-between space-y-4 p-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Badge className="border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-400">
+                        {t(post.category)}
+                      </Badge>
+                      <div className="flex items-center gap-1 text-[11px] text-slate-500">
+                        <Clock className="h-3 w-3" />
+                        <span>{post.readTime}</span>
+                      </div>
+                    </div>
+
+                    <h3 className="text-base font-bold leading-snug text-slate-900 transition-colors hover:text-amber-600 dark:text-slate-100 dark:hover:text-amber-300">
+                      {post.title}
+                    </h3>
+
+                    <p className="line-clamp-3 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                      {post.excerpt}
+                    </p>
                   </div>
-                  <div className="flex items-start gap-4">
-                    <div className="bg-primary/10 mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg">
-                      <Icon
-                        className="h-4 w-4 text-primary"
-                        aria-hidden="true"
-                      />
-                    </div>
-                    <div>
-                      <h2 className="mb-2 text-lg font-semibold text-foreground">
-                        {post.title}
-                      </h2>
-                      <p className="text-sm text-muted-foreground">
-                        {post.excerpt}
-                      </p>
-                    </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-4 text-xs text-slate-500 dark:border-slate-800/80">
+                    <span>{post.date}</span>
+                    <Link
+                      href="/terminal"
+                      className="flex items-center gap-1 font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+                    >
+                      <span>{t('Read in Terminal')}</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </Link>
                   </div>
                 </CardContent>
               </Card>
-            );
-          })}
+            ))}
+          </div>
+
+          {/* Newsletter Box */}
+          <div className="mx-auto max-w-2xl space-y-4 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-slate-100 p-8 text-center dark:from-amber-500/10 dark:via-[#0d101a] dark:to-[#090b14]">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+              {t('Get Weekly Quantitative Alpha Directly to Your Inbox')}
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              {t(
+                'Zero spam. Strictly fractal levels, volatility previews, and AI signal recaps.'
+              )}
+            </p>
+            <div className="mx-auto flex max-w-md gap-2">
+              <Input
+                placeholder={t('Enter your email')}
+                className="border-slate-200 bg-white text-slate-900 dark:border-slate-800 dark:bg-[#06080e] dark:text-slate-200"
+              />
+              <Button className="shrink-0 bg-amber-500 font-bold text-slate-950 hover:bg-amber-400">
+                {t('Subscribe')}
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

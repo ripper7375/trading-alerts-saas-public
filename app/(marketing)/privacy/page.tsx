@@ -1,259 +1,202 @@
-import type { Metadata } from 'next';
-import { Lock, Database, Share2, UserCheck, Cookie, Mail } from 'lucide-react';
+'use client';
 
+import { Lock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { useLocale } from '@/lib/context/locale-context';
 
-/**
- * Public Privacy Policy Page
- *
- * Session 6-10 (F63): production-grade template copy, Davin-approved. Distinct
- * from the auth-gated /settings/privacy page, which is a *privacy settings*
- * control panel (profile visibility, data export toggle) rather than this
- * legal Privacy Policy document — the two intentionally don't overlap.
- *
- * @module app/(marketing)/privacy/page
- */
+export default function PrivacyPage() {
+  const { t } = useLocale();
 
-export const metadata: Metadata = {
-  title: 'Privacy Policy',
-  description:
-    'How Trading Alerts collects, uses, and protects your personal data.',
-};
-
-export default function PrivacyPage(): React.ReactElement {
   return (
-    <div className="min-h-screen bg-background px-4 py-12 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-10 flex items-center gap-3">
-          <Lock className="h-8 w-8 text-primary" aria-hidden="true" />
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              Privacy Policy
+    <div className="bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
+      <div className="container mx-auto max-w-4xl px-4 py-16 md:px-6">
+        <div className="space-y-8">
+          <div className="space-y-3">
+            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-400">
+              {t('Privacy & Data Governance')}
+            </Badge>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 md:text-4xl">
+              {t('DavinTrade AI Privacy Policy')}
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Last updated: December 2024
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              {t('Effective Date: August 16, 2026')}
             </p>
+          </div>
+
+          <Card className="border-slate-200 bg-white shadow-md dark:border-slate-800/80 dark:bg-[#090b14]/80 dark:backdrop-blur-xl">
+            <CardContent className="flex items-start gap-4 p-6">
+              <Lock className="mt-0.5 h-6 w-6 shrink-0 text-amber-600 dark:text-amber-400" />
+              <div className="space-y-2">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-200">
+                  {t('Our Commitment to Your Privacy')}
+                </h3>
+                <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                  {t(
+                    'DavinTrade AI adheres to strict data privacy principles under GDPR, CCPA, and global cybersecurity frameworks. We do not sell personal data, we do not store plaintext passwords, and all analytics telemetry is fully encrypted at rest and in transit.'
+                  )}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-6 border-t border-slate-200 pt-6 text-sm leading-relaxed text-slate-700 dark:border-slate-800/80 dark:text-slate-300">
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                1. {t('Information We Collect')}
+              </h2>
+              <p>
+                {t(
+                  'We collect information you provide directly (such as name, email address, password hashes, and billing details processed securely via dLocal/Stripe), as well as technical usage data (IP address, browser type, device identifiers, session timestamps, and workspace interaction events).'
+                )}
+              </p>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                2. {t('How We Use Your Data')}
+              </h2>
+              <ul className="list-disc space-y-1 pl-5 text-xs text-slate-600 dark:text-slate-400 md:text-sm">
+                <li>
+                  {t(
+                    'To provision and maintain your real-time trading workspaces and alert deliveries.'
+                  )}
+                </li>
+                <li>
+                  {t(
+                    'To process subscription billing, recurring receipts, and affiliate commissions.'
+                  )}
+                </li>
+                <li>
+                  {t(
+                    'To detect and prevent platform abuse, account takeovers, and fraudulent transactions.'
+                  )}
+                </li>
+                <li>
+                  {t(
+                    'To train and improve Davin AI conversational comprehension without logging private trading credentials.'
+                  )}
+                </li>
+              </ul>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                3. {t('Your Rights and Data Control')}
+              </h2>
+              <p>
+                {t(
+                  'You have the full right to export your data, modify your preferences, revoke active login sessions via /settings/security/activity, or initiate permanent account deletion at /settings/account.'
+                )}
+              </p>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                4. {t('How We Share Your Information')}
+              </h2>
+              <p>
+                {t(
+                  'We do not sell your personal information. We share data only with:'
+                )}
+              </p>
+              <ul className="list-disc space-y-1 pl-5 text-xs text-slate-600 dark:text-slate-400 md:text-sm">
+                <li>
+                  <strong className="text-slate-900 dark:text-slate-200">
+                    {t('Payment processors')}
+                  </strong>{' '}
+                  {t(
+                    '(dLocal, Stripe) — to process your subscription payment.'
+                  )}
+                </li>
+                <li>
+                  <strong className="text-slate-900 dark:text-slate-200">
+                    {t('Infrastructure providers')}
+                  </strong>{' '}
+                  {t(
+                    '(hosting, database, email delivery) — solely to operate the platform.'
+                  )}
+                </li>
+                <li>
+                  <strong className="text-slate-900 dark:text-slate-200">
+                    {t('Affiliate partners')}
+                  </strong>{' '}
+                  {t(
+                    '— only an anonymized referral code and commission amount, if you signed up through an affiliate link.'
+                  )}
+                </li>
+                <li>
+                  <strong className="text-slate-900 dark:text-slate-200">
+                    {t('Law enforcement')}
+                  </strong>{' '}
+                  {t(
+                    '— when required by law, subpoena, or to protect the rights and safety of our users.'
+                  )}
+                </li>
+              </ul>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                5. {t('Cookies & Session Data')}
+              </h2>
+              <p>
+                {t(
+                  'We use essential cookies to keep you signed in and remember your preferences, such as theme accent and appearance settings. We do not use third-party advertising or cross-site tracking cookies.'
+                )}
+              </p>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                6. {t('Data Retention & Security')}
+              </h2>
+              <p>
+                {t(
+                  'We retain your account data for as long as your account is active, or as needed to comply with legal obligations, resolve disputes, and enforce our agreements. We use industry-standard technical and organizational measures — encryption in transit and at rest, hashed credentials, and access controls — to protect your data. No method of transmission or storage is 100% secure, and we cannot guarantee absolute security.'
+                )}
+              </p>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                7. {t("Children's Privacy")}
+              </h2>
+              <p>
+                {t(
+                  'DavinTrade AI is not directed to individuals under 18. We do not knowingly collect personal information from children. If you believe a child has provided us with personal data, please contact us and we will delete it.'
+                )}
+              </p>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                8. {t('Changes to This Policy')}
+              </h2>
+              <p>
+                {t(
+                  'We may update this Privacy Policy from time to time. We will notify you of material changes by posting the new policy on this page and updating the "Effective Date" above.'
+                )}
+              </p>
+            </section>
+
+            <section className="space-y-2">
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                9. {t('Contact Us')}
+              </h2>
+              <p>
+                {t('Questions about this Privacy Policy? Contact us at')}{' '}
+                <a
+                  href="mailto:privacy@davintrade.com"
+                  className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
+                >
+                  privacy@davintrade.com
+                </a>
+                .
+              </p>
+            </section>
           </div>
         </div>
-
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <p className="text-muted-foreground">
-              This Privacy Policy describes how Trading Alerts (&quot;we&quot;,
-              &quot;us&quot;) collects, uses, and shares information when you
-              use our website and services (the &quot;Service&quot;). By using
-              the Service, you agree to the collection and use of information in
-              accordance with this policy.
-            </p>
-          </CardContent>
-        </Card>
-
-        <section className="mb-8">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
-            <Database className="h-5 w-5 text-primary" aria-hidden="true" />
-            1. Information We Collect
-          </h2>
-          <div className="space-y-4 text-muted-foreground">
-            <p>
-              <strong className="text-foreground">Account information:</strong>{' '}
-              name, email address, and password (stored as a salted hash, we
-              never see or store your plaintext password) when you register.
-            </p>
-            <p>
-              <strong className="text-foreground">Payment information:</strong>{' '}
-              subscription and payment details are processed by our third-party
-              payment providers (Stripe, dLocal). We never receive or store your
-              full card or bank account number.
-            </p>
-            <p>
-              <strong className="text-foreground">Usage data:</strong> alerts
-              you configure, chart symbols and timeframes you view, login
-              history, device/browser type, and IP address (used during
-              registration for approximate regional pricing and fraud/security
-              checks).
-            </p>
-            <p>
-              <strong className="text-foreground">Communications:</strong>{' '}
-              messages you send us via the contact/support form or email.
-            </p>
-          </div>
-        </section>
-
-        <Separator className="my-6" />
-
-        <section className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold text-foreground">
-            2. How We Use Your Information
-          </h2>
-          <ul className="ml-4 list-disc space-y-2 text-muted-foreground">
-            <li>To provide, operate, and maintain the Service</li>
-            <li>To process subscription payments and send billing receipts</li>
-            <li>To deliver the price alerts and notifications you configure</li>
-            <li>
-              To detect, investigate, and prevent fraudulent transactions and
-              other unauthorized activity
-            </li>
-            <li>To respond to your support requests</li>
-            <li>
-              To send service-related communications (e.g. subscription status,
-              security alerts) — we do not send marketing email without your
-              consent
-            </li>
-          </ul>
-        </section>
-
-        <Separator className="my-6" />
-
-        <section className="mb-8">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
-            <Share2 className="h-5 w-5 text-primary" aria-hidden="true" />
-            3. How We Share Your Information
-          </h2>
-          <div className="space-y-4 text-muted-foreground">
-            <p>
-              We do not sell your personal information. We share data only with:
-            </p>
-            <ul className="ml-4 list-disc space-y-2">
-              <li>
-                <strong className="text-foreground">Payment processors</strong>{' '}
-                (Stripe, dLocal) — to process your subscription payment
-              </li>
-              <li>
-                <strong className="text-foreground">
-                  Infrastructure providers
-                </strong>{' '}
-                (hosting, database, email delivery) — solely to operate the
-                Service
-              </li>
-              <li>
-                <strong className="text-foreground">Affiliate partners</strong>{' '}
-                — only an anonymized referral code and commission amount, if you
-                signed up through an affiliate link
-              </li>
-              <li>
-                <strong className="text-foreground">Law enforcement</strong> —
-                when required by law, subpoena, or to protect the rights and
-                safety of our users
-              </li>
-            </ul>
-          </div>
-        </section>
-
-        <Separator className="my-6" />
-
-        <section className="mb-8">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
-            <UserCheck className="h-5 w-5 text-primary" aria-hidden="true" />
-            4. Your Rights
-          </h2>
-          <div className="space-y-4 text-muted-foreground">
-            <p>
-              Depending on your jurisdiction (including under the GDPR for users
-              in the EU/EEA and the UK), you have the right to:
-            </p>
-            <ul className="ml-4 list-disc space-y-2">
-              <li>Access the personal data we hold about you</li>
-              <li>Correct inaccurate or incomplete data</li>
-              <li>
-                Export your data in a portable format (Settings &gt; Privacy
-                &gt; Export Data)
-              </li>
-              <li>
-                Request deletion of your account and associated data (Settings
-                &gt; Account &gt; Delete Account — a 7-day confirmation window
-                applies before deletion is final)
-              </li>
-              <li>Object to or restrict certain processing of your data</li>
-            </ul>
-            <p>
-              To exercise any of these rights, contact us at{' '}
-              <a
-                href="mailto:privacy@tradingalerts.com"
-                className="hover:text-primary/80 text-primary underline"
-              >
-                privacy@tradingalerts.com
-              </a>
-              .
-            </p>
-          </div>
-        </section>
-
-        <Separator className="my-6" />
-
-        <section className="mb-8">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
-            <Cookie className="h-5 w-5 text-primary" aria-hidden="true" />
-            5. Cookies &amp; Session Data
-          </h2>
-          <p className="text-muted-foreground">
-            We use essential cookies to keep you signed in and remember your
-            preferences (such as light/dark theme). We do not use third-party
-            advertising or cross-site tracking cookies.
-          </p>
-        </section>
-
-        <Separator className="my-6" />
-
-        <section className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold text-foreground">
-            6. Data Retention &amp; Security
-          </h2>
-          <p className="text-muted-foreground">
-            We retain your account data for as long as your account is active,
-            or as needed to comply with legal obligations, resolve disputes, and
-            enforce our agreements. We use industry-standard technical and
-            organizational measures — encryption in transit, hashed credentials,
-            and access controls — to protect your data. No method of
-            transmission or storage is 100% secure, and we cannot guarantee
-            absolute security.
-          </p>
-        </section>
-
-        <Separator className="my-6" />
-
-        <section className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold text-foreground">
-            7. Children&apos;s Privacy
-          </h2>
-          <p className="text-muted-foreground">
-            The Service is not directed to individuals under 18. We do not
-            knowingly collect personal information from children. If you believe
-            a child has provided us with personal data, please contact us and we
-            will delete it.
-          </p>
-        </section>
-
-        <Separator className="my-6" />
-
-        <section className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold text-foreground">
-            8. Changes to This Policy
-          </h2>
-          <p className="text-muted-foreground">
-            We may update this Privacy Policy from time to time. We will notify
-            you of material changes by posting the new policy on this page and
-            updating the &quot;Last updated&quot; date above.
-          </p>
-        </section>
-
-        <Separator className="my-6" />
-
-        <section>
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
-            <Mail className="h-5 w-5 text-primary" aria-hidden="true" />
-            9. Contact Us
-          </h2>
-          <p className="text-muted-foreground">
-            Questions about this Privacy Policy? Contact us at{' '}
-            <a
-              href="mailto:privacy@tradingalerts.com"
-              className="hover:text-primary/80 text-primary underline"
-            >
-              privacy@tradingalerts.com
-            </a>
-          </p>
-        </section>
       </div>
     </div>
   );

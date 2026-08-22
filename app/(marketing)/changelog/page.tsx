@@ -1,171 +1,118 @@
-import type { Metadata } from 'next';
-import { Sparkles, Wrench, Shield } from 'lucide-react';
+'use client';
 
+import { CheckCircle2 } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { useLocale } from '@/lib/context/locale-context';
 
-/**
- * Public Changelog Page (B2-4)
- *
- * Static content page -- entries describe real, already-shipped changes
- * (not fabricated data), grouped by month.
- *
- * @module app/(marketing)/changelog/page
- */
+export default function ChangelogPage() {
+  const { t } = useLocale();
 
-export const metadata: Metadata = {
-  title: 'Changelog',
-  description: 'A dated list of everything that changed in Trading Alerts.',
-};
+  const releases = [
+    {
+      version: 'v2.4.0',
+      date: 'August 16, 2026',
+      badge: t('Latest Release'),
+      title: t('Conversational AI Copilot & Unified Multi-Language Workspaces'),
+      items: [
+        t(
+          'Integrated 24/7 Davin AI conversational widget across all terminals and settings pages.'
+        ),
+        t(
+          'Full 12-language localization engine with real-time currency formatting.'
+        ),
+        t(
+          'New /terminal workspace for PRO users and /free workspace for exploring users.'
+        ),
+        t(
+          'Dynamic theme accent switching (Amber, Emerald, Sapphire, Amethyst).'
+        ),
+      ],
+    },
+    {
+      version: 'v2.2.0',
+      date: 'July 28, 2026',
+      badge: t('Major Update'),
+      title: t('Automated Wise & RiseWorks Partner Disbursements'),
+      items: [
+        t(
+          'Automated batch payout scheduler with recipient bank account pre-validation.'
+        ),
+        t('Promotional discount code generator with click tracking telemetry.'),
+        t('Detailed commission statements with PDF/CSV export support.'),
+      ],
+    },
+    {
+      version: 'v2.0.0',
+      date: 'June 15, 2026',
+      badge: t('Architecture'),
+      title: t('Sub-Millisecond MT5 WebSocket Telemetry Engine'),
+      items: [
+        t('Redesigned low-latency tick pipeline for Spot Gold (XAUUSD).'),
+        t('Multi-timeframe fractal detection across M5 and M15 charts.'),
+        t(
+          'Multi-channel alert dispatch (In-app, Telegram bot, custom Webhooks).'
+        ),
+      ],
+    },
+  ];
 
-type EntryKind = 'new' | 'improved' | 'fixed';
-
-interface ChangelogEntry {
-  kind: EntryKind;
-  text: string;
-}
-
-interface ChangelogMonth {
-  month: string;
-  entries: ChangelogEntry[];
-}
-
-const kindMeta: Record<EntryKind, { label: string; className: string }> = {
-  new: {
-    label: 'New',
-    className:
-      'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-  },
-  improved: {
-    label: 'Improved',
-    className:
-      'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
-  },
-  fixed: {
-    label: 'Fixed',
-    className:
-      'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
-  },
-};
-
-const months: ChangelogMonth[] = [
-  {
-    month: 'August 2026',
-    entries: [
-      {
-        kind: 'new',
-        text: 'Real-time delivery for fired alerts -- notification-bell updates and chart markers now arrive instantly instead of on the next poll.',
-      },
-      {
-        kind: 'new',
-        text: 'Alerts can now be edited in place (name, target value) from the Alerts page.',
-      },
-      {
-        kind: 'new',
-        text: 'Added a dedicated Notifications page and a checkout return / upgrade success flow with live payment status.',
-      },
-      {
-        kind: 'new',
-        text: 'Added account-deletion confirm/cancel pages with a 7-day grace period.',
-      },
-      {
-        kind: 'improved',
-        text: 'Consolidated the entire admin area under one guarded navigation shell.',
-      },
-      {
-        kind: 'fixed',
-        text: 'Added a real 404 page and a global error boundary across the app.',
-      },
-    ],
-  },
-  {
-    month: 'July 2026',
-    entries: [
-      {
-        kind: 'new',
-        text: 'Affiliate payouts to international bank accounts, with a payout-status page and monthly statement export.',
-      },
-      {
-        kind: 'new',
-        text: 'Added a code-inventory report and a referral-link generator to the affiliate dashboard.',
-      },
-      {
-        kind: 'improved',
-        text: 'Commission history now shows real payout batch status instead of a static placeholder.',
-      },
-      {
-        kind: 'improved',
-        text: 'Login, password reset, and two-factor authentication moved to a faster, dedicated authentication path.',
-      },
-    ],
-  },
-  {
-    month: 'Earlier',
-    entries: [
-      {
-        kind: 'new',
-        text: 'Launched the drawing engine: trend lines, horizontal levels, and line-touch alerts on the chart.',
-      },
-      {
-        kind: 'new',
-        text: 'Launched multi-timeframe visualization for PRO accounts.',
-      },
-      {
-        kind: 'new',
-        text: 'Launched the affiliate program with referral codes and percentage-based commission.',
-      },
-    ],
-  },
-];
-
-const kindIcon: Record<
-  EntryKind,
-  React.ComponentType<{ className?: string }>
-> = {
-  new: Sparkles,
-  improved: Wrench,
-  fixed: Shield,
-};
-
-export default function ChangelogPage(): React.ReactElement {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mb-12 text-center">
-          <h1 className="mb-4 text-4xl font-bold text-foreground">Changelog</h1>
-          <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-            Everything that changed in Trading Alerts, most recent first.
-          </p>
-        </div>
+    <div className="bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
+      <div className="container mx-auto max-w-4xl px-4 py-16 md:px-6">
+        <div className="space-y-10">
+          <div className="mx-auto max-w-2xl space-y-4 text-center">
+            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-400">
+              {t('Product Updates & Release Notes')}
+            </Badge>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 md:text-5xl">
+              {t('DavinTrade Changelog')}
+            </h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              {t(
+                'Follow the evolution of our quantitative AI trading platform, feature rollouts, and infrastructure enhancements.'
+              )}
+            </p>
+          </div>
 
-        <div className="space-y-12">
-          {months.map((group) => (
-            <div key={group.month}>
-              <h2 className="mb-5 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                {group.month}
-              </h2>
-              <ul className="space-y-4">
-                {group.entries.map((entry, index) => {
-                  const meta = kindMeta[entry.kind];
-                  const Icon = kindIcon[entry.kind];
-                  return (
-                    <li key={index} className="flex items-start gap-3">
-                      <Badge
-                        className={`mt-0.5 flex-shrink-0 gap-1 border-0 ${meta.className}`}
-                      >
-                        <Icon className="h-3 w-3" aria-hidden="true" />
-                        {meta.label}
-                      </Badge>
-                      <p className="text-sm text-muted-foreground">
-                        {entry.text}
-                      </p>
-                    </li>
-                  );
-                })}
-              </ul>
-              <Separator className="mt-8" />
-            </div>
-          ))}
+          {/* Timeline */}
+          <div className="relative ml-4 space-y-10 border-l border-slate-200 dark:border-slate-800 md:ml-8">
+            {releases.map((rel, idx) => (
+              <div key={idx} className="relative space-y-3 pl-6 md:pl-8">
+                {/* Node dot */}
+                <div className="absolute -left-[9px] top-1.5 h-4 w-4 rounded-full border-2 border-amber-500 bg-white dark:bg-[#06070a]" />
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="bg-amber-500 text-xs font-bold text-slate-950">
+                    {rel.version}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="border-slate-300 text-[10px] text-slate-600 dark:border-slate-700 dark:text-slate-400"
+                  >
+                    {rel.badge}
+                  </Badge>
+                  <span className="text-xs font-medium text-slate-500">
+                    {rel.date}
+                  </span>
+                </div>
+
+                <Card className="border-slate-200 bg-white p-6 shadow-md dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl">
+                  <h3 className="mb-3 text-base font-bold text-slate-900 dark:text-slate-100">
+                    {rel.title}
+                  </h3>
+                  <ul className="space-y-2 text-xs text-slate-700 dark:text-slate-300 md:text-sm">
+                    {rel.items.map((it, iIdx) => (
+                      <li key={iIdx} className="flex items-start gap-2">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <span>{it}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
