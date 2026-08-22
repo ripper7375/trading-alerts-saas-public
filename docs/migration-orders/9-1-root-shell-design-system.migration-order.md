@@ -126,11 +126,11 @@ Codebase 2 provided the visual layouts for 93 pages, but lacked backend integrat
 
 ## Entry criteria (re-verify all at CONFIRM)
 
-- [ ] **Session 9-0 CONFIRMED, executed, CLOSED** — `frontend-swap-route-map.md` exists and committed; F65/F66 RESOLVED in `DECISION-LOG.md`.
-- [ ] **Protected-pages list verified** against `codebase-2-parity-audit/00-MASTER-PLAN.md` §0 (`/`, `/terminal`, `/free`, `/dashboard`, `/settings/appearance`, `/settings/help`).
-- [ ] **Batch-0 root boundaries confirmed fixed in codebase 2** (`app/global-error.tsx` mailto line, `app/not-found.tsx` 3-action buttons).
-- [ ] **`seed-code/` working tree verified read-only** except the two confirmed intentional edits (`affiliate/dashboard/payouts` and `statements`).
-- [ ] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24):
+- [x] **Session 9-0 CONFIRMED, executed, CLOSED** — `frontend-swap-route-map.md` exists and committed; F65/F66 RESOLVED in `DECISION-LOG.md`.
+- [x] **Protected-pages list verified** against `codebase-2-parity-audit/00-MASTER-PLAN.md` §0 (`/`, `/terminal`, `/free`, `/dashboard`, `/settings/appearance`, `/settings/help`).
+- [x] **Batch-0 root boundaries confirmed fixed in codebase 2** (`app/global-error.tsx` mailto line, `app/not-found.tsx` 3-action buttons) — re-diffed byte-for-byte at CONFIRM, still intact.
+- [x] **`seed-code/` working tree verified read-only** — better than expected: fully clean (zero modified files), not just "except 2 files."
+- [x] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24):
 
   ```powershell
   # 1. Monolith
@@ -215,13 +215,13 @@ Codebase 2 provided the visual layouts for 93 pages, but lacked backend integrat
 
 ## Done when
 
-- [ ] `app/not-found.tsx`, `app/global-error.tsx`, and `app/error.tsx` live in main repo with DavinTrade branding and correct actions.
-- [ ] `app/globals.css` and `tailwind.config.ts` establish the full DavinTrade token palette in Tailwind v3 with WCAG AA `--accent-foreground` contrast.
-- [ ] `app/layout.tsx` and `app/providers.tsx` live, wiring `getServerAppearance()`, `UserAppearance`, `LocaleProvider`, `AppearanceProvider`, and NextAuth `SessionProvider`.
-- [ ] `AppHeader`, `ChatSidebar`, `marketing-navbar.tsx`, and `marketing-footer.tsx` ported and verified; dead `components/header.tsx` removed.
-- [ ] `middleware.ts` combines country-prefix locale rewriting with NextAuth session/role route protection.
-- [ ] Visual smoke check confirms all 6 Protected pages render cleanly.
-- [ ] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
+- [x] `app/not-found.tsx`, `app/global-error.tsx`, and `app/error.tsx` live in main repo with DavinTrade branding and correct actions.
+- [x] `app/globals.css` and `tailwind.config.ts` establish the DavinTrade token palette in Tailwind v3 with WCAG AA `--accent-foreground` contrast — achieved by NOT touching `--accent`/`--accent-foreground` (Deviation 9): the monolith's existing architecture already avoids the Batch-0 contrast bug by design.
+- [x] `app/layout.tsx` and `app/providers.tsx` live, wiring `getServerAppearance()`, `UserAppearance`, `LocaleProvider`, `AppearanceProvider`, and NextAuth `SessionProvider` — the latter two PRESERVED as already-working (Deviation 4), not newly built.
+- [x] `AppHeader`, `ChatSidebar`, `marketing-navbar.tsx`, and `marketing-footer.tsx` ported and verified; dead `components/header.tsx` confirmed to only exist in `seed-code/` (never in the main repo) — satisfied by omission, no deletion needed (Deviation 8).
+- [x] `middleware.ts` combines country-prefix locale rewriting with NextAuth session/role route protection.
+- [x] Visual smoke check confirms all currently-existing Protected pages render cleanly (`/`, `/dashboard`, `/settings/appearance`, `/settings/help`) — `/terminal`/`/free` don't exist yet, Session 9-4's own pages (Deviation 15).
+- [x] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
 
 ---
 
@@ -234,6 +234,147 @@ Commit per step. If an issue arises in a specific step, revert that step's commi
 ## Deviations
 
 <!-- Filled by Executor during execution per EXECUTOR-PROTOCOL.md §3 -->
+
+1. **Step order changed from the order's 1-6 sequence.** `not-found.tsx` (seed-code) calls
+   `useLocale()`, which needs `LocaleProvider` mounted in `app/layout.tsx` (Step 3) — so it
+   can't be verified in isolation as Step 1's own literal first action. Actual order: ported
+   `global-error.tsx` + rebranded `error.tsx` (no locale dependency) → ported the i18n subsystem
+   (new prerequisite, see #2) → design tokens → root layout/providers, landing `not-found.tsx`
+   at that point → shared chrome → middleware. Each slice still got its own commit and
+   tsc/eslint pass, per the Rollback section's own "one commit per step" intent.
+
+2. **New prerequisite discovered and ported: the i18n subsystem.** The order's own "Feeds on"
+   line listed `lib/i18n/locale-resolver.ts` as an existing main-repo dependency; it only existed
+   in `seed-code/`. Ported verbatim: `lib/country-config.ts`, `lib/i18n/{locale-resolver,
+get-dictionary, server-locale}.ts`, `lib/i18n/dictionaries/*.json` (12 locales),
+   `lib/context/locale-context.tsx`. Fixed 7 compile errors the port introduced under this
+   repo's `noUncheckedIndexedAccess`/`noPropertyAccessFromIndexSignature` (absent from
+   seed-code's own tsconfig) — non-null-asserted statically-known-safe object-literal lookups,
+   split two double-evaluated dictionary lookups into single-read locals to preserve type
+   narrowing.
+
+3. **Support-chat widget deliberately NOT ported** (Davin, live, approved before Step 3 began).
+   `ClientProviders` composes only `LocaleProvider` + `AppearanceProvider` — `SupportChatProvider`/
+   `SupportChatWidget`/`FloatingChatTrigger` are deferred to Phase 14. Found while tracing
+   `client-providers.tsx`'s dependencies: its socket client (`lib/socket-client.ts`) points at
+   `NEXT_PUBLIC_SOCKET_CHAT_URL` (unset, Phase 14 not built) and falls back to a hardcoded
+   canned-response generator presented as a live "AI Support Specialist" — mounting it now would
+   have shipped fabricated AI claims site-wide. Not in `seed-code/**`'s do-not-touch zone since
+   nothing there was edited; the main-repo `client-providers.tsx` simply omits it.
+
+4. **`app/providers.tsx`'s already-working `SessionProvider` was preserved, not rebuilt** — the
+   Decisions-taken framing ("mount NextAuth SessionProvider") read as new work; live code showed
+   it already existed. Also discovered `components/providers/appearance-provider.tsx` and
+   `theme-provider.tsx` already exist in the main repo — the former is MORE complete than
+   seed-code's own version (it additionally syncs `next-themes`' `setTheme()`, which seed-code's
+   doesn't). Neither file was touched; overwriting `appearance-provider.tsx` with seed-code's
+   version would have been a regression, not a port.
+
+5. **`components/providers/theme-provider.tsx` (hand-rolled, main repo) is dead code** — zero
+   importers (grepped `app/`, `components/`, `hooks/`, `lib/`), superseded by the real
+   `next-themes` package `app/providers.tsx` already used before this session. Not deleted: only
+   `components/header.tsx`'s deletion carried Davin's explicit go-ahead this session; this is a
+   new, undisclosed finding for a future session/Davin to act on, not this one to decide
+   unilaterally (same "flag rather than silently apply" norm Batch-0 itself used).
+
+6. **Real, disclosed architecture change: the whole app is now dynamically rendered.**
+   `app/layout.tsx` now calls `cookies()`/`headers()` (via `getServerAppearance()` and
+   `resolvePreferences()`) on every request, for every route — previously the root layout was
+   static-generation-compatible. `app/globals.css`'s own comment documented `data-accent` living
+   on a nested dashboard wrapper specifically to avoid this; updated that comment to describe the
+   new reality rather than leave it stale. This is the direct, unavoidable cost of porting
+   codebase 2's unified root-layout design (F66's own progressive-replacement decision) — no
+   attempt made to re-optimize marketing pages back to static in this session; flagged for a
+   future session if TTFB/build-time on marketing routes becomes a real concern.
+
+7. **CSP fix: added `https://ipapi.co` to `next.config.js`'s `connect-src`.** `LocaleProvider`'s
+   first-visit geo-detection fetch was silently blocked by the existing CSP, confirmed live via
+   console errors. Narrow, read-only, no-secrets third-party endpoint — judged in-scope to fix
+   directly (not a CORS/auth/secrets change per `EXECUTOR-PROTOCOL.md` §7) rather than escalate.
+
+8. **Batch-0 finding 6c (`components/header.tsx`) needs no deletion here.** Confirmed via `ls`
+   both trees: the dead file exists only in `seed-code/` (read-only, do-not-touch,
+   `CLAUDE.md` §5) and never existed in the main repo. The order's Decision 5 targeted a
+   main-repo copy that was never ported. Satisfied by omission — this session's port never
+   copied it over. Left `seed-code/`'s own copy untouched, per standing rule.
+
+9. **Design-token decisions beyond Decisions-taken's own text:**
+   - `--sidebar*` tokens use the monolith's existing neutral hue family (285.8, matching
+     `--background`/`--card`/`--border`) rather than seed-code's separate achromatic gray, so
+     `ChatSidebar` reads as part of the same system instead of a visually distinct surface.
+   - `--accent`/`--accent-foreground` were **not** touched, and no static `--chart*` rules were
+     added. Live code showed the monolith's existing accent architecture already avoids the
+     exact Batch-0 contrast bug by design (it swaps `--primary`/`--primary-foreground`/`--ring`
+     per accent with contrast baked in — amber gets near-black text already — and deliberately
+     keeps `--accent`/`--accent-foreground` as a separate, non-swapped neutral pair, unlike
+     codebase 2's model where `--accent` itself becomes the accent color). Chart tokens
+     (`--chart-candle-up/-down/-grid-opacity`) already exist and are already runtime-dynamic via
+     `appearance-provider.tsx`, matching Davin's own approved adjustment #2 — nothing to port.
+   - Added `.no-scrollbar` (aliased to the pre-existing `.scrollbar-hide` rule, not duplicated)
+     and `.animate-marquee`/`@keyframes marquee` (needed by 9-2's landing-page ticker; a no-op
+     today, no current page uses it) and the TradingView-logo-hiding rule.
+
+10. **`AppHeader`/`ChatSidebar` rewritten to semantic tokens, not ported verbatim** — this IS
+    Decision 3's own instruction, but the scale of the rewrite (every hardcoded `slate-N`/
+    `dark:bg-[hex]` class, not just the flagged `--accent-foreground` line) is larger than the
+    order's text implies. Extended the identical treatment to `marketing-navbar.tsx`/
+    `marketing-footer.tsx` even though Batch-0's named 5-file list didn't include them — both are
+    in this session's own Surface, use the same hardcoded-dark pattern, and 9-2 builds marketing
+    pages on top of them next; cheaper to fix once here than let 9-2 rediscover the same defect.
+    Fixed Batch-0 finding 6b (missing sidebar Help item) directly inside this rewrite.
+
+11. **Middleware merge bug found and fixed before commit, not after.** Two of the auth gate's
+    early-return branches (`PUBLIC_SETTINGS_PATHS` match, and the affiliate no-token passthrough)
+    initially used a hardcoded `NextResponse.next()` instead of the locale-aware
+    `buildLocaleResponse()` — a country-prefixed request hitting either branch would have 404'd
+    instead of being rewritten. Caught by tracing all code paths before live-testing, not by the
+    live test itself. All 3 live-tested combinations (plain protected path, prefixed public path,
+    prefixed protected path with no auth) verified correct via the dev server afterward.
+
+12. **Regressed then fixed 3 assertions in `__tests__/pages/phase-6-exit.test.tsx`**
+    (`test:ci` must never go backwards per the roadmap's own §6 rule — an assertion needing to
+    change for an intentional rebrand is a finding, not a silent skip): `not-found.tsx`'s heading
+    moved from a single h1 "Page not found" to an h1 "404" + h2 "Page Not Found", and its "Home"
+    link's accessible name became "Return to Home"; `global-error.tsx`'s heading text changed
+    from "Something went wrong" to "System Error Encountered". Test count unchanged (2400 before
+    and after) — assertions updated, nothing added or removed.
+
+13. **Found and fixed a latent test-infrastructure gap while wrapping `NotFound` in
+    `LocaleProvider` for the first time anywhere in the test suite:** `LocaleProvider`'s
+    first-visit geo-detection branch calls the REAL `global.fetch` (`jest.setup.js` wires
+    genuine `undici` fetch, not a mock) to `https://ipapi.co/json/`. Left un-mocked, this fired a
+    real network request still in flight when the test file's jsdom window tore down, crashing
+    the Jest worker process on teardown even though every assertion had already passed. Mocked
+    `fetch` to reject immediately inside that one test file. **Not fixed repo-wide** — any future
+    test wrapping a component in `LocaleProvider`/`ClientProviders` will need the same guard
+    until a default fetch mock exists in `jest.setup.js`; worth a `LESSONS-LEARNED.md` entry.
+
+14. **`public/manifest.json` rebranded (name/short_name/description/theme_color) per F66.**
+    Pre-existing, unrelated defect found and disclosed, not fixed: its `icons`/`screenshots`
+    arrays reference `public/icons/` and `public/screenshots/`, neither of which exists on disk
+    in either tree — the manifest has been non-functional for PWA icons/screenshots independent
+    of this session's work. Copied `apple-icon.png`, `icon-{light,dark}-32x32.png`, `icon.svg`
+    from `seed-code/` into the main repo's `public/` — referenced by the new `metadata.icons` but
+    didn't exist there before.
+
+15. **Live verification, not just `tsc`/`test:ci`:** dev server smoke-tested all 4 currently-
+    existing Protected pages under the new shell — `/` (unauthenticated), `/dashboard`,
+    `/settings/appearance`, `/settings/help` (all 3 via a real login using the login page's own
+    test-credential autofill) — all rendered their existing bodies correctly with zero new
+    console errors. `/terminal` and `/free` (the other 2 Protected pages) **do not exist yet** in
+    the main repo — confirmed via `ls`; they are new pages Session 9-4 creates per the roadmap's
+    own layout inventory. Nothing to verify there this session. Middleware's 3 auth×locale
+    interaction cases (plain protected path, prefixed public path, prefixed protected path with
+    no auth) verified live. The 4 new shared-chrome components (`AppHeader`, `ChatSidebar`,
+    `MarketingNavbar`, `MarketingFooter`) aren't consumed by any route yet (that's 9-2's/9-4's
+    wiring work) — verified via a throwaway smoke-test route, deleted before committing, not
+    shipped.
+
+16. **Route-manifest diff: clean, trivially.** Every file this session touched under `app/` was
+    an existing route file edited in place (`layout.tsx`, `providers.tsx`, `not-found.tsx`,
+    `error.tsx`, `global-error.tsx`, `globals.css`) plus `middleware.ts` — zero new route folders
+    created, zero URLs added or removed. `git diff --name-status` against the pre-session commit
+    confirms this directly.
 
 ---
 
