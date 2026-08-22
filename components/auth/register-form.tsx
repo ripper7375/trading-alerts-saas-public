@@ -9,6 +9,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+import { useLocale } from '@/lib/context/locale-context';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
 import SocialAuthButtons from './social-auth-buttons';
@@ -44,6 +45,7 @@ type RegistrationFormData = z.infer<typeof registrationSchema>;
 export default function RegisterForm(): JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { t } = useLocale();
 
   // Get dynamic affiliate config from SystemConfig
   const { discountPercent, regularPrice, calculateDiscountedPrice } =
@@ -191,441 +193,395 @@ export default function RegisterForm(): JSX.Element {
   };
 
   return (
-    <div className="w-full max-w-md">
-      <div className="rounded-lg bg-card p-8 shadow-xl">
-        <h1 className="mb-6 text-center text-3xl font-bold text-foreground">
-          Create Your Account
+    <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-2xl backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
+      <div className="text-center">
+        <h1 className="bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500 bg-clip-text text-2xl font-extrabold tracking-tight text-transparent">
+          {t('Create Your Account')}
         </h1>
-        <p className="mb-8 text-center text-muted-foreground">
-          Start trading smarter today
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          {t('Start trading smarter today')}
         </p>
+      </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          {/* Full Name */}
-          <div>
-            <label
-              htmlFor="name"
-              className="mb-1 block text-sm font-medium text-foreground"
-            >
-              Full Name
-            </label>
-            <div className="relative">
-              <input
-                id="name"
-                type="text"
-                placeholder="John Trader"
-                {...register('name')}
-                className={`w-full rounded-md border bg-background px-3 py-2 text-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary ${
-                  errors.name && touchedFields.name
-                    ? 'border-red-500'
-                    : touchedFields.name && name?.length >= 2
-                      ? 'border-green-500'
-                      : 'border-border'
-                }`}
-              />
-              {touchedFields.name && name?.length >= 2 && !errors.name && (
-                <Check className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-green-600" />
-              )}
-            </div>
-            {errors.name && touchedFields.name && (
-              <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
-                <X className="h-4 w-4" />
-                {errors.name.message}
-              </p>
-            )}
-          </div>
-
-          {/* Email */}
-          <div>
-            <label
-              htmlFor="email"
-              className="mb-1 block text-sm font-medium text-foreground"
-            >
-              Email Address
-            </label>
-            <div className="relative">
-              <input
-                id="email"
-                type="email"
-                placeholder="john@example.com"
-                {...register('email')}
-                className={`w-full rounded-md border bg-background px-3 py-2 text-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary ${
-                  errors.email && touchedFields.email
-                    ? 'border-red-500'
-                    : touchedFields.email && !errors.email && email
-                      ? 'border-green-500'
-                      : 'border-border'
-                }`}
-              />
-              {touchedFields.email && !errors.email && email && (
-                <Check className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-green-600" />
-              )}
-            </div>
-            {errors.email && touchedFields.email && (
-              <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
-                <X className="h-4 w-4" />
-                {errors.email.message}
-              </p>
-            )}
-          </div>
-
-          {/* Password */}
-          <div>
-            <label
-              htmlFor="password"
-              className="mb-1 block text-sm font-medium text-foreground"
-            >
-              Password
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                {...register('password')}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 pr-10 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
-              </button>
-            </div>
-
-            {/* Password Requirements */}
-            {password && (
-              <div className="mt-2 space-y-1">
-                <div className="flex items-center gap-2 text-sm">
-                  {passwordValidation.minLength ? (
-                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span
-                    className={
-                      passwordValidation.minLength
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-muted-foreground'
-                    }
-                  >
-                    At least 8 characters
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  {passwordValidation.hasUppercase ? (
-                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span
-                    className={
-                      passwordValidation.hasUppercase
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-muted-foreground'
-                    }
-                  >
-                    One uppercase letter
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  {passwordValidation.hasLowercase ? (
-                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span
-                    className={
-                      passwordValidation.hasLowercase
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-muted-foreground'
-                    }
-                  >
-                    One lowercase letter
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  {passwordValidation.hasNumber ? (
-                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span
-                    className={
-                      passwordValidation.hasNumber
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-muted-foreground'
-                    }
-                  >
-                    One number
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  {passwordValidation.hasSpecial ? (
-                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <X className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span
-                    className={
-                      passwordValidation.hasSpecial
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-muted-foreground'
-                    }
-                  >
-                    One special character (!@#$%^&*)
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Confirm Password */}
-          <div>
-            <label
-              htmlFor="confirmPassword"
-              className="mb-1 block text-sm font-medium text-foreground"
-            >
-              Confirm Password
-            </label>
-            <div className="relative">
-              <input
-                id="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                {...register('confirmPassword')}
-                className={`w-full rounded-md border bg-background px-3 py-2 pr-10 text-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary ${
-                  errors.confirmPassword && touchedFields.confirmPassword
-                    ? 'border-red-500'
-                    : touchedFields.confirmPassword &&
-                        confirmPassword === password &&
-                        password
-                      ? 'border-green-500'
-                      : 'border-border'
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label={
-                  showConfirmPassword
-                    ? 'Hide password confirmation'
-                    : 'Show password confirmation'
-                }
-              >
-                {showConfirmPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
-              </button>
-              {touchedFields.confirmPassword &&
-                confirmPassword === password &&
-                password &&
-                !errors.confirmPassword && (
-                  <Check className="absolute right-10 top-1/2 h-5 w-5 -translate-y-1/2 text-green-600" />
-                )}
-            </div>
-            {errors.confirmPassword && touchedFields.confirmPassword && (
-              <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
-                <X className="h-4 w-4" />
-                {errors.confirmPassword.message}
-              </p>
-            )}
-          </div>
-
-          {/* REFERRAL CODE - Business Critical Feature */}
-          <div>
-            <label
-              htmlFor="referralCode"
-              className="mb-1 block text-sm font-medium text-foreground"
-            >
-              Referral Code (Optional)
-            </label>
-            <p className="mb-1 text-xs text-primary">
-              Have an affiliate code? Get {discountPercent}% off this month!
-            </p>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <input
-                  id="referralCode"
-                  type="text"
-                  placeholder="REF-ABC123XYZ"
-                  value={referralCode}
-                  onChange={(e) => {
-                    const upper = e.target.value.toUpperCase();
-                    setReferralCode(upper);
-                    setValue('referralCode', upper, { shouldValidate: true });
-                    // Reset validation states when user types
-                    if (isCodeValid || codeError) {
-                      setIsCodeValid(false);
-                      setCodeError('');
-                      setVerifiedCode(null);
-                    }
-                  }}
-                  className={`w-full rounded-md border bg-background px-3 py-2 pr-10 text-foreground transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary ${
-                    isCodeValid
-                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                      : codeError
-                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                        : 'border-border'
-                  }`}
-                  maxLength={20}
-                />
-                {isCodeValid && (
-                  <Check className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-green-600" />
-                )}
-                {codeError && (
-                  <X className="absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-red-600" />
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => verifyCode(referralCode)}
-                disabled={referralCode.length < 6 || isVerifying}
-                className="hover:bg-muted/80 rounded-md border border-border bg-muted px-4 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isVerifying ? (
-                  <>
-                    <Loader2 className="inline h-4 w-4 animate-spin" />
-                  </>
-                ) : (
-                  'Verify'
-                )}
-              </button>
-            </div>
-            {isCodeValid && (
-              <>
-                <p className="mt-1 flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
-                  <Check className="h-4 w-4 flex-shrink-0" />
-                  Valid code! You&apos;ll get {discountPercent}% off PRO ($
-                  {calculateDiscountedPrice(regularPrice).toFixed(2)}/month
-                  instead of ${regularPrice.toFixed(2)})
-                </p>
-                <span className="mt-2 inline-block rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                  🎉 {discountPercent}% DISCOUNT APPLIED
-                </span>
-              </>
-            )}
-            {codeError && (
-              <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
-                <X className="h-4 w-4" />
-                {codeError}
-              </p>
-            )}
-          </div>
-
-          {/* Terms Checkbox */}
-          <div className="flex items-start gap-3">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {/* Full Name */}
+        <div className="space-y-1.5">
+          <label
+            htmlFor="name"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+          >
+            {t('Full Name')}
+          </label>
+          <div className="relative">
             <input
-              id="terms"
-              type="checkbox"
-              {...register('agreedToTerms')}
-              className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary"
+              id="name"
+              type="text"
+              placeholder="John Trader"
+              {...register('name')}
+              className={`dark:border-slate-750 h-10 w-full rounded-xl border bg-white px-3 pr-10 text-xs text-slate-900 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-[#06080e] dark:text-slate-100 ${
+                errors.name && touchedFields.name
+                  ? 'border-rose-500'
+                  : touchedFields.name && name?.length >= 2
+                    ? 'border-emerald-500'
+                    : 'border-slate-200'
+              }`}
             />
-            <div className="flex-1">
-              <label
-                htmlFor="terms"
-                className="cursor-pointer text-sm leading-relaxed text-muted-foreground"
-              >
-                I agree to the{' '}
-                <Link
-                  href="/terms"
-                  className="hover:text-primary/80 text-primary underline"
-                >
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link
-                  href="/privacy"
-                  className="hover:text-primary/80 text-primary underline"
-                >
-                  Privacy Policy
-                </Link>
-              </label>
-              {errors.agreedToTerms && (
-                <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
-                  <X className="h-4 w-4" />
-                  {errors.agreedToTerms.message}
-                </p>
+            {touchedFields.name && name?.length >= 2 && !errors.name && (
+              <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-600" />
+            )}
+          </div>
+          {errors.name && touchedFields.name && (
+            <p className="flex items-center gap-1 text-xs text-rose-600">
+              <X className="h-3.5 w-3.5" />
+              {errors.name.message}
+            </p>
+          )}
+        </div>
+
+        {/* Email */}
+        <div className="space-y-1.5">
+          <label
+            htmlFor="email"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+          >
+            {t('Email Address')}
+          </label>
+          <div className="relative">
+            <input
+              id="email"
+              type="email"
+              placeholder="john@example.com"
+              {...register('email')}
+              className={`dark:border-slate-750 h-10 w-full rounded-xl border bg-white px-3 pr-10 text-xs text-slate-900 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-[#06080e] dark:text-slate-100 ${
+                errors.email && touchedFields.email
+                  ? 'border-rose-500'
+                  : touchedFields.email && !errors.email && email
+                    ? 'border-emerald-500'
+                    : 'border-slate-200'
+              }`}
+            />
+            {touchedFields.email && !errors.email && email && (
+              <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-600" />
+            )}
+          </div>
+          {errors.email && touchedFields.email && (
+            <p className="flex items-center gap-1 text-xs text-rose-600">
+              <X className="h-3.5 w-3.5" />
+              {errors.email.message}
+            </p>
+          )}
+        </div>
+
+        {/* Password */}
+        <div className="space-y-1.5">
+          <label
+            htmlFor="password"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+          >
+            {t('Password')}
+          </label>
+          <div className="relative">
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              {...register('password')}
+              className="dark:border-slate-750 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 pr-10 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-[#06080e] dark:text-slate-100"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              aria-label={
+                showPassword ? t('Hide password') : t('Show password')
+              }
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
               )}
-            </div>
+            </button>
           </div>
 
-          {/* Error Display */}
-          {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
-              <div className="text-sm text-red-700 dark:text-red-300">
-                {error}
-              </div>
+          {/* Password Requirements */}
+          {password && (
+            <div className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-800 dark:bg-[#070910]">
+              {[
+                { key: 'minLength', label: t('At least 8 characters') },
+                { key: 'hasUppercase', label: t('One uppercase letter') },
+                { key: 'hasLowercase', label: t('One lowercase letter') },
+                { key: 'hasNumber', label: t('One number') },
+                {
+                  key: 'hasSpecial',
+                  label: t('One special character (!@#$%^&*)'),
+                },
+              ].map(({ key, label }) => {
+                const passed =
+                  passwordValidation[key as keyof typeof passwordValidation];
+                return (
+                  <div
+                    key={key}
+                    className="flex items-center gap-1.5 text-[11px]"
+                  >
+                    {passed ? (
+                      <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <X className="h-3 w-3 text-slate-400 dark:text-slate-600" />
+                    )}
+                    <span
+                      className={
+                        passed
+                          ? 'text-emerald-700 dark:text-emerald-400'
+                          : 'text-slate-600 dark:text-slate-500'
+                      }
+                    >
+                      {label}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
+        </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={!isValid || isSubmitting}
-            className="hover:bg-primary/90 w-full rounded-md bg-primary py-3 text-lg font-semibold text-primary-foreground shadow-lg transition-all duration-200 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+        {/* Confirm Password */}
+        <div className="space-y-1.5">
+          <label
+            htmlFor="confirmPassword"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300"
           >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 inline h-5 w-5 animate-spin" />
-                Creating account...
-              </>
-            ) : (
-              'Create Account'
-            )}
-          </button>
-        </form>
-
-        {/* Divider */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border" />
+            {t('Confirm Password')}
+          </label>
+          <div className="relative">
+            <input
+              id="confirmPassword"
+              type={showConfirmPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              {...register('confirmPassword')}
+              className={`dark:border-slate-750 h-10 w-full rounded-xl border bg-white px-3 pr-10 text-xs text-slate-900 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-[#06080e] dark:text-slate-100 ${
+                errors.confirmPassword && touchedFields.confirmPassword
+                  ? 'border-rose-500'
+                  : touchedFields.confirmPassword &&
+                      confirmPassword === password &&
+                      password
+                    ? 'border-emerald-500'
+                    : 'border-slate-200'
+              }`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              aria-label={
+                showConfirmPassword
+                  ? t('Hide password confirmation')
+                  : t('Show password confirmation')
+              }
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+            {touchedFields.confirmPassword &&
+              confirmPassword === password &&
+              password &&
+              !errors.confirmPassword && (
+                <Check className="absolute right-9 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-600" />
+              )}
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="bg-card px-4 text-muted-foreground">
-              Or register with
-            </span>
+          {errors.confirmPassword && touchedFields.confirmPassword && (
+            <p className="flex items-center gap-1 text-xs text-rose-600">
+              <X className="h-3.5 w-3.5" />
+              {errors.confirmPassword.message}
+            </p>
+          )}
+        </div>
+
+        {/* Referral Code */}
+        <div className="space-y-1.5">
+          <label
+            htmlFor="referralCode"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+          >
+            {t('Referral Code (Optional)')}
+          </label>
+          <p className="text-[11px] text-amber-600 dark:text-amber-400">
+            {t('Have an affiliate code? Get')} {discountPercent}%{' '}
+            {t('off this month!')}
+          </p>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                id="referralCode"
+                type="text"
+                placeholder="REF-ABC123XYZ"
+                value={referralCode}
+                onChange={(e) => {
+                  const upper = e.target.value.toUpperCase();
+                  setReferralCode(upper);
+                  setValue('referralCode', upper, { shouldValidate: true });
+                  if (isCodeValid || codeError) {
+                    setIsCodeValid(false);
+                    setCodeError('');
+                    setVerifiedCode(null);
+                  }
+                }}
+                className={`dark:border-slate-750 h-10 w-full rounded-xl border bg-white px-3 pr-9 text-xs text-slate-900 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-[#06080e] dark:text-slate-100 ${
+                  isCodeValid
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20'
+                    : codeError
+                      ? 'border-rose-500 bg-rose-50 dark:bg-rose-950/20'
+                      : 'border-slate-200'
+                }`}
+                maxLength={20}
+              />
+              {isCodeValid && (
+                <Check className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-600" />
+              )}
+              {codeError && (
+                <X className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-rose-600" />
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => verifyCode(referralCode)}
+              disabled={referralCode.length < 6 || isVerifying}
+              className="dark:border-slate-750 h-10 rounded-xl border border-slate-200 bg-slate-100 px-4 text-xs font-semibold text-slate-800 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            >
+              {isVerifying ? (
+                <Loader2 className="inline h-3.5 w-3.5 animate-spin" />
+              ) : (
+                t('Verify')
+              )}
+            </button>
+          </div>
+          {isCodeValid && (
+            <>
+              <p className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                <Check className="h-3.5 w-3.5 flex-shrink-0" />
+                {t('Valid code! You’ll get')} {discountPercent}%{' '}
+                {t('off PRO ($')}
+                {calculateDiscountedPrice(regularPrice).toFixed(2)}
+                {t('/month instead of $')}
+                {regularPrice.toFixed(2)})
+              </p>
+              <span className="mt-1 inline-block rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                🎉 {discountPercent}% {t('DISCOUNT APPLIED')}
+              </span>
+            </>
+          )}
+          {codeError && (
+            <p className="flex items-center gap-1 text-xs text-rose-600">
+              <X className="h-3.5 w-3.5" />
+              {codeError}
+            </p>
+          )}
+        </div>
+
+        {/* Terms Checkbox */}
+        <div className="flex items-start gap-2.5">
+          <input
+            id="terms"
+            type="checkbox"
+            {...register('agreedToTerms')}
+            className="mt-0.5 h-3.5 w-3.5 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+          />
+          <div className="flex-1">
+            <label
+              htmlFor="terms"
+              className="cursor-pointer text-xs leading-relaxed text-slate-600 dark:text-slate-400"
+            >
+              {t('I agree to the')}{' '}
+              <Link
+                href="/terms"
+                className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
+              >
+                {t('Terms of Service')}
+              </Link>{' '}
+              {t('and')}{' '}
+              <Link
+                href="/privacy"
+                className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
+              >
+                {t('Privacy Policy')}
+              </Link>
+            </label>
+            {errors.agreedToTerms && (
+              <p className="mt-1 flex items-center gap-1 text-xs text-rose-600">
+                <X className="h-3.5 w-3.5" />
+                {errors.agreedToTerms.message}
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Social Auth */}
-        <SocialAuthButtons />
-
-        {/* Footer Links */}
-        <div className="mt-6 space-y-2 text-center">
-          <p className="text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link
-              href="/login"
-              className="font-semibold text-primary hover:underline"
-            >
-              Login
-            </Link>
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-            <Link
-              href="/forgot-password"
-              className="text-primary hover:underline"
-            >
-              Forgot password?
-            </Link>
-            <span className="text-muted-foreground">—</span>
-            <Link
-              href="/affiliate/register"
-              className="text-xs text-primary hover:underline"
-            >
-              Don&apos;t have a referral code? Join our Affiliate Program
-            </Link>
+        {/* Error Display */}
+        {error && (
+          <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs dark:border-rose-500/30 dark:bg-rose-950/40">
+            <div className="text-rose-700 dark:text-rose-300">{error}</div>
           </div>
+        )}
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={!isValid || isSubmitting}
+          className="h-10 w-full rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
+              {t('Creating account...')}
+            </>
+          ) : (
+            t('Create Account')
+          )}
+        </button>
+      </form>
+
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-slate-200 dark:border-slate-800/80" />
+        </div>
+        <div className="relative flex justify-center text-[11px]">
+          <span className="bg-white px-4 text-slate-400 dark:bg-[#0b0e17] dark:text-slate-500">
+            {t('Or register with')}
+          </span>
+        </div>
+      </div>
+
+      {/* Social Auth */}
+      <SocialAuthButtons />
+
+      {/* Footer Links */}
+      <div className="space-y-2 border-t border-slate-200 pt-4 text-center text-xs dark:border-slate-800/80">
+        <p className="text-slate-500 dark:text-slate-400">
+          {t('Already have an account?')}{' '}
+          <Link
+            href="/login"
+            className="font-semibold text-amber-600 hover:underline dark:text-amber-400"
+          >
+            {t('Login')}
+          </Link>
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Link
+            href="/forgot-password"
+            className="text-amber-600 hover:underline dark:text-amber-400"
+          >
+            {t('Forgot password?')}
+          </Link>
+          <span className="text-slate-400 dark:text-slate-600">—</span>
+          <Link
+            href="/affiliate/register"
+            className="text-[11px] text-amber-600 hover:underline dark:text-amber-400"
+          >
+            {t("Don't have a referral code? Join our Affiliate Program")}
+          </Link>
         </div>
       </div>
     </div>

@@ -71,9 +71,9 @@ export default function SocialAuthButtons(): JSX.Element {
   // If no OAuth providers are configured, show a message
   if (providersLoaded && !hasAnyOAuthProvider) {
     return (
-      <div className="py-2 text-center text-sm text-muted-foreground">
+      <div className="py-2 text-center text-xs text-muted-foreground">
         <p>Social login not configured.</p>
-        <p className="mt-1 text-xs">Use email/password to sign in.</p>
+        <p className="mt-1 text-[11px]">Use email/password to sign in.</p>
       </div>
     );
   }
@@ -86,7 +86,7 @@ export default function SocialAuthButtons(): JSX.Element {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={isLoading}
-          className="flex w-full items-center justify-center rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="dark:border-slate-750 flex h-10 w-full items-center justify-center rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#0b0e17] dark:text-slate-200 dark:hover:bg-[#12151f]"
         >
           {loadingProvider === 'google' ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -124,7 +124,7 @@ export default function SocialAuthButtons(): JSX.Element {
           type="button"
           onClick={handleTwitterSignIn}
           disabled={isLoading}
-          className="flex w-full items-center justify-center rounded-md border border-black bg-black px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white dark:bg-white dark:text-black dark:hover:bg-gray-100"
+          className="flex h-10 w-full items-center justify-center rounded-xl border border-black bg-black text-xs font-semibold text-white shadow-sm transition-colors hover:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white dark:bg-white dark:text-black dark:hover:bg-slate-100"
         >
           {loadingProvider === 'twitter' ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
