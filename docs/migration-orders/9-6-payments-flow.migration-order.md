@@ -49,9 +49,9 @@ distinct from buying a new one), is this session's own open question below — n
 
 - [ ] **Session 9-5 CONFIRMED, executed, CLOSED** — `settings/` 11 live on `main`, route-manifest
       diff clean.
-- [ ] **`DECISION-LOG.md`'s DECISION-LOG.md size gate (EXECUTOR-PROTOCOL §1 step 0) resolved or
-      explicitly re-deferred** — flagged at 9-5's own close as ~101.5KB, roughly double its ~50KB
-      target, predating 9-5. Do not skip this check again.
+- [ ] **`DECISION-LOG.md`'s size gate (EXECUTOR-PROTOCOL §1 step 0) resolved or explicitly
+      re-deferred** — flagged at 9-5's own close as ~101.5KB, roughly double its ~50KB target,
+      predating 9-5. Do not skip this check again.
 - [ ] **Route-map rows 60, 61, 69, 75, 87 re-verified directly** against
       `frontend-swap-route-map.md`.
 - [ ] **`app/checkout/page.tsx`, `app/checkout/return/page.tsx`, `app/upgrade/success/page.tsx`
