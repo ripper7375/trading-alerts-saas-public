@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -126,7 +127,7 @@ export default function AdminDashboardPage(): React.ReactElement {
   if (isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500" />
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
       </div>
     );
   }
@@ -134,13 +135,8 @@ export default function AdminDashboardPage(): React.ReactElement {
   if (error || !metrics) {
     return (
       <div className="py-8 text-center">
-        <p className="mb-4 text-red-400">{error || 'Failed to load metrics'}</p>
-        <Button
-          onClick={() => window.location.reload()}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          Retry
-        </Button>
+        <p className="mb-4 text-red-500">{error || 'Failed to load metrics'}</p>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
       </div>
     );
   }
@@ -149,75 +145,79 @@ export default function AdminDashboardPage(): React.ReactElement {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white sm:text-3xl">Dashboard</h1>
-        <p className="mt-1 text-gray-400">System overview and key metrics</p>
+        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+          Dashboard
+        </h1>
+        <p className="mt-1 text-muted-foreground">
+          System overview and key metrics
+        </p>
       </div>
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
         {/* Total Users */}
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Total Users
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-white sm:text-4xl">
+            <div className="text-3xl font-bold text-foreground sm:text-4xl">
               {metrics.overview.totalUsers.toLocaleString()}
             </div>
-            <p className="mt-1 text-sm text-green-400">
+            <p className="mt-1 text-sm text-emerald-600 dark:text-emerald-400">
               +{metrics.growth.newUsersThisMonth} this month
             </p>
           </CardContent>
         </Card>
 
         {/* FREE Users */}
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 text-gray-400">
+            <CardDescription className="flex items-center gap-2 text-muted-foreground">
               FREE Users
-              <Badge className="bg-gray-600 text-xs text-white hover:bg-gray-600">
+              <Badge className="bg-muted text-xs text-muted-foreground hover:bg-muted">
                 {metrics.overview.freePercentage.toFixed(1)}%
               </Badge>
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-white sm:text-4xl">
+            <div className="text-3xl font-bold text-foreground sm:text-4xl">
               {metrics.overview.freeUsers.toLocaleString()}
             </div>
           </CardContent>
         </Card>
 
         {/* PRO Users */}
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 text-gray-400">
+            <CardDescription className="flex items-center gap-2 text-muted-foreground">
               PRO Users
-              <Badge className="bg-blue-600 text-xs text-white hover:bg-blue-600">
+              <Badge className="bg-primary text-xs text-primary-foreground hover:bg-primary">
                 {metrics.overview.proPercentage.toFixed(1)}%
               </Badge>
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-400 sm:text-4xl">
+            <div className="text-3xl font-bold text-primary sm:text-4xl">
               {metrics.overview.proUsers.toLocaleString()}
             </div>
           </CardContent>
         </Card>
 
         {/* MRR */}
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Monthly Recurring Revenue
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-400 sm:text-4xl">
+            <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 sm:text-4xl">
               {formatCurrency(metrics.revenue.mrr)}
             </div>
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-1 text-sm text-muted-foreground">
               ARR: {formatCurrency(metrics.revenue.arr)}
             </p>
           </CardContent>
@@ -227,18 +227,18 @@ export default function AdminDashboardPage(): React.ReactElement {
       {/* Secondary Metrics */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Conversion Rate */}
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-white">Conversion Rate</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-foreground">Conversion Rate</CardTitle>
+            <CardDescription className="text-muted-foreground">
               FREE to PRO conversion
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold text-blue-400 sm:text-5xl">
+            <div className="text-4xl font-bold text-primary sm:text-5xl">
               {metrics.revenue.conversionRate.toFixed(1)}%
             </div>
-            <p className="mt-2 text-sm text-gray-400">
+            <p className="mt-2 text-sm text-muted-foreground">
               {metrics.overview.proUsers} PRO out of{' '}
               {metrics.overview.totalUsers} total users
             </p>
@@ -246,10 +246,10 @@ export default function AdminDashboardPage(): React.ReactElement {
         </Card>
 
         {/* Tier Distribution */}
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-white">Tier Distribution</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-foreground">Tier Distribution</CardTitle>
+            <CardDescription className="text-muted-foreground">
               User breakdown by tier
             </CardDescription>
           </CardHeader>
@@ -258,14 +258,14 @@ export default function AdminDashboardPage(): React.ReactElement {
               {/* FREE Bar */}
               <div>
                 <div className="mb-1 flex justify-between text-sm">
-                  <span className="text-gray-400">FREE</span>
-                  <span className="text-white">
+                  <span className="text-muted-foreground">FREE</span>
+                  <span className="text-foreground">
                     {metrics.overview.freePercentage.toFixed(1)}%
                   </span>
                 </div>
-                <div className="h-3 w-full rounded-full bg-gray-700">
+                <div className="h-3 w-full rounded-full bg-muted">
                   <div
-                    className="h-3 rounded-full bg-gray-500 transition-all duration-500"
+                    className="bg-muted-foreground/50 h-3 rounded-full transition-all duration-500"
                     style={{ width: `${metrics.overview.freePercentage}%` }}
                   />
                 </div>
@@ -274,14 +274,14 @@ export default function AdminDashboardPage(): React.ReactElement {
               {/* PRO Bar */}
               <div>
                 <div className="mb-1 flex justify-between text-sm">
-                  <span className="text-gray-400">PRO</span>
-                  <span className="text-white">
+                  <span className="text-muted-foreground">PRO</span>
+                  <span className="text-foreground">
                     {metrics.overview.proPercentage.toFixed(1)}%
                   </span>
                 </div>
-                <div className="h-3 w-full rounded-full bg-gray-700">
+                <div className="h-3 w-full rounded-full bg-muted">
                   <div
-                    className="h-3 rounded-full bg-blue-600 transition-all duration-500"
+                    className="h-3 rounded-full bg-primary transition-all duration-500"
                     style={{ width: `${metrics.overview.proPercentage}%` }}
                   />
                 </div>
@@ -291,51 +291,51 @@ export default function AdminDashboardPage(): React.ReactElement {
         </Card>
 
         {/* Quick Actions */}
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-white">Quick Actions</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-foreground">Quick Actions</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Common admin tasks
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <a
+            <Link
               href="/admin/errors"
-              className="block w-full rounded-lg bg-gray-700 px-4 py-3 text-left text-white transition-colors hover:bg-gray-600"
+              className="hover:bg-accent/70 block w-full rounded-lg bg-accent px-4 py-3 text-left text-foreground transition-colors"
             >
               🚨 View Latest Errors
-            </a>
-            <a
+            </Link>
+            <Link
               href="/admin/users?tier=PRO"
-              className="block w-full rounded-lg bg-gray-700 px-4 py-3 text-left text-white transition-colors hover:bg-gray-600"
+              className="hover:bg-accent/70 block w-full rounded-lg bg-accent px-4 py-3 text-left text-foreground transition-colors"
             >
               👥 View PRO Users
-            </a>
-            <a
+            </Link>
+            <Link
               href="/admin/api-usage"
-              className="block w-full rounded-lg bg-gray-700 px-4 py-3 text-left text-white transition-colors hover:bg-gray-600"
+              className="hover:bg-accent/70 block w-full rounded-lg bg-accent px-4 py-3 text-left text-foreground transition-colors"
             >
               📊 API Usage Stats
-            </a>
-            <a
+            </Link>
+            <Link
               href="/admin/system/terminals"
-              className="block w-full rounded-lg bg-gray-700 px-4 py-3 text-left text-white transition-colors hover:bg-gray-600"
+              className="hover:bg-accent/70 block w-full rounded-lg bg-accent px-4 py-3 text-left text-foreground transition-colors"
             >
               🖥️ System Status &amp; Terminals
-            </a>
+            </Link>
           </CardContent>
         </Card>
       </div>
 
       {/* System Status & Infrastructure Operations */}
-      <Card className="border-gray-700 bg-gray-800">
+      <Card className="border-border bg-card">
         <CardHeader>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-white">
+              <CardTitle className="text-foreground">
                 System Status &amp; Infrastructure Operations
               </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-muted-foreground">
                 Core services, Flask API terminals, scheduled cron jobs, and
                 event outbox queue
               </CardDescription>
@@ -344,74 +344,78 @@ export default function AdminDashboardPage(): React.ReactElement {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <a
+            <Link
               href="/admin/system/terminals"
-              className="rounded-lg border border-gray-700 bg-gray-700/50 p-4 transition-colors hover:bg-gray-700"
+              className="bg-accent/50 rounded-lg border border-border p-4 transition-colors hover:bg-accent"
             >
               <div className="mb-1 text-xl">🖥️</div>
-              <div className="font-semibold text-white">
+              <div className="font-semibold text-foreground">
                 Flask API Terminals
               </div>
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Real-time terminal connections &amp; telemetry
               </p>
-            </a>
-            <a
+            </Link>
+            <Link
               href="/admin/system/jobs"
-              className="rounded-lg border border-gray-700 bg-gray-700/50 p-4 transition-colors hover:bg-gray-700"
+              className="bg-accent/50 rounded-lg border border-border p-4 transition-colors hover:bg-accent"
             >
               <div className="mb-1 text-xl">⏱️</div>
-              <div className="font-semibold text-white">Scheduled Jobs</div>
-              <p className="mt-1 text-xs text-gray-400">
+              <div className="font-semibold text-foreground">
+                Scheduled Jobs
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
                 Cron jobs, maintenance tasks &amp; schedules
               </p>
-            </a>
-            <a
+            </Link>
+            <Link
               href="/admin/system/outbox"
-              className="rounded-lg border border-gray-700 bg-gray-700/50 p-4 transition-colors hover:bg-gray-700"
+              className="bg-accent/50 rounded-lg border border-border p-4 transition-colors hover:bg-accent"
             >
               <div className="mb-1 text-xl">📤</div>
-              <div className="font-semibold text-white">Outbox Queue</div>
-              <p className="mt-1 text-xs text-gray-400">
+              <div className="font-semibold text-foreground">Outbox Queue</div>
+              <p className="mt-1 text-xs text-muted-foreground">
                 Reliable event processing &amp; retry engine
               </p>
-            </a>
-            <a
+            </Link>
+            <Link
               href="/admin/system/config-history"
-              className="rounded-lg border border-gray-700 bg-gray-700/50 p-4 transition-colors hover:bg-gray-700"
+              className="bg-accent/50 rounded-lg border border-border p-4 transition-colors hover:bg-accent"
             >
               <div className="mb-1 text-xl">📜</div>
-              <div className="font-semibold text-white">Config History</div>
-              <p className="mt-1 text-xs text-gray-400">
+              <div className="font-semibold text-foreground">
+                Config History
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
                 Audit log of system &amp; commission configs
               </p>
-            </a>
+            </Link>
           </div>
         </CardContent>
       </Card>
 
       {/* Recent Fraud Alerts */}
-      <Card className="border-gray-700 bg-gray-800">
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-white">Recent Fraud Alerts</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-foreground">Recent Fraud Alerts</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Latest fraud alerts across all users
           </CardDescription>
         </CardHeader>
         <CardContent>
           {activityError ? (
-            <p className="py-4 text-center text-red-400">{activityError}</p>
+            <p className="py-4 text-center text-red-500">{activityError}</p>
           ) : recentAlerts.length === 0 ? (
-            <p className="py-4 text-center text-gray-400">
+            <p className="py-4 text-center text-muted-foreground">
               No recent fraud alerts
             </p>
           ) : (
             <div className="space-y-3">
               {recentAlerts.map((alert) => (
-                <a
+                <Link
                   key={alert.id}
                   href={`/admin/fraud-alerts/${alert.id}`}
-                  className="flex items-center gap-4 rounded-lg bg-gray-700/50 p-3 transition-colors hover:bg-gray-700"
+                  className="bg-accent/50 flex items-center gap-4 rounded-lg p-3 transition-colors hover:bg-accent"
                 >
                   <span className="text-xl">
                     {alert.severity === 'CRITICAL' && '🚨'}
@@ -420,15 +424,19 @@ export default function AdminDashboardPage(): React.ReactElement {
                     {alert.severity === 'LOW' && '🔔'}
                   </span>
                   <div className="flex-1">
-                    <p className="text-sm text-white">{alert.description}</p>
+                    <p className="text-sm text-foreground">
+                      {alert.description}
+                    </p>
                     {alert.userEmail && (
-                      <p className="text-xs text-gray-400">{alert.userEmail}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {alert.userEmail}
+                      </p>
                     )}
                   </div>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted-foreground">
                     {new Date(alert.createdAt).toLocaleTimeString()}
                   </span>
-                </a>
+                </Link>
               ))}
             </div>
           )}

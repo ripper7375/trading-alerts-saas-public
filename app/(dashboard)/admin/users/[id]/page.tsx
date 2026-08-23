@@ -29,7 +29,7 @@ function badge(label: string, className: string): React.ReactElement {
 }
 
 const SUBSCRIPTION_STATUS_CLASS: Record<string, string> = {
-  ACTIVE: 'bg-green-600',
+  ACTIVE: 'bg-emerald-600',
   TRIALING: 'bg-blue-600',
   PAST_DUE: 'bg-yellow-600',
   UNPAID: 'bg-red-600',
@@ -41,13 +41,13 @@ const TRIAL_STATUS_CLASS: Record<string, string> = {
   NOT_STARTED: 'bg-gray-600',
   ACTIVE: 'bg-blue-600',
   EXPIRED: 'bg-gray-600',
-  CONVERTED: 'bg-green-600',
+  CONVERTED: 'bg-emerald-600',
   CANCELLED: 'bg-red-600',
 };
 
 const AFFILIATE_STATUS_CLASS: Record<string, string> = {
   PENDING_VERIFICATION: 'bg-yellow-600',
-  ACTIVE: 'bg-green-600',
+  ACTIVE: 'bg-emerald-600',
   SUSPENDED: 'bg-red-600',
   INACTIVE: 'bg-gray-600',
 };
@@ -139,73 +139,75 @@ export default async function AdminUserDetailPage({
       <div>
         <Link
           href="/admin/users"
-          className="text-sm text-blue-400 transition-colors hover:text-blue-300"
+          className="hover:text-primary/80 text-sm text-primary transition-colors"
         >
           ← Back to Users
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+        <h1 className="mt-2 text-2xl font-bold text-foreground sm:text-3xl">
           {user.name || 'No name'}
         </h1>
-        <p className="mt-1 text-gray-400">{user.email}</p>
+        <p className="mt-1 text-muted-foreground">{user.email}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* 1. Profile & Account Status */}
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-white">
+            <CardTitle className="text-foreground">
               Profile &amp; Account Status
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Registration and role information
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-400">Email</span>
-              <span className="text-white">{user.email}</span>
+              <span className="text-muted-foreground">Email</span>
+              <span className="text-foreground">{user.email}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Name</span>
-              <span className="text-white">{user.name || '—'}</span>
+              <span className="text-muted-foreground">Name</span>
+              <span className="text-foreground">{user.name || '—'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Role</span>
-              <span className="text-white">{user.role}</span>
+              <span className="text-muted-foreground">Role</span>
+              <span className="text-foreground">{user.role}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Tier</span>
+              <span className="text-muted-foreground">Tier</span>
               {badge(
                 user.tier,
-                user.tier === 'PRO' ? 'bg-blue-600' : 'bg-gray-600'
+                user.tier === 'PRO' ? 'bg-primary' : 'bg-muted'
               )}
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Email Verified</span>
+              <span className="text-muted-foreground">Email Verified</span>
               {user.emailVerified
-                ? badge('Verified', 'bg-green-600')
+                ? badge('Verified', 'bg-emerald-600')
                 : badge('Unverified', 'bg-red-600')}
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Account Status</span>
+              <span className="text-muted-foreground">Account Status</span>
               {user.isActive
-                ? badge('Active', 'bg-green-600')
+                ? badge('Active', 'bg-emerald-600')
                 : badge('Inactive', 'bg-red-600')}
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Registered</span>
-              <span className="text-white">{formatDate(user.createdAt)}</span>
+              <span className="text-muted-foreground">Registered</span>
+              <span className="text-foreground">
+                {formatDate(user.createdAt)}
+              </span>
             </div>
           </CardContent>
         </Card>
 
         {/* 2. Subscription & Billing Info */}
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-white">
+            <CardTitle className="text-foreground">
               Subscription &amp; Billing
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Tier, provider, and trial status
             </CardDescription>
           </CardHeader>
@@ -213,16 +215,15 @@ export default async function AdminUserDetailPage({
             {subscription ? (
               <>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Status</span>
+                  <span className="text-muted-foreground">Status</span>
                   {badge(
                     subscription.status,
-                    SUBSCRIPTION_STATUS_CLASS[subscription.status] ??
-                      'bg-gray-600'
+                    SUBSCRIPTION_STATUS_CLASS[subscription.status] ?? 'bg-muted'
                   )}
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Provider</span>
-                  <span className="text-white">
+                  <span className="text-muted-foreground">Provider</span>
+                  <span className="text-foreground">
                     {subscription.stripeSubscriptionId
                       ? 'Stripe'
                       : subscription.dLocalPaymentId
@@ -231,22 +232,22 @@ export default async function AdminUserDetailPage({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Subscription ID</span>
-                  <span className="font-mono text-xs text-gray-300">
+                  <span className="text-muted-foreground">Subscription ID</span>
+                  <span className="font-mono text-xs text-muted-foreground">
                     {subscription.stripeSubscriptionId ||
                       subscription.dLocalPaymentId ||
                       '—'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Plan</span>
-                  <span className="text-white">
+                  <span className="text-muted-foreground">Plan</span>
+                  <span className="text-foreground">
                     {subscription.planType || 'MONTHLY'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Period End</span>
-                  <span className="text-white">
+                  <span className="text-muted-foreground">Period End</span>
+                  <span className="text-foreground">
                     {subscription.expiresAt
                       ? formatDate(subscription.expiresAt)
                       : subscription.stripeCurrentPeriodEnd
@@ -256,19 +257,21 @@ export default async function AdminUserDetailPage({
                 </div>
               </>
             ) : (
-              <p className="text-gray-400">No subscription on record.</p>
+              <p className="text-muted-foreground">
+                No subscription on record.
+              </p>
             )}
-            <div className="flex justify-between border-t border-gray-700 pt-3">
-              <span className="text-gray-400">Trial Status</span>
+            <div className="flex justify-between border-t border-border pt-3">
+              <span className="text-muted-foreground">Trial Status</span>
               {badge(
                 user.trialStatus,
-                TRIAL_STATUS_CLASS[user.trialStatus] ?? 'bg-gray-600'
+                TRIAL_STATUS_CLASS[user.trialStatus] ?? 'bg-muted'
               )}
             </div>
             {user.trialEndDate && (
               <div className="flex justify-between">
-                <span className="text-gray-400">Trial Ends</span>
-                <span className="text-white">
+                <span className="text-muted-foreground">Trial Ends</span>
+                <span className="text-foreground">
                   {formatDate(user.trialEndDate)}
                 </span>
               </div>
@@ -277,35 +280,37 @@ export default async function AdminUserDetailPage({
         </Card>
 
         {/* 3. Security & 2FA Info */}
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-white">Security &amp; 2FA</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-foreground">
+              Security &amp; 2FA
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
               Two-factor status and session activity
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-400">2FA Status</span>
+              <span className="text-muted-foreground">2FA Status</span>
               {user.twoFactorEnabled
-                ? badge('Enabled', 'bg-green-600')
-                : badge('Disabled', 'bg-gray-600')}
+                ? badge('Enabled', 'bg-emerald-600')
+                : badge('Disabled', 'bg-muted')}
             </div>
             {user.twoFactorVerifiedAt && (
               <div className="flex justify-between">
-                <span className="text-gray-400">2FA Enabled On</span>
-                <span className="text-white">
+                <span className="text-muted-foreground">2FA Enabled On</span>
+                <span className="text-foreground">
                   {formatDate(user.twoFactorVerifiedAt)}
                 </span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-gray-400">Active Sessions</span>
-              <span className="text-white">{activeSessionCount}</span>
+              <span className="text-muted-foreground">Active Sessions</span>
+              <span className="text-foreground">{activeSessionCount}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Last Login (est.)</span>
-              <span className="text-white">
+              <span className="text-muted-foreground">Last Login (est.)</span>
+              <span className="text-foreground">
                 {lastLoginAt ? formatDate(lastLoginAt) : 'Never'}
               </span>
             </div>
@@ -313,23 +318,23 @@ export default async function AdminUserDetailPage({
         </Card>
 
         {/* 4. Fraud & Security Risk Flags */}
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               Fraud Alerts
               {fraudAlerts.length > 0 && (
-                <Badge className="bg-red-600 text-xs">
+                <Badge className="bg-red-600 text-xs text-white hover:bg-red-600">
                   {fraudAlerts.length}
                 </Badge>
               )}
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Most recent 10 fraud detection flags for this user
             </CardDescription>
           </CardHeader>
           <CardContent>
             {fraudAlerts.length === 0 ? (
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 No fraud alerts on record.
               </p>
             ) : (
@@ -337,27 +342,27 @@ export default async function AdminUserDetailPage({
                 {fraudAlerts.map((alert) => (
                   <li
                     key={alert.id}
-                    className="flex items-start justify-between gap-3 border-b border-gray-700/50 pb-3 last:border-0 last:pb-0"
+                    className="border-border/50 flex items-start justify-between gap-3 border-b pb-3 last:border-0 last:pb-0"
                   >
                     <div>
                       <Link
                         href={`/admin/fraud-alerts/${alert.id}`}
-                        className="text-sm font-medium text-white hover:text-blue-300"
+                        className="text-sm font-medium text-foreground hover:text-primary"
                       >
                         {alert.pattern}
                       </Link>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-muted-foreground">
                         {formatDate(alert.createdAt)}
                       </p>
                     </div>
                     <div className="flex flex-shrink-0 gap-2">
                       {badge(
                         alert.severity,
-                        FRAUD_SEVERITY_CLASS[alert.severity] ?? 'bg-gray-600'
+                        FRAUD_SEVERITY_CLASS[alert.severity] ?? 'bg-muted'
                       )}
                       {badge(
                         alert.status,
-                        FRAUD_STATUS_CLASS[alert.status] ?? 'bg-gray-600'
+                        FRAUD_STATUS_CLASS[alert.status] ?? 'bg-muted'
                       )}
                     </div>
                   </li>
@@ -368,18 +373,18 @@ export default async function AdminUserDetailPage({
         </Card>
 
         {/* 5. Affiliate & Code Info */}
-        <Card className="border-gray-700 bg-gray-800 lg:col-span-2">
+        <Card className="border-border bg-card lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-white">
+            <CardTitle className="text-foreground">
               Affiliate &amp; Code Info
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Affiliate standing and referral code activity
             </CardDescription>
           </CardHeader>
           <CardContent>
             {!user.isAffiliate || !affiliateProfile ? (
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 {user.isAffiliate
                   ? 'Marked as an affiliate but no affiliate profile exists.'
                   : 'Not an affiliate.'}
@@ -387,30 +392,36 @@ export default async function AdminUserDetailPage({
             ) : (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <div>
-                  <p className="text-xs text-gray-400">Status</p>
+                  <p className="text-xs text-muted-foreground">Status</p>
                   <div className="mt-1">
                     {badge(
                       affiliateProfile.status,
                       AFFILIATE_STATUS_CLASS[affiliateProfile.status] ??
-                        'bg-gray-600'
+                        'bg-muted'
                     )}
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Codes Distributed</p>
-                  <p className="mt-1 text-lg font-bold text-white">
+                  <p className="text-xs text-muted-foreground">
+                    Codes Distributed
+                  </p>
+                  <p className="mt-1 text-lg font-bold text-foreground">
                     {affiliateProfile._count.affiliateCodes}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Total Earnings</p>
-                  <p className="mt-1 text-lg font-bold text-white">
+                  <p className="text-xs text-muted-foreground">
+                    Total Earnings
+                  </p>
+                  <p className="mt-1 text-lg font-bold text-foreground">
                     ${affiliateProfile.totalEarnings.toString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400">Pending Commissions</p>
-                  <p className="mt-1 text-lg font-bold text-yellow-400">
+                  <p className="text-xs text-muted-foreground">
+                    Pending Commissions
+                  </p>
+                  <p className="mt-1 text-lg font-bold text-yellow-600 dark:text-yellow-400">
                     ${affiliateProfile.pendingCommissions.toString()}
                   </p>
                 </div>
