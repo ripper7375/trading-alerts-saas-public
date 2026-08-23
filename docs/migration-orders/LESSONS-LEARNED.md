@@ -14,7 +14,11 @@ same theme as their merge target — and L42 added; L43 added Session 9-7a; Sess
 into L23 — same "post-cutover monolith code looks alive but isn't" theme, no content lost — and
 L44 added, plus an addendum to L43; Session 9-8a: no new lesson added (stayed at the cap) --
 recurrence notes appended to L42 (stale `.next` cache, no version bump this time) and L43 (a third
-browser-tool timing gotcha, synchronous read racing React's batched re-render after a click)).
+browser-tool timing gotcha, synchronous read racing React's batched re-render after a click));
+Session 9-8b: no new lesson added (stayed at the cap) -- recurrence notes appended to L42
+(money-service-not-running half recurred a third time, distribute-codes this time) and L43 (a
+fourth browser-tool gotcha, `computer` `left_click` silently not registering, `element.click()`
+via `javascript_tool` as the reliable workaround).
 Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
 (same rule Session 9-6 hit at 41; nothing to merge yet, all 40 are still genuinely distinct).
 
@@ -411,6 +415,11 @@ Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must 
 - Recurrence (Session 9-8a, 2026-08-23): the exact stale-`.next`-cache symptom (every non-root
   route 404s, `/` alone works) recurred with no framework version bump involved this time — just a
   dev server left over from a prior session. Same fix (`rm -rf .next`, restart) confirmed clean.
+- Recurrence (Session 9-8b, 2026-08-23): the money-service-not-running half recurred a third time
+  — `POST .../distribute-codes` 500'd (`ECONNREFUSED` in `lib/money-service/client.ts`) on the
+  first live click; started via the existing `moneyservice` launch config, identical action
+  succeeded (200 OK) on retry. Any admin/affiliate write route that proxies to money-service will
+  hit this in a fresh dev environment until a session makes starting it the default.
 
 ### L43 — Browser-tool `form_input` on a checkbox/radio sets the DOM property without firing React's `onChange` — controlled state goes stale and a `disabled={!checked}` submit button silently stays disabled
 
@@ -438,6 +447,12 @@ Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must 
   batched re-render, making a working `onClick` handler look like it silently did nothing (a form
   submit's resulting state update read as stale/absent). `await new Promise(r => setTimeout(r,
 300))` before reading confirmed the state change had actually landed.
+- Recurrence (Session 9-8b, 2026-08-23): a fourth gotcha — `computer` `left_click` on a `ref`
+  silently failed to register a real click several times (dialog stayed closed, no request fired,
+  no tool error) even with the pane displayed and a fresh `read_page` just beforehand, while other
+  `computer` clicks in the same session worked fine; no reliable trigger found. `element.click()`
+  via `javascript_tool` never failed as a workaround — prefer it over retrying `computer` when a
+  click silently doesn't take effect.
 
 ### L44 — A hardcoded test-fixture `upsert` in a credentials `authorize()` callback can silently overwrite a real, live-earned DB state on every login
 
