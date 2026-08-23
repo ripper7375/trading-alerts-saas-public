@@ -3557,3 +3557,32 @@ payout` both reached their real content with zero redirect — confirmed via `wi
   `/affiliate/settings/payout` with zero redirect loop, both confirmed via
   `window.location.href` after navigation. `npx tsc --noEmit` clean; `test:ci` 160/160/2400/2400.
 - Approved by: n/a (technical, within the order's own Decision 1, Davin-approved).
+
+## F67 — RESOLVED, Session 10-1 (2026-08-23)
+
+- Status: RESOLVED
+- Session: 10-1 · Date: 2026-08-23
+- Decision: **Option B (Local Environment)** is the primary, authoritative environment for the
+  drawing-alert live smoke test — `operation-service`'s HTTP process (`main.ts`) and worker process
+  (`main-worker.ts`) run locally against the already-reachable dev Redis/Postgres instances
+  (`REDIS_URL`/`DATABASE_URL` in root `.env.local`). Option A (Contabo VPS) and Option C (Railway
+  scratch) are demoted to optional post-verification rehearsals, not required for this session.
+  Paired decision: price-crossing is triggered via a **deterministic synthetic Redis publish** to
+  `prices:XAUUSD:M5` (not a passive wait on live MT5 market ticks), so cooldown/one-shot edge
+  behavior can also be exercised on demand.
+- Evidence: CONFIRM-time live checks (2026-08-23) — root `.env.local`'s `DATABASE_URL`/`REDIS_URL`
+  both confirmed TCP-reachable (remote dev instances, not literally `127.0.0.1`); `operation-service`
+  `npm run build` clean; baseline suites re-run live and fresh (not from memory): monolith `test:ci`
+  153/153 suites, 2198/2198 tests; `operation-service` 42/42, 393/393; money-service 62/62, 526/526
+  (one transient timeout on `prisma.shutdown.spec.ts` during a concurrent run, re-ran in isolation
+  clean — resource contention per `LESSONS-LEARNED.md` L24, not a regression). Live smoke test
+  execution itself: all 4 Invariant Proofs verified (worker fire-dispatch log, DB `Notification` +
+  `Alert.triggerCount` mutation, `RealtimeGateway` relay, confirmed WS delivery to the browser's
+  authenticated room — chart-canvas marker visual deferred, `mt5-service`'s OHLCV socket server
+  out of scope); cooldown and one-shot both verified live with Redis-state-level confirmation
+  (`alert:cd:*`, `alert:fired:*` keys inspected directly). Full session detail in
+  `10-1-drawing-alert-smoke.migration-order.md`'s own Deviations 1-6.
+- Approved by: Davin (live chat, 2026-08-23) — both Decision 1 (execution environment) and
+  Decision 2 (synthetic price-trigger strategy) explicitly signed off, separate from the order's
+  general approval, per `EXECUTOR-PROTOCOL.md` §0 (`⚠ NEEDS EXPLICIT SIGN-OFF` items are not
+  covered by general approval alone); Proof 4's reduced-evidence acceptance also approved live.

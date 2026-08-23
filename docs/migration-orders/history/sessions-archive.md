@@ -7,6 +7,85 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 9-9** (`app/(dashboard)/admin/disbursement/*`, Phase 9, UI-BUILD), APPROVED,
+  CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. Twelfth session of Phase 9 — ships the
+  disbursement nested layout and all 10 of its rows: 22 (`/admin/disbursement`), 13 (`/accounts`,
+  confirmed redirect to `/recipients`), 15 (`/affiliates`), 14 (`/affiliates/[affiliateId]`), 16
+  (`/audit`), 18 (`/batches`), 17 (`/batches/[batchId]`), 19 (`/config`), 20 (`/recipients`), 21
+  (`/transactions`) — completing all 29 `app/(dashboard)/admin/*` rows repo-wide.
+  **CONFIRM found the by-now-familiar L3 pattern again** (committed HEAD held the bare PRE-DRAFT
+  with 5 open questions; the corrected, 5-decision, `Status: APPROVED` version existed only as an
+  uncommitted working-copy edit) and **three genuine order-vs-live-code conflicts, all resolved by
+  Davin live in the same message as "go" (the seventh time this loop has visibly closed the
+  Advisor↔Executor gap PD1 exists to bridge, after 9-5, 9-6, 9-7a, 9-7b, 9-8a, 9-8b):** (1) Row
+  19's `PATCH /api/disbursement/config` is a self-documented no-op placeholder (validates, logs,
+  persists nothing) while the order's own Verify line implied a real write — kept the placeholder,
+  tightened the page's own doc comment/success message/banner to disclose plainly that nothing
+  persists (not just the provider), wrapped Save in an `<AlertDialog>` restating that. (2)
+  `POST /api/disbursement/pay` (Quick Payment, Row 15) was a real batch-create-and-execute action
+  not named in the order's Feeds-on list or its AlertDialog enforcement list — folded into
+  Decision 4's scope, wrapped in `<AlertDialog>` showing affiliate + amount (low real-money risk
+  as wired: the UI never sends a `provider` param, and `RISE` — the only other value the route
+  accepts — is deactivated per F42). (3) `DECISION-LOG.md`'s 51,947-byte size-gate overage checked
+  and found not actionable — all resolved-flag narratives already archived by prior sessions; the
+  overage is inherent to F80's still-OPEN entry, which must stay inline.
+  **A fourth, genuinely new conflict found mid-execution, escalated separately (not part of
+  CONFIRM):** Row 20's planned Wise-recipient-revalidate `<AlertDialog>` (Decision 4) targets
+  `POST /api/wise/recipients/[id]/revalidate`, which reading the route found is
+  `requireAffiliate()`-guarded and self-service-only — it derives the target recipient from the
+  caller's own token, using `:id` only for an ownership check, not a lookup key. Wiring it into
+  the admin page as-is would 403 for a non-affiliate admin or silently revalidate the admin's own
+  recipient instead of the target affiliate's — an auth-semantics conflict, stopped and asked
+  Davin live per `EXECUTOR-PROTOCOL.md` §7 rather than build a new admin-scoped backend route (out
+  of this UI-BUILD session's dial) or wire the mismatch anyway. Davin: drop it from this session.
+  Registered `DECISION-LOG.md` **F81**; Row 20 ships restyled but stays read-only for Wise
+  recipients, matching its pre-session behavior.
+  **Money Safety Protocol live-verified for real, not just rendered:** seeded two throwaway
+  `PaymentBatch` fixtures (provider `MOCK`, zero external calls) to exercise the Execute and
+  Delete `<AlertDialog>`s end-to-end — both dialogs render the real batch number/payment
+  count/amount/provider, Cancel closes without firing, and the real confirm action round-trips
+  through the actual API (Execute: batch status PENDING→COMPLETED via `PaymentOrchestrator`;
+  Delete: real DB delete + `router.push` redirect, confirmed via the batches list going back to
+  0). Both fixtures cleaned up after. `money-service`'s Wise integration confirmed genuinely
+  sandboxed (`WISE_ENVIRONMENT=sandbox`, Test profile `29617748`) before any of this, so a real
+  WISE-provider execute — not exercised this session, no real batches existed to test with — would
+  also have been safe.
+  **Two more findings surfaced by that same real click-through, both pre-existing, fixed inline:**
+  (1) `GET /api/disbursement/batches/[batchId]` returns `transactions`/`auditLogs` as siblings of
+  `batch`, not nested inside it — Row 17's `fetchBatch()` did `setBatch(data.batch)` alone, so
+  `batch.transactions` was `undefined` for every batch, not just empty ones, crashing the page
+  (`Cannot read properties of undefined (reading 'filter')`) the instant it was pointed at real
+  data. Never caught before because `PaymentBatch` had zero rows in this DB until this session's
+  own seeded fixtures — registered as a recurrence of `LESSONS-LEARNED.md` L15 ("never-exercised
+  code carries a latent bug"), not a new lesson (file is at its 40-entry cap). (2) three `Badge`
+  instances picked up `bg-muted` from the session's own bulk sed pass but no matching text-color
+  override, leaving them on the Badge default variant's `text-primary-foreground` — a real
+  contrast bug on a muted background; added `text-muted-foreground`, verified both light/dark
+  `--muted`/`--muted-foreground` CSS variable pairs have solid built-in contrast.
+  **A dev-environment blocker, not a code defect:** port 3000 was held by a stale, orphaned
+  `node.exe` from a prior session (same environment-gap class as `LESSONS-LEARNED.md` L42, not
+  itself a new recurrence worth logging there) — Davin confirmed it was safe to kill, freeing the
+  port for this session's own live verification against the real `NEXTAUTH_URL` origin.
+  **All test baselines re-verified live, all green, exact match to entry-criterion baseline:**
+  monolith `tsc` clean, `eslint` 0 errors/2 warnings (down from 3 — this session's
+  `window.location.href`→`router.push()` fix on Row 17's delete handler closed one pre-existing
+  warning), `test:ci` 160/160 suites/2400/2400 tests (unchanged — no test files touched, only
+  production code); money-service 62/62 suites/526/526 tests and operation-service 42/42
+  suites/393/393 tests (both re-verified fresh at CONFIRM, unaffected by this session's
+  frontend-only changes).
+  **Route-manifest diff clean:** `git diff --stat` against the session's own start commit
+  (`2c728ba4`) confirms exactly the 10 rows' pages restyled + 1 modified layout — zero unrelated
+  route changes, zero new/deleted files (all 10 pages already existed on disk per Decision 3).
+  **`migration-stack-analysis.md` correctly needs no changes** (no files created/moved/deleted —
+  pure restyle-in-place). `migration-cutover-table.md` correctly needs no changes (Phase 9 is
+  additive builds, no route/slice moved).
+  **Artifacts updated:** `9-9-admin-disbursement.migration-order.md` (Status → CONFIRMED → CLOSED
+  SUCCESSFUL, 2 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md` (F81
+  registered, OPEN), `LESSONS-LEARNED.md` (recurrence note on L15, no new lesson — stayed at the
+  cap), this file (Current/Previous rotation — Session 9-8a moved to
+  `history/sessions-archive.md`). Session 9-10's order (Phase 9 exit, VERIFY-RETIRE) PRE-DRAFTed
+  per this session's own obligation.
+
 - _(superseded-by-above, retained for context)_ **Session 9-8b (`app/(dashboard)/admin/*`
   affiliates cluster, Phase 9, UI-BUILD), CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-23.
   Eleventh session of Phase 9 — ships route-map rows 11 (`/admin/affiliates`), 5

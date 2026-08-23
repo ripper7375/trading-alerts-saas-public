@@ -29,7 +29,10 @@ deferred action item written into `migration-stack-analysis.md`'s own per-sessio
 than registered as a `DECISION-LOG.md` flag, went unaddressed by three intervening sessions that
 each touched the very file it was about) but was not promoted, per this file's own cap rule --
 noted in Session 9-10's own Deviations for the Advisor to consider consolidating into an existing
-lesson or promoting once room exists.
+lesson or promoting once room exists. Session 10-1: no new lesson added (stayed at the cap) -- a
+recurrence note appended to L24 (a real Prisma `P2028` transaction-timeout, not just a misleading
+verification result, caused by this session's own concurrent local-process load against a shared
+pooled dev DB).
 Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
 (same rule Session 9-6 hit at 41; nothing to merge yet, all 40 are still genuinely distinct).
 
@@ -303,6 +306,7 @@ Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must 
 
 - Rule: Verification results are only valid in context — Railway logs for timing, background checks with in-flight edits, and scoped lint runs can all give false clean results. Re-run fresh, full-scope, with nothing in flight.
 - Source: Consolidated · Status: ACTIVE
+- Recurrence (Session 10-1, 2026-08-23): a functional-failure variant, not just a misleading-result one — a live `DispatcherService.dispatch()` call failed with a genuine Prisma `P2028` ("Unable to start a transaction in the given time") while running the monolith dev server, both `operation-service` processes, and several ad-hoc diagnostic scripts concurrently against the same shared pooled dev Postgres; plain non-transactional queries succeeded instantly throughout. Isolated by reproducing the exact `$transaction()` standalone — failed identically with default timeouts, then succeeded in 3.5s with an explicit extended `maxWait`. Reducing concurrent load (not a code change) made the real `dispatch()` succeed on retry. Rule extension: "nothing in flight" applies to real application code paths under test, not just to log/lint verification steps — a multi-process local smoke test against a shared pooled DB can produce a genuine, reproducible transaction-timeout failure from self-inflicted concurrent load, distinct from an actual code defect.
 
 ### L25 — Cross-origin browser verification
 

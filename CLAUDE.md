@@ -26,7 +26,80 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 9-10 (Phase 9 Exit, VERIFY-RETIRE + Deviation 1 admin-layout retirement),
+- **Current:** Session 10-1 (Drawing Engine & Line-Alert Live Smoke Test, Phase 10, INFRA/VERIFY),
+  APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. Resolves **F67** (smoke-test
+  execution environment) — Phase 10's own "one remaining unverified link": a real, live,
+  cross-process round trip from a price-cross through the alert worker to a real DB write,
+  realtime relay, and browser delivery.
+  **Both `⚠ NEEDS EXPLICIT SIGN-OFF` decisions confirmed separately by Davin, live in chat, distinct
+  from the order's general approval** (per `EXECUTOR-PROTOCOL.md` §0): Option B (local
+  `operation-service` HTTP+worker against the already-reachable dev Redis/Postgres, not Contabo VPS
+  or Railway scratch) as the primary environment, and a deterministic synthetic Redis price
+  publisher (not passive live MT5 ticks) as the crossing-trigger mechanism.
+  **L3 pattern again, benign:** committed HEAD held the bare `Status: PRE-DRAFT` order (no
+  `Decisions taken` section); the corrected `Status: APPROVED` version (4 Decisions, Davin's
+  approval line) existed only as an uncommitted working-copy edit — confirmed authentic by Davin
+  live, committed at session open.
+  **Two real defects found and fixed live, both disclosed, neither a drive-by:**
+  **1) `nest-cli.json`'s `deleteOutDir: true` races `start:dev` watch mode against
+  `start:worker`'s static `node dist/main-worker`.** Booting per the order's literal `npm run
+start:dev` crashed the worker (watch-mode rebuild wiped `dist/` mid-require of
+  `./alert-engine/alert-cron.scheduler`). Fixed by running one clean `npm run build` then booting
+  BOTH processes statically (`node dist/main` + `node dist/main-worker` — the order's own text
+  already sanctions this as equivalent). **2) CSP `connect-src` never allowed the local
+  `operation-service` origin, only its production Railway one** (same bug class as F54, just for
+  localhost) — browser WS connections to `ws://localhost:3001` were blocked before the handshake
+  could start. Minimal fix (`next.config.js`, added `http://localhost:3001`/`ws://localhost:3001`),
+  restarted, re-verified: `RealtimeGateway` logs `Client <id> authenticated as user <userId>`.
+  **All 4 Invariant Proofs verified live:** (1) worker log `dispatching fire`/`fire dispatched`
+  with correct correlationId; (2) Postgres `Notification` row created
+  (`"Price 2005 touched line @ 2000"`) + `Alert.triggerCount` incremented; (3) `RealtimeGateway`
+  relayed with zero malformed-payload rejection; (4) browser confirmed connected+authenticated in
+  the right room and `GET /api/notifications` matched the fired row — **the chart-canvas marker's
+  visual rendering could not be confirmed**, because `/terminal`'s separate OHLCV candlestick feed
+  (`mt5-service`'s own Flask-SocketIO server, `ws://localhost:5001`) was never in this session's
+  scope/running (no candle data loaded at all, independent of alerts). Escalated live per
+  `EXECUTOR-PROTOCOL.md` §7; **Davin approved accepting the confirmed WS-delivery evidence as
+  sufficient**, registering the visual check as a follow-up rather than a session blocker.
+  **Cooldown and one-shot both verified live, DB- and Redis-state-confirmed:** cooldown —
+  `triggerCount` held at 1 across an immediate re-cross 2.5s later, `alert:cd:<id>:line` confirmed
+  present in Redis with active TTL; one-shot — fired once (`triggerCount: 1`, `isActive: false`),
+  a second crossing well past its own 5s cooldown produced zero further fire
+  (`alert:fired:<id>` guard).
+  **One incidental, real Prisma `P2028`** ("Unable to start a transaction in the given time") on
+  the first fire-dispatch attempt, root-caused to this session's own concurrent load (monolith dev
+  server + both operation-service processes + several ad-hoc diagnostic scripts against the same
+  shared pooled dev Postgres) — reproduced standalone, confirmed slow-but-working (3.5s) with an
+  extended timeout, resolved by reducing concurrent load and retrying; no production code touched.
+  Registered as a recurrence on `LESSONS-LEARNED.md` L24 (stayed at the 40-entry cap).
+  **One new, real, disclosed data-hygiene defect found during test-fixture cleanup, registered as
+  `DECISION-LOG.md` **F82** (not fixed here — out of this INFRA/VERIFY session's scope, doesn't
+  block the smoke test): `DELETE /api/drawings/:id` cascades `Drawing → DrawingAlert` but never
+  touches the `Alert` row itself — every deleted line-alert-bearing drawing leaves a permanently
+  orphaned `PRICE_TOUCH_LINE` `Alert` row. Reproduced 4/4 times cleaning up this session's own
+  fixtures; cleaned up manually. Flagged for Session 10-2 (API coverage for `/api/drawings`) to
+  catch with a real assertion.
+  **All test fixtures cleaned up, DB and Redis left clean:** 4 test drawings deleted via the real
+  API (cascading their `DrawingAlert` rows), the 4 resulting orphaned `Alert` rows deleted manually
+  (F82 above), all test `Notification` rows deleted, Redis state keys for all 4 test alertIds
+  cleared, worker confirmed back to `watches loaded: 0 rows`. Both `operation-service` processes
+  and the monolith dev server stopped cleanly at close — no stray background processes left
+  running.
+  **All baselines re-verified fresh, post-session, zero regressions from this session's own
+  `next.config.js` CSP change:** monolith `test:ci` 153/153 suites/2198/2198 tests;
+  `operation-service` 42/42 suites/393/393 tests; money-service 62/62 suites/526/526 tests
+  (untouched, unaffected).
+  **`migration-cutover-table.md` and `migration-stack-analysis.md` correctly need no changes**
+  (no route/slice moved, no files created/moved/deleted — `next.config.js` was modified in place;
+  Slice 6's own cutover-table row already correctly notes `MIGRATE_ALERT_ENGINE` has no reader,
+  independently re-confirmed this session).
+  **Artifacts updated:\*\* `10-1-drawing-alert-smoke.migration-order.md` (Status → CONFIRMED →
+  CLOSED SUCCESSFUL, 6 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md`
+  (F67 resolved, F82 registered OPEN), `LESSONS-LEARNED.md` (recurrence note on L24, no new lesson
+  — stayed at the cap), this file (Current/Previous rotation — Session 9-9 moved to
+  `history/sessions-archive.md`). Session 10-2's order (e2e + API coverage) is next, per
+  `MASTER-ROADMAP-PHASES-7-15.md` §3 — not yet PRE-DRAFTed at time of writing; see Waiting on.
+- **Previous:** Session 9-10 (Phase 9 Exit, VERIFY-RETIRE + Deviation 1 admin-layout retirement),
   APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. **Phase 9 (Frontend Stack
   Replacement) is now CLOSED** — all 10 build sessions (9-1 through 9-9) plus this exit review
   are complete; all 85 CB1 routes live on real data, zero mock data outstanding (2 disclosed
@@ -117,84 +190,6 @@ charts` → `app/charts` (git mv, zero relative imports broken in either subtree
   `EXECUTOR-PROTOCOL.md` §7; the order also flags that `PHASE-4-SMOKE-TEST-RUNBOOK.md` is
   monolith-era and stale (alert-engine moved to `operation-service` at 4B-2/4B-3) and must be
   re-derived from live code, not followed literally.
-- **Previous:** Session 9-9 (`app/(dashboard)/admin/disbursement/*`, Phase 9, UI-BUILD), APPROVED,
-  CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. Twelfth session of Phase 9 — ships the
-  disbursement nested layout and all 10 of its rows: 22 (`/admin/disbursement`), 13 (`/accounts`,
-  confirmed redirect to `/recipients`), 15 (`/affiliates`), 14 (`/affiliates/[affiliateId]`), 16
-  (`/audit`), 18 (`/batches`), 17 (`/batches/[batchId]`), 19 (`/config`), 20 (`/recipients`), 21
-  (`/transactions`) — completing all 29 `app/(dashboard)/admin/*` rows repo-wide.
-  **CONFIRM found the by-now-familiar L3 pattern again** (committed HEAD held the bare PRE-DRAFT
-  with 5 open questions; the corrected, 5-decision, `Status: APPROVED` version existed only as an
-  uncommitted working-copy edit) and **three genuine order-vs-live-code conflicts, all resolved by
-  Davin live in the same message as "go" (the seventh time this loop has visibly closed the
-  Advisor↔Executor gap PD1 exists to bridge, after 9-5, 9-6, 9-7a, 9-7b, 9-8a, 9-8b):** (1) Row
-  19's `PATCH /api/disbursement/config` is a self-documented no-op placeholder (validates, logs,
-  persists nothing) while the order's own Verify line implied a real write — kept the placeholder,
-  tightened the page's own doc comment/success message/banner to disclose plainly that nothing
-  persists (not just the provider), wrapped Save in an `<AlertDialog>` restating that. (2)
-  `POST /api/disbursement/pay` (Quick Payment, Row 15) was a real batch-create-and-execute action
-  not named in the order's Feeds-on list or its AlertDialog enforcement list — folded into
-  Decision 4's scope, wrapped in `<AlertDialog>` showing affiliate + amount (low real-money risk
-  as wired: the UI never sends a `provider` param, and `RISE` — the only other value the route
-  accepts — is deactivated per F42). (3) `DECISION-LOG.md`'s 51,947-byte size-gate overage checked
-  and found not actionable — all resolved-flag narratives already archived by prior sessions; the
-  overage is inherent to F80's still-OPEN entry, which must stay inline.
-  **A fourth, genuinely new conflict found mid-execution, escalated separately (not part of
-  CONFIRM):** Row 20's planned Wise-recipient-revalidate `<AlertDialog>` (Decision 4) targets
-  `POST /api/wise/recipients/[id]/revalidate`, which reading the route found is
-  `requireAffiliate()`-guarded and self-service-only — it derives the target recipient from the
-  caller's own token, using `:id` only for an ownership check, not a lookup key. Wiring it into
-  the admin page as-is would 403 for a non-affiliate admin or silently revalidate the admin's own
-  recipient instead of the target affiliate's — an auth-semantics conflict, stopped and asked
-  Davin live per `EXECUTOR-PROTOCOL.md` §7 rather than build a new admin-scoped backend route (out
-  of this UI-BUILD session's dial) or wire the mismatch anyway. Davin: drop it from this session.
-  Registered `DECISION-LOG.md` **F81**; Row 20 ships restyled but stays read-only for Wise
-  recipients, matching its pre-session behavior.
-  **Money Safety Protocol live-verified for real, not just rendered:** seeded two throwaway
-  `PaymentBatch` fixtures (provider `MOCK`, zero external calls) to exercise the Execute and
-  Delete `<AlertDialog>`s end-to-end — both dialogs render the real batch number/payment
-  count/amount/provider, Cancel closes without firing, and the real confirm action round-trips
-  through the actual API (Execute: batch status PENDING→COMPLETED via `PaymentOrchestrator`;
-  Delete: real DB delete + `router.push` redirect, confirmed via the batches list going back to
-  0). Both fixtures cleaned up after. `money-service`'s Wise integration confirmed genuinely
-  sandboxed (`WISE_ENVIRONMENT=sandbox`, Test profile `29617748`) before any of this, so a real
-  WISE-provider execute — not exercised this session, no real batches existed to test with — would
-  also have been safe.
-  **Two more findings surfaced by that same real click-through, both pre-existing, fixed inline:**
-  (1) `GET /api/disbursement/batches/[batchId]` returns `transactions`/`auditLogs` as siblings of
-  `batch`, not nested inside it — Row 17's `fetchBatch()` did `setBatch(data.batch)` alone, so
-  `batch.transactions` was `undefined` for every batch, not just empty ones, crashing the page
-  (`Cannot read properties of undefined (reading 'filter')`) the instant it was pointed at real
-  data. Never caught before because `PaymentBatch` had zero rows in this DB until this session's
-  own seeded fixtures — registered as a recurrence of `LESSONS-LEARNED.md` L15 ("never-exercised
-  code carries a latent bug"), not a new lesson (file is at its 40-entry cap). (2) three `Badge`
-  instances picked up `bg-muted` from the session's own bulk sed pass but no matching text-color
-  override, leaving them on the Badge default variant's `text-primary-foreground` — a real
-  contrast bug on a muted background; added `text-muted-foreground`, verified both light/dark
-  `--muted`/`--muted-foreground` CSS variable pairs have solid built-in contrast.
-  **A dev-environment blocker, not a code defect:** port 3000 was held by a stale, orphaned
-  `node.exe` from a prior session (same environment-gap class as `LESSONS-LEARNED.md` L42, not
-  itself a new recurrence worth logging there) — Davin confirmed it was safe to kill, freeing the
-  port for this session's own live verification against the real `NEXTAUTH_URL` origin.
-  **All test baselines re-verified live, all green, exact match to entry-criterion baseline:**
-  monolith `tsc` clean, `eslint` 0 errors/2 warnings (down from 3 — this session's
-  `window.location.href`→`router.push()` fix on Row 17's delete handler closed one pre-existing
-  warning), `test:ci` 160/160 suites/2400/2400 tests (unchanged — no test files touched, only
-  production code); money-service 62/62 suites/526/526 tests and operation-service 42/42
-  suites/393/393 tests (both re-verified fresh at CONFIRM, unaffected by this session's
-  frontend-only changes).
-  **Route-manifest diff clean:** `git diff --stat` against the session's own start commit
-  (`2c728ba4`) confirms exactly the 10 rows' pages restyled + 1 modified layout — zero unrelated
-  route changes, zero new/deleted files (all 10 pages already existed on disk per Decision 3).
-  **`migration-stack-analysis.md` correctly needs no changes** (no files created/moved/deleted —
-  pure restyle-in-place). `migration-cutover-table.md` correctly needs no changes (Phase 9 is
-  additive builds, no route/slice moved).
-  **Artifacts updated:** `9-9-admin-disbursement.migration-order.md` (Status → CONFIRMED → CLOSED
-  SUCCESSFUL, 2 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md` (F81
-  registered, OPEN), `LESSONS-LEARNED.md` (recurrence note on L15, no new lesson — stayed at the
-  cap), this file (Current/Previous rotation — Session 9-8a moved to
-  `history/sessions-archive.md`). Session 9-10's order (Phase 9 exit, VERIFY-RETIRE) PRE-DRAFTed
-  per this session's own obligation.
 
 ## Key documents
 
