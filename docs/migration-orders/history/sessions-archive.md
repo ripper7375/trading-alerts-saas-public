@@ -7,6 +7,110 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 9-8b (`app/(dashboard)/admin/*`
+  affiliates cluster, Phase 9, UI-BUILD), CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-23.
+  Eleventh session of Phase 9 — ships route-map rows 11 (`/admin/affiliates`), 5
+  (`/admin/affiliates/[id]`), 6–10 (the 5 affiliate reports: code-flows, code-inventory,
+  commission-owings, profit-loss, sales-performance), 25 (`/admin/fraud-alerts`), 24
+  (`/admin/fraud-alerts/[id]`), 27 (`/admin/settings/affiliate`), 96 (`/admin/resources`, new).
+  Davin authorized execution live in chat after CONFIRM, resolving all 3 CONFIRM findings in the
+  same message as "go" (the sixth time this loop has visibly closed the Advisor↔Executor gap PD1
+  exists to bridge, after 9-5, 9-6, 9-7a, 9-7b, 9-8a).
+  **CONFIRM found the by-now-familiar L3 pattern again** (committed HEAD held the bare PRE-DRAFT
+  with 5 open questions; the corrected, 5-decision, `Status: APPROVED` version existed only as an
+  uncommitted working-copy edit) and **three genuine order-vs-live-code conflicts, all resolved by
+  Davin before execution:** (1) the order's own `admin/resources/[id]` citation claimed
+  `PATCH/DELETE`, but live code (route + the `lib/marketing-resources/service.ts` service layer)
+  only ever supported `GET/POST` + `DELETE` — no update capability exists anywhere in the stack;
+  corrected the citation rather than inventing a fake edit feature. (2) `app/api/admin/
+fraud-alerts/route.ts` and `.../[id]/route.ts` (this session's own Rows 24/25) still used the
+  pre-9-8a inline `session.user.role !== 'ADMIN'` JWT check, bypassing 9-8a's own `requireAdmin()`
+  DB-fallback fix — untouched since Session 2-4, predating that fix entirely; modernized both to
+  `requireAdmin()` in the same pass. (3) zero seeded `FraudAlert` rows existed in the DB, so
+  Row 24/25's own required live click-through couldn't exercise the real `PATCH` review actions —
+  seeded one test fixture (`MULTIPLE_FAILED_PAYMENTS`, tied to `free-test@trading-alerts.test`)
+  before verification.
+  **Live-verification finding, not caught at CONFIRM:** the first real click on `POST
+  .../distribute-codes` 500'd (`ECONNREFUSED` in `lib/money-service/client.ts`) —
+  `money-service` wasn't running locally, the third recurrence of `LESSONS-LEARNED.md` L42's
+  environment-gap class (after 9-6, 9-8a); started via the existing `moneyservice` launch config,
+  identical action succeeded (200 OK) on retry, confirmed via the affiliate's own codes count
+  moving 15 → 25 in the live DB.
+  **A second live-verification finding, fixed inline:** `PATCH /api/admin/fraud-alerts/[id]`'s
+  `updatedAlertUser` Prisma select omitted `tier` (GET's own select includes it) — pre-existing
+  since the route was written, untouched by this session's own auth-modernization change to the
+  same file. Surfaced live: the Tier field flipped to "Unknown" after clicking Mark Reviewed.
+  One-line fix.
+  **A pre-existing action found mid-restyle, not in the order's own Feeds-on list:**
+  `commission-owings`'s "Pay Commissions" button (native `prompt()`-based) calls a real, working
+  `POST /api/admin/commissions/pay` — read the route before touching it: pure DB bookkeeping
+  (marks existing `Commission` rows `PAID` with an admin-entered method/reference inside a
+  transaction), no payment-provider call, no real fund movement, so no §7 escalation triggered.
+  Restyled and moved to `<AlertDialog>` with real validation, consistent with the session's own
+  established pattern.
+  **`<AlertDialog>` (`components/ui/alert-dialog.tsx`, the same primitive 9-8a used for jobs/
+  outbox) replaces native `confirm()`/`prompt()` across every consequential write action this
+  session touched:** affiliate suspend (with reason)/reactivate/distribute-codes (with count +
+  reason), fraud-alert Block User (the one action of the three — alongside Mark Reviewed/Dismiss
+  — that performs a real account mutation, `blockUserFromFraudAlert()` sets `isActive: false`),
+  code-inventory's cancel-code, commission-owings' pay-commissions, and the new resources page's
+  delete-asset. All live-verified round-tripping for real except Block User itself, deliberately
+  not confirmed on the seeded fixture (would deactivate `free-test@trading-alerts.test`, a shared
+  account reused across many prior sessions' own fixtures, incl. F79/F80's own test subject) —
+  the identical dialog pattern was already proven three times over elsewhere in the same session
+  (Suspend, Distribute, Cancel-code), so Block User's dialog copy/mechanics were verified without
+  confirming it.
+  **`admin/resources` (Row 96, new) ported with real Vercel Blob-backed CRUD, not mock state:**
+  list/filter/search bound to `GET /api/admin/resources`, upload via a real multipart `Dialog`
+  form to `POST /api/admin/resources`, delete via `AlertDialog` to `DELETE .../[id]`. Seed-code's
+  own `AppHeader`/`AdminNav` dropped (the admin layout already provides that chrome) and its
+  fabricated "CDN Delivery Status: Edge Optimized" stat card not ported (Zero Mock Data) — 3 real
+  stat cards instead of 4. A self-caught bug in the copy-link handler (mishandled already-absolute
+  Vercel Blob URLs) was found and fixed before live verification touched that path, same fix shape
+  as `LESSONS-LEARNED.md` L30.
+  **A fourth browser-automation tooling gotcha found, registered as an addendum to
+  `LESSONS-LEARNED.md` L43 rather than a new lesson** (file is at its 40-lesson cap): `computer`
+  `left_click` on a `ref` silently failed to register a real click several times (no error, no
+  effect) even with the pane displayed and a fresh `read_page` immediately beforehand, while other
+  `computer` clicks in the same session worked fine — no reliable trigger found.
+  `element.click()` via `javascript_tool` never failed as the workaround.
+  **Two Jest assertions needed re-deriving, not reverting, per `LESSONS-LEARNED.md` L3/L18:**
+  `fraud-pattern-badge.test.tsx`/`fraud-alert-card.test.tsx` checked for the legacy hardcoded
+  `bg-*-100`/`text-*-800`/`text-*-600` classes this session's own Decision 5 intentionally
+  replaced with theme-reactive `bg-*-500/10`/`text-*-500`/`text-muted-foreground` tokens —
+  updated to match the real, intentional new classes.
+  **All test baselines re-verified live, all green, exact match to entry-criterion baseline:**
+  monolith `tsc` clean, `eslint` 0 errors/3 warnings (unchanged), `test:ci` 160/160 suites/
+  2400/2400 tests (re-run twice — the 9 failures from the badge/card token change resolved by the
+  test fixes above, confirmed clean on the second pass); money-service 62/62 suites/526/526
+  tests; operation-service 42/42 suites/393/393 tests.
+  **Route-manifest diff clean:** `git diff --stat` against the session's own start commit
+  (`086a69c6`) confirms exactly the 10 rows' pages restyled + 1 new page (`admin/resources`) + 1
+  modified layout (nav item) + 2 modified API routes (fraud-alerts auth + tier fix) + 2 modified
+  shared components (`FraudAlertCard`, `FraudPatternBadge`) + 2 test files — zero unrelated route
+  changes.
+  **Live side effects deliberately left in place, not reverted** (the real round-trips Step 6
+  requires): `free-test@trading-alerts.test`'s affiliate profile now has 25 codes (15 → 25 via
+  distribute, one cancelled, net status `ACTIVE` after a suspend→reactivate round-trip — matching
+  its state before this session); one seeded `FraudAlert` fixture transitioned `PENDING` →
+  `REVIEWED`.
+  **`DECISION-LOG.md` needed no changes** — no registered flag was touched or resolved this
+  session (all 3 CONFIRM findings and both live findings were resolved inline within scope, not
+  flag-worthy). `migration-cutover-table.md` correctly needs no changes (Phase 9 is additive
+  builds, no route/slice moved).
+  **Artifacts updated:** `9-8b-admin-affiliates.migration-order.md` (Status → CONFIRMED → CLOSED
+  SUCCESSFUL, 8 Deviations + checked Done-when/entry-criteria boxes), `migration-stack-analysis.md`
+  (Session 9-8b entry, 1 new/15 modified, all FRONTEND), `LESSONS-LEARNED.md` (recurrence notes on
+  L42 and L43, no new lesson — stayed at the cap), this file (Current/Previous rotation — Sessions
+  9-7b and the stale duplicate 9-7a entry moved to `history/sessions-archive.md`; 9-7b was never
+  actually archived at 9-8a's own close despite that session's close note claiming otherwise — a
+  hygiene miss now corrected). Session 9-9's order PRE-DRAFTed (`9-9-admin-disbursement.migration-
+order.md`) per this session's own obligation — 10 rows (`admin/disbursement/*`, one nested
+  layout), 5 open questions carried for the Advisor, most notably: Row 13 (`accounts`) is already
+  a Session-6-6 redirect with a stale 9-0-map citation, and Row 17's batch `execute` action is
+  real fund disbursement needing its own explicit money-escalation sign-off distinct from 9-8b's
+  own non-money confirmation-guard pattern.
+
 - _(superseded-by-above, retained for context)_ **Session 9-8a (`app/(dashboard)/admin/*` core
   cluster, Phase 9, UI-BUILD), CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-23. Tenth session
   of Phase 9 — ships route-map rows 34 (`/admin`), 33 (`/admin/users`), 32 (`/admin/users/[id]`),

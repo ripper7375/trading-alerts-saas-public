@@ -22,7 +22,14 @@ via `javascript_tool` as the reliable workaround). Session 9-9: no new lesson ad
 cap) -- a recurrence note appended to L15 (a data-shape variant of the same "never-exercised code
 carries a latent bug" theme: an API route returning `transactions`/`auditLogs` as siblings of
 `batch`, not nested inside it, went undetected because `PaymentBatch` had zero rows until this
-session's own live-verification seeded one).
+session's own live-verification seeded one). Session 9-10: no new lesson added (stayed at the
+cap) -- a recurrence note appended to L42 (stale `.next` cache, second occurrence with no version
+bump or leftover server involved). A genuinely new candidate lesson surfaced this session (a
+deferred action item written into `migration-stack-analysis.md`'s own per-session prose, rather
+than registered as a `DECISION-LOG.md` flag, went unaddressed by three intervening sessions that
+each touched the very file it was about) but was not promoted, per this file's own cap rule --
+noted in Session 9-10's own Deviations for the Advisor to consider consolidating into an existing
+lesson or promoting once room exists.
 Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
 (same rule Session 9-6 hit at 41; nothing to merge yet, all 40 are still genuinely distinct).
 
@@ -433,6 +440,10 @@ Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must 
   first live click; started via the existing `moneyservice` launch config, identical action
   succeeded (200 OK) on retry. Any admin/affiliate write route that proxies to money-service will
   hit this in a fresh dev environment until a session makes starting it the default.
+- Recurrence (Session 9-10, 2026-08-23): the stale-`.next`-cache half recurred a second time —
+  every non-root route 404'd right after `preview_start`/`next dev`, with no framework version
+  bump and no leftover dev server involved this time (a genuinely fresh server start). Same fix
+  (`rm -rf .next`, restart) confirmed clean before any live-verification work began.
 
 ### L43 — Browser-tool `form_input` on a checkbox/radio sets the DOM property without firing React's `onChange` — controlled state goes stale and a `disabled={!checked}` submit button silently stays disabled
 

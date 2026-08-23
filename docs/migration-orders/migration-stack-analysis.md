@@ -3969,8 +3969,57 @@ route files + 2 shared components, zero unrelated route changes.
 
 </details>
 
+<details>
+<summary>Session 9-10 (Phase 9 Exit, VERIFY-RETIRE + Deviation 1 admin-layout retirement) — 0 new, 36 renamed + 6 modified, 22 deleted, all FRONTEND</summary>
+
+Phase-exit CONFIRM found `/admin/**` (29 routes) rendering double chrome — the legacy
+codebase-1 shell this doc's own Session 9-4 entry above predicted would become "fully orphaned...
+flagged for Session 9-10's own dead-code exit criterion." Davin approved folding the real fix in
+as a scoped Deviation rather than a separate session.
+
+- **Renamed (33 admin page/layout files + 3 charts files, zero content change beyond the move):**
+  `app/(dashboard)/admin/**` → `app/admin/**`; `app/(dashboard)/charts/**` → `app/charts/**`. Zero
+  relative imports existed in either subtree (re-verified before moving), so both moves were
+  content-safe `git mv`.
+- **Modified — layout:** `app/admin/layout.tsx` gains the same `AppearanceProvider` +
+  `LoginTracker` + `TokenRefreshProvider` wrapper every other top-level protected layout uses
+  (`app/dashboard`, `app/settings`, `app/terminal`, `app/free`), plus `aria-label` on its
+  nav/aside landmarks. `app/admin/disbursement/layout.tsx` untouched — its own nested top-bar +
+  sidebar is pre-existing, intentional two-level admin nav (verified live, not a chrome bug).
+- **Deleted — the double-chrome culprit, now genuinely orphaned:**
+  `app/(dashboard)/layout.tsx` (the route group itself is retired), `components/layout/
+{header,sidebar,footer,mobile-nav}.tsx` (zero importers repo-wide once the group layout was
+  gone, re-verified immediately before deletion).
+- **Deleted — remaining dead codebase-1 components (Davin's explicit list, zero-importer-verified
+  before each deletion):** `components/billing/subscription-card.tsx` (F64's known dead code),
+  `components/alerts/{alert-card,alert-list}.tsx` (orphaned pair, superseded by `AlertsClient`
+  pre-Phase-9), `components/notifications/notification-bell.tsx` (Davin's explicit choice to
+  retire rather than wire into `AppHeader` — a disclosed functional regression, not a silent
+  removal), 12 legacy `components/admin/*.tsx` (superseded by 9-8b's inline builds) + their 6
+  orphaned test files. `components/admin/{FraudAlertCard,FraudPatternBadge}.tsx` (capitalized,
+  built 9-8b, live) explicitly not touched.
+- **Modified — tests:** 5 `__tests__/pages/admin/*.test.tsx` import paths repointed from the
+  retired `(dashboard)/admin` path to `app/admin`.
+- **Live-verification (real DOM measurements, not inference):** `/admin`, `/admin/users` now
+  render exactly 1 `<header>`/1 `<aside>`/1 `<main>` (was 2/2/2, real non-zero layout, not an L41
+  streaming artifact); `/admin/disbursement/*`'s 2 visible headers confirmed as the pre-existing
+  intentional design; `/charts` + `/charts/[symbol]/[timeframe]` still correctly redirect to
+  `/terminal`; light and dark mode both resolve real, distinct design-token values on the rebuilt
+  layout (dark body `oklch(0.145...)`, light body `oklch(1 0 0)`); zero new console errors (only
+  pre-existing dev-only HMR/CSP-blocked-localhost-socket noise, unrelated to this Deviation).
+- **Docs (not stack-analysis targets, listed for completeness):** this session's own migration
+  order (CONFIRMED, Deviation 1 filled), `frontend-swap-route-map.md` (rows 45/46 Session column
+  and 9-4's rows' target-path corrections, new addendum #9), `phase-6-frontend-gap-matrix.md`
+  (SUPERSEDED-BY-PHASE-9 banner).
+
+Route-manifest diff clean: 90 `page.tsx` files before and after (renames only, zero net add/
+remove of routable pages), zero duplicate-URL collisions repo-wide.
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-23 (Session 9-8b, admin affiliates cluster — rows
-5/6/7/8/9/10/11/24/25/27/96 shipped, fraud-alerts routes modernized to `requireAdmin()`)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-23 (Session 9-10, Phase 9 exit + admin-layout
+retirement Deviation — `/admin` and `/charts` promoted to top-level routes, legacy codebase-1
+shell chrome fully retired)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
