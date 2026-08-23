@@ -12,6 +12,24 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -70,7 +88,8 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [showDistributeModal, setShowDistributeModal] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [suspendReason, setSuspendReason] = useState('');
   const [distributeCount, setDistributeCount] = useState(10);
   const [distributeReason, setDistributeReason] = useState('');
 
@@ -104,17 +123,15 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
   }, [affiliateId, fetchAffiliate]);
 
   const handleSuspend = async (): Promise<void> => {
-    const reason = prompt('Enter suspension reason:');
-    if (!reason) return;
-
     setActionLoading(true);
+    setActionError(null);
     try {
       const response = await fetch(
         `/api/admin/affiliates/${affiliateId}/suspend`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reason }),
+          body: JSON.stringify({ reason: suspendReason }),
         }
       );
 
@@ -122,18 +139,18 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
         throw new Error('Failed to suspend affiliate');
       }
 
+      setSuspendReason('');
       await fetchAffiliate();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to suspend');
+      setActionError(err instanceof Error ? err.message : 'Failed to suspend');
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleReactivate = async (): Promise<void> => {
-    if (!confirm('Are you sure you want to reactivate this affiliate?')) return;
-
     setActionLoading(true);
+    setActionError(null);
     try {
       const response = await fetch(
         `/api/admin/affiliates/${affiliateId}/reactivate`,
@@ -148,7 +165,9 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
 
       await fetchAffiliate();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to reactivate');
+      setActionError(
+        err instanceof Error ? err.message : 'Failed to reactivate'
+      );
     } finally {
       setActionLoading(false);
     }
@@ -156,11 +175,12 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
 
   const handleDistributeCodes = async (): Promise<void> => {
     if (!distributeReason) {
-      alert('Please enter a reason');
+      setActionError('Please enter a reason');
       return;
     }
 
     setActionLoading(true);
+    setActionError(null);
     try {
       const response = await fetch(
         `/api/admin/affiliates/${affiliateId}/distribute-codes`,
@@ -178,12 +198,13 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
         throw new Error('Failed to distribute codes');
       }
 
-      setShowDistributeModal(false);
       setDistributeCount(10);
       setDistributeReason('');
       await fetchAffiliate();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to distribute codes');
+      setActionError(
+        err instanceof Error ? err.message : 'Failed to distribute codes'
+      );
     } finally {
       setActionLoading(false);
     }
@@ -211,30 +232,25 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
   const getStatusBadgeClass = (status: string): string => {
     switch (status) {
       case 'ACTIVE':
-        return 'bg-green-100 text-green-800';
-      case 'PENDING_VERIFICATION':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'SUSPENDED':
-        return 'bg-red-100 text-red-800';
-      case 'USED':
-        return 'bg-blue-100 text-blue-800';
-      case 'EXPIRED':
-        return 'bg-gray-100 text-gray-800';
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800';
       case 'PAID':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-500/10 text-green-500 hover:bg-green-500/10';
+      case 'PENDING_VERIFICATION':
+      case 'PENDING':
+        return 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/10';
+      case 'SUSPENDED':
+        return 'bg-red-500/10 text-red-500 hover:bg-red-500/10';
+      case 'USED':
+        return 'bg-blue-500/10 text-blue-500 hover:bg-blue-500/10';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-muted-foreground hover:bg-muted';
     }
   };
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <div className="py-12 text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
-          <p className="mt-4 text-gray-600">Loading affiliate details...</p>
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
       </div>
     );
@@ -242,13 +258,13 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
 
   if (error || !affiliate) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+      <div className="space-y-4">
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-500">
           {error || 'Affiliate not found'}
         </div>
         <Link
           href="/admin/affiliates"
-          className="mt-4 inline-block text-blue-600 hover:text-blue-800"
+          className="inline-block text-sm text-primary hover:underline"
         >
           &larr; Back to Affiliates
         </Link>
@@ -257,328 +273,408 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
+      <div>
         <Link
           href="/admin/affiliates"
-          className="text-sm text-blue-600 hover:text-blue-800"
+          className="text-sm text-muted-foreground transition-colors hover:text-primary"
         >
           &larr; Back to Affiliates
         </Link>
-        <div className="mt-4 flex items-start justify-between">
+        <div className="mt-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
               {affiliate.fullName}
             </h1>
-            <p className="text-gray-600">{affiliate.user.email}</p>
+            <p className="text-muted-foreground">{affiliate.user.email}</p>
           </div>
-          <div className="flex space-x-3">
+          <div className="flex flex-wrap gap-3">
             {affiliate.status === 'ACTIVE' && (
               <>
-                <button
-                  onClick={() => setShowDistributeModal(true)}
-                  disabled={actionLoading}
-                  className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  Distribute Codes
-                </button>
-                <button
-                  onClick={handleSuspend}
-                  disabled={actionLoading}
-                  className="rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50"
-                >
-                  Suspend
-                </button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button disabled={actionLoading}>Distribute Codes</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Distribute Bonus Codes
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Generate new affiliate codes for {affiliate.fullName}.
+                        This action is logged and cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="distribute-count">
+                          Number of Codes
+                        </Label>
+                        <Input
+                          id="distribute-count"
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={distributeCount}
+                          onChange={(e) =>
+                            setDistributeCount(Number(e.target.value))
+                          }
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="distribute-reason">Reason</Label>
+                        <Textarea
+                          id="distribute-reason"
+                          value={distributeReason}
+                          onChange={(e) => setDistributeReason(e.target.value)}
+                          placeholder="e.g., Performance bonus"
+                        />
+                      </div>
+                      {actionError && (
+                        <p className="text-sm text-red-500">{actionError}</p>
+                      )}
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setActionError(null)}>
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        disabled={!distributeReason.trim() || actionLoading}
+                        onClick={() => void handleDistributeCodes()}
+                      >
+                        {actionLoading ? 'Distributing...' : 'Distribute'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={actionLoading}>
+                      Suspend
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Suspend Affiliate?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {affiliate.fullName} will lose active affiliate status
+                        and their codes will stop earning commissions. This can
+                        be reversed via Reactivate.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="space-y-2">
+                      <Label htmlFor="suspend-reason">Suspension Reason</Label>
+                      <Textarea
+                        id="suspend-reason"
+                        value={suspendReason}
+                        onChange={(e) => setSuspendReason(e.target.value)}
+                        placeholder="e.g., Suspected fraudulent code usage"
+                      />
+                      {actionError && (
+                        <p className="text-sm text-red-500">{actionError}</p>
+                      )}
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={() => setActionError(null)}>
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        disabled={!suspendReason.trim() || actionLoading}
+                        onClick={() => void handleSuspend()}
+                        className="hover:bg-destructive/90 bg-destructive text-white"
+                      >
+                        {actionLoading ? 'Suspending...' : 'Suspend'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </>
             )}
             {affiliate.status === 'SUSPENDED' && (
-              <button
-                onClick={handleReactivate}
-                disabled={actionLoading}
-                className="rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
-              >
-                Reactivate
-              </button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button disabled={actionLoading}>Reactivate</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reactivate Affiliate?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {affiliate.fullName} will regain active affiliate status
+                      and their codes will resume earning commissions.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  {actionError && (
+                    <p className="text-sm text-red-500">{actionError}</p>
+                  )}
+                  <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setActionError(null)}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      disabled={actionLoading}
+                      onClick={() => void handleReactivate()}
+                    >
+                      {actionLoading ? 'Reactivating...' : 'Reactivate'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         </div>
       </div>
 
       {/* Profile Info */}
-      <div className="mb-8 grid grid-cols-2 gap-6">
-        <div className="rounded-lg bg-white p-6 shadow">
-          <h2 className="mb-4 text-lg font-semibold">Profile Information</h2>
-          <dl className="space-y-3">
-            <div className="flex justify-between">
-              <dt className="text-gray-600">Status</dt>
-              <dd>
-                <span
-                  className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusBadgeClass(affiliate.status)}`}
-                >
-                  {affiliate.status.replace('_', ' ')}
-                </span>
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-600">Country</dt>
-              <dd className="font-medium">{affiliate.country}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-600">Payment Method</dt>
-              <dd className="font-medium">{affiliate.paymentMethod}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-600">Verified At</dt>
-              <dd className="font-medium">
-                {formatDate(affiliate.verifiedAt)}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-600">Joined</dt>
-              <dd className="font-medium">{formatDate(affiliate.createdAt)}</dd>
-            </div>
-            {affiliate.suspensionReason && (
-              <div className="border-t border-gray-200 pt-3">
-                <dt className="text-sm text-red-600">Suspension Reason:</dt>
-                <dd className="font-medium text-red-800">
-                  {affiliate.suspensionReason}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="border-border bg-card">
+          <CardHeader>
+            <CardTitle className="text-foreground">
+              Profile Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="space-y-3">
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Status</dt>
+                <dd>
+                  <Badge className={getStatusBadgeClass(affiliate.status)}>
+                    {affiliate.status.replace('_', ' ')}
+                  </Badge>
                 </dd>
               </div>
-            )}
-          </dl>
-        </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Country</dt>
+                <dd className="font-medium text-foreground">
+                  {affiliate.country}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Payment Method</dt>
+                <dd className="font-medium text-foreground">
+                  {affiliate.paymentMethod}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Verified At</dt>
+                <dd className="font-medium text-foreground">
+                  {formatDate(affiliate.verifiedAt)}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Joined</dt>
+                <dd className="font-medium text-foreground">
+                  {formatDate(affiliate.createdAt)}
+                </dd>
+              </div>
+              {affiliate.suspensionReason && (
+                <div className="border-t border-border pt-3">
+                  <dt className="text-sm text-red-500">Suspension Reason:</dt>
+                  <dd className="font-medium text-red-500">
+                    {affiliate.suspensionReason}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </CardContent>
+        </Card>
 
-        <div className="rounded-lg bg-white p-6 shadow">
-          <h2 className="mb-4 text-lg font-semibold">Earnings Summary</h2>
-          <dl className="space-y-3">
-            <div className="flex justify-between">
-              <dt className="text-gray-600">Total Earnings</dt>
-              <dd className="text-lg font-medium">
-                {formatCurrency(affiliate.totalEarnings)}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-600">Pending Commissions</dt>
-              <dd className="font-medium text-yellow-600">
-                {formatCurrency(affiliate.pendingCommissions)}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-600">Paid Commissions</dt>
-              <dd className="font-medium text-green-600">
-                {formatCurrency(affiliate.paidCommissions)}
-              </dd>
-            </div>
-            <div className="flex justify-between border-t border-gray-200 pt-3">
-              <dt className="text-gray-600">Codes Distributed</dt>
-              <dd className="font-medium">{affiliate.totalCodesDistributed}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-600">Codes Used</dt>
-              <dd className="font-medium">{affiliate.totalCodesUsed}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-gray-600">Conversion Rate</dt>
-              <dd className="font-medium">
-                {affiliate.totalCodesDistributed > 0
-                  ? (
-                      (affiliate.totalCodesUsed /
-                        affiliate.totalCodesDistributed) *
-                      100
-                    ).toFixed(1)
-                  : 0}
-                %
-              </dd>
-            </div>
-          </dl>
-        </div>
+        <Card className="border-border bg-card">
+          <CardHeader>
+            <CardTitle className="text-foreground">Earnings Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="space-y-3">
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Total Earnings</dt>
+                <dd className="text-lg font-medium text-foreground">
+                  {formatCurrency(affiliate.totalEarnings)}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Pending Commissions</dt>
+                <dd className="font-medium text-amber-600 dark:text-amber-400">
+                  {formatCurrency(affiliate.pendingCommissions)}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Paid Commissions</dt>
+                <dd className="font-medium text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(affiliate.paidCommissions)}
+                </dd>
+              </div>
+              <div className="flex justify-between border-t border-border pt-3">
+                <dt className="text-muted-foreground">Codes Distributed</dt>
+                <dd className="font-medium text-foreground">
+                  {affiliate.totalCodesDistributed}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Codes Used</dt>
+                <dd className="font-medium text-foreground">
+                  {affiliate.totalCodesUsed}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Conversion Rate</dt>
+                <dd className="font-medium text-foreground">
+                  {affiliate.totalCodesDistributed > 0
+                    ? (
+                        (affiliate.totalCodesUsed /
+                          affiliate.totalCodesDistributed) *
+                        100
+                      ).toFixed(1)
+                    : 0}
+                  %
+                </dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Affiliate Codes */}
-      <div className="mb-8 rounded-lg bg-white shadow">
-        <div className="border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold">
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <CardTitle className="text-foreground">
             Affiliate Codes ({affiliate.affiliateCodes.length})
-          </h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Code
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Reason
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Distributed
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Expires
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Used
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {affiliate.affiliateCodes.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-6 py-8 text-center text-gray-500"
-                  >
-                    No codes distributed yet
-                  </td>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                    Code
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                    Status
+                  </th>
+                  <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
+                    Reason
+                  </th>
+                  <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
+                    Distributed
+                  </th>
+                  <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
+                    Expires
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                    Used
+                  </th>
                 </tr>
-              ) : (
-                affiliate.affiliateCodes.slice(0, 20).map((code) => (
-                  <tr key={code.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-mono text-sm">{code.code}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusBadgeClass(code.status)}`}
-                      >
-                        {code.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {code.distributionReason}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {formatDate(code.distributedAt)}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {formatDate(code.expiresAt)}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {formatDate(code.usedAt)}
+              </thead>
+              <tbody>
+                {affiliate.affiliateCodes.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-8 text-center text-muted-foreground"
+                    >
+                      No codes distributed yet
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                ) : (
+                  affiliate.affiliateCodes.slice(0, 20).map((code) => (
+                    <tr
+                      key={code.id}
+                      className="border-border/50 hover:bg-accent/30 border-b transition-colors"
+                    >
+                      <td className="px-4 py-3 font-mono text-sm text-foreground">
+                        {code.code}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge className={getStatusBadgeClass(code.status)}>
+                          {code.status}
+                        </Badge>
+                      </td>
+                      <td className="hidden px-4 py-3 text-sm text-muted-foreground md:table-cell">
+                        {code.distributionReason}
+                      </td>
+                      <td className="hidden px-4 py-3 text-sm text-muted-foreground lg:table-cell">
+                        {formatDate(code.distributedAt)}
+                      </td>
+                      <td className="hidden px-4 py-3 text-sm text-muted-foreground lg:table-cell">
+                        {formatDate(code.expiresAt)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {formatDate(code.usedAt)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Recent Commissions */}
-      <div className="rounded-lg bg-white shadow">
-        <div className="border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold">Recent Commissions</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Amount
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Earned
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                  Paid
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {affiliate.commissions.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-6 py-8 text-center text-gray-500"
-                  >
-                    No commissions yet
-                  </td>
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <CardTitle className="text-foreground">Recent Commissions</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                    Amount
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                    Earned
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                    Paid
+                  </th>
                 </tr>
-              ) : (
-                affiliate.commissions.map((commission) => (
-                  <tr key={commission.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium">
-                      {formatCurrency(commission.commissionAmount)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusBadgeClass(commission.status)}`}
-                      >
-                        {commission.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {formatDate(commission.earnedAt)}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {formatDate(commission.paidAt)}
+              </thead>
+              <tbody>
+                {affiliate.commissions.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-4 py-8 text-center text-muted-foreground"
+                    >
+                      No commissions yet
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Distribute Modal */}
-      {showDistributeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="w-full max-w-md rounded-lg bg-white p-6">
-            <h3 className="mb-4 text-lg font-semibold">
-              Distribute Bonus Codes
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Number of Codes
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={distributeCount}
-                  onChange={(e) => setDistributeCount(Number(e.target.value))}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Reason
-                </label>
-                <input
-                  type="text"
-                  value={distributeReason}
-                  onChange={(e) => setDistributeReason(e.target.value)}
-                  placeholder="e.g., Performance bonus"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2"
-                />
-              </div>
-            </div>
-            <div className="mt-6 flex justify-end space-x-3">
-              <button
-                onClick={() => setShowDistributeModal(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDistributeCodes}
-                disabled={actionLoading}
-                className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {actionLoading ? 'Distributing...' : 'Distribute'}
-              </button>
-            </div>
+                ) : (
+                  affiliate.commissions.map((commission) => (
+                    <tr
+                      key={commission.id}
+                      className="border-border/50 hover:bg-accent/30 border-b transition-colors"
+                    >
+                      <td className="px-4 py-3 font-medium text-foreground">
+                        {formatCurrency(commission.commissionAmount)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge
+                          className={getStatusBadgeClass(commission.status)}
+                        >
+                          {commission.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {formatDate(commission.earnedAt)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {formatDate(commission.paidAt)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        </div>
-      )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

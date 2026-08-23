@@ -11,6 +11,24 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -43,6 +61,39 @@ interface AffiliatesResponse {
   totalPages: number;
 }
 
+const REPORT_LINKS = [
+  {
+    href: '/admin/affiliates/reports/profit-loss',
+    icon: '📈',
+    title: 'P&L Report',
+    description: 'Revenue & margins',
+  },
+  {
+    href: '/admin/affiliates/reports/sales-performance',
+    icon: '🏆',
+    title: 'Sales Performance',
+    description: 'Top affiliates',
+  },
+  {
+    href: '/admin/affiliates/reports/commission-owings',
+    icon: '💰',
+    title: 'Commission Owings',
+    description: 'Pending payouts',
+  },
+  {
+    href: '/admin/affiliates/reports/code-inventory',
+    icon: '🎟️',
+    title: 'Code Inventory',
+    description: 'Distribution stats',
+  },
+  {
+    href: '/admin/affiliates/reports/code-flows',
+    icon: '🔄',
+    title: 'Code Flows',
+    description: 'Lifecycle & audit',
+  },
+] as const;
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COMPONENT
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -58,7 +109,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
     totalPages: 0,
   });
   const [filters, setFilters] = useState({
-    status: '',
+    status: 'ALL',
     country: '',
   });
 
@@ -68,7 +119,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
 
     try {
       const params = new URLSearchParams();
-      if (filters.status) params.set('status', filters.status);
+      if (filters.status !== 'ALL') params.set('status', filters.status);
       if (filters.country) params.set('country', filters.country);
       params.set('page', pagination.page.toString());
       params.set('limit', pagination.limit.toString());
@@ -94,19 +145,19 @@ export default function AdminAffiliatesPage(): React.ReactElement {
   }, [filters, pagination.page, pagination.limit]);
 
   useEffect(() => {
-    fetchAffiliates();
+    void fetchAffiliates();
   }, [fetchAffiliates]);
 
   const getStatusBadgeClass = (status: string): string => {
     switch (status) {
       case 'ACTIVE':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-500/10 text-green-500 hover:bg-green-500/10';
       case 'PENDING_VERIFICATION':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-blue-500/10 text-blue-500 hover:bg-blue-500/10';
       case 'SUSPENDED':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-500/10 text-red-500 hover:bg-red-500/10';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-muted-foreground hover:bg-muted';
     }
   };
 
@@ -121,258 +172,247 @@ export default function AdminAffiliatesPage(): React.ReactElement {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
           Affiliate Management
         </h1>
-        <p className="mt-2 text-gray-600">
+        <p className="mt-1 text-muted-foreground">
           Manage affiliates, distribute codes, and view performance
         </p>
       </div>
 
-      {/* Quick Links */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <Link
-          href="/admin/affiliates/reports/profit-loss"
-          className="rounded-lg bg-blue-50 p-4 transition-colors hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50"
-        >
-          <h3 className="font-semibold text-blue-800 dark:text-blue-200">
-            P&L Report
-          </h3>
-          <p className="text-sm text-blue-600 dark:text-blue-400">
-            Revenue & margins
-          </p>
-        </Link>
-        <Link
-          href="/admin/affiliates/reports/sales-performance"
-          className="rounded-lg bg-green-50 p-4 transition-colors hover:bg-green-100 dark:bg-green-900/30 dark:hover:bg-green-900/50"
-        >
-          <h3 className="font-semibold text-green-800 dark:text-green-200">
-            Sales Performance
-          </h3>
-          <p className="text-sm text-green-600 dark:text-green-400">
-            Top affiliates
-          </p>
-        </Link>
-        <Link
-          href="/admin/affiliates/reports/commission-owings"
-          className="rounded-lg bg-yellow-50 p-4 transition-colors hover:bg-yellow-100 dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50"
-        >
-          <h3 className="font-semibold text-yellow-800 dark:text-yellow-200">
-            Commission Owings
-          </h3>
-          <p className="text-sm text-yellow-600 dark:text-yellow-400">
-            Pending payouts
-          </p>
-        </Link>
-        <Link
-          href="/admin/affiliates/reports/code-inventory"
-          className="rounded-lg bg-purple-50 p-4 transition-colors hover:bg-purple-100 dark:bg-purple-900/30 dark:hover:bg-purple-900/50"
-        >
-          <h3 className="font-semibold text-purple-800 dark:text-purple-200">
-            Code Inventory
-          </h3>
-          <p className="text-sm text-purple-600 dark:text-purple-400">
-            Distribution stats
-          </p>
-        </Link>
-        <Link
-          href="/admin/affiliates/reports/code-flows"
-          className="rounded-lg bg-indigo-50 p-4 transition-colors hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50"
-        >
-          <h3 className="font-semibold text-indigo-800 dark:text-indigo-200">
-            Code Flows
-          </h3>
-          <p className="text-sm text-indigo-600 dark:text-indigo-400">
-            Lifecycle & audit
-          </p>
-        </Link>
-      </div>
+      {/* Quick Links to Reports */}
+      <Card className="border-border bg-card">
+        <CardHeader>
+          <CardTitle className="text-foreground">Affiliate Reports</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Program-wide reconciliation, performance and financial reports
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {REPORT_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="bg-accent/50 rounded-lg border border-border p-4 transition-colors hover:bg-accent"
+              >
+                <div className="mb-1 text-xl">{link.icon}</div>
+                <div className="font-semibold text-foreground">
+                  {link.title}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {link.description}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Filters */}
-      <div className="mb-6 rounded-lg bg-white p-4 shadow">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              Status
-            </label>
-            <select
-              value={filters.status}
-              onChange={(e) =>
-                setFilters({ ...filters, status: e.target.value })
-              }
-              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">All Statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="PENDING_VERIFICATION">Pending Verification</option>
-              <option value="SUSPENDED">Suspended</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
-          </div>
+      <Card className="border-border bg-card">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <label className="mb-2 block text-sm font-medium text-foreground">
+                Status
+              </label>
+              <Select
+                value={filters.status}
+                onValueChange={(value) =>
+                  setFilters({ ...filters, status: value })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Statuses</SelectItem>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="PENDING_VERIFICATION">
+                    Pending Verification
+                  </SelectItem>
+                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                  <SelectItem value="INACTIVE">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              Country
-            </label>
-            <input
-              type="text"
-              value={filters.country}
-              onChange={(e) =>
-                setFilters({ ...filters, country: e.target.value })
-              }
-              placeholder="US, UK, etc."
-              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+            <div className="flex-1">
+              <label className="mb-2 block text-sm font-medium text-foreground">
+                Country
+              </label>
+              <Input
+                value={filters.country}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setFilters({ ...filters, country: e.target.value })
+                }
+                placeholder="US, UK, etc."
+                aria-label="Filter by country"
+              />
+            </div>
 
-          <div className="flex items-end">
-            <button
-              onClick={() => setFilters({ status: '', country: '' })}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+            <Button
+              variant="outline"
+              onClick={() => setFilters({ status: 'ALL', country: '' })}
             >
               Clear Filters
-            </button>
+            </Button>
           </div>
-        </div>
+        </CardContent>
+      </Card>
+
+      {/* Summary */}
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <span>
+          Showing {affiliates.length} of {pagination.total} affiliates
+        </span>
+        <span>
+          Page {pagination.page} of {pagination.totalPages || 1}
+        </span>
       </div>
 
-      {/* Error State */}
-      {error && (
-        <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
-          {error}
-        </div>
-      )}
-
       {/* Table */}
-      {loading ? (
-        <div className="py-12 text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
-          <p className="mt-4 text-gray-600">Loading affiliates...</p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg bg-white shadow">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Name / Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Country
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Codes
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Earnings
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {affiliates.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-6 py-12 text-center text-gray-500"
-                  >
-                    No affiliates found
-                  </td>
-                </tr>
-              ) : (
-                affiliates.map((affiliate) => (
-                  <tr key={affiliate.id} className="hover:bg-gray-50">
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {affiliate.fullName}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {affiliate.user.email}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-gray-700">
-                      {affiliate.country}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusBadgeClass(affiliate.status)}`}
-                      >
-                        {affiliate.status.replace('_', ' ')}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-gray-700">
-                      {affiliate.totalCodesUsed} /{' '}
-                      {affiliate.totalCodesDistributed}
-                      <span className="ml-1 text-gray-400">
-                        ({affiliate.affiliateCodes.length} active)
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <div className="text-gray-900">
-                        {formatCurrency(affiliate.totalEarnings)}
-                      </div>
-                      <div className="text-sm text-yellow-600">
-                        {formatCurrency(affiliate.pendingCommissions)} pending
-                      </div>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <Link
-                        href={`/admin/affiliates/${affiliate.id}`}
-                        className="font-medium text-blue-600 hover:text-blue-800"
-                      >
-                        View Details
-                      </Link>
-                    </td>
+      <Card className="border-border bg-card">
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
+            </div>
+          ) : error ? (
+            <div className="py-8 text-center">
+              <p className="mb-4 text-red-500">{error}</p>
+              <Button onClick={() => void fetchAffiliates()}>Retry</Button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                      Name / Email
+                    </th>
+                    <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
+                      Country
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                      Status
+                    </th>
+                    <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
+                      Codes
+                    </th>
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                      Earnings
+                    </th>
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                      Actions
+                    </th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-
-          {/* Pagination */}
-          {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-3">
-              <div className="text-sm text-gray-700">
-                Showing page {pagination.page} of {pagination.totalPages} (
-                {pagination.total} total)
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() =>
-                    setPagination((prev) => ({
-                      ...prev,
-                      page: Math.max(1, prev.page - 1),
-                    }))
-                  }
-                  disabled={pagination.page === 1}
-                  className="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() =>
-                    setPagination((prev) => ({
-                      ...prev,
-                      page: Math.min(prev.totalPages, prev.page + 1),
-                    }))
-                  }
-                  disabled={pagination.page === pagination.totalPages}
-                  className="rounded-md border border-gray-300 px-3 py-1 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
+                </thead>
+                <tbody>
+                  {affiliates.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-4 py-12 text-center text-muted-foreground"
+                      >
+                        No affiliates found
+                      </td>
+                    </tr>
+                  ) : (
+                    affiliates.map((affiliate) => (
+                      <tr
+                        key={affiliate.id}
+                        className="border-border/50 hover:bg-accent/30 border-b transition-colors"
+                      >
+                        <td className="px-4 py-3">
+                          <Link
+                            href={`/admin/affiliates/${affiliate.id}`}
+                            className="font-medium text-foreground transition-colors hover:text-primary"
+                          >
+                            {affiliate.fullName}
+                          </Link>
+                          <div className="text-sm text-muted-foreground">
+                            {affiliate.user.email}
+                          </div>
+                        </td>
+                        <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
+                          {affiliate.country}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge
+                            className={getStatusBadgeClass(affiliate.status)}
+                          >
+                            {affiliate.status.replace('_', ' ')}
+                          </Badge>
+                        </td>
+                        <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">
+                          {affiliate.totalCodesUsed} /{' '}
+                          {affiliate.totalCodesDistributed}
+                          <span className="text-muted-foreground/70 ml-1">
+                            ({affiliate.affiliateCodes.length} active)
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="text-foreground">
+                            {formatCurrency(affiliate.totalEarnings)}
+                          </div>
+                          <div className="text-sm text-amber-600 dark:text-amber-400">
+                            {formatCurrency(affiliate.pendingCommissions)}{' '}
+                            pending
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Button asChild variant="outline" size="sm">
+                            <Link href={`/admin/affiliates/${affiliate.id}`}>
+                              View Details →
+                            </Link>
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      {pagination.totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() =>
+              setPagination((prev) => ({
+                ...prev,
+                page: Math.max(1, prev.page - 1),
+              }))
+            }
+            disabled={pagination.page === 1}
+          >
+            Previous
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Page {pagination.page} of {pagination.totalPages} (
+            {pagination.total} total)
+          </span>
+          <Button
+            variant="outline"
+            onClick={() =>
+              setPagination((prev) => ({
+                ...prev,
+                page: Math.min(prev.totalPages, prev.page + 1),
+              }))
+            }
+            disabled={pagination.page === pagination.totalPages}
+          >
+            Next
+          </Button>
         </div>
       )}
     </div>
