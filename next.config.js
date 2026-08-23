@@ -128,7 +128,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://*.googleusercontent.com https://*.githubusercontent.com https://*.stripe.com https://*.public.blob.vercel-storage.com",
               "font-src 'self' data:",
-              "connect-src 'self' https://api.stripe.com https://checkout.stripe.com https://operation-service-production.up.railway.app wss://operation-service-production.up.railway.app https://*.vercel-analytics.com https://ipapi.co",
+              "connect-src 'self' https://api.stripe.com https://checkout.stripe.com https://operation-service-production.up.railway.app wss://operation-service-production.up.railway.app http://localhost:3001 ws://localhost:3001 https://*.vercel-analytics.com https://ipapi.co",
               "frame-src 'self' https://js.stripe.com https://checkout.stripe.com",
               "frame-ancestors 'self'",
               "form-action 'self'",
