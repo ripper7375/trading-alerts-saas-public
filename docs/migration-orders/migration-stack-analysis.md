@@ -4017,9 +4017,36 @@ remove of routable pages), zero duplicate-URL collisions repo-wide.
 
 </details>
 
+<details>
+<summary>Session 10-2 (Drawing Engine & Line-Alert e2e + API Coverage, VERIFY + scoped bugfix) — 3 new, 4 modified, 0 deleted, TEST INFRA</summary>
+
+Session 10-1 correctly added no entry here (only `next.config.js` modified in place, no create/
+move/delete). This session's own step 1 fixed F82 and its steps 2-4 built the durable, repeatable
+regression coverage the roadmap's own Phase 10 line item calls for.
+
+- **New — test infrastructure:** `e2e/playwright.config.ts` (never existed outside
+  `e2e/archive/` despite root `package.json`'s `test:e2e*` scripts already pointing at this path —
+  created fresh, single `chromium` project, no `webServer` auto-start block, not the archived
+  5-browser + `storageState`-setup matrix); `e2e/tests/drawing-line-alerts.spec.ts` (the Phase 10
+  e2e journey: draw → attach alert → synthetic price cross → fires → WS delivery + `/notifications`,
+  scope narrowed twice live per this session's own Deviations 2); `postman/collections/
+drawing-line-alerts.postman_collection.json` (14 requests, 2 folders — drawing/line-alert CRUD +
+  the F82 zero-orphan regression assertion, authenticated via the real `token-login` bridge rather
+  than the existing `nextjs-api.postman_collection.json`'s fictional `/api/auth/login` pattern).
+- **Modified — F82 fix:** `operation-service/src/drawings/drawings.service.ts` (`remove()`) and
+  `app/api/drawings/[id]/route.ts` (`DELETE`) now collect and delete the backing `Alert` row(s)
+  before/after the cascading `Drawing` delete; `operation-service/src/drawings/
+drawings.service.spec.ts` (+2 tests). `package.json` (`test:api:drawings` script added,
+  `test:api:all` extended).
+- **Live-verification:** Newman 14/14 requests, 28/28 assertions (run twice — alone and under
+  concurrent load); Playwright 1/1 passed; full baseline re-run fresh post-change, zero regressions
+  (monolith 153/153-2198, `operation-service` 42/42-395 [+2], `money-service` 62/62-526, one
+  transient timing flake under concurrent load — isolated re-run clean, `LESSONS-LEARNED.md` L24).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-23 (Session 9-10, Phase 9 exit + admin-layout
-retirement Deviation — `/admin` and `/charts` promoted to top-level routes, legacy codebase-1
-shell chrome fully retired)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-23 (Session 10-2, drawing-engine e2e + API
+coverage — F82 fix, new Playwright/Newman test infrastructure, zero routes affected)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
