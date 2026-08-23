@@ -368,7 +368,9 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
               RiseWorks Account
-              <Badge className="bg-muted text-xs">Historical</Badge>
+              <Badge className="bg-muted text-xs text-muted-foreground">
+                Historical
+              </Badge>
             </CardTitle>
             <CardDescription className="text-muted-foreground">
               Archived per F42 — live payouts run through Wise

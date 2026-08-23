@@ -192,7 +192,16 @@ export default function BatchDetailsPage(): React.ReactElement {
       }
 
       const data = await response.json();
-      setBatch(data.batch);
+      // GET /api/disbursement/batches/[batchId] returns `transactions` and
+      // `auditLogs` as SIBLINGS of `batch`, not nested inside it (Session 9-9
+      // live-verification finding) -- `data.batch` alone never carries them,
+      // so batch.transactions/.auditLogs were undefined for every batch,
+      // pre-existing since this page was written.
+      setBatch({
+        ...data.batch,
+        transactions: data.transactions ?? [],
+        auditLogs: data.auditLogs ?? [],
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -495,7 +504,9 @@ export default function BatchDetailsPage(): React.ReactElement {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground">
             Transactions
-            <Badge className="bg-muted">{batch.transactions.length}</Badge>
+            <Badge className="bg-muted text-muted-foreground">
+              {batch.transactions.length}
+            </Badge>
           </CardTitle>
           <CardDescription className="text-muted-foreground">
             Individual payment transactions in this batch
@@ -580,7 +591,9 @@ export default function BatchDetailsPage(): React.ReactElement {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
               Audit Logs
-              <Badge className="bg-muted">{batch.auditLogs.length}</Badge>
+              <Badge className="bg-muted text-muted-foreground">
+                {batch.auditLogs.length}
+              </Badge>
             </CardTitle>
             <CardDescription className="text-muted-foreground">
               Activity history for this batch

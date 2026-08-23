@@ -274,7 +274,9 @@ function RiseWorksHistoricalTab(): React.ReactElement {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-foreground">
           RiseWorks Accounts
-          <Badge className="bg-muted text-xs">Historical</Badge>
+          <Badge className="bg-muted text-xs text-muted-foreground">
+            Historical
+          </Badge>
         </CardTitle>
         <CardDescription className="text-muted-foreground">
           RiseWorks is archived (F42) — this tab is a read-only historical
