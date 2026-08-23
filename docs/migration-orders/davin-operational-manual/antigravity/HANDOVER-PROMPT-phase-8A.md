@@ -97,7 +97,7 @@ Where they disagree: **live code wins**, then the roadmap, then the playbook.
 <YOUR_IMMEDIATE_TASK>
 
 **Session to draft:** `8-1` — Deletion Sweep
-**Variant:** Recommend confirming against `00-SKELETON-AND-RULES.md`'s variant table at DRAFT time (likely PORT/RETIRE-leaning — deletion of migrated surface, not new build); dial low-to-medium given the blast radius of deleting `app/api/**` routes.
+**Variant:** `TEMPLATE-VERIFY-RETIRE.md` — `00-SKELETON-AND-RULES.md` §2 lists Session 8-1 by name as a VERIFY-RETIRE example ("every CUTOVER, 8-1, 8-5, phase exits"), dial **near zero**. Checklists exist to be obeyed here, same as 10-3 — the deletion candidates and their verification/rollback are the content; this is not a session for creative scope expansion.
 **Order file:** `docs/migration-orders/8-1-deletion-sweep.migration-order.md` (currently `PRE-DRAFT`, written at Session 10-3's close per `EXECUTOR-PROTOCOL.md` §3)
 
 ### Action Items for this Turn:
