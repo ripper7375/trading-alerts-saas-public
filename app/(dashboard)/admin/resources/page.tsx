@@ -203,7 +203,7 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
       asset.category === 'SWIPE_COPY'
         ? (asset.copyText ?? '')
         : asset.fileUrl
-          ? `${window.location.origin}${asset.fileUrl.startsWith('/') ? asset.fileUrl : `/${asset.fileUrl}`}`
+          ? new URL(asset.fileUrl, window.location.origin).toString()
           : '';
     if (!text) return;
     void navigator.clipboard.writeText(text);
