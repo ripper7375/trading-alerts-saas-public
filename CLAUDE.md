@@ -26,7 +26,80 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 10-1 (Drawing Engine & Line-Alert Live Smoke Test, Phase 10, INFRA/VERIFY),
+- **Current:** Session 10-2 (Drawing Engine & Line-Alert e2e + API Coverage, Phase 10, VERIFY with
+  scoped bugfix), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. Resolves **F82**
+  (orphaned `Alert` row on `Drawing` deletion) and ships durable, repeatable automated regression
+  coverage (Playwright e2e + Newman API) for the drawing engine and line alerts — the roadmap's
+  own Phase 10 line item, converting Session 10-1's one-off manual proof into CI-grade proof.
+  **L3 pattern again, benign:** committed HEAD held the bare `Status: PRE-DRAFT` order; the
+  corrected `Status: APPROVED` version (4 Decisions, Davin's approval line) existed only as an
+  uncommitted working-copy edit — confirmed authentic by Davin live, committed at session open.
+  **A real, load-bearing live-code contradiction found and escalated, not silently worked
+  around** (`⚠ NEEDS EXPLICIT SIGN-OFF`, separate from general approval): Decision 1's Playwright
+  scope assumed a toast fires and `AppHeader` shows a live unread badge for fired-alert events.
+  Neither exists live — `AppHeader`'s bell (`components/layout/app-header.tsx:238`) is a static
+  decorative dot with no state/fetch/socket; the only `onNotification` consumer, `NotificationList`,
+  shows no toast, only a screen-reader-only announcement + list re-fetch. This directly matches
+  this file's own immediately-preceding Session 9-10 entry (`notification-bell.tsx` deleted, never
+  rewired into `AppHeader`, "no home since the chrome swap") — a `LESSONS-LEARNED.md` L37-class
+  gap (an order's claim not cross-checked against this project's own already-correct maintained
+  document, here CLAUDE.md itself). Davin chose live: keep the WS-frame capture as-is (real,
+  unaffected — both `notification` and `alert_fired` frames captured via Playwright's native
+  WebSocket inspection, content-asserted), swap the toast/badge legs for `/notifications` (the same
+  `NotificationList` component) actually rendering the new notification body and its own live
+  unread counter off the identical socket push. No new UI built (would have been UI-BUILD scope
+  creep inside a VERIFY session). The chart-marker DOM assertion stayed out of scope per Session
+  10-1's own precedent (marker logic already unit-tested, `mt5-service`'s OHLCV feed is
+  SEPARATE_STACK) — Davin re-confirmed this explicitly at CONFIRM.
+  **F82 fixed in both live paths, not dead code in either:** `operation-service/src/drawings/
+drawings.service.ts` (`remove()`, live path in Vercel production, `MIGRATE_DRAWINGS=true`) and
+  monolith `app/api/drawings/[id]/route.ts` (`DELETE`, live path in this local dev environment,
+  flag unset/`false`) both now collect the drawing's attached `DrawingAlert.alertId`(s) before the
+  cascading `Drawing` delete, then explicitly delete those now-orphaned `Alert` row(s).
+  **Live end-to-end proof, not just unit tests:** new Newman collection
+  (`postman/collections/drawing-line-alerts.postman_collection.json`, `npm run test:api:drawings`,
+  authenticated via the real `token-login` bridge rather than the existing collection's fictional
+  `/api/auth/login`/bearer pattern) — 14/14 requests, 28/28 assertions, including a direct F82
+  zero-orphan check (create drawing → attach line alert → delete drawing → `GET /api/alerts`
+  confirms the backing `Alert.id` is gone), run twice (alone and under concurrent load) both green.
+  New Playwright spec (`e2e/tests/drawing-line-alerts.spec.ts`, `e2e/playwright.config.ts` created
+  fresh — never existed outside `e2e/archive/` despite `package.json`'s `test:e2e*` scripts already
+  pointing at this path): draw → attach alert → synthetic Redis price cross (10-1's own proven
+  mechanism) → fires → both WS frames captured and content-asserted → `/notifications` shows the
+  live update. 1/1 passed.
+  **One incidental, disclosed transcript exposure at CONFIRM (not a fix — flagged for Davin):**
+  checking `operation-service/.env` for entry-criteria presence used a content-printing `grep`
+  instead of a presence-only check, echoing the real `NEXTAUTH_SECRET`/`DATABASE_URL`/`REDIS_URL`
+  values (local dev Railway instances, not production) into the transcript — `LESSONS-LEARNED.md`
+  L4's exact failure mode. Disclosed live immediately, not repeated afterward; rotation is Davin's
+  call.
+  **One incidental, real test flake under this session's own concurrent load, confirmed benign:**
+  `money-service`'s `prisma.shutdown.spec.ts` (completely untouched this session) failed once
+  during the full post-change baseline run (4 heavy suites + Newman + Playwright all concurrent);
+  isolated re-run passed clean — the _identical_ test failing the _identical_ way under the
+  _identical_ kind of load is independently recorded at Session 10-1's own CONFIRM
+  (`history/decisions-archive.md`'s F67 entry), confirming `LESSONS-LEARNED.md` L24's pattern, not
+  a regression.
+  **All baselines re-verified fresh, post-session:** monolith `test:ci` 153/153 suites/2198/2198
+  tests (unchanged); `operation-service` 42/42 suites/395/395 tests (+2, F82 coverage);
+  money-service 62/62 suites/526/526 tests (one transient flake above, isolated re-run clean).
+  **`migration-cutover-table.md` needs no changes** (no route/slice status moved — F82's fix lives
+  entirely inside already-cutover Slice 7/8 code paths). **`migration-stack-analysis.md` DOES need
+  an entry** (3 new test-infrastructure files, 4 modified) — added.
+  **`DECISION-LOG.md` size-gate check: 64,325 bytes, over the ~50KB target — checked and found not
+  actionable, same conclusion as 9-9's/9-10's own checks.** F82's full entry moved to
+  `history/decisions-archive.md` (its register row was missing entirely — added); the remaining
+  overage is inherent to F80/F81 both still being genuinely OPEN.
+  **Artifacts updated:** `10-2-e2e-api-coverage.migration-order.md` (Status → CONFIRMED → CLOSED
+  SUCCESSFUL, 5 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md` (F82
+  RESOLVED, register row added), `LESSONS-LEARNED.md` (recurrence note on L37, no new lesson —
+  stayed at the cap), `migration-stack-analysis.md` (Session 10-2 entry, 3 new/4 modified/0
+  deleted, TEST INFRA), this file (Current/Previous rotation — Session 9-10 moved to
+  `history/sessions-archive.md`). Session 10-3's order (Blueprint reconciliation & close,
+  VERIFY-RETIRE, fast-path eligible) PRE-DRAFTed per this session's own obligation
+  (`10-3-blueprint-reconciliation-close.migration-order.md`); it also owes Phase 11's own handover
+  prompt per `MASTER-ROADMAP-PHASES-7-15.md`'s own trigger table.
+- **Previous:** Session 10-1 (Drawing Engine & Line-Alert Live Smoke Test, Phase 10, INFRA/VERIFY),
   APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. Resolves **F67** (smoke-test
   execution environment) — Phase 10's own "one remaining unverified link": a real, live,
   cross-process round trip from a price-cross through the alert worker to a real DB write,
@@ -103,97 +176,6 @@ start:dev` crashed the worker (watch-mode rebuild wiped `dist/` mid-require of
   server, out of scope in 10-1) directly blocks 10-2's own stated e2e success criterion and needs
   a real resolution, not another reduced-evidence acceptance, since a Playwright assertion needs a
   concrete checkable condition.
-- **Previous:** Session 9-10 (Phase 9 Exit, VERIFY-RETIRE + Deviation 1 admin-layout retirement),
-  APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. **Phase 9 (Frontend Stack
-  Replacement) is now CLOSED** — all 10 build sessions (9-1 through 9-9) plus this exit review
-  are complete; all 85 CB1 routes live on real data, zero mock data outstanding (2 disclosed
-  exceptions, both pre-known and banner-flagged), Phase 10 (Drawing Engine & Line-Alert Closure)
-  is next.
-  **CONFIRM found a real, blocking defect before "go":** `/admin/**` (all 29 routes) rendered
-  double chrome — the legacy codebase-1 `Header`/`Sidebar`/`Footer` (still "Trading Alerts"-
-  branded, hardcoded `bg-white dark:bg-gray-800` footer) wrapping the DavinTrade `admin/
-layout.tsx` shell 9-8a built. Live browser measurement, not inference: 2 `<header>`s at
-  offsetTop 0/153, 1 legacy `<footer>` at offsetTop 1650 on a 1718px page, both fully visible
-  (`display:block`, non-zero heights). Root cause: Session 9-4 reverted
-  `app/(dashboard)/layout.tsx` to its legacy form specifically to keep serving `/admin/*` +
-  `/charts` after the new-shell mount broke them live (9-4's own Deviation 13); Session 9-5 gave
-  `/settings` the correct top-level-route fix, `/admin` never got the same — `migration-stack-
-analysis.md`'s own 9-4 entry predicted exactly this, flagging the legacy shell as "fully
-  orphaned... flagged for Session 9-10's own dead-code exit criterion." Davin approved (live in
-  chat) folding the real fix in as a scoped Deviation rather than a separate session, plus 3
-  further explicit decisions, all executed:
-  **1) Admin layout retirement** — `app/(dashboard)/admin` → `app/admin`, `app/(dashboard)/
-charts` → `app/charts` (git mv, zero relative imports broken in either subtree),
-  `app/(dashboard)/layout.tsx` deleted, the route group retired entirely. `app/admin/layout.tsx`
-  gained the same `AppearanceProvider`+`LoginTracker`+`TokenRefreshProvider` wrapper every other
-  top-level protected layout uses (`app/dashboard`, `app/settings`, `app/terminal`, `app/free`),
-  plus `aria-label` on its nav/aside landmarks. Live-reverified post-fix: `/admin`, `/admin/users`
-  now render exactly 1 header/1 aside/1 main (was 2/2/2); `/admin/disbursement/*`'s own 2-level
-  chrome (admin nav + disbursement sub-nav) confirmed as pre-existing Session 9-9 design, not a
-  regression; `/charts` + `/charts/[symbol]/[timeframe]` still correctly redirect to `/terminal`;
-  zero "Trading Alerts" text left anywhere in the admin render tree. 5 `__tests__/pages/admin/
-*.test.tsx` import paths repointed from the retired `(dashboard)/admin` path.
-  **2) Dead codebase-1 cleanup, two batches, both zero-importer-verified immediately before
-  deletion (not solely trusting the CONFIRM-time audit):** batch 1 —
-  `components/layout/{header,sidebar,footer,mobile-nav}.tsx` (the double-chrome culprit itself,
-  genuinely orphaned once the shared layout was gone) + their 1 test file (33 tests). Batch 2 —
-  `components/billing/subscription-card.tsx` (F64's known broken-Undo dead code),
-  `components/alerts/{alert-card,alert-list}.tsx` (orphaned pair, superseded by `AlertsClient`
-  pre-Phase-9), 12 legacy `components/admin/*.tsx` (superseded by 9-8b's inline builds) + 6
-  orphaned test files, and `components/notifications/notification-bell.tsx` — Davin's explicit
-  choice to retire (delete) rather than wire into `AppHeader`, a **disclosed functional
-  regression** (real-time notification-bell UI has had no home since the chrome swap), not a
-  silent removal. `components/admin/{FraudAlertCard,FraudPatternBadge}.tsx` (9-8b, live)
-  explicitly not touched.
-  **3) Route map + gap matrix docs:** `frontend-swap-route-map.md` rows 45/46 Session column
-  corrected `9-7a`→`9-7b` (confirmed via `git log` commit `05c10b89`); rows
-  49/50/51/57/58/59/62/68 (9-4's own rows) Main-Repo-Target/Layout-Boundary columns corrected to
-  their real shipped top-level paths — both drifts existed before this session, from live
-  reassignments/corrections that were never written back into the map. New addendum #9 documents
-  this session's own admin+charts promotion; the ~40 admin/disbursement row citations were left
-  as historical record per the map's own established convention rather than individually
-  rewritten. `phase-6-frontend-gap-matrix.md` marked `SUPERSEDED-BY-PHASE-9`, historical content
-  preserved intact.
-  **4) Multi-theme sweep + final baseline:** every route in the order's own checklist item 4 spot-
-  checked in dark AND light mode (light via direct `documentElement` class verification after
-  confirming the per-user persisted `UserAppearance.theme` legitimately overrides a fresh
-  client-side hint — not a bug) — zero regressions, zero new console errors (only pre-existing
-  dev-only HMR/CSP-blocked-localhost-socket noise from `operation-service` not running locally).
-  **Final baseline, fresh and full-scope, exact reconciliation of every count:** monolith `tsc`
-  clean; `eslint` **0 errors/0 warnings** (down from the 2-warning entry baseline — both were in
-  the now-deleted `header.tsx`, a genuine improvement); `test:ci` 160→159 (-1, header.test.tsx)
-  →153 (-6, the 6 dead-component tests) suites, 2400→2367 (-33)→2198 (-169) tests, every drop
-  fully explained by a real deletion, zero unexplained failures; money-service 62/62 suites/
-  526/526 tests (unchanged); operation-service 42/42 suites/393/393 tests (unchanged).
-  Route-manifest diff clean: 90 `page.tsx` files before and after (renames only), zero
-  duplicate-URL collisions repo-wide.
-  **One incidental finding, not fixed (unrelated file, out of scope):** `/terminal`'s `<title>`
-  renders "Terminal | DavinTrade | DavinTrade" (double suffix — `app/terminal/page.tsx`'s own
-  `metadata.title` already includes `| DavinTrade`, root layout's template appends a second one),
-  pre-existing since Session 9-4 — a one-line fix for whichever session next touches that file.
-  **A git-state note, not itself an issue (L3 pattern, benign):** committed HEAD held this
-  session's own bare `Status: PRE-DRAFT` order; the corrected, upgraded `Status: APPROVED`
-  version (with the fuller 9-item checklist) existed only as an uncommitted working-copy edit —
-  confirmed authentic and committed at session open, per L3's own established resolution.
-  **`DECISION-LOG.md` size-gate check (EXECUTOR-PROTOCOL.md §1 step 0): 63,589 bytes, over the
-  ~50KB target — checked and found not actionable, same conclusion as 9-9's own check.** All
-  RESOLVED flags already point to `history/decisions-archive.md`; the overage is inherent to F80
-  and F81 both still being genuinely OPEN and needing to stay inline per the file's own hygiene
-  rule. No archival performed. F65/F66 re-confirmed RESOLVED; F81 re-confirmed OPEN (unchanged,
-  held for a future admin-scoped-endpoint session).
-  **Artifacts updated:** `9-10-phase-9-exit.migration-order.md` (Status → CONFIRMED → CLOSED
-  SUCCESSFUL, 4 Deviations + checked Done-when/entry-criteria boxes), `frontend-swap-route-map.md`
-  (rows 45/46 + 9-4's rows corrected, addendum #9), `phase-6-frontend-gap-matrix.md` (superseded
-  banner), `migration-stack-analysis.md` (Session 9-10 entry, 0 new/36 renamed+6 modified/22
-  deleted, all FRONTEND — also backfills that Session 9-9 correctly needed no entry, pure
-  restyle-in-place), this file (Current/Previous rotation — Session 9-8b moved to
-  `history/sessions-archive.md`). Session 10-1's order PRE-DRAFTed
-  (`10-1-drawing-alert-smoke.migration-order.md`) per this session's own obligation — INFRA/VERIFY,
-  F67 (execution environment: Contabo VPS / local Docker / Railway scratch) posed as an open
-  `⚠ NEEDS EXPLICIT SIGN-OFF` decision for the Advisor/Davin, not resolved here per
-  `EXECUTOR-PROTOCOL.md` §7; the order also flags that `PHASE-4-SMOKE-TEST-RUNBOOK.md` is
-  monolith-era and stale (alert-engine moved to `operation-service` at 4B-2/4B-3) and must be
-  re-derived from live code, not followed literally.
 
 ## Key documents
 
