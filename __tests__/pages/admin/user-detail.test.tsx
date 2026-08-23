@@ -10,7 +10,7 @@
 
 import { render, screen } from '@testing-library/react';
 
-import AdminUserDetailPage from '@/app/(dashboard)/admin/users/[id]/page';
+import AdminUserDetailPage from '@/app/admin/users/[id]/page';
 
 jest.mock('next/navigation', () => ({
   notFound: jest.fn(() => {

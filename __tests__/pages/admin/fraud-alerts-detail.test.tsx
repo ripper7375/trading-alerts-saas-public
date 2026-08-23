@@ -11,7 +11,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import FraudAlertDetailPage from '@/app/(dashboard)/admin/fraud-alerts/[id]/page';
+import FraudAlertDetailPage from '@/app/admin/fraud-alerts/[id]/page';
 
 jest.mock('next/navigation', () => ({
   useParams: () => ({ id: 'fa-1' }),

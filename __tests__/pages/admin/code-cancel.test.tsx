@@ -17,8 +17,8 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import CodeInventoryReportPage from '@/app/(dashboard)/admin/affiliates/reports/code-inventory/page';
-import ConfigurationPage from '@/app/(dashboard)/admin/disbursement/config/page';
+import CodeInventoryReportPage from '@/app/admin/affiliates/reports/code-inventory/page';
+import ConfigurationPage from '@/app/admin/disbursement/config/page';
 
 const realReport = {
   period: { start: '2026-05-01', end: '2026-08-01', name: '3 Months' },

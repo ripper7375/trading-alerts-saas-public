@@ -11,7 +11,7 @@
 
 import { render, screen, waitFor } from '@testing-library/react';
 
-import AdminDashboardPage from '@/app/(dashboard)/admin/page';
+import AdminDashboardPage from '@/app/admin/page';
 
 const mockMetrics = {
   overview: {

@@ -12,10 +12,10 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import AdminSystemTerminalsPage from '@/app/(dashboard)/admin/system/terminals/page';
-import AdminSystemJobsPage from '@/app/(dashboard)/admin/system/jobs/page';
-import AdminSystemOutboxPage from '@/app/(dashboard)/admin/system/outbox/page';
-import AdminSystemConfigHistoryPage from '@/app/(dashboard)/admin/system/config-history/page';
+import AdminSystemTerminalsPage from '@/app/admin/system/terminals/page';
+import AdminSystemJobsPage from '@/app/admin/system/jobs/page';
+import AdminSystemOutboxPage from '@/app/admin/system/outbox/page';
+import AdminSystemConfigHistoryPage from '@/app/admin/system/config-history/page';
 import { SYSTEM_CRON_JOBS } from '@/lib/admin/system-jobs';
 
 const mockRouterRefresh = jest.fn();
