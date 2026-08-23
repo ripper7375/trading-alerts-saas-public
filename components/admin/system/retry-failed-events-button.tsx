@@ -59,12 +59,7 @@ export function RetryFailedEventsButton({
     <div className="flex items-center gap-3">
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={isRetrying}
-            className="border-gray-600 text-gray-200 hover:bg-gray-700"
-          >
+          <Button variant="outline" size="sm" disabled={isRetrying}>
             {isRetrying ? 'Retrying…' : `Retry ${failedCount} Failed Events`}
           </Button>
         </AlertDialogTrigger>
@@ -85,7 +80,9 @@ export function RetryFailedEventsButton({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {error && <span className="text-sm text-red-400">{error}</span>}
+      {error && (
+        <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
+      )}
     </div>
   );
 }

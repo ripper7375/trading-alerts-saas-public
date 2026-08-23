@@ -17,13 +17,13 @@ const STATUS_ORDER = ['PENDING', 'PROCESSED', 'FAILED'] as const;
 function statusBadgeClass(status: string): string {
   switch (status) {
     case 'PROCESSED':
-      return 'bg-green-600 text-white';
+      return 'bg-emerald-600 text-white hover:bg-emerald-600';
     case 'PENDING':
-      return 'bg-blue-700 text-white';
+      return 'bg-blue-600 text-white hover:bg-blue-600';
     case 'FAILED':
-      return 'bg-red-600 text-white';
+      return 'bg-red-600 text-white hover:bg-red-600';
     default:
-      return 'bg-gray-600 text-white';
+      return 'bg-muted text-muted-foreground hover:bg-muted';
   }
 }
 
@@ -56,8 +56,10 @@ export default async function AdminSystemOutboxPage(): Promise<React.ReactElemen
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Outbox Event Queue</h1>
-          <p className="mt-1 text-sm text-gray-400">
+          <h1 className="text-2xl font-bold text-foreground">
+            Outbox Event Queue
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             {totalCount} total event{totalCount === 1 ? '' : 's'} recorded.
             Delivered by money-service&apos;s OutboxPublisherCron to
             operation-service.
@@ -68,12 +70,12 @@ export default async function AdminSystemOutboxPage(): Promise<React.ReactElemen
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {STATUS_ORDER.map((status) => (
-          <Card key={status} className="border-gray-700 bg-gray-800">
+          <Card key={status} className="border-border bg-card">
             <CardHeader>
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-muted-foreground">
                 {status}
               </CardDescription>
-              <CardTitle className="flex items-center gap-2 text-white">
+              <CardTitle className="flex items-center gap-2 text-foreground">
                 <Badge className={statusBadgeClass(status)}>{status}</Badge>
                 <span>{countsByStatus.get(status) ?? 0}</span>
               </CardTitle>
@@ -82,23 +84,23 @@ export default async function AdminSystemOutboxPage(): Promise<React.ReactElemen
         ))}
       </div>
 
-      <Card className="border-gray-700 bg-gray-800">
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-white">Recent Failures</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-foreground">Recent Failures</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Most recent {RECENT_FAILURES_LIMIT} FAILED events.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {failedEvents.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-500">
+            <p className="py-6 text-center text-sm text-muted-foreground">
               No failed outbox events recorded.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700 text-gray-400">
+                  <tr className="border-b border-border text-muted-foreground">
                     <th className="pb-2 pr-4">Event Type</th>
                     <th className="pb-2 pr-4">Aggregate</th>
                     <th className="pb-2 pr-4">Attempts</th>
@@ -110,19 +112,19 @@ export default async function AdminSystemOutboxPage(): Promise<React.ReactElemen
                   {failedEvents.map((event) => (
                     <tr
                       key={event.id}
-                      className="border-b border-gray-700/50 text-gray-200"
+                      className="border-border/50 border-b text-foreground"
                     >
                       <td className="py-2 pr-4 font-medium">
                         {event.eventType}
                       </td>
-                      <td className="py-2 pr-4 text-gray-400">
+                      <td className="py-2 pr-4 text-muted-foreground">
                         {event.aggregateType}:{event.aggregateId}
                       </td>
                       <td className="py-2 pr-4">{event.attemptCount}</td>
-                      <td className="max-w-xs truncate py-2 pr-4 text-red-400">
+                      <td className="max-w-xs truncate py-2 pr-4 text-red-600 dark:text-red-400">
                         {event.lastError ?? '—'}
                       </td>
-                      <td className="py-2 text-gray-400">
+                      <td className="py-2 text-muted-foreground">
                         {formatDate(event.createdAt)}
                       </td>
                     </tr>

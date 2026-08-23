@@ -27,22 +27,24 @@ export default async function AdminSystemConfigHistoryPage(): Promise<React.Reac
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">Config Audit History</h1>
-        <p className="mt-1 text-sm text-gray-400">
+        <h1 className="text-2xl font-bold text-foreground">
+          Config Audit History
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Records of system configuration changes made through the admin panel.
         </p>
       </div>
 
-      <Card className="border-gray-700 bg-gray-800">
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-white">Recent Changes</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-foreground">Recent Changes</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Most recent {HISTORY_LIMIT} entries.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {entries.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-500">
+            <p className="py-6 text-center text-sm text-muted-foreground">
               No config changes have been recorded yet. Nothing in this codebase
               currently writes to this audit log.
             </p>
@@ -50,7 +52,7 @@ export default async function AdminSystemConfigHistoryPage(): Promise<React.Reac
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700 text-gray-400">
+                  <tr className="border-b border-border text-muted-foreground">
                     <th className="pb-2 pr-4">Config Key</th>
                     <th className="pb-2 pr-4">Old Value</th>
                     <th className="pb-2 pr-4">New Value</th>
@@ -63,24 +65,24 @@ export default async function AdminSystemConfigHistoryPage(): Promise<React.Reac
                   {entries.map((entry) => (
                     <tr
                       key={entry.id}
-                      className="border-b border-gray-700/50 text-gray-200"
+                      className="border-border/50 border-b text-foreground"
                     >
                       <td className="py-2 pr-4 font-medium">
                         {entry.configKey}
                       </td>
-                      <td className="max-w-xs truncate py-2 pr-4 text-gray-400">
+                      <td className="max-w-xs truncate py-2 pr-4 text-muted-foreground">
                         {entry.oldValue}
                       </td>
-                      <td className="max-w-xs truncate py-2 pr-4 text-gray-200">
+                      <td className="max-w-xs truncate py-2 pr-4 text-foreground">
                         {entry.newValue}
                       </td>
-                      <td className="py-2 pr-4 text-gray-400">
+                      <td className="py-2 pr-4 text-muted-foreground">
                         {entry.changedBy}
                       </td>
-                      <td className="py-2 pr-4 text-gray-400">
+                      <td className="py-2 pr-4 text-muted-foreground">
                         {entry.reason ?? '—'}
                       </td>
-                      <td className="py-2 text-gray-400">
+                      <td className="py-2 text-muted-foreground">
                         {formatDate(entry.changedAt)}
                       </td>
                     </tr>

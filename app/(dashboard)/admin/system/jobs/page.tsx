@@ -92,10 +92,10 @@ export default function AdminSystemJobsPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white">
+        <h1 className="text-2xl font-bold text-foreground">
           Scheduled Jobs &amp; Cron Manager
         </h1>
-        <p className="mt-1 text-sm text-gray-400">
+        <p className="mt-1 text-sm text-muted-foreground">
           These 8 jobs run on money-service&apos;s own real-time scheduler. The
           monolith&apos;s legacy <code>/api/cron/*</code> routes are no longer
           scheduled by anything. No run-history timeline is shown below since
@@ -107,15 +107,15 @@ export default function AdminSystemJobsPage(): React.ReactElement {
         {SYSTEM_CRON_JOBS.map((job) => {
           const runState = runStates[job.id] ?? { status: 'idle' };
           return (
-            <Card key={job.id} className="border-gray-700 bg-gray-800">
+            <Card key={job.id} className="border-border bg-card">
               <CardHeader className="flex-row items-start justify-between space-y-0">
                 <div>
-                  <CardTitle className="text-white">{job.label}</CardTitle>
-                  <CardDescription className="mt-1 text-gray-400">
+                  <CardTitle className="text-foreground">{job.label}</CardTitle>
+                  <CardDescription className="mt-1 text-muted-foreground">
                     {job.description}
                   </CardDescription>
                 </div>
-                <Badge className="bg-blue-700 text-white">
+                <Badge className="bg-primary text-primary-foreground hover:bg-primary">
                   Managed by Money-Service Scheduler
                 </Badge>
               </CardHeader>
@@ -127,7 +127,6 @@ export default function AdminSystemJobsPage(): React.ReactElement {
                         variant="outline"
                         size="sm"
                         disabled={runState.status === 'running'}
-                        className="border-gray-600 text-gray-200 hover:bg-gray-700"
                       >
                         {runState.status === 'running' ? 'Running…' : 'Run Now'}
                       </Button>
@@ -151,7 +150,7 @@ export default function AdminSystemJobsPage(): React.ReactElement {
                   </AlertDialog>
 
                   {runState.status === 'success' && (
-                    <Badge className="bg-green-600 text-white">
+                    <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
                       Last triggered{' '}
                       {runState.triggeredAt
                         ? new Date(runState.triggeredAt).toLocaleTimeString()
@@ -160,7 +159,7 @@ export default function AdminSystemJobsPage(): React.ReactElement {
                     </Badge>
                   )}
                   {runState.status === 'error' && (
-                    <Badge className="bg-red-600 text-white">
+                    <Badge className="bg-red-600 text-white hover:bg-red-600">
                       {runState.message}
                     </Badge>
                   )}
@@ -168,7 +167,7 @@ export default function AdminSystemJobsPage(): React.ReactElement {
 
                 {runState.status === 'success' &&
                   runState.result !== undefined && (
-                    <pre className="overflow-x-auto rounded-md bg-gray-900 p-3 text-xs text-gray-300">
+                    <pre className="overflow-x-auto rounded-md bg-accent p-3 text-xs text-muted-foreground">
                       {JSON.stringify(runState.result, null, 2)}
                     </pre>
                   )}

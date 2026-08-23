@@ -81,24 +81,21 @@ function StatusAlertCard({
   onRetry: () => void;
 }): React.ReactElement {
   const toneClasses = {
-    muted: 'border-gray-700 bg-gray-800/50',
-    warning: 'border-amber-700 bg-amber-950/30',
-    danger: 'border-red-800 bg-red-950/30',
+    muted: 'border-border bg-card',
+    warning: 'border-amber-600/40 bg-amber-500/10',
+    danger: 'border-red-600/40 bg-red-600/10',
   } as const;
 
   return (
     <Card className={toneClasses[tone]}>
       <CardHeader>
-        <CardTitle className="text-white">{title}</CardTitle>
-        <CardDescription className="text-gray-400">{message}</CardDescription>
+        <CardTitle className="text-foreground">{title}</CardTitle>
+        <CardDescription className="text-muted-foreground">
+          {message}
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onRetry}
-          className="border-gray-600 text-gray-200 hover:bg-gray-700"
-        >
+        <Button variant="outline" size="sm" onClick={onRetry}>
           Retry now
         </Button>
       </CardContent>
@@ -155,15 +152,15 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-foreground">
             Terminals &amp; Flask API
           </h1>
-          <p className="mt-1 text-sm text-gray-400">
+          <p className="mt-1 text-sm text-muted-foreground">
             Live reachability of the MT5 terminal fleet (flask-api).
           </p>
         </div>
         {lastChecked && (
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-muted-foreground">
             Last checked {lastChecked.toLocaleTimeString()}
           </span>
         )}
@@ -215,46 +212,46 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
       {data?.status === 'online' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Card className="border-gray-700 bg-gray-800">
+            <Card className="border-border bg-card">
               <CardHeader>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-muted-foreground">
                   Overall Status
                 </CardDescription>
-                <CardTitle className="flex items-center gap-2 text-white">
+                <CardTitle className="flex items-center gap-2 text-foreground">
                   <Badge
                     className={
                       data.health.status === 'ok'
-                        ? 'bg-green-600 text-white'
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-600'
                         : data.health.status === 'degraded'
-                          ? 'bg-amber-600 text-white'
-                          : 'bg-red-600 text-white'
+                          ? 'bg-amber-600 text-white hover:bg-amber-600'
+                          : 'bg-red-600 text-white hover:bg-red-600'
                     }
                   >
                     {data.health.status.toUpperCase()}
                   </Badge>
-                  <span className="text-sm font-normal text-gray-400">
+                  <span className="text-sm font-normal text-muted-foreground">
                     v{data.health.version}
                   </span>
                 </CardTitle>
               </CardHeader>
             </Card>
-            <Card className="border-gray-700 bg-gray-800">
+            <Card className="border-border bg-card">
               <CardHeader>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-muted-foreground">
                   Connected Terminals
                 </CardDescription>
-                <CardTitle className="text-white">
+                <CardTitle className="text-foreground">
                   {data.health.connected_terminals} /{' '}
                   {data.health.total_terminals}
                 </CardTitle>
               </CardHeader>
             </Card>
-            <Card className="border-gray-700 bg-gray-800">
+            <Card className="border-border bg-card">
               <CardHeader>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-muted-foreground">
                   Avg Response Time
                 </CardDescription>
-                <CardTitle className="text-white">
+                <CardTitle className="text-foreground">
                   {data.stats
                     ? `${Math.round(data.stats.avg_response_time_ms)} ms`
                     : '—'}
@@ -263,10 +260,12 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
             </Card>
           </div>
 
-          <Card className="border-gray-700 bg-gray-800">
+          <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle className="text-white">Terminal Sessions</CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle className="text-foreground">
+                Terminal Sessions
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Real-time connection status per MT5 terminal.
               </CardDescription>
             </CardHeader>
@@ -274,7 +273,7 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-gray-700 text-gray-400">
+                    <tr className="border-b border-border text-muted-foreground">
                       <th className="pb-2 pr-4">Symbol</th>
                       <th className="pb-2 pr-4">Terminal</th>
                       <th className="pb-2 pr-4">Status</th>
@@ -288,18 +287,18 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
                       ([symbol, terminal]) => (
                         <tr
                           key={symbol}
-                          className="border-b border-gray-700/50 text-gray-200"
+                          className="border-border/50 border-b text-foreground"
                         >
                           <td className="py-2 pr-4 font-medium">{symbol}</td>
-                          <td className="py-2 pr-4 text-gray-400">
+                          <td className="py-2 pr-4 text-muted-foreground">
                             {terminal.terminal_id}
                           </td>
                           <td className="py-2 pr-4">
                             <Badge
                               className={
                                 terminal.connected
-                                  ? 'bg-green-600 text-white'
-                                  : 'bg-red-600 text-white'
+                                  ? 'bg-emerald-600 text-white hover:bg-emerald-600'
+                                  : 'bg-red-600 text-white hover:bg-red-600'
                               }
                             >
                               {terminal.connected
@@ -315,7 +314,7 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
                           <td className="py-2 pr-4">
                             {terminal.reconnect_count ?? '—'}
                           </td>
-                          <td className="py-2 text-gray-400">
+                          <td className="py-2 text-muted-foreground">
                             {new Date(terminal.last_check).toLocaleString()}
                           </td>
                         </tr>
@@ -328,23 +327,23 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
           </Card>
 
           {data.stats && data.stats.most_problematic_terminals.length > 0 && (
-            <Card className="border-gray-700 bg-gray-800">
+            <Card className="border-border bg-card">
               <CardHeader>
-                <CardTitle className="text-white">
+                <CardTitle className="text-foreground">
                   Most Problematic Terminals (24h)
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 text-sm text-gray-300">
+                <ul className="space-y-2 text-sm text-foreground">
                   {data.stats.most_problematic_terminals.map((t) => (
                     <li
                       key={t.terminal_id}
-                      className="flex items-center justify-between border-b border-gray-700/50 pb-2"
+                      className="border-border/50 flex items-center justify-between border-b pb-2"
                     >
                       <span>
                         {t.symbol} ({t.terminal_id})
                       </span>
-                      <span className="text-gray-400">
+                      <span className="text-muted-foreground">
                         {t.reconnect_count} reconnects · {t.uptime.toFixed(1)}%
                         uptime
                       </span>
