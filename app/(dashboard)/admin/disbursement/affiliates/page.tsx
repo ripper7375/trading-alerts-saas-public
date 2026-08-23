@@ -3,6 +3,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,22 +46,38 @@ interface PayableSummary {
 function getKycStatusBadge(
   status: RiseWorksKycStatus | 'none'
 ): React.ReactElement {
-  const defaultConfig = { className: 'bg-gray-600', label: 'No Account' };
+  const defaultConfig = {
+    className: 'bg-muted text-muted-foreground',
+    label: 'No Account',
+  };
   const statusConfig: Record<string, { className: string; label: string }> = {
-    APPROVED: { className: 'bg-green-600', label: 'Approved' },
-    PENDING: { className: 'bg-yellow-600', label: 'Pending' },
-    SUBMITTED: { className: 'bg-blue-600', label: 'Submitted' },
-    REJECTED: { className: 'bg-red-600', label: 'Rejected' },
-    EXPIRED: { className: 'bg-gray-600', label: 'Expired' },
+    APPROVED: {
+      className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      label: 'Approved',
+    },
+    PENDING: {
+      className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      label: 'Pending',
+    },
+    SUBMITTED: {
+      className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+      label: 'Submitted',
+    },
+    REJECTED: {
+      className: 'bg-red-500/10 text-red-600 dark:text-red-400',
+      label: 'Rejected',
+    },
+    EXPIRED: {
+      className: 'bg-muted text-muted-foreground',
+      label: 'Expired',
+    },
     none: defaultConfig,
   };
 
   const config = statusConfig[status] ?? defaultConfig;
 
   return (
-    <Badge className={`${config.className} text-xs text-white`}>
-      {config.label}
-    </Badge>
+    <Badge className={`${config.className} text-xs`}>{config.label}</Badge>
   );
 }
 
@@ -205,10 +232,10 @@ export default function PayableAffiliatesPage(): React.ReactElement {
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white sm:text-3xl">
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
             Payable Affiliates
           </h1>
-          <p className="mt-1 text-gray-400">
+          <p className="mt-1 text-muted-foreground">
             Affiliates with pending commission payouts
           </p>
         </div>
@@ -223,7 +250,6 @@ export default function PayableAffiliatesPage(): React.ReactElement {
           {selectedAffiliates.size > 0 && (
             <Button
               onClick={() => void handleCreateBatch()}
-              className="bg-green-600 hover:bg-green-700"
               disabled={isProcessing}
             >
               {isProcessing
@@ -236,17 +262,17 @@ export default function PayableAffiliatesPage(): React.ReactElement {
 
       {/* Messages */}
       {error && (
-        <Card className="border-red-600 bg-red-900/50">
+        <Card className="border-red-600 bg-red-500/10">
           <CardContent className="py-4">
-            <p className="text-red-300">{error}</p>
+            <p className="text-red-500">{error}</p>
           </CardContent>
         </Card>
       )}
 
       {successMessage && (
-        <Card className="border-green-600 bg-green-900/50">
+        <Card className="border-green-600 bg-emerald-500/10">
           <CardContent className="py-4">
-            <p className="text-green-300">{successMessage}</p>
+            <p className="text-emerald-500">{successMessage}</p>
           </CardContent>
         </Card>
       )}
@@ -254,22 +280,22 @@ export default function PayableAffiliatesPage(): React.ReactElement {
       {/* Summary Cards */}
       {summary && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Card className="border-gray-700 bg-gray-800">
+          <Card className="border-border bg-card">
             <CardHeader className="pb-2">
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-muted-foreground">
                 Total Affiliates
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-white">
+              <div className="text-3xl font-bold text-foreground">
                 {summary.totalAffiliates}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-gray-700 bg-gray-800">
+          <Card className="border-border bg-card">
             <CardHeader className="pb-2">
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-muted-foreground">
                 Ready for Payout
               </CardDescription>
             </CardHeader>
@@ -280,9 +306,9 @@ export default function PayableAffiliatesPage(): React.ReactElement {
             </CardContent>
           </Card>
 
-          <Card className="border-gray-700 bg-gray-800">
+          <Card className="border-border bg-card">
             <CardHeader className="pb-2">
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-muted-foreground">
                 Total Pending
               </CardDescription>
             </CardHeader>
@@ -297,18 +323,19 @@ export default function PayableAffiliatesPage(): React.ReactElement {
 
       {/* Ready for Payout Table */}
       {readyAffiliates.length > 0 && (
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2 text-white">
+                <CardTitle className="flex items-center gap-2 text-foreground">
                   Ready for Payout
-                  <Badge className="bg-green-600">
+                  <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     {readyAffiliates.length}
                   </Badge>
                 </CardTitle>
-                <CardDescription className="text-gray-400">
-                  Affiliates with approved RiseWorks accounts
+                <CardDescription className="text-muted-foreground">
+                  Affiliates with approved RiseWorks accounts (historical KYC
+                  record — payouts run through Wise)
                 </CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={handleSelectAll}>
@@ -322,8 +349,8 @@ export default function PayableAffiliatesPage(): React.ReactElement {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                  <tr className="border-b border-border">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       <input
                         type="checkbox"
                         checked={
@@ -334,25 +361,25 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                         aria-label="Select all affiliates"
                       />
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Affiliate
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Country
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Pending
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Commissions
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Oldest
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       KYC Status
                     </th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-400">
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">
                       Actions
                     </th>
                   </tr>
@@ -361,7 +388,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                   {readyAffiliates.map((affiliate) => (
                     <tr
                       key={affiliate.id}
-                      className="border-b border-gray-700/50 hover:bg-gray-700/30"
+                      className="border-border/50 hover:bg-accent/30 border-b"
                     >
                       <td className="px-4 py-3">
                         <input
@@ -374,15 +401,15 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                       </td>
                       <td className="px-4 py-3">
                         <div>
-                          <p className="font-medium text-white">
+                          <p className="font-medium text-foreground">
                             {affiliate.fullName}
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-muted-foreground">
                             {affiliate.email}
                           </p>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-300">
+                      <td className="px-4 py-3 text-foreground">
                         {affiliate.country}
                       </td>
                       <td className="px-4 py-3">
@@ -390,10 +417,10 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                           {formatCurrency(affiliate.pendingAmount)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-300">
+                      <td className="px-4 py-3 text-foreground">
                         {affiliate.pendingCommissionCount}
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-400">
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
                         {affiliate.oldestPendingDate
                           ? formatDate(affiliate.oldestPendingDate)
                           : '-'}
@@ -405,18 +432,48 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                         <div className="flex justify-end gap-2">
                           <Link
                             href={`/admin/disbursement/affiliates/${affiliate.id}`}
-                            className="text-sm text-blue-400 transition-colors hover:text-blue-300"
+                            className="hover:text-primary/80 text-sm text-primary transition-colors"
                           >
                             View
                           </Link>
-                          <Button
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700"
-                            onClick={() => void handleQuickPay(affiliate.id)}
-                            disabled={isProcessing}
-                          >
-                            Pay Now
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" disabled={isProcessing}>
+                                Pay Now
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Confirm quick payment
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Pay{' '}
+                                  <strong>
+                                    {formatCurrency(affiliate.pendingAmount)}
+                                  </strong>{' '}
+                                  to <strong>{affiliate.fullName}</strong> (
+                                  {affiliate.pendingCommissionCount} commission
+                                  {affiliate.pendingCommissionCount === 1
+                                    ? ''
+                                    : 's'}
+                                  ) now? This creates a single-affiliate batch
+                                  and executes it immediately — it cannot be
+                                  undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() =>
+                                    void handleQuickPay(affiliate.id)
+                                  }
+                                >
+                                  Pay Now
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </td>
                     </tr>
@@ -430,13 +487,15 @@ export default function PayableAffiliatesPage(): React.ReactElement {
 
       {/* Not Ready Table */}
       {notReadyAffiliates.length > 0 && (
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               Not Ready for Payout
-              <Badge className="bg-gray-600">{notReadyAffiliates.length}</Badge>
+              <Badge className="bg-muted text-muted-foreground">
+                {notReadyAffiliates.length}
+              </Badge>
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Affiliates pending KYC approval or missing RiseWorks account
             </CardDescription>
           </CardHeader>
@@ -444,26 +503,26 @@ export default function PayableAffiliatesPage(): React.ReactElement {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                  <tr className="border-b border-border">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Affiliate
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Country
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Pending
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Commissions
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       RiseWorks Status
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Reason
                     </th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-400">
+                    <th className="px-4 py-3 text-right font-medium text-muted-foreground">
                       Actions
                     </th>
                   </tr>
@@ -472,19 +531,19 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                   {notReadyAffiliates.map((affiliate) => (
                     <tr
                       key={affiliate.id}
-                      className="border-b border-gray-700/50 hover:bg-gray-700/30"
+                      className="border-border/50 hover:bg-accent/30 border-b"
                     >
                       <td className="px-4 py-3">
                         <div>
-                          <p className="font-medium text-white">
+                          <p className="font-medium text-foreground">
                             {affiliate.fullName}
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-muted-foreground">
                             {affiliate.email}
                           </p>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-300">
+                      <td className="px-4 py-3 text-foreground">
                         {affiliate.country}
                       </td>
                       <td className="px-4 py-3">
@@ -492,13 +551,13 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                           {formatCurrency(affiliate.pendingAmount)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-300">
+                      <td className="px-4 py-3 text-foreground">
                         {affiliate.pendingCommissionCount}
                       </td>
                       <td className="px-4 py-3">
                         {getKycStatusBadge(affiliate.riseAccount.kycStatus)}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-400">
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
                         {!affiliate.riseAccount.hasAccount
                           ? 'No RiseWorks account'
                           : affiliate.riseAccount.kycStatus !== 'APPROVED'
@@ -508,7 +567,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                       <td className="px-4 py-3 text-right">
                         <Link
                           href={`/admin/disbursement/affiliates/${affiliate.id}`}
-                          className="text-sm text-blue-400 transition-colors hover:text-blue-300"
+                          className="hover:text-primary/80 text-sm text-primary transition-colors"
                         >
                           View
                         </Link>
@@ -524,9 +583,9 @@ export default function PayableAffiliatesPage(): React.ReactElement {
 
       {/* Empty State */}
       {affiliates.length === 0 && (
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardContent className="py-12 text-center">
-            <p className="text-gray-400">
+            <p className="text-muted-foreground">
               No affiliates with pending payouts found.
             </p>
           </CardContent>

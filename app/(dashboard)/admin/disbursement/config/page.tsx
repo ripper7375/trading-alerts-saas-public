@@ -2,6 +2,17 @@
 
 import { useEffect, useState, useCallback } from 'react';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,9 +43,9 @@ interface DisbursementConfig {
 }
 
 const PROVIDER_BADGE_CLASS: Record<DisbursementProvider, string> = {
-  MOCK: 'bg-gray-600',
-  RISE: 'bg-green-600',
-  WISE: 'bg-blue-600',
+  MOCK: 'bg-muted text-muted-foreground',
+  RISE: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  WISE: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
 };
 
 const PROVIDER_LABEL: Record<DisbursementProvider, string> = {
@@ -60,14 +71,17 @@ const PROVIDER_LABEL: Record<DisbursementProvider, string> = {
  * - Fetches from /api/disbursement/config
  * - Updates via PATCH /api/disbursement/config
  *
- * The active provider is read-only in practice: it is driven by the
- * `DISBURSEMENT_PROVIDER` environment variable on whichever service actually
- * executes batches (money-service, for WISE — see Session 4A-W7). The Save
- * button below persists `enabled`/`minimumPayout`/`batchSize` only; changing
- * the provider selection and saving does NOT switch the live provider, since
- * `PATCH /api/disbursement/config` is a logging placeholder (no database-
- * backed configuration exists yet). The badge below the provider display
- * makes this explicit rather than implying a live switch happened.
+ * Every field on this page is environment-variable-driven, not just the
+ * provider: `PATCH /api/disbursement/config` is a self-documented logging
+ * placeholder (no database-backed configuration exists yet, per that route's
+ * own doc comment) — it validates and logs the request but persists NOTHING,
+ * including `enabled`/`minimumPayout`/`batchSize`. Session 9-9 CONFIRM
+ * resolution (2026-08-23, Davin): keep the placeholder as-is rather than
+ * building real persistence in a UI-restyle session; disclose this honestly
+ * in-UI instead (the Save confirmation dialog and the yellow notice below
+ * both state plainly that nothing is written to a database). To change any
+ * of these values for real, update the corresponding environment variable
+ * and redeploy.
  */
 export default function ConfigurationPage(): React.ReactElement {
   const [config, setConfig] = useState<DisbursementConfig | null>(null);
@@ -126,7 +140,7 @@ export default function ConfigurationPage(): React.ReactElement {
       }
 
       setSuccessMessage(
-        'Settings noted. Provider is env-var-driven and unaffected by this form — see the notice below.'
+        'Request noted, nothing persisted — this form is a placeholder. All settings (including provider) are env-var-driven; see the notice below.'
       );
       setIsEditing(false);
       await fetchConfig();
@@ -156,17 +170,16 @@ export default function ConfigurationPage(): React.ReactElement {
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white sm:text-3xl">
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
             Configuration
           </h1>
-          <p className="mt-1 text-gray-400">Disbursement system settings</p>
+          <p className="mt-1 text-muted-foreground">
+            Disbursement system settings
+          </p>
         </div>
         <div className="flex gap-2">
           {!isEditing ? (
-            <Button
-              onClick={() => setIsEditing(true)}
-              className="bg-green-600 hover:bg-green-700"
-            >
+            <Button onClick={() => setIsEditing(true)}>
               Edit Configuration
             </Button>
           ) : (
@@ -178,13 +191,33 @@ export default function ConfigurationPage(): React.ReactElement {
               >
                 Cancel
               </Button>
-              <Button
-                onClick={() => void handleSave()}
-                className="bg-green-600 hover:bg-green-700"
-                disabled={isSaving}
-              >
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button disabled={isSaving}>
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Confirm configuration update
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This form is a placeholder —{' '}
+                      <strong>nothing will be persisted to a database.</strong>{' '}
+                      The request is validated and logged only. All disbursement
+                      settings, including the payment provider, are controlled
+                      by environment variables and only take effect on redeploy.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => void handleSave()}>
+                      Continue
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </>
           )}
         </div>
@@ -192,17 +225,17 @@ export default function ConfigurationPage(): React.ReactElement {
 
       {/* Messages */}
       {error && (
-        <Card className="border-red-600 bg-red-900/50">
+        <Card className="border-red-600 bg-red-500/10">
           <CardContent className="py-4">
-            <p className="text-red-300">{error}</p>
+            <p className="text-red-500">{error}</p>
           </CardContent>
         </Card>
       )}
 
       {successMessage && (
-        <Card className="border-green-600 bg-green-900/50">
+        <Card className="border-green-600 bg-emerald-500/10">
           <CardContent className="py-4">
-            <p className="text-green-300">{successMessage}</p>
+            <p className="text-emerald-500">{successMessage}</p>
           </CardContent>
         </Card>
       )}
@@ -210,9 +243,9 @@ export default function ConfigurationPage(): React.ReactElement {
       {/* Current Configuration Display */}
       {!isEditing && config && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-gray-700 bg-gray-800">
+          <Card className="border-border bg-card">
             <CardHeader className="pb-2">
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-muted-foreground">
                 Provider
               </CardDescription>
             </CardHeader>
@@ -220,46 +253,52 @@ export default function ConfigurationPage(): React.ReactElement {
               <Badge className={PROVIDER_BADGE_CLASS[config.provider.default]}>
                 {config.provider.default}
               </Badge>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Configured via <code>DISBURSEMENT_PROVIDER</code> env var
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-gray-700 bg-gray-800">
+          <Card className="border-border bg-card">
             <CardHeader className="pb-2">
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-muted-foreground">
                 Status
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Badge className={config.enabled ? 'bg-green-600' : 'bg-red-600'}>
+              <Badge
+                className={
+                  config.enabled
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                }
+              >
                 {config.enabled ? 'Enabled' : 'Disabled'}
               </Badge>
             </CardContent>
           </Card>
 
-          <Card className="border-gray-700 bg-gray-800">
+          <Card className="border-border bg-card">
             <CardHeader className="pb-2">
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-muted-foreground">
                 Minimum Payout
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">
+              <div className="text-2xl font-bold text-foreground">
                 {formatCurrency(config.minimumPayout)}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-gray-700 bg-gray-800">
+          <Card className="border-border bg-card">
             <CardHeader className="pb-2">
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-muted-foreground">
                 Batch Size
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">
+              <div className="text-2xl font-bold text-foreground">
                 {config.batchSize}
               </div>
             </CardContent>
@@ -269,17 +308,19 @@ export default function ConfigurationPage(): React.ReactElement {
 
       {/* Edit Form */}
       {isEditing && editConfig && (
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-white">Edit Configuration</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-foreground">
+              Edit Configuration
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
               Update disbursement system settings
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Provider Selection */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-300">
+              <label className="mb-2 block text-sm font-medium text-foreground">
                 Payment Provider
               </label>
               <div className="flex flex-wrap gap-4">
@@ -310,17 +351,17 @@ export default function ConfigurationPage(): React.ReactElement {
                             },
                           })
                         }
-                        className="text-green-600"
+                        className="text-primary"
                       />
-                      <span className="text-white">
+                      <span className="text-foreground">
                         {PROVIDER_LABEL[provider]}
                       </span>
                     </label>
                   );
                 })}
               </div>
-              <div className="mt-2 rounded-lg border border-blue-600/50 bg-blue-900/30 p-3">
-                <p className="text-xs text-blue-300">
+              <div className="mt-2 rounded-lg border border-blue-500/50 bg-blue-500/10 p-3">
+                <p className="text-xs text-blue-600 dark:text-blue-400">
                   <strong>
                     Configured via <code>DISBURSEMENT_PROVIDER</code> env var.
                   </strong>{' '}
@@ -334,7 +375,7 @@ export default function ConfigurationPage(): React.ReactElement {
 
             {/* Enabled Toggle */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-300">
+              <label className="mb-2 block text-sm font-medium text-foreground">
                 Disbursement Status
               </label>
               <label className="flex cursor-pointer items-center gap-2">
@@ -346,16 +387,16 @@ export default function ConfigurationPage(): React.ReactElement {
                   }
                   className="rounded text-green-600"
                 />
-                <span className="text-white">Enable disbursements</span>
+                <span className="text-foreground">Enable disbursements</span>
               </label>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 When disabled, no new batches can be created or executed.
               </p>
             </div>
 
             {/* Minimum Payout */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-300">
+              <label className="mb-2 block text-sm font-medium text-foreground">
                 Minimum Payout (USD)
               </label>
               <input
@@ -369,16 +410,16 @@ export default function ConfigurationPage(): React.ReactElement {
                     minimumPayout: parseFloat(e.target.value) || 0,
                   })
                 }
-                className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Affiliates must have at least this amount to receive a payout.
               </p>
             </div>
 
             {/* Batch Size */}
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-300">
+              <label className="mb-2 block text-sm font-medium text-foreground">
                 Maximum Batch Size
               </label>
               <input
@@ -392,9 +433,9 @@ export default function ConfigurationPage(): React.ReactElement {
                     batchSize: parseInt(e.target.value) || 100,
                   })
                 }
-                className="w-full rounded-lg border border-gray-600 bg-gray-700 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Maximum number of payments per batch (1-500).
               </p>
             </div>
@@ -403,14 +444,16 @@ export default function ConfigurationPage(): React.ReactElement {
       )}
 
       {/* Configuration Info */}
-      <Card className="border-gray-700 bg-gray-800">
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-white">Configuration Guide</CardTitle>
+          <CardTitle className="text-foreground">Configuration Guide</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-gray-300">
+        <CardContent className="space-y-3 text-foreground">
           <div>
-            <h4 className="mb-1 font-medium text-white">Payment Provider</h4>
-            <ul className="list-inside list-disc space-y-1 text-sm text-gray-400">
+            <h4 className="mb-1 font-medium text-foreground">
+              Payment Provider
+            </h4>
+            <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
               <li>
                 <strong>MOCK:</strong> Simulates payments instantly. Use for
                 development and testing.
@@ -427,8 +470,8 @@ export default function ConfigurationPage(): React.ReactElement {
           </div>
 
           <div>
-            <h4 className="mb-1 font-medium text-white">Minimum Payout</h4>
-            <p className="text-sm text-gray-400">
+            <h4 className="mb-1 font-medium text-foreground">Minimum Payout</h4>
+            <p className="text-sm text-muted-foreground">
               The minimum commission balance required before an affiliate
               becomes eligible for payout. This helps reduce transaction fees
               for small amounts.
@@ -436,20 +479,22 @@ export default function ConfigurationPage(): React.ReactElement {
           </div>
 
           <div>
-            <h4 className="mb-1 font-medium text-white">Batch Size</h4>
-            <p className="text-sm text-gray-400">
+            <h4 className="mb-1 font-medium text-foreground">Batch Size</h4>
+            <p className="text-sm text-muted-foreground">
               Maximum number of payments to include in a single batch. Larger
               batches are more efficient but take longer to process.
             </p>
           </div>
 
-          <div className="rounded-lg border border-yellow-600/50 bg-yellow-900/30 p-3">
-            <p className="text-sm text-yellow-400">
-              <strong>Note:</strong> The provider field above reflects the
-              current <code>DISBURSEMENT_PROVIDER</code> environment variable
-              and cannot be changed from this page. Real WISE payouts move real
-              money — provider changes must go through a deliberate
-              environment-variable update and redeploy, not this form.
+          <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3">
+            <p className="text-sm text-amber-600 dark:text-amber-400">
+              <strong>Note:</strong> This entire page is a placeholder over
+              environment-variable configuration — the <code>Save</code> action
+              here validates and logs your input but writes nothing to a
+              database. The provider field cannot be changed from this page at
+              all. Real WISE payouts move real money — any configuration change
+              must go through a deliberate environment-variable update and
+              redeploy, never this form.
             </p>
           </div>
         </CardContent>

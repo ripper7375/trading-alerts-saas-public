@@ -86,27 +86,27 @@ interface AffiliateDisbursementDetail {
 
 const TRANSACTION_STATUS_CLASS: Record<DisbursementTransactionStatus, string> =
   {
-    PENDING: 'bg-yellow-600',
-    PROCESSING: 'bg-blue-600',
-    COMPLETED: 'bg-green-600',
-    FAILED: 'bg-red-600',
-    CANCELLED: 'bg-gray-600',
+    PENDING: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    PROCESSING: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+    COMPLETED: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    FAILED: 'bg-red-500/10 text-red-600 dark:text-red-400',
+    CANCELLED: 'bg-muted text-muted-foreground',
   };
 
 const BATCH_STATUS_CLASS: Record<PaymentBatchStatus, string> = {
-  PENDING: 'bg-yellow-600',
-  QUEUED: 'bg-blue-500',
-  PROCESSING: 'bg-blue-600',
-  COMPLETED: 'bg-green-600',
-  FAILED: 'bg-red-600',
-  CANCELLED: 'bg-gray-600',
+  PENDING: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  QUEUED: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  PROCESSING: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  COMPLETED: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  FAILED: 'bg-red-500/10 text-red-600 dark:text-red-400',
+  CANCELLED: 'bg-muted text-muted-foreground',
 };
 
 function transactionStatusBadge(
   status: DisbursementTransactionStatus
 ): React.ReactElement {
   return (
-    <Badge className={`${TRANSACTION_STATUS_CLASS[status]} text-xs text-white`}>
+    <Badge className={`${TRANSACTION_STATUS_CLASS[status]} text-xs`}>
       {status}
     </Badge>
   );
@@ -114,9 +114,7 @@ function transactionStatusBadge(
 
 function batchStatusBadge(status: PaymentBatchStatus): React.ReactElement {
   return (
-    <Badge className={`${BATCH_STATUS_CLASS[status]} text-xs text-white`}>
-      {status}
-    </Badge>
+    <Badge className={`${BATCH_STATUS_CLASS[status]} text-xs`}>{status}</Badge>
   );
 }
 
@@ -191,13 +189,15 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
 
   if (notFound) {
     return (
-      <Card className="border-gray-700 bg-gray-800">
+      <Card className="border-border bg-card">
         <CardContent className="py-12 text-center">
-          <h2 className="text-xl font-bold text-white">Affiliate not found</h2>
-          <p className="mt-2 text-gray-400">
+          <h2 className="text-xl font-bold text-foreground">
+            Affiliate not found
+          </h2>
+          <p className="mt-2 text-muted-foreground">
             No affiliate exists with this ID.
           </p>
-          <Button asChild className="mt-4 bg-green-600 hover:bg-green-700">
+          <Button asChild className="mt-4">
             <Link href="/admin/disbursement/affiliates">
               Back to Payable Affiliates
             </Link>
@@ -209,15 +209,10 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
 
   if (error || !detail) {
     return (
-      <Card className="border-gray-700 bg-gray-800">
+      <Card className="border-border bg-card">
         <CardContent className="py-12 text-center">
-          <p className="mb-4 text-red-400">{error}</p>
-          <Button
-            onClick={() => void fetchDetail()}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            Retry
-          </Button>
+          <p className="mb-4 text-red-500">{error}</p>
+          <Button onClick={() => void fetchDetail()}>Retry</Button>
         </CardContent>
       </Card>
     );
@@ -230,51 +225,55 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
       <div>
         <Link
           href="/admin/disbursement/affiliates"
-          className="text-sm text-blue-400 transition-colors hover:text-blue-300"
+          className="hover:text-primary/80 text-sm text-primary transition-colors"
         >
           ← Back to Payable Affiliates
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold text-white sm:text-3xl">
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
             {affiliate.fullName}
           </h1>
           <Badge
             className={
               affiliate.status === 'ACTIVE'
-                ? 'bg-green-600'
+                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                 : affiliate.status === 'SUSPENDED'
-                  ? 'bg-red-600'
-                  : 'bg-yellow-600'
+                  ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                  : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
             }
           >
             {affiliate.status}
           </Badge>
           {detail.readyForPayout && (
-            <Badge className="bg-green-600">Ready for Payout</Badge>
+            <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              Ready for Payout
+            </Badge>
           )}
         </div>
-        <p className="mt-1 text-gray-400">
+        <p className="mt-1 text-muted-foreground">
           {affiliate.email} · {affiliate.country}
         </p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Total Earnings
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-foreground">
               {formatCurrency(affiliate.stats.totalEarnings)}
             </div>
           </CardContent>
         </Card>
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Pending</CardDescription>
+            <CardDescription className="text-muted-foreground">
+              Pending
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-400">
@@ -282,9 +281,11 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Paid</CardDescription>
+            <CardDescription className="text-muted-foreground">
+              Paid
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-400">
@@ -292,26 +293,26 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Codes Distributed
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-foreground">
               {affiliate.stats.codesDistributed}
             </div>
           </CardContent>
         </Card>
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Codes Used
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">
+            <div className="text-2xl font-bold text-foreground">
               {affiliate.stats.codesUsed}
             </div>
           </CardContent>
@@ -320,48 +321,56 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Pending Commissions */}
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-white">Pending Commissions</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-foreground">
+              Pending Commissions
+            </CardTitle>
+            <CardDescription className="text-muted-foreground">
               {detail.pendingCommissions.count} commission
               {detail.pendingCommissions.count === 1 ? '' : 's'} awaiting payout
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-400">Total Amount</span>
-              <span className="text-white">
+              <span className="text-muted-foreground">Total Amount</span>
+              <span className="text-foreground">
                 {formatCurrency(detail.pendingCommissions.totalAmount)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Oldest</span>
-              <span className="text-white">
+              <span className="text-muted-foreground">Oldest</span>
+              <span className="text-foreground">
                 {detail.pendingCommissions.oldestDate
                   ? formatDate(detail.pendingCommissions.oldestDate)
                   : '—'}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Meets Payout Threshold</span>
+              <span className="text-muted-foreground">
+                Meets Payout Threshold
+              </span>
               {detail.pendingCommissions.meetsThreshold ? (
-                <Badge className="bg-green-600 text-xs">Yes</Badge>
+                <Badge className="bg-emerald-500/10 text-xs text-emerald-600 dark:text-emerald-400">
+                  Yes
+                </Badge>
               ) : (
-                <Badge className="bg-gray-600 text-xs">No</Badge>
+                <Badge className="bg-muted text-xs text-muted-foreground">
+                  No
+                </Badge>
               )}
             </div>
           </CardContent>
         </Card>
 
         {/* RiseWorks Account (historical) */}
-        <Card className="border-gray-700 bg-gray-800">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               RiseWorks Account
-              <Badge className="bg-gray-600 text-xs">Historical</Badge>
+              <Badge className="bg-muted text-xs">Historical</Badge>
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Archived per F42 — live payouts run through Wise
             </CardDescription>
           </CardHeader>
@@ -369,56 +378,58 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
             {detail.riseAccount ? (
               <>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">KYC Status</span>
-                  <span className="text-white">
+                  <span className="text-muted-foreground">KYC Status</span>
+                  <span className="text-foreground">
                     {detail.riseAccount.kycStatus}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Rise ID</span>
-                  <span className="font-mono text-xs text-gray-300">
+                  <span className="text-muted-foreground">Rise ID</span>
+                  <span className="font-mono text-xs text-foreground">
                     {detail.riseAccount.riseId.slice(0, 10)}...
                   </span>
                 </div>
               </>
             ) : (
-              <p className="text-gray-400">No RiseWorks account on record.</p>
+              <p className="text-muted-foreground">
+                No RiseWorks account on record.
+              </p>
             )}
           </CardContent>
         </Card>
       </div>
 
       {/* Recent Transactions */}
-      <Card className="border-gray-700 bg-gray-800">
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-white">Recent Transactions</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-foreground">Recent Transactions</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Most recent 10 disbursement transactions
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {detail.recentTransactions.length === 0 ? (
-            <p className="px-6 py-8 text-center text-gray-400">
+            <p className="px-6 py-8 text-center text-muted-foreground">
               No transactions yet.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                  <tr className="border-b border-border">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Transaction
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Amount
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Status
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Batch
                     </th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-400">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Created
                     </th>
                   </tr>
@@ -427,12 +438,12 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
                   {detail.recentTransactions.map((txn) => (
                     <tr
                       key={txn.id}
-                      className="border-b border-gray-700/50 hover:bg-gray-700/30"
+                      className="border-border/50 hover:bg-accent/30 border-b"
                     >
-                      <td className="px-4 py-3 font-mono text-xs text-gray-300">
+                      <td className="px-4 py-3 font-mono text-xs text-foreground">
                         {txn.transactionId}
                       </td>
-                      <td className="px-4 py-3 text-white">
+                      <td className="px-4 py-3 text-foreground">
                         {formatCurrency(txn.amount)}
                       </td>
                       <td className="px-4 py-3">
@@ -441,17 +452,17 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
                       <td className="px-4 py-3">
                         {txn.batchNumber ? (
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs text-gray-400">
+                            <span className="font-mono text-xs text-muted-foreground">
                               {txn.batchNumber}
                             </span>
                             {txn.batchStatus &&
                               batchStatusBadge(txn.batchStatus)}
                           </div>
                         ) : (
-                          <span className="text-gray-500">—</span>
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-400">
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
                         {formatDate(txn.createdAt)}
                       </td>
                     </tr>
