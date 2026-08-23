@@ -147,6 +147,76 @@ describe('dLocal Payment Service', () => {
       const sentBody = JSON.parse(requestInit.body as string);
       expect(sentBody.payment_method_flow).toBe('REDIRECT');
     });
+
+    it("sends the mapped dLocal code ('TM'), not the display name ('TrueMoney'), as payment_method_id (F76)", async () => {
+      jest.resetModules();
+      process.env = {
+        ...ORIGINAL_ENV,
+        NODE_ENV: 'production',
+        DLOCAL_API_KEY: 'test-api-key',
+        DLOCAL_LOGIN: 'test-login',
+        DLOCAL_SECRET_KEY: 'test-secret',
+      };
+
+      const freshFetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          id: 'dlocal-payment-2',
+          redirect_url: 'https://sandbox.dlocal.com/pay/2',
+        }),
+      });
+      global.fetch = freshFetch as unknown as typeof fetch;
+
+      const {
+        createPayment: createPaymentFresh,
+      } = require('@/lib/dlocal/dlocal-payment.service');
+
+      await createPaymentFresh({
+        userId: 'user-790',
+        amount: 29.0,
+        currency: 'THB',
+        country: 'TH',
+        paymentMethod: 'TrueMoney',
+        planType: 'MONTHLY',
+      });
+
+      expect(freshFetch).toHaveBeenCalledTimes(1);
+      const [, requestInit] = freshFetch.mock.calls[0];
+      const sentBody = JSON.parse(requestInit.body as string);
+      expect(sentBody.payment_method_id).toBe('TM');
+      expect(sentBody.payment_method_id).not.toBe('TrueMoney');
+    });
+
+    it('throws before ever calling fetch when the payment method has no mapped dLocal code', async () => {
+      jest.resetModules();
+      process.env = {
+        ...ORIGINAL_ENV,
+        NODE_ENV: 'production',
+        DLOCAL_API_KEY: 'test-api-key',
+        DLOCAL_LOGIN: 'test-login',
+        DLOCAL_SECRET_KEY: 'test-secret',
+      };
+
+      const freshFetch = jest.fn();
+      global.fetch = freshFetch as unknown as typeof fetch;
+
+      const {
+        createPayment: createPaymentFresh,
+      } = require('@/lib/dlocal/dlocal-payment.service');
+
+      await expect(
+        createPaymentFresh({
+          userId: 'user-791',
+          amount: 29.0,
+          currency: 'INR',
+          country: 'IN',
+          paymentMethod: 'Bitcoin',
+          planType: 'MONTHLY',
+        })
+      ).rejects.toThrow(/No dLocal method code mapped/);
+
+      expect(freshFetch).not.toHaveBeenCalled();
+    });
   });
 
   describe('verifyWebhookSignature', () => {

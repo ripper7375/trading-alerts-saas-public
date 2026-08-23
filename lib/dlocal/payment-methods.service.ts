@@ -12,6 +12,49 @@ import {
 import { logger } from '@/lib/logger';
 
 /**
+ * Maps this codebase's human-readable payment method display names to
+ * dLocal's real Payins API `payment_method_id` codes (Session 4A-16, F76).
+ * Display names are this app's own labels (`DLOCAL_SUPPORTED_COUNTRIES`
+ * countries in lib/dlocal/constants.ts) -- dLocal's API rejects them
+ * verbatim with `5010 Method not available`.
+ */
+export const DLOCAL_METHOD_CODE_MAP: Record<
+  DLocalCountry,
+  Record<string, string>
+> = {
+  IN: { UPI: 'UP', Paytm: 'PAYTM', PhonePe: 'PHONEPE', 'Net Banking': 'NB' },
+  TH: { TrueMoney: 'TM', 'Rabbit LINE Pay': 'RLP', 'Thai QR': 'TH_QR' },
+  VN: { VNPay: 'VNPAY', MoMo: 'MOMO', ZaloPay: 'ZALOPAY' },
+  ID: { GoPay: 'GOPAY', OVO: 'OVO', Dana: 'DANA', ShopeePay: 'SHOPEEPAY' },
+  NG: {
+    'Bank Transfer': 'BANK_TRANSFER',
+    USSD: 'USSD',
+    Paystack: 'PAYSTACK',
+  },
+  PK: { JazzCash: 'JAZZCASH', Easypaisa: 'EASYPAISA' },
+  ZA: { 'Instant EFT': 'INSTANT_EFT', EFT: 'EFT' },
+  TR: { 'Bank Transfer': 'BANK_TRANSFER', 'Local Cards': 'CARD' },
+};
+
+/**
+ * Resolves a display name to dLocal's real `payment_method_id` for the
+ * given country. Fails loud -- never sends an unmapped display string to
+ * dLocal's API (Session 4A-16, F76).
+ */
+export function getDLocalMethodCode(
+  country: DLocalCountry,
+  displayName: string
+): string {
+  const code = DLOCAL_METHOD_CODE_MAP[country]?.[displayName];
+  if (!code) {
+    throw new Error(
+      `No dLocal method code mapped for payment method "${displayName}" in country "${country}"`
+    );
+  }
+  return code;
+}
+
+/**
  * Gets available payment methods for a country
  */
 export async function getPaymentMethodsForCountry(

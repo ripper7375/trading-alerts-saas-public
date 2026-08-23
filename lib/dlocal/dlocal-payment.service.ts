@@ -13,6 +13,7 @@ import type {
 } from '@/types/dlocal';
 import { logger } from '@/lib/logger';
 import { acquireIdempotencyLock } from '@/lib/idempotency/idempotency-guard';
+import { getDLocalMethodCode } from '@/lib/dlocal/payment-methods.service';
 
 const DLOCAL_API_URL =
   process.env['DLOCAL_API_URL'] || 'https://sandbox.dlocal.com';
@@ -64,7 +65,10 @@ export async function createPayment(
       amount: request.amount,
       currency: request.currency,
       country: request.country,
-      payment_method_id: request.paymentMethod,
+      payment_method_id: getDLocalMethodCode(
+        request.country,
+        request.paymentMethod
+      ),
       payment_method_flow: 'REDIRECT',
       order_id: orderId,
       notification_url: `${process.env['NEXTAUTH_URL']}/api/webhooks/dlocal`,
