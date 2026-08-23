@@ -97,8 +97,12 @@ start:dev` crashed the worker (watch-mode rebuild wiped `dist/` mid-require of
   CLOSED SUCCESSFUL, 6 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md`
   (F67 resolved, F82 registered OPEN), `LESSONS-LEARNED.md` (recurrence note on L24, no new lesson
   — stayed at the cap), this file (Current/Previous rotation — Session 9-9 moved to
-  `history/sessions-archive.md`). Session 10-2's order (e2e + API coverage) is next, per
-  `MASTER-ROADMAP-PHASES-7-15.md` §3 — not yet PRE-DRAFTed at time of writing; see Waiting on.
+  `history/sessions-archive.md`). Session 10-2's order PRE-DRAFTed per this session's own
+  obligation (`10-2-e2e-api-coverage.migration-order.md`) — 4 open questions flagged for the
+  Advisor at DRAFT, most load-bearing: the chart-marker visual gap (`mt5-service`'s OHLCV socket
+  server, out of scope in 10-1) directly blocks 10-2's own stated e2e success criterion and needs
+  a real resolution, not another reduced-evidence acceptance, since a Playwright assertion needs a
+  concrete checkable condition.
 - **Previous:** Session 9-10 (Phase 9 Exit, VERIFY-RETIRE + Deviation 1 admin-layout retirement),
   APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. **Phase 9 (Frontend Stack
   Replacement) is now CLOSED** — all 10 build sessions (9-1 through 9-9) plus this exit review
