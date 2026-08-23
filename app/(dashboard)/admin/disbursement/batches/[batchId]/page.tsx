@@ -1,9 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -77,24 +88,31 @@ interface BatchDetails {
 // HELPER FUNCTIONS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+const STATUS_BADGE_CLASS = {
+  amber: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  blue: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+  purple: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+  emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+  red: 'bg-red-500/10 text-red-600 dark:text-red-400',
+  muted: 'bg-muted text-muted-foreground',
+} as const;
+
 function getBatchStatusBadge(status: PaymentBatchStatus): React.ReactElement {
   const statusConfig: Record<
     PaymentBatchStatus,
     { className: string; label: string }
   > = {
-    PENDING: { className: 'bg-yellow-600', label: 'Pending' },
-    QUEUED: { className: 'bg-blue-600', label: 'Queued' },
-    PROCESSING: { className: 'bg-purple-600', label: 'Processing' },
-    COMPLETED: { className: 'bg-green-600', label: 'Completed' },
-    FAILED: { className: 'bg-red-600', label: 'Failed' },
-    CANCELLED: { className: 'bg-gray-600', label: 'Cancelled' },
+    PENDING: { className: STATUS_BADGE_CLASS.amber, label: 'Pending' },
+    QUEUED: { className: STATUS_BADGE_CLASS.blue, label: 'Queued' },
+    PROCESSING: { className: STATUS_BADGE_CLASS.purple, label: 'Processing' },
+    COMPLETED: { className: STATUS_BADGE_CLASS.emerald, label: 'Completed' },
+    FAILED: { className: STATUS_BADGE_CLASS.red, label: 'Failed' },
+    CANCELLED: { className: STATUS_BADGE_CLASS.muted, label: 'Cancelled' },
   };
 
   const config = statusConfig[status];
 
-  return (
-    <Badge className={`${config.className} text-white`}>{config.label}</Badge>
-  );
+  return <Badge className={config.className}>{config.label}</Badge>;
 }
 
 function getTransactionStatusBadge(
@@ -104,19 +122,17 @@ function getTransactionStatusBadge(
     DisbursementTransactionStatus,
     { className: string; label: string }
   > = {
-    PENDING: { className: 'bg-yellow-600', label: 'Pending' },
-    PROCESSING: { className: 'bg-blue-600', label: 'Processing' },
-    COMPLETED: { className: 'bg-green-600', label: 'Completed' },
-    FAILED: { className: 'bg-red-600', label: 'Failed' },
-    CANCELLED: { className: 'bg-gray-600', label: 'Cancelled' },
+    PENDING: { className: STATUS_BADGE_CLASS.amber, label: 'Pending' },
+    PROCESSING: { className: STATUS_BADGE_CLASS.blue, label: 'Processing' },
+    COMPLETED: { className: STATUS_BADGE_CLASS.emerald, label: 'Completed' },
+    FAILED: { className: STATUS_BADGE_CLASS.red, label: 'Failed' },
+    CANCELLED: { className: STATUS_BADGE_CLASS.muted, label: 'Cancelled' },
   };
 
   const config = statusConfig[status];
 
   return (
-    <Badge className={`${config.className} text-white text-xs`}>
-      {config.label}
-    </Badge>
+    <Badge className={`${config.className} text-xs`}>{config.label}</Badge>
   );
 }
 
@@ -125,18 +141,16 @@ function getAuditStatusBadge(status: AuditLogStatus): React.ReactElement {
     AuditLogStatus,
     { className: string; label: string }
   > = {
-    SUCCESS: { className: 'bg-green-600', label: 'Success' },
-    FAILURE: { className: 'bg-red-600', label: 'Failure' },
-    WARNING: { className: 'bg-yellow-600', label: 'Warning' },
-    INFO: { className: 'bg-blue-600', label: 'Info' },
+    SUCCESS: { className: STATUS_BADGE_CLASS.emerald, label: 'Success' },
+    FAILURE: { className: STATUS_BADGE_CLASS.red, label: 'Failure' },
+    WARNING: { className: STATUS_BADGE_CLASS.amber, label: 'Warning' },
+    INFO: { className: STATUS_BADGE_CLASS.blue, label: 'Info' },
   };
 
   const config = statusConfig[status];
 
   return (
-    <Badge className={`${config.className} text-white text-xs`}>
-      {config.label}
-    </Badge>
+    <Badge className={`${config.className} text-xs`}>{config.label}</Badge>
   );
 }
 
@@ -158,6 +172,7 @@ function getAuditStatusBadge(status: AuditLogStatus): React.ReactElement {
  */
 export default function BatchDetailsPage(): React.ReactElement {
   const params = useParams<{ batchId: string }>();
+  const router = useRouter();
   const batchId = params.batchId;
 
   const [batch, setBatch] = useState<BatchDetails | null>(null);
@@ -220,8 +235,6 @@ export default function BatchDetailsPage(): React.ReactElement {
   };
 
   const handleDeleteBatch = async (): Promise<void> => {
-    if (!confirm('Are you sure you want to delete this batch?')) return;
-
     try {
       setIsProcessing(true);
       const response = await fetch(`/api/disbursement/batches/${batchId}`, {
@@ -233,7 +246,7 @@ export default function BatchDetailsPage(): React.ReactElement {
         throw new Error(data.error || 'Failed to delete batch');
       }
 
-      window.location.href = '/admin/disbursement/batches';
+      router.push('/admin/disbursement/batches');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete batch');
       setIsProcessing(false);
@@ -242,16 +255,16 @@ export default function BatchDetailsPage(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" />
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-green-500" />
       </div>
     );
   }
 
   if (error || !batch) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-400 mb-4">{error || 'Batch not found'}</p>
+      <div className="py-8 text-center">
+        <p className="mb-4 text-red-500">{error || 'Batch not found'}</p>
         <Link href="/admin/disbursement/batches">
           <Button variant="outline">Back to Batches</Button>
         </Link>
@@ -269,21 +282,21 @@ export default function BatchDetailsPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-3 mb-1">
+          <div className="mb-1 flex items-center gap-3">
             <Link
               href="/admin/disbursement/batches"
-              className="text-gray-400 hover:text-white text-sm"
+              className="text-sm text-muted-foreground hover:text-foreground"
             >
               ← Batches
             </Link>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
+          <h1 className="flex items-center gap-3 text-2xl font-bold text-foreground sm:text-3xl">
             {batch.batchNumber}
             {getBatchStatusBadge(batch.status)}
           </h1>
-          <p className="text-gray-400 mt-1">
+          <p className="mt-1 text-muted-foreground">
             Created {formatDate(batch.createdAt)}
           </p>
         </div>
@@ -297,20 +310,62 @@ export default function BatchDetailsPage(): React.ReactElement {
           </Button>
           {batch.status === 'PENDING' && (
             <>
-              <Button
-                onClick={() => void handleExecuteBatch()}
-                className="bg-green-600 hover:bg-green-700"
-                disabled={isProcessing}
-              >
-                {isProcessing ? 'Executing...' : 'Execute Batch'}
-              </Button>
-              <Button
-                onClick={() => void handleDeleteBatch()}
-                variant="destructive"
-                disabled={isProcessing}
-              >
-                Delete
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button disabled={isProcessing}>
+                    {isProcessing ? 'Executing...' : 'Execute Batch'}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirm batch execution</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Execute batch <strong>{batch.batchNumber}</strong> —{' '}
+                      {batch.paymentCount} payment
+                      {batch.paymentCount === 1 ? '' : 's'},{' '}
+                      <strong>{formatCurrency(batch.totalAmount)}</strong> via{' '}
+                      <strong>{batch.provider}</strong>? This triggers real
+                      transfers through that provider and cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => void handleExecuteBatch()}
+                    >
+                      Execute
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={isProcessing}>
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Delete batch {batch.batchNumber}?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This permanently deletes batch{' '}
+                      <strong>{batch.batchNumber}</strong> ({batch.paymentCount}{' '}
+                      payment
+                      {batch.paymentCount === 1 ? '' : 's'},{' '}
+                      {formatCurrency(batch.totalAmount)}). This cannot be
+                      undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => void handleDeleteBatch()}>
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </>
           )}
         </div>
@@ -318,26 +373,26 @@ export default function BatchDetailsPage(): React.ReactElement {
 
       {/* Messages */}
       {error && (
-        <Card className="bg-red-900/50 border-red-600">
+        <Card className="border-red-600 bg-red-500/10">
           <CardContent className="py-4">
-            <p className="text-red-300">{error}</p>
+            <p className="text-red-500">{error}</p>
           </CardContent>
         </Card>
       )}
 
       {successMessage && (
-        <Card className="bg-green-900/50 border-green-600">
+        <Card className="border-green-600 bg-emerald-500/10">
           <CardContent className="py-4">
-            <p className="text-green-300">{successMessage}</p>
+            <p className="text-emerald-500">{successMessage}</p>
           </CardContent>
         </Card>
       )}
 
       {/* Batch Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gray-800 border-gray-700">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-border bg-card">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Total Amount
             </CardDescription>
           </CardHeader>
@@ -348,22 +403,22 @@ export default function BatchDetailsPage(): React.ReactElement {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-border bg-card">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Payments
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-white">
+            <div className="text-3xl font-bold text-foreground">
               {batch.paymentCount}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-border bg-card">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Completed
             </CardDescription>
           </CardHeader>
@@ -374,9 +429,11 @@ export default function BatchDetailsPage(): React.ReactElement {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-border bg-card">
           <CardHeader className="pb-2">
-            <CardDescription className="text-gray-400">Failed</CardDescription>
+            <CardDescription className="text-muted-foreground">
+              Failed
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-red-400">
@@ -387,41 +444,45 @@ export default function BatchDetailsPage(): React.ReactElement {
       </div>
 
       {/* Batch Details Card */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-white">Batch Details</CardTitle>
+          <CardTitle className="text-foreground">Batch Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
             <div>
-              <p className="text-gray-400">Provider</p>
-              <p className="text-white">{batch.provider}</p>
+              <p className="text-muted-foreground">Provider</p>
+              <p className="text-foreground">{batch.provider}</p>
             </div>
             <div>
-              <p className="text-gray-400">Currency</p>
-              <p className="text-white">{batch.currency}</p>
+              <p className="text-muted-foreground">Currency</p>
+              <p className="text-foreground">{batch.currency}</p>
             </div>
             {batch.executedAt && (
               <div>
-                <p className="text-gray-400">Executed At</p>
-                <p className="text-white">{formatDate(batch.executedAt)}</p>
+                <p className="text-muted-foreground">Executed At</p>
+                <p className="text-foreground">
+                  {formatDate(batch.executedAt)}
+                </p>
               </div>
             )}
             {batch.completedAt && (
               <div>
-                <p className="text-gray-400">Completed At</p>
-                <p className="text-white">{formatDate(batch.completedAt)}</p>
+                <p className="text-muted-foreground">Completed At</p>
+                <p className="text-foreground">
+                  {formatDate(batch.completedAt)}
+                </p>
               </div>
             )}
             {batch.failedAt && (
               <div>
-                <p className="text-gray-400">Failed At</p>
-                <p className="text-white">{formatDate(batch.failedAt)}</p>
+                <p className="text-muted-foreground">Failed At</p>
+                <p className="text-foreground">{formatDate(batch.failedAt)}</p>
               </div>
             )}
             {batch.errorMessage && (
               <div className="sm:col-span-2">
-                <p className="text-gray-400">Error Message</p>
+                <p className="text-muted-foreground">Error Message</p>
                 <p className="text-red-400">{batch.errorMessage}</p>
               </div>
             )}
@@ -430,13 +491,13 @@ export default function BatchDetailsPage(): React.ReactElement {
       </Card>
 
       {/* Transactions Table */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-foreground">
             Transactions
-            <Badge className="bg-gray-600">{batch.transactions.length}</Badge>
+            <Badge className="bg-muted">{batch.transactions.length}</Badge>
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-muted-foreground">
             Individual payment transactions in this batch
           </CardDescription>
         </CardHeader>
@@ -445,23 +506,23 @@ export default function BatchDetailsPage(): React.ReactElement {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                  <tr className="border-b border-border">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Transaction ID
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Status
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Amount
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Payee
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Provider TX
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Retries
                     </th>
                   </tr>
@@ -470,34 +531,34 @@ export default function BatchDetailsPage(): React.ReactElement {
                   {batch.transactions.map((tx) => (
                     <tr
                       key={tx.id}
-                      className="border-b border-gray-700/50 hover:bg-gray-700/30"
+                      className="border-border/50 hover:bg-accent/30 border-b"
                     >
-                      <td className="py-3 px-4">
-                        <span className="text-gray-300 font-mono text-xs">
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-xs text-foreground">
                           {tx.transactionId}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="px-4 py-3">
                         {getTransactionStatusBadge(tx.status)}
                       </td>
-                      <td className="py-3 px-4">
-                        <span className="text-green-400 font-medium">
+                      <td className="px-4 py-3">
+                        <span className="font-medium text-green-400">
                           {formatCurrency(tx.amount)}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className="text-gray-400 font-mono text-xs">
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-xs text-muted-foreground">
                           {tx.payeeRiseId
                             ? `${tx.payeeRiseId.slice(0, 10)}...`
                             : '-'}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className="text-gray-400 text-xs">
+                      <td className="px-4 py-3">
+                        <span className="text-xs text-muted-foreground">
                           {tx.providerTxId || '-'}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-gray-400">
+                      <td className="px-4 py-3 text-muted-foreground">
                         {tx.retryCount}
                       </td>
                     </tr>
@@ -506,7 +567,7 @@ export default function BatchDetailsPage(): React.ReactElement {
               </table>
             </div>
           ) : (
-            <p className="text-gray-400 text-center py-4">
+            <p className="py-4 text-center text-muted-foreground">
               No transactions yet.
             </p>
           )}
@@ -515,13 +576,13 @@ export default function BatchDetailsPage(): React.ReactElement {
 
       {/* Audit Logs */}
       {batch.auditLogs && batch.auditLogs.length > 0 && (
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-white flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               Audit Logs
-              <Badge className="bg-gray-600">{batch.auditLogs.length}</Badge>
+              <Badge className="bg-muted">{batch.auditLogs.length}</Badge>
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Activity history for this batch
             </CardDescription>
           </CardHeader>
@@ -530,23 +591,25 @@ export default function BatchDetailsPage(): React.ReactElement {
               {batch.auditLogs.map((log) => (
                 <div
                   key={log.id}
-                  className="flex items-start gap-3 p-3 bg-gray-700/50 rounded-lg"
+                  className="bg-accent/50 flex items-start gap-3 rounded-lg p-3"
                 >
                   <div className="mt-1">{getAuditStatusBadge(log.status)}</div>
                   <div className="flex-1">
-                    <p className="text-white text-sm font-medium">
+                    <p className="text-sm font-medium text-foreground">
                       {log.action}
                     </p>
                     {log.actor && (
-                      <p className="text-gray-400 text-xs">by {log.actor}</p>
+                      <p className="text-xs text-muted-foreground">
+                        by {log.actor}
+                      </p>
                     )}
                     {log.details && Object.keys(log.details).length > 0 && (
-                      <pre className="text-gray-400 text-xs mt-1 overflow-auto">
+                      <pre className="mt-1 overflow-auto text-xs text-muted-foreground">
                         {JSON.stringify(log.details, null, 2)}
                       </pre>
                     )}
                   </div>
-                  <span className="text-gray-500 text-xs">
+                  <span className="text-xs text-muted-foreground">
                     {formatDate(log.createdAt)}
                   </span>
                 </div>
