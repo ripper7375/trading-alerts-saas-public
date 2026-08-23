@@ -7,6 +7,98 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 9-10** (Phase 9 Exit, VERIFY-RETIRE +
+  Deviation 1 admin-layout retirement), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL**
+  2026-08-23. **Phase 9 (Frontend Stack Replacement) is now CLOSED** — all 10 build sessions (9-1
+  through 9-9) plus this exit review are complete; all 85 CB1 routes live on real data, zero mock
+  data outstanding (2 disclosed exceptions, both pre-known and banner-flagged), Phase 10 (Drawing
+  Engine & Line-Alert Closure) is next.
+  **CONFIRM found a real, blocking defect before "go":** `/admin/**` (all 29 routes) rendered
+  double chrome — the legacy codebase-1 `Header`/`Sidebar`/`Footer` (still "Trading Alerts"-
+  branded, hardcoded `bg-white dark:bg-gray-800` footer) wrapping the DavinTrade `admin/
+layout.tsx` shell 9-8a built. Live browser measurement, not inference: 2 `<header>`s at
+  offsetTop 0/153, 1 legacy `<footer>` at offsetTop 1650 on a 1718px page, both fully visible
+  (`display:block`, non-zero heights). Root cause: Session 9-4 reverted
+  `app/(dashboard)/layout.tsx` to its legacy form specifically to keep serving `/admin/*` +
+  `/charts` after the new-shell mount broke them live (9-4's own Deviation 13); Session 9-5 gave
+  `/settings` the correct top-level-route fix, `/admin` never got the same — `migration-stack-
+analysis.md`'s own 9-4 entry predicted exactly this, flagging the legacy shell as "fully
+  orphaned... flagged for Session 9-10's own dead-code exit criterion." Davin approved (live in
+  chat) folding the real fix in as a scoped Deviation rather than a separate session, plus 3
+  further explicit decisions, all executed:
+  **1) Admin layout retirement** — `app/(dashboard)/admin` → `app/admin`, `app/(dashboard)/
+charts` → `app/charts` (git mv, zero relative imports broken in either subtree),
+  `app/(dashboard)/layout.tsx` deleted, the route group retired entirely. `app/admin/layout.tsx`
+  gained the same `AppearanceProvider`+`LoginTracker`+`TokenRefreshProvider` wrapper every other
+  top-level protected layout uses (`app/dashboard`, `app/settings`, `app/terminal`, `app/free`),
+  plus `aria-label` on its nav/aside landmarks. Live-reverified post-fix: `/admin`, `/admin/users`
+  now render exactly 1 header/1 aside/1 main (was 2/2/2); `/admin/disbursement/*`'s own 2-level
+  chrome (admin nav + disbursement sub-nav) confirmed as pre-existing Session 9-9 design, not a
+  regression; `/charts` + `/charts/[symbol]/[timeframe]` still correctly redirect to `/terminal`;
+  zero "Trading Alerts" text left anywhere in the admin render tree. 5 `__tests__/pages/admin/
+*.test.tsx` import paths repointed from the retired `(dashboard)/admin` path.
+  **2) Dead codebase-1 cleanup, two batches, both zero-importer-verified immediately before
+  deletion (not solely trusting the CONFIRM-time audit):** batch 1 —
+  `components/layout/{header,sidebar,footer,mobile-nav}.tsx` (the double-chrome culprit itself,
+  genuinely orphaned once the shared layout was gone) + their 1 test file (33 tests). Batch 2 —
+  `components/billing/subscription-card.tsx` (F64's known broken-Undo dead code),
+  `components/alerts/{alert-card,alert-list}.tsx` (orphaned pair, superseded by `AlertsClient`
+  pre-Phase-9), 12 legacy `components/admin/*.tsx` (superseded by 9-8b's inline builds) + 6
+  orphaned test files, and `components/notifications/notification-bell.tsx` — Davin's explicit
+  choice to retire (delete) rather than wire into `AppHeader`, a **disclosed functional
+  regression** (real-time notification-bell UI has had no home since the chrome swap), not a
+  silent removal. `components/admin/{FraudAlertCard,FraudPatternBadge}.tsx` (9-8b, live)
+  explicitly not touched.
+  **3) Route map + gap matrix docs:** `frontend-swap-route-map.md` rows 45/46 Session column
+  corrected `9-7a`→`9-7b` (confirmed via `git log` commit `05c10b89`); rows
+  49/50/51/57/58/59/62/68 (9-4's own rows) Main-Repo-Target/Layout-Boundary columns corrected to
+  their real shipped top-level paths — both drifts existed before this session, from live
+  reassignments/corrections that were never written back into the map. New addendum #9 documents
+  this session's own admin+charts promotion; the ~40 admin/disbursement row citations were left
+  as historical record per the map's own established convention rather than individually
+  rewritten. `phase-6-frontend-gap-matrix.md` marked `SUPERSEDED-BY-PHASE-9`, historical content
+  preserved intact.
+  **4) Multi-theme sweep + final baseline:** every route in the order's own checklist item 4 spot-
+  checked in dark AND light mode (light via direct `documentElement` class verification after
+  confirming the per-user persisted `UserAppearance.theme` legitimately overrides a fresh
+  client-side hint — not a bug) — zero regressions, zero new console errors (only pre-existing
+  dev-only HMR/CSP-blocked-localhost-socket noise from `operation-service` not running locally).
+  **Final baseline, fresh and full-scope, exact reconciliation of every count:** monolith `tsc`
+  clean; `eslint` **0 errors/0 warnings** (down from the 2-warning entry baseline — both were in
+  the now-deleted `header.tsx`, a genuine improvement); `test:ci` 160→159 (-1, header.test.tsx)
+  →153 (-6, the 6 dead-component tests) suites, 2400→2367 (-33)→2198 (-169) tests, every drop
+  fully explained by a real deletion, zero unexplained failures; money-service 62/62 suites/
+  526/526 tests (unchanged); operation-service 42/42 suites/393/393 tests (unchanged).
+  Route-manifest diff clean: 90 `page.tsx` files before and after (renames only), zero
+  duplicate-URL collisions repo-wide.
+  **One incidental finding, not fixed (unrelated file, out of scope):** `/terminal`'s `<title>`
+  renders "Terminal | DavinTrade | DavinTrade" (double suffix — `app/terminal/page.tsx`'s own
+  `metadata.title` already includes `| DavinTrade`, root layout's template appends a second one),
+  pre-existing since Session 9-4 — a one-line fix for whichever session next touches that file.
+  **A git-state note, not itself an issue (L3 pattern, benign):** committed HEAD held this
+  session's own bare `Status: PRE-DRAFT` order; the corrected, upgraded `Status: APPROVED`
+  version (with the fuller 9-item checklist) existed only as an uncommitted working-copy edit —
+  confirmed authentic and committed at session open, per L3's own established resolution.
+  **`DECISION-LOG.md` size-gate check (EXECUTOR-PROTOCOL.md §1 step 0): 63,589 bytes, over the
+  ~50KB target — checked and found not actionable, same conclusion as 9-9's own check.** All
+  RESOLVED flags already point to `history/decisions-archive.md`; the overage is inherent to F80
+  and F81 both still being genuinely OPEN and needing to stay inline per the file's own hygiene
+  rule. No archival performed. F65/F66 re-confirmed RESOLVED; F81 re-confirmed OPEN (unchanged,
+  held for a future admin-scoped-endpoint session).
+  **Artifacts updated:** `9-10-phase-9-exit.migration-order.md` (Status → CONFIRMED → CLOSED
+  SUCCESSFUL, 4 Deviations + checked Done-when/entry-criteria boxes), `frontend-swap-route-map.md`
+  (rows 45/46 + 9-4's rows corrected, addendum #9), `phase-6-frontend-gap-matrix.md` (superseded
+  banner), `migration-stack-analysis.md` (Session 9-10 entry, 0 new/36 renamed+6 modified/22
+  deleted, all FRONTEND — also backfills that Session 9-9 correctly needed no entry, pure
+  restyle-in-place), this file (Current/Previous rotation — Session 9-8b moved to
+  `history/sessions-archive.md`). Session 10-1's order PRE-DRAFTed
+  (`10-1-drawing-alert-smoke.migration-order.md`) per this session's own obligation — INFRA/VERIFY,
+  F67 (execution environment: Contabo VPS / local Docker / Railway scratch) posed as an open
+  `⚠ NEEDS EXPLICIT SIGN-OFF` decision for the Advisor/Davin, not resolved here per
+  `EXECUTOR-PROTOCOL.md` §7; the order also flags that `PHASE-4-SMOKE-TEST-RUNBOOK.md` is
+  monolith-era and stale (alert-engine moved to `operation-service` at 4B-2/4B-3) and must be
+  re-derived from live code, not followed literally.
+
 - _(superseded-by-above, retained for context)_ **Session 9-9** (`app/(dashboard)/admin/disbursement/*`, Phase 9, UI-BUILD), APPROVED,
   CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. Twelfth session of Phase 9 — ships the
   disbursement nested layout and all 10 of its rows: 22 (`/admin/disbursement`), 13 (`/accounts`,
