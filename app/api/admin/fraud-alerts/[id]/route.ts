@@ -167,7 +167,7 @@ export async function PATCH(
     const updatedAlertUser = updatedAlertRow
       ? await prisma.user.findUnique({
           where: { id: updatedAlertRow.userId },
-          select: { id: true, email: true, name: true },
+          select: { id: true, email: true, name: true, tier: true },
         })
       : null;
     const updatedAlert = updatedAlertRow
