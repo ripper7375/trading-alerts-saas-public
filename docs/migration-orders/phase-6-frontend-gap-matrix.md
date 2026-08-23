@@ -1,5 +1,10 @@
 # Phase 6 Frontend Gap Matrix (F11) — Session 6-1
 
+> **SUPERSEDED BY PHASE 9** (2026-08-23) — All frontend surfaces replaced with DavinTrade design
+> system and real data bindings. This matrix is Phase 6's own historical record and is preserved
+> intact below, not deleted; it is no longer the current state of the frontend. See
+> `docs/migration-orders/frontend-swap-route-map.md` for the current, authoritative route ledger.
+
 > Produced per `6-1-gap-matrix-f11.migration-order.md` Steps 1-3. Source input:
 > `docs/files-completion-list/ui-page-gap-analysis.md` + `ui-page-gap-register.xlsx`
 > (2026-08-10) — **re-verified against live code at Session 6-1 CONFIRM/close (2026-08-10)**,
