@@ -32,7 +32,9 @@ noted in Session 9-10's own Deviations for the Advisor to consider consolidating
 lesson or promoting once room exists. Session 10-1: no new lesson added (stayed at the cap) -- a
 recurrence note appended to L24 (a real Prisma `P2028` transaction-timeout, not just a misleading
 verification result, caused by this session's own concurrent local-process load against a shared
-pooled dev DB).
+pooled dev DB). Session 10-2: no new lesson added (stayed at the cap) -- a recurrence note appended
+to L37 (an Advisor-drafted Decisions-taken UI-behavior claim, uncross-checked against `CLAUDE.md`'s
+own immediately-preceding Session 9-10 entry that already disclosed the contradiction).
 Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
 (same rule Session 9-6 hit at 41; nothing to merge yet, all 40 are still genuinely distinct).
 
@@ -390,6 +392,13 @@ Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must 
 - Root cause: the order's narrative was carried forward from F50's original 2026-07-30 finding (written when the publisher genuinely was off) without being re-checked against either live infrastructure or this project's own other maintained artifact that already had the correct, current answer.
 - Rule: at CONFIRM, don't just re-verify an order's claims against live infrastructure (L22) — also check them against this project's other maintained documents (`migration-cutover-table.md`, `DECISION-LOG.md`'s register) that may already record the correct current state, especially for flag/toggle state tied to a past session's cutover. A same-day draft is not automatically fresh.
 - Source: Session 4A-15 (2026-08-21) · Status: ACTIVE
+- Recurrence (Session 10-2, 2026-08-23) — a UI-behavior variant, not a flag/toggle one. The
+  order's own Decisions taken (Advisor-drafted the same day) assumed a toast fires and `AppHeader`
+  shows a live unread badge for fired-alert events. Neither exists — `CLAUDE.md`'s own Session
+  9-10 entry (same day, 3 sessions earlier) already disclosed `notification-bell.tsx` deleted and
+  never rewired into `AppHeader`, "no home since the chrome swap." A same-day DRAFT checked against
+  live infrastructure alone still missed it; checking `CLAUDE.md`'s own immediately-preceding entry
+  would have caught it without reading a line of component code.
 
 ### L38 — `next lint` has been removed from this Next.js version's CLI entirely; `npm run lint`/`npm run eslint` both silently fail
 
