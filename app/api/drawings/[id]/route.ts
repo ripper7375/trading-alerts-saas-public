@@ -164,7 +164,22 @@ export async function DELETE(
       );
     }
 
+    // F82: DrawingAlert.drawingId cascades on Drawing delete, but Alert has
+    // no reverse cascade from DrawingAlert — a PRICE_TOUCH_LINE Alert has no
+    // meaning without its drawing, so collect its id(s) before the cascade
+    // wipes the join row, then delete the now-orphaned Alert row(s) too.
+    const drawingAlerts = await prisma.drawingAlert.findMany({
+      where: { drawingId: id },
+      select: { alertId: true },
+    });
+
     await prisma.drawing.delete({ where: { id } });
+
+    if (drawingAlerts.length > 0) {
+      await prisma.alert.deleteMany({
+        where: { id: { in: drawingAlerts.map((a) => a.alertId) } },
+      });
+    }
 
     await publishAlertsChanged({
       symbol: existing.symbol,

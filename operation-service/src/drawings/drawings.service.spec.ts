@@ -14,6 +14,12 @@ describe('DrawingsService', () => {
       delete: jest.fn(),
       count: jest.fn(),
     },
+    drawingAlert: {
+      findMany: jest.fn(),
+    },
+    alert: {
+      deleteMany: jest.fn(),
+    },
   };
 
   const mockPublish = jest.fn();
@@ -214,6 +220,7 @@ describe('DrawingsService', () => {
         symbol: 'XAUUSD',
         timeframe: 'M5',
       });
+      mockPrisma.drawingAlert.findMany.mockResolvedValue([]);
       mockPrisma.drawing.delete.mockResolvedValue({});
 
       const result = await makeService().remove('user-1', 'drawing-1');
@@ -226,6 +233,47 @@ describe('DrawingsService', () => {
         expect.stringContaining('"reason":"drawing_deleted"')
       );
       expect(result).toEqual({ success: true });
+    });
+
+    // F82 (DECISION-LOG.md): DrawingAlert.drawingId cascades on Drawing
+    // delete, but Alert has no reverse cascade — leaving a PRICE_TOUCH_LINE
+    // Alert row permanently orphaned unless remove() deletes it explicitly.
+    it('also deletes the backing Alert row(s) for any attached line alert (F82)', async () => {
+      mockPrisma.drawing.findUnique.mockResolvedValue({
+        id: 'drawing-1',
+        userId: 'user-1',
+        symbol: 'XAUUSD',
+        timeframe: 'M5',
+      });
+      mockPrisma.drawingAlert.findMany.mockResolvedValue([
+        { alertId: 'alert-1' },
+      ]);
+      mockPrisma.drawing.delete.mockResolvedValue({});
+
+      await makeService().remove('user-1', 'drawing-1');
+
+      expect(mockPrisma.drawingAlert.findMany).toHaveBeenCalledWith({
+        where: { drawingId: 'drawing-1' },
+        select: { alertId: true },
+      });
+      expect(mockPrisma.alert.deleteMany).toHaveBeenCalledWith({
+        where: { id: { in: ['alert-1'] } },
+      });
+    });
+
+    it('does not call alert.deleteMany when the drawing has no attached alert', async () => {
+      mockPrisma.drawing.findUnique.mockResolvedValue({
+        id: 'drawing-1',
+        userId: 'user-1',
+        symbol: 'XAUUSD',
+        timeframe: 'M5',
+      });
+      mockPrisma.drawingAlert.findMany.mockResolvedValue([]);
+      mockPrisma.drawing.delete.mockResolvedValue({});
+
+      await makeService().remove('user-1', 'drawing-1');
+
+      expect(mockPrisma.alert.deleteMany).not.toHaveBeenCalled();
     });
   });
 });
