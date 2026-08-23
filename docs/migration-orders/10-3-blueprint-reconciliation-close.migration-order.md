@@ -6,7 +6,7 @@
 > **PRE-DRAFTed by the Executor at Session 10-2's close (2026-08-23)**, upgraded to **DRAFT by the
 > Advisor / Antigravity (2026-08-24)** per `MASTER-ROADMAP-PHASES-7-15.md` §3 and `00-SKELETON-AND-RULES.md`.
 
-**Session:** 10-3 · **Phase:** 10 (Drawing Engine & Line-Alert Closure — final session) · **Variant:** VERIFY-RETIRE · **Status:** CONFIRMED  
+**Session:** 10-3 · **Phase:** 10 (Drawing Engine & Line-Alert Closure — final session) · **Variant:** VERIFY-RETIRE · **Status:** CLOSED SUCCESSFUL  
 **Generated:** 2026-08-23 (Executor, PRE-DRAFT) · **Upgraded to DRAFT:** 2026-08-24 (Advisor / Antigravity) · **Approved:** 2026-08-24 (Davin)  
 **Flags touched:** none (F67 resolved in 10-1; F82 resolved in 10-2).  
 **Estimated time:** ~1–1.5h (pure documentation reconciliation — zero code changes).  
@@ -65,10 +65,10 @@ Phase 10 has achieved complete live-fire proof (Session 10-1, F67) and durable a
 
 ## Entry criteria (re-verify all at CONFIRM)
 
-- [ ] **Session 10-2 CLOSED SUCCESSFUL** — F82 resolved, Playwright + Newman coverage green (`10-2-e2e-api-coverage.migration-order.md`).
-- [ ] **No Phase 10 work remains unclosed** — F67 and F82 both RESOLVED in `DECISION-LOG.md`.
-- [ ] **Baseline test suites 100% green**: Monolith `test:ci` (153 suites, 2198 tests), `operation-service` (42 suites, 395 tests), `money-service` (62 suites, 526 tests).
-- [ ] **Blueprint and companion doc present**:
+- [x] **Session 10-2 CLOSED SUCCESSFUL** — F82 resolved, Playwright + Newman coverage green (`10-2-e2e-api-coverage.migration-order.md`).
+- [x] **No Phase 10 work remains unclosed** — F67 and F82 both RESOLVED in `DECISION-LOG.md`.
+- [x] **Baseline test suites 100% green**: Monolith `test:ci` (153 suites, 2198 tests), `operation-service` (42 suites, 395 tests), `money-service` (62 suites, 526 tests).
+- [x] **Blueprint and companion doc present**:
   - `davintrade-draw-engine-and-line-alerts-stack/architecture-design-blueprint/DRAWING-ENGINE-AND-LINE-ALERTS-ARCHITECTURE.md`
   - `davintrade-draw-engine-and-line-alerts-stack/implementation-progress/implementation-progress-files-and-folder-directory.md`
 
@@ -140,12 +140,12 @@ _(each step = change → immediate verification → rollback note)_
 
 ## Done when
 
-- [ ] `DRAWING-ENGINE-AND-LINE-ALERTS-ARCHITECTURE.md` status callouts in §3, §7, and §14 reconciled to `operation-service` reality.
-- [ ] `implementation-progress-files-and-folder-directory.md` replaced with clean consolidation pointer.
-- [ ] `HANDOVER-PROMPT-phase-8A.md` created in `docs/migration-orders/davin-operational-manual/antigravity/`.
-- [ ] Phase 10 declared **CLOSED SUCCESSFUL**.
-- [ ] Baseline test suites confirmed 100% green: Monolith `test:ci`, `operation-service`, `money-service`.
-- [ ] Session 8-1 PRE-DRAFTed.
+- [x] `DRAWING-ENGINE-AND-LINE-ALERTS-ARCHITECTURE.md` status callouts in §3, §7, and §14 reconciled to `operation-service` reality.
+- [x] `implementation-progress-files-and-folder-directory.md` replaced with clean consolidation pointer.
+- [x] `HANDOVER-PROMPT-phase-8A.md` created in `docs/migration-orders/davin-operational-manual/antigravity/`.
+- [x] Phase 10 declared **CLOSED SUCCESSFUL**.
+- [x] Baseline test suites confirmed 100% green: Monolith `test:ci` (153/153, 2198/2198), `operation-service` (42/42, 395/395), `money-service` (62/62, 526/526).
+- [x] Session 8-1 PRE-DRAFTed.
 
 ---
 
@@ -157,7 +157,41 @@ _(each step = change → immediate verification → rollback note)_
 
 ## Deviations
 
-<!-- Filled by Executor during execution per EXECUTOR-PROTOCOL.md §3 -->
+1. **Blueprint reconciliation scope narrower than the order's own step-1 detail in two places
+   (§3's model-row line-number citations, §8's stack-summary table) — left untouched, not fixed.**
+   Decision 1's own chosen scope named only the Database row, Web framework row, and the
+   key-takeaway note in §3, plus §7 and §14. Reading the live file found §3's Price
+   table/Alert table/Notifications/Tiering rows and §8's separate stack-summary table also cite
+   the pre-split `prisma/schema.prisma:<line>` path — same underlying staleness, but outside this
+   session's explicit Decision-1 scope. Left as-is per the VERIFY-RETIRE near-zero dial (no
+   scope expansion beyond what was decided); noted here and in the blueprint's own commit message
+   for a future doc pass to pick up.
+2. **`HANDOVER-PROMPT-phase-8A.md` surfaces a real, currently-failing Session 8-1 entry criterion
+   rather than a clean handover.** While authoring it, checked `DECISION-LOG.md`'s live F76 row
+   (not just the roadmap's 2026-08-20 narrative, which describes Phase 4X's carry-forward
+   sessions in a mix of past and future tense) and found Session 4A-16 has not run — F76 is still
+   OPEN, so the roadmap's own gate ("all four Phase 4X sessions CLOSED before Session 8-1 opens")
+   is not yet met. Not fixed here (out of scope — scheduling 4A-16 is Davin's call, not a doc
+   session's to resolve); disclosed explicitly in the handover prompt's own `CURRENT_PROJECT_STATE`
+   section and in Session 8-1's own PRE-DRAFT entry criteria, rather than silently assumed closed.
+3. **Session 8-1's PRE-DRAFT flags a second real tension the roadmap's own phrasing glosses over:**
+   the roadmap's literal "delete migrated `app/api/**`" instruction for 8-1 predates F65's actual
+   resolution (Session 9-0: retain `app/api/**` permanently as the BFF proxy layer). Not resolved
+   here — this is a PD1 judgment call for the Advisor to make at 8-1's own DRAFT, not something
+   this VERIFY-RETIRE session should decide — but written into the PRE-DRAFT as an explicit "Open
+   question" section rather than left implicit for a future session to trip over.
+4. **One self-correction during drafting, not a live-code contradiction:** `HANDOVER-PROMPT-
+phase-8A.md`'s first draft speculated Session 8-1's template variant as "likely PORT/RETIRE-
+   leaning" before `00-SKELETON-AND-RULES.md` §2 was read. That document names Session 8-1 directly
+   as a VERIFY-RETIRE example. Caught and fixed in a follow-up commit before this close, rather
+   than left as an unverified guess in a document whose own stated purpose is avoiding
+   fabrication (`LESSONS-LEARNED.md` L27).
+5. **One markdown-corruption fix, same class as prior sessions.** The 8-1 PRE-DRAFT's first draft
+   had a backtick-code-span immediately adjacent to a bold-marker (`` `app/api/**` `` followed by
+   `**permanently`) that the pre-commit prettier pass collapsed the surrounding whitespace on,
+   producing unreadable run-together text. Caught by a targeted grep for the pattern (learned from
+   CLAUDE.md's own prior "prettier underscore corruption" and "prettier `+` mid-sentence" fixes)
+   and reworded rather than left for a future session to find.
 
 ---
 
