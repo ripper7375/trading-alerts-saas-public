@@ -49,12 +49,12 @@ Lightweight Charts.
 
 | Layer                      | Technology (version)                                                      | Where it lives in the repo                                                   |
 | -------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Web framework              | **Next.js 15.5** (App Router), **React 19**, TypeScript                   | `app/`, `components/`, `package.json`                                        |
+| Web framework              | **Next.js 16.3.0** (App Router), **React 19**, TypeScript                 | `app/`, `components/`, `package.json`                                        |
 | Charts                     | **Lightweight Charts ^4.1.1** (→ upgrade to v5)                           | `components/charts/trading-chart.tsx`, `app/(dashboard)/charts/...`          |
 | Live price (browser)       | **Socket.IO** client ^4.8                                                 | `hooks/use-ohlcv-socket.ts`                                                  |
 | Live price (source)        | **Flask 3 + flask-socketio 5.3.5 + python-socketio**, pandas, MetaTrader5 | `mt5-service/` (Python, Windows prod)                                        |
 | Price persistence pipeline | Python sync → PostgreSQL (psycopg2)                                       | `sync/`, writes `MarketData`                                                 |
-| Database                   | **PostgreSQL** via **Prisma 6** (`@prisma/client`, `pg`)                  | `prisma/schema.prisma`                                                       |
+| Database                   | **PostgreSQL** via **Prisma 7** (`@prisma/client`, `pg`)                  | `prisma/non-market-data/schema.prisma` + `prisma/market-data/schema.prisma`  |
 | Price table                | `MarketData` (OHLCV + indicator columns)                                  | `prisma/schema.prisma:932`                                                   |
 | Alert table                | `Alert` (`alertType` default `"PRICE_TOUCH_LINE"`)                        | `prisma/schema.prisma:383`                                                   |
 | Notifications              | `Notification` model                                                      | `prisma/schema.prisma:666`                                                   |
@@ -76,11 +76,14 @@ _Note on the "Price persistence pipeline" (`sync/`) row above — see §14 for a
 _the implementation files it imports aren't present in this repo (deployed separately)._
 
 **Key takeaway:** the only net-new infra for the whole feature is a **job queue** (BullMQ) and using
-the **already-present Redis** for pub/sub. Everything else is already in your stack. **As of
-2026-07-05 (gap closed later the same day), both the BullMQ worker AND the Redis pub/sub leg
-(Flask's publish side, `mt5-service/app/redis_pub.py`) are built — see the Phase 4 status
-callout in §7. Only the live cross-process round trip over real infra remains unverified
-(see `PHASE-4-SMOKE-TEST-RUNBOOK.md`).**
+the **already-present Redis** for pub/sub. Everything else is already in your stack. \*\*As of
+2026-08-24: the BullMQ worker, the Redis pub/sub leg (Flask's publish side,
+`mt5-service/app/redis_pub.py`), and the entire alert engine were ported out of the monolith into
+the `operation-service` microservice (Sessions 4B-2/4B-3) — see the Phase 4 status callout in §7.
+The full live cross-process round trip is proven end-to-end (Session 10-1, F67, all 4 Invariant
+Proofs verified live) and covered by durable automated regression tests (Session 10-2, F82, Newman
+
+- Playwright) — no gap remains.\*\*
 
 ---
 
@@ -249,33 +252,36 @@ model DrawingAlert {
   Recommended path is the Node/BullMQ worker to share Prisma + types.)_
 - **Risk:** worker→price reachability (see §11); idempotency of crossing across restarts.
 
-> **Current Implementation Status (updated 2026-07-05 — gap closed):**
+> **Current Implementation Status (updated 2026-08-24 — fully live, cut over, and
+> regression-tested):**
 >
-> - ✅ **Worker (Node) — built.** `lib/alert-engine/{types,detect,state,watches,evaluator,
-dispatcher,queue,worker,notify-bridge}.ts` + entrypoint `scripts/alert-worker.ts` are
->   implemented and match this section's design: it `psubscribe`s `prices:*` and `alerts:changed`,
->   loads active `DrawingAlert`+`Drawing` via Prisma, and dispatches fires through the BullMQ queue.
-> - ✅ **Producer (Flask) — built.** `redis==5.0.1` added to `mt5-service/requirements.txt`;
->   `REDIS_URL` added to `mt5-service/.env.example`; `app/redis_pub.py` (new) implements the
->   publish call from `REDIS-PUBLISH-SNIPPET.md` and is called from `background_update_loop` in
->   `mt5-service/app/websocket.py`, right next to the existing `socketio.emit('ohlcv_update', ...)`
->   — best-effort, never blocks the live feed. Unit-tested against a mocked Redis client
->   (`mt5-service/tests/test_redis_pub.py`, 3/3 passing) confirming the payload matches
->   `lib/alert-engine/types.ts`'s `PriceEvent` exactly.
-> - ✅ **Deployment — wired.** `npm run worker:alerts` runs `scripts/alert-worker.ts`; added as
->   its own service in `docker-compose.yml` (`alert-worker`) and a standalone Railway config
->   (`railway-worker.json`, to be pointed at by a second Railway service in the dashboard).
-> - ⚠️ **Live cross-process round trip — not run in this pass.** No Docker, no root access to
->   install a real `redis-server`, and the project's live Railway Postgres was unreachable from
->   that environment (TCP connects; Postgres protocol handshake fails — looks paused). What
->   _was_ verified: the existing `__tests__/alert-engine/*.test.ts` suite (23/23, untouched),
->   the new `test_redis_pub.py` (3/3), and a `fakeredis`-based attempt that got as far as
->   confirming `PUBLISH` is acknowledged with the correct subscriber count before hitting a
->   known `fakeredis` TCP-server limitation (doesn't push messages across separate connections)
->   — an environment/tooling limitation, not a code defect. See
->   `PHASE-4-SMOKE-TEST-RUNBOOK.md` (same folder) for the manual steps to run this for real
->   once Docker or the Contabo VPS itself is reachable.
-> - See §14 for the `sync/` pipeline note and the companion files-completion doc.
+> - ✅ **Worker (Node) — ported to `operation-service`.** The BullMQ worker, evaluator, detector,
+>   and dispatcher now live at `operation-service/src/alert-engine/{alert-worker.service,
+evaluator,detect,dispatcher.service,alert-queue.service,notify-bridge.service,watches,
+state,types}.ts` (Sessions 4B-2/4B-3), started via the dedicated worker entrypoint
+>   `operation-service/src/main-worker.ts` (`WORKER_MODE=true`) — a separate process from the
+>   HTTP entrypoint (`operation-service/src/main.ts`). It `psubscribe`s `prices:*` and
+>   `alerts:changed`, loads active `DrawingAlert`+`Drawing` via Prisma, and dispatches fires
+>   through the BullMQ queue — same design as this section, different process and repo location.
+>   `lib/alert-engine/*` and `scripts/alert-worker.ts` no longer exist in the monolith.
+> - ✅ **Drawings CRUD — ported to `operation-service`.** `operation-service/src/drawings/*`
+>   (Session 4B-8).
+> - ✅ **Line alerts — ported to `operation-service`.** `operation-service/src/alerts/
+{alerts.service,line-alerts.service,line-alerts.controller}.ts` (Sessions 4B-5/4B-6/4B-7).
+> - ✅ **Producer (Flask) — built and live.** `redis==5.0.1` in `mt5-service/requirements.txt`;
+>   `REDIS_URL` in `mt5-service/.env.example`; `app/redis_pub.py` implements the publish call,
+>   called from `background_update_loop` in `mt5-service/app/websocket.py` — best-effort, never
+>   blocks the live feed.
+> - ✅ **Live cross-process round trip — proven end-to-end.** Session 10-1 (2026-08-23, F67) ran
+>   the real chain — Flask → Redis → `operation-service` worker → Postgres `Notification` row +
+>   `RealtimeGateway` socket push + authenticated browser delivery — with all 4 Invariant Proofs
+>   verified live, plus cooldown and one-shot behavior both DB-/Redis-state-confirmed.
+> - ✅ **Durable automated regression coverage — shipped.** Session 10-2 (2026-08-23, F82) added
+>   a Newman collection (`postman/collections/drawing-line-alerts.postman_collection.json`) and a
+>   Playwright spec (`e2e/tests/drawing-line-alerts.spec.ts`) covering the same
+>   draw → attach → fire → notify journey, run green.
+> - See §14 for the `sync/` pipeline note (unchanged — still deployed separately on the Contabo
+>   VPS, not this repo).
 
 ### Phase 5 — Delivery & realtime (3–4 d)
 
@@ -399,16 +405,24 @@ P0 ─► P1 (drawing) ─► P2 (persist) ─► P3 (attach alerts) ─┐
 
 ---
 
-## 14. Verification Notes (2026-07-05)
+## 14. Verification Notes (2026-07-05, reconciled 2026-08-24)
 
-This section records findings from a source-code verification pass done before handing this
-blueprint (together with the companion files-completion doc) to Claude Code for further build
-work. The design in §1–§13 is unchanged; this records what's actually true in the repo today.
+This section records findings from source-code verification passes done at two points: before
+handing this blueprint (together with the companion files-completion doc) to Claude Code for
+build work (2026-07-05), and after Phase 10's live-fire proof and automated regression coverage
+shipped (2026-08-24, Session 10-3). The design in §1–§13 is unchanged; this records what's
+actually true in the repo today.
 
-- **Phase 4 producer/consumer split** — see the status callout in §7 Phase 4 for full detail.
-  Short version: the Node worker is built and correct; the Flask→Redis publish step is not, and
-  `scripts/alert-worker.ts` is not wired into any deploy process yet. This is the one remaining
-  blocker to a live end-to-end alert.
+- **Phase 4 producer/consumer split — RESOLVED (2026-08-24).** The 2026-07-05 pass found the Node
+  worker built and correct, but the Flask→Redis publish step unwired and `scripts/alert-worker.ts`
+  not in any deploy process — "the one remaining blocker to a live end-to-end alert." That code
+  gap closed later the same day, but the live cross-process proof itself didn't run until Session
+  10-1 (2026-08-23, F67): all 4 Invariant Proofs verified live against a real `operation-service`
+  worker, Redis, Postgres, and authenticated browser socket delivery. Durable automated regression
+  coverage (Newman + Playwright) shipped at Session 10-2 (2026-08-23, F82). The entire alert
+  engine, drawings CRUD, and line alerts this section originally described as monolith
+  `lib/alert-engine/*` now live in `operation-service` (Sessions 4B-2/3/5/6/7/8) — see §7's Phase 4
+  status callout for the current file map. No blocker remains.
 - **`sync/` pipeline (§3 table, "Price persistence pipeline" row)** — `sync/__init__.py` in this
   repo imports `sync_to_postgresql.py`, `db_connections.py`, `timeframe_filter.py`, and `config.py`,
   none of which are present in `sync/`. Per `sync/claude-code-windows-deployment-guide.md`, the real
