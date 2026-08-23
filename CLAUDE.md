@@ -73,7 +73,7 @@ start:dev` crashed the worker (watch-mode rebuild wiped `dist/` mid-require of
   extended timeout, resolved by reducing concurrent load and retrying; no production code touched.
   Registered as a recurrence on `LESSONS-LEARNED.md` L24 (stayed at the 40-entry cap).
   **One new, real, disclosed data-hygiene defect found during test-fixture cleanup, registered as
-  `DECISION-LOG.md` **F82** (not fixed here — out of this INFRA/VERIFY session's scope, doesn't
+  `DECISION-LOG.md` F82** (not fixed here — out of this INFRA/VERIFY session's scope, doesn't
   block the smoke test): `DELETE /api/drawings/:id` cascades `Drawing → DrawingAlert` but never
   touches the `Alert` row itself — every deleted line-alert-bearing drawing leaves a permanently
   orphaned `PRICE_TOUCH_LINE` `Alert` row. Reproduced 4/4 times cleaning up this session's own
@@ -93,7 +93,7 @@ start:dev` crashed the worker (watch-mode rebuild wiped `dist/` mid-require of
   (no route/slice moved, no files created/moved/deleted — `next.config.js` was modified in place;
   Slice 6's own cutover-table row already correctly notes `MIGRATE_ALERT_ENGINE` has no reader,
   independently re-confirmed this session).
-  **Artifacts updated:\*\* `10-1-drawing-alert-smoke.migration-order.md` (Status → CONFIRMED →
+  **Artifacts updated:** `10-1-drawing-alert-smoke.migration-order.md` (Status → CONFIRMED →
   CLOSED SUCCESSFUL, 6 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md`
   (F67 resolved, F82 registered OPEN), `LESSONS-LEARNED.md` (recurrence note on L24, no new lesson
   — stayed at the cap), this file (Current/Previous rotation — Session 9-9 moved to
