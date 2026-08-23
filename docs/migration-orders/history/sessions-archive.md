@@ -7,6 +7,82 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 10-2** (Drawing Engine & Line-Alert e2e +
+  API Coverage, Phase 10, VERIFY with scoped bugfix), APPROVED, CONFIRMED, executed, **CLOSED
+  SUCCESSFUL** 2026-08-23. Resolves **F82** (orphaned `Alert` row on `Drawing` deletion) and ships
+  durable, repeatable automated regression coverage (Playwright e2e + Newman API) for the drawing
+  engine and line alerts — the roadmap's own Phase 10 line item, converting Session 10-1's one-off
+  manual proof into CI-grade proof.
+  **L3 pattern again, benign:** committed HEAD held the bare `Status: PRE-DRAFT` order; the
+  corrected `Status: APPROVED` version (4 Decisions, Davin's approval line) existed only as an
+  uncommitted working-copy edit — confirmed authentic by Davin live, committed at session open.
+  **A real, load-bearing live-code contradiction found and escalated, not silently worked
+  around** (`⚠ NEEDS EXPLICIT SIGN-OFF`, separate from general approval): Decision 1's Playwright
+  scope assumed a toast fires and `AppHeader` shows a live unread badge for fired-alert events.
+  Neither exists live — `AppHeader`'s bell (`components/layout/app-header.tsx:238`) is a static
+  decorative dot with no state/fetch/socket; the only `onNotification` consumer, `NotificationList`,
+  shows no toast, only a screen-reader-only announcement + list re-fetch. This directly matches
+  this file's own immediately-preceding Session 9-10 entry (`notification-bell.tsx` deleted, never
+  rewired into `AppHeader`, "no home since the chrome swap") — a `LESSONS-LEARNED.md` L37-class
+  gap (an order's claim not cross-checked against this project's own already-correct maintained
+  document, here CLAUDE.md itself). Davin chose live: keep the WS-frame capture as-is (real,
+  unaffected — both `notification` and `alert_fired` frames captured via Playwright's native
+  WebSocket inspection, content-asserted), swap the toast/badge legs for `/notifications` (the same
+  `NotificationList` component) actually rendering the new notification body and its own live
+  unread counter off the identical socket push. No new UI built (would have been UI-BUILD scope
+  creep inside a VERIFY session). The chart-marker DOM assertion stayed out of scope per Session
+  10-1's own precedent (marker logic already unit-tested, `mt5-service`'s OHLCV feed is
+  `SEPARATE_STACK`) — Davin re-confirmed this explicitly at CONFIRM.
+  **F82 fixed in both live paths, not dead code in either:** `operation-service/src/drawings/
+drawings.service.ts` (`remove()`, live path in Vercel production, `MIGRATE_DRAWINGS=true`) and
+  monolith `app/api/drawings/[id]/route.ts` (`DELETE`, live path in this local dev environment,
+  flag unset/`false`) both now collect the drawing's attached `DrawingAlert.alertId`(s) before the
+  cascading `Drawing` delete, then explicitly delete those now-orphaned `Alert` row(s).
+  **Live end-to-end proof, not just unit tests:** new Newman collection
+  (`postman/collections/drawing-line-alerts.postman_collection.json`, `npm run test:api:drawings`,
+  authenticated via the real `token-login` bridge rather than the existing collection's fictional
+  `/api/auth/login`/bearer pattern) — 14/14 requests, 28/28 assertions, including a direct F82
+  zero-orphan check (create drawing → attach line alert → delete drawing → `GET /api/alerts`
+  confirms the backing `Alert.id` is gone), run twice (alone and under concurrent load) both green.
+  New Playwright spec (`e2e/tests/drawing-line-alerts.spec.ts`, `e2e/playwright.config.ts` created
+  fresh — never existed outside `e2e/archive/` despite `package.json`'s `test:e2e*` scripts already
+  pointing at this path): draw → attach alert → synthetic Redis price cross (10-1's own proven
+  mechanism) → fires → both WS frames captured and content-asserted → `/notifications` shows the
+  live update. 1/1 passed.
+  **One incidental, disclosed transcript exposure at CONFIRM (not a fix — flagged for Davin):**
+  checking `operation-service/.env` for entry-criteria presence used a content-printing `grep`
+  instead of a presence-only check, echoing the real `NEXTAUTH_SECRET`/`DATABASE_URL`/`REDIS_URL`
+  values (local dev Railway instances, not production) into the transcript — `LESSONS-LEARNED.md`
+  L4's exact failure mode. Disclosed live immediately, not repeated afterward; rotation is Davin's
+  call.
+  **One incidental, real test flake under this session's own concurrent load, confirmed benign:**
+  `money-service`'s `prisma.shutdown.spec.ts` (completely untouched this session) failed once
+  during the full post-change baseline run (4 heavy suites + Newman + Playwright all concurrent);
+  isolated re-run passed clean — the same test failing the same way under the same kind of load is
+  independently recorded at Session 10-1's own CONFIRM (`history/decisions-archive.md`'s F67
+  entry), confirming `LESSONS-LEARNED.md` L24's pattern, not a regression.
+  **All baselines re-verified fresh, post-session:** monolith `test:ci` 153/153 suites/2198/2198
+  tests (unchanged); `operation-service` 42/42 suites/395/395 tests (+2, F82 coverage);
+  money-service 62/62 suites/526/526 tests (one transient flake above, isolated re-run clean).
+  **`migration-cutover-table.md` needs no changes** (no route/slice status moved — F82's fix lives
+  entirely inside already-cutover Slice 7/8 code paths). **`migration-stack-analysis.md` DOES need
+  an entry** (3 new test-infrastructure files, 4 modified) — added.
+  **`DECISION-LOG.md` size-gate check: 64,325 bytes, over the ~50KB target — checked and found not
+  actionable, same conclusion as 9-9's/9-10's own checks.** F82's full entry moved to
+  `history/decisions-archive.md` (its register row was missing entirely — added); the remaining
+  overage is inherent to F80/F81 both still being genuinely OPEN.
+  **Artifacts updated:** `10-2-e2e-api-coverage.migration-order.md` (Status → CONFIRMED → CLOSED
+  SUCCESSFUL, 5 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md` (F82
+  RESOLVED, register row added), `LESSONS-LEARNED.md` (recurrence note on L37, no new lesson —
+  stayed at the cap), `migration-stack-analysis.md` (Session 10-2 entry, 3 new/4 modified/0
+  deleted, TEST INFRA), this file (Current/Previous rotation — Session 9-10 moved to
+  `history/sessions-archive.md`). Session 10-3's order (Blueprint reconciliation & close,
+  VERIFY-RETIRE, fast-path eligible) PRE-DRAFTed per this session's own obligation
+  (`10-3-blueprint-reconciliation-close.migration-order.md`); it also owes **Phase 8A's** own
+  handover prompt per `MASTER-ROADMAP-PHASES-7-15.md`'s own trigger table ("10-3 writes 8A's") —
+  **the 10-2 order's own "Next-session handoff" text says Phase 11, which is wrong** (`8-2 writes
+  phase-11's`, per the same table); caught and corrected here rather than propagated into 10-3.
+
 - _(superseded-by-above, retained for context)_ **Session 10-1** (Drawing Engine & Line-Alert Live
   Smoke Test, Phase 10, INFRA/VERIFY), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL**
   2026-08-23. Resolves **F67** (smoke-test execution environment) — Phase 10's own "one remaining

@@ -4075,8 +4075,38 @@ implementation-progress-files-and-folder-directory.md` — 150-line build-time f
 
 </details>
 
+<details>
+<summary>Session 4A-16 (dLocal Payment Method ID Mapping & Recutover, Phase 4X exit, PORT + CUTOVER) — 0 new, 9 modified, 0 deleted, BUGFIX + CUTOVER</summary>
+
+Closes **F76** and completes Slice 4 to 4/4 write-API groups — Phase 4X's final session per
+`MASTER-ROADMAP-PHASES-7-15.md`, satisfying Session 8-1's own long-standing entry criterion.
+
+- **Modified — mapping fix, both codebases:** `money-service/src/dlocal/payment-methods.service.ts`
+  and `lib/dlocal/payment-methods.service.ts` (`DLOCAL_METHOD_CODE_MAP` +
+  `getDLocalMethodCode(country, displayName)`, 23 country/method pairs, fails loud on unmapped
+  names); `money-service/src/dlocal/dlocal-payment.service.ts` and
+  `lib/dlocal/dlocal-payment.service.ts` (`createPayment()` resolves the mapped code instead of the
+  raw display name).
+- **Modified — tests, both codebases:** `money-service/src/dlocal/payment-methods.service.spec.ts`,
+  `money-service/src/dlocal/dlocal-payment.service.spec.ts`,
+  `__tests__/lib/dlocal/payment-methods.test.ts`, `__tests__/lib/dlocal/dlocal-payment.test.ts` —
+  mapping coverage for all 23 pairs, a real-fetch-path assertion that the mapped code (not the
+  display name) reaches dLocal's request body, and a fail-loud test for unmapped names.
+- **Modified — incidental repo-hygiene fix:** root `.railwayignore` (unanchored `dlocal`/
+  `riseworks` patterns anchored to `/dlocal`/`/riseworks` — they were also matching
+  `money-service/src/dlocal/` and `src/riseworks/`, dropping both from every `railway up` CLI
+  upload; see this session's own Deviations and `LESSONS-LEARNED.md` L19).
+- **Live-verification:** money-service redeployed to Railway clean (`/health` 200, fresh
+  `uptime`). Davin flipped `MIGRATE_WRITE_APIS_MONEY_DLOCAL=true` and ran a live TH/TrueMoney
+  test-mode checkout himself (no Vercel access from this Executor's environment) — `201`, real
+  redirect URL, zero `5010` errors; independently cross-checked against money-service's own
+  first-party structured logs, which matched exactly. Full baseline re-run fresh at close: monolith
+  153/153-2204 (+6), `operation-service` 42/42-395 (unchanged), `money-service` 62/62-532 (+6).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-24 (Session 10-3, blueprint reconciliation & Phase
-10 close — documentation only, zero application routes affected)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-24 (Session 4A-16, dLocal method-code mapping fix +
+recutover — Phase 4X CLOSED SUCCESSFUL)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

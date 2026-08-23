@@ -44,12 +44,12 @@ pre-F65 phrasing stand in as the deletion list.
 
 ## Entry criteria (re-verify all at CONFIRM)
 
-- [ ] **Phase 4X (4A-13, 4A-14, 4A-15, 4A-16) CLOSED** — F49/F60/F76 all RESOLVED in
-      `DECISION-LOG.md`. **Currently FAILING as of this PRE-DRAFT**: 4A-13/14/15 are closed, but
-      **4A-16 has not run and F76 is still OPEN** (dLocal `payment_method_id` sent to the Payins
-      API is a display name, not the real method code; `MIGRATE_WRITE_APIS_MONEY_DLOCAL` stays
-      `false`). This is the roadmap's own explicit gate ("all four CLOSED before Session 8-1
-      opens") — re-verify at this session's own CONFIRM; do not open if still failing.
+- [x] **Phase 4X (4A-13, 4A-14, 4A-15, 4A-16) CLOSED** — F49/F60/F76 all RESOLVED in
+      `DECISION-LOG.md`. **Now MET as of Session 4A-16's close (2026-08-24):** 4A-13/14/15/16 all
+      closed, F76 RESOLVED, `MIGRATE_WRITE_APIS_MONEY_DLOCAL=true` in production, Slice 4 at 4/4.
+      This was the roadmap's own explicit gate ("all four CLOSED before Session 8-1 opens") — still
+      re-verify fresh against `DECISION-LOG.md`'s live F76 row at this session's own CONFIRM, don't
+      just trust this note.
 - [ ] **Phase 9 (9-0…9-10) CLOSED** — true as of Session 9-10 (2026-08-22).
 - [ ] **Phase 10 (10-1…10-3) CLOSED** — true as of this session's own close (2026-08-24).
 - [ ] **F65 (BFF boundary) resolved** — true, Session 9-0 (2026-08-22); see the open question

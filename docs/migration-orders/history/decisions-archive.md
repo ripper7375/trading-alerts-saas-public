@@ -1942,6 +1942,48 @@ created` (`paymentId: cmt2yflxe00000fnw8gy7jm53`) → `Creating dLocal payment` 
 - Owner: Davin/Advisor — needs its own dedicated fix session (working title `4A-16` or similar;
   not yet numbered) before Slice 4 can reach 4/4 and before Session 8-1's own entry criteria
   (which require F49 AND this cutover complete) can be satisfied.
+- **RESOLVED — Session 4A-16, 2026-08-24.** Davin supplied the real dLocal Payins method codes
+  live in chat (not guessed from the roadmap's own illustrative examples, which this order's own
+  PRE-DRAFT had explicitly flagged as unconfirmed placeholders) — `DLOCAL_METHOD_CODE_MAP` +
+  `getDLocalMethodCode(country, displayName)` added symmetrically to
+  `money-service/src/dlocal/payment-methods.service.ts` and `lib/dlocal/payment-methods.service.ts`,
+  covering all 23 country/method pairs (22 unique display names); both `createPayment()` call
+  sites updated to resolve the mapped code instead of sending the display name verbatim; fails
+  loud (`Error`) on any unmapped name. Real-fetch-path tests added both sides (`jest.resetModules()`
+  - env override, 4A-14 precedent) asserting the outbound `payment_method_id` is the mapped code,
+    not the display name, plus a fail-loud test for unmapped names. Monolith `test:ci` 153/153 →
+    same, +6 tests; `money-service` 62/62 → same, +6 tests.
+    **Incidental repo-hygiene bug found and fixed while deploying:** root `.railwayignore`'s
+    unanchored `dlocal`/`riseworks` patterns (meant only for the two top-level reference folders of
+    the same name) were also matching `money-service/src/dlocal/` and `money-service/src/riseworks/`,
+    silently stripping both modules from every `railway up` CLI upload — first surfaced as a
+    `TS2307: Cannot find module './dlocal/dlocal.module'` build failure. Anchored both patterns with
+    a leading `/` (root-only) and redeployed clean. This was a pre-existing latent bug, not
+    introduced this session — it had simply never been exercised via `railway up` before (prior
+    money-service deploys in this migration's history all appear to have gone through a different
+    path); worth a `LESSONS-LEARNED.md` note if this recurs for another service.
+    **Live cutover, Davin-executed per the order's own Decision 4 (Executor has no Vercel access in
+    this environment):** Davin flipped `MIGRATE_WRITE_APIS_MONEY_DLOCAL=true` on Vercel production
+    and ran the live TH/TrueMoney test-mode checkout himself. Result: monolith forwarded correctly,
+    dLocal accepted `payment_method_id: 'TM'` with zero `5010` errors, real redirect URL
+    (`https://sandbox.dlocal.com/payment/R-1804074-g1l8n07m-oumvi7djjl1gpc-2o922ds992v0`) returned
+    and followed. Independently cross-checked against money-service's own first-party structured
+    logs (not just Davin's report): `Creating payment` (country=TH, paymentMethod=TrueMoney) →
+    `Payment record created` (`paymentId: cmt6fo3ty00000fnwahf0e8v8`) → `Creating dLocal payment` →
+    `dLocal payment created` (`paymentId: R-1804074-g1l8n07m-oumvi7djjl1gpc-2o922ds992v0` — matches
+    Davin's redirect URL exactly), zero error-level log lines anywhere in the sequence. `provider:
+'DLOCAL'`/`status: 'PENDING'` confirmed set deterministically in
+    `dlocal-payment.controller.ts`'s `prisma.payment.create()` call (hardcoded, not derived from
+    dLocal's response) — a direct Postgres row read was attempted for full belt-and-suspenders
+    confirmation but had no path from this environment (`pgbouncer.railway.internal` unreachable
+    from a local shell even via `railway run`; `railway ssh` needs an SSH key not present in this
+    environment, not generated for a one-off read) — logs + deterministic code path are the
+    verification of record here, not a raw DB read.
+    Slice 4 → **CUT-OVER (4/4 write-API groups)**. Phase 4X **CLOSED SUCCESSFUL** — all of
+    4A-13/14/15/16 now resolved, satisfying Session 8-1's own entry criterion.
+    **Still outstanding, unchanged, flagged again for Davin:** both orphaned `Payment` rows from
+    4A-10c (`cms7hlmb900000fmpz9i9fv1q`) and 4A-14 (`cmt2yflxe00000fnw8gy7jm53`) — not this session's
+    job to clean up, not touched.
 
 ## F50 — `COMMISSION_CREDITED` outbox event's `aggregateId` resolves to the wrong recipient
 

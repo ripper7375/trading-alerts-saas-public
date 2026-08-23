@@ -291,7 +291,16 @@ Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must 
   `*_PUBLIC_URL` is external-only and costs egress; never use a public URL for internal traffic.
 - Rule (config presence): `.env.example` proves a key is known, not deployed — verify real
   values via `railway variables` or the dashboard, never infer presence from documentation.
-- Source: Consolidated (merged L19+L20+L21, Session 9-6) · Status: ACTIVE
+- Rule (ignore-file collision): a repo-root `.railwayignore` (or `.gitignore`) pattern without a
+  leading `/` matches that name ANYWHERE in the tree, not just at the root — an unanchored
+  `dlocal`/`riseworks` meant to exclude two top-level reference folders also silently stripped
+  `money-service/src/dlocal/` and `money-service/src/riseworks/` from every `railway up` CLI
+  upload, surfacing only as a downstream `TS2307: Cannot find module` build failure with no
+  warning that files were dropped. Before trusting any `railway up` build failure as a real code
+  bug, check whether a service's own subdirectory names collide with an unanchored ignore pattern
+  meant for something else; anchor with a leading `/` to scope it to the repo root only.
+- Source: Consolidated (merged L19+L20+L21, Session 9-6); ignore-file sub-rule added Session 4A-16
+  (2026-08-24) · Status: ACTIVE
 
 ### L22 — Order text vs ground truth
 

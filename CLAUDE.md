@@ -26,7 +26,84 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 10-3 (Blueprint Reconciliation & Close, Phase 10 — final session,
+- **Current:** Session 4A-16 (dLocal Payment Method ID Mapping & Recutover, Phase 4X — final
+  session, PORT + CUTOVER), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24.
+  Resolves **F76** and completes Slice 4 to 4/4 write-API groups — **Phase 4X is now CLOSED**, all
+  four of 4A-13/14/15/16 resolved, satisfying Session 8-1's own long-standing entry criterion.
+  **CONFIRM found the order's own live status was inconsistent across two passes in the same
+  session** — first read showed `Status: DRAFT` with no Davin approval line anywhere (committed
+  HEAD still held the original PRE-DRAFT); re-checked minutes later and the working copy had
+  flipped to `Status: APPROVED` with an unexplained approval stamp, still uncommitted, with zero
+  corroborating record in `DECISION-LOG.md` or this file. Treated per `LESSONS-LEARNED.md` L3 —
+  did not silently trust it, asked Davin directly, including naming the specific concern that
+  Decision 1's method codes (`TM`/`TH_QR`/`MOMO`, …) were byte-identical to the roadmap's own
+  explicitly-labeled "unconfirmed placeholder" examples with no new verification cited anywhere.
+  Davin confirmed live, in chat: the order is authentic, and gave explicit separate sign-off on
+  both `⚠ NEEDS EXPLICIT SIGN-OFF` items (Decision 1's mapping table, Decision 4's cutover/flag-flip
+  protocol) — the `00-SKELETON-AND-RULES.md` §1.0 rule that a general order approval doesn't cover
+  these on its own.
+  **Steps 1–2 (mapping implementation, both sides):** `DLOCAL_METHOD_CODE_MAP` +
+  `getDLocalMethodCode(country, displayName)` added to `money-service/src/dlocal/
+payment-methods.service.ts` and `lib/dlocal/payment-methods.service.ts`, covering all 23
+  country/method pairs (22 unique display names — the order's own draft said "18," corrected here);
+  both `createPayment()` call sites (`money-service/src/dlocal/dlocal-payment.service.ts`,
+  `lib/dlocal/dlocal-payment.service.ts`) updated to resolve the mapped code instead of the display
+  name; fails loud (`Error`) on any unmapped name, never sends an unmapped string to dLocal. Real
+  dLocal codes came from Davin directly in chat, not guessed and not the roadmap's own placeholder
+  examples. Real-fetch-path tests added both sides (`jest.resetModules()` + env override, 4A-14
+  precedent) asserting the outbound `payment_method_id` is the mapped code, plus a fail-loud test
+  for unmapped names. One drafting-accuracy fix along the way: the order named
+  `__tests__/lib/dlocal/dlocal-payment.service.test.ts`, which doesn't exist — the real file is
+  `__tests__/lib/dlocal/dlocal-payment.test.ts` (no `.service`); used the real path. Committed as
+  two separate step commits (`942e2e5d` money-service, `0a4f942c` monolith), each with its own
+  fresh green baseline before committing.
+  **Step 3 (deploy) hit a real, pre-existing repo bug, found and fixed:** `railway up` failed the
+  build with `TS2307: Cannot find module './dlocal/dlocal.module'` — root `.railwayignore`'s
+  unanchored `dlocal`/`riseworks` patterns (meant only for the two top-level reference folders of
+  the same name) were also matching `money-service/src/dlocal/` and `money-service/src/riseworks/`,
+  silently stripping both modules from every CLI-driven upload. Anchored both patterns with a
+  leading `/` (root-only, commit `8796fdfa`) and redeployed clean — confirmed via a direct
+  `/health` check showing a fresh `uptime` (18.8s), not `railway logs`/`railway status` alone
+  (`LESSONS-LEARNED.md` L13). Pre-existing bug, not introduced this session — never previously
+  exercised via `railway up` in this migration's history.
+  **Steps 4–5 (flag flip + live smoke test) executed by Davin directly, not the Executor:** no
+  Vercel CLI/credentials exist in this Executor's environment, and the order's own Decision 4/Step 5
+  design already assigns these actions to Davin personally. Davin flipped
+  `MIGRATE_WRITE_APIS_MONEY_DLOCAL=true` on Vercel production and ran the live TH/TrueMoney
+  test-mode checkout himself: monolith forwarded correctly, dLocal accepted `payment_method_id:
+  'TM'` with zero `5010` errors, real redirect URL returned and followed
+  (`https://sandbox.dlocal.com/payment/R-1804074-g1l8n07m-oumvi7djjl1gpc-2o922ds992v0`).
+  **Independently cross-checked against money-service's own first-party structured logs, not just
+  Davin's report:** `Creating payment` (country=TH, paymentMethod=TrueMoney) → `Payment record
+  created` (`paymentId: cmt6fo3ty00000fnwahf0e8v8`) → `Creating dLocal payment` → `dLocal payment
+  created` (`paymentId: R-1804074-g1l8n07m-oumvi7djjl1gpc-2o922ds992v0` — matches Davin's redirect
+  URL exactly), zero error-level log lines anywhere in the sequence. `provider: 'DLOCAL'`/`status:
+  'PENDING'` confirmed hardcoded (not response-derived) in `dlocal-payment.controller.ts`'s
+  `prisma.payment.create()` call, reading the actual source rather than assuming. **A direct
+  Postgres row read was attempted for full verification and had no path from this environment**
+  (`pgbouncer.railway.internal` unreachable from a local shell even via `railway run`; `railway
+  ssh` needs an SSH key not present here, not generated for a one-off read) — disclosed rather than
+  silently skipped; logs + the deterministic code path are the verification of record.
+  **All baselines re-verified fresh at close:** monolith `test:ci` 153/153 suites/2204/2204 tests
+  (+6); `operation-service` 42/42 suites/395/395 tests (untouched, unchanged); money-service 62/62
+  suites/532/532 tests (+6). `tsc --noEmit` and targeted `eslint` clean on every file this session
+  touched (one pre-existing, untouched warning found elsewhere — `three-day-validator.test.ts`,
+  out of scope, not fixed).
+  **`migration-cutover-table.md` updated** (Slice 4 → CUT-OVER 4/4, flags all `true`, session list
+  +16, narrative note appended). **`DECISION-LOG.md` updated** (F76 → RESOLVED, register row +
+  full resolution moved to `history/decisions-archive.md`). **`migration-stack-analysis.md` DOES
+  need an entry** (8 modified: 4 `dlocal` service files + 4 test files across both codebases; 1
+  modified: `.railwayignore`) — added.
+  **Still outstanding, unchanged, flagged again:** both orphaned `Payment` rows from 4A-10c
+  (`cms7hlmb900000fmpz9i9fv1q`) and 4A-14 (`cmt2yflxe00000fnw8gy7jm53`) — not this session's job to
+  clean up, not touched.
+  **Artifacts updated:** `4a-16-dlocal-payment-method-id-mapping.migration-order.md` (Status →
+  CONFIRMED → CLOSED SUCCESSFUL, Deviations + checked Done-when/entry-criteria boxes),
+  `DECISION-LOG.md`, `migration-cutover-table.md`, `migration-stack-analysis.md`, this file
+  (Current/Previous rotation — Session 10-2 moved to `history/sessions-archive.md`). Session 8-1's
+  own order (`8-1-deletion-sweep.migration-order.md`) re-verified: its Phase 4X entry criterion is
+  now satisfied — updated to reflect that.
+- **Previous:** Session 10-3 (Blueprint Reconciliation & Close, Phase 10 — final session,
   VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24. **Phase 10
   (Drawing Engine & Line-Alert Closure) is now CLOSED** — all 3 sessions complete: 10-1 (F67, live
   cross-process proof), 10-2 (F82, automated Playwright/Newman regression coverage), 10-3 (this
@@ -125,80 +202,6 @@
   consider consolidating into an existing lesson (closest candidates: L3's "never trust status
   alone, cross-check" or L37's "cross-check against maintained artifacts," neither an exact fit)
   or promoting once room exists.
-- **Previous:** Session 10-2 (Drawing Engine & Line-Alert e2e + API Coverage, Phase 10, VERIFY with
-  scoped bugfix), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. Resolves **F82**
-  (orphaned `Alert` row on `Drawing` deletion) and ships durable, repeatable automated regression
-  coverage (Playwright e2e + Newman API) for the drawing engine and line alerts — the roadmap's
-  own Phase 10 line item, converting Session 10-1's one-off manual proof into CI-grade proof.
-  **L3 pattern again, benign:** committed HEAD held the bare `Status: PRE-DRAFT` order; the
-  corrected `Status: APPROVED` version (4 Decisions, Davin's approval line) existed only as an
-  uncommitted working-copy edit — confirmed authentic by Davin live, committed at session open.
-  **A real, load-bearing live-code contradiction found and escalated, not silently worked
-  around** (`⚠ NEEDS EXPLICIT SIGN-OFF`, separate from general approval): Decision 1's Playwright
-  scope assumed a toast fires and `AppHeader` shows a live unread badge for fired-alert events.
-  Neither exists live — `AppHeader`'s bell (`components/layout/app-header.tsx:238`) is a static
-  decorative dot with no state/fetch/socket; the only `onNotification` consumer, `NotificationList`,
-  shows no toast, only a screen-reader-only announcement + list re-fetch. This directly matches
-  this file's own immediately-preceding Session 9-10 entry (`notification-bell.tsx` deleted, never
-  rewired into `AppHeader`, "no home since the chrome swap") — a `LESSONS-LEARNED.md` L37-class
-  gap (an order's claim not cross-checked against this project's own already-correct maintained
-  document, here CLAUDE.md itself). Davin chose live: keep the WS-frame capture as-is (real,
-  unaffected — both `notification` and `alert_fired` frames captured via Playwright's native
-  WebSocket inspection, content-asserted), swap the toast/badge legs for `/notifications` (the same
-  `NotificationList` component) actually rendering the new notification body and its own live
-  unread counter off the identical socket push. No new UI built (would have been UI-BUILD scope
-  creep inside a VERIFY session). The chart-marker DOM assertion stayed out of scope per Session
-  10-1's own precedent (marker logic already unit-tested, `mt5-service`'s OHLCV feed is
-  `SEPARATE_STACK`) — Davin re-confirmed this explicitly at CONFIRM.
-  **F82 fixed in both live paths, not dead code in either:** `operation-service/src/drawings/
-drawings.service.ts` (`remove()`, live path in Vercel production, `MIGRATE_DRAWINGS=true`) and
-  monolith `app/api/drawings/[id]/route.ts` (`DELETE`, live path in this local dev environment,
-  flag unset/`false`) both now collect the drawing's attached `DrawingAlert.alertId`(s) before the
-  cascading `Drawing` delete, then explicitly delete those now-orphaned `Alert` row(s).
-  **Live end-to-end proof, not just unit tests:** new Newman collection
-  (`postman/collections/drawing-line-alerts.postman_collection.json`, `npm run test:api:drawings`,
-  authenticated via the real `token-login` bridge rather than the existing collection's fictional
-  `/api/auth/login`/bearer pattern) — 14/14 requests, 28/28 assertions, including a direct F82
-  zero-orphan check (create drawing → attach line alert → delete drawing → `GET /api/alerts`
-  confirms the backing `Alert.id` is gone), run twice (alone and under concurrent load) both green.
-  New Playwright spec (`e2e/tests/drawing-line-alerts.spec.ts`, `e2e/playwright.config.ts` created
-  fresh — never existed outside `e2e/archive/` despite `package.json`'s `test:e2e*` scripts already
-  pointing at this path): draw → attach alert → synthetic Redis price cross (10-1's own proven
-  mechanism) → fires → both WS frames captured and content-asserted → `/notifications` shows the
-  live update. 1/1 passed.
-  **One incidental, disclosed transcript exposure at CONFIRM (not a fix — flagged for Davin):**
-  checking `operation-service/.env` for entry-criteria presence used a content-printing `grep`
-  instead of a presence-only check, echoing the real `NEXTAUTH_SECRET`/`DATABASE_URL`/`REDIS_URL`
-  values (local dev Railway instances, not production) into the transcript — `LESSONS-LEARNED.md`
-  L4's exact failure mode. Disclosed live immediately, not repeated afterward; rotation is Davin's
-  call.
-  **One incidental, real test flake under this session's own concurrent load, confirmed benign:**
-  `money-service`'s `prisma.shutdown.spec.ts` (completely untouched this session) failed once
-  during the full post-change baseline run (4 heavy suites + Newman + Playwright all concurrent);
-  isolated re-run passed clean — the same test failing the same way under the same kind of load is
-  independently recorded at Session 10-1's own CONFIRM (`history/decisions-archive.md`'s F67
-  entry), confirming `LESSONS-LEARNED.md` L24's pattern, not a regression.
-  **All baselines re-verified fresh, post-session:** monolith `test:ci` 153/153 suites/2198/2198
-  tests (unchanged); `operation-service` 42/42 suites/395/395 tests (+2, F82 coverage);
-  money-service 62/62 suites/526/526 tests (one transient flake above, isolated re-run clean).
-  **`migration-cutover-table.md` needs no changes** (no route/slice status moved — F82's fix lives
-  entirely inside already-cutover Slice 7/8 code paths). **`migration-stack-analysis.md` DOES need
-  an entry** (3 new test-infrastructure files, 4 modified) — added.
-  **`DECISION-LOG.md` size-gate check: 64,325 bytes, over the ~50KB target — checked and found not
-  actionable, same conclusion as 9-9's/9-10's own checks.** F82's full entry moved to
-  `history/decisions-archive.md` (its register row was missing entirely — added); the remaining
-  overage is inherent to F80/F81 both still being genuinely OPEN.
-  **Artifacts updated:** `10-2-e2e-api-coverage.migration-order.md` (Status → CONFIRMED → CLOSED
-  SUCCESSFUL, 5 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md` (F82
-  RESOLVED, register row added), `LESSONS-LEARNED.md` (recurrence note on L37, no new lesson —
-  stayed at the cap), `migration-stack-analysis.md` (Session 10-2 entry, 3 new/4 modified/0
-  deleted, TEST INFRA), this file (Current/Previous rotation — Session 9-10 moved to
-  `history/sessions-archive.md`). Session 10-3's order (Blueprint reconciliation & close,
-  VERIFY-RETIRE, fast-path eligible) PRE-DRAFTed per this session's own obligation
-  (`10-3-blueprint-reconciliation-close.migration-order.md`); it also owes **Phase 8A's** own
-  handover prompt per `MASTER-ROADMAP-PHASES-7-15.md`'s own trigger table ("10-3 writes 8A's") —
-  **the 10-2 order's own "Next-session handoff" text says Phase 11, which is wrong** (`8-2 writes
-  phase-11's`, per the same table); caught and corrected here rather than propagated into 10-3.
 
 ## Key documents
 
