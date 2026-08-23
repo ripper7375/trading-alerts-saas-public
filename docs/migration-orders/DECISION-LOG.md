@@ -156,18 +156,11 @@ opening (`EXECUTOR-PROTOCOL.md` §1 step 0), flagged as owed at Session 9-5's cl
 
 ## F79 — RESOLVED, Session 9-7b (2026-08-23)
 
-- Status: RESOLVED
-- Session: 9-7b · Date: 2026-08-23
-- Decision: `app/affiliate/dashboard/layout.tsx` and `app/affiliate/settings/layout.tsx` (a
-  separate route tree, same JWT-staleness exposure, per F39) now call `requireAffiliate()`
-  (`lib/auth/session.ts`) instead of trusting `session.user.isAffiliate` from the JWT directly.
-  `requireAffiliate()` already re-checks the DB when the JWT claim is false, closing the race a
-  freshly-registered affiliate hits before their token next rotates.
-- Evidence: live click-through against the real `free-test@trading-alerts.test` fixture (DB
-  `isAffiliate: true`, session JWT still `false`) reached `/affiliate/dashboard` and
-  `/affiliate/settings/payout` with zero redirect loop, both confirmed via
-  `window.location.href` after navigation. `npx tsc --noEmit` clean; `test:ci` 160/160/2400/2400.
-- Approved by: n/a (technical, within the order's own Decision 1, Davin-approved).
+Full resolution entry moved to `docs/migration-orders/history/decisions-archive.md` per this
+file's own hygiene rule (Session 9-8a's own size-gate archival pass, 2026-08-23). Summary for the
+register table above: both `app/affiliate/dashboard/layout.tsx` and `app/affiliate/settings/
+layout.tsx` now call `requireAffiliate()` (DB fallback) instead of trusting the JWT claim directly;
+live-verified against `free-test@trading-alerts.test`, redirect loop confirmed gone.
 
 ## F80 — OPEN, found Session 9-7b (2026-08-23)
 

@@ -295,11 +295,23 @@ export async function requireAdmin(): Promise<Session> {
     const session = await requireAuth();
 
     if (session.user?.role !== 'ADMIN') {
-      throw new AuthError(
-        'You must be an administrator to access this resource',
-        'ADMIN_REQUIRED',
-        403
-      );
+      // Check database directly to eliminate JWT stale session race condition
+      // (same pattern as requireAffiliate() above, Session 9-8a / DECISION-LOG.md F79 precedent)
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { id: true, role: true },
+      });
+
+      if (dbUser?.role !== 'ADMIN') {
+        throw new AuthError(
+          'You must be an administrator to access this resource',
+          'ADMIN_REQUIRED',
+          403
+        );
+      }
+
+      // Update session user in-memory
+      session.user.role = 'ADMIN';
     }
 
     return session;
