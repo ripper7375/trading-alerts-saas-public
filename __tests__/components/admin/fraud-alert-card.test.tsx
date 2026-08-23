@@ -93,25 +93,25 @@ describe('FraudAlertCard Component', () => {
     it('should render PENDING status with orange color', () => {
       render(<FraudAlertCard alert={mockAlert} />);
       const status = screen.getByText('PENDING');
-      expect(status).toHaveClass('text-orange-600');
+      expect(status).toHaveClass('text-orange-500');
     });
 
     it('should render BLOCKED status with red color', () => {
       render(<FraudAlertCard alert={{ ...mockAlert, status: 'BLOCKED' }} />);
       const status = screen.getByText('BLOCKED');
-      expect(status).toHaveClass('text-red-600');
+      expect(status).toHaveClass('text-red-500');
     });
 
-    it('should render DISMISSED status with gray color', () => {
+    it('should render DISMISSED status with muted color', () => {
       render(<FraudAlertCard alert={{ ...mockAlert, status: 'DISMISSED' }} />);
       const status = screen.getByText('DISMISSED');
-      expect(status).toHaveClass('text-gray-600');
+      expect(status).toHaveClass('text-muted-foreground');
     });
 
     it('should render REVIEWED status with green color', () => {
       render(<FraudAlertCard alert={{ ...mockAlert, status: 'REVIEWED' }} />);
       const status = screen.getByText('REVIEWED');
-      expect(status).toHaveClass('text-green-600');
+      expect(status).toHaveClass('text-green-500');
     });
   });
 

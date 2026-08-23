@@ -44,30 +44,30 @@ describe('FraudPatternBadge Component', () => {
     it('should have red styling for CRITICAL severity', () => {
       const { container } = render(<FraudPatternBadge severity="CRITICAL" />);
       const badge = container.querySelector('span');
-      expect(badge).toHaveClass('bg-red-100');
-      expect(badge).toHaveClass('text-red-800');
-      expect(badge).toHaveClass('border-red-200');
+      expect(badge).toHaveClass('bg-red-500/10');
+      expect(badge).toHaveClass('text-red-500');
+      expect(badge).toHaveClass('border-red-500/30');
     });
 
     it('should have orange styling for HIGH severity', () => {
       const { container } = render(<FraudPatternBadge severity="HIGH" />);
       const badge = container.querySelector('span');
-      expect(badge).toHaveClass('bg-orange-100');
-      expect(badge).toHaveClass('text-orange-800');
+      expect(badge).toHaveClass('bg-orange-500/10');
+      expect(badge).toHaveClass('text-orange-500');
     });
 
     it('should have yellow styling for MEDIUM severity', () => {
       const { container } = render(<FraudPatternBadge severity="MEDIUM" />);
       const badge = container.querySelector('span');
-      expect(badge).toHaveClass('bg-yellow-100');
-      expect(badge).toHaveClass('text-yellow-800');
+      expect(badge).toHaveClass('bg-yellow-500/10');
+      expect(badge).toHaveClass('text-yellow-500');
     });
 
     it('should have blue styling for LOW severity', () => {
       const { container } = render(<FraudPatternBadge severity="LOW" />);
       const badge = container.querySelector('span');
-      expect(badge).toHaveClass('bg-blue-100');
-      expect(badge).toHaveClass('text-blue-800');
+      expect(badge).toHaveClass('bg-blue-500/10');
+      expect(badge).toHaveClass('text-blue-500');
     });
   });
 
@@ -164,7 +164,7 @@ describe('FraudPatternBadge Component', () => {
       const badge = container.querySelector('span');
       expect(screen.getByText('CRITICAL')).toBeInTheDocument();
       expect(screen.getByText(/IP Mismatch/)).toBeInTheDocument();
-      expect(badge).toHaveClass('bg-red-100', 'text-xs');
+      expect(badge).toHaveClass('bg-red-500/10', 'text-xs');
     });
 
     it('should render all severity levels correctly', () => {
