@@ -26,7 +26,76 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 10-2 (Drawing Engine & Line-Alert e2e + API Coverage, Phase 10, VERIFY with
+- **Current:** Session 10-3 (Blueprint Reconciliation & Close, Phase 10 — final session,
+  VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24. **Phase 10
+  (Drawing Engine & Line-Alert Closure) is now CLOSED** — all 3 sessions complete: 10-1 (F67, live
+  cross-process proof), 10-2 (F82, automated Playwright/Newman regression coverage), 10-3 (this
+  session, documentation reconciliation). No code changes this session — pure doc reconciliation
+  per the roadmap's own scope.
+  **L3 pattern again, benign:** committed HEAD held the bare `Status: PRE-DRAFT` order; the
+  corrected `Status: APPROVED` version (4 Decisions, Davin's approval line) existed only as an
+  uncommitted working-copy edit — confirmed authentic by Davin live, committed at session open
+  (the 27th+ recurrence of this exact shape, `LESSONS-LEARNED.md` L3).
+  **Blueprint reconciled to `operation-service` reality:**
+  `DRAWING-ENGINE-AND-LINE-ALERTS-ARCHITECTURE.md` §3 (Database row Prisma 6/`prisma/schema.prisma`
+  → Prisma 7/split schema; Web framework row Next.js 15.5 → 16.3.0; key-takeaway note now cites
+  Sessions 10-1/10-2 as closing proof), §7 (Phase 4 status callout rewritten from stale monolith
+  `lib/alert-engine/*`/`scripts/alert-worker.ts` to the real `operation-service/src/
+{alert-engine,drawings,alerts}/*` file map + `main-worker.ts`), §14 (2026-07-05 "one remaining
+  blocker" note replaced with a 2026-08-24 reconciliation entry). Independently verified all three
+  factual claims against live code before writing (Prisma 7.9.1, Next.js 16.3.0,
+  `operation-service`'s actual directory structure) rather than trusting the order's own paraphrase
+  (`LESSONS-LEARNED.md` L22). **Deviation:** §3's Price/Alert/Notification/Tiering rows and §8's
+  stack-summary table still cite the pre-split `prisma/schema.prisma:<line>` path — outside this
+  session's explicit Decision-1 scope (Database + Web framework rows + note only), left as-is,
+  noted for a future doc pass.
+  `implementation-progress-files-and-folder-directory.md` (150-line build-time file-tree manifest,
+  stopped tracking after Session 4B-2) replaced with a clean pointer to
+  `migration-stack-analysis.md`, which already tracks the active file inventory per session.
+  **`HANDOVER-PROMPT-phase-8A.md` authored** per the roadmap's own trigger table obligation
+  (`10-3 writes 8A's`) — and while writing it, found and surfaced two real, load-bearing gaps
+  rather than a clean handover: **(1)** Phase 4X is **not** fully closed — 4A-13/14/15 are, but
+  **4A-16 has not run and F76 is still OPEN** (dLocal `payment_method_id` is a display name, not
+  the real method code; `MIGRATE_WRITE_APIS_MONEY_DLOCAL` stays `false`), which is the roadmap's
+  own explicit gate for Session 8-1 to open — a currently-failing entry criterion, not yet met.
+  **(2)** The roadmap's literal "delete migrated `app/api/**`" instruction for 8-1 predates **F65**'s
+  actual resolution (Session 9-0: retain `app/api/**` permanently as the BFF proxy layer) — the
+  real deletion candidates are routes with zero remaining callers, not every migrated route; the
+  Advisor needs to resolve this before 8-1's checklist names specific files. Both surfaced in the
+  handover prompt and in 8-1's own PRE-DRAFT rather than glossed over. One self-correction during
+  drafting: the handover prompt's own first draft speculated 8-1's variant as "likely
+  PORT/RETIRE-leaning" before `00-SKELETON-AND-RULES.md` §2 was actually read — that document
+  names Session 8-1 directly as a VERIFY-RETIRE example; fixed rather than left as an unverified
+  guess in a document whose stated purpose is avoiding fabrication (`LESSONS-LEARNED.md` L27).
+  One markdown-corruption fix in the 8-1 PRE-DRAFT (backtick-code-span-adjacent-to-bold-marker
+  collision from the pre-commit prettier pass — same class as prior sessions' underscore/`+`
+  corruptions) — caught and fixed before this close.
+  **Phase 10 formally declared CLOSED SUCCESSFUL** (all Done-when items checked in
+  `10-3-blueprint-reconciliation-close.migration-order.md`); Session 8-1 (Deletion Sweep, Phase
+  8A, VERIFY-RETIRE) PRE-DRAFTed with both open items above surfaced in its own Entry Criteria and
+  a dedicated "Open question" section rather than a clean checklist.
+  **All baselines re-verified fresh, at CONFIRM (before any doc edit) and unaffected by this
+  session's own doc-only changes:** monolith `test:ci` 153/153 suites/2198/2198 tests;
+  `operation-service` 42/42 suites/395/395 tests; money-service 62/62 suites/526/526 tests (one
+  `prisma.shutdown.spec.ts` timeout under this session's own three-suite concurrent CONFIRM run,
+  isolated re-run clean in 19.9s — the third recurrence of this exact test under this exact load
+  pattern, independently confirmed benign at Sessions 10-1 and 10-2's own CONFIRMs too;
+  `LESSONS-LEARNED.md` L24's pattern, no new entry added per Session 10-2's own established
+  precedent of not re-noting an identical repeat).
+  **`migration-cutover-table.md` needs no changes** (no route/slice status moved — pure
+  documentation session). **`migration-stack-analysis.md` DOES need an entry** (1 modified: the
+  blueprint; 1 replaced: implementation-progress doc; 2 new: `HANDOVER-PROMPT-phase-8A.md`,
+  `8-1-deletion-sweep.migration-order.md`) — added next.
+  **`DECISION-LOG.md` size-gate check: still ~64KB, over the ~50KB target — same non-actionable
+  conclusion as 9-9's/9-10's/10-2's own checks** (inherent to F80/F81 both still being genuinely
+  OPEN); no flags touched this session (F67/F82 already resolved at 10-1/10-2).
+  **Artifacts updated:** `10-3-blueprint-reconciliation-close.migration-order.md` (Status →
+  CONFIRMED → CLOSED SUCCESSFUL, Deviations + checked Done-when/entry-criteria boxes),
+  `migration-stack-analysis.md` (Session 10-3 entry), this file (Current/Previous rotation —
+  Session 10-1 moved to `history/sessions-archive.md`). Session 8-1's order PRE-DRAFTed
+  (`8-1-deletion-sweep.migration-order.md`) and `HANDOVER-PROMPT-phase-8A.md` authored per this
+  session's own obligations.
+- **Previous:** Session 10-2 (Drawing Engine & Line-Alert e2e + API Coverage, Phase 10, VERIFY with
   scoped bugfix), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. Resolves **F82**
   (orphaned `Alert` row on `Drawing` deletion) and ships durable, repeatable automated regression
   coverage (Playwright e2e + Newman API) for the drawing engine and line alerts — the roadmap's
@@ -100,83 +169,6 @@ drawings.service.ts` (`remove()`, live path in Vercel production, `MIGRATE_DRAWI
   handover prompt per `MASTER-ROADMAP-PHASES-7-15.md`'s own trigger table ("10-3 writes 8A's") —
   **the 10-2 order's own "Next-session handoff" text says Phase 11, which is wrong** (`8-2 writes
   phase-11's`, per the same table); caught and corrected here rather than propagated into 10-3.
-- **Previous:** Session 10-1 (Drawing Engine & Line-Alert Live Smoke Test, Phase 10, INFRA/VERIFY),
-  APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. Resolves **F67** (smoke-test
-  execution environment) — Phase 10's own "one remaining unverified link": a real, live,
-  cross-process round trip from a price-cross through the alert worker to a real DB write,
-  realtime relay, and browser delivery.
-  **Both `⚠ NEEDS EXPLICIT SIGN-OFF` decisions confirmed separately by Davin, live in chat, distinct
-  from the order's general approval** (per `EXECUTOR-PROTOCOL.md` §0): Option B (local
-  `operation-service` HTTP+worker against the already-reachable dev Redis/Postgres, not Contabo VPS
-  or Railway scratch) as the primary environment, and a deterministic synthetic Redis price
-  publisher (not passive live MT5 ticks) as the crossing-trigger mechanism.
-  **L3 pattern again, benign:** committed HEAD held the bare `Status: PRE-DRAFT` order (no
-  `Decisions taken` section); the corrected `Status: APPROVED` version (4 Decisions, Davin's
-  approval line) existed only as an uncommitted working-copy edit — confirmed authentic by Davin
-  live, committed at session open.
-  **Two real defects found and fixed live, both disclosed, neither a drive-by:**
-  **1) `nest-cli.json`'s `deleteOutDir: true` races `start:dev` watch mode against
-  `start:worker`'s static `node dist/main-worker`.** Booting per the order's literal `npm run
-start:dev` crashed the worker (watch-mode rebuild wiped `dist/` mid-require of
-  `./alert-engine/alert-cron.scheduler`). Fixed by running one clean `npm run build` then booting
-  BOTH processes statically (`node dist/main` + `node dist/main-worker` — the order's own text
-  already sanctions this as equivalent). **2) CSP `connect-src` never allowed the local
-  `operation-service` origin, only its production Railway one** (same bug class as F54, just for
-  localhost) — browser WS connections to `ws://localhost:3001` were blocked before the handshake
-  could start. Minimal fix (`next.config.js`, added `http://localhost:3001`/`ws://localhost:3001`),
-  restarted, re-verified: `RealtimeGateway` logs `Client <id> authenticated as user <userId>`.
-  **All 4 Invariant Proofs verified live:** (1) worker log `dispatching fire`/`fire dispatched`
-  with correct correlationId; (2) Postgres `Notification` row created
-  (`"Price 2005 touched line @ 2000"`) + `Alert.triggerCount` incremented; (3) `RealtimeGateway`
-  relayed with zero malformed-payload rejection; (4) browser confirmed connected+authenticated in
-  the right room and `GET /api/notifications` matched the fired row — **the chart-canvas marker's
-  visual rendering could not be confirmed**, because `/terminal`'s separate OHLCV candlestick feed
-  (`mt5-service`'s own Flask-SocketIO server, `ws://localhost:5001`) was never in this session's
-  scope/running (no candle data loaded at all, independent of alerts). Escalated live per
-  `EXECUTOR-PROTOCOL.md` §7; **Davin approved accepting the confirmed WS-delivery evidence as
-  sufficient**, registering the visual check as a follow-up rather than a session blocker.
-  **Cooldown and one-shot both verified live, DB- and Redis-state-confirmed:** cooldown —
-  `triggerCount` held at 1 across an immediate re-cross 2.5s later, `alert:cd:<id>:line` confirmed
-  present in Redis with active TTL; one-shot — fired once (`triggerCount: 1`, `isActive: false`),
-  a second crossing well past its own 5s cooldown produced zero further fire
-  (`alert:fired:<id>` guard).
-  **One incidental, real Prisma `P2028`** ("Unable to start a transaction in the given time") on
-  the first fire-dispatch attempt, root-caused to this session's own concurrent load (monolith dev
-  server + both operation-service processes + several ad-hoc diagnostic scripts against the same
-  shared pooled dev Postgres) — reproduced standalone, confirmed slow-but-working (3.5s) with an
-  extended timeout, resolved by reducing concurrent load and retrying; no production code touched.
-  Registered as a recurrence on `LESSONS-LEARNED.md` L24 (stayed at the 40-entry cap).
-  **One new, real, disclosed data-hygiene defect found during test-fixture cleanup, registered as
-  `DECISION-LOG.md` F82** (not fixed here — out of this INFRA/VERIFY session's scope, doesn't
-  block the smoke test): `DELETE /api/drawings/:id` cascades `Drawing → DrawingAlert` but never
-  touches the `Alert` row itself — every deleted line-alert-bearing drawing leaves a permanently
-  orphaned `PRICE_TOUCH_LINE` `Alert` row. Reproduced 4/4 times cleaning up this session's own
-  fixtures; cleaned up manually. Flagged for Session 10-2 (API coverage for `/api/drawings`) to
-  catch with a real assertion.
-  **All test fixtures cleaned up, DB and Redis left clean:** 4 test drawings deleted via the real
-  API (cascading their `DrawingAlert` rows), the 4 resulting orphaned `Alert` rows deleted manually
-  (F82 above), all test `Notification` rows deleted, Redis state keys for all 4 test alertIds
-  cleared, worker confirmed back to `watches loaded: 0 rows`. Both `operation-service` processes
-  and the monolith dev server stopped cleanly at close — no stray background processes left
-  running.
-  **All baselines re-verified fresh, post-session, zero regressions from this session's own
-  `next.config.js` CSP change:** monolith `test:ci` 153/153 suites/2198/2198 tests;
-  `operation-service` 42/42 suites/393/393 tests; money-service 62/62 suites/526/526 tests
-  (untouched, unaffected).
-  **`migration-cutover-table.md` and `migration-stack-analysis.md` correctly need no changes**
-  (no route/slice moved, no files created/moved/deleted — `next.config.js` was modified in place;
-  Slice 6's own cutover-table row already correctly notes `MIGRATE_ALERT_ENGINE` has no reader,
-  independently re-confirmed this session).
-  **Artifacts updated:** `10-1-drawing-alert-smoke.migration-order.md` (Status → CONFIRMED →
-  CLOSED SUCCESSFUL, 6 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md`
-  (F67 resolved, F82 registered OPEN), `LESSONS-LEARNED.md` (recurrence note on L24, no new lesson
-  — stayed at the cap), this file (Current/Previous rotation — Session 9-9 moved to
-  `history/sessions-archive.md`). Session 10-2's order PRE-DRAFTed per this session's own
-  obligation (`10-2-e2e-api-coverage.migration-order.md`) — 4 open questions flagged for the
-  Advisor at DRAFT, most load-bearing: the chart-marker visual gap (`mt5-service`'s OHLCV socket
-  server, out of scope in 10-1) directly blocks 10-2's own stated e2e success criterion and needs
-  a real resolution, not another reduced-evidence acceptance, since a Playwright assertion needs a
-  concrete checkable condition.
 
 ## Key documents
 

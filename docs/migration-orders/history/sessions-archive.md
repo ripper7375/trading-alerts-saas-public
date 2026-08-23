@@ -7,6 +7,84 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 10-1** (Drawing Engine & Line-Alert Live
+  Smoke Test, Phase 10, INFRA/VERIFY), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL**
+  2026-08-23. Resolves **F67** (smoke-test execution environment) — Phase 10's own "one remaining
+  unverified link": a real, live, cross-process round trip from a price-cross through the alert
+  worker to a real DB write, realtime relay, and browser delivery.
+  **Both `⚠ NEEDS EXPLICIT SIGN-OFF` decisions confirmed separately by Davin, live in chat, distinct
+  from the order's general approval** (per `EXECUTOR-PROTOCOL.md` §0): Option B (local
+  `operation-service` HTTP+worker against the already-reachable dev Redis/Postgres, not Contabo VPS
+  or Railway scratch) as the primary environment, and a deterministic synthetic Redis price
+  publisher (not passive live MT5 ticks) as the crossing-trigger mechanism.
+  **L3 pattern again, benign:** committed HEAD held the bare `Status: PRE-DRAFT` order (no
+  `Decisions taken` section); the corrected `Status: APPROVED` version (4 Decisions, Davin's
+  approval line) existed only as an uncommitted working-copy edit — confirmed authentic by Davin
+  live, committed at session open.
+  **Two real defects found and fixed live, both disclosed, neither a drive-by:**
+  **1) `nest-cli.json`'s `deleteOutDir: true` races `start:dev` watch mode against
+  `start:worker`'s static `node dist/main-worker`.** Booting per the order's literal `npm run
+start:dev` crashed the worker (watch-mode rebuild wiped `dist/` mid-require of
+  `./alert-engine/alert-cron.scheduler`). Fixed by running one clean `npm run build` then booting
+  BOTH processes statically (`node dist/main` + `node dist/main-worker` — the order's own text
+  already sanctions this as equivalent). **2) CSP `connect-src` never allowed the local
+  `operation-service` origin, only its production Railway one** (same bug class as F54, just for
+  localhost) — browser WS connections to `ws://localhost:3001` were blocked before the handshake
+  could start. Minimal fix (`next.config.js`, added `http://localhost:3001`/`ws://localhost:3001`),
+  restarted, re-verified: `RealtimeGateway` logs `Client <id> authenticated as user <userId>`.
+  **All 4 Invariant Proofs verified live:** (1) worker log `dispatching fire`/`fire dispatched`
+  with correct correlationId; (2) Postgres `Notification` row created
+  (`"Price 2005 touched line @ 2000"`) + `Alert.triggerCount` incremented; (3) `RealtimeGateway`
+  relayed with zero malformed-payload rejection; (4) browser confirmed connected+authenticated in
+  the right room and `GET /api/notifications` matched the fired row — **the chart-canvas marker's
+  visual rendering could not be confirmed**, because `/terminal`'s separate OHLCV candlestick feed
+  (`mt5-service`'s own Flask-SocketIO server, `ws://localhost:5001`) was never in this session's
+  scope/running (no candle data loaded at all, independent of alerts). Escalated live per
+  `EXECUTOR-PROTOCOL.md` §7; **Davin approved accepting the confirmed WS-delivery evidence as
+  sufficient**, registering the visual check as a follow-up rather than a session blocker.
+  **Cooldown and one-shot both verified live, DB- and Redis-state-confirmed:** cooldown —
+  `triggerCount` held at 1 across an immediate re-cross 2.5s later, `alert:cd:<id>:line` confirmed
+  present in Redis with active TTL; one-shot — fired once (`triggerCount: 1`, `isActive: false`),
+  a second crossing well past its own 5s cooldown produced zero further fire
+  (`alert:fired:<id>` guard).
+  **One incidental, real Prisma `P2028`** ("Unable to start a transaction in the given time") on
+  the first fire-dispatch attempt, root-caused to this session's own concurrent load (monolith dev
+  server + both operation-service processes + several ad-hoc diagnostic scripts against the same
+  shared pooled dev Postgres) — reproduced standalone, confirmed slow-but-working (3.5s) with an
+  extended timeout, resolved by reducing concurrent load and retrying; no production code touched.
+  Registered as a recurrence on `LESSONS-LEARNED.md` L24 (stayed at the 40-entry cap).
+  **One new, real, disclosed data-hygiene defect found during test-fixture cleanup, registered as
+  `DECISION-LOG.md` F82** (not fixed here — out of this INFRA/VERIFY session's scope, doesn't
+  block the smoke test): `DELETE /api/drawings/:id` cascades `Drawing → DrawingAlert` but never
+  touches the `Alert` row itself — every deleted line-alert-bearing drawing leaves a permanently
+  orphaned `PRICE_TOUCH_LINE` `Alert` row. Reproduced 4/4 times cleaning up this session's own
+  fixtures; cleaned up manually. Flagged for Session 10-2 (API coverage for `/api/drawings`) to
+  catch with a real assertion.
+  **All test fixtures cleaned up, DB and Redis left clean:** 4 test drawings deleted via the real
+  API (cascading their `DrawingAlert` rows), the 4 resulting orphaned `Alert` rows deleted manually
+  (F82 above), all test `Notification` rows deleted, Redis state keys for all 4 test alertIds
+  cleared, worker confirmed back to `watches loaded: 0 rows`. Both `operation-service` processes
+  and the monolith dev server stopped cleanly at close — no stray background processes left
+  running.
+  **All baselines re-verified fresh, post-session, zero regressions from this session's own
+  `next.config.js` CSP change:** monolith `test:ci` 153/153 suites/2198/2198 tests;
+  `operation-service` 42/42 suites/393/393 tests; money-service 62/62 suites/526/526 tests
+  (untouched, unaffected).
+  **`migration-cutover-table.md` and `migration-stack-analysis.md` correctly need no changes**
+  (no route/slice moved, no files created/moved/deleted — `next.config.js` was modified in place;
+  Slice 6's own cutover-table row already correctly notes `MIGRATE_ALERT_ENGINE` has no reader,
+  independently re-confirmed this session).
+  **Artifacts updated:** `10-1-drawing-alert-smoke.migration-order.md` (Status → CONFIRMED →
+  CLOSED SUCCESSFUL, 6 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md`
+  (F67 resolved, F82 registered OPEN), `LESSONS-LEARNED.md` (recurrence note on L24, no new lesson
+  — stayed at the cap), this file (Current/Previous rotation — Session 9-9 moved to
+  `history/sessions-archive.md`). Session 10-2's order PRE-DRAFTed per this session's own
+  obligation (`10-2-e2e-api-coverage.migration-order.md`) — 4 open questions flagged for the
+  Advisor at DRAFT, most load-bearing: the chart-marker visual gap (`mt5-service`'s OHLCV socket
+  server, out of scope in 10-1) directly blocks 10-2's own stated e2e success criterion and needs
+  a real resolution, not another reduced-evidence acceptance, since a Playwright assertion needs a
+  concrete checkable condition.
+
 - _(superseded-by-above, retained for context)_ **Session 9-10** (Phase 9 Exit, VERIFY-RETIRE +
   Deviation 1 admin-layout retirement), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL**
   2026-08-23. **Phase 9 (Frontend Stack Replacement) is now CLOSED** — all 10 build sessions (9-1
