@@ -58,7 +58,7 @@ export function FraudAlertCard({
   });
 
   return (
-    <Card className="transition-shadow hover:shadow-md">
+    <Card className="border-border bg-card transition-shadow hover:shadow-md">
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-4">
           {/* Left side: Alert info */}
@@ -103,12 +103,12 @@ export function FraudAlertCard({
               <span
                 className={`text-xs font-medium ${
                   alert.status === 'PENDING'
-                    ? 'text-orange-600'
+                    ? 'text-orange-500'
                     : alert.status === 'BLOCKED'
-                      ? 'text-red-600'
+                      ? 'text-red-500'
                       : alert.status === 'DISMISSED'
-                        ? 'text-gray-600'
-                        : 'text-green-600'
+                        ? 'text-muted-foreground'
+                        : 'text-green-500'
                 }`}
               >
                 {alert.status}

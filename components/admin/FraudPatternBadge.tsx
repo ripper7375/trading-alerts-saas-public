@@ -36,24 +36,24 @@ const SEVERITY_CONFIG: Record<
   { bg: string; text: string; border: string }
 > = {
   CRITICAL: {
-    bg: 'bg-red-100',
-    text: 'text-red-800',
-    border: 'border-red-200',
+    bg: 'bg-red-500/10',
+    text: 'text-red-500',
+    border: 'border-red-500/30',
   },
   HIGH: {
-    bg: 'bg-orange-100',
-    text: 'text-orange-800',
-    border: 'border-orange-200',
+    bg: 'bg-orange-500/10',
+    text: 'text-orange-500',
+    border: 'border-orange-500/30',
   },
   MEDIUM: {
-    bg: 'bg-yellow-100',
-    text: 'text-yellow-800',
-    border: 'border-yellow-200',
+    bg: 'bg-yellow-500/10',
+    text: 'text-yellow-500',
+    border: 'border-yellow-500/30',
   },
   LOW: {
-    bg: 'bg-blue-100',
-    text: 'text-blue-800',
-    border: 'border-blue-200',
+    bg: 'bg-blue-500/10',
+    text: 'text-blue-500',
+    border: 'border-blue-500/30',
   },
 };
 

@@ -16,6 +16,13 @@ import { AlertTriangle, Filter, RefreshCw } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { FraudAlertCard } from '@/components/admin/FraudAlertCard';
 import { useToast } from '@/hooks/use-toast';
 import { ToastContainer } from '@/components/ui/toast-container';
@@ -138,11 +145,13 @@ export default function FraudAlertsPage(): React.ReactElement {
   };
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Fraud Alerts</h1>
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+            Fraud Alerts
+          </h1>
           <p className="text-muted-foreground">
             Monitor and manage suspicious payment activities
           </p>
@@ -156,46 +165,48 @@ export default function FraudAlertsPage(): React.ReactElement {
       </div>
 
       {/* Stats cards */}
-      <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
-        <Card>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
+        <Card className="border-border bg-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-2xl font-bold text-foreground">
+              {stats.total}
+            </div>
             <div className="text-sm text-muted-foreground">Total</div>
           </CardContent>
         </Card>
-        <Card className="border-red-200">
+        <Card className="border-red-500/30 bg-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold text-red-500">
               {stats.critical}
             </div>
             <div className="text-sm text-muted-foreground">Critical</div>
           </CardContent>
         </Card>
-        <Card className="border-orange-200">
+        <Card className="border-orange-500/30 bg-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-2xl font-bold text-orange-500">
               {stats.high}
             </div>
             <div className="text-sm text-muted-foreground">High</div>
           </CardContent>
         </Card>
-        <Card className="border-yellow-200">
+        <Card className="border-yellow-500/30 bg-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-600">
+            <div className="text-2xl font-bold text-yellow-500">
               {stats.medium}
             </div>
             <div className="text-sm text-muted-foreground">Medium</div>
           </CardContent>
         </Card>
-        <Card className="border-blue-200">
+        <Card className="border-blue-500/30 bg-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{stats.low}</div>
+            <div className="text-2xl font-bold text-blue-500">{stats.low}</div>
             <div className="text-sm text-muted-foreground">Low</div>
           </CardContent>
         </Card>
-        <Card className="border-orange-200">
+        <Card className="border-orange-500/30 bg-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-2xl font-bold text-orange-500">
               {stats.pending}
             </div>
             <div className="text-sm text-muted-foreground">Pending</div>
@@ -204,46 +215,56 @@ export default function FraudAlertsPage(): React.ReactElement {
       </div>
 
       {/* Filters */}
-      <Card className="mb-6">
+      <Card className="border-border bg-card">
         <CardContent className="flex flex-wrap items-center gap-4 p-4">
           <Filter className="h-4 w-4 text-muted-foreground" />
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Severity:</span>
-            <select
+            <span className="text-sm font-medium text-foreground">
+              Severity:
+            </span>
+            <Select
               value={filter.severity}
-              onChange={(e) =>
+              onValueChange={(value) =>
                 setFilter({
                   ...filter,
-                  severity: e.target.value as SeverityLevel | 'ALL',
+                  severity: value as SeverityLevel | 'ALL',
                 })
               }
-              className="rounded border p-1 text-sm"
             >
-              <option value="ALL">All</option>
-              <option value="CRITICAL">Critical</option>
-              <option value="HIGH">High</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="LOW">Low</option>
-            </select>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All</SelectItem>
+                <SelectItem value="CRITICAL">Critical</SelectItem>
+                <SelectItem value="HIGH">High</SelectItem>
+                <SelectItem value="MEDIUM">Medium</SelectItem>
+                <SelectItem value="LOW">Low</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Status:</span>
-            <select
+            <span className="text-sm font-medium text-foreground">Status:</span>
+            <Select
               value={filter.status}
-              onChange={(e) =>
+              onValueChange={(value) =>
                 setFilter({
                   ...filter,
-                  status: e.target.value as AlertStatus | 'ALL',
+                  status: value as AlertStatus | 'ALL',
                 })
               }
-              className="rounded border p-1 text-sm"
             >
-              <option value="ALL">All</option>
-              <option value="PENDING">Pending</option>
-              <option value="REVIEWED">Reviewed</option>
-              <option value="DISMISSED">Dismissed</option>
-              <option value="BLOCKED">Blocked</option>
-            </select>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="REVIEWED">Reviewed</SelectItem>
+                <SelectItem value="DISMISSED">Dismissed</SelectItem>
+                <SelectItem value="BLOCKED">Blocked</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -251,16 +272,15 @@ export default function FraudAlertsPage(): React.ReactElement {
       {/* Alerts list */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-            <p className="text-muted-foreground">Loading alerts...</p>
-          </div>
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
       ) : alerts.length === 0 ? (
-        <Card>
+        <Card className="border-border bg-card">
           <CardContent className="py-12 text-center">
             <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-            <h3 className="text-lg font-medium">No alerts found</h3>
+            <h3 className="text-lg font-medium text-foreground">
+              No alerts found
+            </h3>
             <p className="text-muted-foreground">
               {filter.severity !== 'ALL' || filter.status !== 'ALL'
                 ? 'Try adjusting your filters'
