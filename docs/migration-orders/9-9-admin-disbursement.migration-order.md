@@ -220,6 +220,17 @@ Sessions 9-8a and 9-8b shipped the 19 core admin and affiliate routes; Session 9
 
 <!-- Filled by Executor during execution per EXECUTOR-PROTOCOL.md §3 -->
 
+1. **Row 20's Wise-recipient revalidate action dropped from Decision 4's scope, mid-execution.**
+   `POST /api/wise/recipients/[id]/revalidate` (the order's own Feeds-on citation for this action)
+   is `requireAffiliate()`-guarded and self-service-only — it derives the target recipient from
+   the caller's own token, using `:id` only for an ownership check, not a lookup key. Wiring it
+   into `/admin/disbursement/recipients` as-is would 403 for a non-affiliate admin or silently
+   revalidate the admin's own recipient instead of the target affiliate's. Read the route before
+   wiring it (per `LESSONS-LEARNED.md` L15), stopped and asked Davin live rather than build a new
+   admin-scoped backend endpoint (out of this UI-BUILD session's dial) or wire the mismatched
+   route anyway. Davin: drop it from this session. Registered `DECISION-LOG.md` **F81**. Row 20
+   ships restyled but stays read-only for Wise recipients, matching its pre-session behavior.
+
 ---
 
 ## Next-session handoff

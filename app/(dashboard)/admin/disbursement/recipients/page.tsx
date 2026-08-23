@@ -57,30 +57,26 @@ interface RiseWorksAccount {
 
 function getStatusBadge(status: WiseRecipientStatus): React.ReactElement {
   const config: Record<WiseRecipientStatus, string> = {
-    DRAFT: 'bg-gray-600',
-    PENDING_DETAILS: 'bg-yellow-600',
-    ACTIVE: 'bg-green-600',
-    INVALID: 'bg-red-600',
-    ARCHIVED: 'bg-gray-700',
+    DRAFT: 'bg-muted text-muted-foreground',
+    PENDING_DETAILS: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    ACTIVE: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    INVALID: 'bg-red-500/10 text-red-600 dark:text-red-400',
+    ARCHIVED: 'bg-muted text-muted-foreground',
   };
 
-  return (
-    <Badge className={`${config[status]} text-xs text-white`}>{status}</Badge>
-  );
+  return <Badge className={`${config[status]} text-xs`}>{status}</Badge>;
 }
 
 function getKycStatusBadge(status: RiseWorksKycStatus): React.ReactElement {
   const config: Record<RiseWorksKycStatus, string> = {
-    APPROVED: 'bg-green-600',
-    PENDING: 'bg-yellow-600',
-    SUBMITTED: 'bg-blue-600',
-    REJECTED: 'bg-red-600',
-    EXPIRED: 'bg-gray-600',
+    APPROVED: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    PENDING: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    SUBMITTED: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+    REJECTED: 'bg-red-500/10 text-red-600 dark:text-red-400',
+    EXPIRED: 'bg-muted text-muted-foreground',
   };
 
-  return (
-    <Badge className={`${config[status]} text-xs text-white`}>{status}</Badge>
-  );
+  return <Badge className={`${config[status]} text-xs`}>{status}</Badge>;
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -126,12 +122,12 @@ function WiseRecipientsTab(): React.ReactElement {
   const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 
   return (
-    <Card className="border-gray-700 bg-gray-800">
+    <Card className="border-border bg-card">
       <CardHeader>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="text-white">Wise Recipients</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-foreground">Wise Recipients</CardTitle>
+            <CardDescription className="text-muted-foreground">
               {data ? `${data.total} total` : '—'} — view only, never raw bank
               details
             </CardDescription>
@@ -142,7 +138,7 @@ function WiseRecipientsTab(): React.ReactElement {
               setStatus(e.target.value as WiseRecipientStatus | 'ALL');
               setPage(1);
             }}
-            className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white"
+            className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
           >
             {STATUS_FILTERS.map((s) => (
               <option key={s} value={s}>
@@ -162,7 +158,7 @@ function WiseRecipientsTab(): React.ReactElement {
         {!loading && error && <p className="py-8 text-red-400">{error}</p>}
 
         {!loading && !error && data && data.items.length === 0 && (
-          <p className="py-8 text-center text-gray-400">
+          <p className="py-8 text-center text-muted-foreground">
             No Wise recipients yet.
           </p>
         )}
@@ -171,7 +167,7 @@ function WiseRecipientsTab(): React.ReactElement {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-700 text-left text-gray-400">
+                <tr className="border-b border-border text-left text-muted-foreground">
                   <th className="pb-2 pr-4 font-medium">Affiliate ID</th>
                   <th className="pb-2 pr-4 font-medium">Account Holder</th>
                   <th className="pb-2 pr-4 font-medium">Country</th>
@@ -185,9 +181,9 @@ function WiseRecipientsTab(): React.ReactElement {
                 {data.items.map((r) => (
                   <tr
                     key={r.id}
-                    className="border-b border-gray-700/50 text-gray-200"
+                    className="border-border/50 border-b text-foreground"
                   >
-                    <td className="py-3 pr-4 font-mono text-xs text-gray-400">
+                    <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">
                       {r.affiliateProfileId.slice(0, 8)}…
                     </td>
                     <td className="py-3 pr-4">{r.accountHolderName}</td>
@@ -197,7 +193,7 @@ function WiseRecipientsTab(): React.ReactElement {
                       {r.accountTail ? `•••• ${r.accountTail}` : 'N/A'}
                     </td>
                     <td className="py-3 pr-4">{getStatusBadge(r.status)}</td>
-                    <td className="py-3 text-gray-400">
+                    <td className="py-3 text-muted-foreground">
                       {formatDate(r.createdAt)}
                     </td>
                   </tr>
@@ -208,23 +204,23 @@ function WiseRecipientsTab(): React.ReactElement {
         )}
 
         {!loading && !error && data && data.total > 0 && (
-          <div className="mt-4 flex items-center justify-between border-t border-gray-700 pt-4">
+          <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
             <Button
               variant="outline"
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="border-gray-700 text-gray-300 hover:bg-gray-700"
+              className="border-border text-foreground hover:bg-accent"
             >
               Previous
             </Button>
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-muted-foreground">
               Page {page} of {totalPages}
             </span>
             <Button
               variant="outline"
               disabled={page >= totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="border-gray-700 text-gray-300 hover:bg-gray-700"
+              className="border-border text-foreground hover:bg-accent"
             >
               Next
             </Button>
@@ -274,13 +270,13 @@ function RiseWorksHistoricalTab(): React.ReactElement {
   }, []);
 
   return (
-    <Card className="border-gray-700 bg-gray-800">
+    <Card className="border-border bg-card">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-white">
+        <CardTitle className="flex items-center gap-2 text-foreground">
           RiseWorks Accounts
-          <Badge className="bg-gray-600 text-xs">Historical</Badge>
+          <Badge className="bg-muted text-xs">Historical</Badge>
         </CardTitle>
-        <CardDescription className="text-gray-400">
+        <CardDescription className="text-muted-foreground">
           RiseWorks is archived (F42) — this tab is a read-only historical
           record. No sync or create actions are available; the RiseWorks backend
           routes stay archived.
@@ -296,7 +292,7 @@ function RiseWorksHistoricalTab(): React.ReactElement {
         {!loading && error && <p className="px-6 py-8 text-red-400">{error}</p>}
 
         {!loading && !error && accounts.length === 0 && (
-          <p className="px-6 py-8 text-center text-gray-400">
+          <p className="px-6 py-8 text-center text-muted-foreground">
             No historical RiseWorks accounts found.
           </p>
         )}
@@ -305,23 +301,23 @@ function RiseWorksHistoricalTab(): React.ReactElement {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="px-4 py-3 text-left font-medium text-gray-400">
+                <tr className="border-b border-border">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                     Email
                   </th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-400">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                     Rise ID
                   </th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-400">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                     KYC Status
                   </th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-400">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                     Invitation
                   </th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-400">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                     Last Sync
                   </th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-400">
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                     Created
                   </th>
                 </tr>
@@ -330,13 +326,13 @@ function RiseWorksHistoricalTab(): React.ReactElement {
                 {accounts.map((account) => (
                   <tr
                     key={account.id}
-                    className="border-b border-gray-700/50 hover:bg-gray-700/30"
+                    className="border-border/50 hover:bg-accent/30 border-b"
                   >
                     <td className="px-4 py-3">
-                      <span className="text-white">{account.email}</span>
+                      <span className="text-foreground">{account.email}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-mono text-xs text-gray-400">
+                      <span className="font-mono text-xs text-muted-foreground">
                         {account.riseId.slice(0, 10)}...
                         {account.riseId.slice(-6)}
                       </span>
@@ -346,19 +342,25 @@ function RiseWorksHistoricalTab(): React.ReactElement {
                     </td>
                     <td className="px-4 py-3">
                       {account.invitationAcceptedAt ? (
-                        <Badge className="bg-green-600 text-xs">Accepted</Badge>
+                        <Badge className="bg-emerald-500/10 text-xs text-emerald-600 dark:text-emerald-400">
+                          Accepted
+                        </Badge>
                       ) : account.invitationSentAt ? (
-                        <Badge className="bg-yellow-600 text-xs">Sent</Badge>
+                        <Badge className="bg-amber-500/10 text-xs text-amber-600 dark:text-amber-400">
+                          Sent
+                        </Badge>
                       ) : (
-                        <Badge className="bg-gray-600 text-xs">Not Sent</Badge>
+                        <Badge className="bg-muted text-xs text-muted-foreground">
+                          Not Sent
+                        </Badge>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400">
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
                       {account.lastSyncAt
                         ? formatDate(account.lastSyncAt)
                         : 'Never'}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400">
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
                       {formatDate(account.createdAt)}
                     </td>
                   </tr>
@@ -393,23 +395,23 @@ export default function AdminDisbursementAccountsPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-white sm:text-3xl">
+        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
           Disbursement Accounts
         </h1>
-        <p className="mt-1 text-gray-400">
+        <p className="mt-1 text-muted-foreground">
           Affiliate payout accounts — active Wise recipients and historical
           RiseWorks records
         </p>
       </div>
 
-      <div className="flex gap-2 border-b border-gray-700">
+      <div className="flex gap-2 border-b border-border">
         <button
           type="button"
           onClick={() => setTab('wise')}
           className={`px-4 py-2 text-sm font-medium transition-colors ${
             tab === 'wise'
-              ? 'border-b-2 border-green-500 text-white'
-              : 'text-gray-400 hover:text-gray-200'
+              ? 'border-b-2 border-green-500 text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           🏦 Wise Recipients
@@ -419,8 +421,8 @@ export default function AdminDisbursementAccountsPage(): React.ReactElement {
           onClick={() => setTab('riseworks')}
           className={`px-4 py-2 text-sm font-medium transition-colors ${
             tab === 'riseworks'
-              ? 'border-b-2 border-green-500 text-white'
-              : 'text-gray-400 hover:text-gray-200'
+              ? 'border-b-2 border-green-500 text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           🔗 RiseWorks (Historical)

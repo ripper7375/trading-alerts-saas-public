@@ -61,19 +61,32 @@ function getStatusBadge(
     DisbursementTransactionStatus,
     { className: string; label: string }
   > = {
-    PENDING: { className: 'bg-yellow-600', label: 'Pending' },
-    PROCESSING: { className: 'bg-blue-600', label: 'Processing' },
-    COMPLETED: { className: 'bg-green-600', label: 'Completed' },
-    FAILED: { className: 'bg-red-600', label: 'Failed' },
-    CANCELLED: { className: 'bg-gray-600', label: 'Cancelled' },
+    PENDING: {
+      className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      label: 'Pending',
+    },
+    PROCESSING: {
+      className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+      label: 'Processing',
+    },
+    COMPLETED: {
+      className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      label: 'Completed',
+    },
+    FAILED: {
+      className: 'bg-red-500/10 text-red-600 dark:text-red-400',
+      label: 'Failed',
+    },
+    CANCELLED: {
+      className: 'bg-muted text-muted-foreground',
+      label: 'Cancelled',
+    },
   };
 
   const config = statusConfig[status];
 
   return (
-    <Badge className={`${config.className} text-white text-xs`}>
-      {config.label}
-    </Badge>
+    <Badge className={`${config.className} text-xs`}>{config.label}</Badge>
   );
 }
 
@@ -155,12 +168,14 @@ function TransactionsPageContent(): React.ReactElement {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
             Transactions
           </h1>
-          <p className="text-gray-400 mt-1">All disbursement transactions</p>
+          <p className="mt-1 text-muted-foreground">
+            All disbursement transactions
+          </p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -175,15 +190,15 @@ function TransactionsPageContent(): React.ReactElement {
 
       {/* Error Message */}
       {error && (
-        <Card className="bg-red-900/50 border-red-600">
+        <Card className="border-red-600 bg-red-500/10">
           <CardContent className="py-4">
-            <p className="text-red-300">{error}</p>
+            <p className="text-red-500">{error}</p>
           </CardContent>
         </Card>
       )}
 
       {/* Status Filter */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="border-border bg-card">
         <CardContent className="py-4">
           <div className="flex flex-wrap gap-2">
             {statusOptions.map((status) => (
@@ -196,11 +211,6 @@ function TransactionsPageContent(): React.ReactElement {
                 }
                 size="sm"
                 onClick={() => handleStatusFilter(status)}
-                className={
-                  (status === 'ALL' && !statusFilter) || statusFilter === status
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : ''
-                }
               >
                 {status === 'ALL' ? 'All Transactions' : status}
               </Button>
@@ -211,38 +221,38 @@ function TransactionsPageContent(): React.ReactElement {
 
       {/* Transactions Table */}
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[200px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500" />
+        <div className="flex min-h-[200px] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-green-500" />
         </div>
       ) : transactions.length > 0 ? (
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-border bg-card">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                  <tr className="border-b border-border">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Transaction ID
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Status
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Amount
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Provider
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Provider TX
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Payee
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Retries
                     </th>
-                    <th className="text-left py-3 px-4 text-gray-400 font-medium">
+                    <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                       Created
                     </th>
                   </tr>
@@ -251,53 +261,53 @@ function TransactionsPageContent(): React.ReactElement {
                   {transactions.map((tx) => (
                     <tr
                       key={tx.id}
-                      className="border-b border-gray-700/50 hover:bg-gray-700/30"
+                      className="border-border/50 hover:bg-accent/30 border-b"
                     >
-                      <td className="py-3 px-4">
-                        <span className="text-white font-mono text-xs">
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-xs text-foreground">
                           {tx.transactionId}
                         </span>
                       </td>
-                      <td className="py-3 px-4">{getStatusBadge(tx.status)}</td>
-                      <td className="py-3 px-4">
-                        <span className="text-green-400 font-medium">
+                      <td className="px-4 py-3">{getStatusBadge(tx.status)}</td>
+                      <td className="px-4 py-3">
+                        <span className="font-medium text-green-400">
                           {formatCurrency(tx.amount)}
                         </span>
-                        <span className="text-gray-500 text-xs ml-1">
+                        <span className="ml-1 text-xs text-muted-foreground">
                           {tx.currency}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
-                        <Badge className="bg-gray-600 text-white text-xs">
+                      <td className="px-4 py-3">
+                        <Badge className="bg-muted text-xs text-foreground">
                           {tx.provider}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className="text-gray-400 text-xs font-mono">
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-xs text-muted-foreground">
                           {tx.providerTxId || '-'}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="px-4 py-3">
                         {tx.payeeRiseId ? (
-                          <span className="text-gray-400 font-mono text-xs">
+                          <span className="font-mono text-xs text-muted-foreground">
                             {tx.payeeRiseId.slice(0, 10)}...
                           </span>
                         ) : (
-                          <span className="text-gray-500">-</span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="px-4 py-3">
                         <span
                           className={
                             tx.retryCount > 0
                               ? 'text-yellow-400'
-                              : 'text-gray-400'
+                              : 'text-muted-foreground'
                           }
                         >
                           {tx.retryCount}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-gray-400 text-xs">
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
                         {formatDate(tx.createdAt)}
                       </td>
                     </tr>
@@ -309,9 +319,9 @@ function TransactionsPageContent(): React.ReactElement {
 
           {/* Pagination */}
           {pagination && (
-            <CardContent className="border-t border-gray-700">
+            <CardContent className="border-t border-border">
               <div className="flex items-center justify-between">
-                <p className="text-gray-400 text-sm">
+                <p className="text-sm text-muted-foreground">
                   Showing {currentOffset + 1} -{' '}
                   {Math.min(currentOffset + limit, pagination.total)} of{' '}
                   {pagination.total}
@@ -341,21 +351,21 @@ function TransactionsPageContent(): React.ReactElement {
           )}
         </Card>
       ) : (
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-border bg-card">
           <CardContent className="py-12 text-center">
-            <p className="text-gray-400">No transactions found.</p>
+            <p className="text-muted-foreground">No transactions found.</p>
           </CardContent>
         </Card>
       )}
 
       {/* Failed Transactions Info */}
       {statusFilter === 'FAILED' && transactions.length > 0 && (
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-white">
+            <CardTitle className="text-foreground">
               Failed Transaction Details
             </CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardDescription className="text-muted-foreground">
               Error information for failed transactions
             </CardDescription>
           </CardHeader>
@@ -366,19 +376,19 @@ function TransactionsPageContent(): React.ReactElement {
                 .map((tx) => (
                   <div
                     key={tx.id}
-                    className="p-3 bg-red-900/30 border border-red-600/50 rounded-lg"
+                    className="rounded-lg border border-red-600/50 bg-red-900/30 p-3"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-white font-mono text-xs">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="font-mono text-xs text-foreground">
                         {tx.transactionId}
                       </span>
-                      <span className="text-gray-400 text-xs">
+                      <span className="text-xs text-muted-foreground">
                         {formatDate(tx.failedAt || tx.createdAt)}
                       </span>
                     </div>
-                    <p className="text-red-400 text-sm">{tx.errorMessage}</p>
+                    <p className="text-sm text-red-400">{tx.errorMessage}</p>
                     {tx.retryCount > 0 && (
-                      <p className="text-yellow-400 text-xs mt-1">
+                      <p className="mt-1 text-xs text-yellow-400">
                         Retried {tx.retryCount} times
                       </p>
                     )}
@@ -412,8 +422,8 @@ export default function TransactionsPage(): React.ReactElement {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" />
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-green-500" />
         </div>
       }
     >

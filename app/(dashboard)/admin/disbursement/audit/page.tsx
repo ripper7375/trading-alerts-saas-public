@@ -35,18 +35,28 @@ function getStatusBadge(status: AuditLogStatus): React.ReactElement {
     AuditLogStatus,
     { className: string; label: string }
   > = {
-    SUCCESS: { className: 'bg-green-600', label: 'Success' },
-    FAILURE: { className: 'bg-red-600', label: 'Failure' },
-    WARNING: { className: 'bg-yellow-600', label: 'Warning' },
-    INFO: { className: 'bg-blue-600', label: 'Info' },
+    SUCCESS: {
+      className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      label: 'Success',
+    },
+    FAILURE: {
+      className: 'bg-red-500/10 text-red-600 dark:text-red-400',
+      label: 'Failure',
+    },
+    WARNING: {
+      className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      label: 'Warning',
+    },
+    INFO: {
+      className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+      label: 'Info',
+    },
   };
 
   const config = statusConfig[status];
 
   return (
-    <Badge className={`${config.className} text-white text-xs`}>
-      {config.label}
-    </Badge>
+    <Badge className={`${config.className} text-xs`}>{config.label}</Badge>
   );
 }
 
@@ -128,12 +138,14 @@ function AuditLogsPageContent(): React.ReactElement {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
             Audit Logs
           </h1>
-          <p className="text-gray-400 mt-1">Disbursement activity history</p>
+          <p className="mt-1 text-muted-foreground">
+            Disbursement activity history
+          </p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -148,22 +160,21 @@ function AuditLogsPageContent(): React.ReactElement {
 
       {/* Error Message */}
       {error && (
-        <Card className="bg-red-900/50 border-red-600">
+        <Card className="border-red-600 bg-red-500/10">
           <CardContent className="py-4">
-            <p className="text-red-300">{error}</p>
+            <p className="text-red-500">{error}</p>
           </CardContent>
         </Card>
       )}
 
       {/* Action Filter */}
-      <Card className="bg-gray-800 border-gray-700">
+      <Card className="border-border bg-card">
         <CardContent className="py-4">
           <div className="flex flex-wrap gap-2">
             <Button
               variant={!actionFilter ? 'default' : 'outline'}
               size="sm"
               onClick={() => handleActionFilter(null)}
-              className={!actionFilter ? 'bg-green-600 hover:bg-green-700' : ''}
             >
               All Actions
             </Button>
@@ -173,11 +184,6 @@ function AuditLogsPageContent(): React.ReactElement {
                 variant={actionFilter === action ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => handleActionFilter(action)}
-                className={
-                  actionFilter === action
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : ''
-                }
               >
                 {action}
               </Button>
@@ -188,40 +194,40 @@ function AuditLogsPageContent(): React.ReactElement {
 
       {/* Audit Logs List */}
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[200px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500" />
+        <div className="flex min-h-[200px] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-green-500" />
         </div>
       ) : logs.length > 0 ? (
         <div className="space-y-3">
           {logs.map((log) => (
             <Card
               key={log.id}
-              className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-colors"
+              className="border-border bg-card transition-colors hover:border-border"
             >
               <CardContent className="py-4">
                 <div className="flex items-start gap-3">
                   {/* Icon */}
-                  <span className="text-2xl mt-1">
+                  <span className="mt-1 text-2xl">
                     {getActionIcon(log.action)}
                   </span>
 
                   {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="text-white font-medium">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <span className="font-medium text-foreground">
                         {log.action}
                       </span>
                       {getStatusBadge(log.status)}
                     </div>
 
                     {/* Metadata */}
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <span>{formatDate(log.createdAt)}</span>
                       {log.actor && <span>by {log.actor}</span>}
                       {log.batchId && (
                         <span>
                           Batch:{' '}
-                          <span className="text-gray-300">
+                          <span className="text-foreground">
                             {log.batchId.slice(0, 8)}...
                           </span>
                         </span>
@@ -229,7 +235,7 @@ function AuditLogsPageContent(): React.ReactElement {
                       {log.transactionId && (
                         <span>
                           TX:{' '}
-                          <span className="text-gray-300">
+                          <span className="text-foreground">
                             {log.transactionId.slice(0, 8)}...
                           </span>
                         </span>
@@ -241,14 +247,14 @@ function AuditLogsPageContent(): React.ReactElement {
                       <div className="mt-2">
                         <button
                           onClick={() => toggleLogExpand(log.id)}
-                          className="text-blue-400 hover:text-blue-300 text-xs"
+                          className="hover:text-primary/80 text-xs text-primary"
                         >
                           {expandedLogs.has(log.id)
                             ? 'Hide details ▲'
                             : 'Show details ▼'}
                         </button>
                         {expandedLogs.has(log.id) && (
-                          <pre className="mt-2 p-2 bg-gray-900 rounded text-xs text-gray-300 overflow-auto max-h-40">
+                          <pre className="mt-2 max-h-40 overflow-auto rounded bg-background p-2 text-xs text-foreground">
                             {JSON.stringify(log.details, null, 2)}
                           </pre>
                         )}
@@ -258,7 +264,7 @@ function AuditLogsPageContent(): React.ReactElement {
                     {/* IP/User Agent (if available and expanded) */}
                     {expandedLogs.has(log.id) &&
                       (log.ipAddress || log.userAgent) && (
-                        <div className="mt-2 text-xs text-gray-500">
+                        <div className="mt-2 text-xs text-muted-foreground">
                           {log.ipAddress && <p>IP: {log.ipAddress}</p>}
                           {log.userAgent && (
                             <p className="truncate">UA: {log.userAgent}</p>
@@ -268,7 +274,7 @@ function AuditLogsPageContent(): React.ReactElement {
                   </div>
 
                   {/* Timestamp */}
-                  <span className="text-gray-500 text-xs whitespace-nowrap">
+                  <span className="whitespace-nowrap text-xs text-muted-foreground">
                     {new Date(log.createdAt).toLocaleTimeString()}
                   </span>
                 </div>
@@ -277,9 +283,9 @@ function AuditLogsPageContent(): React.ReactElement {
           ))}
         </div>
       ) : (
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="border-border bg-card">
           <CardContent className="py-12 text-center">
-            <p className="text-gray-400">No audit logs found.</p>
+            <p className="text-muted-foreground">No audit logs found.</p>
           </CardContent>
         </Card>
       )}
@@ -307,8 +313,8 @@ export default function AuditLogsPage(): React.ReactElement {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500" />
+        <div className="flex min-h-[400px] items-center justify-center">
+          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-green-500" />
         </div>
       }
     >
