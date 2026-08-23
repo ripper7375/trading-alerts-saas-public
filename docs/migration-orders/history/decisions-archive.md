@@ -3586,3 +3586,29 @@ payout` both reached their real content with zero redirect — confirmed via `wi
   Decision 2 (synthetic price-trigger strategy) explicitly signed off, separate from the order's
   general approval, per `EXECUTOR-PROTOCOL.md` §0 (`⚠ NEEDS EXPLICIT SIGN-OFF` items are not
   covered by general approval alone); Proof 4's reduced-evidence acceptance also approved live.
+
+## F82 — RESOLVED, Session 10-2 (2026-08-23)
+
+- Status: RESOLVED
+- Session: 10-2 · Date: 2026-08-23
+- Symptom (found Session 10-1): `DELETE /api/drawings/:id` DB-cascaded the `DrawingAlert` join row
+  (`DrawingAlert.drawingId → Drawing`, `onDelete: Cascade`) but left the backing `Alert` row
+  orphaned — `DrawingAlert.alertId → Alert` cascades the OTHER direction only (deleting `Alert`
+  cascades `DrawingAlert`, not vice versa).
+- Fix: in `operation-service/src/drawings/drawings.service.ts` (`remove()`) and monolith
+  `app/api/drawings/[id]/route.ts` (`DELETE`), collect the drawing's attached `DrawingAlert.alertId`
+  values BEFORE the cascading `drawing.delete()`, then explicitly `alert.deleteMany({ where: { id:
+{ in: alertIds } } })` after. Fixed in both files deliberately: `MIGRATE_DRAWINGS=true` in Vercel
+  production (operation-service's path is live there) but unset/`false` in this local dev
+  environment (the monolith's own Prisma path is what actually runs locally) — both are real, not
+  dead code (`LESSONS-LEARNED.md` L23's class of risk, checked and ruled out for both files).
+- Evidence: `operation-service` unit tests — 2 new cases (`deletes the backing Alert row(s) for any
+attached line alert (F82)`, `does not call alert.deleteMany when the drawing has no attached
+alert`), 42/42 suites, 395/395 tests (+2). Live end-to-end proof via the new Newman collection
+  (`postman/collections/drawing-line-alerts.postman_collection.json`, `test:api:drawings`): create
+  drawing → attach line alert (capture its `Alert.id`) → delete drawing → `GET /api/alerts` confirms
+  that `Alert.id` no longer appears anywhere in the user's alert list. 14/14 requests, 28/28
+  assertions, run twice (once alone, once under concurrent load from the rest of this session's own
+  regression suite) — both green.
+- Approved by: n/a (technical fix, ⚠-free — Decision 3 of this session's own `Decisions taken`,
+  Davin's general approval of the order covers it).

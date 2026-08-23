@@ -97,6 +97,7 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F74  | **Payment currency wiring** (language hand-off §6.D, deferred 2026-08-19)                                                                                                                                                                                                  | OPEN — registered 2026-08-20; **⚠ NEEDS EXPLICIT SIGN-OFF**; resolve at Session 11-1                                                                                                                                                                                                                                                                                                                                                                                  |
 | F77  | `/alerts` and `/alerts/new` client-side double-render on reload                                                                                                                                                                                                            | OPEN — found Session 9-4 (2026-08-22); likely root cause (React/Next Suspense-streaming reveal artifact, benign) identified at Session 9-5's addendum; a test-alert price-corruption side-effect was observed and needs re-verification before being treated as a proven data-integrity risk; full detail in `history/decisions-archive.md`                                                                                                                            |
 | F81  | `POST /api/wise/recipients/[id]/revalidate` is `requireAffiliate()`-guarded, self-service-only (derives target from the caller's own token, `:id` used only for an ownership check) — no admin-scoped equivalent exists                                                    | OPEN — found Session 9-9 (2026-08-23); Row 20's admin `disbursement/recipients` page cannot safely call this route (403 for a non-affiliate admin, or silently revalidates the admin's own recipient instead of the target affiliate's); Davin declined to build a new admin-scoped endpoint in this UI-BUILD session — dropped from Decision 4's scope; a future session needs `requireAdmin()` + explicit affiliate lookup if admin-triggered revalidation is wanted |
+| F82  | `DELETE /api/drawings/:id` left the backing `Alert` row permanently orphaned (only `DrawingAlert` cascaded)                                                                                                                                                                | RESOLVED — Session 10-2 (2026-08-23): both `remove()` (operation-service) and the monolith route now collect the attached `alertId`(s) before the cascade and delete them explicitly; full detail in `history/decisions-archive.md`                                                                                                                                                                                                                                    |
 
 > **Note on numbering (updated 4A-W4, 2026-07-26).** F36–F42 (Part 19.5 / Wise) were registered at
 > Session **4A-W1**, closing the register's F35→F44 gap. **F43** is now registered (Session
@@ -225,28 +226,3 @@ revalidate` as the backing endpoint for an admin-triggered "revalidate Wise reci
   AlertDialog wraps, revalidate does not ship.
 - Approved by: Davin (live chat, 2026-08-23) — drop from Session 9-9's scope, register for a future
   session.
-
-## F82 — OPEN, found Session 10-1 (2026-08-23)
-
-- Status: OPEN
-- Session: 10-1 (found during Step 7 test-fixture cleanup) · Date: 2026-08-23
-- Symptom: `DELETE /api/drawings/:id` (`app/api/drawings/[id]/route.ts`) calls
-  `prisma.drawing.delete({ where: { id } })`, which DB-cascades to delete the `DrawingAlert` join
-  row (`DrawingAlert.drawingId → Drawing`, `onDelete: Cascade`) but leaves the `Alert` row itself
-  orphaned — `DrawingAlert.alertId → Alert` is `onDelete: Cascade` in the OTHER direction (deleting
-  `Alert` cascades `DrawingAlert`, not vice versa). Reproduced 4/4 times cleaning up this session's
-  own line-alert test fixtures: every deleted `Drawing` left its `PRICE_TOUCH_LINE` `Alert` row
-  behind with `drawingAlert: null`, requiring a manual `prisma.alert.deleteMany()` pass to actually
-  clean the DB.
-- Root cause: the DELETE route only ever deletes the `Drawing`; nothing in that handler (or a DB
-  trigger) also deletes the `Alert` row a `PRICE_TOUCH_LINE` alert exists solely to back. Since this
-  alert type has no meaning without its drawing (no UI surface lists/manages orphaned
-  `PRICE_TOUCH_LINE` alerts independently), every drawing deletion with an attached line alert
-  leaks one permanently-orphaned `Alert` row.
-- Not fixed here: out of this INFRA/VERIFY session's near-zero creativity dial and target-component
-  scope (this order's own Rules specific to this variant permit only defects that block the smoke
-  test itself; this doesn't). A real fix (delete the `Alert` alongside the `Drawing`, guarded to
-  only affect `alertType: 'PRICE_TOUCH_LINE'` rows with a `drawingAlert` link, never touching
-  classic price alerts) belongs to a future PORT/bugfix session — Session 10-2 (API coverage for
-  `/api/drawings`) is a natural place to catch this with a real assertion.
-- Approved by: n/a (technical finding, not yet resolved — Davin/Advisor to scope the fix session).
