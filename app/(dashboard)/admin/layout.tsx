@@ -86,6 +86,12 @@ const adminNavItems: AdminNavItem[] = [
     label: 'Broadcast',
     href: '/admin/notifications/broadcast',
   },
+  {
+    id: 'resources',
+    icon: '🎨',
+    label: 'Marketing Resources',
+    href: '/admin/resources',
+  },
 ];
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
