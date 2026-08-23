@@ -18,7 +18,11 @@ browser-tool timing gotcha, synchronous read racing React's batched re-render af
 Session 9-8b: no new lesson added (stayed at the cap) -- recurrence notes appended to L42
 (money-service-not-running half recurred a third time, distribute-codes this time) and L43 (a
 fourth browser-tool gotcha, `computer` `left_click` silently not registering, `element.click()`
-via `javascript_tool` as the reliable workaround).
+via `javascript_tool` as the reliable workaround). Session 9-9: no new lesson added (stayed at the
+cap) -- a recurrence note appended to L15 (a data-shape variant of the same "never-exercised code
+carries a latent bug" theme: an API route returning `transactions`/`auditLogs` as siblings of
+`batch`, not nested inside it, went undetected because `PaymentBatch` had zero rows until this
+session's own live-verification seeded one).
 Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
 (same rule Session 9-6 hit at 41; nothing to merge yet, all 40 are still genuinely distinct).
 
@@ -237,6 +241,15 @@ Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must 
 - Root cause: a component that's never been mounted anywhere has never had its interaction logic exercised against a real backend call, no matter how complete its code looks or how confidently an order describes it as "already built." Its own file existing and type-checking proves nothing about whether its own internal assumptions (here: that Undo can meaningfully cancel an in-flight or completed async action) are actually correct.
 - Rule: before wiring a real, consequential action (money, auth, destructive writes) into any component an order describes as "already built, just mount it," read that component's own implementation in full — not just its prop signature — and trace what each of its interactive paths actually does end-to-end. A found defect in a shared, never-fixed-by-this-session component is a real finding to disclose and route around (keep the existing, working flow; register a flag for a future fix), not something to silently wire in or silently patch as a drive-by.
 - Source: Session 6-1b (2026-08-10), `DECISION-LOG.md` F64 · Status: ACTIVE
+- Recurrence (Session 9-9, 2026-08-23): a data-shape variant of the same theme, not an
+  interaction-logic one. `app/(dashboard)/admin/disbursement/batches/[batchId]/page.tsx`'s
+  `fetchBatch()` did `setBatch(data.batch)`, but `GET /api/disbursement/batches/[batchId]` returns
+  `transactions`/`auditLogs` as SIBLINGS of `batch`, not nested inside it — `batch.transactions`
+  was `undefined` for literally every batch, not just empty ones, and crashed the page
+  (`Cannot read properties of undefined (reading 'filter')`) the instant it was pointed at any
+  real batch. `PaymentBatch` had zero rows in this DB until this session's own live-verification
+  seeded one — the page's own code had type-checked and "looked complete" every prior session
+  that read it, because nothing had ever actually loaded it against real data.
 
 ### L16 — A `next/navigation` `useRouter()` test mock must return a stable object reference, not a fresh literal per call, whenever the component under test puts `router` in a memoized hook's dependency array
 

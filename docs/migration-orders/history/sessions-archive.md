@@ -7,6 +7,83 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 9-8a (`app/(dashboard)/admin/*` core
+  cluster, Phase 9, UI-BUILD), CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-23. Tenth session
+  of Phase 9 — ships route-map rows 34 (`/admin`), 33 (`/admin/users`), 32 (`/admin/users/[id]`),
+  12 (`/admin/api-usage`), 23 (`/admin/errors`), 28 (`/admin/system/config-history`), 29
+  (`/admin/system/jobs`), 30 (`/admin/system/outbox`), 31 (`/admin/system/terminals`), 94
+  (`/admin/notifications/broadcast`, new). Ordered by Davin directly in chat (no separate
+  Antigravity DRAFT/APPROVED round — Davin resolved the CONFIRM findings live and said "go").
+  **CONFIRM found the by-now-familiar L3 pattern again** (committed HEAD held the bare PRE-DRAFT
+  with open questions; the corrected, 5-decision, `Status: APPROVED` version existed only as an
+  uncommitted working-copy edit) and **two genuine order-vs-live-code conflicts neither the 9-0
+  route map nor the order's own Decisions had caught:** (1) rows 12/23's backing endpoints
+  (`GET /api/admin/api-usage`, `GET /api/admin/error-logs`) are self-documented mock-data stubs
+  dating to the original Dec 2025 release — the 9-0 map listed them as plain `GET` endpoints with
+  no gap flag; (2) `requireAdmin()` (`lib/auth/session.ts`) had no DB-fallback for JWT staleness,
+  unlike its sibling `requireAffiliate()` — Decision 3 only fixed the admin layout's own inline
+  check, but 18 admin API routes (including this session's own job-trigger/outbox-retry actions)
+  call `requireAdmin()` directly, so a freshly-promoted admin would pass the restyled layout but
+  403 on this session's own Row 29/30 actions. Reported both before executing; Davin resolved both
+  live (accept rows 12/23's endpoints as disclosed pre-existing debt with an in-UI disclosure
+  banner; extend Decision 3's DB-fallback to `requireAdmin()` too) in the same message as "go" —
+  the fifth time this loop has visibly closed the Advisor↔Executor gap PD1 exists to bridge (after
+  9-5, 9-6, 9-7a, 9-7b). Also found, at CONFIRM: two of the 9-0 map's own flagged "endpoint gaps"
+  for rows 28/29/30 (`/admin/system/{config-history,jobs,outbox}`) were already fully resolved at
+  Session 6-11 via direct Server-Component Prisma reads / a lib-sourced job list — the 9-0 map only
+  grepped `app/api/**` for REST routes and missed that pattern, so the roadmap's own "9-8a likely
+  over threshold" sizing concern (`frontend-swap-route-map.md` §7) did not materialize; real scope
+  was a straightforward 10-page token restyle, not new backend-building.
+  **`requireAdmin()` DB-fallback shipped**, mirroring `requireAffiliate()`'s existing pattern
+  (`lib/auth/session.ts`, four lines apart) in both the shared helper and `app/(dashboard)/admin/
+layout.tsx`'s own inline check — closes the gap before it could recur as a fresh F79/F80-class
+  finding for a future session.
+  **Broadcast composer (Row 94, new) does not port codebase 2's fake success toast:** codebase 2's
+  own `handleBroadcast` fakes a "Global system broadcast successfully delivered!" message via
+  `setTimeout` with zero real dispatch; per Davin's live resolution, the submit action instead
+  shows a neutral "Preview only — dispatch is disabled... No broadcast was sent" note, verified
+  live via a real form fill + submit round-trip.
+  **Two local-environment gaps found and disclosed, neither an app defect (same class as 9-6/9-7b's
+  own disclosed gaps, `LESSONS-LEARNED.md` L42, recurrence noted there):** (1) a stale `.next`
+  build cache left over from a prior session's dev server made every non-root route 404 —
+  `rm -rf .next` + restart fixed it, confirmed via a clean `GET /login 200`; (2) live-testing the
+  Row 29 "Run Now" trigger surfaced `Server configuration error: CRON_SECRET not set` even though
+  `CRON_SECRET` is present with a real value in both `.env.local` and `.env` — pre-existing route
+  code (Session 6-11/7-2) correctly showing its own honest config-presence check rather than
+  crashing; root cause not chased further since the restyled UI's own error-handling path (a red
+  error badge, not a crash) is what needed verifying, and it verified correctly.
+  **A third browser-automation timing gotcha found, registered as an addendum to
+  `LESSONS-LEARNED.md` L43 rather than a new lesson** (file is at its 40-lesson cap): reading the
+  DOM synchronously in the same `javascript_tool` call right after a synthetic `el.click()` can
+  race React's batched re-render, making a working `onClick` handler look like it silently did
+  nothing — a short `await new Promise(r => setTimeout(r, 300))` before reading resolved it.
+  **All test baselines re-verified live, all green, exact match to entry-criterion baseline:**
+  monolith `tsc` clean, `eslint` 0 errors/3 warnings (down from 4 — this session's `<a>`→`<Link>`
+  fix in `admin/page.tsx` closed one pre-existing warning), `test:ci` 160/160 suites/2400/2400
+  tests; money-service 62/62 suites/526/526 tests; operation-service 42/42 suites/393/393 tests
+  (all re-verified fresh at CONFIRM, before code changes; monolith suite re-run again after, still
+  green).
+  **Route-manifest diff clean:** `git diff --stat` against the session's own start commit
+  (`f828967d`) confirms exactly the 10 rows' pages restyled + 1 new page (`admin/notifications/
+broadcast`) + 1 new supporting component (`components/ui/textarea.tsx`) + 1 modified supporting
+  component (`retry-failed-events-button.tsx`) + `lib/auth/session.ts` — zero unrelated route
+  changes.
+  **`DECISION-LOG.md` size-gate archival done at CONFIRM (protocol §1 step 0):** F79's resolved
+  entry moved to `history/decisions-archive.md` (52.4KB → 51.9KB); remaining overage is OPEN flags
+  F77/F80, which the hygiene rule keeps inline until resolved.
+  **Artifacts updated:** `9-8a-admin-core.migration-order.md` (Status → CONFIRMED → CLOSED
+  SUCCESSFUL, 7 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md` (F79
+  archived), `history/decisions-archive.md` (F79 full narrative appended),
+  `migration-stack-analysis.md` (Session 9-8a entry, 2 new/12 modified, all FRONTEND),
+  `LESSONS-LEARNED.md` (recurrence notes on L42 and L43, no new lesson — stayed at the cap), this
+  file (Current/Previous rotation — Session 9-7a moved to `history/sessions-archive.md`).
+  `migration-cutover-table.md` correctly needs no changes (Phase 9 is additive builds, no
+  route/slice moved). Session 9-8b's order PRE-DRAFTed (`9-8b-admin-affiliates.migration-
+order.md`) per this session's own obligation — 11 rows (affiliates + 5 reports +
+  settings/affiliate + fraud-alerts + the new `admin/resources`), 5 open questions carried for the
+  Advisor (action-route enumeration for fraud-alerts/affiliate suspend-reactivate, confirmation-
+  dialog pattern, Zero-Mock-Data re-verification given 9-8a's own 2-row miss).
+
 - _(superseded-by-above, retained for context)_ **Session 9-7b (`app/affiliate/dashboard/*`
   authenticated partner portal, Phase 9, UI-BUILD), CONFIRMED, executed, CLOSED SUCCESSFUL**
   2026-08-23. Ninth session of Phase 9 — ships route-map rows 35–42 (all 8

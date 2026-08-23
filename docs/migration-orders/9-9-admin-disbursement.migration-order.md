@@ -6,9 +6,10 @@
 > Corrected & upgraded to full **DRAFT** by Antigravity (Advisor & Architect), 2026-08-23.
 > Grounded in `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`.
 
-**Session:** 9-9 · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CONFIRMED
+**Session:** 9-9 · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CLOSED SUCCESSFUL
 **Generated:** 2026-08-23 (Executor PRE-DRAFT) · **Upgraded & Corrected:** 2026-08-23 (Advisor DRAFT) · **Approved:** 2026-08-23 (Davin) ·
-**Confirmed:** 2026-08-23 (Executor, live chat CONFIRM — 3 findings resolved by Davin, see CONFIRM Resolutions below)
+**Confirmed:** 2026-08-23 (Executor, live chat CONFIRM — 3 findings resolved by Davin, see CONFIRM Resolutions below) ·
+**Closed:** 2026-08-23 (Executor — all Done-when boxes checked, all test baselines green, route-manifest diff clean)
 **Flags touched:** none new (Admin role validation active with DB fallback).
 **Surface:** `app/(dashboard)/admin/disbursement/*` nested layout and 10 rows:
 
@@ -118,13 +119,13 @@ Sessions 9-8a and 9-8b shipped the 19 core admin and affiliate routes; Session 9
 
 ## Entry criteria (re-verify all at CONFIRM)
 
-- [ ] **Session 9-8b CONFIRMED, executed, CLOSED** — admin affiliates cluster live on `main`, route-manifest diff clean.
-- [ ] **Step 0 Protocol Size Gate:** Archive closed Phase 7 entries from `DECISION-LOG.md` to `history/decisions-archive.md` to keep file near ~50KB.
-- [ ] **Admin test account confirmed active** (`admin-test@trading-alerts.test` with `role: ADMIN` in DB).
-- [ ] **All 10 target page files confirmed existing** and read in full.
-- [ ] **All backing API routes + Wise endpoints read and contract-verified**.
-- [ ] **`money-service` running locally on port 3002** with `WISE_ENVIRONMENT=sandbox`.
-- [ ] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24):
+- [x] **Session 9-8b CONFIRMED, executed, CLOSED** — admin affiliates cluster live on `main`, route-manifest diff clean.
+- [x] **Step 0 Protocol Size Gate:** checked at CONFIRM — all resolved-flag narratives already archived; ~750-byte overage is inherent to F80's still-OPEN entry, no further pass possible.
+- [x] **Admin test account confirmed active** (`admin-test@trading-alerts.test` with `role: ADMIN` in DB).
+- [x] **All 10 target page files confirmed existing** and read in full.
+- [x] **All backing API routes + Wise endpoints read and contract-verified** — one conflict found (F81, Row 20 revalidate) and resolved by dropping it from scope.
+- [x] **`money-service` running locally on port 3002** with `WISE_ENVIRONMENT=sandbox`.
+- [x] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24):
 
   ```powershell
   # 1. Monolith
@@ -202,11 +203,11 @@ Sessions 9-8a and 9-8b shipped the 19 core admin and affiliate routes; Session 9
 
 ## Done when
 
-- [ ] All 10 disbursement pages + layout live with DavinTrade branding, dark/light theme tokens, and semantic badges.
-- [ ] Row 13 confirmed functioning as a clean redirect to `/admin/disbursement/recipients`.
-- [ ] Live admin user traverses all disbursement pages with real API/DB data bindings and zero redirect loops.
-- [ ] Route-manifest diff matches this session's scope and nothing else.
-- [ ] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
+- [x] All 10 disbursement pages + layout live with DavinTrade branding, dark/light theme tokens, and semantic badges.
+- [x] Row 13 confirmed functioning as a clean redirect to `/admin/disbursement/recipients`.
+- [x] Live admin user traverses all disbursement pages with real API/DB data bindings and zero redirect loops.
+- [x] Route-manifest diff matches this session's scope and nothing else.
+- [x] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
 
 ---
 
@@ -230,6 +231,22 @@ Sessions 9-8a and 9-8b shipped the 19 core admin and affiliate routes; Session 9
    admin-scoped backend endpoint (out of this UI-BUILD session's dial) or wire the mismatched
    route anyway. Davin: drop it from this session. Registered `DECISION-LOG.md` **F81**. Row 20
    ships restyled but stays read-only for Wise recipients, matching its pre-session behavior.
+
+2. **Two findings from Step 6's real live click-through, both fixed inline before close.**
+   (a) `GET /api/disbursement/batches/[batchId]` returns `transactions`/`auditLogs` as siblings
+   of `batch`, not nested inside it — Row 17's `fetchBatch()` did `setBatch(data.batch)` alone,
+   so `batch.transactions` was `undefined` for every batch, crashing the page the instant it was
+   pointed at real data. Pre-existing since the page was written; never caught before because
+   `PaymentBatch` had zero rows in this DB until this session seeded one to test the money-safety
+   AlertDialogs for real. Fixed by merging all three response fields into local state.
+   Registered as a recurrence of `LESSONS-LEARNED.md` L15. (b) Three `Badge` instances (2 in
+   `batches/[batchId]`, 1 each in `affiliates/[affiliateId]` and `recipients`) carried `bg-muted`
+   from the sed pass but no matching text-color override, leaving them on the Badge default
+   variant's `text-primary-foreground` — a real contrast bug. Added `text-muted-foreground`;
+   verified both light/dark `--muted`/`--muted-foreground` CSS variable pairs have solid contrast
+   by design. Both real batch-execute (MOCK provider, status PENDING→COMPLETED) and real
+   batch-delete (real DELETE + `router.push` redirect) round-trips were live-verified end-to-end
+   against seeded test batches, cleaned up after.
 
 ---
 
