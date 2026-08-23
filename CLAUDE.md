@@ -50,7 +50,7 @@
   unread counter off the identical socket push. No new UI built (would have been UI-BUILD scope
   creep inside a VERIFY session). The chart-marker DOM assertion stayed out of scope per Session
   10-1's own precedent (marker logic already unit-tested, `mt5-service`'s OHLCV feed is
-  SEPARATE*STACK) — Davin re-confirmed this explicitly at CONFIRM.
+  `SEPARATE_STACK`) — Davin re-confirmed this explicitly at CONFIRM.
   **F82 fixed in both live paths, not dead code in either:** `operation-service/src/drawings/
 drawings.service.ts` (`remove()`, live path in Vercel production, `MIGRATE_DRAWINGS=true`) and
   monolith `app/api/drawings/[id]/route.ts` (`DELETE`, live path in this local dev environment,
@@ -76,10 +76,9 @@ drawings.service.ts` (`remove()`, live path in Vercel production, `MIGRATE_DRAWI
   **One incidental, real test flake under this session's own concurrent load, confirmed benign:**
   `money-service`'s `prisma.shutdown.spec.ts` (completely untouched this session) failed once
   during the full post-change baseline run (4 heavy suites + Newman + Playwright all concurrent);
-  isolated re-run passed clean — the \_identical* test failing the _identical_ way under the
-  _identical_ kind of load is independently recorded at Session 10-1's own CONFIRM
-  (`history/decisions-archive.md`'s F67 entry), confirming `LESSONS-LEARNED.md` L24's pattern, not
-  a regression.
+  isolated re-run passed clean — the same test failing the same way under the same kind of load is
+  independently recorded at Session 10-1's own CONFIRM (`history/decisions-archive.md`'s F67
+  entry), confirming `LESSONS-LEARNED.md` L24's pattern, not a regression.
   **All baselines re-verified fresh, post-session:** monolith `test:ci` 153/153 suites/2198/2198
   tests (unchanged); `operation-service` 42/42 suites/395/395 tests (+2, F82 coverage);
   money-service 62/62 suites/526/526 tests (one transient flake above, isolated re-run clean).
