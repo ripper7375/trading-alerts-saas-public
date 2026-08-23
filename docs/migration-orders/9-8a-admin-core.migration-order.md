@@ -6,7 +6,7 @@
 > Corrected & upgraded to full **DRAFT** by Antigravity (Advisor & Architect), 2026-08-23.
 > Grounded in `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`.
 
-**Session:** 9-8a · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CONFIRMED
+**Session:** 9-8a · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CLOSED SUCCESSFUL
 **Generated:** 2026-08-23 (Executor PRE-DRAFT) · **Upgraded & Corrected:** 2026-08-23 (Advisor DRAFT) · **Approved:** 2026-08-23 (Davin)
 **Confirmed:** 2026-08-23 (Executor) — re-verified all 10 target files + backing endpoints against live
 code, ran all 5 test-suite baselines fresh (monolith `tsc` clean; `eslint` 0 errors/4 pre-existing
@@ -169,10 +169,10 @@ Session 9-8b will migrate the second cluster (affiliates management, 5 affiliate
 
 ## Done when
 
-- [ ] All 10 core admin pages live with DavinTrade branding, dark/light theme tokens, and semantic badges.
-- [ ] Live admin user traverses all 10 pages with real API/DB data bindings and zero redirect loops.
-- [ ] Route-manifest diff matches this session's scope and nothing else.
-- [ ] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
+- [x] All 10 core admin pages live with DavinTrade branding, dark/light theme tokens, and semantic badges.
+- [x] Live admin user traverses all 10 pages with real API/DB data bindings and zero redirect loops (verified as `admin-test@trading-alerts.test`).
+- [x] Route-manifest diff matches this session's scope and nothing else (`git diff --stat f828967d..HEAD` — 14 files: the 10 rows' pages + 1 new supporting component + `lib/auth/session.ts`).
+- [x] `npx tsc --noEmit` clean, `npx eslint app components lib hooks --max-warnings 5` (0 errors/3 warnings, down from 4 pre-existing), and `npm run test:ci` (160/160 suites, 2400/2400 tests) all pass clean.
 
 ---
 
@@ -184,7 +184,44 @@ Session 9-8b will migrate the second cluster (affiliates management, 5 affiliate
 
 ## Deviations
 
-<!-- Filled by Executor during execution per EXECUTOR-PROTOCOL.md §3 -->
+1. **`requireAdmin()` DB-fallback extended to `lib/auth/session.ts`, not just the layout** (per
+   Decision 3, resolved live with Davin at CONFIRM). 18 admin API routes call `requireAdmin()`;
+   without the same fallback the layout gets, a freshly-promoted admin would pass the restyled
+   layout but 403 on this session's own job-trigger/outbox-retry actions. Mirrors
+   `requireAffiliate()`'s existing pattern four lines up in the same file.
+2. **Rows 12/23 kept on their existing mock-data endpoints as accepted pre-existing debt** (per
+   Decision resolved live with Davin at CONFIRM). `GET /api/admin/api-usage` and `GET /api/admin/
+error-logs` are self-documented dev-mode stubs dating to the original Dec 2025 release — found at
+   CONFIRM, not flagged by the 9-0 route map. Added an honest in-UI disclosure banner (driven by
+   each route's own `X-Data-Source: mock` header) rather than presenting generated sample data as
+   live, consistent with this codebase's established honesty pattern (config-history/jobs/outbox's
+   own empty-state disclosures).
+3. **Broadcast composer (Row 94) does not port codebase 2's fake success toast.** Codebase 2's
+   `handleBroadcast` fakes a "Global system broadcast successfully delivered!" message via
+   `setTimeout` with zero real dispatch. Per Davin's live resolution, the ported version's submit
+   action shows a neutral "Preview only — dispatch is disabled... No broadcast was sent" note
+   instead — the row's own "disabled-dispatch preview" disposition applied to the confirmation
+   copy, not just the button's own label.
+4. **`components/ui/textarea.tsx` ported from seed-code** — a standard shadcn primitive, not
+   previously in the main repo, needed by the broadcast composer's body field. Same class of port
+   as Session 9-7a's `components/ui/slider.tsx`.
+5. **Local-environment gap, not a code defect (same class as `LESSONS-LEARNED.md` L42):** the
+   monolith's dev server had a stale `.next` build cache from a prior session, causing every
+   non-root route (`/login`, `/api/auth/session`, etc.) to 404 on first start — fixed by deleting
+   `.next` and restarting, confirmed via a clean `GET /login 200` afterward.
+6. **Local-environment gap, disclosed rather than chased:** live-testing the "Run Now" job-trigger
+   action (Row 29) surfaced `Server configuration error: CRON_SECRET not set` even though
+   `CRON_SECRET` is present with a real value in both `.env.local` and `.env` — pre-existing route
+   code (Session 6-11/7-2), untouched by this session, correctly showing its own honest
+   config-presence check rather than crashing. Root-caused this environment's process not
+   resolving the value at request time; did not chase further since the restyled UI's own
+   error-handling path (a red "Failed to trigger job"-class badge, not a crash or silent failure)
+   is what this session needed to verify, and it verified correctly. Worth a fresh look outside
+   this restyle session if it recurs.
+7. **`DECISION-LOG.md` size-gate archival done at CONFIRM, not fully closed.** F79's resolved entry
+   moved to `history/decisions-archive.md` (52.4KB → 51.9KB), per the protocol's own hygiene rule.
+   Remaining overage is OPEN flags F77/F80, which that same rule keeps inline until resolved —
+   full compliance with the ~50KB target awaits their resolution or a dedicated consolidation pass.
 
 ---
 

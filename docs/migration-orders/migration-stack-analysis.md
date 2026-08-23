@@ -3884,8 +3884,48 @@ affiliate/{commission-table,code-table}.test.tsx` — 3 assertions checking lega
 
 </details>
 
+<details>
+<summary>Session 9-8a (Admin core cluster, UI-BUILD) — 2 new, 12 modified, all FRONTEND</summary>
+
+Route-map rows 12/23/28/29/30/31/32/33/34/94 restyled to DavinTrade tokens and bound to real data.
+Route-manifest diff confirmed clean via `git diff --stat` against the session's own start commit
+(`f828967d`): exactly these 10 rows' files + 1 new page + 1 new supporting component + `lib/auth/
+session.ts`, zero unrelated route changes.
+
+- **New:** `app/(dashboard)/admin/notifications/broadcast/page.tsx` (Row 94 — no live counterpart
+  existed; ported from codebase 2's composer body with DavinTrade tokens, added to `adminNavItems`,
+  submit action shows an honest "preview only, nothing was sent" note rather than codebase 2's own
+  fake "successfully delivered" toast), `components/ui/textarea.tsx` (shadcn primitive ported from
+  the same seed, not previously in the main repo — needed by the composer's body field).
+- **Modified — layout & auth:** `app/(dashboard)/admin/layout.tsx` (DavinTrade sidebar/top-bar
+  restyle, Broadcast nav entry added, admin-role check given the same DB-fallback
+  `requireAffiliate()` already has for JWT staleness), `lib/auth/session.ts` (`requireAdmin()`
+  given the identical DB-fallback — found missing at this session's CONFIRM; without it, a
+  freshly-promoted admin would pass the restyled layout but 403 on this session's own job-trigger/
+  outbox-retry actions, all 18 admin API routes call `requireAdmin()`).
+- **Modified — pages:** `app/(dashboard)/admin/{page,users/page,users/[id]/page,api-usage/page,
+errors/page,system/{config-history,jobs,outbox,terminals}/page}.tsx` — DavinTrade semantic tokens
+  (`bg-card`/`border-border`/`text-foreground`/`text-muted-foreground`, `bg-primary`/`bg-muted` for
+  PRO/FREE tier badges matching `app/settings/page.tsx`'s established convention) applied to page
+  chrome; all existing API/Prisma bindings, pagination, filters, and CSV export preserved
+  unchanged. All internal `<a href>` navigation converted to `next/link`'s `<Link>`, closing the
+  pre-existing `no-html-link-for-pages` warning in `admin/page.tsx` (eslint 4 warnings → 3).
+- **Modified — shared component:** `components/admin/system/retry-failed-events-button.tsx` — same
+  token restyle, zero logic change.
+- **Accepted pre-existing debt, disclosed in-UI (not silently carried forward):** rows 12/23 (`GET
+/api/admin/api-usage`, `GET /api/admin/error-logs`) are self-documented mock-data stubs dating to
+  the original Dec 2025 release, found at this session's CONFIRM, not flagged by the 9-0 route map.
+  Davin accepted keeping the existing bindings rather than scoping a new `ApiUsageLog`/`ErrorLog`
+  build into this restyle session; both pages now show an honest banner (driven by each route's own
+  `X-Data-Source: mock` response header) rather than presenting generated sample data as live.
+- **Docs (not stack-analysis targets, listed for completeness):** this session's own migration order
+  (CONFIRMED → executed, Deviations filled), `DECISION-LOG.md` (F79's resolved entry archived to
+  `history/decisions-archive.md` per the protocol size gate).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-23 (Session 9-7b, affiliate authenticated partner
-portal — rows 35–42/45/46 shipped, row 39 confirmed no-op, F79 resolved, F80 registered)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-23 (Session 9-8a, admin core cluster — rows
+12/23/28/29/30/31/32/33/34/94 shipped, `requireAdmin()` DB-fallback gap found and fixed)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

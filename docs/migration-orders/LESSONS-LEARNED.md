@@ -12,7 +12,9 @@ Session 9-0, L40 added Session 9-1, L3 compressed + L41 added Session 9-5, Sessi
 merged into L19, L34 merged into L13 — both were already-terse Railway-CLI one-liners covering the
 same theme as their merge target — and L42 added; L43 added Session 9-7a; Session 9-7b: L26 merged
 into L23 — same "post-cutover monolith code looks alive but isn't" theme, no content lost — and
-L44 added, plus an addendum to L43).
+L44 added, plus an addendum to L43; Session 9-8a: no new lesson added (stayed at the cap) --
+recurrence notes appended to L42 (stale `.next` cache, no version bump this time) and L43 (a third
+browser-tool timing gotcha, synchronous read racing React's batched re-render after a click)).
 Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
 (same rule Session 9-6 hit at 41; nothing to merge yet, all 40 are still genuinely distinct).
 
@@ -406,6 +408,9 @@ Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must 
   that service's own `.env.example`) rather than flipping the cutover flag off to dodge it — that
   tests the frozen fallback path, not the real one.
 - Source: Session 9-6 (2026-08-22) · Status: ACTIVE
+- Recurrence (Session 9-8a, 2026-08-23): the exact stale-`.next`-cache symptom (every non-root
+  route 404s, `/` alone works) recurred with no framework version bump involved this time — just a
+  dev server left over from a prior session. Same fix (`rm -rf .next`, restart) confirmed clean.
 
 ### L43 — Browser-tool `form_input` on a checkbox/radio sets the DOM property without firing React's `onChange` — controlled state goes stale and a `disabled={!checked}` submit button silently stays disabled
 
@@ -428,6 +433,11 @@ Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must 
   background live-verification (no user watching the pane), drive forms with `form_input` +
   `javascript_tool` (e.g. `el.click()`, `form.requestSubmit()`) and read results with
   `get_page_text`/`read_page`/network requests instead of retrying `computer`.
+- Recurrence (Session 9-8a, 2026-08-23): a third gotcha in the same family — reading the DOM
+  synchronously in the same `javascript_tool` call right after `el.click()` can race React's
+  batched re-render, making a working `onClick` handler look like it silently did nothing (a form
+  submit's resulting state update read as stale/absent). `await new Promise(r => setTimeout(r,
+300))` before reading confirmed the state change had actually landed.
 
 ### L44 — A hardcoded test-fixture `upsert` in a credentials `authorize()` callback can silently overwrite a real, live-earned DB state on every login
 

@@ -7,6 +7,60 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 9-7a (`app/affiliate/*` public
+  onboarding, Phase 9, UI-BUILD), CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-22. Eighth
+  session of Phase 9 — ships route-map rows 48 (`/affiliate`), 43 (`/affiliate/join`), 44
+  (`/affiliate/register`), plus retirement of row 47 (`/affiliate/verify`).
+  CONFIRM found the by-now-familiar L3 pattern one more time (28th+ recurrence): committed HEAD
+  held the bare PRE-DRAFT with three open questions; the Advisor's corrected-and-approved DRAFT (5
+  numbered decisions) arrived only as an uncommitted working-copy edit. CONFIRM also found and
+  reported a genuine conflict the Advisor could not have seen from documents alone:
+  `frontend-swap-route-map.md`'s own Session column and its own §7 sizing table both assigned 6
+  rows to 9-7a (43, 44, 45, 46, 47, 48), not the order's own 4 — the order's Decision 1 silently
+  reassigned rows 45/46 to 9-7b without acknowledging it was overriding the map's own literal
+  text. Separately, live code contradicted the order's "public/pre-affiliate, NON-LOGIN" framing
+  for row 44: `POST /api/affiliate/auth/register` calls `requireAuth()` and 401s an anonymous
+  caller — this is an already-logged-in customer applying to become a partner, not a pre-signup
+  form — and `/affiliate/join`'s own Decision 3 described "a bare redirect" as a rejected
+  alternative when that is literally the current live page (a stale citation, L27's class).
+  Reported all three; Davin resolved them live in chat (rows 45/46 stay 9-7b, register maps 1:1
+  to the real `affiliateRegistrationSchema` with an explicit `/login?callbackUrl=/affiliate/
+register` redirect, join gets real ported content) before authorizing — the third time this loop
+  has visibly closed the Advisor↔Executor gap PD1 exists to bridge (after 9-5 and 9-6).
+  A live, reproducible bug found during the order's own required Step 5 click-through, registered
+  as `DECISION-LOG.md` F79 (OPEN), not silently patched or silently ignored: the real
+  `POST /api/affiliate/auth/register` correctly created a genuine affiliate profile (201, real
+  `profileId`) for the real test account `free-test@trading-alerts.test`, and the register page
+  correctly called `router.push('/affiliate/dashboard')` — but `affiliate/dashboard/layout.tsx`
+  (Session 9-7b's file, not this session's) reads `session.user.isAffiliate` from the stale JWT
+  and redirect-trapped the freshly-registered affiliate straight back to `/affiliate/register`.
+  Same staleness class as F78, different, more disruptive surface. A working fix already exists
+  in the codebase (`requireAffiliate()` in `lib/auth/session.ts` re-checks the DB directly) for
+  9-7b to reuse. Useful side effect, not a defect: the test account is now a real, DB-registered
+  affiliate.
+  A live schema-vs-chat-shorthand mismatch reconciled per PD1, not re-escalated: Davin's own
+  approval message described the register form's social-field mapping as `{ website, twitter,
+  youtube, instagram, tiktok }`, but the live `affiliateRegistrationSchema` has no `website`
+  field — it has `facebookUrl` instead. Mapped to the real schema rather than re-asking over a
+  one-field, non-money, non-auth mechanical correction.
+  Two real gaps found and fixed in the test/tooling environment: jsdom has no `ResizeObserver`,
+  and this session's new `components/ui/slider.tsx` calls it on mount — added a global stub to
+  `jest.setup.js`. Two pre-existing tests in `__tests__/pages/marketing/public-pages.test.tsx`
+  asserted content/behavior this session's own approved decisions intentionally retired —
+  re-derived both from the real ported content per `LESSONS-LEARNED.md` L3.
+  All test baselines re-verified live, all green, exact match to entry-criterion baseline
+  (operation-service hit the exact worker-OOM/SIGTERM false-negative pattern L24 already
+  documents, resolved cleanly on an isolated `--maxWorkers=1` re-run): monolith `tsc` clean,
+  `eslint` 0 errors/5 warnings (pre-existing), `test:ci` 160/160 suites/2400/2400 tests;
+  money-service 62/62 suites/526/526 tests; operation-service 42/42 suites/393/393 tests.
+  Route-manifest diff clean: exactly 3 pages restyled, 1 new supporting component
+  (`components/ui/slider.tsx`), and 1 file deleted (`app/affiliate/verify/layout.tsx`).
+  `LESSONS-LEARNED.md` L43 harvested (the browser-automation `form_input`-on-checkbox gotcha).
+  Artifacts updated: `9-7a-affiliate-public.migration-order.md` (CLOSED SUCCESSFUL, 9 Deviations),
+  `DECISION-LOG.md` (F79 registered OPEN), `history/decisions-archive.md` (F79 narrative),
+  `migration-stack-analysis.md` (Session 9-7a entry), `9-7b-affiliate-portal.migration-order.md`
+  (new, PRE-DRAFT), `LESSONS-LEARNED.md` (L43 added).
+
 - _(superseded-by-above, retained for context)_ **Session 9-6 (Payments flow, cross-boundary,
   Phase 9, UI-BUILD + PORT), CONFIRMED, executed, CLOSED SUCCESSFUL** 2026-08-22. Seventh session
   of Phase 9 — ships route-map rows 60 (`/checkout/return`), 61 (`/checkout`), 87
