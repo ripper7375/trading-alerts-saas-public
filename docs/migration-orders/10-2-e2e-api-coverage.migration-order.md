@@ -6,7 +6,7 @@
 > **PRE-DRAFTed by the Executor at Session 10-1's close (2026-08-23)**, upgraded to **DRAFT by the
 > Advisor / Antigravity (2026-08-23)** per `MASTER-ROADMAP-PHASES-7-15.md` §3 and `00-SKELETON-AND-RULES.md`.
 
-**Session:** 10-2 · **Phase:** 10 (Drawing Engine & Line-Alert Closure) · **Variant:** VERIFY (with scoped bugfix) · **Status:** CONFIRMED  
+**Session:** 10-2 · **Phase:** 10 (Drawing Engine & Line-Alert Closure) · **Variant:** VERIFY (with scoped bugfix) · **Status:** CLOSED SUCCESSFUL  
 **Generated:** 2026-08-23 (Executor, PRE-DRAFT) · **Upgraded to DRAFT:** 2026-08-23 (Advisor / Antigravity) · **Approved:** 2026-08-23 (Davin) · **Confirmed:** 2026-08-23 (Executor, live code + runtime re-verified; DRAFT/APPROVED working-copy content confirmed authentic by Davin live per L3; ⚠ chart-marker scope-narrowing sign-off obtained live, separate from general approval)  
 **Flags touched:** F82 (orphaned `Alert` row on `Drawing` deletion — resolved inline in Decisions taken below).  
 **Estimated time:** ~2–3h (Playwright e2e setup, Newman collection authoring, inline F82 cascade fix, full test execution).  
@@ -158,11 +158,11 @@ _(each step = change → immediate verification → rollback note)_
 
 ## Done when
 
-- [ ] **F82 resolved** and verified: deleting a drawing cleanly deletes all associated `Alert` rows without orphaned records.
-- [ ] **Newman API collection** (`postman/collections/drawing-line-alerts.postman_collection.json`) created and passing 100% via `npm run test:api:drawings`.
-- [ ] **Playwright e2e test** (`e2e/tests/drawing-line-alerts.spec.ts`) passing 100% on `/terminal` (`draw → attach alert → price crosses → fire → toast + realtime delivery`).
-- [ ] **Baseline test suites 100% green**: Monolith `test:ci`, `operation-service`, `money-service`.
-- [ ] `DECISION-LOG.md` updated marking F82 RESOLVED.
+- [x] **F82 resolved** and verified: deleting a drawing cleanly deletes all associated `Alert` rows without orphaned records. Verified live via Newman (create → attach → delete → `GET /api/alerts` confirms zero orphans) and 2 new `operation-service` unit tests.
+- [x] **Newman API collection** (`postman/collections/drawing-line-alerts.postman_collection.json`) created and passing 100% via `npm run test:api:drawings`. 14/14 requests, 28/28 assertions, run twice (once alone, once under concurrent load) — both green.
+- [x] **Playwright e2e test** (`e2e/tests/drawing-line-alerts.spec.ts`) passing 100% on `/terminal` (`draw → attach alert → price crosses → fire → WS delivery (notification + alert_fired) + /notifications` — toast/badge legs replaced per Deviation 2, chart-marker DOM assertion out of scope per this session's own CONFIRM sign-off).
+- [x] **Baseline test suites 100% green**: Monolith `test:ci` 153/153 suites/2198/2198 tests; `operation-service` 42/42/395/395 (+2, F82 coverage); `money-service` 62/62/526/526 (one transient `prisma.shutdown.spec.ts` failure under concurrent load, isolated re-run clean — Deviation 4).
+- [x] `DECISION-LOG.md` updated marking F82 RESOLVED (register row added — was missing entirely — full entry moved to `history/decisions-archive.md`).
 
 ---
 
@@ -176,7 +176,52 @@ _(each step = change → immediate verification → rollback note)_
 
 ## Deviations
 
-<!-- Filled by Executor during execution per EXECUTOR-PROTOCOL.md §3 -->
+**1. CONFIRM-time credential exposure (disclosed immediately, not a fix — a flag for Davin).**
+While checking `operation-service/.env` for entry-criteria presence, a content-printing `grep`
+(instead of a presence-only check) echoed the real `NEXTAUTH_SECRET`, `DATABASE_URL`, and
+`REDIS_URL` values into the session transcript — the exact failure mode `LESSONS-LEARNED.md` L4
+warns about, though these are local dev Railway instances, not production secrets. Disclosed to
+Davin live at CONFIRM; not repeated afterward. Rotation is Davin's call, not made here.
+
+**2. Toast + AppHeader-badge assertions swapped for WS-frame capture + `/notifications`
+(⚠ live sign-off obtained, separate from general approval).** Decision 1's chosen Playwright scope
+assumed a toast fires and `AppHeader` shows a live unread badge for `notification`/`alert_fired`
+events. Live-code check at EXECUTE found neither exists: `AppHeader`'s bell
+(`components/layout/app-header.tsx:238`) is a static decorative dot, not a real counter (no state,
+no fetch, no socket); the only `onNotification` consumer, `NotificationList`, shows no toast — only
+a screen-reader-only live-region announcement plus a background list re-fetch. This matches
+`CLAUDE.md`'s own already-recorded Session 9-10 disclosure (`notification-bell.tsx` deleted, never
+rewired into `AppHeader` — "no home since the chrome swap"), which this order's own DRAFT-time
+review did not cross-check against (`LESSONS-LEARNED.md` L37's exact failure class). Escalated live
+per `EXECUTOR-PROTOCOL.md` §0/§7; Davin chose (of three options) to keep the WS-frame capture as-is
+and swap the toast/badge assertions for the one thing that IS real and reacts to the same socket
+event: `/notifications` (the same `NotificationList` component) actually rendering the new
+notification's body and its own live unread counter. No new UI built — that would have been
+UI-BUILD scope creep inside a VERIFY session.
+
+**3. `e2e/playwright.config.ts` created fresh, not "ensured."** CONFIRM found this file did not
+exist anywhere outside `e2e/archive/` despite root `package.json`'s `test:e2e*` scripts already
+pointing at this exact path (previously broken). Created a new, deliberately lean config — single
+`chromium` project (not the archived 5-browser + `storageState`-setup matrix, unnecessary for one
+regression spec), no `webServer` auto-start block (runs against already-started local servers,
+matching Session 10-1's own manual-boot precedent, `LESSONS-LEARNED.md` L24). Davin acknowledged
+this approach live at CONFIRM before EXECUTE began.
+
+**4. `money-service`'s `prisma.shutdown.spec.ts` failed once under concurrent load, confirmed a
+recurrence of L24, not a regression.** In the post-change full-baseline run (4 heavy suites +
+Newman + Playwright all running concurrently), this SIGTERM-emission timing test failed once.
+`money-service` is completely untouched by this session. Re-ran the file alone (isolated, load
+settled): passed clean. `DECISION-LOG.md`'s own archived F67 entry records the _identical_ test
+failing the _identical_ way at Session 10-1's own CONFIRM under the same kind of concurrent load —
+independent confirmation this is `LESSONS-LEARNED.md` L24's known pattern, not a real defect.
+
+**5. Newman authentication used the real `token-login` bridge, not the existing (fictional)
+`nextjs-api.postman_collection.json` pattern.** That collection's own "Login" request posts to a
+`/api/auth/login` that does not exist and expects a bearer `{token}` shape the real NextAuth
+credentials flow never returns (`LESSONS-LEARNED.md` L22 — a pre-existing drift in that collection,
+not touched here). Used `app/api/auth/token-login` instead (a real, already-shipped route that
+sets NextAuth's own session cookie) — Newman's built-in cookie jar carries it to every subsequent
+request automatically. Non-destructive; no change to the existing collection.
 
 ---
 
