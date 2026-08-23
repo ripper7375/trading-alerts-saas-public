@@ -95,6 +95,36 @@
   Session 10-1 moved to `history/sessions-archive.md`). Session 8-1's order PRE-DRAFTed
   (`8-1-deletion-sweep.migration-order.md`) and `HANDOVER-PROMPT-phase-8A.md` authored per this
   session's own obligations.
+  **Ad-hoc correction, same close (phase/session numbering unchanged, `EXECUTOR-PROTOCOL.md` §6):**
+  Davin caught a real sequencing gap in the above — the 8-1 PRE-DRAFT correctly surfaced Phase 4X's
+  gate as currently failing (4A-16 never run, F76 still OPEN) but the Executor PRE-DRAFTed the
+  nominally-next session (8-1) instead of the actually-blocking one (4A-16). Corrected per Davin's
+  direct instruction: `4a-16-dlocal-payment-method-id-mapping.migration-order.md` PRE-DRAFTed
+  (PORT + CUTOVER, mirrors 4A-14's own shape directly). Live-code inspection while drafting it
+  found the exact bug location (`createPayment()` in both `lib/dlocal/dlocal-payment.service.ts`
+  and its money-service twin send `payment_method_id: request.paymentMethod` verbatim — a
+  display-name string, never a real dLocal code, confirmed byte-for-byte identical on both sides)
+  but **no source of truth for the real codes anywhere in this repo** — even the original
+  `part-18-dlocal-payment-openapi.yaml` spec uses a display name as its own example, meaning the
+  bug predates this migration entirely. The order's own biggest, loudest section is a stop-here
+  data dependency: the real dLocal `payment_method_id` per display name must come from Davin (or
+  whoever holds dLocal merchant-dashboard access) — not guessed, and not the roadmap's own
+  illustrative examples (`TM`, `TH_QR`, `MOMO`), which are unconfirmed placeholders. A full 18-row
+  mapping template (all 8 countries' existing display names) is in the order awaiting real values.
+  Two secondary findings disclosed rather than silently carried forward: `DLOCAL_API_KEY` in
+  `.env.local` was empty at 4A-14's own CONFIRM (forcing a unit-test-only substitute for live
+  sandbox proof) but now shows _some_ value present — flagged for re-verification at 4A-16's own
+  CONFIRM rather than assumed usable; and 4A-14's own orphaned `Payment` row
+  (`cmt2yflxe00000fnw8gy7jm53`) is still outstanding, not cleaned up by the Executor per standing
+  practice, flagged again for Davin. No code changed by this correction — tests unaffected, still
+  the same fresh-green baselines from this session's own close verification above.
+  **Candidate lesson, not promoted** (`LESSONS-LEARNED.md` stays at its 40-entry cap, same
+  discipline Sessions 9-10/10-1/10-2 followed): when a session's own entry-criteria check finds a
+  currently-failing gate blocking the nominally-next session, PRE-DRAFT the gate-closing session
+  next, not the nominally-next one in the roadmap's own numbering — noted here for the Advisor to
+  consider consolidating into an existing lesson (closest candidates: L3's "never trust status
+  alone, cross-check" or L37's "cross-check against maintained artifacts," neither an exact fit)
+  or promoting once room exists.
 - **Previous:** Session 10-2 (Drawing Engine & Line-Alert e2e + API Coverage, Phase 10, VERIFY with
   scoped bugfix), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. Resolves **F82**
   (orphaned `Alert` row on `Drawing` deletion) and ships durable, repeatable automated regression
