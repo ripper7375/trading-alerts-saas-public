@@ -29,9 +29,9 @@ live, and clearing space before Session 8-2's gateway/schema work.
 ## Open question the Advisor should resolve first (not resolved here — PD1 judgment call, not a Davin escalation)
 
 The roadmap's own literal instruction ("delete migrated `app/api/**`") predates **F65**'s actual
-resolution. F65 resolved — Session 9-0 (2026-08-22) — to **retain `app/api/**`permanently as the
-BFF proxy layer**, not retire it. That means the route *files* under`app/api/**`are not
-generically deletable just because their underlying logic moved to`operation-service`/
+resolution. F65 resolved — Session 9-0 (2026-08-22) — to retain `app/api/**` **permanently as the
+BFF proxy layer**, not retire it. That means the route files under `app/api/**` are not
+generically deletable just because their underlying logic moved to `operation-service` /
 `money-service` — most of them are the live forwarding layer the browser still calls. What this
 session can actually delete is narrower than the roadmap's own shorthand suggests: candidates are
 routes with **zero remaining callers at all** (pre-BFF direct-implementation code fully superseded
