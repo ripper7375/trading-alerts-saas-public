@@ -211,7 +211,83 @@ _(each step = change → immediate verification → rollback note)_
 
 ## Deviations
 
-<!-- Filled by Executor during execution per EXECUTOR-PROTOCOL.md §3 -->
+**Deviation 1 (Step 1) — `nest-cli.json`'s `deleteOutDir: true` races `start:dev` watch mode against
+`start:worker`'s static `node dist/main-worker`.** Booting per the order's literal `npm run
+start:dev` + `npm run start:worker` crashed the worker (`Cannot find module
+'./alert-engine/alert-cron.scheduler'`) — `start:dev`'s webpack-watch rebuild deletes and
+regenerates `dist/` on its own schedule, and `start:worker` read a mid-delete/mid-rebuild `dist/`.
+Not a code defect (source has the file; confirmed via `ls src/alert-engine/`). Fixed by running a
+single clean `npm run build` then booting BOTH processes statically (`node dist/main` +
+`node dist/main-worker`) — the order's own Step 1 text already sanctions `node dist/main` as
+equivalent to `start:dev`. Both processes then booted clean with every expected log line
+(`watches loaded: N rows`, `subscribed to prices:* and alerts:changed`, `alert checker enabled`,
+`Nest application successfully started`, `Subscribed to alerts:fired`).
+
+**Deviation 2 (Step 3) — CSP `connect-src` never allowed the local `operation-service` origin, only
+its production Railway one.** Live-verifying the `/terminal` realtime WebSocket handshake found the
+browser's connection to `ws://localhost:3001/socket.io/` blocked before the handshake could start
+(`next.config.js`'s CSP header is unconditional, not dev/prod-branched). Same bug class as F54
+(monolith CSP never included operation-service's origin), just for localhost instead of
+cross-origin production. Minimal fix per `LESSONS-LEARNED.md` L11: added `http://localhost:3001`
+and `ws://localhost:3001` to `connect-src`. Restarted `next dev` (config changes aren't
+hot-reloaded) and re-verified: `RealtimeGateway` logs `Client <id> authenticated as user <userId>`.
+Committed separately (`c7842f9b`).
+
+**Deviation 3 (Step 3) — a fresh `next dev` start 404'd every non-root route.** Recurrence of
+`LESSONS-LEARNED.md` L42 (stale `.next` cache) — `GET /login` returned 404 immediately after
+`preview_start`, no server errors logged. Fixed with the known remedy (`rm -rf .next`, restart);
+confirmed clean before any further live verification.
+
+**Deviation 4 (Step 4) — fixture creation used the monolith's direct Prisma path, not operation-
+service's forwarded CRUD controllers, contrary to Decision 4's framing.** `MIGRATE_DRAWINGS` and
+`MIGRATE_ALERTS_CRUD` are both unset (default `false`) in this environment — confirmed via
+`lib/operation-service/flags.ts` and `.env.local`. `POST /api/drawings`/`POST /api/alerts/line`
+therefore ran the monolith's own handler, not a BFF-forwarded call into operation-service's
+`DrawingsController`/`LineAlertsController`. This does not block the smoke test's actual proof
+standard: `publishAlertsChanged()` fires unconditionally in the monolith's own route handler
+regardless of the flag state (confirmed by reading `app/api/alerts/line/route.ts`), and the worker
+did reload its watch cache (`watches loaded: 1 rows`) from that publish. Separately confirmed
+`shouldUseOperationServiceForAlerts()` (`MIGRATE_ALERT_ENGINE`) is dead code — grepped the whole
+`app/` and `lib/` trees, zero call sites — evaluation already runs exclusively in
+`operation-service` since `lib/alert-engine/*` was deleted from the monolith at Sessions 4B-2/4B-3.
+
+**Deviation 5 (Step 5) — first fire-dispatch attempt failed with Prisma `P2028` (\"Unable to start a
+transaction in the given time\"), root-caused to my own concurrent diagnostic load, not a code
+defect.** `DispatcherService.dispatch()`'s `$transaction()` call failed to acquire a pooled
+connection within Prisma's default `maxWait`, while simple non-transactional queries succeeded
+instantly on the same `DATABASE_URL` throughout. Isolated by reproducing the exact transaction
+standalone: failed identically twice with default timeouts, then succeeded in 3.5s with an
+explicit extended `maxWait`/`timeout` — confirming a slow-but-working pooled connection under load
+(this session was concurrently running the monolith dev server, both operation-service processes,
+and several of my own ad-hoc diagnostic Prisma/Redis scripts against the same shared dev database).
+Not a code change — reduced concurrent load and re-triggered with a fresh price-cross; the retry's
+`dispatch()` completed cleanly (`INSERT`/`UPDATE`/`COMMIT` all logged, `fire dispatched`). No
+production code was touched for this; worth flagging that this shared dev Postgres's pool can
+saturate under multi-process local verification load.
+
+**Deviation 6 (Step 5) — Proof 4's chart-canvas marker could not be visually confirmed; escalated to
+Davin live, who accepted WS-delivery evidence as sufficient.** The `/terminal` page's own OHLCV
+candlestick data feed (`ws://localhost:5001`, `mt5-service`'s Flask-SocketIO server — a completely
+separate real-time channel from the alert-notification socket on port 3001) was never started this
+session and is not in the order's own Target Components list; the chart itself showed
+"Disconnected — Error loading chart — Connection failed: websocket error" independent of anything
+related to line alerts, so there was no rendered candlestick series for a marker to mount onto
+regardless of WS delivery. What IS confirmed live: the browser socket is connected and
+authenticated into the correct `user:<id>` room (Step 3), `RealtimeGateway.deliver()` executed
+without a malformed-payload rejection for the real fire (no new warning after the one pre-existing,
+self-inflicted warning from an earlier isolated Redis diagnostic — see below), and
+`GET /api/notifications` returned the exact row the fire produced
+(`"Price 2005 touched line @ 2000"`, `unreadCount` incremented) — all consistent with a
+successfully delivered `notification` + `alert_fired` WS frame pair. Asked Davin live per
+`EXECUTOR-PROTOCOL.md` §7 (genuine gap between the order's literal proof standard and live
+reality); Davin approved accepting the WS-delivery evidence as satisfying Proof 4, with the
+visual chart-marker check registered as a follow-up (needs `mt5-service`'s Flask/SocketIO server
+running, which itself likely needs a live MT5 terminal connection not available in this sandbox)
+rather than a blocker to this session's close. **Incidental, self-resolved noise, not a defect:**
+one `RealtimeGateway` warning ("Discarded malformed alerts:fired payload") at 13:37:28 traced to my
+own earlier isolated Redis-connectivity diagnostic script, which published a bare
+`{test: true}` payload directly to the `alerts:fired` channel while isolating an unrelated
+hypothesis — not a real application message, no action needed.
 
 ---
 
