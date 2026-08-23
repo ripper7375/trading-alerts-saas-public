@@ -85,11 +85,11 @@ drawings/*` (Session 4B-8), and line alerts inside `operation-service/src/alerts
    duplicates what `migration-stack-analysis.md` already tracks per-session — fold its historical
    content into a dedicated `migration-stack-analysis.md` entry (or its own clearly-labeled
    historical section), then either delete the standalone file or replace it with a one-line
-   pointer to its new home (Advisor/Davin's call at DRAFT/CONFIRM which — this order leans delete
-   - pointer, matching `phase-6-frontend-gap-matrix.md`'s own precedent of a superseded-banner
-     rather than deletion when a doc still has independent historical value; **this one is a pure
-     file listing with no narrative value of its own**, so deletion is the leaner choice, but flag
-     for Davin rather than assume).
+   pointer to its new home (Advisor/Davin's call at DRAFT/CONFIRM). This order leans toward
+   deletion with a pointer rather than `phase-6-frontend-gap-matrix.md`'s own precedent of a
+   superseded-banner (kept when a doc still has independent historical value) — this one is a pure
+   file listing with no narrative value of its own, so deletion is the leaner choice, but flag
+   for Davin rather than assume.
 3. **Write Phase 8A's handover prompt** —
    `docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-8A.md`, per
    `MASTER-ROADMAP-PHASES-7-15.md`'s own trigger table and its own stated rule ("written by Davin
