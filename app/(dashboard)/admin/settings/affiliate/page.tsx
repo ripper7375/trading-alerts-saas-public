@@ -13,6 +13,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -136,19 +141,19 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
   const exampleCommission = exampleNetPrice * (commissionPercent / 100);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
+      <div>
         <Link
           href="/admin/affiliates"
-          className="text-sm text-blue-600 hover:text-blue-800"
+          className="text-sm text-muted-foreground transition-colors hover:text-primary"
         >
           &larr; Back to Affiliates
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">
+        <h1 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
           Affiliate Settings
         </h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Configure discount and commission percentages for the affiliate
           program
         </p>
@@ -156,251 +161,223 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
 
       {/* Error/Success Messages */}
       {error && (
-        <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-500">
           {error}
         </div>
       )}
       {success && (
-        <div className="mb-6 rounded border border-green-200 bg-green-50 px-4 py-3 text-green-700">
+        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-600 dark:text-emerald-400">
           {success}
         </div>
       )}
 
       {/* Loading State */}
       {loading ? (
-        <div className="py-12 text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
-          <p className="mt-4 text-gray-600">Loading settings...</p>
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Settings Form */}
-          <div className="rounded-lg bg-white p-6 shadow-md">
-            <h2 className="mb-6 text-lg font-semibold text-gray-900">
-              Configuration
-            </h2>
-
-            <form onSubmit={handleSave} className="space-y-6">
-              {/* Discount Percent */}
-              <div>
-                <label
-                  htmlFor="discountPercent"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Customer Discount (%)
-                </label>
-                <input
-                  type="number"
-                  id="discountPercent"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  value={discountPercent}
-                  onChange={(e) =>
-                    setDiscountPercent(parseFloat(e.target.value))
-                  }
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Discount given to customers using affiliate codes
-                </p>
-                {settings?.discountPercent.updatedBy && (
-                  <p className="mt-1 text-xs text-gray-400">
-                    Last updated by {settings.discountPercent.updatedBy} on{' '}
-                    {formatDate(settings.discountPercent.updatedAt)}
+          <Card className="border-border bg-card">
+            <CardHeader>
+              <CardTitle className="text-foreground">Configuration</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSave} className="space-y-6">
+                {/* Discount Percent */}
+                <div className="space-y-1">
+                  <Label htmlFor="discountPercent">Customer Discount (%)</Label>
+                  <Input
+                    type="number"
+                    id="discountPercent"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={discountPercent}
+                    onChange={(e) =>
+                      setDiscountPercent(parseFloat(e.target.value))
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Discount given to customers using affiliate codes
                   </p>
-                )}
-              </div>
+                  {settings?.discountPercent.updatedBy && (
+                    <p className="text-muted-foreground/70 text-xs">
+                      Last updated by {settings.discountPercent.updatedBy} on{' '}
+                      {formatDate(settings.discountPercent.updatedAt)}
+                    </p>
+                  )}
+                </div>
 
-              {/* Commission Percent */}
-              <div>
-                <label
-                  htmlFor="commissionPercent"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Affiliate Commission (%)
-                </label>
-                <input
-                  type="number"
-                  id="commissionPercent"
-                  min="0"
-                  max="100"
-                  step="0.1"
-                  value={commissionPercent}
-                  onChange={(e) =>
-                    setCommissionPercent(parseFloat(e.target.value))
-                  }
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Commission percentage on net revenue (after discount)
-                </p>
-                {settings?.commissionPercent.updatedBy && (
-                  <p className="mt-1 text-xs text-gray-400">
-                    Last updated by {settings.commissionPercent.updatedBy} on{' '}
-                    {formatDate(settings.commissionPercent.updatedAt)}
+                {/* Commission Percent */}
+                <div className="space-y-1">
+                  <Label htmlFor="commissionPercent">
+                    Affiliate Commission (%)
+                  </Label>
+                  <Input
+                    type="number"
+                    id="commissionPercent"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value={commissionPercent}
+                    onChange={(e) =>
+                      setCommissionPercent(parseFloat(e.target.value))
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Commission percentage on net revenue (after discount)
                   </p>
-                )}
-              </div>
+                  {settings?.commissionPercent.updatedBy && (
+                    <p className="text-muted-foreground/70 text-xs">
+                      Last updated by {settings.commissionPercent.updatedBy} on{' '}
+                      {formatDate(settings.commissionPercent.updatedAt)}
+                    </p>
+                  )}
+                </div>
 
-              {/* Codes Per Month */}
-              <div>
-                <label
-                  htmlFor="codesPerMonth"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Codes Per Month
-                </label>
-                <input
-                  type="number"
-                  id="codesPerMonth"
-                  min="1"
-                  max="100"
-                  value={codesPerMonth}
-                  onChange={(e) =>
-                    setCodesPerMonth(parseInt(e.target.value, 10))
-                  }
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Number of codes distributed to each affiliate monthly
-                </p>
-              </div>
+                {/* Codes Per Month */}
+                <div className="space-y-1">
+                  <Label htmlFor="codesPerMonth">Codes Per Month</Label>
+                  <Input
+                    type="number"
+                    id="codesPerMonth"
+                    min="1"
+                    max="100"
+                    value={codesPerMonth}
+                    onChange={(e) =>
+                      setCodesPerMonth(parseInt(e.target.value, 10))
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Number of codes distributed to each affiliate monthly
+                  </p>
+                </div>
 
-              {/* Base Price */}
-              <div>
-                <label
-                  htmlFor="basePrice"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Monthly Subscription Price ($)
-                </label>
-                <input
-                  type="number"
-                  id="basePrice"
-                  min="0"
-                  step="0.01"
-                  value={basePrice}
-                  onChange={(e) => setBasePrice(parseFloat(e.target.value))}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Regular monthly subscription price before discount
-                </p>
-              </div>
+                {/* Base Price */}
+                <div className="space-y-1">
+                  <Label htmlFor="basePrice">
+                    Monthly Subscription Price ($)
+                  </Label>
+                  <Input
+                    type="number"
+                    id="basePrice"
+                    min="0"
+                    step="0.01"
+                    value={basePrice}
+                    onChange={(e) => setBasePrice(parseFloat(e.target.value))}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Regular monthly subscription price before discount
+                  </p>
+                </div>
 
-              {/* 3-Day Trial Price */}
-              <div>
-                <label
-                  htmlFor="threeDayPrice"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  3-Day Trial Price ($)
-                </label>
-                <input
-                  type="number"
-                  id="threeDayPrice"
-                  min="0"
-                  step="0.01"
-                  value={threeDayPrice}
-                  onChange={(e) => setThreeDayPrice(parseFloat(e.target.value))}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  3-day trial plan price in USD (dLocal countries only)
-                </p>
-              </div>
+                {/* 3-Day Trial Price */}
+                <div className="space-y-1">
+                  <Label htmlFor="threeDayPrice">3-Day Trial Price ($)</Label>
+                  <Input
+                    type="number"
+                    id="threeDayPrice"
+                    min="0"
+                    step="0.01"
+                    value={threeDayPrice}
+                    onChange={(e) =>
+                      setThreeDayPrice(parseFloat(e.target.value))
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    3-day trial plan price in USD (dLocal countries only)
+                  </p>
+                </div>
 
-              {/* Change Reason */}
-              <div>
-                <label
-                  htmlFor="reason"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Reason for Change (Optional)
-                </label>
-                <input
-                  type="text"
-                  id="reason"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="e.g., Holiday promotion, Market adjustment"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  This will be recorded in the audit history
-                </p>
-              </div>
+                {/* Change Reason */}
+                <div className="space-y-1">
+                  <Label htmlFor="reason">Reason for Change (Optional)</Label>
+                  <Input
+                    type="text"
+                    id="reason"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="e.g., Holiday promotion, Market adjustment"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This will be recorded in the audit history
+                  </p>
+                </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={saving}
-                className="w-full rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </form>
-          </div>
+                {/* Submit Button */}
+                <Button type="submit" disabled={saving} className="w-full">
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
 
           {/* Preview Panel */}
-          <div>
+          <div className="space-y-6">
             {/* Example Calculation */}
-            <div className="mb-6 rounded-lg bg-white p-6 shadow-md">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900">
-                Example Calculation
-              </h2>
-
-              <div className="space-y-3 text-sm">
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="text-foreground">
+                  Example Calculation
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Regular Price:</span>
-                  <span className="font-medium">${basePrice.toFixed(2)}</span>
+                  <span className="text-muted-foreground">Regular Price:</span>
+                  <span className="font-medium text-foreground">
+                    ${basePrice.toFixed(2)}
+                  </span>
                 </div>
-                <div className="flex justify-between text-orange-600">
+                <div className="flex justify-between text-amber-600 dark:text-amber-400">
                   <span>Discount ({discountPercent}%):</span>
                   <span className="font-medium">
                     -${((basePrice * discountPercent) / 100).toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between border-t border-gray-200 pt-2">
-                  <span className="text-gray-600">Customer Pays:</span>
-                  <span className="font-semibold">
+                <div className="flex justify-between border-t border-border pt-2">
+                  <span className="text-muted-foreground">Customer Pays:</span>
+                  <span className="font-semibold text-foreground">
                     ${exampleNetPrice.toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between text-green-600">
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                   <span>Affiliate Earns ({commissionPercent}%):</span>
                   <span className="font-semibold">
                     ${exampleCommission.toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between border-t border-gray-200 pt-2 text-blue-600">
+                <div className="flex justify-between border-t border-border pt-2 text-blue-500">
                   <span>Company Revenue:</span>
                   <span className="font-semibold">
                     ${(exampleNetPrice - exampleCommission).toFixed(2)}
                   </span>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
             {/* Important Notes */}
-            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-              <h3 className="mb-2 font-semibold text-yellow-800">
-                Important Notes
-              </h3>
-              <ul className="space-y-2 text-sm text-yellow-700">
-                <li>
-                  Changes take effect immediately for new code distributions
-                </li>
-                <li>
-                  Existing codes retain their original discount/commission rates
-                </li>
-                <li>
-                  Frontend pages will update within 5 minutes due to caching
-                </li>
-                <li>All changes are logged in the audit history</li>
-              </ul>
-            </div>
+            <Card className="border-amber-500/30 bg-amber-500/10">
+              <CardContent className="p-4">
+                <h3 className="mb-2 font-semibold text-amber-700 dark:text-amber-300">
+                  Important Notes
+                </h3>
+                <ul className="space-y-2 text-sm text-amber-700 dark:text-amber-300">
+                  <li>
+                    Changes take effect immediately for new code distributions
+                  </li>
+                  <li>
+                    Existing codes retain their original discount/commission
+                    rates
+                  </li>
+                  <li>
+                    Frontend pages will update within 5 minutes due to caching
+                  </li>
+                  <li>All changes are logged in the audit history</li>
+                </ul>
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}
