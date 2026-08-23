@@ -67,6 +67,12 @@ interface ErrorLogsResponse {
  * - Auto-refresh every 30 seconds
  * - Export to CSV functionality
  * - Stack trace viewer
+ *
+ * Data source (Session 9-8a CONFIRM finding, Davin-accepted as pre-existing
+ * debt): `GET /api/admin/error-logs` returns generated sample data -- real
+ * persistent error logging is scheduled for a future phase, not this
+ * session. The `X-Data-Source` response header discloses this; the banner
+ * below surfaces it in the UI rather than presenting it as live.
  */
 export default function ErrorLogsPage(): React.ReactElement {
   const [logs, setLogs] = useState<ErrorLog[]>([]);
@@ -77,6 +83,7 @@ export default function ErrorLogsPage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
+  const [isSampleData, setIsSampleData] = useState(false);
 
   // Filters
   const [errorType, setErrorType] = useState<ErrorType>('ALL');
@@ -113,6 +120,7 @@ export default function ErrorLogsPage(): React.ReactElement {
         throw new Error(data.error || 'Failed to fetch error logs');
       }
 
+      setIsSampleData(response.headers.get('X-Data-Source') === 'mock');
       const data: ErrorLogsResponse = await response.json();
       setLogs(data.logs);
       setTotal(data.total);
@@ -179,7 +187,7 @@ export default function ErrorLogsPage(): React.ReactElement {
       PAYMENT_ERROR: 'bg-red-600 hover:bg-red-600',
       MT5_ERROR: 'bg-orange-600 hover:bg-orange-600',
     };
-    return typeClasses[type] || 'bg-gray-600 hover:bg-gray-600';
+    return typeClasses[type] || 'bg-muted hover:bg-muted';
   };
 
   const toggleLogExpansion = (logId: string): void => {
@@ -191,35 +199,47 @@ export default function ErrorLogsPage(): React.ReactElement {
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white sm:text-3xl">
+          <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
             Error Logs
           </h1>
-          <p className="mt-1 text-gray-400">Monitor and track system errors</p>
+          <p className="mt-1 text-muted-foreground">
+            Monitor and track system errors
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={`${
+            className={
               autoRefresh
-                ? 'border-green-600 bg-green-600 hover:bg-green-700'
-                : 'border-gray-600 bg-gray-700 hover:bg-gray-600'
-            } text-white`}
+                ? 'border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700'
+                : ''
+            }
           >
             {autoRefresh ? '🔄 Auto-refresh ON' : '⏸️ Auto-refresh OFF'}
           </Button>
-          <Button
-            onClick={handleExportCSV}
-            disabled={logs.length === 0}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
+          <Button onClick={handleExportCSV} disabled={logs.length === 0}>
             📥 Export CSV
           </Button>
         </div>
       </div>
 
+      {/* Sample-data disclosure -- honest, not hidden (Zero Mock Data rule,
+          Davin-accepted exception per this session's own CONFIRM) */}
+      {isSampleData && (
+        <Card className="border-amber-500/30 bg-amber-500/10">
+          <CardContent className="flex items-center gap-3 p-4">
+            <span className="text-xl">ℹ️</span>
+            <p className="text-sm text-amber-700 dark:text-amber-300">
+              Showing generated sample data. Real persistent error logging is
+              scheduled for a future phase, not yet implemented.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Filters */}
-      <Card className="border-gray-700 bg-gray-800">
+      <Card className="border-border bg-card">
         <CardContent className="p-4 sm:p-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {/* Error Type Filter */}
@@ -230,10 +250,10 @@ export default function ErrorLogsPage(): React.ReactElement {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="border-gray-600 bg-gray-700 text-white">
+              <SelectTrigger>
                 <SelectValue placeholder="Error Type" />
               </SelectTrigger>
-              <SelectContent className="border-gray-600 bg-gray-700">
+              <SelectContent>
                 <SelectItem value="ALL">All Types</SelectItem>
                 <SelectItem value="API_ERROR">API Error</SelectItem>
                 <SelectItem value="DATABASE_ERROR">Database Error</SelectItem>
@@ -251,10 +271,10 @@ export default function ErrorLogsPage(): React.ReactElement {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="border-gray-600 bg-gray-700 text-white">
+              <SelectTrigger>
                 <SelectValue placeholder="Tier" />
               </SelectTrigger>
-              <SelectContent className="border-gray-600 bg-gray-700">
+              <SelectContent>
                 <SelectItem value="ALL">All Tiers</SelectItem>
                 <SelectItem value="FREE">FREE</SelectItem>
                 <SelectItem value="PRO">PRO</SelectItem>
@@ -271,7 +291,6 @@ export default function ErrorLogsPage(): React.ReactElement {
                   setPage(1);
                 }}
                 aria-label="Filter start date"
-                className="border-gray-600 bg-gray-700 text-white"
               />
             </div>
 
@@ -285,23 +304,17 @@ export default function ErrorLogsPage(): React.ReactElement {
                   setPage(1);
                 }}
                 aria-label="Filter end date"
-                className="border-gray-600 bg-gray-700 text-white"
               />
             </div>
 
             {/* Apply Filter Button */}
-            <Button
-              onClick={() => void fetchLogs()}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              Apply Filters
-            </Button>
+            <Button onClick={() => void fetchLogs()}>Apply Filters</Button>
           </div>
         </CardContent>
       </Card>
 
       {/* Summary */}
-      <div className="flex items-center justify-between text-sm text-gray-400">
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
           {total} error{total !== 1 ? 's' : ''} found
         </span>
@@ -311,30 +324,25 @@ export default function ErrorLogsPage(): React.ReactElement {
       </div>
 
       {/* Error Logs Table */}
-      <Card className="border-gray-700 bg-gray-800">
+      <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-white">Error Logs</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-foreground">Error Logs</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Recent system errors with details
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500" />
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
             </div>
           ) : error ? (
             <div className="py-8 text-center">
-              <p className="mb-4 text-red-400">{error}</p>
-              <Button
-                onClick={() => void fetchLogs()}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Retry
-              </Button>
+              <p className="mb-4 text-red-500">{error}</p>
+              <Button onClick={() => void fetchLogs()}>Retry</Button>
             </div>
           ) : logs.length === 0 ? (
-            <p className="py-8 text-center text-gray-400">
+            <p className="py-8 text-center text-muted-foreground">
               No errors found for the selected filters
             </p>
           ) : (
@@ -342,14 +350,14 @@ export default function ErrorLogsPage(): React.ReactElement {
               {logs.map((log) => (
                 <div
                   key={log.id}
-                  className="overflow-hidden rounded-lg border border-gray-700"
+                  className="overflow-hidden rounded-lg border border-border"
                 >
                   <div
-                    className="cursor-pointer bg-gray-700/30 p-4 transition-colors hover:bg-gray-700/50"
+                    className="bg-accent/30 hover:bg-accent/50 cursor-pointer p-4 transition-colors"
                     onClick={() => toggleLogExpansion(log.id)}
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-                      <span className="text-sm text-gray-400">
+                      <span className="text-sm text-muted-foreground">
                         {new Date(log.timestamp).toLocaleString()}
                       </span>
                       <Badge
@@ -361,17 +369,17 @@ export default function ErrorLogsPage(): React.ReactElement {
                         <Badge
                           className={`${
                             log.userTier === 'PRO'
-                              ? 'bg-blue-600 hover:bg-blue-600'
-                              : 'bg-gray-600 hover:bg-gray-600'
-                          } w-fit text-xs text-white`}
+                              ? 'bg-primary text-primary-foreground hover:bg-primary'
+                              : 'bg-muted text-muted-foreground hover:bg-muted'
+                          } w-fit text-xs`}
                         >
                           {log.userTier}
                         </Badge>
                       )}
-                      <span className="flex-1 truncate text-white">
+                      <span className="flex-1 truncate text-foreground">
                         {log.message}
                       </span>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-muted-foreground">
                         {expandedLog === log.id ? '▲' : '▼'}
                       </span>
                     </div>
@@ -379,21 +387,21 @@ export default function ErrorLogsPage(): React.ReactElement {
 
                   {/* Expanded Details */}
                   {expandedLog === log.id && (
-                    <div className="space-y-3 border-t border-gray-700 bg-gray-800 p-4">
+                    <div className="space-y-3 border-t border-border bg-card p-4">
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
-                          <p className="mb-1 text-xs uppercase text-gray-400">
+                          <p className="mb-1 text-xs uppercase text-muted-foreground">
                             User ID
                           </p>
-                          <p className="text-sm text-white">
+                          <p className="text-sm text-foreground">
                             {log.userId || 'N/A'}
                           </p>
                         </div>
                         <div>
-                          <p className="mb-1 text-xs uppercase text-gray-400">
+                          <p className="mb-1 text-xs uppercase text-muted-foreground">
                             Endpoint
                           </p>
-                          <p className="text-sm text-white">
+                          <p className="text-sm text-foreground">
                             {log.endpoint || 'N/A'}
                           </p>
                         </div>
@@ -401,10 +409,10 @@ export default function ErrorLogsPage(): React.ReactElement {
 
                       {log.stackTrace && (
                         <div>
-                          <p className="mb-1 text-xs uppercase text-gray-400">
+                          <p className="mb-1 text-xs uppercase text-muted-foreground">
                             Stack Trace
                           </p>
-                          <pre className="max-h-48 overflow-x-auto rounded bg-gray-900 p-3 text-xs text-gray-300">
+                          <pre className="max-h-48 overflow-x-auto rounded bg-accent p-3 text-xs text-muted-foreground">
                             {log.stackTrace}
                           </pre>
                         </div>
@@ -412,10 +420,10 @@ export default function ErrorLogsPage(): React.ReactElement {
 
                       {log.metadata && Object.keys(log.metadata).length > 0 && (
                         <div>
-                          <p className="mb-1 text-xs uppercase text-gray-400">
+                          <p className="mb-1 text-xs uppercase text-muted-foreground">
                             Metadata
                           </p>
-                          <pre className="overflow-x-auto rounded bg-gray-900 p-3 text-xs text-gray-300">
+                          <pre className="overflow-x-auto rounded bg-accent p-3 text-xs text-muted-foreground">
                             {JSON.stringify(log.metadata, null, 2)}
                           </pre>
                         </div>
@@ -436,12 +444,11 @@ export default function ErrorLogsPage(): React.ReactElement {
             variant="outline"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className="border-gray-600 bg-gray-700 text-white hover:bg-gray-600 disabled:opacity-50"
           >
             Previous
           </Button>
 
-          <span className="px-4 text-gray-400">
+          <span className="px-4 text-muted-foreground">
             Page {page} of {totalPages}
           </span>
 
@@ -449,7 +456,6 @@ export default function ErrorLogsPage(): React.ReactElement {
             variant="outline"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            className="border-gray-600 bg-gray-700 text-white hover:bg-gray-600 disabled:opacity-50"
           >
             Next
           </Button>
