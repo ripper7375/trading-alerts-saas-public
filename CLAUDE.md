@@ -26,7 +26,109 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 9-8a (`app/(dashboard)/admin/*` core cluster, Phase 9, UI-BUILD),
+- **Current:** Session 9-8b (`app/(dashboard)/admin/*` affiliates cluster, Phase 9, UI-BUILD),
+  CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. Eleventh session of Phase 9 — ships
+  route-map rows 11 (`/admin/affiliates`), 5 (`/admin/affiliates/[id]`), 6–10 (the 5 affiliate
+  reports: code-flows, code-inventory, commission-owings, profit-loss, sales-performance), 25
+  (`/admin/fraud-alerts`), 24 (`/admin/fraud-alerts/[id]`), 27 (`/admin/settings/affiliate`), 96
+  (`/admin/resources`, new). Davin authorized execution live in chat after CONFIRM, resolving all
+  3 CONFIRM findings in the same message as "go" (the sixth time this loop has visibly closed the
+  Advisor↔Executor gap PD1 exists to bridge, after 9-5, 9-6, 9-7a, 9-7b, 9-8a).
+  **CONFIRM found the by-now-familiar L3 pattern again** (committed HEAD held the bare PRE-DRAFT
+  with 5 open questions; the corrected, 5-decision, `Status: APPROVED` version existed only as an
+  uncommitted working-copy edit) and **three genuine order-vs-live-code conflicts, all resolved by
+  Davin before execution:** (1) the order's own `admin/resources/[id]` citation claimed
+  `PATCH/DELETE`, but live code (route + the `lib/marketing-resources/service.ts` service layer)
+  only ever supported `GET/POST` + `DELETE` — no update capability exists anywhere in the stack;
+  corrected the citation rather than inventing a fake edit feature. (2) `app/api/admin/
+fraud-alerts/route.ts` and `.../[id]/route.ts` (this session's own Rows 24/25) still used the
+  pre-9-8a inline `session.user.role !== 'ADMIN'` JWT check, bypassing 9-8a's own `requireAdmin()`
+  DB-fallback fix — untouched since Session 2-4, predating that fix entirely; modernized both to
+  `requireAdmin()` in the same pass. (3) zero seeded `FraudAlert` rows existed in the DB, so
+  Row 24/25's own required live click-through couldn't exercise the real `PATCH` review actions —
+  seeded one test fixture (`MULTIPLE_FAILED_PAYMENTS`, tied to `free-test@trading-alerts.test`)
+  before verification.
+  **Live-verification finding, not caught at CONFIRM:** the first real click on `POST
+  .../distribute-codes` 500'd (`ECONNREFUSED` in `lib/money-service/client.ts`) —
+  `money-service` wasn't running locally, the third recurrence of `LESSONS-LEARNED.md` L42's
+  environment-gap class (after 9-6, 9-8a); started via the existing `moneyservice` launch config,
+  identical action succeeded (200 OK) on retry, confirmed via the affiliate's own codes count
+  moving 15 → 25 in the live DB.
+  **A second live-verification finding, fixed inline:** `PATCH /api/admin/fraud-alerts/[id]`'s
+  `updatedAlertUser` Prisma select omitted `tier` (GET's own select includes it) — pre-existing
+  since the route was written, untouched by this session's own auth-modernization change to the
+  same file. Surfaced live: the Tier field flipped to "Unknown" after clicking Mark Reviewed.
+  One-line fix.
+  **A pre-existing action found mid-restyle, not in the order's own Feeds-on list:**
+  `commission-owings`'s "Pay Commissions" button (native `prompt()`-based) calls a real, working
+  `POST /api/admin/commissions/pay` — read the route before touching it: pure DB bookkeeping
+  (marks existing `Commission` rows `PAID` with an admin-entered method/reference inside a
+  transaction), no payment-provider call, no real fund movement, so no §7 escalation triggered.
+  Restyled and moved to `<AlertDialog>` with real validation, consistent with the session's own
+  established pattern.
+  **`<AlertDialog>` (`components/ui/alert-dialog.tsx`, the same primitive 9-8a used for jobs/
+  outbox) replaces native `confirm()`/`prompt()` across every consequential write action this
+  session touched:** affiliate suspend (with reason)/reactivate/distribute-codes (with count +
+  reason), fraud-alert Block User (the one action of the three — alongside Mark Reviewed/Dismiss
+  — that performs a real account mutation, `blockUserFromFraudAlert()` sets `isActive: false`),
+  code-inventory's cancel-code, commission-owings' pay-commissions, and the new resources page's
+  delete-asset. All live-verified round-tripping for real except Block User itself, deliberately
+  not confirmed on the seeded fixture (would deactivate `free-test@trading-alerts.test`, a shared
+  account reused across many prior sessions' own fixtures, incl. F79/F80's own test subject) —
+  the identical dialog pattern was already proven three times over elsewhere in the same session
+  (Suspend, Distribute, Cancel-code), so Block User's dialog copy/mechanics were verified without
+  confirming it.
+  **`admin/resources` (Row 96, new) ported with real Vercel Blob-backed CRUD, not mock state:**
+  list/filter/search bound to `GET /api/admin/resources`, upload via a real multipart `Dialog`
+  form to `POST /api/admin/resources`, delete via `AlertDialog` to `DELETE .../[id]`. Seed-code's
+  own `AppHeader`/`AdminNav` dropped (the admin layout already provides that chrome) and its
+  fabricated "CDN Delivery Status: Edge Optimized" stat card not ported (Zero Mock Data) — 3 real
+  stat cards instead of 4. A self-caught bug in the copy-link handler (mishandled already-absolute
+  Vercel Blob URLs) was found and fixed before live verification touched that path, same fix shape
+  as `LESSONS-LEARNED.md` L30.
+  **A fourth browser-automation tooling gotcha found, registered as an addendum to
+  `LESSONS-LEARNED.md` L43 rather than a new lesson** (file is at its 40-lesson cap): `computer`
+  `left_click` on a `ref` silently failed to register a real click several times (no error, no
+  effect) even with the pane displayed and a fresh `read_page` immediately beforehand, while other
+  `computer` clicks in the same session worked fine — no reliable trigger found.
+  `element.click()` via `javascript_tool` never failed as the workaround.
+  **Two Jest assertions needed re-deriving, not reverting, per `LESSONS-LEARNED.md` L3/L18:**
+  `fraud-pattern-badge.test.tsx`/`fraud-alert-card.test.tsx` checked for the legacy hardcoded
+  `bg-*-100`/`text-*-800`/`text-*-600` classes this session's own Decision 5 intentionally
+  replaced with theme-reactive `bg-*-500/10`/`text-*-500`/`text-muted-foreground` tokens —
+  updated to match the real, intentional new classes.
+  **All test baselines re-verified live, all green, exact match to entry-criterion baseline:**
+  monolith `tsc` clean, `eslint` 0 errors/3 warnings (unchanged), `test:ci` 160/160 suites/
+  2400/2400 tests (re-run twice — the 9 failures from the badge/card token change resolved by the
+  test fixes above, confirmed clean on the second pass); money-service 62/62 suites/526/526
+  tests; operation-service 42/42 suites/393/393 tests.
+  **Route-manifest diff clean:** `git diff --stat` against the session's own start commit
+  (`086a69c6`) confirms exactly the 10 rows' pages restyled + 1 new page (`admin/resources`) + 1
+  modified layout (nav item) + 2 modified API routes (fraud-alerts auth + tier fix) + 2 modified
+  shared components (`FraudAlertCard`, `FraudPatternBadge`) + 2 test files — zero unrelated route
+  changes.
+  **Live side effects deliberately left in place, not reverted** (the real round-trips Step 6
+  requires): `free-test@trading-alerts.test`'s affiliate profile now has 25 codes (15 → 25 via
+  distribute, one cancelled, net status `ACTIVE` after a suspend→reactivate round-trip — matching
+  its state before this session); one seeded `FraudAlert` fixture transitioned `PENDING` →
+  `REVIEWED`.
+  **`DECISION-LOG.md` needed no changes** — no registered flag was touched or resolved this
+  session (all 3 CONFIRM findings and both live findings were resolved inline within scope, not
+  flag-worthy). `migration-cutover-table.md` correctly needs no changes (Phase 9 is additive
+  builds, no route/slice moved).
+  **Artifacts updated:** `9-8b-admin-affiliates.migration-order.md` (Status → CONFIRMED → CLOSED
+  SUCCESSFUL, 8 Deviations + checked Done-when/entry-criteria boxes), `migration-stack-analysis.md`
+  (Session 9-8b entry, 1 new/15 modified, all FRONTEND), `LESSONS-LEARNED.md` (recurrence notes on
+  L42 and L43, no new lesson — stayed at the cap), this file (Current/Previous rotation — Sessions
+  9-7b and the stale duplicate 9-7a entry moved to `history/sessions-archive.md`; 9-7b was never
+  actually archived at 9-8a's own close despite that session's close note claiming otherwise — a
+  hygiene miss now corrected). Session 9-9's order PRE-DRAFTed (`9-9-admin-disbursement.migration-
+order.md`) per this session's own obligation — 10 rows (`admin/disbursement/*`, one nested
+  layout), 5 open questions carried for the Advisor, most notably: Row 13 (`accounts`) is already
+  a Session-6-6 redirect with a stale 9-0-map citation, and Row 17's batch `execute` action is
+  real fund disbursement needing its own explicit money-escalation sign-off distinct from 9-8b's
+  own non-money confirmation-guard pattern.
+- **Previous:** Session 9-8a (`app/(dashboard)/admin/*` core cluster, Phase 9, UI-BUILD),
   CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. Tenth session of Phase 9 — ships
   route-map rows 34 (`/admin`), 33 (`/admin/users`), 32 (`/admin/users/[id]`), 12
   (`/admin/api-usage`), 23 (`/admin/errors`), 28 (`/admin/system/config-history`), 29
@@ -102,172 +204,6 @@ order.md`) per this session's own obligation — 11 rows (affiliates + 5 reports
   settings/affiliate + fraud-alerts + the new `admin/resources`), 5 open questions carried for the
   Advisor (action-route enumeration for fraud-alerts/affiliate suspend-reactivate, confirmation-
   dialog pattern, Zero-Mock-Data re-verification given 9-8a's own 2-row miss).
-- **Previous:** Session 9-7b (`app/affiliate/dashboard/*` authenticated partner portal, Phase 9,
-  UI-BUILD), CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. Ninth session of Phase 9 —
-  ships route-map rows 35–42 (all 8 `app/affiliate/dashboard/*` subroutes), 45
-  (`/affiliate/dashboard/resources`), 46 (`/affiliate/settings/payout`); confirms row 39
-  (`/affiliate/dashboard/profile/payment`) as an already-correct no-op redirect. Closes **F79**.
-  **CONFIRM found the by-now-familiar L3 pattern one more time** (29th+ recurrence): committed
-  HEAD held the bare PRE-DRAFT with four open questions; the Advisor's corrected-and-approved
-  DRAFT (5 numbered decisions) arrived only as an uncommitted working-copy edit. CONFIRM also
-  found and reported **two genuine order-vs-live-code conflicts** the Advisor could not have
-  caught from documents alone, both originating in the 9-0 route map itself: Row 45's own citation
-  named `app/affiliate/resources/page.tsx` — a pre-existing (2026-08-15), public, non-auth-gated
-  marketing splash page with zero API binding — when the map's own destination/retires columns,
-  and live code, both agree the real target is `app/affiliate/dashboard/resources/page.tsx` (the
-  actual endpoint-bound resource center). Row 39/46's "Feeds on" citation bound both to
-  `GET/PATCH /api/affiliate/profile/payment` — an orphaned endpoint with zero live consumers —
-  when Row 39 is already a retired redirect (Session 6-7) and Row 46 actually calls
-  `GET /api/wise/recipients/me` / `POST /api/wise/recipients/[id]/revalidate` via
-  `WiseRecipientForm` (Session 4A-W3b). Reported both before executing; Davin/Antigravity
-  corrected the order's own text to match live code in the same message that authorized
-  execution — the fourth time this loop has visibly closed the Advisor↔Executor gap PD1 exists to
-  bridge (after 9-5, 9-6, 9-7a). Separately confirmed the PRE-DRAFT's own Open Question 3 (rows
-  38/41 allegedly having "no self-service endpoint") was itself stale: both pages were already
-  real, working, DB-bound implementations since Session 6-7 (a Server Component direct Prisma
-  read, and client-side `commission-report` aggregation respectively) — the 9-0 map's "GAP" note
-  was narrowly true (no REST route) but not "unbound," and the Advisor's own Decision 3 had
-  already correctly resolved this without a fresh escalation.
-  **F79 resolved as designed:** `app/affiliate/dashboard/layout.tsx` and `app/affiliate/settings/
-layout.tsx` (a second, independent route tree hitting the identical JWT-staleness race, per F39's
-  recorded URL) both now call `requireAffiliate()`'s DB fallback instead of trusting
-  `session.user.isAffiliate` from the JWT. Live-verified against `free-test@trading-alerts.test`
-  with its session JWT still stale (`isAffiliate: false`) and the DB correctly `true`: both
-  layouts let the request through with zero redirect loop, confirmed via
-  `window.location.href` post-navigation, not just rendered text.
-  **A live, reproducible bug found during the order's own required Step 5 click-through, registered
-  as `DECISION-LOG.md` F80 (OPEN), not silently patched or worked around in app code:**
-  `lib/auth/auth-options.ts`'s `FIXED_TEST_ACCOUNTS` credentials-`authorize()` path
-  unconditionally `upsert`s a hardcoded `isAffiliate` value on **every** login — this silently
-  reset `free-test@trading-alerts.test`'s real, Session-9-7a-earned `isAffiliate: true` straight
-  back to `false` the moment the session's own login step ran, confirmed via `User.updatedAt`
-  moving to the exact login timestamp. Restored the DB value directly (disclosed as a workaround,
-  not a fix) to complete verification without a second, re-triggering login. A second, related gap
-  surfaced downstream of the same staleness: money-service's own `AffiliateGuard` (backing Row
-  46's live Wise endpoints) trusts the forwarded JWT's `isAffiliate` claim directly, with no
-  DB-fallback equivalent to F79's fix — confirmed Row 46's own restyled UI is correct by
-  re-verifying against a fresh, non-stale JWT (`affiliate-test@trading-alerts.test`), which
-  rendered `WiseRecipientForm` exactly as built. Neither is a 9-7b file; both left for
-  Davin/Antigravity to scope as their own auth-semantics session, per `EXECUTOR-PROTOCOL.md` §7.
-  **Two local-environment gaps found and bridged during live verification, neither an app
-  defect (same class as 9-6's disclosed Stripe/money-service gap, `LESSONS-LEARNED.md` L42):**
-  (1) port 3000 was held by an unresponsive `node` process (started ~6h earlier, pre-dating this
-  session) that accepted TCP connections but never answered them — killed and restarted cleanly
-  via the project's own `nextdev` launch config; (2) `GET /api/wise/recipients/me` 500'd because
-  `money-service` wasn't running locally — started via the existing `moneyservice` launch config
-  (Session 9-6 precedent).
-  **A browser-automation tooling gap found and worked around, registered as an addendum to
-  `LESSONS-LEARNED.md` L43 rather than a new lesson:** the `computer` tool's `left_click`/
-  `screenshot` actions fail with "the Browser pane is not displayed" whenever the pane isn't
-  actually visible on-screen, even though the tab is live and loaded — `read_page`/
-  `get_page_text`/`javascript_tool`/`form_input`/`navigate` all work fine in that state. Drove the
-  remaining live verification with those instead once identified.
-  **Two Jest assertions needed re-deriving, not reverting, per `LESSONS-LEARNED.md` L3/L18:**
-  `commission-table.test.tsx`/`code-table.test.tsx` checked for legacy hardcoded color-class names
-  (yellow/blue/gray) this session's own Decision 5 intentionally replaced with semantic DavinTrade
-  tokens (amber/muted) — updated to match the real, intentional new classes. A pre-existing
-  unused-param lint error in `code-table.test.tsx`'s `date-fns` mock (surfaced only once the file
-  was re-staged) was fixed alongside. **A lint-staged hook failure left a transient, self-corrected
-  git-index/working-tree mismatch on these same two files** (`LESSONS-LEARNED.md` L36's exact
-  pattern, one level worse — the hook's own revert-on-failure step also failed on an unrelated,
-  already-modified binary file) — no data lost, the correct fix survived in the git index,
-  `git checkout -- <file>` resynced the working tree before re-committing.
-  **All test baselines re-verified live, all green, exact match to entry-criterion baseline:**
-  monolith `tsc` clean, `eslint` 0 errors/4 warnings (pre-existing, none in touched files),
-  `test:ci` 160/160 suites/2400/2400 tests; money-service 62/62 suites/526/526 tests;
-  operation-service 42/42 suites/393/393 tests.
-  **Route-manifest diff clean:** `git diff --stat` against the session's own start commit confirms
-  exactly the 13 authenticated-portal files restyled + 1 new component (`affiliate-nav.tsx`) + 2
-  test fixes — zero unrelated route changes. Row 39's file correctly absent from the diff (no-op).
-  **Artifacts updated:** `9-7b-affiliate-portal.migration-order.md` (Status → CONFIRMED → CLOSED
-  SUCCESSFUL, 6 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md` (F79 →
-  RESOLVED, F80 registered OPEN), `history/decisions-archive.md` (F79/F80 full narrative
-  appended), `migration-stack-analysis.md` (Session 9-7b entry, 1 new/16 modified, all FRONTEND),
-  `LESSONS-LEARNED.md` (L26 merged into L23, L44 added, L43 addendum), this file (Current/Previous
-  rotation — Session 9-6 moved to `history/sessions-archive.md`). `migration-cutover-table.md`
-  correctly needs no changes (Phase 9 is additive builds, no route/slice moved). Session 9-8a's
-  order PRE-DRAFTed (`9-8a-admin-core.migration-order.md`) per this session's own obligation.
-- **Previous:** Session 9-7a (`app/affiliate/*` public onboarding, Phase 9, UI-BUILD), CONFIRMED,
-  executed, **CLOSED SUCCESSFUL** 2026-08-22. Eighth session of Phase 9 — ships route-map rows 48
-  (`/affiliate`), 43 (`/affiliate/join`), 44 (`/affiliate/register`), plus retirement of row 47
-  (`/affiliate/verify`).
-  **CONFIRM found the by-now-familiar L3 pattern one more time** (28th+ recurrence): committed
-  HEAD held the bare PRE-DRAFT with three open questions; the Advisor's corrected-and-approved
-  DRAFT (5 numbered decisions) arrived only as an uncommitted working-copy edit. CONFIRM also
-  found and reported a genuine conflict the Advisor could not have seen from documents alone:
-  `frontend-swap-route-map.md`'s own Session column and its own §7 sizing table both assigned
-  **6** rows to 9-7a (43, 44, 45, 46, 47, 48), not the order's own 4 — the order's Decision 1
-  silently reassigned rows 45/46 to 9-7b without acknowledging it was overriding the map's own
-  literal text. Separately, live code contradicted the order's "public/pre-affiliate,
-  NON-LOGIN" framing for row 44: `POST /api/affiliate/auth/register` calls `requireAuth()` and
-  401s an anonymous caller — this is an already-logged-in customer applying to become a partner,
-  not a pre-signup form — and `/affiliate/join`'s own Decision 3 described "a bare redirect" as a
-  rejected alternative when that is literally the current live page (a stale citation, L27's
-  class). Reported all three; Davin resolved them live in chat (rows 45/46 stay 9-7b, register
-  maps 1:1 to the real `affiliateRegistrationSchema` with an explicit
-  `/login?callbackUrl=/affiliate/register` redirect, join gets real ported content) before
-  authorizing — the third time this loop has visibly closed the Advisor↔Executor gap PD1 exists
-  to bridge (after 9-5 and 9-6).
-  **A live, reproducible bug found during the order's own required Step 5 click-through, registered
-  as `DECISION-LOG.md` F79 (OPEN), not silently patched or silently ignored:** the real
-  `POST /api/affiliate/auth/register` correctly created a genuine affiliate profile (201,
-  real `profileId`) for the real test account `free-test@trading-alerts.test`, and the register
-  page correctly called `router.push('/affiliate/dashboard')` — but `affiliate/dashboard/
-layout.tsx` (Session 9-7b's file, not this session's) reads `session.user.isAffiliate` from the
-  stale JWT and redirect-trapped the freshly-registered affiliate straight back to
-  `/affiliate/register`. Same staleness class as F78 (a passive DB write with no session-refresh
-  call site), different, more disruptive surface (an inescapable loop, not a cosmetic badge). A
-  working fix already exists in the codebase (`requireAffiliate()` in `lib/auth/session.ts`
-  re-checks the DB directly) for 9-7b to reuse. Useful side effect, not a defect: the test account
-  is now a real, DB-registered affiliate — exactly the fixture 9-7b's own authenticated-portal
-  pages need and previously had none of.
-  **A live schema-vs-chat-shorthand mismatch reconciled per PD1, not re-escalated:** Davin's own
-  approval message described the register form's social-field mapping as
-  `{ website, twitter, youtube, instagram, tiktok }`, but the live `affiliateRegistrationSchema`
-  has no `website` field — it has `facebookUrl` instead, exactly matching the pre-restyle live
-  page. Mapped to the real schema (swapped seed-code's "website" input for Facebook) rather than
-  re-asking over a one-field, non-money, non-auth mechanical correction.
-  **Two real gaps found and fixed in the test/tooling environment, not worked around:** jsdom has
-  no `ResizeObserver`, and this session's new `components/ui/slider.tsx` (a port of an existing
-  seed-code primitive — `@radix-ui/react-slider` was already a dependency, just never wrapped)
-  calls it on mount — added a global stub to `jest.setup.js` rather than a per-file workaround,
-  since any future test rendering `Slider` would hit the same gap. Two pre-existing tests in
-  `__tests__/pages/marketing/public-pages.test.tsx` asserted content/behavior this session's own
-  approved decisions intentionally retired (the old "Become a Trading Alerts Affiliate" copy, and
-  `/affiliate/join`'s own redirect) — re-derived both from the real ported content per
-  `LESSONS-LEARNED.md` L3, not patched to merely pass.
-  **All test baselines re-verified live, all green, exact match to entry-criterion baseline**
-  (running `operation-service` immediately after the other two suites hit the exact
-  worker-OOM/SIGTERM false-negative pattern `LESSONS-LEARNED.md` L24 already documents — this
-  time as a hard V8 crash with no test output at all, and a `git commit` in between briefly failed
-  on the same machine-wide memory pressure — both resolved cleanly on an isolated `--maxWorkers=1`
-  re-run): monolith `tsc` clean, `eslint` 0 errors/5 warnings (pre-existing, none in touched
-  files), `test:ci` 160/160 suites/2400/2400 tests; money-service 62/62 suites/526/526 tests;
-  operation-service 42/42 suites/393/393 tests.
-  **Route-manifest diff clean:** `git diff --stat` against the session's own start commit confirms
-  exactly 3 pages restyled, 1 new supporting component (`components/ui/slider.tsx`), and 1 file
-  deleted (`app/affiliate/verify/layout.tsx` — the directory held only a passthrough layout, no
-  `page.tsx`, so the route was already non-functional before this session touched it) — zero
-  unrelated route changes. One commit-hygiene deviation: the `verify` deletion rode along with the
-  Step-1 commit rather than getting its own, since a broad staged deletion commits with whatever's
-  next regardless of a narrower `git add`.
-  **`LESSONS-LEARNED.md` L43 harvested, file now at the 40-lesson cap:** the browser-automation
-  `form_input`-on-checkbox gotcha found mid-verification (sets the DOM `checked` property without
-  firing React's `onChange`, silently leaving a `disabled={!checked}` submit button disabled) is a
-  reusable reflex for any future session's own live click-through — the other two findings this
-  session surfaced (the route-map/Decision-1 scope conflict, F79's redirect loop) are one-off
-  narratives already fully captured in `DECISION-LOG.md`/above, not generalizable reflexes, so
-  neither became a lesson.
-  **Artifacts updated:** `9-7a-affiliate-public.migration-order.md` (Status → CONFIRMED → CLOSED
-  SUCCESSFUL, 9 Deviations + checked Done-when/entry-criteria boxes), `DECISION-LOG.md` (F79
-  registered OPEN), `history/decisions-archive.md` (F79 full narrative appended),
-  `migration-stack-analysis.md` (Session 9-7a entry, 1 new/3 modified/1 deleted, all FRONTEND),
-  `9-7b-affiliate-portal.migration-order.md` (new, PRE-DRAFT — the authenticated partner-portal
-  cluster, 10 rows per Decision 1 rather than the 9-0 map's own uncorrected 8, both known backend
-  gaps and F79 carried forward as open questions for the Advisor), `LESSONS-LEARNED.md` (L43
-  added, cap note updated), this file (Current/Previous rotation — Session 9-5 moved to
-  `history/sessions-archive.md`). `migration-cutover-table.md` correctly needs no changes (Phase 9
-  is additive builds, no route/slice moved).
 
 ## Key documents
 

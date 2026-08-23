@@ -3924,8 +3924,53 @@ errors/page,system/{config-history,jobs,outbox,terminals}/page}.tsx` — DavinTr
 
 </details>
 
+<details>
+<summary>Session 9-8b (Admin affiliates cluster, UI-BUILD) — 1 new, 15 modified, all FRONTEND</summary>
+
+Route-map rows 5/6/7/8/9/10/11/24/25/27/96 restyled to DavinTrade tokens and bound to real data.
+Route-manifest diff confirmed clean via `git diff --stat` against the session's own start commit
+(`086a69c6`): exactly these 10 rows' files + 1 new page + `admin/layout.tsx` (nav item) + 2 API
+route files + 2 shared components, zero unrelated route changes.
+
+- **New:** `app/(dashboard)/admin/resources/page.tsx` (Row 96 — no live counterpart existed;
+  ported from codebase 2's page body with DavinTrade tokens, bound to the already-shipped
+  `GET/POST /api/admin/resources` + `DELETE /api/admin/resources/[id]`; seed's own `AppHeader`/
+  `AdminNav` dropped since the admin layout already provides that chrome; seed's fabricated "CDN
+  Delivery Status: Edge Optimized" stat card not ported — 3 real stat cards instead of 4).
+- **Modified — auth:** `app/api/admin/fraud-alerts/route.ts` + `.../[id]/route.ts` — raw
+  `session.user.role !== 'ADMIN'` JWT-only check replaced with `requireAdmin()`'s DB-fallback
+  (untouched since Session 2-4, predating 9-8a's fix to the shared helper); PATCH handler's
+  `updatedAlertUser` select also given the `tier` field GET already had (found live: Tier field
+  showed "Unknown" after any status transition).
+- **Modified — pages:** `app/(dashboard)/admin/affiliates/{page,[id]/page}.tsx`,
+  `.../affiliates/reports/{code-flows,code-inventory,commission-owings,profit-loss,sales-performance}/page.tsx`,
+  `.../fraud-alerts/{page,[id]/page}.tsx`, `.../settings/affiliate/page.tsx` — DavinTrade semantic
+  tokens (`bg-card`/`border-border`/`text-foreground`/`text-muted-foreground`, semantic
+  `bg-{color}-500/10 text-{color}-500` status badges) applied to page chrome; all existing API
+  bindings, pagination, and filters preserved unchanged. Affiliate detail's Suspend/Reactivate/
+  Distribute-Codes and fraud-alert detail's Block User moved from native `confirm()`/`prompt()` to
+  `<AlertDialog>` confirmations; code-inventory's cancel-code action and commission-owings' Pay
+  Commissions action (found mid-restyle, not in the order's own Feeds-on list — a real, working,
+  non-money-moving DB-bookkeeping endpoint) got the same treatment.
+- **Modified — shared components:** `components/admin/FraudAlertCard.tsx`,
+  `components/admin/FraudPatternBadge.tsx` — severity/status colors moved from flat, light-mode-only
+  `bg-*-100`/`text-*-800` to theme-reactive `bg-*-500/10`/`text-*-500`, matching Decision 5.
+- **Live-verification findings (both fixed inline, neither a §7 escalation):** `money-service` not
+  running locally caused a real `ECONNREFUSED` 500 on the first `distribute-codes` click
+  (`LESSONS-LEARNED.md` L42 recurrence, started via the existing `moneyservice` launch config,
+  succeeded on retry); a self-caught bug in the new resources page's copy-link handler mishandling
+  already-absolute Vercel Blob URLs (same fix shape as L30).
+- **Test fixes:** `__tests__/components/admin/{fraud-pattern-badge,fraud-alert-card}.test.tsx`
+  re-derived to assert the real, intentional new token classes (L3/L18) rather than the legacy
+  hardcoded colors they replaced.
+- **Docs (not stack-analysis targets, listed for completeness):** this session's own migration
+  order (CONFIRMED → CLOSED SUCCESSFUL, Deviations filled), `LESSONS-LEARNED.md` (L42/L43
+  recurrence notes, no new lesson — stayed at the cap).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-23 (Session 9-8a, admin core cluster — rows
-12/23/28/29/30/31/32/33/34/94 shipped, `requireAdmin()` DB-fallback gap found and fixed)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-23 (Session 9-8b, admin affiliates cluster — rows
+5/6/7/8/9/10/11/24/25/27/96 shipped, fraud-alerts routes modernized to `requireAdmin()`)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

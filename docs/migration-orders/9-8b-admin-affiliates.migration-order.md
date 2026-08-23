@@ -6,8 +6,8 @@
 > Corrected & upgraded to full **DRAFT** by Antigravity (Advisor & Architect), 2026-08-23.
 > Grounded in `MASTER-ROADMAP-PHASES-7-15.md` §3 and `frontend-swap-route-map.md`.
 
-**Session:** 9-8b · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CONFIRMED
-**Generated:** 2026-08-23 (Executor PRE-DRAFT) · **Upgraded & Corrected:** 2026-08-23 (Advisor DRAFT) · **Approved:** 2026-08-23 (Davin) · **Confirmed:** 2026-08-23 (Executor, live re-verification + 3 CONFIRM findings resolved by Davin)
+**Session:** 9-8b · **Phase:** 9 (Frontend Stack Replacement) · **Variant:** UI-BUILD · **Status:** CLOSED SUCCESSFUL
+**Generated:** 2026-08-23 (Executor PRE-DRAFT) · **Upgraded & Corrected:** 2026-08-23 (Advisor DRAFT) · **Approved:** 2026-08-23 (Davin) · **Confirmed:** 2026-08-23 (Executor, live re-verification + 3 CONFIRM findings resolved by Davin) · **Closed:** 2026-08-23 (Executor, all 11 rows live, all baselines green)
 **Flags touched:** none new (Admin role validation active with DB fallback — extended to fraud-alerts routes this session, CONFIRM Finding 2).
 **Surface:** `app/(dashboard)/admin/*` cluster 2 — 11 rows:
 
@@ -88,11 +88,11 @@ Session 9-8a shipped the first cluster (10 core admin rows). Session 9-8b ships 
 
 ## Entry criteria (re-verify all at CONFIRM)
 
-- [ ] **Session 9-8a CONFIRMED, executed, CLOSED** — admin core cluster live on `main`, route-manifest diff clean.
-- [ ] **Admin test account confirmed active** (`admin-test@trading-alerts.test` with `role: ADMIN` in DB).
-- [ ] **All 10 existing target page files confirmed existing and read in full; seed-code resources source read in full.**
-- [ ] **All backing API routes + Prisma Server Components read and contract-verified**.
-- [ ] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24):
+- [x] **Session 9-8a CONFIRMED, executed, CLOSED** — admin core cluster live on `main`, route-manifest diff clean.
+- [x] **Admin test account confirmed active** (`admin-test@trading-alerts.test` with `role: ADMIN` in DB).
+- [x] **All 10 existing target page files confirmed existing and read in full; seed-code resources source read in full.**
+- [x] **All backing API routes + Prisma Server Components read and contract-verified**.
+- [x] **Sequential test suite baselines green** (`LESSONS-LEARNED.md` L24):
 
   ```powershell
   # 1. Monolith
@@ -170,10 +170,10 @@ Session 9-8a shipped the first cluster (10 core admin rows). Session 9-8b ships 
 
 ## Done when
 
-- [ ] All 11 pages live with DavinTrade branding, dark/light theme tokens, and semantic badges.
-- [ ] Live admin user traverses all 11 pages with real API/DB data bindings and zero redirect loops.
-- [ ] Route-manifest diff matches this session's scope (1 added `/admin/resources`, 10 unchanged/restyled).
-- [ ] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
+- [x] All 11 pages live with DavinTrade branding, dark/light theme tokens, and semantic badges.
+- [x] Live admin user traverses all 11 pages with real API/DB data bindings and zero redirect loops.
+- [x] Route-manifest diff matches this session's scope (1 added `/admin/resources`, 10 unchanged/restyled).
+- [x] `npx tsc --noEmit`, `npx eslint app components lib hooks --max-warnings 5`, and `npm run test:ci` all pass clean.
 
 ---
 
@@ -185,7 +185,74 @@ Session 9-8a shipped the first cluster (10 core admin rows). Session 9-8b ships 
 
 ## Deviations
 
-<!-- Filled by Executor during execution per EXECUTOR-PROTOCOL.md §3 -->
+1. **`commission-owings` report's "Pay Commissions" action — found mid-restyle, not in the
+   order's own Feeds-on list.** Reading the page in full (Step 2) surfaced a pre-existing,
+   real, working action calling `POST /api/admin/commissions/pay` via native `prompt()`
+   dialogs — never enumerated in this order's "Feeds on" section or the 9-0 route map. Read
+   the route before touching it: it only marks existing `Commission` rows `PAID` with an
+   admin-entered method/reference inside a DB transaction — no payment-provider call, no real
+   fund movement — so it did not trigger a §7 money escalation. Restyled with DavinTrade
+   tokens and moved to `<AlertDialog>` with real input validation, consistent with Decision
+   4's pattern elsewhere. Impact: none beyond the intended UI consistency; the underlying
+   endpoint and its behavior are unchanged.
+2. **Fraud-alerts detail page's review actions were already wired to the real `PATCH` route
+   before this session** (built ahead of schedule, likely alongside the backend route
+   itself) — Decision 3's "wire status update buttons" premise was already true. Restyled the
+   page and added the one confirmation guard actually missing: `Block User` (the Rules'
+   own list names "user block" explicitly, and it's the only action of the three that
+   performs a real account mutation — `blockUserFromFraudAlert()` sets `isActive: false`).
+   `Mark Reviewed`/`Dismiss` stay single-click, matching their lower severity.
+3. **Live-verification finding: `POST .../distribute-codes` 500'd on the first real click**
+   (`TypeError: fetch failed` / `ECONNREFUSED` in `lib/money-service/client.ts`) — `money-service`
+   wasn't running locally. Same environment-gap class as `LESSONS-LEARNED.md` L42 (Sessions
+   9-6, 9-8a), not an app defect. Started via the existing `moneyservice` launch config; the
+   identical action succeeded on retry (200 OK), confirmed via the affiliate's codes count
+   moving 15 → 25. Recurrence noted in L42 below.
+4. **Live-verification finding, fixed inline: fraud-alert `PATCH` response's `user` select
+   omitted `tier`.** `GET /api/admin/fraud-alerts/[id]` selects
+   `{ id, email, name, tier, isActive, createdAt }` for the alert's user; `PATCH`'s own
+   `updatedAlertUser` lookup only selected `{ id, email, name }` — pre-existing since the
+   route was written, untouched by this session's own Finding-2 auth change to the same
+   file. Surfaced live: the detail page's Tier field flipped to "Unknown" after clicking
+   `Mark Reviewed`. One-line fix (`tier: true` added to the select).
+5. **Self-caught bug in the new `admin/resources` page's copy-link handler**, found on a
+   post-commit re-read before live verification: the `fileUrl.startsWith('/') ? ... : '/' +
+fileUrl` branch mishandled already-absolute Vercel Blob URLs, producing a broken
+   `/https://...` string. Fixed with `new URL(fileUrl, window.location.origin)` — same shape
+   as `LESSONS-LEARNED.md` L30's own fix. Caught before live verification touched this path;
+   no bad state produced.
+6. **A `computer` `left_click` gotcha not covered by `LESSONS-LEARNED.md` L43's existing three
+   recurrences**: clicking a `ref` via the `computer` tool silently failed to register a real
+   click several times this session (dialog stayed closed, no request fired, no tool error
+   returned) even with the pane displayed and a fresh `read_page` immediately beforehand —
+   while other `computer` clicks in the same session worked fine. No reliable trigger
+   identified. Worked around every time with `element.click()` via `javascript_tool`, which
+   never failed. Recurrence noted in L43 below (file is at the 40-lesson cap — extended the
+   existing entry rather than adding a new one, per that file's own hygiene rule).
+7. **Live-verification side effects deliberately left in place, not reverted** (these are the
+   real round-trips the order's own Step 6 requires — reverting them would undo the proof):
+   - `free-test@trading-alerts.test`'s affiliate profile: 10 `ADMIN_BONUS` codes distributed
+     (15 → 25 total), one code (`3B27BD16`) cancelled (26 active / 1 cancelled), suspended
+     then reactivated (net status: `ACTIVE`, matching its state before this session).
+   - One seeded `FraudAlert` fixture (`cmt5bqubj0000y4v29w758wvl`, tied to the same
+     `free-test` account) transitioned `PENDING` → `REVIEWED` via a real `PATCH`.
+   - **Deliberately not exercised**: the seeded fixture's `Block User` action was opened
+     (dialog copy and disabled-state verified correct) but **not confirmed** — doing so would
+     deactivate (`isActive: false`) a shared fixture account reused across many prior
+     sessions' own fixtures (9-7a/9-7b's affiliate registration, F79/F80's own test subject).
+     Confirmed the identical `<AlertDialog>` pattern round-trips for real via Row 5's Suspend/
+     Distribute and Row 7's Cancel-code instead — same component, already proven three times
+     over. A future session touching fraud-alerts should seed its own disposable fixture
+     rather than reusing `free-test` if it needs to actually confirm `Block User`.
+8. **DavinTrade token restyle conventions used, per Decision 5** — matches 9-8a's own
+   established pattern exactly: `Card`/`Badge`/`Button`/`Input`/`Select`/`Label`/`Textarea`
+   from `components/ui/*`; `bg-card`/`border-border`/`text-foreground`/`text-muted-foreground`
+   for chrome; `bg-primary`/`text-primary-foreground` for emphasis; semantic
+   `bg-{color}-500/10 text-{color}-500` (red/orange/yellow/green/blue) for status badges,
+   extended consistently to `FraudPatternBadge` (previously flat `bg-*-100`/`text-*-800`,
+   light-mode-only, no dark variant — now theme-reactive). `admin/resources`'s own upload
+   form uses the existing `Dialog` primitive (not `AlertDialog`) since it's a multi-field
+   create form, not a single confirmation.
 
 ---
 
