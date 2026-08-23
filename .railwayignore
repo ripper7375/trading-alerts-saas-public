@@ -6,7 +6,7 @@
 *.csv
 *.zip
 *.tar.gz
-dlocal
+/dlocal
 docs
 e2e
 emails
@@ -45,7 +45,7 @@ bundle-size-*
 claude-utilities
 enhancement-all-19-parts
 Integration-4-py-validation-layers-to-workflow
-riseworks
+/riseworks
 operation-service-dist.bak
 frontend
 node_modules
