@@ -22,6 +22,7 @@ import type {
   DLocalPaymentResponse,
   PaymentStatus,
 } from './dlocal.types';
+import { getDLocalMethodCode } from './payment-methods.service';
 
 const DLOCAL_API_URL =
   process.env['DLOCAL_API_URL'] || 'https://sandbox.dlocal.com';
@@ -101,7 +102,10 @@ export async function createPayment(
       amount: request.amount,
       currency: request.currency,
       country: request.country,
-      payment_method_id: request.paymentMethod,
+      payment_method_id: getDLocalMethodCode(
+        request.country,
+        request.paymentMethod
+      ),
       payment_method_flow: 'REDIRECT',
       order_id: orderId,
       notification_url: `${process.env['NEXTAUTH_URL']}/api/webhooks/dlocal`,

@@ -9,6 +9,8 @@ import {
   isValidPaymentMethod,
   getPaymentMethodDetails,
   getDefaultPaymentMethod,
+  getDLocalMethodCode,
+  DLOCAL_METHOD_CODE_MAP,
 } from './payment-methods.service';
 import type { DLocalCountry } from './dlocal.types';
 
@@ -198,6 +200,36 @@ describe('Payment Methods Service', () => {
         const defaultMethod = getDefaultPaymentMethod(country);
         expect(defaultMethod).not.toBeNull();
       });
+    });
+  });
+
+  describe('getDLocalMethodCode (Session 4A-16, F76)', () => {
+    it('maps every display name in DLOCAL_METHOD_CODE_MAP to its own real dLocal code', () => {
+      (Object.keys(DLOCAL_METHOD_CODE_MAP) as DLocalCountry[]).forEach(
+        (country) => {
+          Object.entries(DLOCAL_METHOD_CODE_MAP[country]).forEach(
+            ([displayName, code]) => {
+              expect(getDLocalMethodCode(country, displayName)).toBe(code);
+            }
+          );
+        }
+      );
+    });
+
+    it("maps TH/TrueMoney to 'TM' -- the exact case that failed live at 4A-14 with 5010", () => {
+      expect(getDLocalMethodCode('TH', 'TrueMoney')).toBe('TM');
+    });
+
+    it('throws a descriptive error for an unmapped display name, never sending it verbatim', () => {
+      expect(() => getDLocalMethodCode('IN', 'Bitcoin')).toThrow(
+        /No dLocal method code mapped/
+      );
+    });
+
+    it('throws for a display name that is valid in one country but not another', () => {
+      expect(() => getDLocalMethodCode('IN', 'TrueMoney')).toThrow(
+        /No dLocal method code mapped/
+      );
     });
   });
 });
