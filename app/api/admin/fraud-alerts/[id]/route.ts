@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 
-import { authOptions } from '@/lib/auth/auth-options';
+import { requireAdmin } from '@/lib/auth/session';
+import { AuthError } from '@/lib/auth/errors';
 import {
   updateFraudAlertStatus,
   blockUserFromFraudAlert,
@@ -37,14 +37,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    await requireAdmin();
 
     const { id } = await params;
 
@@ -89,6 +82,13 @@ export async function GET(
       },
     });
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.statusCode }
+      );
+    }
+
     console.error('Failed to fetch fraud alert:', error);
     return NextResponse.json(
       { error: 'Failed to fetch fraud alert' },
@@ -121,14 +121,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const session = await requireAdmin();
 
     const { id } = await params;
     const body = await req.json();
@@ -202,6 +195,13 @@ export async function PATCH(
       message: `Alert ${status.toLowerCase()} successfully`,
     });
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.statusCode }
+      );
+    }
+
     console.error('Failed to update fraud alert:', error);
     return NextResponse.json(
       { error: 'Failed to update fraud alert' },

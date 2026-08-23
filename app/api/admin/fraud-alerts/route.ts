@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 
-import { authOptions } from '@/lib/auth/auth-options';
+import { requireAdmin } from '@/lib/auth/session';
+import { AuthError } from '@/lib/auth/errors';
 import {
   getFraudAlerts,
   getFraudAlertStats,
@@ -45,16 +45,8 @@ const querySchema = z.object({
  */
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
-    // Authentication check
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Admin authorization check
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Require admin access (DB-fallback on stale JWT role claim)
+    await requireAdmin();
 
     // Parse and validate query parameters
     const { searchParams } = new URL(req.url);
@@ -146,6 +138,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       pagination: alertsResult.pagination,
     });
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.statusCode }
+      );
+    }
+
     console.error('Failed to fetch fraud alerts:', error);
     return NextResponse.json(
       { error: 'Failed to fetch fraud alerts' },
