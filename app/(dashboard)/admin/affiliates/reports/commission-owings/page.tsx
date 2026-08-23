@@ -11,6 +11,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -58,6 +75,10 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [payTarget, setPayTarget] = useState<AffiliateOwing | null>(null);
+  const [payMethod, setPayMethod] = useState('');
+  const [payReference, setPayReference] = useState('');
+  const [payError, setPayError] = useState<string | null>(null);
 
   const fetchReport = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -85,27 +106,22 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
     fetchReport();
   }, [fetchReport]);
 
-  const handlePayCommissions = async (
-    affiliateId: string,
-    fullName: string
-  ): Promise<void> => {
-    const paymentMethod = prompt(
-      'Enter payment method (e.g., PayPal, Bank Transfer):'
-    );
-    if (!paymentMethod) return;
+  const handlePayCommissions = async (): Promise<void> => {
+    if (!payTarget || !payMethod.trim() || !payReference.trim()) {
+      setPayError('Payment method and reference are both required');
+      return;
+    }
 
-    const paymentReference = prompt('Enter payment reference/transaction ID:');
-    if (!paymentReference) return;
-
-    setActionLoading(affiliateId);
+    setActionLoading(payTarget.id);
+    setPayError(null);
     try {
       const response = await fetch('/api/admin/commissions/pay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          affiliateId,
-          paymentMethod,
-          paymentReference,
+          affiliateId: payTarget.id,
+          paymentMethod: payMethod,
+          paymentReference: payReference,
         }),
       });
 
@@ -114,10 +130,14 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
         throw new Error(data.error || 'Failed to process payment');
       }
 
-      alert(`Successfully paid commissions to ${fullName}`);
+      setPayTarget(null);
+      setPayMethod('');
+      setPayReference('');
       await fetchReport();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to process payment');
+      setPayError(
+        err instanceof Error ? err.message : 'Failed to process payment'
+      );
     } finally {
       setActionLoading(null);
     }
@@ -137,225 +157,323 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
+      <div>
         <Link
           href="/admin/affiliates"
-          className="text-sm text-blue-600 hover:text-blue-800"
+          className="text-sm text-muted-foreground transition-colors hover:text-primary"
         >
           &larr; Back to Affiliates
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">
+        <h1 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
           Commission Owings Report
         </h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Affiliates with pending commissions ready for payout
         </p>
       </div>
 
       {/* Error State */}
       {error && (
-        <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-500">
           {error}
         </div>
       )}
 
       {/* Loading State */}
       {loading ? (
-        <div className="py-12 text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
-          <p className="mt-4 text-gray-600">Loading report...</p>
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
       ) : report ? (
         <>
           {/* Summary Cards */}
-          <div className="mb-8 grid grid-cols-2 gap-6 sm:grid-cols-4">
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">Total Owed</h3>
-              <p className="mt-2 text-3xl font-bold text-orange-600">
-                {formatCurrency(report.summary.totalOwed)}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">
-                Affiliates Owed
-              </h3>
-              <p className="mt-2 text-3xl font-bold text-gray-900">
-                {report.summary.totalAffiliatesOwed}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">
-                Ready for Payout
-              </h3>
-              <p className="mt-2 text-3xl font-bold text-green-600">
-                {report.summary.affiliatesReadyForPayout}
-              </p>
-              <p className="text-sm text-gray-500">
-                ≥ {formatCurrency(report.summary.minimumPayoutThreshold)}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">
-                Min Payout Threshold
-              </h3>
-              <p className="mt-2 text-3xl font-bold text-blue-600">
-                {formatCurrency(report.summary.minimumPayoutThreshold)}
-              </p>
-            </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Owed
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                  {formatCurrency(report.summary.totalOwed)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Affiliates Owed
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-foreground">
+                  {report.summary.totalAffiliatesOwed}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Ready for Payout
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {report.summary.affiliatesReadyForPayout}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  ≥ {formatCurrency(report.summary.minimumPayoutThreshold)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Min Payout Threshold
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-blue-500">
+                  {formatCurrency(report.summary.minimumPayoutThreshold)}
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Affiliates Table */}
-          <div className="rounded-lg bg-white shadow">
-            <div className="border-b border-gray-200 px-6 py-4">
-              <h2 className="text-lg font-semibold">
+          <Card className="border-border bg-card">
+            <CardHeader>
+              <CardTitle className="text-foreground">
                 Affiliates with Pending Commissions
-              </h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Affiliate
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Country
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Payment Method
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Pending Balance
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Pending Count
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Oldest Pending
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {report.affiliates.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="px-6 py-12 text-center text-gray-500"
-                      >
-                        No affiliates with pending commissions above threshold
-                      </td>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                        Affiliate
+                      </th>
+                      <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
+                        Country
+                      </th>
+                      <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
+                        Payment Method
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                        Pending Balance
+                      </th>
+                      <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
+                        Oldest Pending
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                        Actions
+                      </th>
                     </tr>
-                  ) : (
-                    report.affiliates.map((affiliate) => (
-                      <tr key={affiliate.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <div>
-                            <div className="font-medium text-gray-900">
-                              {affiliate.fullName}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {affiliate.email}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-gray-700">
-                          {affiliate.country}
-                        </td>
-                        <td className="px-6 py-4 text-gray-700">
-                          {affiliate.paymentMethod}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-lg font-semibold text-orange-600">
-                            {formatCurrency(affiliate.balance.pending)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-gray-700">
-                          {affiliate.pendingCount}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">
-                          {formatDate(affiliate.oldestPendingDate)}
-                        </td>
-                        <td className="px-6 py-4">
-                          {affiliate.readyForPayout ? (
-                            <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
-                              Ready
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
-                              Below Min
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex space-x-2">
-                            <Link
-                              href={`/admin/affiliates/${affiliate.id}`}
-                              className="text-sm text-blue-600 hover:text-blue-800"
-                            >
-                              View
-                            </Link>
-                            {affiliate.readyForPayout && (
-                              <button
-                                onClick={() =>
-                                  handlePayCommissions(
-                                    affiliate.id,
-                                    affiliate.fullName
-                                  )
-                                }
-                                disabled={actionLoading === affiliate.id}
-                                className="text-sm font-medium text-green-600 hover:text-green-800 disabled:opacity-50"
-                              >
-                                {actionLoading === affiliate.id
-                                  ? 'Processing...'
-                                  : 'Pay'}
-                              </button>
-                            )}
-                          </div>
+                  </thead>
+                  <tbody>
+                    {report.affiliates.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-4 py-12 text-center text-muted-foreground"
+                        >
+                          No affiliates with pending commissions above threshold
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            {report.pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-3">
-                <div className="text-sm text-gray-700">
-                  Page {report.pagination.page} of{' '}
-                  {report.pagination.totalPages} ({report.pagination.total}{' '}
-                  total)
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => setPage(Math.max(1, page - 1))}
-                    disabled={page === 1}
-                    className="rounded-md border border-gray-300 px-3 py-1 disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() =>
-                      setPage(Math.min(report.pagination.totalPages, page + 1))
-                    }
-                    disabled={page === report.pagination.totalPages}
-                    className="rounded-md border border-gray-300 px-3 py-1 disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </div>
+                    ) : (
+                      report.affiliates.map((affiliate) => (
+                        <tr
+                          key={affiliate.id}
+                          className="border-border/50 hover:bg-accent/30 border-b transition-colors"
+                        >
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-foreground">
+                              {affiliate.fullName}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {affiliate.email}
+                            </div>
+                          </td>
+                          <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
+                            {affiliate.country}
+                          </td>
+                          <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">
+                            {affiliate.paymentMethod}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-lg font-semibold text-amber-600 dark:text-amber-400">
+                              {formatCurrency(affiliate.balance.pending)}
+                            </span>
+                          </td>
+                          <td className="hidden px-4 py-3 text-sm text-muted-foreground lg:table-cell">
+                            {formatDate(affiliate.oldestPendingDate)}
+                          </td>
+                          <td className="px-4 py-3">
+                            {affiliate.readyForPayout ? (
+                              <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/10">
+                                Ready
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/10">
+                                Below Min
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-3">
+                              <Link
+                                href={`/admin/affiliates/${affiliate.id}`}
+                                className="text-sm text-primary hover:underline"
+                              >
+                                View
+                              </Link>
+                              {affiliate.readyForPayout && (
+                                <AlertDialog
+                                  open={payTarget?.id === affiliate.id}
+                                  onOpenChange={(open) => {
+                                    if (!open) {
+                                      setPayTarget(null);
+                                      setPayError(null);
+                                    }
+                                  }}
+                                >
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      disabled={actionLoading === affiliate.id}
+                                      onClick={() => {
+                                        setPayTarget(affiliate);
+                                        setPayMethod('');
+                                        setPayReference('');
+                                      }}
+                                    >
+                                      {actionLoading === affiliate.id
+                                        ? 'Processing...'
+                                        : 'Pay'}
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Record Payment to {affiliate.fullName}?
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Marks{' '}
+                                        {formatCurrency(
+                                          affiliate.balance.pending
+                                        )}{' '}
+                                        in pending commissions as paid. Record
+                                        the method and reference for the payment
+                                        already sent outside this system.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <div className="space-y-4">
+                                      <div className="space-y-2">
+                                        <Label htmlFor="pay-method">
+                                          Payment Method
+                                        </Label>
+                                        <Input
+                                          id="pay-method"
+                                          value={payMethod}
+                                          onChange={(e) =>
+                                            setPayMethod(e.target.value)
+                                          }
+                                          placeholder="e.g., PayPal, Wise, Bank Transfer"
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label htmlFor="pay-reference">
+                                          Payment Reference
+                                        </Label>
+                                        <Input
+                                          id="pay-reference"
+                                          value={payReference}
+                                          onChange={(e) =>
+                                            setPayReference(e.target.value)
+                                          }
+                                          placeholder="Transaction ID"
+                                        />
+                                      </div>
+                                      {payError && (
+                                        <p className="text-sm text-red-500">
+                                          {payError}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        disabled={
+                                          !payMethod.trim() ||
+                                          !payReference.trim() ||
+                                          actionLoading === affiliate.id
+                                        }
+                                        onClick={() =>
+                                          void handlePayCommissions()
+                                        }
+                                      >
+                                        {actionLoading === affiliate.id
+                                          ? 'Processing...'
+                                          : 'Confirm Payment'}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
-            )}
-          </div>
+
+              {/* Pagination */}
+              {report.pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between border-t border-border px-4 py-3">
+                  <div className="text-sm text-muted-foreground">
+                    Page {report.pagination.page} of{' '}
+                    {report.pagination.totalPages} ({report.pagination.total}{' '}
+                    total)
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(Math.max(1, page - 1))}
+                      disabled={page === 1}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setPage(
+                          Math.min(report.pagination.totalPages, page + 1)
+                        )
+                      }
+                      disabled={page === report.pagination.totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </>
       ) : null}
     </div>

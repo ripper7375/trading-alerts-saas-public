@@ -11,6 +11,21 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -146,162 +161,138 @@ export default function CodeInventoryReportPage(): React.ReactElement {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
+      <div>
         <Link
           href="/admin/affiliates"
-          className="text-sm text-blue-600 hover:text-blue-800"
+          className="text-sm text-muted-foreground transition-colors hover:text-primary"
         >
           &larr; Back to Affiliates
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">
+        <h1 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
           Code Inventory Report
         </h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Affiliate code distribution and usage statistics
         </p>
       </div>
 
       {/* Period Selector */}
-      <div className="mb-6">
-        <div className="inline-flex overflow-hidden rounded-lg border border-gray-300">
-          {(['3months', '6months', '1year'] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-4 py-2 text-sm font-medium ${
-                period === p
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {p === '3months'
-                ? '3 Months'
-                : p === '6months'
-                  ? '6 Months'
-                  : '1 Year'}
-            </button>
-          ))}
-        </div>
+      <div className="inline-flex overflow-hidden rounded-lg border border-border">
+        {(['3months', '6months', '1year'] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPeriod(p)}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              period === p
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-card text-muted-foreground hover:bg-accent'
+            }`}
+          >
+            {p === '3months'
+              ? '3 Months'
+              : p === '6months'
+                ? '6 Months'
+                : '1 Year'}
+          </button>
+        ))}
       </div>
 
       {/* Cancel a Code */}
-      <div className="mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow">
-        <h2 className="mb-2 text-sm font-semibold text-gray-900">
-          Cancel a Code
-        </h2>
-        <p className="mb-3 text-xs text-gray-500">
-          Enter an active affiliate code to cancel it. Already-used or
-          already-cancelled codes cannot be cancelled.
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            type="text"
-            value={cancelCodeInput}
-            onChange={(e) => setCancelCodeInput(e.target.value.toUpperCase())}
-            placeholder="CODE123"
-            aria-label="Code to cancel"
-            className="flex-1 rounded border border-gray-300 px-3 py-2 font-mono text-sm uppercase focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          <button
-            type="button"
-            onClick={() => setShowCancelConfirm(true)}
-            disabled={!cancelCodeInput.trim()}
-            className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Cancel Code
-          </button>
-        </div>
-        {cancelError && (
-          <p className="mt-2 text-sm text-red-600">{cancelError}</p>
-        )}
-        {cancelSuccess && (
-          <p className="mt-2 text-sm text-green-600">{cancelSuccess}</p>
-        )}
-      </div>
-
-      {/* Cancel Confirmation Dialog */}
-      {showCancelConfirm && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="cancel-code-dialog-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') setShowCancelConfirm(false);
-          }}
-        >
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-            <h3
-              id="cancel-code-dialog-title"
-              className="text-lg font-semibold text-gray-900"
+      <Card className="border-border bg-card">
+        <CardContent className="p-4">
+          <h2 className="mb-2 text-sm font-semibold text-foreground">
+            Cancel a Code
+          </h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Enter an active affiliate code to cancel it. Already-used or
+            already-cancelled codes cannot be cancelled.
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              value={cancelCodeInput}
+              onChange={(e) => setCancelCodeInput(e.target.value.toUpperCase())}
+              placeholder="CODE123"
+              aria-label="Code to cancel"
+              className="flex-1 font-mono uppercase"
+            />
+            <AlertDialog
+              open={showCancelConfirm}
+              onOpenChange={setShowCancelConfirm}
             >
-              Cancel code {cancelCodeInput}?
-            </h3>
-            <p className="mt-2 text-sm text-gray-600">
-              This immediately marks the code as CANCELLED and it can no longer
-              be redeemed. This cannot be undone from this page.
-            </p>
-            <div className="mt-4">
-              <label
-                htmlFor="cancel-reason"
-                className="mb-1 block text-sm font-medium text-gray-700"
+              <Button
+                variant="destructive"
+                onClick={() => setShowCancelConfirm(true)}
+                disabled={!cancelCodeInput.trim()}
               >
-                Reason (optional)
-              </label>
-              <input
-                id="cancel-reason"
-                type="text"
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="e.g. Duplicate distribution"
-                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowCancelConfirm(false)}
-                disabled={isCancelling}
-                className="rounded border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Keep Code
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleConfirmCancel()}
-                disabled={isCancelling}
-                className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-              >
-                {isCancelling ? 'Cancelling...' : 'Confirm Cancel'}
-              </button>
-            </div>
+                Cancel Code
+              </Button>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Cancel code {cancelCodeInput}?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This immediately marks the code as CANCELLED and it can no
+                    longer be redeemed. This cannot be undone from this page.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-2">
+                  <Label htmlFor="cancel-reason">Reason (optional)</Label>
+                  <Input
+                    id="cancel-reason"
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="e.g. Duplicate distribution"
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isCancelling}>
+                    Keep Code
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={isCancelling}
+                    onClick={() => void handleConfirmCancel()}
+                    className="hover:bg-destructive/90 bg-destructive text-white"
+                  >
+                    {isCancelling ? 'Cancelling...' : 'Confirm Cancel'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
-        </div>
-      )}
+          {cancelError && (
+            <p className="mt-2 text-sm text-red-500">{cancelError}</p>
+          )}
+          {cancelSuccess && (
+            <p className="mt-2 text-sm text-emerald-600 dark:text-emerald-400">
+              {cancelSuccess}
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Error State */}
       {error && (
-        <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-500">
           {error}
         </div>
       )}
 
       {/* Loading State */}
       {loading ? (
-        <div className="py-12 text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
-          <p className="mt-4 text-gray-600">Loading report...</p>
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
       ) : report ? (
         <>
           {/* Alerts */}
           {(report.alerts.expiringIn7Days > 0 ||
             report.alerts.lowActiveCodesWarning) && (
-            <div className="mb-6 space-y-2">
+            <div className="space-y-2">
               {report.alerts.expiringIn7Days > 0 && (
-                <div className="flex items-center rounded border border-yellow-200 bg-yellow-50 px-4 py-3 text-yellow-800">
+                <div className="flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-700 dark:text-amber-300">
                   <svg
                     className="mr-2 h-5 w-5"
                     fill="currentColor"
@@ -320,7 +311,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                 </div>
               )}
               {report.alerts.lowActiveCodesWarning && (
-                <div className="flex items-center rounded border border-red-200 bg-red-50 px-4 py-3 text-red-800">
+                <div className="flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-600 dark:text-red-400">
                   <svg
                     className="mr-2 h-5 w-5"
                     fill="currentColor"
@@ -342,55 +333,83 @@ export default function CodeInventoryReportPage(): React.ReactElement {
           )}
 
           {/* Period Info */}
-          <div className="mb-6 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          <div className="bg-accent/50 rounded-lg px-4 py-3 text-sm text-muted-foreground">
             Report period: {formatDate(report.period.start)} -{' '}
             {formatDate(report.period.end)}
           </div>
 
           {/* All Time Stats */}
-          <div className="mb-8">
-            <h2 className="mb-4 text-lg font-semibold">All Time Statistics</h2>
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
-              <div className="rounded-lg bg-white p-6 shadow">
-                <h3 className="text-sm font-medium text-gray-500">
-                  Total Codes
-                </h3>
-                <p className="mt-2 text-3xl font-bold text-gray-900">
-                  {report.allTime.totalCodes.toLocaleString()}
-                </p>
-              </div>
-              <div className="rounded-lg bg-white p-6 shadow">
-                <h3 className="text-sm font-medium text-gray-500">Active</h3>
-                <p className="mt-2 text-3xl font-bold text-green-600">
-                  {report.allTime.byStatus.active.toLocaleString()}
-                </p>
-              </div>
-              <div className="rounded-lg bg-white p-6 shadow">
-                <h3 className="text-sm font-medium text-gray-500">Used</h3>
-                <p className="mt-2 text-3xl font-bold text-blue-600">
-                  {report.allTime.byStatus.used.toLocaleString()}
-                </p>
-              </div>
-              <div className="rounded-lg bg-white p-6 shadow">
-                <h3 className="text-sm font-medium text-gray-500">Expired</h3>
-                <p className="mt-2 text-3xl font-bold text-gray-600">
-                  {report.allTime.byStatus.expired.toLocaleString()}
-                </p>
-              </div>
-              <div className="rounded-lg bg-white p-6 shadow">
-                <h3 className="text-sm font-medium text-gray-500">
-                  Conversion Rate
-                </h3>
-                <p className="mt-2 text-3xl font-bold text-purple-600">
-                  {report.allTime.conversionRate}%
-                </p>
-              </div>
+          <div>
+            <h2 className="mb-4 text-lg font-semibold text-foreground">
+              All Time Statistics
+            </h2>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-5">
+              <Card className="border-border bg-card">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Total Codes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-foreground">
+                    {report.allTime.totalCodes.toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-border bg-card">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Active
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                    {report.allTime.byStatus.active.toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-border bg-card">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Used
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-blue-500">
+                    {report.allTime.byStatus.used.toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-border bg-card">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Expired
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-muted-foreground">
+                    {report.allTime.byStatus.expired.toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-border bg-card">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Conversion Rate
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-primary">
+                    {report.allTime.conversionRate}%
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </div>
 
           {/* Period Metrics */}
-          <div className="mb-8">
-            <h2 className="mb-4 text-lg font-semibold">
+          <div>
+            <h2 className="mb-4 text-lg font-semibold text-foreground">
               Period Metrics (
               {period === '3months'
                 ? '3 Months'
@@ -399,179 +418,197 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                   : '1 Year'}
               )
             </h2>
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-              <div className="rounded-lg bg-white p-6 shadow">
-                <h3 className="text-sm font-medium text-gray-500">
-                  Distributed
-                </h3>
-                <p className="mt-2 text-3xl font-bold text-blue-600">
-                  {report.periodMetrics.distributed.toLocaleString()}
-                </p>
-              </div>
-              <div className="rounded-lg bg-white p-6 shadow">
-                <h3 className="text-sm font-medium text-gray-500">Used</h3>
-                <p className="mt-2 text-3xl font-bold text-green-600">
-                  {report.periodMetrics.used.toLocaleString()}
-                </p>
-              </div>
-              <div className="rounded-lg bg-white p-6 shadow">
-                <h3 className="text-sm font-medium text-gray-500">Expired</h3>
-                <p className="mt-2 text-3xl font-bold text-orange-600">
-                  {report.periodMetrics.expired.toLocaleString()}
-                </p>
-              </div>
-              <div className="rounded-lg bg-white p-6 shadow">
-                <h3 className="text-sm font-medium text-gray-500">
-                  Period Conversion
-                </h3>
-                <p className="mt-2 text-3xl font-bold text-purple-600">
-                  {report.periodMetrics.periodConversionRate}%
-                </p>
-              </div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
+              <Card className="border-border bg-card">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Distributed
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-blue-500">
+                    {report.periodMetrics.distributed.toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-border bg-card">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Used
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                    {report.periodMetrics.used.toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-border bg-card">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Expired
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                    {report.periodMetrics.expired.toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-border bg-card">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    Period Conversion
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-primary">
+                    {report.periodMetrics.periodConversionRate}%
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </div>
 
           {/* Distribution Breakdown */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* By Status */}
-            <div className="rounded-lg bg-white shadow">
-              <div className="border-b border-gray-200 px-6 py-4">
-                <h2 className="text-lg font-semibold">Codes by Status</h2>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <div className="mb-1 flex justify-between text-sm">
-                      <span className="text-gray-600">Active</span>
-                      <span className="font-medium">
-                        {report.allTime.byStatus.active.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="h-3 w-full rounded-full bg-gray-200">
-                      <div
-                        className="h-3 rounded-full bg-green-500"
-                        style={{
-                          width: `${(report.allTime.byStatus.active / report.allTime.totalCodes) * 100}%`,
-                        }}
-                      ></div>
-                    </div>
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="text-foreground">
+                  Codes by Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span className="text-muted-foreground">Active</span>
+                    <span className="font-medium text-foreground">
+                      {report.allTime.byStatus.active.toLocaleString()}
+                    </span>
                   </div>
-                  <div>
-                    <div className="mb-1 flex justify-between text-sm">
-                      <span className="text-gray-600">Used</span>
-                      <span className="font-medium">
-                        {report.allTime.byStatus.used.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="h-3 w-full rounded-full bg-gray-200">
-                      <div
-                        className="h-3 rounded-full bg-blue-500"
-                        style={{
-                          width: `${(report.allTime.byStatus.used / report.allTime.totalCodes) * 100}%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-1 flex justify-between text-sm">
-                      <span className="text-gray-600">Expired</span>
-                      <span className="font-medium">
-                        {report.allTime.byStatus.expired.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="h-3 w-full rounded-full bg-gray-200">
-                      <div
-                        className="h-3 rounded-full bg-gray-500"
-                        style={{
-                          width: `${(report.allTime.byStatus.expired / report.allTime.totalCodes) * 100}%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-1 flex justify-between text-sm">
-                      <span className="text-gray-600">Cancelled</span>
-                      <span className="font-medium">
-                        {report.allTime.byStatus.cancelled.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="h-3 w-full rounded-full bg-gray-200">
-                      <div
-                        className="h-3 rounded-full bg-red-500"
-                        style={{
-                          width: `${(report.allTime.byStatus.cancelled / report.allTime.totalCodes) * 100}%`,
-                        }}
-                      ></div>
-                    </div>
+                  <div className="h-3 w-full rounded-full bg-muted">
+                    <div
+                      className="h-3 rounded-full bg-emerald-500"
+                      style={{
+                        width: `${(report.allTime.byStatus.active / report.allTime.totalCodes) * 100}%`,
+                      }}
+                    ></div>
                   </div>
                 </div>
-              </div>
-            </div>
+                <div>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span className="text-muted-foreground">Used</span>
+                    <span className="font-medium text-foreground">
+                      {report.allTime.byStatus.used.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="h-3 w-full rounded-full bg-muted">
+                    <div
+                      className="h-3 rounded-full bg-blue-500"
+                      style={{
+                        width: `${(report.allTime.byStatus.used / report.allTime.totalCodes) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span className="text-muted-foreground">Expired</span>
+                    <span className="font-medium text-foreground">
+                      {report.allTime.byStatus.expired.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="h-3 w-full rounded-full bg-muted">
+                    <div
+                      className="bg-muted-foreground/50 h-3 rounded-full"
+                      style={{
+                        width: `${(report.allTime.byStatus.expired / report.allTime.totalCodes) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span className="text-muted-foreground">Cancelled</span>
+                    <span className="font-medium text-foreground">
+                      {report.allTime.byStatus.cancelled.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="h-3 w-full rounded-full bg-muted">
+                    <div
+                      className="h-3 rounded-full bg-red-500"
+                      style={{
+                        width: `${(report.allTime.byStatus.cancelled / report.allTime.totalCodes) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* By Distribution Reason */}
-            <div className="rounded-lg bg-white shadow">
-              <div className="border-b border-gray-200 px-6 py-4">
-                <h2 className="text-lg font-semibold">
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="text-foreground">
                   Codes by Distribution Reason
-                </h2>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <div className="mb-1 flex justify-between text-sm">
-                      <span className="text-gray-600">
-                        Initial Distribution
-                      </span>
-                      <span className="font-medium">
-                        {report.allTime.byReason.initial.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="h-3 w-full rounded-full bg-gray-200">
-                      <div
-                        className="h-3 rounded-full bg-blue-500"
-                        style={{
-                          width: `${(report.allTime.byReason.initial / report.allTime.totalCodes) * 100}%`,
-                        }}
-                      ></div>
-                    </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Initial Distribution
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {report.allTime.byReason.initial.toLocaleString()}
+                    </span>
                   </div>
-                  <div>
-                    <div className="mb-1 flex justify-between text-sm">
-                      <span className="text-gray-600">
-                        Monthly Distribution
-                      </span>
-                      <span className="font-medium">
-                        {report.allTime.byReason.monthly.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="h-3 w-full rounded-full bg-gray-200">
-                      <div
-                        className="h-3 rounded-full bg-green-500"
-                        style={{
-                          width: `${(report.allTime.byReason.monthly / report.allTime.totalCodes) * 100}%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-1 flex justify-between text-sm">
-                      <span className="text-gray-600">Admin Bonus</span>
-                      <span className="font-medium">
-                        {report.allTime.byReason.adminBonus.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="h-3 w-full rounded-full bg-gray-200">
-                      <div
-                        className="h-3 rounded-full bg-purple-500"
-                        style={{
-                          width: `${(report.allTime.byReason.adminBonus / report.allTime.totalCodes) * 100}%`,
-                        }}
-                      ></div>
-                    </div>
+                  <div className="h-3 w-full rounded-full bg-muted">
+                    <div
+                      className="h-3 rounded-full bg-blue-500"
+                      style={{
+                        width: `${(report.allTime.byReason.initial / report.allTime.totalCodes) * 100}%`,
+                      }}
+                    ></div>
                   </div>
                 </div>
-              </div>
-            </div>
+                <div>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Monthly Distribution
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {report.allTime.byReason.monthly.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="h-3 w-full rounded-full bg-muted">
+                    <div
+                      className="h-3 rounded-full bg-emerald-500"
+                      style={{
+                        width: `${(report.allTime.byReason.monthly / report.allTime.totalCodes) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span className="text-muted-foreground">Admin Bonus</span>
+                    <span className="font-medium text-foreground">
+                      {report.allTime.byReason.adminBonus.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="h-3 w-full rounded-full bg-muted">
+                    <div
+                      className="h-3 rounded-full bg-primary"
+                      style={{
+                        width: `${(report.allTime.byReason.adminBonus / report.allTime.totalCodes) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </>
       ) : null}

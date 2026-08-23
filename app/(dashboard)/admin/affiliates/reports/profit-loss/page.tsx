@@ -11,6 +11,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -97,217 +99,252 @@ export default function ProfitLossReportPage(): React.ReactElement {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
+      <div>
         <Link
           href="/admin/affiliates"
-          className="text-sm text-blue-600 hover:text-blue-800"
+          className="text-sm text-muted-foreground transition-colors hover:text-primary"
         >
           &larr; Back to Affiliates
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">
+        <h1 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
           Profit & Loss Report
         </h1>
-        <p className="text-gray-600">Affiliate program financial overview</p>
+        <p className="text-muted-foreground">
+          Affiliate program financial overview
+        </p>
       </div>
 
       {/* Period Selector */}
-      <div className="mb-6">
-        <div className="inline-flex overflow-hidden rounded-lg border border-gray-300">
-          {(['3months', '6months', '1year'] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-4 py-2 text-sm font-medium ${
-                period === p
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {p === '3months'
-                ? '3 Months'
-                : p === '6months'
-                  ? '6 Months'
-                  : '1 Year'}
-            </button>
-          ))}
-        </div>
+      <div className="inline-flex overflow-hidden rounded-lg border border-border">
+        {(['3months', '6months', '1year'] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPeriod(p)}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              period === p
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-card text-muted-foreground hover:bg-accent'
+            }`}
+          >
+            {p === '3months'
+              ? '3 Months'
+              : p === '6months'
+                ? '6 Months'
+                : '1 Year'}
+          </button>
+        ))}
       </div>
 
       {/* Error State */}
       {error && (
-        <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-500">
           {error}
         </div>
       )}
 
       {/* Loading State */}
       {loading ? (
-        <div className="py-12 text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
-          <p className="mt-4 text-gray-600">Loading report...</p>
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
       ) : report ? (
         <>
           {/* Period Info */}
-          <div className="mb-6 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          <div className="bg-accent/50 rounded-lg px-4 py-3 text-sm text-muted-foreground">
             Report period: {formatDate(report.period.start)} -{' '}
             {formatDate(report.period.end)}
           </div>
 
           {/* Summary Cards */}
-          <div className="mb-8 grid grid-cols-2 gap-6 sm:grid-cols-4">
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">
-                Gross Revenue
-              </h3>
-              <p className="mt-2 text-3xl font-bold text-gray-900">
-                {formatCurrency(report.revenue.grossRevenue)}
-              </p>
-              <p className="text-sm text-gray-500">
-                {report.volume.totalSales} sales
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">Net Revenue</h3>
-              <p className="mt-2 text-3xl font-bold text-blue-600">
-                {formatCurrency(report.revenue.netRevenue)}
-              </p>
-              <p className="text-sm text-gray-500">
-                After {report.revenue.discountPercent}% discounts
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">
-                Total Commissions
-              </h3>
-              <p className="mt-2 text-3xl font-bold text-orange-600">
-                {formatCurrency(report.costs.totalCommissions)}
-              </p>
-              <p className="text-sm text-gray-500">
-                {report.costs.commissionPercent}% commission rate
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">Net Profit</h3>
-              <p className="mt-2 text-3xl font-bold text-green-600">
-                {formatCurrency(report.profit.netProfit)}
-              </p>
-              <p className="text-sm text-gray-500">
-                {report.profit.margin}% margin
-              </p>
-            </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Gross Revenue
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-foreground">
+                  {formatCurrency(report.revenue.grossRevenue)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {report.volume.totalSales} sales
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Net Revenue
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-blue-500">
+                  {formatCurrency(report.revenue.netRevenue)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  After {report.revenue.discountPercent}% discounts
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Commissions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                  {formatCurrency(report.costs.totalCommissions)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {report.costs.commissionPercent}% commission rate
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Net Profit
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(report.profit.netProfit)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {report.profit.margin}% margin
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Detailed Breakdown */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Revenue Breakdown */}
-            <div className="rounded-lg bg-white shadow">
-              <div className="border-b border-gray-200 px-6 py-4">
-                <h2 className="text-lg font-semibold">Revenue Breakdown</h2>
-              </div>
-              <div className="p-6">
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="text-foreground">
+                  Revenue Breakdown
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 <dl className="space-y-4">
                   <div className="flex justify-between">
-                    <dt className="text-gray-600">
+                    <dt className="text-muted-foreground">
                       Gross Revenue ({report.volume.totalSales} x $
                       {report.volume.regularPrice})
                     </dt>
-                    <dd className="font-medium">
+                    <dd className="font-medium text-foreground">
                       {formatCurrency(report.revenue.grossRevenue)}
                     </dd>
                   </div>
-                  <div className="flex justify-between text-red-600">
+                  <div className="flex justify-between text-red-500">
                     <dt>Less: Discounts ({report.revenue.discountPercent}%)</dt>
                     <dd className="font-medium">
                       -{formatCurrency(report.revenue.discounts)}
                     </dd>
                   </div>
-                  <div className="flex justify-between border-t border-gray-200 pt-4">
-                    <dt className="font-semibold">Net Revenue</dt>
-                    <dd className="text-lg font-bold">
+                  <div className="flex justify-between border-t border-border pt-4">
+                    <dt className="font-semibold text-foreground">
+                      Net Revenue
+                    </dt>
+                    <dd className="text-lg font-bold text-foreground">
                       {formatCurrency(report.revenue.netRevenue)}
                     </dd>
                   </div>
-                  <div className="flex justify-between text-gray-500">
+                  <div className="flex justify-between text-muted-foreground">
                     <dt>Average Ticket</dt>
                     <dd>{formatCurrency(report.revenue.averageTicket)}</dd>
                   </div>
                 </dl>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
             {/* Commission Breakdown */}
-            <div className="rounded-lg bg-white shadow">
-              <div className="border-b border-gray-200 px-6 py-4">
-                <h2 className="text-lg font-semibold">Commission Breakdown</h2>
-              </div>
-              <div className="p-6">
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="text-foreground">
+                  Commission Breakdown
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 <dl className="space-y-4">
                   <div className="flex justify-between">
-                    <dt className="text-gray-600">Paid Commissions</dt>
-                    <dd className="font-medium text-green-600">
+                    <dt className="text-muted-foreground">Paid Commissions</dt>
+                    <dd className="font-medium text-emerald-600 dark:text-emerald-400">
                       {formatCurrency(report.costs.paidCommissions)}
                     </dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-gray-600">
+                    <dt className="text-muted-foreground">
                       Approved (Awaiting Payment)
                     </dt>
-                    <dd className="font-medium text-blue-600">
+                    <dd className="font-medium text-blue-500">
                       {formatCurrency(report.costs.approvedCommissions)}
                     </dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-gray-600">Pending Approval</dt>
-                    <dd className="font-medium text-yellow-600">
+                    <dt className="text-muted-foreground">Pending Approval</dt>
+                    <dd className="font-medium text-yellow-500">
                       {formatCurrency(report.costs.pendingCommissions)}
                     </dd>
                   </div>
-                  <div className="flex justify-between border-t border-gray-200 pt-4">
-                    <dt className="font-semibold">Total Commissions</dt>
-                    <dd className="text-lg font-bold">
+                  <div className="flex justify-between border-t border-border pt-4">
+                    <dt className="font-semibold text-foreground">
+                      Total Commissions
+                    </dt>
+                    <dd className="text-lg font-bold text-foreground">
                       {formatCurrency(report.costs.totalCommissions)}
                     </dd>
                   </div>
-                  <div className="flex justify-between text-gray-500">
+                  <div className="flex justify-between text-muted-foreground">
                     <dt>Average Commission</dt>
                     <dd>{formatCurrency(report.costs.averageCommission)}</dd>
                   </div>
                 </dl>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Profit Summary */}
-          <div className="mt-6 rounded-lg bg-green-50 p-6">
-            <h2 className="mb-4 text-lg font-semibold text-green-800">
-              Profit Summary
-            </h2>
-            <div className="grid grid-cols-3 gap-6">
-              <div>
-                <p className="text-sm text-green-600">Net Revenue</p>
-                <p className="text-2xl font-bold text-green-800">
-                  {formatCurrency(report.revenue.netRevenue)}
-                </p>
+          <Card className="border-2 border-emerald-500/30 bg-emerald-500/5">
+            <CardHeader>
+              <CardTitle className="text-emerald-700 dark:text-emerald-300">
+                Profit Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                <div>
+                  <p className="text-sm text-emerald-700 dark:text-emerald-400">
+                    Net Revenue
+                  </p>
+                  <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-200">
+                    {formatCurrency(report.revenue.netRevenue)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-emerald-700 dark:text-emerald-400">
+                    Less: Commissions
+                  </p>
+                  <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-200">
+                    -{formatCurrency(report.costs.totalCommissions)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-emerald-700 dark:text-emerald-400">
+                    Net Profit ({report.profit.margin}% margin)
+                  </p>
+                  <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-200">
+                    {formatCurrency(report.profit.netProfit)}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-green-600">Less: Commissions</p>
-                <p className="text-2xl font-bold text-green-800">
-                  -{formatCurrency(report.costs.totalCommissions)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-green-600">
-                  Net Profit ({report.profit.margin}% margin)
-                </p>
-                <p className="text-2xl font-bold text-green-800">
-                  {formatCurrency(report.profit.netProfit)}
-                </p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </>
       ) : null}
     </div>

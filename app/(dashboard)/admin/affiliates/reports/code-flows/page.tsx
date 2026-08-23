@@ -18,6 +18,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -106,182 +111,199 @@ export default function CodeFlowsReportPage(): React.ReactElement {
   }, [fetchReport]);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
+      <div>
         <Link
           href="/admin/affiliates"
-          className="text-sm text-blue-600 hover:text-blue-800"
+          className="text-sm text-muted-foreground transition-colors hover:text-primary"
         >
           &larr; Back to Affiliates
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">
+        <h1 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
           Code Flows Report
         </h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Period reconciliation of affiliate code distribution — opening +
           additions - reductions = closing
         </p>
       </div>
 
       {/* Date Range */}
-      <div className="mb-6 flex flex-wrap items-end gap-4">
-        <div>
-          <label
-            htmlFor="flows-start"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Start
-          </label>
-          <input
-            id="flows-start"
-            type="date"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            className="rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="flows-end"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            End
-          </label>
-          <input
-            id="flows-end"
-            type="date"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-            className="rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={() => void fetchReport()}
-          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          Refresh
-        </button>
-      </div>
+      <Card className="border-border bg-card">
+        <CardContent className="flex flex-wrap items-end gap-4 p-4 sm:p-6">
+          <div>
+            <Label htmlFor="flows-start" className="mb-1 block">
+              Start
+            </Label>
+            <Input
+              id="flows-start"
+              type="date"
+              value={start}
+              onChange={(e) => setStart(e.target.value)}
+              className="w-auto"
+            />
+          </div>
+          <div>
+            <Label htmlFor="flows-end" className="mb-1 block">
+              End
+            </Label>
+            <Input
+              id="flows-end"
+              type="date"
+              value={end}
+              onChange={(e) => setEnd(e.target.value)}
+              className="w-auto"
+            />
+          </div>
+          <Button onClick={() => void fetchReport()}>Refresh</Button>
+        </CardContent>
+      </Card>
 
       {/* Error State */}
       {error && (
-        <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-500">
           {error}
         </div>
       )}
 
       {/* Loading State */}
       {loading ? (
-        <div className="py-12 text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
-          <p className="mt-4 text-gray-600">Loading report...</p>
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
       ) : report ? (
         <>
-          <div className="mb-6 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          <div className="bg-accent/50 rounded-lg px-4 py-3 text-sm text-muted-foreground">
             Period: {formatDate(report.period.start)} -{' '}
             {formatDate(report.period.end)} ·{' '}
-            <strong>{report.affiliatesWithActivity}</strong> affiliates with
-            activity
+            <strong className="text-foreground">
+              {report.affiliatesWithActivity}
+            </strong>{' '}
+            affiliates with activity
           </div>
 
           {/* Reconciliation Summary */}
-          <div className="mb-8 grid grid-cols-2 gap-6 lg:grid-cols-4">
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">
-                Opening Balance
-              </h3>
-              <p className="mt-2 text-3xl font-bold text-gray-900">
-                {report.openingBalance.toLocaleString()}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">Additions</h3>
-              <p className="mt-2 text-3xl font-bold text-green-600">
-                +{report.additions.total.toLocaleString()}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">Reductions</h3>
-              <p className="mt-2 text-3xl font-bold text-red-600">
-                -{report.reductions.total.toLocaleString()}
-              </p>
-            </div>
-            <div className="rounded-lg border-2 border-blue-200 bg-blue-50 p-6 shadow">
-              <h3 className="text-sm font-medium text-blue-700">
-                Closing Balance
-              </h3>
-              <p className="mt-2 text-3xl font-bold text-blue-900">
-                {report.closingBalance.toLocaleString()}
-              </p>
-            </div>
+          <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Opening Balance
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-foreground">
+                  {report.openingBalance.toLocaleString()}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Additions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                  +{report.additions.total.toLocaleString()}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Reductions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-red-500">
+                  -{report.reductions.total.toLocaleString()}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-primary/30 bg-primary/5 border-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-primary">
+                  Closing Balance
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-primary">
+                  {report.closingBalance.toLocaleString()}
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Breakdown */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Additions Breakdown */}
-            <div className="rounded-lg bg-white shadow">
-              <div className="border-b border-gray-200 px-6 py-4">
-                <h2 className="text-lg font-semibold">Additions by Reason</h2>
-              </div>
-              <div className="space-y-3 p-6">
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="text-foreground">
+                  Additions by Reason
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Initial Distribution</span>
-                  <span className="font-medium">
+                  <span className="text-muted-foreground">
+                    Initial Distribution
+                  </span>
+                  <span className="font-medium text-foreground">
                     {report.additions.initialDistribution.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Monthly Distribution</span>
-                  <span className="font-medium">
+                  <span className="text-muted-foreground">
+                    Monthly Distribution
+                  </span>
+                  <span className="font-medium text-foreground">
                     {report.additions.monthlyDistribution.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Admin Bonus</span>
-                  <span className="font-medium">
+                  <span className="text-muted-foreground">Admin Bonus</span>
+                  <span className="font-medium text-foreground">
                     {report.additions.bonusDistribution.toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between border-t border-gray-200 pt-3 text-sm font-semibold">
+                <div className="flex justify-between border-t border-border pt-3 text-sm font-semibold text-foreground">
                   <span>Total</span>
                   <span>{report.additions.total.toLocaleString()}</span>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
             {/* Reductions Breakdown */}
-            <div className="rounded-lg bg-white shadow">
-              <div className="border-b border-gray-200 px-6 py-4">
-                <h2 className="text-lg font-semibold">Reductions</h2>
-              </div>
-              <div className="space-y-3 p-6">
+            <Card className="border-border bg-card">
+              <CardHeader>
+                <CardTitle className="text-foreground">Reductions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Used</span>
-                  <span className="font-medium">
+                  <span className="text-muted-foreground">Used</span>
+                  <span className="font-medium text-foreground">
                     {report.reductions.used.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Expired</span>
-                  <span className="font-medium">
+                  <span className="text-muted-foreground">Expired</span>
+                  <span className="font-medium text-foreground">
                     {report.reductions.expired.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Cancelled</span>
-                  <span className="font-medium">
+                  <span className="text-muted-foreground">Cancelled</span>
+                  <span className="font-medium text-foreground">
                     {report.reductions.cancelled.toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between border-t border-gray-200 pt-3 text-sm font-semibold">
+                <div className="flex justify-between border-t border-border pt-3 text-sm font-semibold text-foreground">
                   <span>Total</span>
                   <span>{report.reductions.total.toLocaleString()}</span>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         </>
       ) : null}

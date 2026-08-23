@@ -11,6 +11,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -94,223 +96,238 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
     });
   };
 
+  const getRankBadgeClass = (index: number): string => {
+    if (index === 0) return 'bg-yellow-500/10 text-yellow-500';
+    if (index === 1) return 'bg-muted text-muted-foreground';
+    if (index === 2) return 'bg-orange-500/10 text-orange-500';
+    return 'bg-muted/50 text-muted-foreground';
+  };
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
+      <div>
         <Link
           href="/admin/affiliates"
-          className="text-sm text-blue-600 hover:text-blue-800"
+          className="text-sm text-muted-foreground transition-colors hover:text-primary"
         >
           &larr; Back to Affiliates
         </Link>
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">
+        <h1 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
           Sales Performance Report
         </h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Top performing affiliates by conversions
         </p>
       </div>
 
       {/* Period Selector */}
-      <div className="mb-6">
-        <div className="inline-flex overflow-hidden rounded-lg border border-gray-300">
-          {(['3months', '6months', '1year'] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-4 py-2 text-sm font-medium ${
-                period === p
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              {p === '3months'
-                ? '3 Months'
-                : p === '6months'
-                  ? '6 Months'
-                  : '1 Year'}
-            </button>
-          ))}
-        </div>
+      <div className="inline-flex overflow-hidden rounded-lg border border-border">
+        {(['3months', '6months', '1year'] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPeriod(p)}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              period === p
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-card text-muted-foreground hover:bg-accent'
+            }`}
+          >
+            {p === '3months'
+              ? '3 Months'
+              : p === '6months'
+                ? '6 Months'
+                : '1 Year'}
+          </button>
+        ))}
       </div>
 
       {/* Error State */}
       {error && (
-        <div className="mb-6 rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+        <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-500">
           {error}
         </div>
       )}
 
       {/* Loading State */}
       {loading ? (
-        <div className="py-12 text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-blue-500"></div>
-          <p className="mt-4 text-gray-600">Loading report...</p>
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
         </div>
       ) : report ? (
         <>
           {/* Period Info */}
-          <div className="mb-6 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          <div className="bg-accent/50 rounded-lg px-4 py-3 text-sm text-muted-foreground">
             Report period: {formatDate(report.period.start)} -{' '}
             {formatDate(report.period.end)}
           </div>
 
           {/* Summary Cards */}
-          <div className="mb-8 grid grid-cols-2 gap-6 sm:grid-cols-4">
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">
-                Active Affiliates
-              </h3>
-              <p className="mt-2 text-3xl font-bold text-gray-900">
-                {report.summary.totalAffiliates}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">
-                Total Conversions
-              </h3>
-              <p className="mt-2 text-3xl font-bold text-green-600">
-                {report.summary.totalConversions}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">
-                Total Commissions
-              </h3>
-              <p className="mt-2 text-3xl font-bold text-blue-600">
-                {formatCurrency(report.summary.totalCommissionsEarned)}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="text-sm font-medium text-gray-500">
-                Avg per Affiliate
-              </h3>
-              <p className="mt-2 text-3xl font-bold text-purple-600">
-                {report.summary.averageConversionsPerAffiliate}
-              </p>
-              <p className="text-sm text-gray-500">conversions</p>
-            </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Active Affiliates
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-foreground">
+                  {report.summary.totalAffiliates}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Conversions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {report.summary.totalConversions}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Commissions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-blue-500">
+                  {formatCurrency(report.summary.totalCommissionsEarned)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Avg per Affiliate
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-primary">
+                  {report.summary.averageConversionsPerAffiliate}
+                </p>
+                <p className="text-sm text-muted-foreground">conversions</p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Top Performers Table */}
-          <div className="rounded-lg bg-white shadow">
-            <div className="border-b border-gray-200 px-6 py-4">
-              <h2 className="text-lg font-semibold">Top Performers</h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Rank
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Affiliate
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Country
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Conversions
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Codes Used / Distributed
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Conversion Rate
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Commissions
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {report.topPerformers.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="px-6 py-12 text-center text-gray-500"
-                      >
-                        No affiliates with conversions in this period
-                      </td>
+          <Card className="border-border bg-card">
+            <CardHeader>
+              <CardTitle className="text-foreground">Top Performers</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                        Rank
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                        Affiliate
+                      </th>
+                      <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
+                        Country
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                        Conversions
+                      </th>
+                      <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
+                        Codes Used / Distributed
+                      </th>
+                      <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
+                        Conversion Rate
+                      </th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                        Commissions
+                      </th>
+                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+                        Actions
+                      </th>
                     </tr>
-                  ) : (
-                    report.topPerformers.map((performer, index) => (
-                      <tr key={performer.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${
-                              index === 0
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : index === 1
-                                  ? 'bg-gray-100 text-gray-800'
-                                  : index === 2
-                                    ? 'bg-orange-100 text-orange-800'
-                                    : 'bg-gray-50 text-gray-600'
-                            }`}
-                          >
-                            {index + 1}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div>
-                            <div className="font-medium text-gray-900">
-                              {performer.fullName}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {performer.email}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-gray-700">
-                          {performer.country}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="text-lg font-semibold text-green-600">
-                            {performer.metrics.conversionsPeriod}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-gray-700">
-                          {performer.metrics.codesUsed} /{' '}
-                          {performer.metrics.codesDistributed}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <div className="mr-2 h-2 w-16 rounded-full bg-gray-200">
-                              <div
-                                className="h-2 rounded-full bg-green-500"
-                                style={{
-                                  width: `${Math.min(performer.metrics.conversionRate, 100)}%`,
-                                }}
-                              ></div>
-                            </div>
-                            <span className="text-sm text-gray-700">
-                              {performer.metrics.conversionRate}%
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 font-medium">
-                          {formatCurrency(performer.metrics.totalCommissions)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <Link
-                            href={`/admin/affiliates/${performer.id}`}
-                            className="text-blue-600 hover:text-blue-800"
-                          >
-                            View
-                          </Link>
+                  </thead>
+                  <tbody>
+                    {report.topPerformers.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={8}
+                          className="px-4 py-12 text-center text-muted-foreground"
+                        >
+                          No affiliates with conversions in this period
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                    ) : (
+                      report.topPerformers.map((performer, index) => (
+                        <tr
+                          key={performer.id}
+                          className="border-border/50 hover:bg-accent/30 border-b transition-colors"
+                        >
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex h-8 w-8 items-center justify-center rounded-full font-medium ${getRankBadgeClass(index)}`}
+                            >
+                              {index + 1}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-foreground">
+                              {performer.fullName}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {performer.email}
+                            </div>
+                          </td>
+                          <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
+                            {performer.country}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+                              {performer.metrics.conversionsPeriod}
+                            </span>
+                          </td>
+                          <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">
+                            {performer.metrics.codesUsed} /{' '}
+                            {performer.metrics.codesDistributed}
+                          </td>
+                          <td className="hidden px-4 py-3 lg:table-cell">
+                            <div className="flex items-center">
+                              <div className="mr-2 h-2 w-16 rounded-full bg-muted">
+                                <div
+                                  className="h-2 rounded-full bg-emerald-500"
+                                  style={{
+                                    width: `${Math.min(performer.metrics.conversionRate, 100)}%`,
+                                  }}
+                                ></div>
+                              </div>
+                              <span className="text-sm text-muted-foreground">
+                                {performer.metrics.conversionRate}%
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 font-medium text-foreground">
+                            {formatCurrency(performer.metrics.totalCommissions)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <Link
+                              href={`/admin/affiliates/${performer.id}`}
+                              className="text-sm text-primary hover:underline"
+                            >
+                              View
+                            </Link>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
         </>
       ) : null}
     </div>
