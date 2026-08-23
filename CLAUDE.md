@@ -50,7 +50,7 @@
   unread counter off the identical socket push. No new UI built (would have been UI-BUILD scope
   creep inside a VERIFY session). The chart-marker DOM assertion stayed out of scope per Session
   10-1's own precedent (marker logic already unit-tested, `mt5-service`'s OHLCV feed is
-  SEPARATE_STACK) — Davin re-confirmed this explicitly at CONFIRM.
+  SEPARATE*STACK) — Davin re-confirmed this explicitly at CONFIRM.
   **F82 fixed in both live paths, not dead code in either:** `operation-service/src/drawings/
 drawings.service.ts` (`remove()`, live path in Vercel production, `MIGRATE_DRAWINGS=true`) and
   monolith `app/api/drawings/[id]/route.ts` (`DELETE`, live path in this local dev environment,
@@ -76,7 +76,7 @@ drawings.service.ts` (`remove()`, live path in Vercel production, `MIGRATE_DRAWI
   **One incidental, real test flake under this session's own concurrent load, confirmed benign:**
   `money-service`'s `prisma.shutdown.spec.ts` (completely untouched this session) failed once
   during the full post-change baseline run (4 heavy suites + Newman + Playwright all concurrent);
-  isolated re-run passed clean — the _identical_ test failing the _identical_ way under the
+  isolated re-run passed clean — the \_identical* test failing the _identical_ way under the
   _identical_ kind of load is independently recorded at Session 10-1's own CONFIRM
   (`history/decisions-archive.md`'s F67 entry), confirming `LESSONS-LEARNED.md` L24's pattern, not
   a regression.
@@ -97,8 +97,10 @@ drawings.service.ts` (`remove()`, live path in Vercel production, `MIGRATE_DRAWI
   deleted, TEST INFRA), this file (Current/Previous rotation — Session 9-10 moved to
   `history/sessions-archive.md`). Session 10-3's order (Blueprint reconciliation & close,
   VERIFY-RETIRE, fast-path eligible) PRE-DRAFTed per this session's own obligation
-  (`10-3-blueprint-reconciliation-close.migration-order.md`); it also owes Phase 11's own handover
-  prompt per `MASTER-ROADMAP-PHASES-7-15.md`'s own trigger table.
+  (`10-3-blueprint-reconciliation-close.migration-order.md`); it also owes **Phase 8A's** own
+  handover prompt per `MASTER-ROADMAP-PHASES-7-15.md`'s own trigger table ("10-3 writes 8A's") —
+  **the 10-2 order's own "Next-session handoff" text says Phase 11, which is wrong** (`8-2 writes
+  phase-11's`, per the same table); caught and corrected here rather than propagated into 10-3.
 - **Previous:** Session 10-1 (Drawing Engine & Line-Alert Live Smoke Test, Phase 10, INFRA/VERIFY),
   APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-23. Resolves **F67** (smoke-test
   execution environment) — Phase 10's own "one remaining unverified link": a real, live,
