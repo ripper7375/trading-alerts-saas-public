@@ -1,0 +1,515 @@
+{
+  "info": {
+    "name": "Drawing Engine & Line Alerts (Session 10-2)",
+    "description": "CRUD coverage for /api/drawings and /api/alerts/line, including a regression check for F82 (orphaned Alert row on Drawing deletion). Auth via the real token-login bridge (app/api/auth/token-login), which sets NextAuth's own session cookie -- Newman's cookie jar carries it automatically to every request after Login.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "drawing-line-alerts-v1",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "0. Auth",
+      "item": [
+        {
+          "name": "Login (pro-test, token-login bridge)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Session cookie was set', () => {",
+                  "  pm.expect(pm.cookies.has('next-auth.session-token')).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('Response has PRO-tier user', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('user');",
+                  "  pm.expect(json.user.email).to.eql('pro-test@trading-alerts.test');",
+                  "  pm.expect(json.user.tier).to.eql('PRO');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pro-test@trading-alerts.test\",\n  \"password\": \"TestPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/token-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "token-login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Drawing CRUD + F82 cascade regression",
+      "item": [
+        {
+          "name": "Create HLINE drawing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Drawing created with expected shape', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.drawing).to.have.property('id');",
+                  "  pm.expect(json.drawing.type).to.eql('HLINE');",
+                  "  pm.expect(json.drawing.symbol).to.eql('XAUUSD');",
+                  "  pm.collectionVariables.set('drawingId', json.drawing.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"XAUUSD\",\n  \"timeframe\": \"M5\",\n  \"type\": \"HLINE\",\n  \"anchors\": [{ \"time\": 1724400000, \"price\": 2000.0 }],\n  \"style\": { \"color\": \"#ff0000\", \"lineWidth\": 2, \"lineStyle\": \"solid\" }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/drawings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "drawings"]
+            }
+          }
+        },
+        {
+          "name": "List drawings (filtered)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Created drawing is present in the filtered list', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  const ids = json.drawings.map((d) => d.id);",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get('drawingId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/drawings?symbol=XAUUSD&timeframe=M5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "drawings"],
+              "query": [
+                { "key": "symbol", "value": "XAUUSD" },
+                { "key": "timeframe", "value": "M5" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update drawing (style)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Style was updated', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.drawing.style.color).to.eql('#00ff00');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"style\": { \"color\": \"#00ff00\", \"lineWidth\": 3, \"lineStyle\": \"dashed\" }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/drawings/{{drawingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "drawings", "{{drawingId}}"]
+            }
+          }
+        },
+        {
+          "name": "Attach line alert",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Line alert created with expected shape', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.alert).to.have.property('id');",
+                  "  pm.expect(json.alert).to.have.property('alertId');",
+                  "  pm.expect(json.alert.targetLevel).to.eql('line');",
+                  "  pm.expect(json.alert.alert.alertType).to.eql('PRICE_TOUCH_LINE');",
+                  "  pm.collectionVariables.set('drawingAlertId', json.alert.id);",
+                  "  pm.collectionVariables.set('alertId', json.alert.alertId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"drawingId\": \"{{drawingId}}\",\n  \"targetLevel\": \"line\",\n  \"direction\": \"either\",\n  \"tolerance\": 0,\n  \"cooldownSec\": 60,\n  \"oneShot\": false,\n  \"name\": \"F82 regression alert\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/line",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "line"]
+            }
+          }
+        },
+        {
+          "name": "List line alerts (filtered)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Created line alert is present', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  const ids = json.alerts.map((a) => a.id);",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get('drawingAlertId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/line?symbol=XAUUSD&timeframe=M5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "line"],
+              "query": [
+                { "key": "symbol", "value": "XAUUSD" },
+                { "key": "timeframe", "value": "M5" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update line alert (cooldown, one-shot)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Alert parameters were updated', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.expect(json.alert.cooldownSec).to.eql(120);",
+                  "  pm.expect(json.alert.oneShot).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cooldownSec\": 120,\n  \"oneShot\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/line/{{drawingAlertId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "line", "{{drawingAlertId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete drawing (triggers F82 cascade fix)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Deletion reported success', () => {",
+                  "  pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/drawings/{{drawingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "drawings", "{{drawingId}}"]
+            }
+          }
+        },
+        {
+          "name": "F82 assertion: zero orphaned Alert rows remain",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('F82: the PRICE_TOUCH_LINE Alert row backing the deleted drawing is gone, not orphaned', () => {",
+                  "  const json = pm.response.json();",
+                  "  const ids = json.alerts.map((a) => a.id);",
+                  "  pm.expect(ids).to.not.include(pm.collectionVariables.get('alertId'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Line alert standalone delete (does not touch the drawing)",
+      "item": [
+        {
+          "name": "Create second HLINE drawing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Drawing created', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.collectionVariables.set('drawingId2', json.drawing.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"XAUUSD\",\n  \"timeframe\": \"M5\",\n  \"type\": \"HLINE\",\n  \"anchors\": [{ \"time\": 1724400000, \"price\": 1950.0 }],\n  \"style\": { \"color\": \"#0000ff\", \"lineWidth\": 1, \"lineStyle\": \"dotted\" }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/drawings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "drawings"]
+            }
+          }
+        },
+        {
+          "name": "Attach line alert (second drawing)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', () => {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Line alert created', () => {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.success).to.be.true;",
+                  "  pm.collectionVariables.set('drawingAlertId2', json.alert.id);",
+                  "  pm.collectionVariables.set('alertId2', json.alert.alertId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"drawingId\": \"{{drawingId2}}\",\n  \"targetLevel\": \"line\",\n  \"direction\": \"cross_down\",\n  \"tolerance\": 0.5,\n  \"cooldownSec\": 30,\n  \"oneShot\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/line",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "line"]
+            }
+          }
+        },
+        {
+          "name": "Delete line alert (standalone -- drawing survives)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Deletion reported success', () => {",
+                  "  pm.expect(pm.response.json().success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/alerts/line/{{drawingAlertId2}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "alerts", "line", "{{drawingAlertId2}}"]
+            }
+          }
+        },
+        {
+          "name": "Verify the drawing itself was not deleted",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Drawing still exists after its alert was deleted standalone', () => {",
+                  "  const json = pm.response.json();",
+                  "  const ids = json.drawings.map((d) => d.id);",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get('drawingId2'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/drawings?symbol=XAUUSD&timeframe=M5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "drawings"],
+              "query": [
+                { "key": "symbol", "value": "XAUUSD" },
+                { "key": "timeframe", "value": "M5" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cleanup: delete second drawing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/drawings/{{drawingId2}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "drawings", "{{drawingId2}}"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "drawingId", "value": "" },
+    { "key": "drawingAlertId", "value": "" },
+    { "key": "alertId", "value": "" },
+    { "key": "drawingId2", "value": "" },
+    { "key": "drawingAlertId2", "value": "" },
+    { "key": "alertId2", "value": "" }
+  ]
+}
