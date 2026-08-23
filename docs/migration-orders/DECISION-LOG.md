@@ -248,3 +248,28 @@ revalidate` as the backing endpoint for an admin-triggered "revalidate Wise reci
   Decision 2 (synthetic price-trigger strategy) explicitly signed off, separate from the order's
   general approval, per `EXECUTOR-PROTOCOL.md` §0 (`⚠ NEEDS EXPLICIT SIGN-OFF` items are not
   covered by general approval alone).
+
+## F82 — OPEN, found Session 10-1 (2026-08-23)
+
+- Status: OPEN
+- Session: 10-1 (found during Step 7 test-fixture cleanup) · Date: 2026-08-23
+- Symptom: `DELETE /api/drawings/:id` (`app/api/drawings/[id]/route.ts`) calls
+  `prisma.drawing.delete({ where: { id } })`, which DB-cascades to delete the `DrawingAlert` join
+  row (`DrawingAlert.drawingId → Drawing`, `onDelete: Cascade`) but leaves the `Alert` row itself
+  orphaned — `DrawingAlert.alertId → Alert` is `onDelete: Cascade` in the OTHER direction (deleting
+  `Alert` cascades `DrawingAlert`, not vice versa). Reproduced 4/4 times cleaning up this session's
+  own line-alert test fixtures: every deleted `Drawing` left its `PRICE_TOUCH_LINE` `Alert` row
+  behind with `drawingAlert: null`, requiring a manual `prisma.alert.deleteMany()` pass to actually
+  clean the DB.
+- Root cause: the DELETE route only ever deletes the `Drawing`; nothing in that handler (or a DB
+  trigger) also deletes the `Alert` row a `PRICE_TOUCH_LINE` alert exists solely to back. Since this
+  alert type has no meaning without its drawing (no UI surface lists/manages orphaned
+  `PRICE_TOUCH_LINE` alerts independently), every drawing deletion with an attached line alert
+  leaks one permanently-orphaned `Alert` row.
+- Not fixed here: out of this INFRA/VERIFY session's near-zero creativity dial and target-component
+  scope (this order's own Rules specific to this variant permit only defects that block the smoke
+  test itself; this doesn't). A real fix (delete the `Alert` alongside the `Drawing`, guarded to
+  only affect `alertType: 'PRICE_TOUCH_LINE'` rows with a `drawingAlert` link, never touching
+  classic price alerts) belongs to a future PORT/bugfix session — Session 10-2 (API coverage for
+  `/api/drawings`) is a natural place to catch this with a real assertion.
+- Approved by: n/a (technical finding, not yet resolved — Davin/Advisor to scope the fix session).
