@@ -138,11 +138,15 @@ model User {
   twoFactorBackupCodes String? // JSON array of hashed backup codes
   twoFactorVerifiedAt  DateTime? // When 2FA was successfully enabled
 
+  // AI Token Metering & Preferences (Session 11-3, Core Areas 4/5)
+  profile Json? // User-level AI preferences, e.g. { preferredLlm, riskTolerance }
+
   accounts    Account[]
   alerts      Alert[]
   drawings    Drawing[]
   preferences UserPreferences? // User preferences (settings)
   appearance  UserAppearance? // Terminal appearance (theme/accent/chart colors)
+  tokenLogs   TokenUsageLog[] // Per-call AI token usage audit log
 
   sessions Session[]
 
@@ -348,6 +352,26 @@ model UserAppearance {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Per-call AI token usage audit log (Session 11-3, Core Area 5) — one row per
+/// AI call, backing Stack D's cost surveillance (Session 12-3) and the
+/// Redis sliding-window quota check in trackAiTokenUsage() (lib/rate-limit.ts /
+/// operation-service/src/redis/redis.service.ts).
+model TokenUsageLog {
+  id               String   @id @default(cuid())
+  userId           String
+  model            String // "gemini-3-6-flash" | "claude-3-5-sonnet"
+  promptTokens     Int
+  imageTokens      Int      @default(0)
+  completionTokens Int
+  estimatedCostUsd Float
+  timestamp        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@map("token_usage_log")
 }
 
 model AccountDeletionRequest {
