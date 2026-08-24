@@ -44,7 +44,12 @@ not the linked service's; a new service needs `engines`/`postinstall` parity wit
 before its first deploy; a plausible variable reference isn't proof of a working topology, only a
 hash-compared sibling value is) and L33 (a schema-resolution variant of "invisible until first
 real write" -- a Prisma "table does not exist" error can mean the connecting role's `search_path`
-resolves a different schema first, not that the table is missing). Full history in
+resolves a different schema first, not that the table is missing). Session 11-2: no new lesson
+added (stayed at the cap) -- recurrence notes appended to L19 (a monorepo-mirror-drift variant: a
+service's own embedded copy of a shared package, kept separate purely for an isolated-directory
+deploy, can silently miss a module added to the canonical copy) and L36 (a more severe variant: the
+pre-commit hook's own stash-based revert-on-failure step can itself crash mid-recovery on a locked
+file, not just leave a benign cosmetic diff -- recovery procedure documented). Full history in
 `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
 (same rule Session 9-6 hit at 41; nothing to merge yet, all 40 are still genuinely distinct).
 
@@ -326,6 +331,17 @@ resolves a different schema first, not that the table is missing). Full history 
   the only reliable check is comparing the NEW service's resolved value against an
   already-proven-working sibling's own value via length/SHA-256-prefix (never raw values, per L4),
   not by guessing from `.env.example` or a plausible-sounding variable name.
+- Recurrence (Session 11-2, 2026-08-24): a monorepo-mirror variant, not a Railway-CLI one.
+  `operation-service/packages/types/` is a physically separate, git-committed copy of
+  `@trading-alerts/types` (commit `87242f09`, "embed packages/types locally for Railway
+  single-directory upload") — `operation-service`'s own `package.json` depends on
+  `file:./packages/types`, not a symlink to the monorepo root. Session 11-1 added a whole new
+  `tier/` module to the canonical `packages/types/` but never synced it into this embedded mirror;
+  invisible until `operation-service`'s own `npm test` tried to resolve
+  `@trading-alerts/types/tier` and failed outright. Rule extension: before trusting any shared
+  package as "already linked" in a Railway-single-directory service, check whether that service
+  has its own embedded copy (`git log -- <service>/packages/`) rather than a workspace symlink —
+  a change to the canonical package doesn't reach an embedded mirror on its own.
 
 ### L22 — Order text vs ground truth
 
@@ -433,6 +449,20 @@ does not exist`, even connecting via the byte-identical `DATABASE_URL` `operatio
 - Root cause: the hook stashes pre-hook state, runs `eslint --fix`/`prettier --write` on staged content, commits the formatted version, then pops the stash as cleanup — which can reintroduce the pre-format (pre-hook) file content into the working tree and index on top of the commit that already happened, even though `HEAD` itself holds the correctly formatted version.
 - Rule: if `git status` shows a just-committed file as modified again, diff it against `HEAD` before assuming real uncommitted work exists. If the diff is whitespace/formatting-only, `git checkout HEAD -- <file>` to resync (safe — `HEAD` already holds the tested, committed version); never re-stage or re-commit a "revert to unformatted" as if it were new work, and never fold it into a later, unrelated step's commit.
 - Source: Session 4A-15 (2026-08-21) · Status: ACTIVE
+- Recurrence (Session 11-2, 2026-08-24), a more severe variant — the hook's own recovery step
+  crashed, not just left a cosmetic diff. `eslint --fix` failed on a real (unrelated, pre-existing)
+  unused-import error; lint-staged's "Reverting to original state" step then itself errored
+  (`unable to unlink old '<file>.xlsx': Invalid argument` — a file elsewhere in the working tree
+  was locked, likely open in another program) and aborted with `fatal: Could not reset index file`,
+  leaving several just-edited files reverted in the working tree while the git index still held
+  the correct staged content. Recovery: lint-staged's own "automatic backup" stash it creates
+  before touching anything is the safety net — `git stash show -p stash@{0} --stat` to confirm it
+  holds the pre-failure state, then `git checkout stash@{0} -- <path>` per affected file (this
+  updates both the index AND working tree from the stash) for files whose index was ALSO reverted,
+  or plain `git checkout -- <path>` (restores working tree from the current index) for files whose
+  index still had the correct content. Verify with `git diff --stat stash@{0}` reaching zero before
+  trusting the recovery. Fix the real lint error, then retry the commit — this pattern only
+  triggers on `eslint --fix` genuinely failing, never on a clean run.
 
 ### L37 — An order's own risk-framing/runtime-state claims can be stale even on the day it's drafted; cross-check against the project's own already-correct maintained artifacts, not just live infrastructure
 

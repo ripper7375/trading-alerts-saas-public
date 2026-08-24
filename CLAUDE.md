@@ -26,7 +26,74 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 11-1 (Tier Matrix Decision + Types/Config, Phase 11 — first of 3 sessions,
+- **Current:** Session 11-2 (Guards, JWT Claims & Header Forwarding, Phase 11 — second of 3
+  sessions, PORT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24. Unifies tier
+  **enforcement** (not just config) across the monolith/`operation-service` boundary — guards, JWT
+  claims, header forwarding — the plumbing Stack D (Phase 12) and Stack E (Phase 13) will gate
+  their endpoints against.
+  **CONFIRM found the same L3 status-integrity gap as every recent session's own CONFIRM** —
+  committed HEAD held the order at `Status: PRE-DRAFT` with 3 "Decisions needed" and sketch-only
+  Ordered Steps; the `APPROVED` version (4 Decisions taken, full 6-step Ordered Steps) existed only
+  as an uncommitted working-copy edit, zero corroborating record in `DECISION-LOG.md` or this file.
+  Surfaced directly; **Davin explicitly confirmed live in chat, 2026-08-24: "Yes, authentic. The
+  working-copy APPROVED text for Session 11-2 is confirmed authentic."**
+  **CONFIRM also found two real plan-vs-live-code discrepancies, both corrected before execution
+  with Davin's explicit approval:** (1) the order's Step 2 named exactly 2 internal
+  `lib/tier-validation.ts` call sites to fix the `canAccessSymbol` argument-order footgun on (one
+  of which it mis-cited as `validateAlertCreation` — no such function exists; the real containing
+  function is `validateFullTierAccess`, line number correct, name wrong) — a live grep found 2 more
+  external call sites (`middleware/tier-check.ts`, `app/api/drawings/route.ts`) that import the
+  function directly and would have silently had their arguments swapped by the fix; folded into
+  Step 2's scope. (2) Decision 2.3 said to import `REQUIRE_TIER_KEY` from
+  `@trading-alerts/types/tier` — that package doesn't export it (only `Tier`/`TierConfig`/
+  constants/helpers); kept `REQUIRE_TIER_KEY`/`RequireTier` locally defined in
+  `operation-service/src/auth/tier.guard.ts`, only moving `Tier` itself to the shared import.
+  **Baselines re-verified fresh at CONFIRM, all exact matches to the order's own numbers:**
+  monolith `test:ci` 150/150·2190/2190, `operation-service` 42/42·395/395, `money-service`
+  62/62·532/532 (after ruling out a concurrent-run flake — `prisma.shutdown.spec.ts`'s SIGTERM test
+  blew its 5000ms timeout running alongside 3 other suites at once; clean in isolation,
+  `LESSONS-LEARNED.md` L24 territory, not a regression), `railway-gateway` 3/3·23/23.
+  **Execution surfaced one genuinely undisclosed pre-existing gap, not scope creep:**
+  `operation-service`'s own embedded `packages/types` — a physically separate, git-tracked copy
+  (commit `87242f09`, "embed packages/types locally for Railway single-directory upload";
+  `operation-service`'s `package.json` depends on `file:./packages/types`, a nested subdirectory,
+  not a symlink to the monorepo root) — was never updated with Session 11-1's new `tier/` module:
+  no `src/tier`, no `dist/tier`, no `./tier` export in its own `package.json`. Invisible until
+  `operation-service`'s own `npm test` tried to resolve `@trading-alerts/types/tier` and failed
+  outright. Synced `src/tier/*.ts` and the root barrel verbatim from the canonical copy, added the
+  `./tier` exports/`typesVersions` entries, rebuilt `dist/`.
+  **A pre-commit-hook incident during Step 2's first commit attempt, recovered cleanly, zero work
+  lost:** the commit failed on a real, pre-existing, unrelated `eslint` error (an unused
+  `checkFeatureAccess` import, fixed inline); `lint-staged`'s own stash-based "revert to original
+  state" recovery step then itself crashed trying to unlink a locked `.xlsx` file elsewhere in the
+  working tree, aborting mid-revert and leaving several just-edited files reverted in the working
+  tree while the git index still held the correct staged content. Recovered fully via the
+  automatic `lint-staged automatic backup` stash — `git checkout stash@{0} -- <path>` /
+  `git checkout -- <path>` per file, verifying zero diff against the stash before each retry.
+  `LESSONS-LEARNED.md` L36 extended with the recovery procedure.
+  **`DECISION-LOG.md` archival pass completed (Step 1, mandatory §1 size gate, carried forward
+  from 11-1's own CONFIRM finding):** 66,296 → 26,320 bytes. Moved 50 RESOLVED `F1`–`F64` rows
+  verbatim to `history/decisions-archive.md`'s new "Legacy Flag Register (F1–F64)" table
+  (`F12`/`F21` still OPEN and `PD1` stayed in the main table); removed 6 now-redundant stub
+  sections duplicating content already in the register table or already fully archived — zero
+  unique content lost.
+  **`migration-cutover-table.md` needs no changes** (a guards/plumbing session, no route/slice had
+  a flag or rollback mechanism to move). **`migration-stack-analysis.md` DOES need an entry** (4
+  new, 14 modified) — added. **`DECISION-LOG.md` needed no flag resolution** (order's own header:
+  "Flags touched: none" — plumbing, no product-level decision).
+  **Lesson harvested:** no new lesson (still at the 40-entry cap) — recurrence notes appended to
+  **L19** (a monorepo-mirror-drift variant: a service's own embedded copy of a shared package, kept
+  separate purely for an isolated-directory deploy, can silently miss a module added to the
+  canonical copy) and **L36** (a more severe variant: the pre-commit hook's own stash-based
+  revert-on-failure step can itself crash mid-recovery on a locked file, not just leave a benign
+  cosmetic diff — recovery procedure documented).
+  **Artifacts updated:** `11-2-guards-jwt-claims-header-forwarding.migration-order.md` (Status →
+  CONFIRMED → CLOSED SUCCESSFUL, full Deviations, checked Done-when/entry-criteria boxes),
+  `DECISION-LOG.md`, `history/decisions-archive.md`, `LESSONS-LEARNED.md`,
+  `migration-stack-analysis.md`,
+  `docs/migration-orders/11-3-token-metering-and-schema.migration-order.md` (PRE-DRAFTed), this
+  file (Current/Previous rotation — Session 8-2 moved to `history/sessions-archive.md`).
+- **Previous:** Session 11-1 (Tier Matrix Decision + Types/Config, Phase 11 — first of 3 sessions,
   CONTRACT + PORT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24. Resolves
   **F68** (Master Tier Access Rights Matrix, Parts 02–33) and **F74** (Payment Currency Wiring).
   **CONFIRM found the same L3 status-integrity gap as 8-1/8-2/4A-16's own CONFIRMs** — committed
@@ -109,95 +176,6 @@
   `DECISION-LOG.md`, `history/decisions-archive.md`, `LESSONS-LEARNED.md`,
   `migration-stack-analysis.md`, `docs/migration-orders/11-2-guards-jwt-claims-header-forwarding.migration-order.md`
   (PRE-DRAFTed), this file (Current/Previous rotation — Session 8-1 moved to
-  `history/sessions-archive.md`).
-- **Previous:** Session 8-2 (Gateway Deployment & Schema Dedup, Phase 8A — second of 2 sessions,
-  INFRA), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24. **Phase 8A
-  (Decommission) is now CLOSED** — both 8-1 and 8-2 complete.
-  **CONFIRM found the same L3 status-integrity gap as 8-1's and 4A-16's own CONFIRMs** — committed
-  HEAD held the order at `Status: PRE-DRAFT` with 3 unresolved "Decisions needed" and stub Ordered
-  Steps/Rollback; the `APPROVED` version (4 Decisions, full Ordered Steps) existed only as an
-  uncommitted working-copy edit, zero corroborating record in `DECISION-LOG.md` or this file.
-  Surfaced directly; Davin confirmed live it is authentic.
-  **A second, more consequential CONFIRM-time finding: the order's own "zero-blip rolling
-  redeploy" framing was contradicted by live infrastructure.** A live audit of all 5 Railway
-  projects in this account found no service named `railway-gateway`/`gateway` anywhere —
-  `railway-gateway` had been built (Phase 4/backend-stack-c era) but **never actually deployed to
-  Railway**, contrary to `migration-stack-analysis.md`'s stale (2026-07-11) "already deployed"
-  claim; `migration-cutover-table.md`'s own Slice 12 note (2026-08-02) had already flagged this as
-  "a separate, still-open question." Davin confirmed live: this is genuinely a first deployment;
-  live alert-relevant price data flows via Redis channels directly today, `market_data_v6` had
-  never received a live Railway Gateway write. Corrected the order's Decision 3/Steps 3–5 framing
-  accordingly before CONFIRM completed.
-  **Execution surfaced a real chain of first-deployment defects, none of them scope creep** — all
-  squarely inside Decision 2's "verify `prisma generate` compiles cleanly" / Decision 3's "verify
-  ingest" mandates, each found and fixed in turn: (1) Prisma 7 requires a driver adapter, not a
-  schema-declared `url` — removed `url` from `railway-gateway/prisma/schema.prisma`, added
-  `@prisma/adapter-pg` + a `PrismaPg` adapter mirroring money-service's own pattern; (2) no
-  `engines` field — Nixpacks defaulted to Node 18, Prisma 7 needs ≥20 — added the same
-  `engines.node >=20.0.0` the other three services already declare; (3) no `postinstall` script —
-  Railway's `npm ci` never ran `prisma generate`, `nest build` failed with 5 `TS2305` errors —
-  added `"postinstall": "prisma generate"`; (4) `BullModule.forRoot`'s separate `REDIS_HOST`/
-  `REDIS_PORT`/`REDIS_PASSWORD` fields could not reach Railway's managed Redis reliably — switched
-  to a single `REDIS_URL`, matching `operation-service`'s own exclusive convention.
-  **Two pre-existing staging-infrastructure gaps found and fixed, Davin-approved each time:** the
-  `postgre for staging` project's own `Redis` add-on had zero active deployments (dormant since
-  the project's creation, 2026-01-07) — `railway redeploy --service Redis --from-source` was
-  flagged by the environment's own permission classifier, escalated, Davin approved live, started
-  it, then restarted `railway-gateway` for a fresh connection; staging's Postgres had zero
-  application schema at all (no `market_data_v6`) — generated the single-table DDL via a read-only
-  `prisma migrate diff` (no DB touched), presented it verbatim, applied only after Davin's explicit
-  approval (`docs/migration-orders/session-8-2-staging-market-data-v6.sql`).
-  **Full staging pipeline proven end-to-end, independently DB-verified, not just queue
-  bookkeeping:** `GET /api/v1/health` → `healthy` (redis/queue/database all up); a synthetic test
-  vector landed the exact submitted row in `market_data_v6`; re-sending the identical key left the
-  table at 1 total row (idempotent upsert confirmed, no duplicate).
-  **Production deployment (new service in `trading-alerts`) succeeded cleanly on the first
-  attempt** — `GET /api/v1/health` returned `healthy` immediately via proper internal networking.
-  **Production's first real write exposed a wiring assumption that didn't hold and, beneath it, a
-  genuine pre-existing gap this session doesn't own.** `${{Postgres.DATABASE_URL}}` turned out not
-  to be the same database `operation-service`/`money-service` actually use; escalated rather than
-  guessed, Davin's own diagnosis (app services connect via `pgbouncer`) led to checking
-  `operation-service`'s real `DATABASE_URL` — which itself resolves directly to the `Postgres`
-  service's own private domain, not a distinct `pgbouncer` host (confirmed live: `pgbouncer` has
-  no `DATABASE_URL` variable of its own at all). Re-pointed to
-  `${{operation-service.DATABASE_URL}}` (byte-identical, confirmed via SHA-256-prefix + length
-  comparison, values never printed) — satisfying Davin's actual intent even though the literal
-  mechanism he named didn't hold up. **Even on that byte-identical connection, the write still
-  failed** — re-running the exact DDL against production returned `relation "market_data_v6"
-  already exists`, proving the table is real but sitting in whatever schema the connecting role's
-  own `search_path` resolves first, not `public`. This is `DECISION-LOG.md` **F70**'s own
-  already-registered, still-open question (which DB role reads `market_data_v6`, owned by Session
-  12-0) — not a new problem, not guessed at. **Per Davin's explicit direction**, this session's
-  verification of record is the complete staging end-to-end proof plus production's healthy
-  `/health`; production ingest verification is deferred to F70's own resolution.
-  **A secret-exposure incident, not repeated:** checking Railway CLI link state, `cat
-~/.railway/config.json` printed this environment's real Railway `accessToken`/`refreshToken` into
-  the transcript (`LESSONS-LEARNED.md` L4 territory) — disclosed immediately, rotation is Davin's
-  call.
-  **Baselines re-verified fresh at close:** monolith `test:ci` 150/150·2176/2176 (unchanged),
-  `operation-service` 42/42·395/395 (unchanged), `money-service` 62/62·532/532 (unchanged, clean
-  this time — no repeat of the concurrent-run flake), `railway-gateway` (new) 3/3·23/23, clean
-  build. None of monolith/operation-service/money-service were touched this session
-  (`railway-gateway` is `SEPARATE_STACK`).
-  **`migration-cutover-table.md` needs no changes** (an INFRA deployment session, no
-  `MIGRATE_*`-flagged route/slice moved). **`migration-stack-analysis.md` DOES need an entry** (1
-  new, 7 modified — `railway-gateway/*` + `money-service/src/main.ts`) — added. **`DECISION-LOG.md`
-  updated** — F70 gets a progress note (new evidence, not a resolution; resolution stays owned by
-  Session 12-0).
-  **Lesson harvested:** still at the 40-entry cap, no new lesson — recurrence notes appended to
-  **L19** (three first-deploy gotchas: `railway up`'s upload source is the shell's current
-  directory at invocation time, not the linked service's own; a brand-new service needs
-  `engines`/`postinstall` parity with its already-deployed siblings before its first build; a
-  plausible `${{Service.VAR}}` reference isn't proof of a working topology — only a
-  hash-compared, known-working sibling's own value is) and **L33** (a schema-resolution variant:
-  a Prisma "table does not exist" error can mean the connecting role's `search_path` resolves a
-  different schema first, not that data was lost).
-  **Artifacts updated:** `8-2-gateway-deployment-schema-dedup.migration-order.md` (Status →
-  CONFIRMED → CLOSED SUCCESSFUL, full Deviations, checked Done-when/entry-criteria boxes),
-  `DECISION-LOG.md`, `LESSONS-LEARNED.md`, `migration-stack-analysis.md`,
-  `docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-11.md`
-  (authored), `docs/migration-orders/11-1-tier-matrix-decision-types-config.migration-order.md`
-  (PRE-DRAFTed), this file (Current/Previous rotation — Session 4A-16 moved to
   `history/sessions-archive.md`).
 
 ## Key documents

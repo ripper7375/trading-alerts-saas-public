@@ -7,6 +7,96 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 8-2** (Gateway Deployment & Schema Dedup,
+  Phase 8A — second of 2 sessions, INFRA), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL**
+  2026-08-24. **Phase 8A (Decommission) is now CLOSED** — both 8-1 and 8-2 complete.
+  **CONFIRM found the same L3 status-integrity gap as 8-1's and 4A-16's own CONFIRMs** — committed
+  HEAD held the order at `Status: PRE-DRAFT` with 3 unresolved "Decisions needed" and stub Ordered
+  Steps/Rollback; the `APPROVED` version (4 Decisions, full Ordered Steps) existed only as an
+  uncommitted working-copy edit, zero corroborating record in `DECISION-LOG.md` or this file.
+  Surfaced directly; Davin confirmed live it is authentic.
+  **A second, more consequential CONFIRM-time finding: the order's own "zero-blip rolling
+  redeploy" framing was contradicted by live infrastructure.** A live audit of all 5 Railway
+  projects in this account found no service named `railway-gateway`/`gateway` anywhere —
+  `railway-gateway` had been built (Phase 4/backend-stack-c era) but **never actually deployed to
+  Railway**, contrary to `migration-stack-analysis.md`'s stale (2026-07-11) "already deployed"
+  claim; `migration-cutover-table.md`'s own Slice 12 note (2026-08-02) had already flagged this as
+  "a separate, still-open question." Davin confirmed live: this is genuinely a first deployment;
+  live alert-relevant price data flows via Redis channels directly today, `market_data_v6` had
+  never received a live Railway Gateway write. Corrected the order's Decision 3/Steps 3–5 framing
+  accordingly before CONFIRM completed.
+  **Execution surfaced a real chain of first-deployment defects, none of them scope creep** — all
+  squarely inside Decision 2's "verify `prisma generate` compiles cleanly" / Decision 3's "verify
+  ingest" mandates, each found and fixed in turn: (1) Prisma 7 requires a driver adapter, not a
+  schema-declared `url` — removed `url` from `railway-gateway/prisma/schema.prisma`, added
+  `@prisma/adapter-pg` + a `PrismaPg` adapter mirroring money-service's own pattern; (2) no
+  `engines` field — Nixpacks defaulted to Node 18, Prisma 7 needs ≥20 — added the same
+  `engines.node >=20.0.0` the other three services already declare; (3) no `postinstall` script —
+  Railway's `npm ci` never ran `prisma generate`, `nest build` failed with 5 `TS2305` errors —
+  added `"postinstall": "prisma generate"`; (4) `BullModule.forRoot`'s separate `REDIS_HOST`/
+  `REDIS_PORT`/`REDIS_PASSWORD` fields could not reach Railway's managed Redis reliably — switched
+  to a single `REDIS_URL`, matching `operation-service`'s own exclusive convention.
+  **Two pre-existing staging-infrastructure gaps found and fixed, Davin-approved each time:** the
+  `postgre for staging` project's own `Redis` add-on had zero active deployments (dormant since
+  the project's creation, 2026-01-07) — `railway redeploy --service Redis --from-source` was
+  flagged by the environment's own permission classifier, escalated, Davin approved live, started
+  it, then restarted `railway-gateway` for a fresh connection; staging's Postgres had zero
+  application schema at all (no `market_data_v6`) — generated the single-table DDL via a read-only
+  `prisma migrate diff` (no DB touched), presented it verbatim, applied only after Davin's explicit
+  approval (`docs/migration-orders/session-8-2-staging-market-data-v6.sql`).
+  **Full staging pipeline proven end-to-end, independently DB-verified, not just queue
+  bookkeeping:** `GET /api/v1/health` → `healthy` (redis/queue/database all up); a synthetic test
+  vector landed the exact submitted row in `market_data_v6`; re-sending the identical key left the
+  table at 1 total row (idempotent upsert confirmed, no duplicate).
+  **Production deployment (new service in `trading-alerts`) succeeded cleanly on the first
+  attempt** — `GET /api/v1/health` returned `healthy` immediately via proper internal networking.
+  **Production's first real write exposed a wiring assumption that didn't hold and, beneath it, a
+  genuine pre-existing gap this session doesn't own.** `${{Postgres.DATABASE_URL}}` turned out not
+  to be the same database `operation-service`/`money-service` actually use; escalated rather than
+  guessed, Davin's own diagnosis (app services connect via `pgbouncer`) led to checking
+  `operation-service`'s real `DATABASE_URL` — which itself resolves directly to the `Postgres`
+  service's own private domain, not a distinct `pgbouncer` host (confirmed live: `pgbouncer` has
+  no `DATABASE_URL` variable of its own at all). Re-pointed to
+  `${{operation-service.DATABASE_URL}}` (byte-identical, confirmed via SHA-256-prefix + length
+  comparison, values never printed) — satisfying Davin's actual intent even though the literal
+  mechanism he named didn't hold up. **Even on that byte-identical connection, the write still
+  failed** — re-running the exact DDL against production returned `relation "market_data_v6"
+  already exists`, proving the table is real but sitting in whatever schema the connecting role's
+  own `search_path` resolves first, not `public`. This is `DECISION-LOG.md` **F70**'s own
+  already-registered, still-open question (which DB role reads `market_data_v6`, owned by Session
+  12-0) — not a new problem, not guessed at. **Per Davin's explicit direction**, this session's
+  verification of record is the complete staging end-to-end proof plus production's healthy
+  `/health`; production ingest verification is deferred to F70's own resolution.
+  **A secret-exposure incident, not repeated:** checking Railway CLI link state, `cat
+~/.railway/config.json` printed this environment's real Railway `accessToken`/`refreshToken` into
+  the transcript (`LESSONS-LEARNED.md` L4 territory) — disclosed immediately, rotation is Davin's
+  call.
+  **Baselines re-verified fresh at close:** monolith `test:ci` 150/150·2176/2176 (unchanged),
+  `operation-service` 42/42·395/395 (unchanged), `money-service` 62/62·532/532 (unchanged, clean
+  this time — no repeat of the concurrent-run flake), `railway-gateway` (new) 3/3·23/23, clean
+  build. None of monolith/operation-service/money-service were touched this session
+  (`railway-gateway` is `SEPARATE_STACK`).
+  **`migration-cutover-table.md` needs no changes** (an INFRA deployment session, no
+  `MIGRATE_*`-flagged route/slice moved). **`migration-stack-analysis.md` DOES need an entry** (1
+  new, 7 modified — `railway-gateway/*` + `money-service/src/main.ts`) — added. **`DECISION-LOG.md`
+  updated** — F70 gets a progress note (new evidence, not a resolution; resolution stays owned by
+  Session 12-0).
+  **Lesson harvested:** still at the 40-entry cap, no new lesson — recurrence notes appended to
+  **L19** (three first-deploy gotchas: `railway up`'s upload source is the shell's current
+  directory at invocation time, not the linked service's own; a brand-new service needs
+  `engines`/`postinstall` parity with its already-deployed siblings before its first build; a
+  plausible `${{Service.VAR}}` reference isn't proof of a working topology — only a
+  hash-compared, known-working sibling's own value is) and **L33** (a schema-resolution variant:
+  a Prisma "table does not exist" error can mean the connecting role's `search_path` resolves a
+  different schema first, not that data was lost).
+  **Artifacts updated:** `8-2-gateway-deployment-schema-dedup.migration-order.md` (Status →
+  CONFIRMED → CLOSED SUCCESSFUL, full Deviations, checked Done-when/entry-criteria boxes),
+  `DECISION-LOG.md`, `LESSONS-LEARNED.md`, `migration-stack-analysis.md`,
+  `docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-11.md`
+  (authored), `docs/migration-orders/11-1-tier-matrix-decision-types-config.migration-order.md`
+  (PRE-DRAFTed), this file (Current/Previous rotation — Session 4A-16 moved to
+  `history/sessions-archive.md`).
+
 - _(superseded-by-above, retained for context)_ **Session 8-1** (Deletion Sweep, Phase 8A — first
   of 2 sessions, VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24.
   **CONFIRM found the same L3 status-integrity gap as 4A-16's own CONFIRM** — committed HEAD

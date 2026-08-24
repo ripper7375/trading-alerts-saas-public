@@ -4256,8 +4256,79 @@ against.
 
 </details>
 
+<details>
+<summary>Session 11-2 (Guards, JWT Claims & Header Forwarding, Phase 11 second-of-3, PORT) — 4 new, 14 modified, 0 deleted</summary>
+
+Unified tier **enforcement** (not just config) across the monolith/`operation-service` boundary —
+guards, JWT claims, and header forwarding — the plumbing Stack D (Phase 12) and Stack E (Phase 13)
+gate their endpoints against.
+
+- **New:** `operation-service/packages/types/src/tier/{types,constants,helpers,index}.ts` — verbatim
+  copies of Session 11-1's canonical `packages/types/src/tier/*` files, synced into
+  `operation-service`'s own embedded `packages/types` mirror (see finding below).
+- **Modified:** `lib/tier-validation.ts` (`canAccessSymbol(tier, symbol)` → `(symbol, tier?)`,
+  matching every other `canAccessSymbol` in the repo; added `canAccessAiAnalyst`/
+  `canAccessMarketComments` wrappers returning this file's own `ValidationResult` shape, delegating
+  to the shared package via `lib/tier-config.ts`), `operation-service/src/tier/tier.schemas.ts`
+  (re-exports `Tier`/`SYMBOLS`/`TIMEFRAMES`/`canAccessSymbol` from `@trading-alerts/types/tier`
+  instead of a third local re-implementation), `middleware/tier-check.ts` and
+  `app/api/drawings/route.ts` (both call `canAccessSymbol` imported from `lib/tier-validation.ts`;
+  updated to the new argument order — found live at CONFIRM, not named in the order's own text),
+  `operation-service/src/auth/next-auth-jwt.util.ts` (`NextAuthTokenClaims.tier` now typed `Tier`),
+  `operation-service/src/auth/jwt-auth.guard.ts` (missing/unrecognized tier claim now defaults to
+  `FREE`, not `PRO` — closes a live default-allow gap; `RequestUser.tier` typed `Tier`),
+  `operation-service/src/auth/tier.guard.ts` (`Tier` now imported from `@trading-alerts/types/tier`
+  directly; `REQUIRE_TIER_KEY`/`RequireTier` stay locally defined — the shared package doesn't
+  export them; 403 body now carries `reason: 'TIER_PRO_REQUIRED'`),
+  `operation-service/src/auth/tier.guard.spec.ts` (`makeUser()` helper typed `Tier`),
+  `lib/operation-service/client.ts` (`forwardedRequestContext()` now forwards 11 headers —
+  tracing, network/client, and the 2026-08-19 GeoIP context — instead of 2), `__tests__/lib/
+tier-validation.test.ts`, `__tests__/integration/tier1-workflows.test.ts`, `__tests__/integration/
+tier2-workflows.test.ts` (all three updated for the new `canAccessSymbol` argument order;
+  `tier1-workflows.test.ts` also lost an unused `checkFeatureAccess` import, a pre-existing lint
+  violation surfaced by staging the file), `operation-service/packages/types/package.json` and
+  `operation-service/packages/types/src/index.ts` (see finding below).
+- **CONFIRM-time findings, corrected before execution (Davin-approved):** the order's own Step 2
+  named only 2 internal `canAccessSymbol` call sites to fix; live grep found 2 more external ones
+  (`middleware/tier-check.ts`, `app/api/drawings/route.ts`) importing the function directly and
+  calling it with the old argument order — fixed alongside. The order's Decision 2.3 said to import
+  `REQUIRE_TIER_KEY` from `@trading-alerts/types/tier`; live code showed it's defined only in
+  `operation-service/src/auth/tier.guard.ts` — kept local per Davin's direction.
+- **Undisclosed gap found executing Step 2, not scope creep:** `operation-service`'s own embedded
+  `packages/types` (a physically separate copy of the shared package, committed at `87242f09` to
+  give Railway's single-directory upload something self-contained to build — `operation-service`'s
+  `@trading-alerts/types` dependency is `file:./packages/types`, not a symlink to the monorepo
+  root) was never updated with Session 11-1's new `tier/` module — no `src/tier`, no `dist/tier`, no
+  `./tier` export in its own `package.json`. `npm test` failed outright (`Cannot find module
+'@trading-alerts/types/tier'`) until this was synced: copied `src/tier/*.ts` and the root barrel
+  (`src/index.ts`) verbatim from the canonical copy, added the `./tier` exports/`typesVersions`
+  entries, rebuilt `dist/`.
+- **A pre-commit-hook incident, recovered cleanly:** the first commit attempt for Step 2 failed on a
+  real `eslint` error (an unrelated pre-existing unused import, fixed); `lint-staged`'s own
+  stash-based "revert to original state" step then itself crashed trying to unlink a locked `.xlsx`
+  file elsewhere in the working tree (`Invalid argument`), leaving several just-edited files
+  reverted in the working tree while the git index still held the correct staged content. Recovered
+  fully via the automatic `lint-staged automatic backup` stash `git checkout stash@{0} -- <path>`
+  restore (verified zero diff against the stash before proceeding) plus `git checkout -- <path>` for
+  files whose index already had the correct content; zero work lost, confirmed by full diff
+  comparison at each step before re-attempting the commit. `LESSONS-LEARNED.md` L36 extended.
+- **Live-verification:** `tsc --noEmit` clean across all 4 codebases. Baselines re-verified fresh,
+  twice (pre- and post-change): monolith `test:ci` 150/150·2190/2190 (unchanged), `operation-service`
+  42/42·395/395 (unchanged net count — new `reason` field and default-tier fix covered by existing
+  assertions plus the `tier.guard.spec.ts` type fix), `money-service` 62/62·532/532 (one transient
+  concurrent-run flake on `prisma.shutdown.spec.ts`'s 5000ms SIGTERM timeout when run alongside the
+  other 3 suites at once — L24 territory; clean on an isolated re-run, not a regression),
+  `railway-gateway` 3/3·23/23 (unchanged, untouched — `SEPARATE_STACK`).
+- **`DECISION-LOG.md` size-gate archival pass (Step 1, mandatory):** 66,296 → 26,320 bytes. Moved 50
+  RESOLVED `F1`–`F64` rows verbatim to `history/decisions-archive.md`'s new "Legacy Flag Register
+  (F1–F64)" table (`F12`/`F21` still OPEN and `PD1` stayed in the main table); removed 6 now-redundant
+  stub sections that only duplicated content already in the register table or already fully
+  archived. Zero unique content lost.
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-24 (Session 11-1, tier matrix decision + types/config
-— F68/F74 RESOLVED)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-24 (Session 11-2, guards/JWT claims/header
+forwarding — tier enforcement unified)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
