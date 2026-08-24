@@ -8,39 +8,56 @@
  * - Watchlists removed from the product entirely.
  * - Tier differentiation: Alerts (FREE 0 / PRO 100), notifications,
  *   multi-timeframe visualization, and drawing-engine line alerts (PRO only).
+ *
+ * Canonical shape and non-configurable values now live in
+ * `@trading-alerts/types/tier` (Session 11-1, F68/F74) — this file
+ * re-exports from there and layers on the one piece that's genuinely
+ * monolith-specific: the env-driven PRO price override (below).
  */
 
-export type Tier = 'FREE' | 'PRO';
+import {
+  type Tier as SharedTier,
+  type TierConfig as SharedTierConfig,
+  SYMBOLS,
+  TIMEFRAMES,
+  FREE_TIER_CONFIG as SHARED_FREE_TIER_CONFIG,
+  PRO_TIER_CONFIG as SHARED_PRO_TIER_CONFIG,
+  TRIAL_CONFIG,
+  canAccessSymbol as sharedCanAccessSymbol,
+  canAccessTimeframe as sharedCanAccessTimeframe,
+  canAccessDrawingAlerts,
+  canAccessAiAnalyst,
+  canAccessMarketComments,
+  canAccessMarketQualityMetrics,
+} from '@trading-alerts/types/tier';
 
-export interface TierConfig {
-  name: string;
-  price: number;
-  symbols: number;
-  timeframes: number;
-  chartCombinations: number;
-  maxAlerts: number;
-  rateLimit: number; // requests per hour
-}
+export type Tier = SharedTier;
+export type TierConfig = SharedTierConfig;
+
+export { SYMBOLS, TIMEFRAMES, TRIAL_CONFIG };
+export {
+  canAccessDrawingAlerts,
+  canAccessAiAnalyst,
+  canAccessMarketComments,
+  canAccessMarketQualityMetrics,
+};
 
 /**
  * PRO monthly price (USD).
  * Configurable via env so the marketed price can be changed without a deploy.
  * NEXT_PUBLIC_ so both server and client bundles agree on the displayed price.
  * The authoritative billing amount remains the Stripe/dLocal Price ID.
+ *
+ * This override is intentionally NOT hoisted into `@trading-alerts/types`:
+ * NEXT_PUBLIC_-prefixed env vars are Next.js client-bundle plumbing with no
+ * equivalent in the NestJS services that package also feeds. The shared
+ * package's own `PRO_TIER_CONFIG.price` is the $29 catalog default; this
+ * file layers the monolith's env override on top of it.
  */
 export const PRO_MONTHLY_PRICE: number = Number(
-  process.env['NEXT_PUBLIC_PRO_PRICE_MONTHLY'] ?? '29'
+  process.env['NEXT_PUBLIC_PRO_PRICE_MONTHLY'] ??
+    String(SHARED_PRO_TIER_CONFIG.price)
 );
-
-/**
- * The single supported symbol (V8 architecture)
- */
-export const SYMBOLS = ['XAUUSD'] as const;
-
-/**
- * The two supported timeframes (V8 architecture)
- */
-export const TIMEFRAMES = ['M5', 'M15'] as const;
 
 /**
  * FREE Tier Configuration
@@ -49,34 +66,24 @@ export const TIMEFRAMES = ['M5', 'M15'] as const;
  * - 0 alerts (Alerts are a PRO feature)
  * - 60 requests/hour
  * - $0/month
+ * - No drawing-alert, AI Analyst, or market-comments entitlements
  */
-export const FREE_TIER_CONFIG: TierConfig = {
-  name: 'FREE',
-  price: 0,
-  symbols: 1,
-  timeframes: 2,
-  chartCombinations: 2,
-  maxAlerts: 0,
-  rateLimit: 60,
-};
+export const FREE_TIER_CONFIG: TierConfig = SHARED_FREE_TIER_CONFIG;
 
 /**
  * PRO Tier Configuration
  * - XAUUSD only, M5 + M15 (same data access as FREE)
- * - 100 alerts
- * - Multi-timeframe visualization + drawing-engine line alerts
+ * - 100 alerts (incl. drawing-engine line-touch alerts)
+ * - Multi-timeframe visualization
  * - 300 requests/hour
  * - Configurable price/month (env NEXT_PUBLIC_PRO_PRICE_MONTHLY, default $29)
  * - 7-day free trial with full PRO access
+ * - AI Analyst (Stack D, 500k monthly tokens) and Market Comments + Quality
+ *   Metrics (Stack E) entitlements
  */
 export const PRO_TIER_CONFIG: TierConfig = {
-  name: 'PRO',
+  ...SHARED_PRO_TIER_CONFIG,
   price: PRO_MONTHLY_PRICE,
-  symbols: 1,
-  timeframes: 2,
-  chartCombinations: 2,
-  maxAlerts: 100,
-  rateLimit: 300,
 };
 
 /**
@@ -103,15 +110,6 @@ export const FREE_TIMEFRAMES = TIMEFRAMES;
 export const PRO_TIMEFRAMES = TIMEFRAMES;
 /** @deprecated No PRO-exclusive timeframes in V8. Always empty. */
 export const PRO_EXCLUSIVE_TIMEFRAMES = [] as const;
-
-/**
- * Trial Period Configuration
- */
-export const TRIAL_CONFIG = {
-  DURATION_DAYS: 7,
-  PRICE: 0, // Free trial
-  GRANT_PRO_ACCESS: true, // Trial users get full PRO tier access
-};
 
 /**
  * Get tier configuration by tier name
@@ -153,14 +151,10 @@ export function getChartCombinations(tier: Tier): number {
  * Check if a tier can access a specific symbol.
  * V8: tier-independent — XAUUSD only.
  */
-export function canAccessSymbol(symbol: string, _tier: Tier): boolean {
-  return (SYMBOLS as readonly string[]).includes(symbol.toUpperCase());
-}
+export const canAccessSymbol = sharedCanAccessSymbol;
 
 /**
  * Check if a tier can access a specific timeframe.
  * V8: tier-independent — M5 and M15 only.
  */
-export function canAccessTimeframe(timeframe: string, _tier: Tier): boolean {
-  return (TIMEFRAMES as readonly string[]).includes(timeframe.toUpperCase());
-}
+export const canAccessTimeframe = sharedCanAccessTimeframe;
