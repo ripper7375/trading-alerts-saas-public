@@ -1,6 +1,8 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
+import type { Tier } from '@trading-alerts/types/tier';
+
 import type { AuthenticatedRequest, RequestUser } from './jwt-auth.guard';
 import { RequireTier, TierGuard } from './tier.guard';
 
@@ -24,7 +26,7 @@ function contextFor(handler: () => void, user?: RequestUser): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
-function makeUser(tier: string): RequestUser {
+function makeUser(tier: Tier): RequestUser {
   return {
     id: 'user-1',
     email: 'alice@example.com',

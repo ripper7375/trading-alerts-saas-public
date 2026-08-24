@@ -15,13 +15,15 @@ import { jwtDecrypt } from 'jose';
 // against a real token minted by next-auth's own `encode()` before this
 // guard was built (DECISION-LOG.md F7 evidence).
 
+import type { Tier } from '@trading-alerts/types/tier';
+
 export interface NextAuthTokenClaims {
   sub?: string;
   id: string;
   email: string;
   name?: string | null;
   picture?: string | null;
-  tier: string;
+  tier: Tier;
   role: string;
   isAffiliate: boolean;
   iat: number;

@@ -7,7 +7,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
-import type { Tier } from '../tier/tier.schemas';
+import type { Tier } from '@trading-alerts/types/tier';
+
 import type { AuthenticatedRequest } from './jwt-auth.guard';
 
 export const REQUIRE_TIER_KEY = 'requireTier';
@@ -43,6 +44,7 @@ export class TierGuard implements CanActivate {
       throw new ForbiddenException({
         error: 'Forbidden',
         message: `This feature requires a ${requiredTier} subscription.`,
+        reason: 'TIER_PRO_REQUIRED',
       });
     }
 

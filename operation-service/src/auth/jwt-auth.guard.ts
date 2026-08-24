@@ -6,12 +6,14 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 
+import type { Tier } from '@trading-alerts/types/tier';
+
 import { decodeNextAuthToken, NextAuthTokenClaims } from './next-auth-jwt.util';
 
 export interface RequestUser {
   id: string;
   email: string;
-  tier: string;
+  tier: Tier;
   role: string;
   isAffiliate: boolean;
 }
@@ -55,7 +57,10 @@ export class JwtAuthGuard implements CanActivate {
     (request as AuthenticatedRequest).user = {
       id: claims.id,
       email: claims.email,
-      tier: claims.tier || 'PRO',
+      // Default-deny: an absent/unrecognized tier claim resolves to FREE, never
+      // PRO — Session 11-2 (DECISION-LOG.md), fixing a live default-allow gap
+      // (this previously defaulted to 'PRO').
+      tier: claims.tier === 'PRO' ? 'PRO' : 'FREE',
       role: claims.role || 'USER',
       isAffiliate: !!claims.isAffiliate,
     };
