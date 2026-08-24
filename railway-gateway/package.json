@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Railway NestJS API Gateway for the v6 XAUUSD data pipeline (backend-stack-c). Receives validated market_data rows from the Push Worker/Relay, validates against gateway_contract_market_data.schema.json, and upserts idempotently into market_data_v6.",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "build": "nest build",
     "start": "node dist/main",

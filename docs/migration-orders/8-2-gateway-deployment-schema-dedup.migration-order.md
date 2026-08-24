@@ -213,6 +213,25 @@ _(each step = change → immediate verification → rollback note)_
    (`pnpm-workspace.yaml` lists only `packages/*` and one `seed-code/` path) — used
    `cd railway-gateway && npm test` instead, matching how `operation-service`/`money-service` are
    run elsewhere in this protocol.
+5. **Prisma 7 requires a driver adapter; `railway-gateway`'s schema/PrismaService needed real code
+   changes beyond the version bump, not just `package.json`.** `prisma generate` failed outright
+   (`P1012`: `datasource.url` no longer supported in schema files). Removed `url` from
+   `railway-gateway/prisma/schema.prisma`'s datasource block (matching the monolith's own schema)
+   and added `@prisma/adapter-pg@7.9.1` + a `PrismaPg` adapter in `railway-gateway/src/prisma/
+prisma.service.ts`, mirroring money-service's own established pattern exactly (no `ssl` override —
+   money-service's own comment documents PgBouncer's internal listener rejecting TLS outright).
+   In scope: Decision 2 itself says "verify... `prisma generate` compiles cleanly."
+6. **First staging deploy attempt failed: wrong upload source.** `railway up --service
+railway-gateway` was run from the repo root (a stale shell cwd from Step 2's baseline runs), so it
+   uploaded and tried to build the whole monorepo instead of `railway-gateway/`. Fixed by chaining
+   `cd` into the same command; re-run confirmed the correct directory via a literal `pwd` in the
+   same invocation.
+7. **Second attempt failed for a real reason: Prisma 7.9.1 requires Node ≥20/22.12/24, and
+   `railway-gateway/package.json` had no `engines` field** — Nixpacks defaulted to Node 18.20.5 and
+   `npm ci` hard-failed on Prisma's own preinstall check. The other three services all declare
+   `"engines": {"node": ">=20.0.0", "npm": ">=9.0.0"}`; added the identical field to
+   `railway-gateway/package.json`. A direct, necessary consequence of Decision 2's own Prisma bump,
+   not scope creep.
 
 ---
 
