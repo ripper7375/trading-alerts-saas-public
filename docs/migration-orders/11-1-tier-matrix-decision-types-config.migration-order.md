@@ -8,8 +8,8 @@
 > DRAFT by the Advisor / Antigravity (2026-08-24)** per `MASTER-ROADMAP-PHASES-7-15.md` §"Phase 11"
 > and `davintrade-stack-d-and-e/PREPARATORY-TIER-ACCESS-AND-CORE-REFACTORING-SPECIFICATION.md`.
 
-**Session:** 11-1 · **Phase:** 11 (Preparatory Tier-Access & Core Refactoring, first of 3 sessions) · **Variant:** CONTRACT + PORT · **Status:** CONFIRMED  
-**Generated:** 2026-08-24 (Executor, PRE-DRAFT) · **Upgraded to DRAFT:** 2026-08-24 (Advisor / Antigravity) · **Approved:** 2026-08-24 (Davin — explicit sign-offs on F68 & F74) · **Confirmed:** 2026-08-24 (Executor — CONFIRM found the order's own committed HEAD still at `PRE-DRAFT` with F68/F74 still OPEN in `DECISION-LOG.md`, the DRAFT→APPROVED text present only as an uncommitted working-copy edit, same `LESSONS-LEARNED.md` L3 status-integrity gap as 8-1/8-2/4A-16's own CONFIRMs; surfaced directly, Davin explicitly confirmed live in chat 2026-08-24 that both sign-offs are authentic. All other entry criteria — baselines, live Stripe cross-check — independently re-verified fresh and green; see Deviations)  
+**Session:** 11-1 · **Phase:** 11 (Preparatory Tier-Access & Core Refactoring, first of 3 sessions) · **Variant:** CONTRACT + PORT · **Status:** CLOSED SUCCESSFUL  
+**Generated:** 2026-08-24 (Executor, PRE-DRAFT) · **Upgraded to DRAFT:** 2026-08-24 (Advisor / Antigravity) · **Approved:** 2026-08-24 (Davin — explicit sign-offs on F68 & F74) · **Confirmed:** 2026-08-24 (Executor — CONFIRM found the order's own committed HEAD still at `PRE-DRAFT` with F68/F74 still OPEN in `DECISION-LOG.md`, the DRAFT→APPROVED text present only as an uncommitted working-copy edit, same `LESSONS-LEARNED.md` L3 status-integrity gap as 8-1/8-2/4A-16's own CONFIRMs; surfaced directly, Davin explicitly confirmed live in chat 2026-08-24 that both sign-offs are authentic. All other entry criteria — baselines, live Stripe cross-check — independently re-verified fresh and green; see Deviations) · **Closed:** 2026-08-24 (Executor)  
 **Flags touched:** **F68** (Master Tier Matrix Specification — `⚠ NEEDS EXPLICIT SIGN-OFF` → SIGNED OFF), **F74** (Payment Currency Wiring Architecture — `⚠ NEEDS EXPLICIT SIGN-OFF` → SIGNED OFF).  
 **Estimated time:** ~3–4h (catalog verification, types hoisting to `@trading-alerts/types`, `lib/tier-config.ts` reconciliation, drawing tool-set gating, full test suite pass).  
 **Target components:** `packages/types/` (`@trading-alerts/types/tier`), `lib/tier-config.ts`, `lib/stripe/stripe.ts`, `types/`.
@@ -102,14 +102,14 @@ This is Phase 11's foundational session. Stack D (Phase 12: Conversational AI An
 
 ## Entry criteria (re-verify all at CONFIRM)
 
-- [ ] **Phase 8A (Sessions 8-1, 8-2) CLOSED SUCCESSFUL** in `CLAUDE.md`.
-- [ ] **Baseline test suites 100% green**:
-  - Monolith `test:ci`: 150/150 suites, 2176/2176 tests.
-  - `operation-service`: 42/42 suites, 395/395 tests.
-  - `money-service`: 62/62 suites, 532/532 tests.
-  - `railway-gateway`: 3/3 suites, 23/23 tests.
-- [ ] **Live Stripe & config cross-check verified**: `STRIPE_PRO_PRICE_ID` matches $29/mo, `lib/tier-config.ts` confirms 100 max alerts for PRO and 0 for FREE.
-- [ ] **Davin present for F68 and F74 explicit sign-offs (`⚠ NEEDS EXPLICIT SIGN-OFF`)**.
+- [x] **Phase 8A (Sessions 8-1, 8-2) CLOSED SUCCESSFUL** in `CLAUDE.md`. MET.
+- [x] **Baseline test suites 100% green**:
+  - Monolith `test:ci`: 150/150 suites, 2176/2176 tests. MET — re-verified fresh.
+  - `operation-service`: 42/42 suites, 395/395 tests. MET — re-verified fresh.
+  - `money-service`: 62/62 suites, 532/532 tests. MET — re-verified fresh.
+  - `railway-gateway`: 3/3 suites, 23/23 tests. MET — re-verified fresh.
+- [x] **Live Stripe & config cross-check verified**: `STRIPE_PRO_PRICE_ID` matches $29/mo, `lib/tier-config.ts` confirms 100 max alerts for PRO and 0 for FREE. MET — live read-only Stripe API call: `unit_amount: 2900`, `currency: usd`, `interval: month`, `active: true` (Stripe test mode).
+- [x] **Davin present for F68 and F74 explicit sign-offs (`⚠ NEEDS EXPLICIT SIGN-OFF`)**. MET — CONFIRM found this unverifiable from any committed record (same L3 gap as 8-1/8-2/4A-16); surfaced directly; Davin explicitly confirmed live in chat, 2026-08-24.
 
 ---
 
@@ -226,12 +226,12 @@ _(each step = change → immediate verification → rollback note)_
 
 ## Done when
 
-- [ ] F68 and F74 resolved in `DECISION-LOG.md` with Davin's explicit sign-offs recorded.
-- [ ] `@trading-alerts/types` updated with canonical `TierConfig` and helper functions.
-- [ ] `lib/tier-config.ts` reconciled and cleanly re-exporting from `@trading-alerts/types`.
-- [ ] Phase 10 deferred drawing tool-set entitlements (`drawingAlertsAllowed`) fully defined and tested.
-- [ ] All 4 monorepo test suites pass 100% green with zero regressions.
-- [ ] Session 11-2 PRE-DRAFTed.
+- [x] F68 and F74 resolved in `DECISION-LOG.md` with Davin's explicit sign-offs recorded. Full detail in `history/decisions-archive.md`, quoting Davin's live confirmation.
+- [x] `@trading-alerts/types` updated with canonical `TierConfig` and helper functions. `packages/types/src/tier/{types,constants,helpers,index}.ts`, builds clean.
+- [x] `lib/tier-config.ts` reconciled and cleanly re-exporting from `@trading-alerts/types`. `tsc --noEmit` clean; all 46 pre-existing tests pass unedited.
+- [x] Phase 10 deferred drawing tool-set entitlements (`drawingAlertsAllowed`) fully defined and tested. FREE=false/PRO=true, 4 dedicated unit tests.
+- [x] All 4 monorepo test suites pass 100% green with zero regressions. Monolith 150/150·2190/2190 (net +14), operation-service 42/42·395/395, money-service 62/62·532/532, railway-gateway 3/3·23/23 — all re-verified fresh post-change.
+- [x] Session 11-2 PRE-DRAFTed. `11-2-guards-jwt-claims-header-forwarding.migration-order.md`.
 
 ---
 

@@ -26,7 +26,91 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 8-2 (Gateway Deployment & Schema Dedup, Phase 8A — second of 2 sessions,
+- **Current:** Session 11-1 (Tier Matrix Decision + Types/Config, Phase 11 — first of 3 sessions,
+  CONTRACT + PORT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24. Resolves
+  **F68** (Master Tier Access Rights Matrix, Parts 02–33) and **F74** (Payment Currency Wiring).
+  **CONFIRM found the same L3 status-integrity gap as 8-1/8-2/4A-16's own CONFIRMs** — committed
+  HEAD held the order at `Status: PRE-DRAFT` with F68/F74 both still `OPEN` in `DECISION-LOG.md`
+  ("Decisions needed" — 3 open questions, Ordered Steps marked "sketch only, do not execute from
+  this PRE-DRAFT"); the `APPROVED` version (4 `Decisions taken`, F68/F74 marked SIGNED OFF, full
+  Ordered Steps) existed only as an uncommitted working-copy edit, zero corroborating record in
+  `DECISION-LOG.md` or this file. Surfaced directly rather than trusted; **Davin explicitly
+  confirmed live in chat, 2026-08-24: "Yes, authentic. I explicitly confirm my live sign-offs on
+  both F68 (Master Tier Matrix Specification) and F74 (Payment Currency Wiring Architecture)."**
+  **All entry criteria re-verified fresh:** Phase 8A CLOSED in this file (met); baselines
+  re-verified fresh pre-execution — monolith `test:ci` 150/150·2176/2176, `operation-service`
+  42/42·395/395, `money-service` 62/62·532/532, `railway-gateway` 3/3·23/23, all exact matches to
+  the order's own numbers, zero drift since 8-2's close; a live read-only Stripe API call against
+  `STRIPE_PRO_PRICE_ID` confirmed `unit_amount: 2900` (USD/month, `active: true`) — Stripe **test
+  mode** (the only key configured in this environment, same method Session 9-6 used).
+  **Davin also directed, at CONFIRM:** add a `./tier` subpath export to
+  `packages/types/package.json` alongside the root re-export — CONFIRM had found Decision 4's own
+  prose naming `@trading-alerts/types/tier` as the import path while the package's `exports` map
+  only listed `.`/`./geometry`/`./alert-engine`/`./validations`, which would have made that subpath
+  import fail at runtime under Node's `exports`-map enforcement even though the root import would
+  work.
+  **Execution surfaced one real, undisclosed pre-existing collision, not scope creep:** hoisting
+  `SYMBOLS`/`TIMEFRAMES` into `@trading-alerts/types/tier` and re-exporting from the package's root
+  barrel (`src/index.ts`) hit a `tsc TS2308` ambiguous-export error — `./validations/alert.ts`
+  already exports identically-valued `SYMBOLS`/`TIMEFRAMES` constants at that same root barrel, a
+  duplication Decision 4's own "Rejected: Keeping TierConfig duplicated..." framing didn't know
+  about. Resolved by explicitly re-exporting `./tier`'s other members from the root barrel while
+  omitting its `SYMBOLS`/`TIMEFRAMES` (the root barrel keeps the `validations/alert` copies it
+  already had); both the `@trading-alerts/types/tier` and `@trading-alerts/types/validations`
+  subpaths still export their own copies, unaffected. `validations/alert.ts` itself left untouched
+  — out of scope, a build-tooling collision fix resolved under the order's own "live code wins"
+  rule, not escalated (not a payments/auth/entitlement decision).
+  **Built:** `packages/types/src/tier/{types,constants,helpers,index}.ts` — canonical `Tier`,
+  `TierConfig` (5 new fields: `drawingAlertsAllowed`, `aiAnalystAllowed`, `aiMonthlyTokenQuota`,
+  `marketCommentsFeedAllowed`, `marketQualityMetricsAllowed`), `FREE_TIER_CONFIG`/
+  `PRO_TIER_CONFIG`/`TIER_CONFIGS`/`TRIAL_CONFIG`, and helpers (`getTierConfig`,
+  `canAccessDrawingAlerts`, `canAccessAiAnalyst`, `canAccessMarketComments`,
+  `canAccessMarketQualityMetrics`, plus the existing symbol/timeframe helpers). `PRO_TIER_CONFIG`'s
+  price in the shared package is the $29 catalog default (matches the live Stripe cross-check);
+  `lib/tier-config.ts` reconciled to re-export the shared canonical shape/values while layering its
+  own `NEXT_PUBLIC_PRO_PRICE_MONTHLY` env override on top — deliberately NOT hoisted into the
+  shared package, since that's Next.js client-bundle plumbing with no equivalent in the NestJS
+  services the package also feeds. `getTierConfig`/`getAccessibleSymbols`/`getAccessibleTimeframes`/
+  `getChartCombinations` stay locally defined in `lib/tier-config.ts` (must read that file's own
+  `TIER_CONFIGS`, which carries the env-priced `PRO_TIER_CONFIG`, not the shared package's
+  default-priced one); `canAccessSymbol`/`canAccessTimeframe` now delegate directly to the shared
+  package. All existing `lib/tier-config.ts` exports (`FREE_SYMBOLS`, `PRO_SYMBOLS`,
+  `PRO_EXCLUSIVE_SYMBOLS`, `FREE_TIMEFRAMES`, `PRO_TIMEFRAMES`, `PRO_EXCLUSIVE_TIMEFRAMES`)
+  unchanged — confirmed by the 46 pre-existing `__tests__/lib/tier-config.test.ts` tests passing
+  unedited.
+  **Tests:** `packages/types` has no test runner, jest config, or test files today (confirmed live
+  — no `test` script in its `package.json`, no `*.test.ts`/`*.spec.ts` anywhere in the package);
+  per the order's own "and/or `__tests__/lib/tier-config.test.ts`" latitude, extended that existing
+  monolith test file instead of scaffolding a new jest setup for one spec file — 14 new tests
+  covering every FREE/PRO entitlement line from F68's resolution and all four new access helpers.
+  60/60 passing in that file.
+  **Full re-verification post-change:** `tsc --noEmit` clean across all 4 codebases (monolith,
+  `operation-service`, `money-service`, `railway-gateway`). Full suites re-run fresh: monolith
+  `test:ci` **150/150·2190/2190** (net +14, zero regressions — only the new tests moved the count),
+  `operation-service` 42/42·395/395 (unchanged, untouched this session), `money-service`
+  62/62·532/532 (unchanged, untouched), `railway-gateway` 3/3·23/23 (unchanged, untouched).
+  **CONFIRM-time finding, not this session's to fix:** `DECISION-LOG.md` is 66,292 bytes, over
+  `EXECUTOR-PROTOCOL.md` §1's ~50KB archival-gate target — should have been caught at this
+  session's own OPEN and wasn't; confirmed pre-existing (66,298 bytes already at Session 8-2's own
+  close, this session's F68/F74 row edits net −6 bytes, not the cause). Not addressed here — an
+  unscoped rewrite of other sessions' OPEN-flag entries under this session's own time pressure
+  risked information loss; carried forward as **the next session's own mandatory §1 OPEN-gate
+  action**, same handling as this file's existing CLAUDE.md/LESSONS-LEARNED.md archival-backlog
+  item.
+  **`migration-cutover-table.md` needs no changes** (a types/config session, no route/slice had a
+  flag or rollback mechanism to move). **`migration-stack-analysis.md` DOES need an entry** (4 new,
+  4 modified) — added. **`DECISION-LOG.md` updated** — F68 and F74 both marked RESOLVED, full
+  detail (quoting Davin's sign-off) moved to `history/decisions-archive.md`.
+  **Lesson harvested:** no new lesson — this is L3 recurring again (now 29+ times through this
+  session), recurrence count bumped; no other lesson met the >30min/recurred/reached-CI bar this
+  session.
+  **Artifacts updated:** `11-1-tier-matrix-decision-types-config.migration-order.md` (Status →
+  CONFIRMED → CLOSED SUCCESSFUL, full Deviations, checked Done-when/entry-criteria boxes),
+  `DECISION-LOG.md`, `history/decisions-archive.md`, `LESSONS-LEARNED.md`,
+  `migration-stack-analysis.md`, `docs/migration-orders/11-2-guards-jwt-claims-header-forwarding.migration-order.md`
+  (PRE-DRAFTed), this file (Current/Previous rotation — Session 8-1 moved to
+  `history/sessions-archive.md`).
+- **Previous:** Session 8-2 (Gateway Deployment & Schema Dedup, Phase 8A — second of 2 sessions,
   INFRA), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24. **Phase 8A
   (Decommission) is now CLOSED** — both 8-1 and 8-2 complete.
   **CONFIRM found the same L3 status-integrity gap as 8-1's and 4A-16's own CONFIRMs** — committed
@@ -115,66 +199,6 @@
   (authored), `docs/migration-orders/11-1-tier-matrix-decision-types-config.migration-order.md`
   (PRE-DRAFTed), this file (Current/Previous rotation — Session 4A-16 moved to
   `history/sessions-archive.md`).
-- **Previous:** Session 8-1 (Deletion Sweep, Phase 8A — first of 2 sessions, VERIFY-RETIRE),
-  APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24.
-  **CONFIRM found the same L3 status-integrity gap as 4A-16's own CONFIRM** — committed HEAD
-  (`d06647ce`) held the order at `Status: PRE-DRAFT` with an unresolved "open question" about F65
-  scope; the `APPROVED` version (4 Decisions, restructured checklist) existed only as an
-  uncommitted working-copy edit, zero corroborating record in `DECISION-LOG.md` or this file.
-  Surfaced directly rather than trusted; Davin confirmed live it is authentic.
-  **All 5 entry criteria re-verified fresh and MET:** Phase 4X/9/10 all CLOSED in this file, F65
-  RESOLVED in `DECISION-LOG.md` (Session 9-0), and — critically — Phase 9 (9-0…9-10 incl. the
-  9-7a/b, 9-8a/b splits) confirmed CLOSED in `history/sessions-archive.md` with live proof
-  (`app/(marketing)`, `(public)`, `(auth)`, `(dashboard)`, `settings`, `terminal`, `free`,
-  `affiliate`, `admin` all present in the real `app/` tree) — not just trusted from the roadmap's
-  own sequencing table. Baselines re-verified fresh pre-execution: monolith 153/153·2204/2204,
-  operation-service 42/42·395/395, money-service 62/62·532/532 (one `prisma.shutdown.spec.ts`
-  timeout on the first concurrent 3-suite run, isolated re-run clean in 20s — the same benign
-  concurrency flake as 10-1/10-2/10-3's own CONFIRMs, `LESSONS-LEARNED.md` L24, not re-noted).
-  **The order's own text named only 3 legacy categories to verify absent** (`token-2fa-*`,
-  `app/test-api/`, `app/admin/login`) — all three already gone from earlier sessions, `vercel.json`
-  crons already `[]`. Rather than close the session as a no-op, ran a live audit of all 127
-  `app/api/**` route files (cross-referenced against real callers in `app/`/`components/`/`hooks/`,
-  `frontend-swap-route-map.md`, `migration-stack-analysis.md`) — an Explore-agent-assisted pass —
-  and surfaced 14 additional genuinely dead routes the order's own text never named, plus one
-  ambiguous file. Presented the full list to Davin before touching anything; Davin confirmed:
-  delete the 14, retain `app/api/test/seed/route.ts` (only referenced by an archived/inactive e2e
-  config), leave `MarketingAsset` monolith-only (no money-service mirror — a roadmap §5 residual
-  named as "owned by 8-1" that the order's own 4 Decisions never covered), defer the stale
-  money-service CORS comment (`main.ts:35`, references a phantom `NEXT_PUBLIC_MONEY_API_URL` dead
-  since F65) to Session 8-2.
-  **Deleted:** `app/api/affiliate/profile/payment/route.ts`, `app/api/candles/[symbol]/route.ts`,
-  `app/api/checkout/validate-code/route.ts`, all 8 `app/api/cron/*` handlers (superseded by the
-  admin-triggered money-service `CronTriggerController` forward — confirmed via that route's own
-  doc comment), `app/api/disbursement/affiliates/[affiliateId]/commissions/route.ts`,
-  `app/api/disbursement/reports/affiliate/[affiliateId]/route.ts` (the `frontend-swap-route-map.md`
-  citation for this page was itself stale — the real page calls a different route),
-  `app/api/payments/dlocal/exchange-rate/route.ts`. Zero `stackA`/`stackB` usage found anywhere
-  (confirmed already deleted at Session 7-3, nothing to clean up there). `frontend/` mirror dLocal
-  slice confirmed untouched (`EXECUTOR-PROTOCOL.md` §5).
-  **3 test files died with their routes, per the test-count reconciliation rule** (never a
-  silently-adjusted assertion): `__tests__/api/affiliate-conversion.test.ts` (13 tests, sole
-  subject was the deleted `checkout/validate-code`), `__tests__/api/cron-jobs.test.ts` (10 tests:
-  distribute-codes/expire-codes/send-monthly-reports), `__tests__/api/cron/process-pending.test.ts`
-  (5 tests: process-pending-disbursements). `__tests__/lib/cron/*.test.ts` (check-expiring-
-  subscriptions, downgrade-expired-subscriptions) test the underlying `lib/cron/*` business-logic
-  modules directly, not the deleted route wrappers — confirmed unaffected, left untouched.
-  **Baseline reconciled exactly:** monolith `test:ci` 153/153·2204/2204 → **150/150·2176/2176**
-  (100% green, −3 suites/−28 tests, matching the 3 deleted test files' own counts exactly). `tsc
---noEmit` clean, `eslint app components lib hooks --max-warnings 0` clean (0/0), `npm run build`
-  compiled successfully (`✓ Compiled successfully in 105s`) with zero route collisions — all 14
-  deleted paths independently confirmed absent from the printed route manifest.
-  `operation-service`/`money-service` untouched this session, stand at their fresh CONFIRM-time
-  baselines above. Committed as one step commit (`b7f8ab8e`, 17 files, all deletions).
-  **`migration-cutover-table.md` needs no changes** (no route/slice had a flag or rollback
-  mechanism — dead monolith-only handlers, not a traffic-carrying cutover, same "no Phase-6-style
-  row" reasoning the table already documents for surfaces without a `MIGRATE_*` flag).
-  **`migration-stack-analysis.md` DOES need an entry** (17 deleted: 14 routes + 3 tests) — added.
-  **`DECISION-LOG.md` needs no changes** (Flags touched: none — F65 was already RESOLVED at 9-0,
-  this session only executed against it).
-  **Artifacts updated:** `8-1-deletion-sweep.migration-order.md` (Status → CONFIRMED → CLOSED
-  SUCCESSFUL, Deviations + checked Done-when/entry-criteria boxes), `migration-stack-analysis.md`,
-  this file (Current/Previous rotation — Session 10-3 moved to `history/sessions-archive.md`).
 
 ## Key documents
 

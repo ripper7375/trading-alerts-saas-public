@@ -3654,3 +3654,53 @@ alert`), 42/42 suites, 395/395 tests (+2). Live end-to-end proof via the new New
   regression suite) — both green.
 - Approved by: n/a (technical fix, ⚠-free — Decision 3 of this session's own `Decisions taken`,
   Davin's general approval of the order covers it).
+
+## F68 — RESOLVED, Session 11-1 (2026-08-24)
+
+- Status: RESOLVED
+- Session: 11-1 · Date: 2026-08-24
+- Decision: Adopted the unified 2-Tier Master Matrix (`FREE` vs `PRO`) from the Preparatory
+  Refactoring Specification §2. Both tiers keep identical `XAUUSD`/`M5`/`M15`/79-column market-data
+  access (unchanged). `FREE` = 0 alerts, 60 req/hr, no drawing-line alerts, no AI Analyst (Stack D),
+  no market comments or quality metrics (Stack E). `PRO` = 100 alerts (incl. drawing-line alerts),
+  300 req/hr, AI Analyst with a 500,000-monthly-token quota, and the full Stack E feed — all new
+  entitlements, zero existing PRO capability reduced or removed. Rejected intermediate tiers and
+  restricting FREE's data-column access (both would hurt the conversion funnel).
+- Evidence: Reconciliation table cross-checked every proposed line against live
+  `lib/tier-config.ts` (pre-session: `maxAlerts` FREE 0/PRO 100, $29/mo, 7-day trial — all
+  unchanged) and a live read-only Stripe API call at CONFIRM (`STRIPE_PRO_PRICE_ID` →
+  `unit_amount: 2900`, `currency: usd`, `interval: month`, `active: true`, Stripe test mode — the
+  only key configured in this environment). Executed as `@trading-alerts/types/tier` +
+  `lib/tier-config.ts` (Session 11-1 Steps 2–3); 14 new unit tests assert every FREE/PRO
+  entitlement line from this decision; monolith `test:ci` 150/150·2190/2190 (net +14, zero
+  regressions), `operation-service` 42/42·395/395, `money-service` 62/62·532/532, `railway-gateway`
+  3/3·23/23 — all four fresh post-change, unchanged from pre-change baselines.
+- Approved by: Davin — `⚠ NEEDS EXPLICIT SIGN-OFF` per `EXECUTOR-PROTOCOL.md` §0/§7 (entitlements
+  on a product with paying users). The order's own committed HEAD was found at CONFIRM still at
+  `Status: PRE-DRAFT` with F68 still OPEN in `DECISION-LOG.md` — the DRAFT→APPROVED content
+  (`Decisions taken`, sign-offs) existed only as an uncommitted working-copy edit, the same
+  `LESSONS-LEARNED.md` L3 status-integrity gap as 8-1/8-2/4A-16's own CONFIRMs. Surfaced directly to
+  Davin rather than trusted; Davin explicitly confirmed live in chat, 2026-08-24: "Yes, authentic. I
+  explicitly confirm my live sign-offs on both F68 (Master Tier Matrix Specification) and F74
+  (Payment Currency Wiring Architecture)."
+
+## F74 — RESOLVED, Session 11-1 (2026-08-24)
+
+- Status: RESOLVED
+- Session: 11-1 · Date: 2026-08-24
+- Decision: USD ($29.00/month, `STRIPE_PRO_PRICE_ID`) stays the sole authoritative base billing
+  currency for all subscriptions. Stripe Checkout reads `userPreference.currency` only for
+  localized display/formatting, still passing the single USD recurring Price ID to Stripe (which
+  applies its own built-in Adaptive Pricing / dynamic conversion for international payment
+  methods). dLocal local APMs (THB, BRL, MXN, COP, CLP, PEN, ARS, NGN, ZAR) continue resolving via
+  `lib/dlocal/constants.ts` + real-time exchange rates, billing local amounts equivalent to $29
+  USD/month. Rejected creating per-currency Stripe recurring Price objects (catalog fragmentation,
+  webhook complexity, multi-currency subscription migration friction) — this session made no Stripe
+  dashboard changes, config-only.
+- Evidence: Same live Stripe cross-check as F68 above (`STRIPE_PRO_PRICE_ID` = $29.00 USD/month,
+  test mode). No code changes required beyond what Session 11-1 already did for F68 (this decision
+  is a currency-catalog architecture choice, not a new code path — the checkout session factory and
+  `lib/dlocal/` are unchanged this session).
+- Approved by: Davin — `⚠ NEEDS EXPLICIT SIGN-OFF` per `EXECUTOR-PROTOCOL.md` §0/§7 (checkout
+  billing semantics). Same CONFIRM-time status-integrity gap and same live confirmation as F68
+  above — Davin's quote covers both flags in one statement.

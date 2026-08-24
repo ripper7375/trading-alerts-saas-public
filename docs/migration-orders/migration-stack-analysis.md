@@ -4210,8 +4210,54 @@ newly-created `railway-gateway` service.
 
 </details>
 
+<details>
+<summary>Session 11-1 (Tier Matrix Decision + Types/Config, Phase 11 first-of-3, CONTRACT + PORT) — 4 new, 4 modified, 0 deleted</summary>
+
+Resolved **F68** (Master Tier Access Rights Matrix) and **F74** (Payment Currency Wiring) and
+hoisted the canonical FREE/PRO tier matrix out of the monolith into `@trading-alerts/types/tier` —
+the single source of truth Phase 12 (Stack D) and Phase 13 (Stack E) will gate their endpoints
+against.
+
+- **New:** `packages/types/src/tier/types.ts` (`Tier`, `TierConfig` — 5 new fields:
+  `drawingAlertsAllowed`, `aiAnalystAllowed`, `aiMonthlyTokenQuota`, `marketCommentsFeedAllowed`,
+  `marketQualityMetricsAllowed`), `packages/types/src/tier/constants.ts` (`FREE_TIER_CONFIG`,
+  `PRO_TIER_CONFIG` — PRO's price is the $29 catalog default, live-cross-checked against
+  `STRIPE_PRO_PRICE_ID`), `packages/types/src/tier/helpers.ts` (`getTierConfig` +
+  `canAccessDrawingAlerts`/`canAccessAiAnalyst`/`canAccessMarketComments`/
+  `canAccessMarketQualityMetrics` + the existing symbol/timeframe helpers),
+  `packages/types/src/tier/index.ts`.
+- **Modified:** `packages/types/src/index.ts` (root barrel re-exports `./tier`, explicitly excluding
+  its `SYMBOLS`/`TIMEFRAMES` — `./validations/alert` already exports identically-valued constants
+  of those names there, a pre-existing duplication surfaced only by a `tsc TS2308` ambiguous-export
+  error; both subpaths keep their own copies unaffected), `packages/types/package.json` (added the
+  `./tier` subpath export, Davin-directed at CONFIRM), `lib/tier-config.ts` (re-exports the shared
+  package's canonical shape/values, layers the monolith's own `NEXT_PUBLIC_PRO_PRICE_MONTHLY` env
+  override on top — the one piece that's genuinely Next.js-specific, not hoisted),
+  `__tests__/lib/tier-config.test.ts` (+14 tests for the new Stack D/E + drawing-alert
+  entitlements; `packages/types` has no test runner today, confirmed live, so tested through the
+  monolith's real consumption path instead of scaffolding a new jest setup for one file).
+- **Live-verification:** live read-only Stripe API call confirmed `STRIPE_PRO_PRICE_ID` →
+  `unit_amount: 2900` (USD/month, test mode — the only key configured in this environment). `tsc
+--noEmit` clean across all 4 codebases (monolith, `operation-service`, `money-service`,
+  `railway-gateway`). Baselines re-verified fresh, twice (pre- and post-change): monolith `test:ci`
+  150/150·2176/2176 → **150/150·2190/2190** (net +14, zero regressions — the 14 new tests, nothing
+  else moved), `operation-service` 42/42·395/395 (unchanged), `money-service` 62/62·532/532
+  (unchanged), `railway-gateway` 3/3·23/23 (unchanged) — none of the three services' own source was
+  touched this session.
+- **CONFIRM-time finding, not this session's to fix:** `DECISION-LOG.md` is 66,292 bytes, over
+  `EXECUTOR-PROTOCOL.md` §1's ~50KB archival-gate target — confirmed pre-existing (66,298 bytes
+  already at Session 8-2's own close, this session's edits net −6 bytes). Not addressed here
+  (out-of-scope, and an unscoped rewrite of other sessions' OPEN-flag entries under this session's
+  own time pressure risked information loss); carried forward as the next session's own §1 OPEN-gate
+  action, same handling as the roadmap's existing CLAUDE.md/LESSONS-LEARNED.md backlog item.
+- **Explicitly deferred, not silently dropped:** wiring `money-service`/`railway-gateway` to depend
+  on `@trading-alerts/types` (only `operation-service` does today) — not required by this session's
+  own Decision 4, belongs to whichever of Phase 12/13's sessions first needs it there.
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-24 (Session 8-2, gateway deployment & schema
-dedup — Phase 8A CLOSED SUCCESSFUL)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-24 (Session 11-1, tier matrix decision + types/config
+— F68/F74 RESOLVED)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

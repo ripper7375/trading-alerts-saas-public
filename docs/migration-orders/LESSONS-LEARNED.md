@@ -68,7 +68,8 @@ resolves a different schema first, not that the table is missing). Full history 
 - Symptom: an order arrived with header `Status: APPROVED` while its own Entry Criteria list still had an unchecked "Davin approves this DRAFT" box, and the file was untracked with no PRE-DRAFT→DRAFT→APPROVED commit history at all.
 - Rule: at CONFIRM, cross-check the header's claimed status against (a) the order's own entry-criteria checkboxes and (b) git history for that file. A self-contradicting order is a stop-and-ask trigger, not something to silently trust or silently fix.
 - Source: Session 4A-6 · Status: ACTIVE
-- Recurrence count: 26+ times through Session 9-5 — the single most-recurring finding class in the
+- Recurrence count: 29+ times through Session 11-1 (2026-08-24; confirmed recurring at 8-1, 8-2, and
+  11-1 since the last count update) — the single most-recurring finding class in the
   migration, almost always benign (order body byte-identical to its own committed PRE-DRAFT, or a
   DRAFT/corrected-DRAFT arriving as an uncommitted working-copy edit; Davin's own live confirmation
   is what closes the check every time). One genuinely NOT benign, worth keeping as a worked
