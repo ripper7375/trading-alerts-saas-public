@@ -92,6 +92,14 @@
   Railway project `postgre for staging` is confirmed to exist and reachable from this Executor's
   authenticated `railway` CLI (unlike Vercel at 4A-16 — this session's environment CAN drive the
   actual deploy, not just hand it to Davin).
+  **Lesson harvested:** `LESSONS-LEARNED.md` was already at its 40-entry cap, so no new numbered
+  lesson was added — instead a recurrence note appended to **L22** ("Order text vs ground truth"):
+  the order's own named deletion checklist (3 legacy categories) was correct but incomplete; only
+  a live audit of the real `app/api/**` tree found the 14 additional dead routes, one exposed
+  because `frontend-swap-route-map.md` had itself gone stale for that page. The recurring L3
+  status-integrity gap (PRE-DRAFT-on-disk vs. uncommitted-APPROVED-working-copy) was NOT re-noted —
+  already past L3's own "5+ recurrences → single count line" threshold, same discipline prior
+  sessions followed.
 - **Previous:** Session 4A-16 (dLocal Payment Method ID Mapping & Recutover, Phase 4X — final
   session, PORT + CUTOVER), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24.
   Resolves **F76** and completes Slice 4 to 4/4 write-API groups — **Phase 4X is now CLOSED**, all

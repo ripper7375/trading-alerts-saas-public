@@ -35,7 +35,10 @@ verification result, caused by this session's own concurrent local-process load 
 pooled dev DB). Session 10-2: no new lesson added (stayed at the cap) -- a recurrence note appended
 to L37 (an Advisor-drafted Decisions-taken UI-behavior claim, uncross-checked against `CLAUDE.md`'s
 own immediately-preceding Session 9-10 entry that already disclosed the contradiction).
-Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
+Session 8-1: no new lesson added (stayed at the cap) -- a recurrence note appended to L22 (the
+order's own named deletion checklist was correct but incomplete; a live `app/api/**` audit found
+14 additional dead routes plus a stale citation in `frontend-swap-route-map.md` the order's text
+never surfaced). Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
 (same rule Session 9-6 hit at 41; nothing to merge yet, all 40 are still genuinely distinct).
 
 ---
@@ -307,6 +310,7 @@ Full history in `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must 
 - Rule: Order text drifts from ground truth — always read SOURCE directly; never trust the order's paraphrase of existing code, tests, or behavior.
 - Source: Consolidated · Status: ACTIVE
 - Recurrence (Session 9-1, 2026-08-22): a specific sub-case worth naming — when a Phase-9 order says "delete/port file X," verify which TREE X actually lives in before acting, not just that X exists. `lib/i18n/locale-resolver.ts` was cited as an existing main-repo dependency but only existed in `seed-code/`; `components/header.tsx`'s Batch-0-flagged deletion target only ever existed in `seed-code/` (read-only, do-not-touch), never the main repo the order named. Both found by checking `ls` on both trees directly rather than trusting the order's tree attribution.
+- Recurrence (Session 8-1, 2026-08-24): a scope-completeness variant, not a tree-location one — the order's own named deletion checklist (3 legacy file categories) was correct as far as it went, but incomplete: all 3 were confirmed absent, yet a live audit of the real `app/api/**` tree (127 files, not the order's own text) found 14 additional genuinely dead routes the order never named, one of them exposed only because a separately-maintained route map (`frontend-swap-route-map.md`) had gone stale for that page. Rule extension: a specific enumerated checklist in an order is a floor, not a ceiling — a live audit of the actual tree is still owed before declaring a sweep/dedup/cleanup session complete, even when every named item checks out clean.
 
 ### L23 — Post-cutover monolith code is deceptive: it compiles, passes tests, and may still take edits, but carries zero live traffic
 
