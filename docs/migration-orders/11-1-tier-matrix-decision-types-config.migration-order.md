@@ -256,6 +256,17 @@ _(each step = change → immediate verification → rollback note)_
   `package.json` alongside the `src/index.ts` root re-export, so both import styles resolve. Step 2
   executed with this addition folded in — not a scope change, a correctness fix to the step as
   literally written.
+- **Step 2 (2026-08-24):** `packages/types/src/index.ts`'s existing wildcard re-export from
+  `./validations/alert` already exports `SYMBOLS`/`TIMEFRAMES` (identical values: `['XAUUSD']`,
+  `['M5','M15']`) at the package's root barrel — a pre-existing duplication the order's Decision 4
+  ("Rejected: Keeping TierConfig duplicated...") did not know about, discovered only when `tsc`
+  failed on the ambiguous re-export (`TS2308`) after adding `export * from './tier'`. Resolved by
+  explicitly re-exporting `./tier`'s other members from the root barrel while omitting its
+  `SYMBOLS`/`TIMEFRAMES` (root barrel keeps the `validations/alert` copies it already had); the
+  `@trading-alerts/types/tier` subpath still exports its own `SYMBOLS`/`TIMEFRAMES` unaffected.
+  `validations/alert.ts` itself left untouched — out of this session's scope, a build-tooling
+  collision fix, not a payments/auth/entitlement decision, resolved under this order's own "Ground
+  truth priority: live code" rule rather than escalated.
 
 ---
 
