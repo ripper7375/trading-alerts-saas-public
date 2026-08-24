@@ -40,8 +40,9 @@ writing — re-verify fresh at CONFIRM, per `LESSONS-LEARNED.md` L22/L37).
 - **Zero LLM SDKs anywhere in the repo** — `package.json` and `operation-service/package.json`
   have no `anthropic`, `openai`, `@google/generative-ai`, `google-genai`, or `langchain`
   dependency (grepped both files directly).
-- **No `/api/ai/**`route exists** —`app/api`has no`ai`subtree at all (only`app/api/test/ai-metering`, Session 11-3's own throwaway dummy route, which is unrelated and
-  should NOT be confused with Phase 12's real routes).
+- **No `app/api/ai` route subtree exists** — the only route under `app/api/test/ai-metering` is
+  Session 11-3's own throwaway dummy route, which is unrelated and should NOT be confused with
+  Phase 12's real routes.
 - **`mtf_render` exists as real code, but its reachability from Phase 12's own router is
   unverified** — found at
   `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/
