@@ -186,14 +186,41 @@ export async function getOperationServiceToken(): Promise<string | null> {
   );
 }
 
-/** Best-effort forwarding of the real client's IP/user-agent for operation-service's audit fields (RefreshToken.userAgent/ipAddress) — not security-critical, see jwt-auth.guard.ts / main.ts's own comments on this. */
+/**
+ * Forwards client metadata and tracing/locale context from the incoming
+ * Next.js request to operation-service — audit fields (RefreshToken.userAgent/
+ * ipAddress, not security-critical, see jwt-auth.guard.ts / main.ts's own
+ * comments), request tracing, and the 2026-08-19 GeoIP context. Session 11-2
+ * (DECISION-LOG.md): previously forwarded only `user-agent`/`x-forwarded-for`,
+ * silently dropping everything else — the reason the GeoIP work couldn't be
+ * mirrored into operation-service. Downstream services ignore headers they
+ * don't recognize, so this list is deliberately a superset of what any single
+ * caller needs today.
+ */
 export function forwardedRequestContext(request: {
   headers: { get(name: string): string | null };
 }): Record<string, string> {
-  const userAgent = request.headers.get('user-agent');
-  const forwardedFor = request.headers.get('x-forwarded-for');
+  const forwardedHeaderNames = [
+    // Tracing
+    'x-correlation-id',
+    'x-request-id',
+    // Network & client
+    'user-agent',
+    'x-forwarded-for',
+    'x-forwarded-proto',
+    'x-real-ip',
+    // Context & locale (2026-08-19 GeoIP)
+    'x-user-id',
+    'x-user-tier',
+    'x-user-country',
+    'x-user-currency',
+    'x-user-timezone',
+  ] as const;
+
   const headers: Record<string, string> = {};
-  if (userAgent) headers['user-agent'] = userAgent;
-  if (forwardedFor) headers['x-forwarded-for'] = forwardedFor;
+  for (const name of forwardedHeaderNames) {
+    const value = request.headers.get(name);
+    if (value) headers[name] = value;
+  }
   return headers;
 }
