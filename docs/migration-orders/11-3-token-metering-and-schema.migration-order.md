@@ -255,6 +255,19 @@ allow/block/TTL/quota semantics). 6 new tests in `__tests__/api/test-ai-metering
 TIER_PRO_REQUIRED, 200 with remainingTokens, 429 over quota, FREE-tier defence-in-depth, missing/
 non-numeric `tokensUsed` defaults to 0), all passing. Monolith `tsc --noEmit` clean.
 
+**Step 4 — full re-verification, all 4 codebases, run sequentially (not concurrently) this time.**
+`tsc --noEmit` clean on all 4 (monolith, `operation-service`, `money-service`, `railway-gateway`).
+Full suites re-run fresh, net-neutral-or-better against the order's own baseline, zero regressions:
+monolith `test:ci` **151/151 suites · 2204/2204 tests** (+1 suite, +14 tests — the new
+`__tests__/api/test-ai-metering.test.ts` suite plus 8 new `trackAiTokenUsage` tests in the existing
+`rate-limit.test.ts`), `operation-service` **43/43 suites · 401/401 tests** (+1 suite, +6 tests —
+`redis.service.spec.ts`), `money-service` **62/62 suites · 532/532 tests** (unchanged, untouched
+this session — clean on this isolated run, no repeat of CONFIRM's concurrent-load
+`prisma.shutdown.spec.ts` flake), `railway-gateway` **3/3 suites · 23/23 tests** (unchanged,
+untouched). Sequential (not parallel) execution was deliberate, carrying forward this same
+session's own CONFIRM-time finding that running all 4 suites concurrently OOM-crashes a Jest
+worker in `money-service` — no flake this time, confirming that diagnosis.
+
 ---
 
 ## Next-session handoff
