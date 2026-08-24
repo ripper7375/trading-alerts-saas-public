@@ -4155,8 +4155,63 @@ process-pending.test.ts` (5 tests: process-pending-disbursements). `__tests__/li
 
 </details>
 
+<details>
+<summary>Session 8-2 (Gateway Deployment & Schema Dedup, Phase 8A second-of-2, INFRA) — 1 new, 7 modified, 0 deleted, INITIAL DEPLOYMENT</summary>
+
+`railway-gateway` — previously built but never actually deployed to Railway (a first deployment,
+not a redeploy, per this session's own CONFIRM-time correction to the order's original zero-blip
+framing) — is now live on both `postgre for staging` and `trading-alerts` (production), each as a
+newly-created `railway-gateway` service.
+
+- **New:** `railway-gateway/test/schema-sync.spec.ts` — asserts field-for-field parity between
+  `railway-gateway/prisma/schema.prisma` and the monolith's real source of truth
+  (`prisma/market-data/schema.prisma`).
+- **Modified — Prisma 7 alignment:** `railway-gateway/package.json` (`prisma`/`@prisma/client`
+  `^6.19.2` → `7.9.1`, `@prisma/adapter-pg@7.9.1` added, `engines.node >=20.0.0` added,
+  `postinstall: "prisma generate"` added — all three gaps only surfaced on Railway's own build,
+  since this service had never been built there before), `railway-gateway/prisma/schema.prisma`
+  (`datasource.url` removed — Prisma 7 requires a driver adapter, not a schema-declared URL),
+  `railway-gateway/src/prisma/prisma.service.ts` (`PrismaPg` adapter, mirroring money-service's own
+  pattern).
+- **Modified — Redis connectivity fix:** `railway-gateway/src/app.module.ts` (`BullModule.forRoot`
+  switched from separate `REDIS_HOST`/`REDIS_PORT`/`REDIS_PASSWORD` fields to a single `REDIS_URL`,
+  matching `operation-service`'s own established pattern — the separate-fields form could not
+  reach Railway's managed Redis reliably), `railway-gateway/.env.example` and
+  `railway-gateway/test/local-e2e-harness.md` updated to match.
+- **Modified — deferred from Session 8-1:** `money-service/src/main.ts:35` — stale
+  `NEXT_PUBLIC_MONEY_API_URL` CORS comment cleaned up (comment-only, F65 already retired that
+  code path).
+- **Live-verification — staging (`postgre for staging`):** full pipeline proven end-to-end.
+  `GET /api/v1/health` → `healthy` (redis/queue/database all up). A synthetic test vector POSTed
+  to `/api/v1/market-data` landed the exact submitted row in staging's `market_data_v6` (verified
+  by direct DB query, not just queue bookkeeping); re-sending the same key left the table at 1
+  total row (idempotent upsert on `(symbol, timeframe, timestamp)` confirmed, no duplicate). Two
+  pre-existing staging-infrastructure gaps found and fixed along the way, Davin-approved: the
+  project's own `Redis` add-on had zero active deployments (dormant since project creation,
+  2026-01-07) — started it; staging's Postgres had no application schema at all — applied the
+  single-table `market_data_v6` DDL (saved at
+  `docs/migration-orders/session-8-2-staging-market-data-v6.sql`) after Davin reviewed the exact
+  script.
+- **Live-verification — production (`trading-alerts`):** `GET /api/v1/health` → `healthy` on the
+  first attempt (proper internal Postgres/Redis networking, no repeat of staging's gotchas).
+  Live ingest verification hit a genuine, pre-existing gap: production's `market_data_v6` exists
+  but is not in the `public` schema the connecting role's Prisma client resolves against (an
+  unqualified raw `CREATE TABLE` against the same role returned `relation already exists` —
+  the table is real, just not where `public`-qualified queries look). This is `DECISION-LOG.md`
+  **F70**'s own already-registered, still-open question (DB role/schema grants for
+  `market_data_v6`, owned by Session 12-0) — not something this session invented or should guess
+  at fixing. **Per Davin's explicit direction, the session's verification of record is the
+  complete staging proof above plus production's healthy `/health`**; production ingest
+  verification is deferred to F70's own resolution.
+- **Baselines, re-verified fresh at close:** monolith `test:ci` 150/150 suites·2176/2176 tests,
+  `operation-service` 42/42·395/395, `money-service` 62/62·532/532 — all unchanged by this
+  session's own scope (`railway-gateway` is `SEPARATE_STACK`, not part of any of the three).
+  `railway-gateway` itself: 3/3 suites·23/23 tests, clean build.
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-24 (Session 8-1, deletion sweep — Phase 8A first
-session CLOSED SUCCESSFUL)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-24 (Session 8-2, gateway deployment & schema
+dedup — Phase 8A CLOSED SUCCESSFUL)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
