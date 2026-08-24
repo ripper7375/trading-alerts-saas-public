@@ -26,7 +26,74 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 11-2 (Guards, JWT Claims & Header Forwarding, Phase 11 — second of 3
+- **Current:** Session 11-3 (Token Metering & Schema, Phase 11 — third and final session, INFRA +
+  PORT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-25. **Phase 11 (Preparatory
+  Tier-Access & Core Refactoring) is now CLOSED SUCCESSFUL** — all 3 sessions (11-1, 11-2, 11-3)
+  complete. Builds the Redis `trackAiTokenUsage()` sliding-window token-quota limiter and the
+  `TokenUsageLog`/`User.profile` schema — the mechanism Stack D (Phase 12) will meter and cap
+  AI-token spend against, proven end-to-end by a dummy tier-gated route returning 429 at quota.
+  **CONFIRM found a variant of the same L3 status-integrity gap every recent session's own CONFIRM
+  has found, but with a real difference this time:** the order's committed HEAD held `Status:
+PRE-DRAFT` (4 "Decisions needed", sketch-only Ordered Steps) and the uncommitted working copy
+  held `Status: DRAFT` (4 "Decisions taken", full 5-step Ordered Steps) — **neither version claimed
+  `APPROVED`**, unlike 11-1/11-2 where the working copy already claimed it. Surfaced directly as a
+  genuine blocker, not assumed; **Davin explicitly confirmed live in chat, 2026-08-25: "Yes,
+  authentic. I explicitly confirm that the working-copy DRAFT for Session 11-3 is now officially
+  APPROVED by me (marked Status: APPROVED in the header)."** — verified the header edit was
+  genuinely present on disk before proceeding, not just taken on his word.
+  **Execution hit a real plan-vs-live-code conflict at Step 1, not scope creep or a preference
+  call:** the order's own literal Step 1 instruction (`prisma db push --schema
+prisma/non-market-data/schema.prisma`) refused live, proposing to **DROP the live, non-empty
+  `market_data_v6` table** — `railway-gateway`'s protected ingest path
+  (`EXECUTOR-PROTOCOL.md` §5, "must never blip"). Root cause: `prisma/non-market-data/` and
+  `prisma/market-data/` share ONE physical database (`prisma.config.ts` routes both through the
+  same `DIRECT_URL`, no `multiSchema` fencing), so `db push` against either file diffs the _entire_
+  live database and proposes dropping whatever the sibling file owns. Not a new problem —
+  `migration-stack-analysis.md`'s own "Database Architecture" section (lines ~1095–1098) already
+  documented Session 2-3 hitting this identically, and Session 8-2 used the same
+  hand-reviewed-script pattern for its own `market_data_v6` DDL. Stopped and reported to Davin
+  before touching the database; Davin approved the established workaround live. Applied via
+  `prisma migrate diff --from-schema <committed HEAD> --to-schema <edited schema> --script` (pure
+  schema-to-schema diff, zero DB connection — `LESSONS-LEARNED.md` L6) to generate the exact
+  additive DDL, saved as `docs/migration-orders/session-11-3-token-metering-schema.sql`, applied
+  via `prisma db execute --file <script>` (raw SQL, no full-database diff). Live spot-check
+  post-apply confirmed `User.profile`/`token_usage_log` exist and `market_data_v6` is untouched at
+  its original row count.
+  **Baselines re-verified fresh at CONFIRM (before any code changed), all exact matches to the
+  order's own numbers:** monolith `test:ci` 150/150·2190/2190, `operation-service` 42/42·395/395,
+  `money-service` 62/62·532/532, `railway-gateway` 3/3·23/23; live Redis `PING` → `PONG` confirmed
+  connectivity.
+  **`operation-service/prisma/schema.prisma` deliberately NOT synced with `profile`/
+  `TokenUsageLog`:** it's a hand-maintained, narrow `User`-subset mirror (same drift class
+  `LESSONS-LEARNED.md` L19's Session 11-2 finding already named) — neither of this session's own
+  deliverables need it (`trackAiTokenUsage()` is Redis-only; the dummy route lives in the
+  monolith). Flagged for whichever future session first needs `operation-service` to read
+  `TokenUsageLog` (Session 12-3's cost surveillance is the likely first consumer).
+  **Full re-verification post-change, all 4 codebases, run sequentially (not concurrently) after
+  Step 4's own CONFIRM-time finding that running all 4 at once OOM-crashes a `money-service` Jest
+  worker:** `tsc --noEmit` clean across all 4. Full suites re-run fresh: monolith `test:ci`
+  **151/151·2204/2204** (+1 suite/+14 tests, zero regressions), `operation-service`
+  **43/43·401/401** (+1 suite/+6 tests), `money-service` **62/62·532/532** (unchanged; clean on
+  this isolated run, no repeat of the concurrent-load `prisma.shutdown.spec.ts` flake seen at
+  CONFIRM), `railway-gateway` **3/3·23/23** (unchanged, untouched).
+  **`migration-cutover-table.md` needs no changes** (a plumbing/metering session, no route/slice
+  had a flag or rollback mechanism to move). **`migration-stack-analysis.md` DOES need an entry**
+  (5 new, 4 modified) — added. **`DECISION-LOG.md` needed no flag resolution** (order's own header:
+  "Flags touched: none" — plumbing, no product-level decision).
+  **Lesson harvested:** no new lesson (still at the 40-entry cap) — a recurrence note appended to
+  **L6** (`prisma db push`/`migrate dev`'s destructive-diff behavior isn't unique to
+  migration-history drift, its original symptom — ANY schema file sharing a datasource with a
+  sibling schema file will propose dropping whatever the sibling owns, regardless of migration
+  history state; the safe pattern, `migrate diff --script` + `db execute`, generalizes to this
+  case too).
+  **Artifacts updated:** `11-3-token-metering-and-schema.migration-order.md` (Status → CONFIRMED →
+  CLOSED SUCCESSFUL, full Deviations, checked Done-when/entry-criteria boxes),
+  `migration-stack-analysis.md`, `LESSONS-LEARNED.md`,
+  `docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-12.md`
+  (authored — Phase 12 handover, per the roadmap's own "11-3 writes phase-12's" trigger),
+  `docs/migration-orders/12-0-decisions-and-contracts.migration-order.md` (PRE-DRAFTed), this file
+  (Current/Previous rotation — Session 11-1 moved to `history/sessions-archive.md`).
+- **Previous:** Session 11-2 (Guards, JWT Claims & Header Forwarding, Phase 11 — second of 3
   sessions, PORT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24. Unifies tier
   **enforcement** (not just config) across the monolith/`operation-service` boundary — guards, JWT
   claims, header forwarding — the plumbing Stack D (Phase 12) and Stack E (Phase 13) will gate
@@ -93,90 +160,6 @@
   `migration-stack-analysis.md`,
   `docs/migration-orders/11-3-token-metering-and-schema.migration-order.md` (PRE-DRAFTed), this
   file (Current/Previous rotation — Session 8-2 moved to `history/sessions-archive.md`).
-- **Previous:** Session 11-1 (Tier Matrix Decision + Types/Config, Phase 11 — first of 3 sessions,
-  CONTRACT + PORT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24. Resolves
-  **F68** (Master Tier Access Rights Matrix, Parts 02–33) and **F74** (Payment Currency Wiring).
-  **CONFIRM found the same L3 status-integrity gap as 8-1/8-2/4A-16's own CONFIRMs** — committed
-  HEAD held the order at `Status: PRE-DRAFT` with F68/F74 both still `OPEN` in `DECISION-LOG.md`
-  ("Decisions needed" — 3 open questions, Ordered Steps marked "sketch only, do not execute from
-  this PRE-DRAFT"); the `APPROVED` version (4 `Decisions taken`, F68/F74 marked SIGNED OFF, full
-  Ordered Steps) existed only as an uncommitted working-copy edit, zero corroborating record in
-  `DECISION-LOG.md` or this file. Surfaced directly rather than trusted; **Davin explicitly
-  confirmed live in chat, 2026-08-24: "Yes, authentic. I explicitly confirm my live sign-offs on
-  both F68 (Master Tier Matrix Specification) and F74 (Payment Currency Wiring Architecture)."**
-  **All entry criteria re-verified fresh:** Phase 8A CLOSED in this file (met); baselines
-  re-verified fresh pre-execution — monolith `test:ci` 150/150·2176/2176, `operation-service`
-  42/42·395/395, `money-service` 62/62·532/532, `railway-gateway` 3/3·23/23, all exact matches to
-  the order's own numbers, zero drift since 8-2's close; a live read-only Stripe API call against
-  `STRIPE_PRO_PRICE_ID` confirmed `unit_amount: 2900` (USD/month, `active: true`) — Stripe **test
-  mode** (the only key configured in this environment, same method Session 9-6 used).
-  **Davin also directed, at CONFIRM:** add a `./tier` subpath export to
-  `packages/types/package.json` alongside the root re-export — CONFIRM had found Decision 4's own
-  prose naming `@trading-alerts/types/tier` as the import path while the package's `exports` map
-  only listed `.`/`./geometry`/`./alert-engine`/`./validations`, which would have made that subpath
-  import fail at runtime under Node's `exports`-map enforcement even though the root import would
-  work.
-  **Execution surfaced one real, undisclosed pre-existing collision, not scope creep:** hoisting
-  `SYMBOLS`/`TIMEFRAMES` into `@trading-alerts/types/tier` and re-exporting from the package's root
-  barrel (`src/index.ts`) hit a `tsc TS2308` ambiguous-export error — `./validations/alert.ts`
-  already exports identically-valued `SYMBOLS`/`TIMEFRAMES` constants at that same root barrel, a
-  duplication Decision 4's own "Rejected: Keeping TierConfig duplicated..." framing didn't know
-  about. Resolved by explicitly re-exporting `./tier`'s other members from the root barrel while
-  omitting its `SYMBOLS`/`TIMEFRAMES` (the root barrel keeps the `validations/alert` copies it
-  already had); both the `@trading-alerts/types/tier` and `@trading-alerts/types/validations`
-  subpaths still export their own copies, unaffected. `validations/alert.ts` itself left untouched
-  — out of scope, a build-tooling collision fix resolved under the order's own "live code wins"
-  rule, not escalated (not a payments/auth/entitlement decision).
-  **Built:** `packages/types/src/tier/{types,constants,helpers,index}.ts` — canonical `Tier`,
-  `TierConfig` (5 new fields: `drawingAlertsAllowed`, `aiAnalystAllowed`, `aiMonthlyTokenQuota`,
-  `marketCommentsFeedAllowed`, `marketQualityMetricsAllowed`), `FREE_TIER_CONFIG`/
-  `PRO_TIER_CONFIG`/`TIER_CONFIGS`/`TRIAL_CONFIG`, and helpers (`getTierConfig`,
-  `canAccessDrawingAlerts`, `canAccessAiAnalyst`, `canAccessMarketComments`,
-  `canAccessMarketQualityMetrics`, plus the existing symbol/timeframe helpers). `PRO_TIER_CONFIG`'s
-  price in the shared package is the $29 catalog default (matches the live Stripe cross-check);
-  `lib/tier-config.ts` reconciled to re-export the shared canonical shape/values while layering its
-  own `NEXT_PUBLIC_PRO_PRICE_MONTHLY` env override on top — deliberately NOT hoisted into the
-  shared package, since that's Next.js client-bundle plumbing with no equivalent in the NestJS
-  services the package also feeds. `getTierConfig`/`getAccessibleSymbols`/`getAccessibleTimeframes`/
-  `getChartCombinations` stay locally defined in `lib/tier-config.ts` (must read that file's own
-  `TIER_CONFIGS`, which carries the env-priced `PRO_TIER_CONFIG`, not the shared package's
-  default-priced one); `canAccessSymbol`/`canAccessTimeframe` now delegate directly to the shared
-  package. All existing `lib/tier-config.ts` exports (`FREE_SYMBOLS`, `PRO_SYMBOLS`,
-  `PRO_EXCLUSIVE_SYMBOLS`, `FREE_TIMEFRAMES`, `PRO_TIMEFRAMES`, `PRO_EXCLUSIVE_TIMEFRAMES`)
-  unchanged — confirmed by the 46 pre-existing `__tests__/lib/tier-config.test.ts` tests passing
-  unedited.
-  **Tests:** `packages/types` has no test runner, jest config, or test files today (confirmed live
-  — no `test` script in its `package.json`, no `*.test.ts`/`*.spec.ts` anywhere in the package);
-  per the order's own "and/or `__tests__/lib/tier-config.test.ts`" latitude, extended that existing
-  monolith test file instead of scaffolding a new jest setup for one spec file — 14 new tests
-  covering every FREE/PRO entitlement line from F68's resolution and all four new access helpers.
-  60/60 passing in that file.
-  **Full re-verification post-change:** `tsc --noEmit` clean across all 4 codebases (monolith,
-  `operation-service`, `money-service`, `railway-gateway`). Full suites re-run fresh: monolith
-  `test:ci` **150/150·2190/2190** (net +14, zero regressions — only the new tests moved the count),
-  `operation-service` 42/42·395/395 (unchanged, untouched this session), `money-service`
-  62/62·532/532 (unchanged, untouched), `railway-gateway` 3/3·23/23 (unchanged, untouched).
-  **CONFIRM-time finding, not this session's to fix:** `DECISION-LOG.md` is 66,292 bytes, over
-  `EXECUTOR-PROTOCOL.md` §1's ~50KB archival-gate target — should have been caught at this
-  session's own OPEN and wasn't; confirmed pre-existing (66,298 bytes already at Session 8-2's own
-  close, this session's F68/F74 row edits net −6 bytes, not the cause). Not addressed here — an
-  unscoped rewrite of other sessions' OPEN-flag entries under this session's own time pressure
-  risked information loss; carried forward as **the next session's own mandatory §1 OPEN-gate
-  action**, same handling as this file's existing CLAUDE.md/LESSONS-LEARNED.md archival-backlog
-  item.
-  **`migration-cutover-table.md` needs no changes** (a types/config session, no route/slice had a
-  flag or rollback mechanism to move). **`migration-stack-analysis.md` DOES need an entry** (4 new,
-  4 modified) — added. **`DECISION-LOG.md` updated** — F68 and F74 both marked RESOLVED, full
-  detail (quoting Davin's sign-off) moved to `history/decisions-archive.md`.
-  **Lesson harvested:** no new lesson — this is L3 recurring again (now 29+ times through this
-  session), recurrence count bumped; no other lesson met the >30min/recurred/reached-CI bar this
-  session.
-  **Artifacts updated:** `11-1-tier-matrix-decision-types-config.migration-order.md` (Status →
-  CONFIRMED → CLOSED SUCCESSFUL, full Deviations, checked Done-when/entry-criteria boxes),
-  `DECISION-LOG.md`, `history/decisions-archive.md`, `LESSONS-LEARNED.md`,
-  `migration-stack-analysis.md`, `docs/migration-orders/11-2-guards-jwt-claims-header-forwarding.migration-order.md`
-  (PRE-DRAFTed), this file (Current/Previous rotation — Session 8-1 moved to
-  `history/sessions-archive.md`).
 
 ## Key documents
 

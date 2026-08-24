@@ -136,6 +136,25 @@ file, not just leave a benign cosmetic diff -- recovery procedure documented). F
 - Root cause: `migrate dev` (any invocation, `--create-only` or not) first diffs the ACTUAL target database against what replaying the full migration history would produce; on any mismatch its only offered resolution is a destructive reset. This repo has no `SHADOW_DATABASE_URL` configured and no staging Postgres to rehearse against (F34/CC-A gap), so this check runs directly against production every time.
 - Rule: **never run `prisma migrate dev` (in any form) against this production database.** To generate migration SQL for review without touching the database at all, use `prisma migrate diff --from-schema <pre-edit schema snapshot> --to-schema <schema.prisma> --script` (pure datamodel diff, zero DB connection). To apply an already-reviewed migration, use `prisma migrate deploy` (apply-only, no drift check, no reset path). Verify with `migrate status` (read-only) before and after, always through the SAME connection string the apply step used (see L19's recurrence).
 - Source: Session 4A-W2 · Status: ACTIVE
+- Recurrence (Session 11-3, 2026-08-25): a different destructive-diff trigger than the original
+  symptom, same underlying rule. `prisma db push --schema prisma/non-market-data/schema.prisma`
+  (an additive, correct schema edit — one nullable column, one new table) refused with "You are
+  about to drop the `market_data_v6` table, which is not empty" — because `prisma/non-market-data/`
+  and `prisma/market-data/` share one physical database (`prisma.config.ts` routes both through the
+  same `DIRECT_URL`, no `multiSchema` fencing) and `db push` diffs the _entire_ live database
+  against whichever single schema file is targeted, so the sibling file's table (`market_data_v6`,
+  `railway-gateway`'s protected ingest path) reads as orphaned and gets proposed for a DROP. Not a
+  new incident — `migration-stack-analysis.md:1095-1098` already documented Session 2-3 hitting
+  this identically. Resolved the same way this lesson already prescribes: `prisma migrate diff
+--from-schema <pre-edit schema> --to-schema <post-edit schema> --script` (pure schema-to-schema
+  diff, zero DB connection) to generate the exact DDL, then `prisma db execute --file <script>`
+  (raw SQL, no full-database diff) to apply it. Rule extension: this landmine isn't unique to
+  migration-history drift (the original symptom) — ANY `db push`/`migrate dev` against ONE of two
+  schema files that share a database via the same connection string will propose dropping
+  whatever the OTHER file owns, every time, regardless of migration history state. Before running
+  `db push` on a schema file in a repo with more than one `schema.prisma`, check whether they share
+  a datasource (`prisma.config.ts` / each file's own `datasource` block) — if so, use `migrate
+diff --script` + `db execute` unconditionally, never plain `db push`.
 
 ### L7 — `enableShutdownHooks()` is not optional; without it every `onModuleDestroy` is dead code
 

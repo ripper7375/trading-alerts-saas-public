@@ -8,8 +8,8 @@
 > DRAFT by the Advisor / Antigravity (2026-08-25)** per `MASTER-ROADMAP-PHASES-7-15.md` §"Phase 11"
 > and `davintrade-stack-d-and-e/PREPARATORY-TIER-ACCESS-AND-CORE-REFACTORING-SPECIFICATION.md` §3 (Core Areas 4 & 5).
 
-**Session:** 11-3 · **Phase:** 11 (Preparatory Tier-Access & Core Refactoring, third and final session of Phase 11) · **Variant:** INFRA + PORT · **Status:** CONFIRMED  
-**Generated:** 2026-08-24 (Executor, PRE-DRAFT) · **Upgraded to DRAFT:** 2026-08-25 (Advisor / Antigravity) · **Approved:** 2026-08-25 (Davin, live in chat — explicit confirmation quoted in CONFIRM) · **Confirmed:** 2026-08-25 (Executor — entry criteria + fresh baselines re-verified live, see CONFIRM report)  
+**Session:** 11-3 · **Phase:** 11 (Preparatory Tier-Access & Core Refactoring, third and final session of Phase 11) · **Variant:** INFRA + PORT · **Status:** CLOSED SUCCESSFUL  
+**Generated:** 2026-08-24 (Executor, PRE-DRAFT) · **Upgraded to DRAFT:** 2026-08-25 (Advisor / Antigravity) · **Approved:** 2026-08-25 (Davin, live in chat — explicit confirmation quoted in CONFIRM) · **Confirmed:** 2026-08-25 (Executor — entry criteria + fresh baselines re-verified live, see CONFIRM report) · **Closed:** 2026-08-25 (Executor — Phase 11 CLOSED SUCCESSFUL)  
 **Flags touched:** none (plumbing, token metering, and schema extensions; no runtime feature flag needed).  
 **Estimated time:** ~3–4h (schema extensions in `prisma/non-market-data/schema.prisma`, `prisma db push`, `trackAiTokenUsage()` Redis integration, dummy tier-gated AI route + tests, authoring `HANDOVER-PROMPT-phase-12.md`, closing Phase 11).  
 **Target components:** `prisma/non-market-data/schema.prisma`, `lib/rate-limit.ts`, `operation-service/src/redis/redis.service.ts`, `docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-12.md`.
@@ -89,14 +89,14 @@ This session is the third and final session of Phase 11. It completes the prepar
 
 ## Entry criteria (re-verify all at CONFIRM)
 
-- [ ] **Session 11-2 (Guards, JWT Claims & Header Forwarding) CLOSED SUCCESSFUL** in `CLAUDE.md`.
-- [ ] **Baseline test suites 100% green**:
+- [x] **Session 11-2 (Guards, JWT Claims & Header Forwarding) CLOSED SUCCESSFUL** in `CLAUDE.md`.
+- [x] **Baseline test suites 100% green**:
   - Monolith `test:ci`: 150/150 suites, 2190/2190 tests.
   - `operation-service`: 42/42 suites, 395/395 tests.
   - `money-service`: 62/62 suites, 532/532 tests.
   - `railway-gateway`: 3/3 suites, 23/23 tests.
-- [ ] **Prisma schema target verified**: `prisma/non-market-data/schema.prisma` exists and is the sole target for `User.profile` and `TokenUsageLog` schema authoring (`LESSONS-LEARNED.md` L1).
-- [ ] **Redis client connectivity verified**: Redis is accessible for sliding-window and token counter operations.
+- [x] **Prisma schema target verified**: `prisma/non-market-data/schema.prisma` exists and is the sole target for `User.profile` and `TokenUsageLog` schema authoring (`LESSONS-LEARNED.md` L1).
+- [x] **Redis client connectivity verified**: Redis is accessible for sliding-window and token counter operations.
 
 ---
 
@@ -184,13 +184,13 @@ _(each step = change → immediate verification → rollback note)_
 
 ## Done when
 
-- [ ] `TokenUsageLog` model and `User.profile` JSONB field exist in `prisma/non-market-data/schema.prisma`, pushed and generated.
-- [ ] `trackAiTokenUsage()` implemented in monolith and `operation-service` Redis layers.
-- [ ] Tier-gated dummy AI route returns `429` at quota limit, proven by automated unit tests.
-- [ ] All 4 monorepo test suites pass 100% green with zero regressions.
-- [ ] `HANDOVER-PROMPT-phase-12.md` authored.
-- [ ] Phase 11 declared **CLOSED SUCCESSFUL**.
-- [ ] Session 12-0 PRE-DRAFTed.
+- [x] `TokenUsageLog` model and `User.profile` JSONB field exist in `prisma/non-market-data/schema.prisma`, pushed and generated.
+- [x] `trackAiTokenUsage()` implemented in monolith and `operation-service` Redis layers.
+- [x] Tier-gated dummy AI route returns `429` at quota limit, proven by automated unit tests.
+- [x] All 4 monorepo test suites pass 100% green with zero regressions.
+- [x] `HANDOVER-PROMPT-phase-12.md` authored.
+- [x] Phase 11 declared **CLOSED SUCCESSFUL**.
+- [x] Session 12-0 PRE-DRAFTed.
 
 ---
 

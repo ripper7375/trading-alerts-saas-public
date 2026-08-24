@@ -4327,8 +4327,64 @@ tier2-workflows.test.ts` (all three updated for the new `canAccessSymbol` argume
 
 </details>
 
+<details>
+<summary>Session 11-3 (Token Metering & Schema, Phase 11 third-of-3 — CLOSES PHASE 11, INFRA + PORT) — 5 new, 4 modified, 0 deleted</summary>
+
+Redis `trackAiTokenUsage()` sliding-window token-quota limiter and the `TokenUsageLog`/
+`User.profile` schema — the mechanism Stack D (Phase 12) will meter and cap AI-token spend against,
+proven end-to-end by a dummy tier-gated route returning 429 at quota.
+
+- **New:** `app/api/test/ai-metering/route.ts` (throwaway dummy tier-gated AI route, deleted at
+  Phase 12 start), `__tests__/api/test-ai-metering.test.ts`, `operation-service/src/redis/
+redis.service.spec.ts`, `docs/migration-orders/session-11-3-token-metering-schema.sql` (the
+  hand-reviewed DDL script — see finding below), `docs/migration-orders/
+davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-12.md`.
+- **Modified:** `prisma/non-market-data/schema.prisma` (`User.profile Json?`, new `TokenUsageLog`
+  model mapped to `token_usage_log`), `lib/rate-limit.ts` and `operation-service/src/redis/
+redis.service.ts` (both gained an identically-behaved `trackAiTokenUsage()` — same
+  `ratelimit:ai_tokens:{userId}:{yearMonth}` key pattern, so both sides of the split enforce one
+  shared quota counter, not two independent ones), `__tests__/lib/rate-limit.test.ts` (+8 tests).
+- **CONFIRM-time finding, not scope creep — the order's own header was still `PRE-DRAFT`
+  (committed) / `DRAFT` (uncommitted working copy), never `APPROVED`, in either version, unlike the
+  11-1/11-2 precedent where the working copy already claimed `APPROVED`.** Surfaced directly;
+  Davin explicitly confirmed live in chat, 2026-08-25: "Yes, authentic. I explicitly confirm that
+  the working-copy DRAFT for Session 11-3 is now officially APPROVED by me."
+- **Real plan-vs-live-code conflict found executing Step 1, not a preference change:** the order's
+  literal Step 1 instruction (`prisma db push --schema prisma/non-market-data/schema.prisma`)
+  refused live, proposing to DROP the live, non-empty `market_data_v6` table —
+  `railway-gateway`'s protected ingest path (`EXECUTOR-PROTOCOL.md` §5). Root cause:
+  `prisma/non-market-data/` and `prisma/market-data/` share one physical database (`prisma.config.ts`
+  routes both through the same `DIRECT_URL`, no `multiSchema` fencing), so `db push` against either
+  file diffs the _entire_ live database and proposes dropping whatever the sibling file owns. A
+  known, previously-solved landmine (Session 2-3 hit it identically per this file's own §"Database
+  Architecture" section, lines ~1095-1098; Session 8-2 used the same hand-reviewed-script pattern
+  for its own `market_data_v6` DDL) — stopped and reported to Davin before touching the database;
+  Davin approved the established workaround live. Applied via `prisma migrate diff --from-schema
+  <HEAD> --to-schema <edited> --script` (pure schema-to-schema diff, zero DB connection) to generate
+  the exact DDL, saved as `session-11-3-token-metering-schema.sql`, applied via `prisma db execute
+  --file <script>` (raw SQL, no full-database diff). Live spot-check post-apply confirmed
+  `User.profile`/`token_usage_log` exist and `market_data_v6` is untouched at its original row
+  count. `LESSONS-LEARNED.md` L6 extended with a recurrence note (not a new lesson — file was at
+  its 40-entry cap).
+- **Deliberately NOT synced:** `operation-service/prisma/schema.prisma` (a hand-maintained, narrow
+  `User`-subset mirror, same drift class as `LESSONS-LEARNED.md` L19's Session 11-2 finding) was
+  NOT given `profile`/`TokenUsageLog` — neither of this session's own deliverables need it
+  (`trackAiTokenUsage()` is Redis-only; the dummy route lives in the monolith). Flagged for
+  whichever future session first needs `operation-service` to read `TokenUsageLog` (Session 12-3's
+  cost surveillance is the likely first consumer).
+- **Live-verification:** `tsc --noEmit` clean across all 4 codebases. Full suites re-run fresh,
+  sequentially (not concurrently, per this session's own CONFIRM-time OOM finding): monolith
+  `test:ci` 151/151·2204/2204 (+1 suite/+14 tests, zero regressions), `operation-service`
+  43/43·401/401 (+1 suite/+6 tests), `money-service` 62/62·532/532 (unchanged; clean on this
+  session's isolated re-run, no repeat of the concurrent-load `prisma.shutdown.spec.ts` flake seen
+  at CONFIRM), `railway-gateway` 3/3·23/23 (unchanged, untouched).
+- **`migration-cutover-table.md` needs no changes** (plumbing/metering session, no route/slice had a
+  flag or rollback mechanism to move).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-24 (Session 11-2, guards/JWT claims/header
-forwarding — tier enforcement unified)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-25 (Session 11-3, token metering & schema — Phase
+11 CLOSED SUCCESSFUL)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
