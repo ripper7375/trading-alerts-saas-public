@@ -243,6 +243,18 @@ new `DECISION-LOG.md` item — no decision was made, just scope correctly exclud
 session first needs `operation-service` to read `TokenUsageLog` (Session 12-3's "cost surveillance
 into `TokenUsageLog`" is the likely first consumer) knows the hand-sync is still owed.
 
+**Step 3 — dummy route built in the monolith only, not duplicated into `operation-service`.**
+Decision 3's own "Chosen" text names the route path as an **or**: `app/api/test/ai-metering/route.ts`
+**or** `operation-service/src/test/ai-metering.controller.ts` — one throwaway proof, not both. Built
+the monolith route (matches the order's own Ordered Steps §3 action item 1, which only names the
+monolith path). The action item 2 parenthetical "(and `operation-service` test suite)" is read as
+covering the alternative case, not a second duplicate controller+tests -- `operation-service`'s own
+quota-calculation logic (the part that would need proving) already has dedicated unit tests from
+Step 2 (`operation-service/src/redis/redis.service.spec.ts`, 6/6 passing, covering the same
+allow/block/TTL/quota semantics). 6 new tests in `__tests__/api/test-ai-metering.test.ts` (401, 403
+TIER_PRO_REQUIRED, 200 with remainingTokens, 429 over quota, FREE-tier defence-in-depth, missing/
+non-numeric `tokensUsed` defaults to 0), all passing. Monolith `tsc --noEmit` clean.
+
 ---
 
 ## Next-session handoff
