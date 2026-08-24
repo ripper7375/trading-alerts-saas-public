@@ -132,7 +132,7 @@ export async function POST(
     const { symbol, timeframe, type, anchors, style } = parsed.data;
     const tier = (session.user.tier as Tier) || 'FREE';
 
-    if (!canAccessSymbol(tier, symbol)) {
+    if (!canAccessSymbol(symbol, tier)) {
       return NextResponse.json(
         {
           success: false,

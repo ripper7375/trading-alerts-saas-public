@@ -15,6 +15,8 @@ import {
   TIMEFRAMES,
   FREE_TIER_CONFIG,
   PRO_TIER_CONFIG,
+  canAccessAiAnalyst as sharedCanAccessAiAnalyst,
+  canAccessMarketComments as sharedCanAccessMarketComments,
   type Tier,
 } from './tier-config';
 
@@ -104,8 +106,14 @@ export function getTierConfig(tier: Tier): TierConfig {
 /**
  * Check if tier can access symbol.
  * V8: tier-independent — only XAUUSD is supported.
+ *
+ * Argument order is `(symbol, tier)` — matches `@trading-alerts/types/tier`'s
+ * `canAccessSymbol` (and `lib/tier-config.ts`'s re-export of it), fixed at
+ * Session 11-2 after this function's own signature drifted to `(tier, symbol)`,
+ * the opposite of every other `canAccessSymbol` in the repo (DECISION-LOG.md,
+ * Session 11-2 CONFIRM).
  */
-export function canAccessSymbol(_tier: Tier, symbol: string): boolean {
+export function canAccessSymbol(symbol: string, _tier?: Tier): boolean {
   return (SYMBOLS as readonly string[]).includes(symbol.toUpperCase());
 }
 
@@ -120,7 +128,7 @@ export function validateTierAccess(
     throw new Error(`Invalid tier: ${tier}`);
   }
 
-  if (canAccessSymbol(tier, symbol)) {
+  if (canAccessSymbol(symbol, tier)) {
     return { allowed: true };
   }
 
@@ -203,6 +211,42 @@ export function canCreateAlert(
   return {
     allowed: false,
     reason: `Alert limit reached (${limit}).`,
+  };
+}
+
+// =============================================
+// Stack D / Stack E Feature Access (F68/F74, Session 11-1 entitlements)
+// =============================================
+
+/**
+ * Whether a tier may use the Stack D conversational AI analyst (Phase 12).
+ * Delegates to `@trading-alerts/types/tier`'s canonical entitlement (via
+ * `lib/tier-config.ts`) and wraps it in this file's own `ValidationResult`
+ * shape, matching `canCreateAlert`'s convention.
+ */
+export function canAccessAiAnalyst(tier: Tier): ValidationResult {
+  if (sharedCanAccessAiAnalyst(tier)) {
+    return { allowed: true };
+  }
+
+  return {
+    allowed: false,
+    reason: 'The AI analyst is a PRO feature. Upgrade to PRO to access it.',
+  };
+}
+
+/**
+ * Whether a tier may receive the Stack E live market-comments feed (Phase 13).
+ */
+export function canAccessMarketComments(tier: Tier): ValidationResult {
+  if (sharedCanAccessMarketComments(tier)) {
+    return { allowed: true };
+  }
+
+  return {
+    allowed: false,
+    reason:
+      'Live market comments are a PRO feature. Upgrade to PRO to access them.',
   };
 }
 
@@ -315,7 +359,7 @@ export function validateFullTierAccess(params: {
 }): string | null {
   const { tier, symbol, timeframe, alertCount } = params;
 
-  if (symbol && !canAccessSymbol(tier, symbol)) {
+  if (symbol && !canAccessSymbol(symbol, tier)) {
     return `Symbol ${symbol} is not supported. This platform provides XAUUSD data only.`;
   }
 

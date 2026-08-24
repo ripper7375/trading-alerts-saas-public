@@ -98,8 +98,8 @@ describe('Tier 2 Integration - Feature Workflows', () => {
     it('should reject alert for unsupported symbol (V8: any tier)', async () => {
       // V8: no PRO-exclusive symbols - anything but XAUUSD is invalid
       const { canAccessSymbol } = await import('@/lib/tier-validation');
-      expect(canAccessSymbol('FREE', 'EURUSD')).toBe(false);
-      expect(canAccessSymbol('PRO', 'EURUSD')).toBe(false);
+      expect(canAccessSymbol('EURUSD', 'FREE')).toBe(false);
+      expect(canAccessSymbol('EURUSD', 'PRO')).toBe(false);
     });
   });
 
@@ -199,8 +199,8 @@ describe('Tier 2 Integration - Feature Workflows', () => {
 
       // V8: identical symbol access for both tiers
       expect([...FREE_SYMBOLS]).toEqual([...PRO_SYMBOLS]);
-      expect(canAccessSymbol('FREE', 'XAUUSD')).toBe(true);
-      expect(canAccessSymbol('PRO', 'XAUUSD')).toBe(true);
+      expect(canAccessSymbol('XAUUSD', 'FREE')).toBe(true);
+      expect(canAccessSymbol('XAUUSD', 'PRO')).toBe(true);
     });
 
     it('should keep timeframe access identical after upgrade', async () => {
@@ -234,8 +234,8 @@ describe('Tier 2 Integration - Feature Workflows', () => {
 
       // Same validation logic for both features
       const symbol = 'XAUUSD';
-      const alertCanAccess = canAccessSymbol('FREE', symbol);
-      const chartCanAccess = canAccessSymbol('FREE', symbol);
+      const alertCanAccess = canAccessSymbol(symbol, 'FREE');
+      const chartCanAccess = canAccessSymbol(symbol, 'FREE');
 
       expect(alertCanAccess).toBe(chartCanAccess);
     });

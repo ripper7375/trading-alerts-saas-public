@@ -54,18 +54,18 @@ describe('Tier Validation (V8)', () => {
 
   describe('Symbol Access (tier-independent)', () => {
     it('both tiers can access XAUUSD', () => {
-      expect(canAccessSymbol('FREE', 'XAUUSD')).toBe(true);
-      expect(canAccessSymbol('PRO', 'XAUUSD')).toBe(true);
+      expect(canAccessSymbol('XAUUSD', 'FREE')).toBe(true);
+      expect(canAccessSymbol('XAUUSD', 'PRO')).toBe(true);
     });
 
     it('handles case-insensitive symbol matching', () => {
-      expect(canAccessSymbol('FREE', 'xauusd')).toBe(true);
+      expect(canAccessSymbol('xauusd', 'FREE')).toBe(true);
     });
 
     it('neither tier can access former symbols', () => {
       for (const symbol of ['EURUSD', 'BTCUSD', 'GBPUSD', 'US30', 'ETHUSD']) {
-        expect(canAccessSymbol('FREE', symbol)).toBe(false);
-        expect(canAccessSymbol('PRO', symbol)).toBe(false);
+        expect(canAccessSymbol(symbol, 'FREE')).toBe(false);
+        expect(canAccessSymbol(symbol, 'PRO')).toBe(false);
       }
     });
 

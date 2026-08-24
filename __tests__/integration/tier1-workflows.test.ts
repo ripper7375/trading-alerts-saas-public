@@ -73,11 +73,7 @@ jest.mock('@/lib/affiliate/constants', () => ({
 }));
 
 // Import after mocks
-import {
-  hasPermission,
-  getUserPermissions,
-  checkFeatureAccess,
-} from '@/lib/auth/permissions';
+import { hasPermission, getUserPermissions } from '@/lib/auth/permissions';
 import {
   validateTierAccess,
   canAccessSymbol,
@@ -104,9 +100,9 @@ describe('Tier 1 Integration: Auth + Tier + Permissions', () => {
       expect(hasPermission(newUser, 'view_symbols')).toBe(true);
 
       // Verify FREE tier symbol access (V8: XAUUSD only, for everyone)
-      expect(canAccessSymbol('FREE', 'XAUUSD')).toBe(true);
-      expect(canAccessSymbol('FREE', 'EURUSD')).toBe(false);
-      expect(canAccessSymbol('FREE', 'BTCUSD')).toBe(false);
+      expect(canAccessSymbol('XAUUSD', 'FREE')).toBe(true);
+      expect(canAccessSymbol('EURUSD', 'FREE')).toBe(false);
+      expect(canAccessSymbol('BTCUSD', 'FREE')).toBe(false);
 
       // Verify PRO features are blocked
       expect(hasPermission(newUser, 'create_alerts')).toBe(false);
@@ -269,13 +265,13 @@ describe('Tier 1 Integration: Auth + Tier + Permissions', () => {
 
     it('should validate tier access matches config limits', () => {
       // V8: single symbol for both tiers
-      expect(canAccessSymbol('FREE', 'XAUUSD')).toBe(true);
-      expect(canAccessSymbol('PRO', 'XAUUSD')).toBe(true);
+      expect(canAccessSymbol('XAUUSD', 'FREE')).toBe(true);
+      expect(canAccessSymbol('XAUUSD', 'PRO')).toBe(true);
       expect(FREE_TIER_CONFIG.symbols).toBe(1);
 
       // No tier unlocks additional symbols
-      expect(canAccessSymbol('PRO', 'GBPUSD')).toBe(false);
-      expect(canAccessSymbol('PRO', 'ETHUSD')).toBe(false);
+      expect(canAccessSymbol('GBPUSD', 'PRO')).toBe(false);
+      expect(canAccessSymbol('ETHUSD', 'PRO')).toBe(false);
     });
 
     it('should enforce rate limits per tier', () => {

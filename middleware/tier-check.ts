@@ -79,7 +79,7 @@ export function checkSymbolAccess(
 ): TierCheckResult {
   const userTier = extractTierFromRequest(req);
 
-  if (canAccessSymbol(userTier, symbol)) {
+  if (canAccessSymbol(symbol, userTier)) {
     return {
       allowed: true,
       tier: userTier,

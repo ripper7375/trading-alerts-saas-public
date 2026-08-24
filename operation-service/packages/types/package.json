@@ -22,6 +22,10 @@
     "./validations": {
       "types": "./dist/validations/alert.d.ts",
       "default": "./dist/validations/alert.js"
+    },
+    "./tier": {
+      "types": "./dist/tier/index.d.ts",
+      "default": "./dist/tier/index.js"
     }
   },
   "typesVersions": {
@@ -34,6 +38,9 @@
       ],
       "validations": [
         "dist/validations/alert.d.ts"
+      ],
+      "tier": [
+        "dist/tier/index.d.ts"
       ]
     }
   },
