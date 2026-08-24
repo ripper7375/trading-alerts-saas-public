@@ -254,6 +254,50 @@ railway-gateway` was run from the repo root (a stale shell cwd from Step 2's bas
    re-pointed the staging service's variable from `REDIS_HOST`/`REDIS_PORT`/`REDIS_PASSWORD` to a
    single `REDIS_URL` reference. A real, pre-existing code defect in never-before-deployed code —
    not scope creep, and squarely inside Decision 3's own "verify ingest" mandate.
+10. **The `REDIS_URL` fix alone still didn't connect — the real cause was the `postgre for
+staging` project's own `Redis` add-on, which had ZERO active deployments** (`railway status`
+    on the `Redis` service returned an empty `activeDeployments` array), apparently dormant since
+    the project's creation (2026-01-07). Diagnosed by testing raw TCP + a real Redis PING directly
+    from this environment against the public proxy address (reachable since it's genuinely public;
+    the credential itself was never printed) — TCP connected instantly both with and without TLS,
+    but the Redis protocol handshake itself reset the connection (`ECONNRESET`) either way,
+    consistent with a proxy target that has nothing listening behind it. This is a pre-existing
+    staging-infrastructure gap, not something introduced by this session's code. Not something to
+    fix silently — `railway redeploy --service Redis --from-source` (bringing a dormant _shared_
+    staging service online) was flagged by the environment's own permission classifier; escalated
+    to Davin, who approved live in chat. Started Redis, then restarted `railway-gateway` itself
+    (its existing Bull/ioredis client had already exhausted its retry budget against the
+    then-dead Redis and would not have self-healed) — `GET /api/v1/health` now returns
+    `{"status":"healthy","services":{"redis":{"status":"up","latency":5},"queue":{"status":"up",...},"database":{"status":"up","latency":20}}}`.
+    **Separately noted, not this session's job to fix:** staging's own `Postgres` service exposes
+    its `DATABASE_URL` variable as the PUBLIC proxy address (`*.proxy.rlwy.net`), not an internal
+    `*.railway.internal` one — the opposite of `LESSONS-LEARNED.md` L19's own internal-networking
+    rule. Since it already worked reliably for read/write and staging is single-service,
+    low-volume test traffic (not the real ingest path), left as-is rather than rewired; production
+    (Step 4, the `trading-alerts` project) will use `operation-service`/`money-service`'s own
+    already-proven internal-networking pattern, not this project's.
+11. **Staging's Postgres had zero application schema at all — no `market_data_v6`, no tables.**
+    The first test-vector POST queued fine but the worker's `upsert()` failed:
+    `"The table public.market_data_v6 does not exist in the current database."` Discovered
+    `prisma.config.ts` reads `DIRECT_URL` (not `DATABASE_URL`) for CLI operations, and that this
+    repo's real migration history lives at the shared `prisma/migrations/` (not a per-schema
+    folder) — running it in full would provision the entire application schema onto staging, far
+    beyond what this session needs. Instead generated the single-table DDL via
+    `prisma migrate diff --from-empty --to-schema prisma/market-data/schema.prisma --script`
+    (read-only, no DB connection), saved to
+    `docs/migration-orders/session-8-2-staging-market-data-v6.sql`, presented to Davin verbatim,
+    and applied only after his explicit approval via `prisma db execute` with `DIRECT_URL`
+    overridden to staging's connection string for that one invocation (never printed). Verified
+    directly against the staging DB (not just the queue's own bookkeeping): a fresh test vector
+    (`XAUUSD/M5/1787540300`) landed with the exact submitted values; re-sending the identical
+    payload left `market_data_v6` at 1 total row (idempotent upsert on `(symbol, timeframe,
+timestamp)` confirmed — no duplicate). One nuance worth recording, not a defect: Bull's own
+    `jobId` (`${symbol}_${timeframe}_${timestamp}`, identical to the DB's own upsert key) means a
+    second POST for an already-completed job is silently absorbed by Bull's own dedup before
+    Prisma's `upsert()` ever runs a second time — Prisma's own "update" branch is real and correct
+    but, under the current controller/worker design, only reachable if a job is ever removed from
+    Bull's registry and reprocessed; not something to fix, since duplicate delivery not producing
+    duplicate or corrupted rows is exactly the guarantee Decision 3 asked to prove.
 
 ---
 
