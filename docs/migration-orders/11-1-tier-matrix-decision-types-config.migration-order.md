@@ -267,6 +267,17 @@ _(each step = change → immediate verification → rollback note)_
   `validations/alert.ts` itself left untouched — out of this session's scope, a build-tooling
   collision fix, not a payments/auth/entitlement decision, resolved under this order's own "Ground
   truth priority: live code" rule rather than escalated.
+- **Step 4 (2026-08-24):** `packages/types` has no test runner, jest config, or test files today
+  (confirmed live — `find packages/types -iname "*.test.ts" -o -iname "*.spec.ts"` returns nothing,
+  no `test` script in its `package.json`). Standing up a parallel jest infra for a single new spec
+  file would be new project scaffolding this order's own "how hard to undo: trivial" framing for
+  Decision 4 didn't anticipate. Took the order's own "and/or `__tests__/lib/tier-config.test.ts`"
+  latitude: extended that existing monolith test file instead (14 new tests: FREE/PRO assertions for
+  `drawingAlertsAllowed`, `aiAnalystAllowed`/`aiMonthlyTokenQuota`, `marketCommentsFeedAllowed`,
+  `marketQualityMetricsAllowed`, plus dedicated `describe` blocks for `canAccessDrawingAlerts`/
+  `canAccessAiAnalyst`/`canAccessMarketComments`/`canAccessMarketQualityMetrics`). This exercises the
+  new `@trading-alerts/types/tier` values through the exact path real consumers use today (the
+  monolith's re-export), not a synthetic direct-package test. 60/60 passing (46 original + 14 new).
 
 ---
 

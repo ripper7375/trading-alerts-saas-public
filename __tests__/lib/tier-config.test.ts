@@ -27,6 +27,10 @@ import {
   getChartCombinations,
   canAccessSymbol,
   canAccessTimeframe,
+  canAccessDrawingAlerts,
+  canAccessAiAnalyst,
+  canAccessMarketComments,
+  canAccessMarketQualityMetrics,
   type Tier,
 } from '@/lib/tier-config';
 
@@ -59,6 +63,20 @@ describe('Tier Configuration Constants (V8)', () => {
     it('should have 60 requests/hour rate limit', () => {
       expect(FREE_TIER_CONFIG.rateLimit).toBe(60);
     });
+
+    it('should have drawing-alert entitlement locked (Phase 10)', () => {
+      expect(FREE_TIER_CONFIG.drawingAlertsAllowed).toBe(false);
+    });
+
+    it('should have AI Analyst entitlement locked with 0 tokens (Stack D, F68)', () => {
+      expect(FREE_TIER_CONFIG.aiAnalystAllowed).toBe(false);
+      expect(FREE_TIER_CONFIG.aiMonthlyTokenQuota).toBe(0);
+    });
+
+    it('should have Market Comments + Quality Metrics locked (Stack E, F68)', () => {
+      expect(FREE_TIER_CONFIG.marketCommentsFeedAllowed).toBe(false);
+      expect(FREE_TIER_CONFIG.marketQualityMetricsAllowed).toBe(false);
+    });
   });
 
   describe('PRO_TIER_CONFIG', () => {
@@ -88,6 +106,20 @@ describe('Tier Configuration Constants (V8)', () => {
 
     it('should have 300 requests/hour rate limit', () => {
       expect(PRO_TIER_CONFIG.rateLimit).toBe(300);
+    });
+
+    it('should have drawing-alert entitlement unlocked (Phase 10)', () => {
+      expect(PRO_TIER_CONFIG.drawingAlertsAllowed).toBe(true);
+    });
+
+    it('should have AI Analyst unlocked with a 500,000 monthly token quota (Stack D, F68)', () => {
+      expect(PRO_TIER_CONFIG.aiAnalystAllowed).toBe(true);
+      expect(PRO_TIER_CONFIG.aiMonthlyTokenQuota).toBe(500_000);
+    });
+
+    it('should have Market Comments + Quality Metrics unlocked (Stack E, F68)', () => {
+      expect(PRO_TIER_CONFIG.marketCommentsFeedAllowed).toBe(true);
+      expect(PRO_TIER_CONFIG.marketQualityMetricsAllowed).toBe(true);
     });
   });
 
@@ -257,5 +289,45 @@ describe('canAccessTimeframe (V8: M5/M15 only, any tier)', () => {
       expect(canAccessTimeframe(tf, 'FREE')).toBe(false);
       expect(canAccessTimeframe(tf, 'PRO')).toBe(false);
     }
+  });
+});
+
+describe('canAccessDrawingAlerts (Phase 10 deferred, resolved F68/Session 11-1)', () => {
+  it('should deny FREE tier', () => {
+    expect(canAccessDrawingAlerts('FREE')).toBe(false);
+  });
+
+  it('should allow PRO tier', () => {
+    expect(canAccessDrawingAlerts('PRO')).toBe(true);
+  });
+});
+
+describe('canAccessAiAnalyst (Stack D, F68)', () => {
+  it('should deny FREE tier', () => {
+    expect(canAccessAiAnalyst('FREE')).toBe(false);
+  });
+
+  it('should allow PRO tier', () => {
+    expect(canAccessAiAnalyst('PRO')).toBe(true);
+  });
+});
+
+describe('canAccessMarketComments (Stack E, F68)', () => {
+  it('should deny FREE tier', () => {
+    expect(canAccessMarketComments('FREE')).toBe(false);
+  });
+
+  it('should allow PRO tier', () => {
+    expect(canAccessMarketComments('PRO')).toBe(true);
+  });
+});
+
+describe('canAccessMarketQualityMetrics (Stack E, F68)', () => {
+  it('should deny FREE tier', () => {
+    expect(canAccessMarketQualityMetrics('FREE')).toBe(false);
+  });
+
+  it('should allow PRO tier', () => {
+    expect(canAccessMarketQualityMetrics('PRO')).toBe(true);
   });
 });
