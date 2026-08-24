@@ -7,6 +7,85 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 4A-16** (dLocal Payment Method ID
+  Mapping & Recutover, Phase 4X — final session, PORT + CUTOVER), APPROVED, CONFIRMED, executed,
+  **CLOSED SUCCESSFUL** 2026-08-24.
+  Resolves **F76** and completes Slice 4 to 4/4 write-API groups — **Phase 4X is now CLOSED**, all
+  four of 4A-13/14/15/16 resolved, satisfying Session 8-1's own long-standing entry criterion.
+  **CONFIRM found the order's own live status was inconsistent across two passes in the same
+  session** — first read showed `Status: DRAFT` with no Davin approval line anywhere (committed
+  HEAD still held the original PRE-DRAFT); re-checked minutes later and the working copy had
+  flipped to `Status: APPROVED` with an unexplained approval stamp, still uncommitted, with zero
+  corroborating record in `DECISION-LOG.md` or this file. Treated per `LESSONS-LEARNED.md` L3 —
+  did not silently trust it, asked Davin directly, including naming the specific concern that
+  Decision 1's method codes (`TM`/`TH_QR`/`MOMO`, …) were byte-identical to the roadmap's own
+  explicitly-labeled "unconfirmed placeholder" examples with no new verification cited anywhere.
+  Davin confirmed live, in chat: the order is authentic, and gave explicit separate sign-off on
+  both `⚠ NEEDS EXPLICIT SIGN-OFF` items (Decision 1's mapping table, Decision 4's cutover/flag-flip
+  protocol) — the `00-SKELETON-AND-RULES.md` §1.0 rule that a general order approval doesn't cover
+  these on its own.
+  **Steps 1–2 (mapping implementation, both sides):** `DLOCAL_METHOD_CODE_MAP` +
+  `getDLocalMethodCode(country, displayName)` added to `money-service/src/dlocal/
+payment-methods.service.ts` and `lib/dlocal/payment-methods.service.ts`, covering all 23
+  country/method pairs (22 unique display names — the order's own draft said "18," corrected here);
+  both `createPayment()` call sites (`money-service/src/dlocal/dlocal-payment.service.ts`,
+  `lib/dlocal/dlocal-payment.service.ts`) updated to resolve the mapped code instead of the display
+  name; fails loud (`Error`) on any unmapped name, never sends an unmapped string to dLocal. Real
+  dLocal codes came from Davin directly in chat, not guessed and not the roadmap's own placeholder
+  examples. Real-fetch-path tests added both sides (`jest.resetModules()` + env override, 4A-14
+  precedent) asserting the outbound `payment_method_id` is the mapped code, plus a fail-loud test
+  for unmapped names. One drafting-accuracy fix along the way: the order named
+  `__tests__/lib/dlocal/dlocal-payment.service.test.ts`, which doesn't exist — the real file is
+  `__tests__/lib/dlocal/dlocal-payment.test.ts` (no `.service`); used the real path. Committed as
+  two separate step commits (`942e2e5d` money-service, `0a4f942c` monolith), each with its own
+  fresh green baseline before committing.
+  **Step 3 (deploy) hit a real, pre-existing repo bug, found and fixed:** `railway up` failed the
+  build with `TS2307: Cannot find module './dlocal/dlocal.module'` — root `.railwayignore`'s
+  unanchored `dlocal`/`riseworks` patterns (meant only for the two top-level reference folders of
+  the same name) were also matching `money-service/src/dlocal/` and `money-service/src/riseworks/`,
+  silently stripping both modules from every CLI-driven upload. Anchored both patterns with a
+  leading `/` (root-only, commit `8796fdfa`) and redeployed clean — confirmed via a direct
+  `/health` check showing a fresh `uptime` (18.8s), not `railway logs`/`railway status` alone
+  (`LESSONS-LEARNED.md` L13). Pre-existing bug, not introduced this session — never previously
+  exercised via `railway up` in this migration's history.
+  **Steps 4–5 (flag flip + live smoke test) executed by Davin directly, not the Executor:** no
+  Vercel CLI/credentials exist in this Executor's environment, and the order's own Decision 4/Step 5
+  design already assigns these actions to Davin personally. Davin flipped
+  `MIGRATE_WRITE_APIS_MONEY_DLOCAL=true` on Vercel production and ran the live TH/TrueMoney
+  test-mode checkout himself: monolith forwarded correctly, dLocal accepted `payment_method_id:
+  'TM'` with zero `5010` errors, real redirect URL returned and followed
+  (`https://sandbox.dlocal.com/payment/R-1804074-g1l8n07m-oumvi7djjl1gpc-2o922ds992v0`).
+  **Independently cross-checked against money-service's own first-party structured logs, not just
+  Davin's report:** `Creating payment` (country=TH, paymentMethod=TrueMoney) → `Payment record
+  created` (`paymentId: cmt6fo3ty00000fnwahf0e8v8`) → `Creating dLocal payment` → `dLocal payment
+  created` (`paymentId: R-1804074-g1l8n07m-oumvi7djjl1gpc-2o922ds992v0` — matches Davin's redirect
+  URL exactly), zero error-level log lines anywhere in the sequence. `provider: 'DLOCAL'`/`status:
+  'PENDING'` confirmed hardcoded (not response-derived) in `dlocal-payment.controller.ts`'s
+  `prisma.payment.create()` call, reading the actual source rather than assuming. **A direct
+  Postgres row read was attempted for full verification and had no path from this environment**
+  (`pgbouncer.railway.internal` unreachable from a local shell even via `railway run`; `railway
+  ssh` needs an SSH key not present here, not generated for a one-off read) — disclosed rather than
+  silently skipped; logs + the deterministic code path are the verification of record.
+  **All baselines re-verified fresh at close:** monolith `test:ci` 153/153 suites/2204/2204 tests
+  (+6); `operation-service` 42/42 suites/395/395 tests (untouched, unchanged); money-service 62/62
+  suites/532/532 tests (+6). `tsc --noEmit` and targeted `eslint` clean on every file this session
+  touched (one pre-existing, untouched warning found elsewhere — `three-day-validator.test.ts`,
+  out of scope, not fixed).
+  **`migration-cutover-table.md` updated** (Slice 4 → CUT-OVER 4/4, flags all `true`, session list
+  +16, narrative note appended). **`DECISION-LOG.md` updated** (F76 → RESOLVED, register row +
+  full resolution moved to `history/decisions-archive.md`). **`migration-stack-analysis.md` DOES
+  need an entry** (8 modified: 4 `dlocal` service files + 4 test files across both codebases; 1
+  modified: `.railwayignore`) — added.
+  **Still outstanding, unchanged, flagged again:** both orphaned `Payment` rows from 4A-10c
+  (`cms7hlmb900000fmpz9i9fv1q`) and 4A-14 (`cmt2yflxe00000fnw8gy7jm53`) — not this session's job to
+  clean up, not touched.
+  **Artifacts updated:** `4a-16-dlocal-payment-method-id-mapping.migration-order.md` (Status →
+  CONFIRMED → CLOSED SUCCESSFUL, Deviations + checked Done-when/entry-criteria boxes),
+  `DECISION-LOG.md`, `migration-cutover-table.md`, `migration-stack-analysis.md`, this file
+  (Current/Previous rotation — Session 10-2 moved to `history/sessions-archive.md`). Session 8-1's
+  own order (`8-1-deletion-sweep.migration-order.md`) re-verified: its Phase 4X entry criterion is
+  now satisfied — updated to reflect that.
+
 - _(superseded-by-above, retained for context)_ **Session 10-3** (Blueprint Reconciliation & Close, Phase 10 — final session,
   VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24. **Phase 10
   (Drawing Engine & Line-Alert Closure) is now CLOSED** — all 3 sessions complete: 10-1 (F67, live

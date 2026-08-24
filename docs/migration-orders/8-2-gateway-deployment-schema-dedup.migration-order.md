@@ -7,9 +7,9 @@
 > **MANDATORY INVARIANT (`EXECUTOR-PROTOCOL.md` §5):** The ingest path must **NEVER BLIP**. Each step
 > below explicitly states how ingest continuity is preserved without interruption.
 
-**Session:** 8-2 · **Phase:** 8A (Decommission, part 2 — final session of Phase 8A) · **Variant:** INFRA · **Status:** CONFIRMED  
-**Generated:** 2026-08-24 (Executor, PRE-DRAFT) · **Upgraded to DRAFT:** 2026-08-24 (Advisor / Antigravity) · **Approved:** 2026-08-24 (Davin) · **Confirmed:** 2026-08-24 (Executor)  
-**Flags touched:** none (INFRA deployment & schema dedup; no runtime feature flag needed).  
+**Session:** 8-2 · **Phase:** 8A (Decommission, part 2 — final session of Phase 8A) · **Variant:** INFRA · **Status:** CLOSED SUCCESSFUL  
+**Generated:** 2026-08-24 (Executor, PRE-DRAFT) · **Upgraded to DRAFT:** 2026-08-24 (Advisor / Antigravity) · **Approved:** 2026-08-24 (Davin) · **Confirmed:** 2026-08-24 (Executor) · **Closed:** 2026-08-24 (Executor, Davin-directed)  
+**Flags touched:** F70 (progress note only, not resolved — new evidence found, resolution stays owned by Session 12-0).  
 **Estimated time:** ~2–3h (staged deployment on `postgre for staging`, initial production deployment as a new service, live ingest verification).  
 **Target components:** `railway-gateway/` (package.json, Prisma schema, NestJS config), `money-service/src/main.ts` (deferred CORS comment cleanup), `docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-11.md`.
 
@@ -162,14 +162,22 @@ _(each step = change → immediate verification → rollback note)_
 
 ## Done when
 
-- [ ] `railway-gateway` Prisma upgraded to `7.9.1` and schema sync test passing.
-- [ ] `railway-gateway` deployed and verified on `postgre for staging`.
-- [ ] `railway-gateway` deployed to production with zero ingest downtime.
-- [ ] Ingest verified live via `market_data_v6` row count and Redis feeds.
-- [ ] Stale CORS comment in `money-service/src/main.ts` cleaned up.
-- [ ] `HANDOVER-PROMPT-phase-11.md` authored.
-- [ ] Phase 8A declared **CLOSED SUCCESSFUL**.
-- [ ] Baseline test suites 100% green.
+- [x] `railway-gateway` Prisma upgraded to `7.9.1` and schema sync test passing.
+- [x] `railway-gateway` deployed and verified on `postgre for staging` — full pipeline proven
+      end-to-end (health, ingest, idempotent upsert, all via direct DB verification).
+- [x] `railway-gateway` deployed to production as a new service (first deployment, zero downtime
+      by construction — nothing was previously live to interrupt).
+- [~] Ingest verified live via `market_data_v6` row count and Redis feeds — **staging: fully
+  verified. Production: blocked on `DECISION-LOG.md` F70 (DB role/schema grant, owned by
+  Session 12-0), not this session's to resolve.** Per Davin's explicit direction, the
+  complete staging proof + production's healthy `/health` is accepted as this session's
+  verification of record.
+- [x] Stale CORS comment in `money-service/src/main.ts` cleaned up.
+- [x] `HANDOVER-PROMPT-phase-11.md` authored.
+- [x] Phase 8A declared **CLOSED SUCCESSFUL**.
+- [x] Baseline test suites 100% green (monolith 150/150·2176/2176, `operation-service`
+      42/42·395/395, `money-service` 62/62·532/532, `railway-gateway` 3/3·23/23 — all re-verified
+      fresh at close).
 
 ---
 
@@ -298,11 +306,53 @@ timestamp)` confirmed — no duplicate). One nuance worth recording, not a defec
     but, under the current controller/worker design, only reachable if a job is ever removed from
     Bull's registry and reprocessed; not something to fix, since duplicate delivery not producing
     duplicate or corrupted rows is exactly the guarantee Decision 3 asked to prove.
+12. **Production deployment (Step 4) succeeded cleanly on the first attempt** — new
+    `railway-gateway` service in `trading-alerts`, `DATABASE_URL`/`REDIS_URL` referenced from
+    `Postgres`/`Redis` directly (both already running, unlike staging's dormant Redis), `GET
+/api/v1/health` returned `healthy` immediately (proper internal networking, no repeat of any
+    staging gotcha).
+13. **Production's first real write exposed a wiring assumption that didn't hold: `${{Postgres.
+DATABASE_URL}}` is not the same database `operation-service`/`money-service` actually use.**
+    The write failed with the identical `"table does not exist"` error as staging's original
+    (pre-DDL) failure. Escalated to Davin rather than guessing; his diagnosis (app services
+    connect via `pgbouncer`) led to checking `operation-service`'s own `DATABASE_URL` — which
+    itself turned out to resolve directly to the `Postgres` service's own private domain
+    (`postgres.railway.internal`), not to a distinct `pgbouncer.railway.internal` host (confirmed
+    live: `pgbouncer`'s own `RAILWAY_PRIVATE_DOMAIN` is `pgbouncer.railway.internal`, a different
+    value; the `pgbouncer` service also has no `DATABASE_URL` variable of its own at all). Set
+    `railway-gateway`'s `DATABASE_URL` to `${{operation-service.DATABASE_URL}}` instead — this
+    satisfies Davin's actual intent (byte-identical to what `operation-service` uses, confirmed via
+    SHA-256-prefix + length comparison, values never printed) even though the literal `pgbouncer`
+    mechanism he named doesn't hold up under live inspection. Health remained green; see item 14
+    for what this connection then revealed.
+14. **Even byte-identical to `operation-service`'s own connection, the write still failed —
+    revealing that production's `market_data_v6` was never actually missing, just unreachable
+    through the `public` schema.** Re-running the exact staging DDL against production (same
+    connection, unqualified `CREATE TABLE`) returned `relation "market_data_v6" already exists` —
+    proof the table is real, sitting in whatever schema the connecting role's own `search_path`
+    resolves first, not `public`. This is `DECISION-LOG.md` **F70**'s own already-registered,
+    still-open question (which DB role reads `market_data_v6`, owned by Session 12-0) — not a new
+    problem this session created, and not something to guess a fix for outside that flag's own
+    resolution. Stopped, disclosed the exact evidence chain to Davin, added a progress note to
+    F70 (not a resolution), and — **per Davin's explicit direction** — closed this session on the
+    complete staging end-to-end proof (DDL, health, ingest, idempotent upsert, all independently
+    DB-verified) plus production's healthy `/health`, deferring production ingest verification to
+    F70's own resolution rather than this session's scope.
+15. **Close-out, per Davin's explicit direction:** CORS comment cleanup (already done, item 4),
+    `HANDOVER-PROMPT-phase-11.md` authored (`docs/migration-orders/davin-operational-manual/
+antigravity/`), `CLAUDE.md` updated, Session 11-1's order PRE-DRAFTed. No new
+    `LESSONS-LEARNED.md` entry added — the file is still at its 40-entry cap; recurrence notes
+    appended to **L19** (three first-deploy gotchas: `railway up`'s cwd-sensitive upload source,
+    `engines`/`postinstall` parity needed before a service's first-ever deploy, and verifying a
+    variable reference against a hash-compared known-working sibling rather than a plausible name)
+    and **L33** (a schema-resolution variant: a Prisma "table does not exist" error can mean the
+    connecting role's `search_path` resolves elsewhere, not that data was lost).
 
 ---
 
 ## Next-session handoff
 
 - **Next session:** `11-1` — Tier matrix decision + types/config (Phase 11, first of 3 sessions).
-- **Prerequisite:** Session 8-2 CLOSED SUCCESSFUL (Phase 8A closed).
-- **Handover Prompt:** `docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-11.md` (authored in Step 6).
+- **Prerequisite:** Session 8-2 CLOSED SUCCESSFUL (Phase 8A closed) — met.
+- **Handover Prompt:** `docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-11.md` (authored at close).
+- **PRE-DRAFT:** `docs/migration-orders/11-1-tier-matrix-decision-types-config.migration-order.md` (authored at close, `Status: PRE-DRAFT`) — F68/F74 resolution and `⚠ NEEDS EXPLICIT SIGN-OFF` items left for the Advisor's DRAFT pass, not resolved here.
