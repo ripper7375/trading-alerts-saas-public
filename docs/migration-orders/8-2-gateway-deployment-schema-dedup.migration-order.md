@@ -2,157 +2,222 @@
 
 > Read `00-SKELETON-AND-RULES.md` first — §4 applies with the dial at **Medium** (INFRA variant:
 > the end-state, grants, and names are fixed by the plan; the deployment approach is flexible).
-> **PRE-DRAFTed by the Executor at Session 8-1's close (2026-08-24)** per
-> `MASTER-ROADMAP-PHASES-7-15.md` §"Phase 8A" and the session playbook's own Session 8-2 entry.
+> **PRE-DRAFTed by the Executor at Session 8-1's close (2026-08-24)**, upgraded to **DRAFT by the
+> Advisor / Antigravity (2026-08-24)** per `MASTER-ROADMAP-PHASES-7-15.md` §"Phase 8A" and `00-SKELETON-AND-RULES.md`.
+> **MANDATORY INVARIANT (`EXECUTOR-PROTOCOL.md` §5):** The ingest path must **NEVER BLIP**. Each step
+> below explicitly states how ingest continuity is preserved without interruption.
 
-**Session:** 8-2 · **Phase:** 8A (Decommission, part 2 — final session) · **Variant:** INFRA ·
-**Status:** PRE-DRAFT
-**Generated:** 2026-08-24 (Executor, at Session 8-1's close) · **Flags touched:** none identified
-yet — the Advisor should check whether the schema-dedup mechanism itself deserves a flag (see
-Decision-needed #1 below). **Estimated time:** ~2–4h (this touches the must-never-blip ingest
-path — expect staging-first verification to dominate the time, not the deploy itself).
+**Session:** 8-2 · **Phase:** 8A (Decommission, part 2 — final session of Phase 8A) · **Variant:** INFRA · **Status:** CONFIRMED  
+**Generated:** 2026-08-24 (Executor, PRE-DRAFT) · **Upgraded to DRAFT:** 2026-08-24 (Advisor / Antigravity) · **Approved:** 2026-08-24 (Davin) · **Confirmed:** 2026-08-24 (Executor)  
+**Flags touched:** none (INFRA deployment & schema dedup; no runtime feature flag needed).  
+**Estimated time:** ~2–3h (staged deployment on `postgre for staging`, initial production deployment as a new service, live ingest verification).  
+**Target components:** `railway-gateway/` (package.json, Prisma schema, NestJS config), `money-service/src/main.ts` (deferred CORS comment cleanup), `docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-11.md`.
+
+---
+
+## Decisions taken
+
+> Four technical choices taken by the Advisor per `00-SKELETON-AND-RULES.md` §1.0 & `DECISION-LOG.md` PD1.
+> Items touching production deployment of the live market data ingest pipeline carry **`⚠ NEEDS EXPLICIT SIGN-OFF`**.
+
+1. **Schema Source-of-Truth & Deduplication Architecture**
+   - **Chosen:** Establish `prisma/market-data/schema.prisma` (root monolith) as the single authoritative source of truth for the physical PostgreSQL `market_data_v6` table migrations. Retain `railway-gateway/prisma/schema.prisma` as the service-local definition for generating its isolated `@prisma/client` (`railway-gateway/node_modules/.prisma/client`), and add an automated schema drift test (`railway-gateway/test/schema-sync.spec.ts`) that asserts byte-for-byte model equivalence across the 79 fields, indices, and constraints.
+   - **Rejected:** Creating a complex shared monorepo npm package under `packages/*` for a single-table schema (adds packaging overhead and Docker build friction without operational gain), or symlinking files (fails in standard Railway Docker builds).
+   - **Why:** Maintains service build isolation for Railway deployments while programmatically guaranteeing zero schema drift between the monolith migration manager and the gateway writer.
+   - **How hard to undo:** Trivial — plain test and schema comment convention.
+
+2. **Prisma Version Alignment to Monorepo Standard (`7.9.1`)**
+   - **Chosen:** Upgrade `railway-gateway`'s `prisma` and `@prisma/client` dependencies from `^6.19.2` to **`7.9.1`**, matching the exact pinned version used across the rest of the monorepo (`operation-service`, `money-service`, monolith). Verify that `railway-gateway`'s schema conforms to Prisma 7 syntax and that `prisma generate` compiles cleanly.
+   - **Rejected:** Pinning to `7.8.0` (outdated playbook placeholder) or leaving `railway-gateway` on Prisma 6.
+   - **Why:** Prevents multi-version engine drift and aligns driver/engine behavior across all services connecting to the shared PostgreSQL database.
+   - **How hard to undo:** Dependency version change in `package.json`.
+
+3. **Initial Gateway Deployment & Staging-First Verification Protocol `⚠ NEEDS EXPLICIT SIGN-OFF`**
+   - **Chosen:** Execute a strict staging-first pipeline for this initial `railway-gateway` deployment:
+     1. Deploy `railway-gateway` to the **`postgre for staging`** Railway project first (initial staging deployment).
+     2. Send synthetic market data test vectors (`gateway_contract_market_data.schema.json`) to staging `railway-gateway`'s `POST /api/v1/market-data` and verify idempotent upsert into staging `market_data_v6`.
+     3. Davin provides explicit live authorization (`EXECUTOR-PROTOCOL.md` §7) before deploying to production.
+     4. Deploy `railway-gateway` to the production Railway project (`trading-alerts`) as a new microservice.
+     5. Verify production `railway-gateway` `GET /health` returns `200 OK`, and verify successful test vector ingest into production `market_data_v6`.
+   - **Rejected:** Deploying directly to production without staging validation.
+   - **Why:** Safely introduces the new `railway-gateway` service into the production Railway infrastructure after proving it in staging.
+   - **How hard to undo:** Plain removal/deletion of the newly deployed Railway service.
+
+4. **Residual Cleanup & Phase 11 Handover Generation**
+   - **Chosen:** Clean up the stale `NEXT_PUBLIC_MONEY_API_URL` CORS comment in `money-service/src/main.ts:35` (deferred from Session 8-1), and author the Phase 11 Handover Prompt (`docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-11.md`) to formally unblock Phase 11 (Tier Matrix & Access Control).
+   - **Rejected:** Leaving stale architectural comments or deferring handover creation.
+   - **Why:** Keeps codebase documentation accurate and fulfills Phase 8A exit requirements.
+   - **How hard to undo:** Plain file edits.
 
 ---
 
 ## Why this session exists
 
-Per `monolith-to-microservices-migration-session-playbook.md` §"Session 8-2":
-"Deploy the `railway-gateway` backend to the `postgre for staging` Railway project (which contains
-the required Postgres and Redis infrastructure). Point it at the shared market-data schema/types
-package; align its Prisma to 7.8.0; verify ingest." **Done when:** `railway-gateway` is live on
-`postgre for staging`, one source of truth for `MarketDataV6`; ingest verified end-to-end.
+Per `MASTER-ROADMAP-PHASES-7-15.md` §"Phase 8A":
+"8-2 — Gateway deployment & schema dedup. Deploy railway-gateway to `postgre for staging`, point at shared market-data schema, align Prisma to repo standard, verify ingest."
 
-This is Phase 8A's second and final session, and a hard prerequisite for **Session 13-1** (Stack
-E's narrative-engine work wants to add a PL/pgSQL trigger to the very `market_data_v6` schema this
-session deduplicates — `MASTER-ROADMAP-PHASES-7-15.md` F71's entry criterion is explicitly "Session
-8-2 CLOSED").
+This is Phase 8A's second and final session, closing Phase 8A (Decommission) in full and satisfying the mandatory prerequisite for **Session 13-1** (which attaches a PL/pgSQL trigger to the deduplicated `market_data_v6` schema) and unblocking **Phase 11** (Tier Matrix Decision & Types).
 
 ---
 
-## Facts verified live at PRE-DRAFT time (not fabricated — re-verify fresh at CONFIRM)
+## Ingest Safety & Deployment Strategy (`EXECUTOR-PROTOCOL.md` §5)
 
-- **The schema duplication is real and already identified:** `railway-gateway/prisma/schema.prisma`
-  exists as its own, separate file from the monolith's `prisma/market-data/schema.prisma` — two
-  independent schema definitions for what should be one `MarketDataV6` source of truth. This is
-  the concrete thing "dedup" refers to.
-- **Version gap confirmed:** `railway-gateway/package.json` pins `prisma`/`@prisma/client` at
-  `^6.19.2`. The rest of the monorepo (monolith, `operation-service`, `money-service`) is already
-  on Prisma `7.9.1` (verified live at Session 10-3's CONFIRM). The playbook's own target for this
-  session is `7.8.0` — close to but not identical to the rest of the repo's `7.9.1`; the Advisor
-  should confirm whether `7.8.0` is still the right target or whether it should match the repo's
-  actual current pin.
-- **Target Railway project exists and is reachable:** `railway list` (this Executor's
-  authenticated CLI) confirms `postgre for staging` is a real project in the same Railway account
-  as `trading-alerts`, `prisma-migration`, `zoological-motivation`, `feisty-amazement`. Unlike
-  Vercel (no CLI/credentials in this environment, per 4A-16's own finding), **this Executor's
-  environment CAN drive the actual `railway up`/link/deploy steps** — this session does not need
-  to be handed to Davin the way 4A-16's flag-flip was.
-  `railway-gateway`'s own `railway.toml` and current project linkage were not inspected yet — that
-  is this session's own Step 1, not pre-empted here.
-- **Entry criterion now met:** Session 8-1 (Deletion Sweep) is CLOSED SUCCESSFUL as of this
-  PRE-DRAFT's own writing (2026-08-24) — re-verify fresh at this session's own CONFIRM regardless.
+To guarantee safe deployment of the new gateway service:
 
----
-
-## Decisions needed (flagged for the Advisor to resolve at DRAFT — not resolved here)
-
-1. **Which schema file becomes the source of truth, and by what mechanism?** The playbook says
-   "point it at the shared market-data schema/types package," which implies a package that doesn't
-   fully exist yet as such — today there are two independent `schema.prisma` files, not one shared
-   package consumed by both. Options the Advisor should weigh: (a) `railway-gateway` adopts
-   `prisma/market-data/schema.prisma` directly (path/symlink/copy-with-generate-step), (b) both
-   consume a new shared package under `packages/*` (this repo's pnpm workspace already has a
-   `packages/*` convention — `F9`'s resolution), (c) `railway-gateway` keeps its own file but a CI
-   check enforces the two never drift. This is the actual "dedup," not just the version bump —
-   get this right before writing Ordered Steps naming specific files.
-2. **Prisma target version:** `7.8.0` (playbook) vs. `7.9.1` (rest of the repo, live) — confirm
-   which, and whether bumping `railway-gateway` this session should also re-verify Prisma 7's own
-   breaking-change audit (F19, resolved Session 2-1) applies cleanly to `railway-gateway`'s schema
-   too.
-3. **Staging-first sequencing, given the must-never-blip constraint** (`EXECUTOR-PROTOCOL.md` §5):
-   the INFRA template requires "production changes only after the identical change succeeded in
-   staging." `postgre for staging` is presumably the staging target itself — the Advisor should
-   make explicit what "success in staging" looks like before this touches whatever
-   `railway-gateway` currently has live in production, and whether ingest verification needs a
-   synthetic feeder (Session 10-1's own F67 precedent) or can safely use a live-but-low-risk read.
+1. **Isolation in Staging:** Steps 1–3 run locally and on the staging Railway project (`postgre for staging`). Zero production network requests or database connections are touched.
+2. **Initial Deployment Footprint:** Because `railway-gateway` is being deployed to Railway for the first time, no existing live container or running process is interrupted.
+3. **No Database Schema Alterations:** This session makes zero DDL changes to the live `market_data_v6` table. The Prisma 7 client generates against the existing table schema.
+4. **Immediate Health & Ingest Verification:** Post-deploy health check (`GET /health` → `200 OK`) and test vector upsert confirm gateway readiness.
 
 ---
 
 ## Entry criteria (re-verify all at CONFIRM)
 
-- [ ] **Session 8-1 (Deletion Sweep) CLOSED SUCCESSFUL** in `CLAUDE.md`.
-- [ ] **Blast-radius statement confirmed:** what could this session break if it goes wrong? Draft
-      answer (Advisor to refine): a bad schema-dedup migration or a botched `railway-gateway`
-      redeploy could interrupt live market-data ingest — the one path `EXECUTOR-PROTOCOL.md` §5
-      says must never blip. Everything in this session's Ordered Steps must state explicitly how
-      it avoids that.
-- [ ] Railway CLI access confirmed live (already true in this Executor's environment — re-verify
-      `railway whoami` fresh at CONFIRM, not assumed from this PRE-DRAFT).
-- [ ] Baseline test suites 100% green (monolith, `operation-service`, `money-service` — figures to
-      be re-verified fresh at CONFIRM, not copied from 8-1's close).
+- [x] **Session 8-1 (Deletion Sweep) CLOSED SUCCESSFUL** in `CLAUDE.md`.
+- [x] **Railway CLI authenticated**: `railway whoami` succeeds and `postgre for staging` is accessible.
+- [x] **Baseline test suites 100% green**:
+  - Monolith `test:ci`: 150/150 suites, 2176/2176 tests.
+  - `operation-service`: 42/42 suites, 395/395 tests.
+  - `money-service`: 62/62 suites, 532/532 tests (one `prisma.shutdown.spec.ts` timeout under concurrent 3-suite load, isolated re-run clean in 24.6s — the same benign flake as L24/8-1's CONFIRM).
+- [x] **Blast-radius confirmed**: `railway-gateway` is not deployed to any Railway project in this account today (verified live across all 5 projects at CONFIRM) — this is a first deployment, not a redeploy; zero live production processes are interrupted by construction.
+- [x] **Davin present and available** for Step 4 production deploy sign-off — given live in chat at CONFIRM, ahead of reaching Step 4.
 
 ---
 
-## Ordered steps (Advisor to complete — sketch only, do not execute from this PRE-DRAFT)
+## Ordered Steps
 
-_(each step = change → immediate verification → rollback note; stage before production)_
+_(each step = change → immediate verification → rollback note)_
 
-1. **Inventory `railway-gateway`'s current live deployment state** — is anything already running
-   on `postgre for staging` or elsewhere? What does `railway.toml` currently point at? Do not
-   assume greenfield.
-2. **Resolve Decision 1 above** (schema source-of-truth mechanism) and implement it as committed
-   config/code, never a dashboard-only or one-off manual step.
-3. **Prisma version bump** (Decision 2) — staged, with the F19-style breaking-change check applied
-   to `railway-gateway` specifically.
-4. **Deploy to `postgre for staging`**, verified via a real health check (not just `railway
-logs`/`status` — `LESSONS-LEARNED.md` L13, same lesson 4A-16 applied).
-5. **Ingest verification end-to-end** — prove `MarketDataV6` writes actually land through the
-   deployed gateway, with the must-never-blip path demonstrably undisturbed throughout (e.g.
-   before/after row-count or latency check on the live ingest, not just "it deployed").
+### Step 1: Align Prisma Version & Add Schema Drift Test in `railway-gateway`
+
+- **Action:**
+  1. In `railway-gateway/package.json`:
+     - Update `"@prisma/client": "7.9.1"` and `"prisma": "7.9.1"` in dependencies/devDependencies.
+  2. Run `npm install` in `railway-gateway/` and `npm run prisma:generate`.
+  3. Create automated contract test `railway-gateway/test/schema-sync.spec.ts` asserting `railway-gateway/prisma/schema.prisma` matches `prisma/market-data/schema.prisma` field-for-field.
+  4. In `money-service/src/main.ts:35`: clean up the stale `NEXT_PUBLIC_MONEY_API_URL` CORS comment.
+- **Safety Guarantee:** Local files only; zero production impact.
+- **Verify:** Run `pnpm --filter railway-gateway test` (all tests pass, including schema sync).
+- **Rollback:** `git checkout -- railway-gateway/ money-service/src/main.ts`.
+
+### Step 2: Build & Local Validation
+
+- **Action:**
+  - In `railway-gateway/`: run `npm run build` (`nest build`).
+  - Run full monorepo test suites: monolith `test:ci`, `operation-service`, `money-service`, and `railway-gateway`.
+- **Safety Guarantee:** Local build only; zero production impact.
+- **Verify:** `railway-gateway/dist/main.js` builds cleanly with exit code 0.
+- **Rollback:** None.
+
+### Step 3: Deploy & Verify on Staging (`postgre for staging`)
+
+- **Action:**
+  - Link and deploy `railway-gateway` to Railway project `postgre for staging`.
+  - Execute synthetic test vector payload against staging `POST /api/v1/market-data`.
+- **Safety Guarantee:** Targeted entirely at staging infrastructure; production pipeline runs untouched.
+- **Verify:**
+  - Staging `railway-gateway` `GET /health` returns `200 OK`.
+  - Staging `market_data_v6` table records the test row upsert.
+- **Rollback:** Remove service deployment via Railway CLI/dashboard.
+
+### Step 4: Production Deployment `⚠ NEEDS EXPLICIT SIGN-OFF`
+
+- **Action:**
+  - Davin provides live authorization (`EXECUTOR-PROTOCOL.md` §7).
+  - Deploy `railway-gateway` service to production Railway project (`trading-alerts`).
+- **Safety Guarantee:** Deploys as a new service alongside existing microservices; zero existing services touched.
+- **Verify:**
+  - Production `railway-gateway` `GET /health` returns `200 OK`.
+- **Rollback:** Remove service in Railway project if health check fails.
+
+### Step 5: Live Ingest Proof & Health Verification
+
+- **Action:**
+  - Send authenticated test market data payload to production `railway-gateway` `POST /api/v1/market-data`.
+  - Query production `market_data_v6` table to confirm the row upsert landed successfully.
+  - Verify Redis `prices:XAUUSD:M5` and WebSocket channel continue streaming uninterrupted.
+- **Safety Guarantee:** Isolated test payload verification; zero regression to existing feeds.
+- **Verify:** Ingest HTTP endpoint returns `201 Created` with valid payload response, test row present in DB.
+- **Rollback:** Remove service deployment if errors occur.
+
+### Step 6: Session Close-Out & Phase 11 Handover Generation
+
+- **Action:**
+  - Author `docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-11.md`.
+  - Update `CLAUDE.md`: Current entry Session 8-2 CLOSED SUCCESSFUL, Phase 8A **CLOSED SUCCESSFUL**.
+  - Update `migration-stack-analysis.md`: Add Session 8-2 entry.
+- **Safety Guarantee:** Documentation updates only.
+- **Verify:** Git working tree clean, all 3 monorepo suites green.
+- **Rollback:** None.
 
 ---
 
 ## Rules specific to this variant
 
-- **Nothing dashboard-only.** Every setting lands in a committed file (`railway.toml`, schema
-  files, CI config) or is documented in the secret matrix — never a Railway-dashboard-only change.
-- **Production changes only after the identical change succeeds in staging.**
-- **Never break the always-on paths:** `railway-gateway` ingest and the live monolith must not
-  blip — each Ordered Step must state explicitly how it avoids this, per `EXECUTOR-PROTOCOL.md` §5.
-- **Secrets:** names in the matrix, values only in Railway — never in git.
+- **Never break the always-on ingest:** Staging must succeed before production is touched.
+- **Nothing dashboard-only:** All configurations and schema sync rules committed in repository.
+- **Zero DDL migrations on production during this session:** The physical database schema is unchanged.
 
 ---
 
 ## Done when
 
-- [ ] `railway-gateway` is live on `postgre for staging`, confirmed via a real health check.
-- [ ] `MarketDataV6` has one source of truth (schema-dedup mechanism resolved and implemented).
-- [ ] `railway-gateway`'s Prisma aligned to the Advisor-confirmed target version.
-- [ ] Ingest verified end-to-end with the must-never-blip path demonstrably undisturbed.
+- [ ] `railway-gateway` Prisma upgraded to `7.9.1` and schema sync test passing.
+- [ ] `railway-gateway` deployed and verified on `postgre for staging`.
+- [ ] `railway-gateway` deployed to production with zero ingest downtime.
+- [ ] Ingest verified live via `market_data_v6` row count and Redis feeds.
+- [ ] Stale CORS comment in `money-service/src/main.ts` cleaned up.
+- [ ] `HANDOVER-PROMPT-phase-11.md` authored.
+- [ ] Phase 8A declared **CLOSED SUCCESSFUL**.
 - [ ] Baseline test suites 100% green.
-- [ ] Session 13-1's own entry criterion ("8-2 CLOSED") satisfied — noted in `DECISION-LOG.md`/F71
-      context if applicable.
 
 ---
 
 ## Rollback
 
-<Ordered teardown/revert plan for the whole session — Advisor to draft once Decision 1's mechanism
-is chosen; must be verified plausible in staging before this order reaches APPROVED.>
+- **Staging:** `railway rollback` on `postgre for staging`.
+- **Production:** `railway rollback` to previous container deployment.
+- **Code:** `git revert` Step 1 commits.
 
 ---
 
 ## Deviations
 
-_(filled during execution)_
+<!-- Filled by Executor during execution per EXECUTOR-PROTOCOL.md §3 -->
+
+**CONFIRM-time findings (2026-08-24):**
+
+1. **L3 recurrence:** at CONFIRM, committed HEAD (`c2fc1135`) held this order at `Status: PRE-DRAFT`
+   with 3 unresolved "Decisions needed" and stub Ordered Steps/Rollback; the working copy was
+   already rewritten to `APPROVED` with a full Decisions-taken section, zero corroborating record
+   in `DECISION-LOG.md` or `CLAUDE.md`, and no intermediate commit for either transition. Surfaced
+   directly rather than trusted; Davin confirmed live in chat it is authentic.
+2. **Order's original zero-blip framing contradicted live infrastructure — corrected before
+   CONFIRM, not after.** The as-drafted Decision 3/Steps 3–5 assumed `railway-gateway` was already
+   deployed and live in production, requiring a rolling zero-downtime redeploy. A live audit of all
+   5 Railway projects in this account (`prisma-migration`, `postgre for staging`, `trading-alerts`,
+   `zoological-motivation`, `feisty-amazement`) found **no service named `railway-gateway`/`gateway`
+   anywhere** — consistent with `migration-cutover-table.md`'s own Slice 12 note (2026-08-02) that
+   this was "a separate, still-open question," and with `railway-gateway/README.md`'s own framing of
+   deployment as a not-yet-done "operator runbook." `migration-stack-analysis.md`'s claim that it's
+   "already deployed" (dated 2026-07-11) is stale. Davin confirmed live: this is genuinely an
+   initial deployment; live alert-relevant price data flows via Redis channels directly today,
+   `market_data_v6` has not yet received live Railway Gateway writes. The Advisor updated Decision
+   3/Steps 3–5 accordingly before this order reached CONFIRMED; re-verified consistent at CONFIRM.
+3. **Secret exposure, not repeated:** checking Railway CLI link state, `cat ~/.railway/config.json`
+   printed this environment's real Railway `accessToken`/`refreshToken` into the session transcript
+   (`LESSONS-LEARNED.md` L4 territory — a different credential than L4's own `railway variables`
+   case, same handling: disclosed to Davin immediately, not reproduced, rotation is his call).
+4. **Step 1's own verify command is wrong, corrected at execution:** the order says
+   `pnpm --filter railway-gateway test`, but `railway-gateway` is not a pnpm workspace member
+   (`pnpm-workspace.yaml` lists only `packages/*` and one `seed-code/` path) — used
+   `cd railway-gateway && npm test` instead, matching how `operation-service`/`money-service` are
+   run elsewhere in this protocol.
 
 ---
 
 ## Next-session handoff
 
 - **Next session:** `11-1` — Tier matrix decision + types/config (Phase 11, first of 3 sessions).
-  Per `MASTER-ROADMAP-PHASES-7-15.md` §0's running order, Phase 11 (gate 6) runs immediately after
-  Phase 8A closes (gate 5) — Phase 8B (8-3/8-4/8-5, gate 11) runs **last**, after Phases 12–15, not
-  next. Per the roadmap's own trigger table, **Session 8-2 owes
-  `HANDOVER-PROMPT-phase-11.md`** — flag this obligation for the Advisor at DRAFT time; it was not
-  authored by this PRE-DRAFT.
+- **Prerequisite:** Session 8-2 CLOSED SUCCESSFUL (Phase 8A closed).
+- **Handover Prompt:** `docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-11.md` (authored in Step 6).
