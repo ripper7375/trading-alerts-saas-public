@@ -4105,8 +4105,58 @@ Closes **F76** and completes Slice 4 to 4/4 write-API groups — Phase 4X's fina
 
 </details>
 
+<details>
+<summary>Session 8-1 (Deletion Sweep, Phase 8A first-of-2, VERIFY-RETIRE) — 0 new, 0 modified, 17 deleted, DEAD-CODE SWEEP</summary>
+
+Entry criteria (Phase 4X/9/10 all CLOSED, F65 RESOLVED) re-verified fresh and MET. The order's own
+named legacy candidates (`token-2fa-*`, `app/test-api/`, `app/admin/login`) were already absent
+from earlier sessions; a live audit of all 127 `app/api/**` route files against real callers
+surfaced the actual dead-code list below, which Davin reviewed and confirmed before deletion.
+
+- **Deleted — dead routes (14):** `app/api/affiliate/profile/payment/route.ts` (only caller was a
+  Session 6-7 retired redirect stub), `app/api/candles/[symbol]/route.ts` (superseded by the
+  `use-ohlcv-socket.ts` WebSocket channel), `app/api/checkout/validate-code/route.ts` (live
+  discount widget calls `/api/payments/dlocal/validate-discount` instead), all 8
+  `app/api/cron/*/route.ts` handlers — check-expiring-subscriptions, daily-maintenance,
+  distribute-codes, downgrade-expired-subscriptions, expire-codes,
+  process-pending-disbursements, send-monthly-reports, sync-riseworks-accounts (superseded by the
+  admin-triggered money-service `CronTriggerController` forward, confirmed via
+  `app/api/admin/system/jobs/[jobId]/trigger/route.ts`'s own doc comment),
+  `app/api/disbursement/affiliates/[affiliateId]/commissions/route.ts` (parent route computes this
+  inline, never forwards to the sub-route), `app/api/disbursement/reports/affiliate/
+[affiliateId]/route.ts` (the `frontend-swap-route-map.md` citation for its page was stale — the
+  real page calls the sibling `/api/disbursement/affiliates/[affiliateId]` route instead),
+  `app/api/payments/dlocal/exchange-rate/route.ts` (rate is embedded in `/convert`'s response,
+  never fetched separately).
+- **Deleted — orphaned tests (3), per the test-count reconciliation rule (a dead component's test
+  dies with it, never a silently-adjusted assertion):** `__tests__/api/affiliate-conversion.test.ts`
+  (13 tests, sole subject was `checkout/validate-code`), `__tests__/api/cron-jobs.test.ts` (10
+  tests: distribute-codes/expire-codes/send-monthly-reports), `__tests__/api/cron/
+process-pending.test.ts` (5 tests: process-pending-disbursements). `__tests__/lib/cron/*.test.ts`
+  (check-expiring-subscriptions, downgrade-expired-subscriptions) test the surviving `lib/cron/*`
+  business-logic modules directly, confirmed unaffected, left untouched.
+- **Retained, explicitly:** `app/api/test/seed/route.ts` (ambiguous — zero live callers, but
+  referenced only by an archived/inactive `e2e/archive/` config; Davin's call to keep it).
+  `frontend/` mirror dLocal slice and `vercel.json` (`crons: []`) both confirmed already-clean, no
+  changes needed. Zero `stackA`/`stackB` usage found anywhere (already deleted at Session 7-3).
+- **Live-verification:** `tsc --noEmit` clean, `eslint app components lib hooks --max-warnings 0`
+  clean (0 errors/0 warnings), `npm run build` compiled successfully with zero route collisions —
+  all 14 deleted paths independently confirmed absent from the printed route manifest. Baseline
+  reconciled exactly: monolith `test:ci` 153/153-2204 → 150/150-2176 (100% green, −3 suites/−28
+  tests, matching the 3 deleted test files' own counts exactly). `operation-service` (42/42-395)
+  and `money-service` (62/62-532, after an isolated re-run of `prisma.shutdown.spec.ts`'s known
+  concurrency flake, `LESSONS-LEARNED.md` L24) were untouched this session and stand at their
+  fresh CONFIRM-time baselines.
+- **Explicitly deferred, not silently dropped:** two `MASTER-ROADMAP-PHASES-7-15.md` §5 residuals
+  named as "owned by 8-1" were outside this order's own 4 Decisions — `MarketingAsset`
+  money-service-mirror decision (Davin: leave monolith-only) and the stale CORS comment in
+  `money-service/src/main.ts:35` referencing a phantom `NEXT_PUBLIC_MONEY_API_URL` (Davin: defer to
+  Session 8-2).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-24 (Session 4A-16, dLocal method-code mapping fix +
-recutover — Phase 4X CLOSED SUCCESSFUL)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-24 (Session 8-1, deletion sweep — Phase 8A first
+session CLOSED SUCCESSFUL)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
