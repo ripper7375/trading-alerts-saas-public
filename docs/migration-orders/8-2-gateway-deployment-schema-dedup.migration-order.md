@@ -232,6 +232,14 @@ railway-gateway` was run from the repo root (a stale shell cwd from Step 2's bas
    `"engines": {"node": ">=20.0.0", "npm": ">=9.0.0"}`; added the identical field to
    `railway-gateway/package.json`. A direct, necessary consequence of Decision 2's own Prisma bump,
    not scope creep.
+8. **Third attempt failed for a real reason: `railway-gateway` had no `postinstall` script, so
+   Railway's `npm ci` never ran `prisma generate`** — `nest build` failed with `TS2305: Module
+"@prisma/client" has no exported member 'PrismaClient'` (5 errors, everywhere the generated
+   client is referenced). Latent since `railway-gateway` had never actually been built on Railway
+   before (first deployment, per Decision 3). `operation-service`/`money-service` both already run
+   `"postinstall": "prisma generate"`; added the identical script. Verified locally end-to-end
+   (`rm -rf node_modules/.prisma && npm run postinstall && npm run build && npm test`) before
+   redeploying — 3/3 suites, 23/23 tests, clean build.
 
 ---
 
