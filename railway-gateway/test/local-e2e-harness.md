@@ -23,7 +23,7 @@ DATABASE_URL=postgresql://postgres:password@localhost:5432/trading_alerts npx pr
 
 # 3. Generate the Gateway's own Prisma client (generate-only, never migrate — see prisma/schema.prisma)
 cd railway-gateway
-cp .env.example .env   # then edit DATABASE_URL/REDIS_HOST if needed
+cp .env.example .env   # then edit DATABASE_URL/REDIS_URL if needed
 npx prisma generate
 npm run build
 API_KEYS=push_worker_v5_localtest npm run start:prod

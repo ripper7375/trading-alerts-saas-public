@@ -14,12 +14,14 @@ import { PrismaModule } from './prisma/prisma.module';
 
     PrismaModule,
 
+    // A single REDIS_URL, not separate host/port/password fields -- matches
+    // operation-service's own established convention on this same Railway
+    // account (every Redis client there is built from REDIS_URL). Railway's
+    // managed Redis add-on's individual REDISHOST/REDISPORT/REDISPASSWORD
+    // fields did not connect reliably from a freshly-created service in
+    // Session 8-2's own live staging deploy; REDIS_URL is the proven path.
     BullModule.forRoot({
-      redis: {
-        host: process.env['REDIS_HOST'] ?? 'localhost',
-        port: parseInt(process.env['REDIS_PORT'] ?? '6379', 10),
-        password: process.env['REDIS_PASSWORD'] || undefined,
-      },
+      redis: process.env['REDIS_URL'] ?? 'redis://localhost:6379',
     }),
 
     // In-memory throttler storage is sufficient at this single-instance

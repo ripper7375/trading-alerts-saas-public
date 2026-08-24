@@ -240,6 +240,20 @@ railway-gateway` was run from the repo root (a stale shell cwd from Step 2's bas
    `"postinstall": "prisma generate"`; added the identical script. Verified locally end-to-end
    (`rm -rf node_modules/.prisma && npm run postinstall && npm run build && npm test`) before
    redeploying — 3/3 suites, 23/23 tests, clean build.
+9. **First live health check (staging) surfaced a real Redis connectivity defect, not a deploy
+   config gap: `railway-gateway`'s own `BullModule.forRoot({ redis: { host, port, password } })`
+   (separate `REDIS_HOST`/`REDIS_PORT`/`REDIS_PASSWORD` fields) could not reach Railway's managed
+   Redis reliably** — `GET /api/v1/health` intermittently returned `degraded` (`redis`/`queue`:
+   `"Reached the max retries per request limit (which is 20)"`) or hung past 20s with zero bytes
+   received, while `database: up` (30ms) proved the Postgres side and the variable-reference
+   mechanism both worked correctly. `operation-service` — the only other Redis consumer live on
+   this Railway account — exclusively builds every Redis client from a single `REDIS_URL`, never
+   separate host/port/password fields. Switched `railway-gateway/src/app.module.ts`'s
+   `BullModule.forRoot` to `redis: process.env['REDIS_URL']` (Bull's own `redis` option accepts a
+   connection string), updated `.env.example` and `test/local-e2e-harness.md` to match, and
+   re-pointed the staging service's variable from `REDIS_HOST`/`REDIS_PORT`/`REDIS_PASSWORD` to a
+   single `REDIS_URL` reference. A real, pre-existing code defect in never-before-deployed code —
+   not scope creep, and squarely inside Decision 3's own "verify ingest" mandate.
 
 ---
 
