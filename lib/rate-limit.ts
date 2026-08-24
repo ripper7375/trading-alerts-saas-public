@@ -189,6 +189,57 @@ export async function resetRateLimit(
 }
 
 /**
+ * AI token usage tracking result
+ */
+export interface TrackAiTokenUsageResult {
+  allowed: boolean;
+  limit: number;
+  remaining: number;
+  currentUsage: number;
+}
+
+/** 35 days, so a mid-month TTL refresh never clips before the month's own quota resets */
+const AI_TOKEN_TTL_SECONDS = 35 * 24 * 60 * 60;
+
+/**
+ * Track AI token usage against a monthly quota (Session 11-3, Core Area 4).
+ * Reuses the existing Redis client -- no new rate-limit layer, no separate
+ * connection pool. Monthly key pattern: `ratelimit:ai_tokens:{userId}:{yearMonth}`,
+ * atomic INCRBY, 35-day TTL set once on first write.
+ *
+ * @param userId - User identifier
+ * @param tokensUsed - Tokens consumed by this call (prompt + completion + image)
+ * @param monthlyQuota - Monthly token quota (0 disallows all usage, e.g. FREE tier)
+ * @returns Usage result: allowed, limit, remaining, and cumulative usage this month
+ */
+export async function trackAiTokenUsage(
+  userId: string,
+  tokensUsed: number,
+  monthlyQuota: number
+): Promise<TrackAiTokenUsageResult> {
+  const redis = getRedisClient();
+  const yearMonth = new Date().toISOString().slice(0, 7);
+  const key = `ratelimit:ai_tokens:${userId}:${yearMonth}`;
+
+  const currentUsage = await redis.incrby(key, tokensUsed);
+
+  // Set the TTL only on first write -- ttl() returns -1 for a key with no expiry
+  const ttl = await redis.ttl(key);
+  if (ttl === -1) {
+    await redis.expire(key, AI_TOKEN_TTL_SECONDS);
+  }
+
+  const allowed = currentUsage < monthlyQuota;
+
+  return {
+    allowed,
+    limit: monthlyQuota,
+    remaining: Math.max(0, monthlyQuota - currentUsage),
+    currentUsage,
+  };
+}
+
+/**
  * Get current rate limit status without consuming a request
  *
  * @param identifier - User identifier

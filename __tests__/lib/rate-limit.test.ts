@@ -3,6 +3,7 @@ import {
   checkAuthRateLimit,
   checkTierRateLimit,
   getRateLimitHeaders,
+  trackAiTokenUsage,
   AUTH_RATE_LIMIT_CONFIG,
   TIER_RATE_LIMIT_CONFIGS,
 } from '@/lib/rate-limit';
@@ -11,6 +12,9 @@ import {
 jest.mock('@/lib/redis/client', () => {
   // Create a store to track rate limit counts
   const store: Record<string, number[]> = {};
+  // Separate namespace for trackAiTokenUsage's incrby/ttl/expire counters
+  const counters: Record<string, number> = {};
+  const expiries: Record<string, number> = {};
 
   const mockPipeline = () => {
     const operations: Array<{ op: string; args: unknown[] }> = [];
@@ -63,6 +67,16 @@ jest.mock('@/lib/redis/client', () => {
     };
   };
 
+  const incrby = async (key: string, amount: number) => {
+    counters[key] = (counters[key] || 0) + amount;
+    return counters[key];
+  };
+  const ttl = async (key: string) => expiries[key] ?? -1;
+  const expire = async (key: string, seconds: number) => {
+    expiries[key] = seconds;
+    return 1;
+  };
+
   return {
     getRedisClient: () => ({
       pipeline: mockPipeline,
@@ -80,6 +94,9 @@ jest.mock('@/lib/redis/client', () => {
         delete store[key];
         return 1;
       },
+      incrby,
+      ttl,
+      expire,
     }),
     redis: {
       pipeline: mockPipeline,
@@ -97,9 +114,17 @@ jest.mock('@/lib/redis/client', () => {
         delete store[key];
         return 1;
       },
+      incrby,
+      ttl,
+      expire,
     },
+    __aiTokenExpiries: expiries,
   };
 });
+
+const { __aiTokenExpiries } = jest.requireMock('@/lib/redis/client') as {
+  __aiTokenExpiries: Record<string, number>;
+};
 
 describe('Rate Limit Module', () => {
   beforeEach(() => {
@@ -175,6 +200,98 @@ describe('Rate Limit Module', () => {
 
       expect(result.limit).toBe(300); // PRO limit is 300/hour
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe('trackAiTokenUsage', () => {
+    it('allows usage under quota and returns correct remaining balance', async () => {
+      const result = await trackAiTokenUsage(
+        'ai-token-user-under',
+        100_000,
+        500_000
+      );
+
+      expect(result.allowed).toBe(true);
+      expect(result.limit).toBe(500_000);
+      expect(result.currentUsage).toBe(100_000);
+      expect(result.remaining).toBe(400_000);
+    });
+
+    it('accumulates usage across multiple calls for the same user/month', async () => {
+      const userId = 'ai-token-user-cumulative';
+      await trackAiTokenUsage(userId, 200_000, 500_000);
+      const result = await trackAiTokenUsage(userId, 150_000, 500_000);
+
+      expect(result.currentUsage).toBe(350_000);
+      expect(result.remaining).toBe(150_000);
+      expect(result.allowed).toBe(true);
+    });
+
+    it('blocks usage once cumulative tokens reach the quota (>= quota -> 429 territory)', async () => {
+      const result = await trackAiTokenUsage(
+        'ai-token-user-at-quota',
+        500_000,
+        500_000
+      );
+
+      expect(result.allowed).toBe(false);
+      expect(result.currentUsage).toBe(500_000);
+      expect(result.remaining).toBe(0);
+    });
+
+    it('blocks usage that overshoots the quota in a single call', async () => {
+      const result = await trackAiTokenUsage(
+        'ai-token-user-over',
+        600_000,
+        500_000
+      );
+
+      expect(result.allowed).toBe(false);
+      expect(result.remaining).toBe(0);
+    });
+
+    it('always blocks a 0 monthly quota (FREE tier)', async () => {
+      const result = await trackAiTokenUsage('ai-token-user-free', 1, 0);
+
+      expect(result.allowed).toBe(false);
+      expect(result.limit).toBe(0);
+    });
+
+    it('sets a 35-day TTL on the key on first write', async () => {
+      const userId = 'ai-token-user-ttl';
+      const yearMonth = new Date().toISOString().slice(0, 7);
+      const key = `ratelimit:ai_tokens:${userId}:${yearMonth}`;
+
+      await trackAiTokenUsage(userId, 1_000, 500_000);
+
+      expect(__aiTokenExpiries[key]).toBe(35 * 24 * 60 * 60);
+    });
+
+    it('does not reset the TTL on a subsequent write to the same key', async () => {
+      const userId = 'ai-token-user-ttl-stable';
+      const yearMonth = new Date().toISOString().slice(0, 7);
+      const key = `ratelimit:ai_tokens:${userId}:${yearMonth}`;
+
+      await trackAiTokenUsage(userId, 1_000, 500_000);
+      __aiTokenExpiries[key] = 42; // simulate time having passed since first write
+      await trackAiTokenUsage(userId, 1_000, 500_000);
+
+      // A real TTL only counts down in Redis itself (this mock can't simulate
+      // that) -- what matters is trackAiTokenUsage's own ttl()===-1 check
+      // does not fire again once a TTL is already set, so it must not
+      // overwrite the mock's stand-in value back to the full 35 days.
+      expect(__aiTokenExpiries[key]).toBe(42);
+    });
+
+    it('keys usage per user, not globally', async () => {
+      await trackAiTokenUsage('ai-token-user-a', 300_000, 500_000);
+      const resultB = await trackAiTokenUsage(
+        'ai-token-user-b',
+        50_000,
+        500_000
+      );
+
+      expect(resultB.currentUsage).toBe(50_000);
     });
   });
 
