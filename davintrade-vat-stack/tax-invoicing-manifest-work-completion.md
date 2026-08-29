@@ -35,6 +35,18 @@ The doc asks for a `GET` endpoint returning `invoice_pdf` and `hosted_invoice_ur
 - dLocal rows report a flat `taxRate: 0`, matching §1.1's "0% local tax for MVP" for those eight markets.
 - The live Stripe API call stays as-is, so invoice history predating this rollout still resolves correctly.
 
+### 1.5 Billing page — tax breakdown UI
+
+The API-only rollout (§1.4) left the tax fields unread by the frontend. Added afterward, once asked for:
+
+- `components/billing/invoice-list.tsx`: under the invoice's total amount, a taxed row now shows a muted line — `incl. $5.51 VAT (19%, DE)` — built from a single formatted string (`formatVatLine`) rather than mixed JSX text/expression children, specifically to avoid JSX's line-break whitespace collapsing silently inserting stray spaces around the parenthesis/comma. **The displayed total was never additive** — `amount` from the API is always the tax-inclusive figure actually charged; the VAT line clarifies how much of it is tax, it doesn't add to it.
+- A validated B2B reverse-charge invoice (`reverseCharge: true`) shows an outline **"Reverse charge — 0% VAT"** badge instead of the VAT line — the two are mutually exclusive, matching how Stripe itself never applies both a tax rate and reverse charge to the same invoice.
+- Untaxed invoices (US, dLocal's flat-rate markets, or any invoice with `taxAmount: 0`) render exactly as before — no line, no badge, zero visual change.
+- A new **"View"** icon-button (external-link icon) appears next to the existing PDF download button whenever `hostedInvoiceUrl` is present, linking to Stripe's hosted invoice page.
+- `app/settings/billing/page.tsx`'s local `Invoice` interface and its `GET /api/invoices` response mapping were extended to pass the five new fields through — previously they were explicitly dropped even though the API already returned some adjacent fields (`currency`, `provider`, `planType`) unused.
+
+Three tests added to `__tests__/pages/settings/billing.test.tsx`, exercising the EU-VAT line, the reverse-charge badge, and the untaxed case explicitly (regression guard for "zero visual change" above).
+
 ---
 
 ## 2. Files changed
@@ -56,8 +68,11 @@ The doc asks for a `GET` endpoint returning `invoice_pdf` and `hosted_invoice_ur
 | `money-service/src/stripe/stripe.service.spec.ts`                        | +1 test: existing-customer path                                  |
 | `money-service/src/stripe/stripe-checkout.controller.spec.ts`            | +1 test; fixed a call-arity assertion                            |
 | `money-service/src/stripe/stripe-webhook.service.spec.ts`                | +2 tests: upsert shape, reverse charge                           |
+| `components/billing/invoice-list.tsx`                                    | VAT line, reverse-charge badge, hosted-invoice "View" link       |
+| `app/settings/billing/page.tsx`                                          | Pass the 5 new tax fields through to `InvoiceList`               |
+| `__tests__/pages/settings/billing.test.tsx`                              | +3 tests: EU VAT line, reverse-charge badge, untaxed no-op case  |
 
-15 files touched (14 modified, 1 added), 11 new tests.
+18 files touched (17 modified, 1 added), 14 new tests.
 
 ---
 
@@ -65,7 +80,7 @@ The doc asks for a `GET` endpoint returning `invoice_pdf` and `hosted_invoice_ur
 
 | Suite                         | Result                                                                                                                                                          |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Monolith `test:ci` (full run) | **151/151 suites · 2211/2211 tests**                                                                                                                            |
+| Monolith `test:ci` (full run) | **151/151 suites · 2214/2214 tests** (re-run after adding the billing-page UI tests)                                                                            |
 | money-service full suite      | **61/62 suites · 535/536 tests** — the one failure is `prisma.shutdown.spec.ts`'s SIGTERM-timing test, a documented pre-existing flake unrelated to this change |
 | TypeScript — monolith         | `tsc --noEmit`, 0 errors                                                                                                                                        |
 | TypeScript — money-service    | `tsc --noEmit`, 0 errors                                                                                                                                        |
@@ -173,15 +188,15 @@ This is a genuine government registration under the EU VAT **Non-Union One-Stop-
 
 ---
 
-## 6. Frontend UI — is anything required?
+## 6. Frontend UI
 
-**No frontend change is required for correctness.** `components/billing/invoice-list.tsx` and `app/settings/billing/page.tsx` both explicitly destructure only `{ id, date, amount, status, description, invoicePdfUrl }` off each invoice from `GET /api/invoices` — they already ignored fields like `currency`, `provider`, and `planType` that existed before this change. The new fields (`taxAmount`, `taxRate`, `taxCountry`, `customerTaxId`, `reverseCharge`, `hostedInvoiceUrl`) are purely additive to that same response and are simply not read by the current UI. Nothing breaks; nothing needs to change for the app to keep working exactly as it does today.
+**No frontend change was required for correctness.** `components/billing/invoice-list.tsx` and `app/settings/billing/page.tsx` originally destructured only `{ id, date, amount, status, description, invoicePdfUrl }` off each invoice from `GET /api/invoices` — they already ignored fields like `currency`, `provider`, and `planType` that existed before this change. The new tax fields were purely additive to that same response; nothing would have broken by leaving the UI untouched.
 
-**Optional enhancement, not implemented here:** EU customers in particular often expect to _see_ the VAT they were charged, not just receive it embedded in a PDF. If that's wanted, `InvoiceList` could show the tax amount/rate inline (e.g. "$29.00 + $5.51 VAT (19%, DE)") and a "Reverse Charge" badge when `reverseCharge` is true, plus a link using the new `hostedInvoiceUrl` alongside the existing PDF download. This wasn't in the design doc's own scope (its Phase 5 checklist only specifies the API shape, not a UI mockup) and touches product/UX judgment rather than a technical requirement, so it was left as a call for you rather than built unprompted.
+**Implemented anyway, on request — see §1.5 above for the full detail.** Summary: a taxed invoice's amount now shows a muted `incl. $5.51 VAT (19%, DE)` line underneath (never additive — `amount` is always the tax-inclusive total actually charged); a validated B2B invoice shows a "Reverse charge — 0% VAT" badge instead of that line; untaxed invoices (US, dLocal, or any zero-tax record) render pixel-identical to before; and a "View" link to Stripe's hosted invoice page appears next to the PDF download button when available. Three new tests in `__tests__/pages/settings/billing.test.tsx` cover all three display states, including the untaxed no-change case as an explicit regression guard.
 
 ---
 
 ## 7. Explicitly out of scope
 
-- **`mode: 'payment'` / conditional `invoice_creation`** (design doc §3.1) — this covers one-time/lifetime-license purchases. DavinTrade's checkout is subscription-only (`STRIPE_PRO_PRICE_ID`, always `mode: 'subscription'`); there's no one-time-payment product to attach this to.
+- **`mode: 'payment'` / conditional `invoice_creation`** (design doc §3.1) — Stripe Checkout Sessions have two relevant modes: `subscription` (recurring billing) and `payment` (a single one-time charge). In `subscription` mode Stripe automatically generates a proper Invoice object — with a PDF and the tax breakdown this feature now captures — for every billing cycle, no extra flag needed. In `payment` mode it does **not**: a one-time charge produces a bare PaymentIntent/Charge with no Invoice/PDF unless `invoice_creation: { enabled: true }` is explicitly passed, which is what this doc section is about. DavinTrade's checkout only ever builds `mode: 'subscription'` sessions (`STRIPE_PRO_PRICE_ID` is the only price, there's no lifetime-license or one-off-addon product), so subscriptions already get invoices automatically and this flag has nothing to attach to today. Worth remembering if a one-time product ever ships — without this flag, that purchase would silently have no PDF invoice and no tax breakdown captured for it.
 - **Live Stripe Test Clock end-to-end run** (design doc Phase 6) — covered by the Jest unit tests against the same German-VAT and B2B-reverse-charge fixtures, but a live dashboard/test-mode run is called out in §5.1 step 6 above as still worth doing by hand.

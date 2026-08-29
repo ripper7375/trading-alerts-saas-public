@@ -53,6 +53,14 @@ interface Invoice {
   status: 'paid' | 'open' | 'failed';
   description: string;
   invoicePdfUrl: string | null;
+  // davintrade-vat-stack: tax breakdown, additive to the API response.
+  // `amount` above is always the tax-inclusive total actually charged;
+  // `taxAmount` is how much of that total is tax, not an extra charge.
+  hostedInvoiceUrl: string | null;
+  taxAmount: number;
+  taxRate: number;
+  taxCountry: string | null;
+  reverseCharge: boolean;
 }
 
 interface SubscriptionData {
@@ -151,6 +159,11 @@ export default function BillingSettingsPage(): React.ReactElement {
               status: 'paid' | 'open' | 'failed';
               description: string;
               invoicePdfUrl: string | null;
+              hostedInvoiceUrl: string | null;
+              taxAmount: number;
+              taxRate: number;
+              taxCountry: string | null;
+              reverseCharge: boolean;
             }) => ({
               id: invoice.id,
               date: invoice.date,
@@ -158,6 +171,11 @@ export default function BillingSettingsPage(): React.ReactElement {
               status: invoice.status,
               description: invoice.description,
               invoicePdfUrl: invoice.invoicePdfUrl,
+              hostedInvoiceUrl: invoice.hostedInvoiceUrl,
+              taxAmount: invoice.taxAmount,
+              taxRate: invoice.taxRate,
+              taxCountry: invoice.taxCountry,
+              reverseCharge: invoice.reverseCharge,
             })
           )
         );

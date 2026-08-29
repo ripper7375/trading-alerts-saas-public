@@ -183,6 +183,101 @@ describe('BillingSettingsPage', () => {
     expect(screen.queryByText('INV-001')).not.toBeInTheDocument();
   });
 
+  it('shows the VAT breakdown for a taxed EU invoice (davintrade-vat-stack)', async () => {
+    mockUseSession.mockReturnValue({ data: { user: { tier: 'PRO' } } });
+    global.fetch = mockFetchImplementation({
+      invoices: [
+        {
+          id: 'in_eu',
+          date: '2026-07-01T00:00:00.000Z',
+          amount: 34.51,
+          currency: 'EUR',
+          status: 'paid',
+          description: 'Trading Alerts PRO - Monthly',
+          invoicePdfUrl: 'https://pay.stripe.com/invoice/in_eu/pdf',
+          hostedInvoiceUrl: 'https://invoice.stripe.com/i/in_eu',
+          taxAmount: 5.51,
+          taxRate: 0.19,
+          taxCountry: 'DE',
+          reverseCharge: false,
+        },
+      ],
+      alertCount: 0,
+    }) as unknown as typeof fetch;
+
+    render(<BillingSettingsPage />);
+
+    expect(await screen.findByText('$34.51')).toBeInTheDocument();
+    expect(screen.getByText('incl. $5.51 VAT (19%, DE)')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /View/ })).toHaveAttribute(
+      'href',
+      'https://invoice.stripe.com/i/in_eu'
+    );
+    expect(screen.queryByText(/Reverse charge/)).not.toBeInTheDocument();
+  });
+
+  it('shows a reverse-charge badge instead of a VAT line for a validated B2B invoice', async () => {
+    mockUseSession.mockReturnValue({ data: { user: { tier: 'PRO' } } });
+    global.fetch = mockFetchImplementation({
+      invoices: [
+        {
+          id: 'in_b2b',
+          date: '2026-07-01T00:00:00.000Z',
+          amount: 58,
+          currency: 'EUR',
+          status: 'paid',
+          description: 'Trading Alerts PRO - Monthly',
+          invoicePdfUrl: 'https://pay.stripe.com/invoice/in_b2b/pdf',
+          hostedInvoiceUrl: null,
+          taxAmount: 0,
+          taxRate: 0,
+          taxCountry: 'DE',
+          reverseCharge: true,
+        },
+      ],
+      alertCount: 0,
+    }) as unknown as typeof fetch;
+
+    render(<BillingSettingsPage />);
+
+    // $58.00 (not $29.00) avoids colliding with the plan-price card's own
+    // "$29.00" text elsewhere on the page.
+    expect(await screen.findByText('$58.00')).toBeInTheDocument();
+    expect(screen.getByText('Reverse charge — 0% VAT')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /View/ })
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows no tax line for an untaxed dLocal/US invoice, matching current behavior', async () => {
+    mockUseSession.mockReturnValue({ data: { user: { tier: 'PRO' } } });
+    global.fetch = mockFetchImplementation({
+      invoices: [
+        {
+          id: 'in_us',
+          date: '2026-07-01T00:00:00.000Z',
+          amount: 19.99,
+          currency: 'USD',
+          status: 'paid',
+          description: 'Trading Alerts PRO - Monthly',
+          invoicePdfUrl: 'https://pay.stripe.com/invoice/in_us/pdf',
+          hostedInvoiceUrl: null,
+          taxAmount: 0,
+          taxRate: 0,
+          taxCountry: 'US',
+          reverseCharge: false,
+        },
+      ],
+      alertCount: 0,
+    }) as unknown as typeof fetch;
+
+    render(<BillingSettingsPage />);
+
+    expect(await screen.findByText('$19.99')).toBeInTheDocument();
+    expect(screen.queryByText(/VAT/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Reverse charge/)).not.toBeInTheDocument();
+  });
+
   it('renders correctly for a FREE user with no subscription or invoices', async () => {
     mockUseSession.mockReturnValue({ data: { user: { tier: 'FREE' } } });
     global.fetch = mockFetchImplementation({

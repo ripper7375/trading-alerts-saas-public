@@ -11,7 +11,7 @@
  * @module components/billing/invoice-list
  */
 
-import { Download, FileText, Loader2 } from 'lucide-react';
+import { Download, ExternalLink, FileText, Loader2 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,16 @@ interface Invoice {
   status: 'paid' | 'open' | 'failed';
   description: string;
   invoicePdfUrl: string | null;
+  /**
+   * davintrade-vat-stack: multi-jurisdiction tax breakdown. `amount` above
+   * is always the tax-inclusive total actually charged -- `taxAmount` is
+   * how much of that total is tax, not an amount added on top of it.
+   */
+  hostedInvoiceUrl: string | null;
+  taxAmount: number;
+  taxRate: number;
+  taxCountry: string | null;
+  reverseCharge: boolean;
 }
 
 interface InvoiceListProps {
@@ -58,6 +68,27 @@ const STATUS_CONFIG = {
     className: 'bg-red-100 text-red-800',
   },
 } as const;
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// HELPERS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * Formats the "incl. $X VAT (rate%, country)" line under a taxed invoice's
+ * amount. Built as one string (rather than several JSX text/expression
+ * children) so JSX's line-break whitespace collapsing can't insert stray
+ * spaces around the parenthesis/comma.
+ */
+function formatVatLine(
+  invoice: Pick<Invoice, 'taxAmount' | 'taxRate' | 'taxCountry'>
+): string {
+  const ratePercent = Math.round(invoice.taxRate * 100);
+  const countrySuffix =
+    invoice.taxCountry && invoice.taxCountry !== 'UNKNOWN'
+      ? `, ${invoice.taxCountry}`
+      : '';
+  return `incl. $${invoice.taxAmount.toFixed(2)} VAT (${ratePercent}%${countrySuffix})`;
+}
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COMPONENT
@@ -155,8 +186,22 @@ export function InvoiceList({
                   <td className="px-4 py-3 text-sm">{invoice.description}</td>
 
                   {/* Amount */}
-                  <td className="px-4 py-3 text-sm font-semibold">
-                    ${invoice.amount.toFixed(2)}
+                  <td className="px-4 py-3 text-sm">
+                    <div className="font-semibold">
+                      ${invoice.amount.toFixed(2)}
+                    </div>
+                    {invoice.reverseCharge ? (
+                      <Badge
+                        variant="outline"
+                        className="mt-1 text-xs font-normal"
+                      >
+                        Reverse charge — 0% VAT
+                      </Badge>
+                    ) : invoice.taxAmount > 0 ? (
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        {formatVatLine(invoice)}
+                      </div>
+                    ) : null}
                   </td>
 
                   {/* Status */}
@@ -168,21 +213,36 @@ export function InvoiceList({
 
                   {/* Download */}
                   <td className="px-4 py-3 text-right">
-                    {invoice.invoicePdfUrl ? (
-                      <Button variant="ghost" size="sm" asChild>
-                        <a
-                          href={invoice.invoicePdfUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1"
-                        >
-                          <Download className="h-4 w-4" />
-                          <span className="sr-only sm:not-sr-only">PDF</span>
-                        </a>
-                      </Button>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">-</span>
-                    )}
+                    <div className="flex items-center justify-end gap-1">
+                      {invoice.hostedInvoiceUrl && (
+                        <Button variant="ghost" size="sm" asChild>
+                          <a
+                            href={invoice.hostedInvoiceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            <span className="sr-only sm:not-sr-only">View</span>
+                          </a>
+                        </Button>
+                      )}
+                      {invoice.invoicePdfUrl ? (
+                        <Button variant="ghost" size="sm" asChild>
+                          <a
+                            href={invoice.invoicePdfUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1"
+                          >
+                            <Download className="h-4 w-4" />
+                            <span className="sr-only sm:not-sr-only">PDF</span>
+                          </a>
+                        </Button>
+                      ) : !invoice.hostedInvoiceUrl ? (
+                        <span className="text-sm text-muted-foreground">-</span>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               );
