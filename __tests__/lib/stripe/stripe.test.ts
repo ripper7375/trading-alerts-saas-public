@@ -116,8 +116,9 @@ describe('Stripe Client Functions', () => {
 
   describe('buildCheckoutIdempotencyKey', () => {
     it('returns the same key for the same user/affiliate within the window', async () => {
-      const { buildCheckoutIdempotencyKey } =
-        await import('@/lib/stripe/stripe');
+      const { buildCheckoutIdempotencyKey } = await import(
+        '@/lib/stripe/stripe'
+      );
 
       const key1 = buildCheckoutIdempotencyKey('user-123', 'AFFILIATE10');
       const key2 = buildCheckoutIdempotencyKey('user-123', 'AFFILIATE10');
@@ -126,8 +127,9 @@ describe('Stripe Client Functions', () => {
     });
 
     it('returns different keys for different users', async () => {
-      const { buildCheckoutIdempotencyKey } =
-        await import('@/lib/stripe/stripe');
+      const { buildCheckoutIdempotencyKey } = await import(
+        '@/lib/stripe/stripe'
+      );
 
       const keyA = buildCheckoutIdempotencyKey('user-a', undefined);
       const keyB = buildCheckoutIdempotencyKey('user-b', undefined);
@@ -136,8 +138,9 @@ describe('Stripe Client Functions', () => {
     });
 
     it('returns different keys for different affiliate codes for the same user', async () => {
-      const { buildCheckoutIdempotencyKey } =
-        await import('@/lib/stripe/stripe');
+      const { buildCheckoutIdempotencyKey } = await import(
+        '@/lib/stripe/stripe'
+      );
 
       const keyNoCode = buildCheckoutIdempotencyKey('user-123', undefined);
       const keyWithCode = buildCheckoutIdempotencyKey(
@@ -334,6 +337,73 @@ describe('Stripe Client Functions', () => {
       expect(mockCheckoutSessionsCreate).toHaveBeenCalledWith(
         expect.objectContaining({ customer_email: 'user@example.com' }),
         { idempotencyKey: 'idem-key-abc' }
+      );
+    });
+
+    it('should enable automatic tax, tax ID collection, and required billing address (davintrade-vat-stack)', async () => {
+      jest.resetModules();
+      mockCheckoutSessionsCreate.mockResolvedValue({ id: 'cs_test_tax' });
+
+      const { createCheckoutSession } = await import('@/lib/stripe/stripe');
+
+      await createCheckoutSession(
+        'user-123',
+        'user@example.com',
+        'https://example.com/success',
+        'https://example.com/cancel'
+      );
+
+      expect(mockCheckoutSessionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          automatic_tax: { enabled: true },
+          tax_id_collection: { enabled: true },
+          billing_address_collection: 'required',
+        })
+      );
+    });
+
+    it('should use customer_email (not customer_update) when no existing Stripe customer is known', async () => {
+      jest.resetModules();
+      mockCheckoutSessionsCreate.mockResolvedValue({ id: 'cs_test_newcust' });
+
+      const { createCheckoutSession } = await import('@/lib/stripe/stripe');
+
+      await createCheckoutSession(
+        'user-123',
+        'user@example.com',
+        'https://example.com/success',
+        'https://example.com/cancel'
+      );
+
+      const params = mockCheckoutSessionsCreate.mock.calls[0]?.[0];
+      expect(params.customer_email).toBe('user@example.com');
+      expect(params.customer).toBeUndefined();
+      expect(params.customer_update).toBeUndefined();
+    });
+
+    it('should attach customer + customer_update when an existing Stripe customer ID is passed', async () => {
+      jest.resetModules();
+      mockCheckoutSessionsCreate.mockResolvedValue({ id: 'cs_test_existing' });
+
+      const { createCheckoutSession } = await import('@/lib/stripe/stripe');
+
+      await createCheckoutSession(
+        'user-123',
+        'user@example.com',
+        'https://example.com/success',
+        'https://example.com/cancel',
+        undefined,
+        undefined,
+        undefined,
+        'cus_existing_123'
+      );
+
+      expect(mockCheckoutSessionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customer: 'cus_existing_123',
+          customer_email: undefined,
+          customer_update: { address: 'auto', name: 'auto' },
+        })
       );
     });
 
@@ -570,8 +640,9 @@ describe('Stripe Client Functions', () => {
       };
       mockBillingPortalSessionsCreate.mockResolvedValue(mockPortalSession);
 
-      const { createBillingPortalSession } =
-        await import('@/lib/stripe/stripe');
+      const { createBillingPortalSession } = await import(
+        '@/lib/stripe/stripe'
+      );
       const result = await createBillingPortalSession(
         'cus_test_123',
         'https://example.com/settings'

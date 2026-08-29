@@ -82,10 +82,36 @@ describe('StripeService', () => {
           mode: 'subscription',
           line_items: [{ price: 'price_pro_123', quantity: 1 }],
           allow_promotion_codes: true,
+          automatic_tax: { enabled: true },
+          tax_id_collection: { enabled: true },
+          billing_address_collection: 'required',
         })
       );
       // Called with exactly one arg (no options) when no idempotency key.
       expect(mockSessionsCreate.mock.calls[0]).toHaveLength(1);
+    });
+
+    it('attaches customer + customer_update when an existing Stripe customer ID is passed (davintrade-vat-stack)', async () => {
+      mockSessionsCreate.mockResolvedValue({ id: 'cs_existing' });
+
+      await service.createCheckoutSession(
+        'user-1',
+        'user@example.com',
+        'https://app/success',
+        'https://app/cancel',
+        undefined,
+        undefined,
+        undefined,
+        'cus_existing_1'
+      );
+
+      expect(mockSessionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customer: 'cus_existing_1',
+          customer_email: undefined,
+          customer_update: { address: 'auto', name: 'auto' },
+        })
+      );
     });
 
     it('propagates the idempotency key to the Stripe SDK call', async () => {

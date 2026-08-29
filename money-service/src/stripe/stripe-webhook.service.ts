@@ -395,6 +395,8 @@ export class StripeWebhookService {
         nextBillingDate.setDate(nextBillingDate.getDate() + 30);
       }
 
+      const taxRecord = this.extractInvoiceTaxRecord(invoice);
+
       await this.prisma.$transaction(async (tx) => {
         await tx.subscription.update({
           where: { id: dbSubscription.id },
@@ -411,6 +413,31 @@ export class StripeWebhookService {
         await tx.user.update({
           where: { id: dbSubscription.userId },
           data: { tier: 'PRO' },
+        });
+
+        // Persist the tax breakdown for OSS filing / threshold monitoring
+        // (davintrade-vat-stack, Nuance 1) -- mirrors
+        // lib/stripe/webhook-handlers.ts's handleInvoiceSucceeded.
+        await tx.invoice.upsert({
+          where: { stripeInvoiceId: invoice.id },
+          update: {
+            invoicePdf: taxRecord.invoicePdf,
+            hostedInvoiceUrl: taxRecord.hostedInvoiceUrl,
+            amountTotal: taxRecord.amountTotal,
+            taxAmount: taxRecord.taxAmount,
+            taxRate: taxRecord.taxRate,
+            taxCountry: taxRecord.taxCountry,
+            customerTaxId: taxRecord.customerTaxId,
+            reverseCharge: taxRecord.reverseCharge,
+            paidAt: taxRecord.paidAt,
+          },
+          create: {
+            userId: dbSubscription.userId,
+            subscriptionId: dbSubscription.id,
+            stripeInvoiceId: invoice.id,
+            stripeCustomerId: customerId,
+            ...taxRecord,
+          },
         });
 
         await this.outboxService.recordInTransaction(tx, {
@@ -435,6 +462,46 @@ export class StripeWebhookService {
       });
       throw error;
     }
+  }
+
+  /**
+   * Extract the multi-jurisdiction tax breakdown from a finalized Stripe
+   * invoice (davintrade-vat-stack, Section 4.1 "Nuance 1"). Mirrors
+   * lib/stripe/webhook-handlers.ts's free-function version verbatim.
+   */
+  private extractInvoiceTaxRecord(invoice: Stripe.Invoice): {
+    amountTotal: number;
+    taxAmount: number;
+    taxRate: number;
+    currency: string;
+    taxCountry: string;
+    customerTaxId: string | null;
+    reverseCharge: boolean;
+    invoicePdf: string | null;
+    hostedInvoiceUrl: string | null;
+    paidAt: Date | null;
+  } {
+    const taxAmount = (invoice.tax ?? 0) / 100;
+    const amountTotal = invoice.total / 100;
+
+    const firstLineTaxRate = invoice.lines?.data?.[0]?.tax_rates?.[0];
+    const taxRate = (firstLineTaxRate?.percentage ?? 0) / 100;
+
+    const customerTaxId = invoice.customer_tax_ids?.[0]?.value || null;
+    const paidAtEpoch = invoice.status_transitions?.paid_at;
+
+    return {
+      amountTotal,
+      taxAmount,
+      taxRate,
+      currency: invoice.currency.toUpperCase(),
+      taxCountry: invoice.customer_address?.country || 'UNKNOWN',
+      customerTaxId,
+      reverseCharge: taxRate === 0 && customerTaxId !== null,
+      invoicePdf: invoice.invoice_pdf || null,
+      hostedInvoiceUrl: invoice.hosted_invoice_url || null,
+      paidAt: paidAtEpoch ? new Date(paidAtEpoch * 1000) : new Date(),
+    };
   }
 
   private mapStripeStatus(

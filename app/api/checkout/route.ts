@@ -147,6 +147,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const successUrl = `${baseUrl}/upgrade/success?upgrade=success`;
     const cancelUrl = `${baseUrl}/pricing?upgrade=cancelled`;
 
+    // Reuse an existing Stripe customer (e.g. re-subscribing after a prior
+    // cancellation) so checkout can attach `customer_update` -- see
+    // createCheckoutSession's davintrade-vat-stack doc comment.
+    const existingSubscription = await prisma.subscription.findUnique({
+      where: { userId },
+      select: { stripeCustomerId: true },
+    });
+
     // Create Stripe Checkout session
     const idempotencyKey = buildCheckoutIdempotencyKey(
       userId,
@@ -159,7 +167,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       cancelUrl,
       normalizedAffiliateCode,
       discountPercent,
-      idempotencyKey
+      idempotencyKey,
+      existingSubscription?.stripeCustomerId || undefined
     );
 
     // Return session details

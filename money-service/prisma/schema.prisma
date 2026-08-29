@@ -305,6 +305,42 @@ model Payment {
   @@index([createdAt])
 }
 
+/// DavinTrade Global SaaS Billing & Multi-Jurisdiction Tax spec
+/// (davintrade-vat-stack/, added 2026-08-29). Mirrors the monolith's
+/// prisma/non-market-data/schema.prisma Invoice model verbatim -- both
+/// schemas share the one physical database/migration history
+/// (prisma.config.ts), so this copy just needs to exist for
+/// StripeWebhookService's `this.prisma.invoice` calls to typecheck.
+model Invoice {
+  id             String  @id @default(cuid())
+  userId         String
+  subscriptionId String?
+
+  stripeInvoiceId  String @unique
+  stripeCustomerId String
+
+  amountTotal Decimal
+  taxAmount   Decimal @default(0)
+  taxRate     Decimal @default(0)
+  currency    String  @default("USD")
+
+  taxCountry    String
+  customerTaxId String?
+  reverseCharge Boolean @default(false)
+
+  invoicePdf       String?
+  hostedInvoiceUrl String?
+
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@index([taxCountry])
+  @@index([paidAt])
+}
+
 model AffiliateProfile {
   id     String @id @default(cuid())
   userId String @unique

@@ -82,6 +82,29 @@ describe('StripeCheckoutController', () => {
     });
   });
 
+  it('passes an existing Stripe customer ID through when the user already has a subscription row (davintrade-vat-stack)', async () => {
+    prismaMock.subscription.findUnique.mockResolvedValue({
+      stripeCustomerId: 'cus_returning_1',
+    } as never);
+    stripeServiceMock.createCheckoutSession.mockResolvedValue({
+      id: 'cs_returning',
+      url: 'https://checkout.stripe.com/pay/cs_returning',
+    });
+
+    await controller.createCheckout(makeRequest(), undefined);
+
+    expect(stripeServiceMock.createCheckoutSession).toHaveBeenCalledWith(
+      'user-1',
+      'user@example.com',
+      expect.any(String),
+      expect.any(String),
+      undefined,
+      0,
+      'idem-key-1',
+      'cus_returning_1'
+    );
+  });
+
   it('throws 400 ALREADY_PRO if the user already holds PRO tier', async () => {
     await expect(
       controller.createCheckout(makeRequest({ tier: 'PRO' }), undefined)
@@ -125,7 +148,8 @@ describe('StripeCheckoutController', () => {
       expect.any(String),
       'GOOD10',
       15,
-      'idem-key-1'
+      'idem-key-1',
+      undefined
     );
   });
 

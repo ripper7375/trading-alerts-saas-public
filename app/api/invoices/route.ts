@@ -33,6 +33,12 @@ interface InvoiceItem {
   invoicePdfUrl: string | null;
   provider: 'STRIPE' | 'DLOCAL'; // NEW: Payment provider
   planType: string | null; // NEW: Plan type (for dLocal)
+  hostedInvoiceUrl: string | null; // davintrade-vat-stack: Stripe-hosted invoice page
+  taxAmount: number; // davintrade-vat-stack: VAT/GST collected, in `currency`
+  taxRate: number; // e.g. 0.19 for German 19% VAT, 0 for reverse charge/no tax
+  taxCountry: string | null; // ISO country the tax was assessed for
+  customerTaxId: string | null; // EU VAT number etc., when supplied
+  reverseCharge: boolean; // true when B2B 0% reverse charge applied
 }
 
 interface InvoicesResponse {
@@ -115,6 +121,14 @@ export async function GET(
         invoicePdfUrl: null, // dLocal doesn't provide PDF invoices
         provider: 'DLOCAL',
         planType: payment.planType,
+        // davintrade-vat-stack Section 1.1: dLocal markets are flat-rate,
+        // 0% local tax for MVP -- no per-invoice breakdown to surface.
+        hostedInvoiceUrl: null,
+        taxAmount: 0,
+        taxRate: 0,
+        taxCountry: payment.country,
+        customerTaxId: null,
+        reverseCharge: false,
       });
     }
 
@@ -130,8 +144,21 @@ export async function GET(
           limit
         );
 
+        // Tax breakdown for these invoices is captured separately, by the
+        // invoice.payment_succeeded webhook (davintrade-vat-stack, Nuance
+        // 1: the live Stripe API list above doesn't carry the finalized
+        // tax_rate/tax_country the same way our own persisted record does).
+        // Look those up once and merge by ID instead of a query per invoice.
+        const taxRecords = await prisma.invoice.findMany({
+          where: { stripeCustomerId: subscription.stripeCustomerId },
+        });
+        const taxRecordsById = new Map(
+          taxRecords.map((record) => [record.stripeInvoiceId, record])
+        );
+
         // Transform Stripe invoices to our format
         for (const invoice of stripeInvoices) {
+          const taxRecord = taxRecordsById.get(invoice.id);
           allInvoices.push({
             id: invoice.id,
             date: new Date((invoice.created || 0) * 1000).toISOString(),
@@ -142,6 +169,13 @@ export async function GET(
             invoicePdfUrl: invoice.invoice_pdf || null,
             provider: 'STRIPE',
             planType: 'MONTHLY',
+            hostedInvoiceUrl:
+              taxRecord?.hostedInvoiceUrl ?? invoice.hosted_invoice_url ?? null,
+            taxAmount: taxRecord ? Number(taxRecord.taxAmount) : 0,
+            taxRate: taxRecord ? Number(taxRecord.taxRate) : 0,
+            taxCountry: taxRecord?.taxCountry ?? null,
+            customerTaxId: taxRecord?.customerTaxId ?? null,
+            reverseCharge: taxRecord?.reverseCharge ?? false,
           });
         }
       } catch (error) {

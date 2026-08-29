@@ -271,6 +271,18 @@ describe('StripeWebhookService', () => {
       expect(prismaMock.subscription.update).not.toHaveBeenCalled();
     });
 
+    const baseInvoice = {
+      id: 'inv_123',
+      customer: 'cus_123',
+      total: 2900,
+      tax: 0,
+      currency: 'usd',
+      customer_address: { country: 'US' },
+      customer_tax_ids: [],
+      lines: { data: [{ tax_rates: [] }] },
+      status_transitions: { paid_at: 1735689600 },
+    };
+
     it('renews monthly and emits PAYMENT_SUCCEEDED for a $29 invoice', async () => {
       prismaMock.subscription.findFirst.mockResolvedValue({
         id: 'sub-row-1',
@@ -278,7 +290,7 @@ describe('StripeWebhookService', () => {
       } as never);
 
       await service.handleInvoiceSucceeded({
-        customer: 'cus_123',
+        ...baseInvoice,
         amount_paid: 2900,
       } as unknown as Stripe.Invoice);
 
@@ -309,7 +321,8 @@ describe('StripeWebhookService', () => {
       } as never);
 
       await service.handleInvoiceSucceeded({
-        customer: 'cus_123',
+        ...baseInvoice,
+        total: 29000,
         amount_paid: 29000,
       } as unknown as Stripe.Invoice);
 
@@ -318,6 +331,60 @@ describe('StripeWebhookService', () => {
           data: expect.objectContaining({
             planType: 'YEARLY',
             amountUsd: 290,
+          }),
+        })
+      );
+    });
+
+    it('upserts the invoice tax breakdown keyed on stripeInvoiceId (davintrade-vat-stack)', async () => {
+      prismaMock.subscription.findFirst.mockResolvedValue({
+        id: 'sub-row-1',
+        userId: 'user-1',
+      } as never);
+
+      await service.handleInvoiceSucceeded({
+        ...baseInvoice,
+        amount_paid: 2900,
+      } as unknown as Stripe.Invoice);
+
+      expect(prismaMock.invoice.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { stripeInvoiceId: 'inv_123' },
+          create: expect.objectContaining({
+            userId: 'user-1',
+            subscriptionId: 'sub-row-1',
+            stripeInvoiceId: 'inv_123',
+            stripeCustomerId: 'cus_123',
+            amountTotal: 29,
+            taxAmount: 0,
+            taxRate: 0,
+            currency: 'USD',
+            taxCountry: 'US',
+            reverseCharge: false,
+          }),
+        })
+      );
+    });
+
+    it('marks reverseCharge for a validated EU VAT ID with 0% tax applied', async () => {
+      prismaMock.subscription.findFirst.mockResolvedValue({
+        id: 'sub-row-1',
+        userId: 'user-1',
+      } as never);
+
+      await service.handleInvoiceSucceeded({
+        ...baseInvoice,
+        amount_paid: 2900,
+        customer_address: { country: 'DE' },
+        customer_tax_ids: [{ type: 'eu_vat', value: 'DE123456789' }],
+      } as unknown as Stripe.Invoice);
+
+      expect(prismaMock.invoice.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            taxCountry: 'DE',
+            customerTaxId: 'DE123456789',
+            reverseCharge: true,
           }),
         })
       );

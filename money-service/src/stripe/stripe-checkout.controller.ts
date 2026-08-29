@@ -100,6 +100,14 @@ export class StripeCheckoutController {
         normalizedAffiliateCode
       );
 
+      // Reuse an existing Stripe customer (e.g. re-subscribing after a
+      // prior cancellation) so checkout can attach `customer_update` --
+      // mirrors app/api/checkout/route.ts (davintrade-vat-stack).
+      const existingSubscription = await this.prisma.subscription.findUnique({
+        where: { userId },
+        select: { stripeCustomerId: true },
+      });
+
       const checkoutSession = await this.stripeService.createCheckoutSession(
         userId,
         email,
@@ -107,7 +115,8 @@ export class StripeCheckoutController {
         cancelUrl,
         normalizedAffiliateCode,
         discountPercent,
-        idempotencyKey
+        idempotencyKey,
+        existingSubscription?.stripeCustomerId || undefined
       );
 
       return {

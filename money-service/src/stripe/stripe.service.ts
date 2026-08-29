@@ -80,6 +80,10 @@ export class StripeService {
    *   instead of creating a second one. Omitted entirely (not just
    *   `undefined`) when absent so existing callers/tests that don't pass
    *   one see no behavior change.
+   * @param existingStripeCustomerId - Mirrors lib/stripe/stripe.ts
+   *   (davintrade-vat-stack, Section 3.1): when set, attaches `customer`
+   *   + `customer_update` instead of `customer_email` so the address/name
+   *   entered at checkout is saved onto the existing customer record.
    */
   async createCheckoutSession(
     userId: string,
@@ -88,7 +92,8 @@ export class StripeService {
     cancelUrl: string,
     affiliateCode?: string,
     discountPercent?: number,
-    idempotencyKey?: string
+    idempotencyKey?: string,
+    existingStripeCustomerId?: string
   ): Promise<Stripe.Checkout.Session> {
     const priceId = this.proTierPriceId;
     if (!priceId) {
@@ -96,7 +101,8 @@ export class StripeService {
     }
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
-      customer_email: userEmail,
+      customer: existingStripeCustomerId || undefined,
+      customer_email: existingStripeCustomerId ? undefined : userEmail,
       line_items: [
         {
           price: priceId,
@@ -119,6 +125,13 @@ export class StripeService {
         },
         trial_period_days: 7,
       },
+      // Multi-jurisdiction tax automation (davintrade-vat-stack, Section 3.1)
+      automatic_tax: { enabled: true },
+      tax_id_collection: { enabled: true },
+      billing_address_collection: 'required',
+      ...(existingStripeCustomerId && {
+        customer_update: { address: 'auto', name: 'auto' },
+      }),
     };
 
     if (affiliateCode && discountPercent && discountPercent > 0) {

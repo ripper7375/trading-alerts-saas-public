@@ -505,6 +505,49 @@ model Payment {
   @@index([createdAt])
 }
 
+/// DavinTrade Global SaaS Billing & Multi-Jurisdiction Tax spec
+/// (davintrade-vat-stack/, added 2026-08-29). Persists the Stripe
+/// automatic-tax breakdown per invoice -- EU/UK VAT, B2B reverse charge,
+/// customer VAT/tax ID -- for OSS quarterly filing, invoice PDF/hosted-URL
+/// lookup, and the v_country_trailing_12m_sales threshold-monitoring view.
+/// No `user`/`subscription` relation objects, matching this schema's
+/// "relation only where actually used" convention (see Payment, Subscription).
+model Invoice {
+  id             String  @id @default(cuid())
+  userId         String
+  subscriptionId String?
+
+  // Stripe identifiers (idempotency key for the invoice.payment_succeeded
+  // webhook -- Nuance 1: invoice_pdf/hosted_invoice_url only exist once the
+  // invoice is finalized on this event, not on checkout.session.completed)
+  stripeInvoiceId  String @unique
+  stripeCustomerId String
+
+  // Amounts (cents-to-dollars already applied, matching Payment.amountUSD)
+  amountTotal Decimal
+  taxAmount   Decimal @default(0)
+  taxRate     Decimal @default(0) // e.g. 0.19 for German 19% VAT
+  currency    String  @default("USD")
+
+  // Tax jurisdiction (Section 1.1 decision matrix)
+  taxCountry    String // ISO country code from customer address/IP
+  customerTaxId String? // EU VAT number etc., when VIES-validated
+  reverseCharge Boolean @default(false) // true when B2B 0% reverse charge applied
+
+  // Documents (Nuance 1: only populated from invoice.payment_succeeded)
+  invoicePdf       String?
+  hostedInvoiceUrl String?
+
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([stripeCustomerId])
+  @@index([taxCountry])
+  @@index([paidAt])
+}
+
 model FraudAlert {
   id     String @id @default(cuid())
   userId String

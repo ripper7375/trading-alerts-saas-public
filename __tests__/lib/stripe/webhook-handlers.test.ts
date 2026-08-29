@@ -12,6 +12,7 @@ const mockUserFindUnique = jest.fn();
 const mockSubscriptionFindFirst = jest.fn();
 const mockSubscriptionUpdate = jest.fn();
 const mockSubscriptionUpsert = jest.fn();
+const mockInvoiceUpsert = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
@@ -24,6 +25,9 @@ jest.mock('@/lib/db/prisma', () => ({
       findFirst: (...args: unknown[]) => mockSubscriptionFindFirst(...args),
       update: (...args: unknown[]) => mockSubscriptionUpdate(...args),
       upsert: (...args: unknown[]) => mockSubscriptionUpsert(...args),
+    },
+    invoice: {
+      upsert: (...args: unknown[]) => mockInvoiceUpsert(...args),
     },
   },
 }));
@@ -556,6 +560,14 @@ describe('Stripe Webhook Handlers', () => {
       customer: 'cus_test_123',
       amount_paid: 2900, // $29.00 in cents
       invoice_pdf: 'https://stripe.com/invoice.pdf',
+      hosted_invoice_url: 'https://invoice.stripe.com/i/inv_test_123',
+      total: 2900,
+      tax: 0,
+      currency: 'usd',
+      customer_address: { country: 'US' },
+      customer_tax_ids: [],
+      lines: { data: [{ tax_rates: [] }] },
+      status_transitions: { paid_at: 1735689600 },
     } as unknown as Stripe.Invoice;
 
     const mockDbSubscription = {
@@ -571,6 +583,7 @@ describe('Stripe Webhook Handlers', () => {
         email: 'user@example.com',
         name: 'Test User',
       });
+      mockInvoiceUpsert.mockResolvedValue({ id: 'invoice-db-123' });
     });
 
     it('should update subscription and send receipt email', async () => {
@@ -603,6 +616,106 @@ describe('Stripe Webhook Handlers', () => {
         29, // Amount in dollars
         expect.any(Date),
         'https://stripe.com/invoice.pdf'
+      );
+    });
+
+    it('should upsert the invoice tax breakdown keyed on stripeInvoiceId (davintrade-vat-stack)', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+      mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+      mockUserUpdate.mockResolvedValue({ id: 'user-123' });
+      mockSendPaymentReceiptEmail.mockResolvedValue(undefined);
+
+      await handleInvoiceSucceeded(mockInvoice);
+
+      expect(mockInvoiceUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { stripeInvoiceId: 'inv_test_123' },
+          create: expect.objectContaining({
+            userId: 'user-123',
+            subscriptionId: 'sub-db-123',
+            stripeInvoiceId: 'inv_test_123',
+            stripeCustomerId: 'cus_test_123',
+            amountTotal: 29,
+            taxAmount: 0,
+            taxRate: 0,
+            currency: 'USD',
+            taxCountry: 'US',
+            customerTaxId: null,
+            reverseCharge: false,
+            invoicePdf: 'https://stripe.com/invoice.pdf',
+            hostedInvoiceUrl: 'https://invoice.stripe.com/i/inv_test_123',
+          }),
+        })
+      );
+    });
+
+    it('should mark reverseCharge when a validated EU VAT ID applied 0% tax', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+      mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+      mockUserUpdate.mockResolvedValue({ id: 'user-123' });
+
+      const b2bInvoice = {
+        ...mockInvoice,
+        customer_address: { country: 'DE' },
+        customer_tax_ids: [{ type: 'eu_vat', value: 'DE123456789' }],
+      } as unknown as Stripe.Invoice;
+
+      await handleInvoiceSucceeded(b2bInvoice);
+
+      expect(mockInvoiceUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            taxCountry: 'DE',
+            customerTaxId: 'DE123456789',
+            taxRate: 0,
+            reverseCharge: true,
+          }),
+        })
+      );
+    });
+
+    it('should compute the effective tax rate and country for an EU B2C invoice', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+      mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+      mockUserUpdate.mockResolvedValue({ id: 'user-123' });
+
+      const euB2cInvoice = {
+        ...mockInvoice,
+        tax: 551, // 19% German VAT on $29.00 (~$5.51)
+        customer_address: { country: 'DE' },
+        lines: { data: [{ tax_rates: [{ percentage: 19 }] }] },
+      } as unknown as Stripe.Invoice;
+
+      await handleInvoiceSucceeded(euB2cInvoice);
+
+      expect(mockInvoiceUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            taxAmount: 5.51,
+            taxRate: 0.19,
+            taxCountry: 'DE',
+            reverseCharge: false,
+          }),
+        })
+      );
+    });
+
+    it('should default taxCountry to UNKNOWN when no customer address is present', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+      mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+      mockUserUpdate.mockResolvedValue({ id: 'user-123' });
+
+      const noAddressInvoice = {
+        ...mockInvoice,
+        customer_address: null,
+      } as unknown as Stripe.Invoice;
+
+      await handleInvoiceSucceeded(noAddressInvoice);
+
+      expect(mockInvoiceUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ taxCountry: 'UNKNOWN' }),
+        })
       );
     });
 

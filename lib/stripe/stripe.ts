@@ -111,6 +111,14 @@ export function buildCheckoutIdempotencyKey(
  *   billing on this write path. Omitted entirely (not just `undefined`)
  *   when absent so existing callers/tests that don't pass one see no
  *   behavior change.
+ * @param existingStripeCustomerId - Optional existing Stripe customer ID
+ *   (davintrade-vat-stack, Section 3.1). When a returning customer already
+ *   has one on file (e.g. re-subscribing after cancellation), passing it
+ *   instead of `customer_email` lets Stripe attach `customer_update` so the
+ *   address/name entered at checkout is saved back onto that customer
+ *   record -- required for the EU two-factor location-proof rule. Stripe
+ *   rejects `customer` and `customer_email` together, so this is mutually
+ *   exclusive with the email path.
  * @returns Stripe Checkout Session
  */
 export async function createCheckoutSession(
@@ -120,14 +128,16 @@ export async function createCheckoutSession(
   cancelUrl: string,
   affiliateCode?: string,
   discountPercent?: number,
-  idempotencyKey?: string
+  idempotencyKey?: string,
+  existingStripeCustomerId?: string
 ): Promise<Stripe.Checkout.Session> {
   if (!STRIPE_PRO_PRICE_ID) {
     throw new Error('STRIPE_PRO_PRICE_ID environment variable is not set');
   }
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
-    customer_email: userEmail,
+    customer: existingStripeCustomerId || undefined,
+    customer_email: existingStripeCustomerId ? undefined : userEmail,
     line_items: [
       {
         price: STRIPE_PRO_PRICE_ID,
@@ -150,6 +160,17 @@ export async function createCheckoutSession(
       },
       trial_period_days: 7, // 7-day free trial
     },
+    // Multi-jurisdiction tax automation (davintrade-vat-stack, Section 3.1):
+    // Stripe Tax calculates VAT/GST from the customer's IP, billing
+    // address, and card BIN in real time (EU B2C, UK, dLocal-adjacent
+    // markets), and validates any EU VAT number entered against VIES,
+    // applying 0% reverse charge automatically when valid.
+    automatic_tax: { enabled: true },
+    tax_id_collection: { enabled: true },
+    billing_address_collection: 'required',
+    ...(existingStripeCustomerId && {
+      customer_update: { address: 'auto', name: 'auto' },
+    }),
   };
 
   if (affiliateCode && discountPercent && discountPercent > 0) {
