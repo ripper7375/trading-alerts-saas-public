@@ -97,6 +97,18 @@ export class StripeWebhookController {
             );
             break;
 
+          case 'charge.refunded':
+            await this.webhookService.handleChargeRefunded(
+              event.data.object as Stripe.Charge
+            );
+            break;
+
+          case 'charge.dispute.created':
+            await this.webhookService.handleChargeDisputeCreated(
+              event.data.object as Stripe.Dispute
+            );
+            break;
+
           default:
             logger.info('[Webhook] Unhandled event type', {
               type: event.type,

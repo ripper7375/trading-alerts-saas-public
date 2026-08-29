@@ -229,4 +229,199 @@ describe('ConversionProcessorService', () => {
       totalEarnings: 27,
     });
   });
+
+  describe('reserveAffiliateCode (commission-timing fix)', () => {
+    it('returns CODE_NOT_FOUND when the code does not exist', async () => {
+      prismaMock.affiliateCode.findUnique.mockResolvedValue(null);
+
+      const result = await service.reserveAffiliateCode({
+        code: 'MISSING',
+        userId: 'user-1',
+      });
+
+      expect(result).toEqual({ reserved: false, reason: 'CODE_NOT_FOUND' });
+    });
+
+    it('returns ALREADY_USED for a USED code', async () => {
+      prismaMock.affiliateCode.findUnique.mockResolvedValue({
+        id: 'code-1',
+        status: 'USED',
+        affiliateProfile: { status: 'ACTIVE' },
+      } as never);
+
+      const result = await service.reserveAffiliateCode({
+        code: 'used-code',
+        userId: 'user-1',
+      });
+
+      expect(result).toEqual({ reserved: false, reason: 'ALREADY_USED' });
+    });
+
+    it('returns AFFILIATE_NOT_ACTIVE when the owning affiliate is suspended', async () => {
+      prismaMock.affiliateCode.findUnique.mockResolvedValue({
+        id: 'code-1',
+        status: 'ACTIVE',
+        affiliateProfile: { status: 'SUSPENDED' },
+      } as never);
+
+      const result = await service.reserveAffiliateCode({
+        code: 'code-1',
+        userId: 'user-1',
+      });
+
+      expect(result).toEqual({
+        reserved: false,
+        reason: 'AFFILIATE_NOT_ACTIVE',
+      });
+    });
+
+    it('marks an active code USED and returns its id -- WITHOUT creating a commission', async () => {
+      prismaMock.affiliateCode.findUnique.mockResolvedValue({
+        id: 'code-1',
+        code: 'AFF10',
+        status: 'ACTIVE',
+        affiliateProfile: { status: 'ACTIVE' },
+      } as never);
+      prismaMock.affiliateCode.update.mockResolvedValue({} as never);
+
+      const result = await service.reserveAffiliateCode({
+        code: 'aff10',
+        userId: 'user-1',
+        subscriptionId: 'sub_123',
+      });
+
+      expect(prismaMock.affiliateCode.update).toHaveBeenCalledWith({
+        where: { id: 'code-1' },
+        data: {
+          status: 'USED',
+          usedAt: expect.any(Date),
+          usedBy: 'user-1',
+          subscriptionId: 'sub_123',
+        },
+      });
+      expect(result).toEqual({ reserved: true, affiliateCodeId: 'code-1' });
+      expect(prismaMock.commission.create).not.toHaveBeenCalled();
+      expect(prismaMock.affiliateProfile.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('creditAffiliateCommission (commission-timing fix)', () => {
+    it('returns CODE_NOT_FOUND when the reserved code no longer exists', async () => {
+      prismaMock.affiliateCode.findUnique.mockResolvedValue(null);
+
+      const result = await service.creditAffiliateCommission({
+        affiliateCodeId: 'missing-id',
+        userId: 'user-1',
+        grossRevenueUsd: 29,
+      });
+
+      expect(result).toEqual({ processed: false, reason: 'CODE_NOT_FOUND' });
+    });
+
+    it('is idempotent: returns ALREADY_CREDITED when a commission already exists for this code', async () => {
+      prismaMock.affiliateCode.findUnique.mockResolvedValue({
+        id: 'code-1',
+        code: 'AFF10',
+        affiliateProfileId: 'aff-1',
+        discountPercent: 20,
+        commissionPercent: 20,
+        affiliateProfile: { id: 'aff-1', userId: 'affiliate-user-1' },
+      } as never);
+      prismaMock.commission.findFirst.mockResolvedValue({
+        id: 'commission-existing',
+      } as never);
+
+      const result = await service.creditAffiliateCommission({
+        affiliateCodeId: 'code-1',
+        userId: 'user-1',
+        grossRevenueUsd: 29,
+      });
+
+      expect(result).toEqual({
+        processed: false,
+        reason: 'ALREADY_CREDITED',
+      });
+      expect(prismaMock.commission.create).not.toHaveBeenCalled();
+    });
+
+    it('does NOT re-mark the code USED -- it was already reserved at checkout', async () => {
+      prismaMock.affiliateCode.findUnique.mockResolvedValue({
+        id: 'code-1',
+        code: 'AFF10',
+        affiliateProfileId: 'aff-1',
+        discountPercent: 20,
+        commissionPercent: 20,
+        affiliateProfile: { id: 'aff-1', userId: 'affiliate-user-1' },
+      } as never);
+      prismaMock.commission.findFirst.mockResolvedValue(null);
+      prismaMock.$transaction.mockImplementation(async (cb: unknown) =>
+        (cb as (tx: unknown) => unknown)(prismaMock)
+      );
+      prismaMock.commission.create.mockResolvedValue({
+        id: 'commission-3',
+      } as never);
+      prismaMock.affiliateProfile.update.mockResolvedValue({
+        totalEarnings: 5.8,
+      } as never);
+
+      const result = await service.creditAffiliateCommission({
+        affiliateCodeId: 'code-1',
+        userId: 'user-1',
+        subscriptionId: 'sub_123',
+        grossRevenueUsd: 29,
+      });
+
+      expect(prismaMock.affiliateCode.update).not.toHaveBeenCalled();
+      expect(prismaMock.commission.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          affiliateProfileId: 'aff-1',
+          affiliateCodeId: 'code-1',
+          userId: 'user-1',
+          subscriptionId: 'sub_123',
+          status: 'PENDING',
+        }),
+      });
+      // $29 gross, 20% discount -> $23.20 net, 20% commission -> $4.64
+      expect(result).toEqual({
+        processed: true,
+        commissionId: 'commission-3',
+        commissionAmount: 4.64,
+        affiliateUserId: 'affiliate-user-1',
+        code: 'AFF10',
+        totalEarnings: 5.8,
+      });
+    });
+
+    it('uses the actual invoice amount as gross revenue, not the dynamic base price', async () => {
+      prismaMock.affiliateCode.findUnique.mockResolvedValue({
+        id: 'code-1',
+        code: 'AFF10',
+        affiliateProfileId: 'aff-1',
+        discountPercent: 0,
+        commissionPercent: 20,
+        affiliateProfile: { id: 'aff-1', userId: 'affiliate-user-1' },
+      } as never);
+      prismaMock.commission.findFirst.mockResolvedValue(null);
+      prismaMock.$transaction.mockImplementation(async (cb: unknown) =>
+        (cb as (tx: unknown) => unknown)(prismaMock)
+      );
+      prismaMock.commission.create.mockResolvedValue({
+        id: 'commission-4',
+      } as never);
+      prismaMock.affiliateProfile.update.mockResolvedValue({
+        totalEarnings: 58,
+      } as never);
+
+      await service.creditAffiliateCommission({
+        affiliateCodeId: 'code-1',
+        userId: 'user-1',
+        grossRevenueUsd: 290, // yearly renewal amount, not the $29 default
+      });
+
+      expect(affiliateConfigMock.getBasePriceUsd).not.toHaveBeenCalled();
+      expect(prismaMock.commission.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ grossRevenue: 290 }),
+      });
+    });
+  });
 });

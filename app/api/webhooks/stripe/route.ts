@@ -18,6 +18,8 @@ import {
   handleSubscriptionDeleted,
   handleInvoiceFailed,
   handleInvoiceSucceeded,
+  handleChargeRefunded,
+  handleChargeDisputeCreated,
 } from '@/lib/stripe/webhook-handlers';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -109,6 +111,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         case 'invoice.payment_succeeded':
           await handleInvoiceSucceeded(event.data.object as Stripe.Invoice);
+          break;
+
+        case 'charge.refunded':
+          await handleChargeRefunded(event.data.object as Stripe.Charge);
+          break;
+
+        case 'charge.dispute.created':
+          await handleChargeDisputeCreated(event.data.object as Stripe.Dispute);
           break;
 
         default:

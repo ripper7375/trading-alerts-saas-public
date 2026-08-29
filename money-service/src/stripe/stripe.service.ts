@@ -171,6 +171,15 @@ export class StripeService {
   }
 
   /**
+   * Retrieve a Charge by id. Used by the refund/dispute commission-clawback
+   * path: a `charge.dispute.created` payload only carries the charge id,
+   * not the customer, so the charge is fetched to resolve it.
+   */
+  async retrieveCharge(chargeId: string): Promise<Stripe.Charge> {
+    return this.getClient().charges.retrieve(chargeId);
+  }
+
+  /**
    * Construct and verify a Stripe webhook event.
    *
    * @throws Error if signature verification fails, or STRIPE_WEBHOOK_SECRET

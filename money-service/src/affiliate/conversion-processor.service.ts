@@ -67,6 +67,32 @@ export interface ConversionResult {
   totalEarnings?: number;
 }
 
+export interface ReservationInput {
+  /** The affiliate code string to reserve (normalized or raw) */
+  code: string;
+  /** ID of the user redeeming the code */
+  userId: string;
+  /** Stripe subscription id created by this checkout, if available */
+  subscriptionId?: string | null;
+}
+
+export interface ReservationResult {
+  reserved: boolean;
+  reason?: string;
+  affiliateCodeId?: string;
+}
+
+export interface CreditInput {
+  /** AffiliateCode.id reserved earlier at checkout */
+  affiliateCodeId: string;
+  /** ID of the paying user */
+  userId: string;
+  /** Stripe subscription id, if available */
+  subscriptionId?: string | null;
+  /** Actual amount collected on this invoice, in USD (gross, before discount) */
+  grossRevenueUsd: number;
+}
+
 @Injectable()
 export class ConversionProcessorService {
   constructor(
@@ -137,6 +163,127 @@ export class ConversionProcessorService {
           },
         });
 
+        const commission = await tx.commission.create({
+          data: {
+            affiliateProfileId: affiliateCode.affiliateProfileId,
+            affiliateCodeId: affiliateCode.id,
+            userId: input.userId,
+            subscriptionId: input.subscriptionId ?? null,
+            grossRevenue: breakdown.grossRevenue,
+            discountAmount: breakdown.discountAmount,
+            netRevenue: breakdown.netRevenue,
+            commissionAmount: breakdown.commissionAmount,
+            status: 'PENDING',
+            earnedAt: new Date(),
+          },
+        });
+
+        const updatedProfile = await tx.affiliateProfile.update({
+          where: { id: affiliateCode.affiliateProfileId },
+          data: {
+            totalCodesUsed: { increment: 1 },
+            totalEarnings: { increment: breakdown.commissionAmount },
+            pendingCommissions: { increment: breakdown.commissionAmount },
+          },
+        });
+
+        return { commission, updatedProfile };
+      }
+    );
+
+    return {
+      processed: true,
+      commissionId: commission.id,
+      commissionAmount: breakdown.commissionAmount,
+      affiliateUserId: affiliateCode.affiliateProfile.userId,
+      code: affiliateCode.code,
+      totalEarnings: Number(updatedProfile.totalEarnings),
+    };
+  }
+
+  /**
+   * Reserve an affiliate code at checkout time, WITHOUT paying commission
+   * (davintrade commission-timing fix). Used by the Stripe path only --
+   * dLocal's payment webhook already fires on real money collected, so it
+   * keeps using the atomic `processAffiliateConversion` above unchanged.
+   * Stripe's `checkout.session.completed` fires before any charge happens
+   * when a trial is configured, so crediting a commission there paid
+   * affiliates on signups that later failed to pay or were cancelled
+   * during the trial. Marking the code USED here still happens immediately
+   * -- that's what stops the SAME code being redeemed twice -- only the
+   * payout itself is deferred to `creditAffiliateCommission` below.
+   */
+  async reserveAffiliateCode(
+    input: ReservationInput
+  ): Promise<ReservationResult> {
+    const normalizedCode = input.code.trim().toUpperCase();
+
+    const affiliateCode = await this.prisma.affiliateCode.findUnique({
+      where: { code: normalizedCode },
+      include: { affiliateProfile: { select: { status: true } } },
+    });
+
+    if (!affiliateCode) {
+      return { reserved: false, reason: 'CODE_NOT_FOUND' };
+    }
+    if (affiliateCode.status === 'USED') {
+      return { reserved: false, reason: 'ALREADY_USED' };
+    }
+    if (affiliateCode.status !== 'ACTIVE') {
+      return { reserved: false, reason: `CODE_${affiliateCode.status}` };
+    }
+    if (affiliateCode.affiliateProfile?.status !== 'ACTIVE') {
+      return { reserved: false, reason: 'AFFILIATE_NOT_ACTIVE' };
+    }
+
+    await this.prisma.affiliateCode.update({
+      where: { id: affiliateCode.id },
+      data: {
+        status: 'USED',
+        usedAt: new Date(),
+        usedBy: input.userId,
+        subscriptionId: input.subscriptionId ?? null,
+      },
+    });
+
+    return { reserved: true, affiliateCodeId: affiliateCode.id };
+  }
+
+  /**
+   * Credit the referring affiliate's commission for a code reserved
+   * earlier at checkout (davintrade commission-timing fix). Call only once
+   * real money has actually been collected -- the Stripe webhook path
+   * calls this from `invoice.payment_succeeded`, never from checkout
+   * completion. Idempotent: an existing Commission for this code is a
+   * no-op, covering both webhook redelivery and a later renewal.
+   */
+  async creditAffiliateCommission(
+    input: CreditInput
+  ): Promise<ConversionResult> {
+    const affiliateCode = await this.prisma.affiliateCode.findUnique({
+      where: { id: input.affiliateCodeId },
+      include: { affiliateProfile: { select: { id: true, userId: true } } },
+    });
+
+    if (!affiliateCode) {
+      return { processed: false, reason: 'CODE_NOT_FOUND' };
+    }
+
+    const alreadyCredited = await this.prisma.commission.findFirst({
+      where: { affiliateCodeId: affiliateCode.id },
+    });
+    if (alreadyCredited) {
+      return { processed: false, reason: 'ALREADY_CREDITED' };
+    }
+
+    const breakdown = calculateFullBreakdown(
+      input.grossRevenueUsd,
+      affiliateCode.discountPercent,
+      affiliateCode.commissionPercent
+    );
+
+    const { commission, updatedProfile } = await this.prisma.$transaction(
+      async (tx) => {
         const commission = await tx.commission.create({
           data: {
             affiliateProfileId: affiliateCode.affiliateProfileId,

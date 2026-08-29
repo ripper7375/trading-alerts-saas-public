@@ -28,6 +28,8 @@ import { logger } from '../common/logger.util';
 import { OutboxService } from '../outbox/outbox.service';
 import { PrismaService } from '../prisma/prisma.service';
 
+import { StripeService } from './stripe.service';
+
 type SubscriptionStatusValue =
   | 'ACTIVE'
   | 'INACTIVE'
@@ -41,7 +43,8 @@ export class StripeWebhookService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly conversionProcessor: ConversionProcessorService,
-    private readonly outboxService: OutboxService
+    private readonly outboxService: OutboxService,
+    private readonly stripeService: StripeService
   ) {}
 
   private async emitOutboxEvent(
@@ -91,6 +94,47 @@ export class StripeWebhookService {
 
       const planType = billingPeriod === 'yearly' ? 'YEARLY' : 'MONTHLY';
 
+      // Reserve the affiliate code (if any) BEFORE writing the subscription
+      // so its id can be stamped in the same write -- and so a stale id
+      // from a prior, abandoned signup (this user re-subscribing without a
+      // code this time) is explicitly cleared rather than left dangling to
+      // wrongly attribute a later renewal to the old affiliate. Reserving
+      // (marking the code USED) still happens now, at checkout completion
+      // -- that's what stops the SAME code being redeemed twice; only the
+      // commission itself is deferred to handleInvoiceSucceeded, once real
+      // money is actually collected (davintrade commission-timing fix --
+      // checkout.session.completed fires before any charge when a trial is
+      // configured, so crediting here paid affiliates on signups that
+      // later failed to pay or were cancelled during the trial).
+      const affiliateCodeInput = session.metadata?.['affiliateCode'];
+      let reservedAffiliateCodeId: string | null = null;
+      if (affiliateCodeInput) {
+        try {
+          const reservation =
+            await this.conversionProcessor.reserveAffiliateCode({
+              code: affiliateCodeInput,
+              userId,
+              subscriptionId,
+            });
+          if (reservation.reserved) {
+            reservedAffiliateCodeId = reservation.affiliateCodeId ?? null;
+          } else {
+            logger.warn('[Webhook] Affiliate code not reserved', {
+              code: affiliateCodeInput,
+              reason: reservation.reason,
+            });
+          }
+        } catch (reservationError) {
+          // Never fail checkout because of affiliate bookkeeping.
+          logger.error('[Webhook] Error reserving affiliate code', {
+            error:
+              reservationError instanceof Error
+                ? reservationError.message
+                : 'Unknown error',
+          });
+        }
+      }
+
       await this.prisma.$transaction(async (tx) => {
         await tx.user.update({
           where: { id: userId },
@@ -112,6 +156,7 @@ export class StripeWebhookService {
             planType,
             stripeCurrentPeriodEnd: nextBillingDate,
             expiresAt: nextBillingDate,
+            affiliateCodeId: reservedAffiliateCodeId,
           },
           create: {
             userId,
@@ -122,6 +167,7 @@ export class StripeWebhookService {
             planType,
             stripeCurrentPeriodEnd: nextBillingDate,
             expiresAt: nextBillingDate,
+            affiliateCodeId: reservedAffiliateCodeId,
           },
         });
 
@@ -132,56 +178,6 @@ export class StripeWebhookService {
           payload: { tier: 'PRO', provider: 'STRIPE', billingPeriod },
         });
       });
-
-      const affiliateCode = session.metadata?.['affiliateCode'];
-      if (affiliateCode) {
-        try {
-          const conversion =
-            await this.conversionProcessor.processAffiliateConversion({
-              code: affiliateCode,
-              userId,
-              subscriptionId,
-              grossRevenueUsd: amountUsd,
-              provider: 'STRIPE',
-            });
-
-          if (conversion.processed) {
-            logger.info('[Webhook] Affiliate commission created', {
-              userId,
-              commissionId: conversion.commissionId,
-              commissionAmount: conversion.commissionAmount,
-            });
-            // F50: aggregateId is the affiliate who earned the commission,
-            // NOT the paying subscriber (`userId` above) -- the outbox
-            // consumer resolves the recipient from aggregateId.
-            await this.emitOutboxEvent(
-              conversion.affiliateUserId as string,
-              'COMMISSION_CREDITED',
-              {
-                commissionId: conversion.commissionId,
-                commissionAmount: conversion.commissionAmount,
-                totalEarnings: conversion.totalEarnings,
-                code: conversion.code,
-                provider: 'STRIPE',
-              }
-            );
-          } else {
-            logger.warn('[Webhook] Affiliate conversion not processed', {
-              userId,
-              reason: conversion.reason,
-            });
-          }
-        } catch (conversionError) {
-          // Never fail the webhook because of commission bookkeeping.
-          logger.error('[Webhook] Affiliate conversion processing failed', {
-            userId,
-            error:
-              conversionError instanceof Error
-                ? conversionError.message
-                : 'Unknown error',
-          });
-        }
-      }
 
       logger.info('[Webhook] User upgraded to PRO', {
         userId,
@@ -452,6 +448,65 @@ export class StripeWebhookService {
         });
       });
 
+      // Credit the referring affiliate's commission now that real money
+      // has actually been collected (davintrade commission-timing fix) --
+      // never at checkout completion, and never for a later renewal
+      // (creditAffiliateCommission is idempotent and this clears the
+      // pending attribution on success either way).
+      if (dbSubscription.affiliateCodeId) {
+        try {
+          const conversion =
+            await this.conversionProcessor.creditAffiliateCommission({
+              affiliateCodeId: dbSubscription.affiliateCodeId,
+              userId: dbSubscription.userId,
+              subscriptionId: dbSubscription.stripeSubscriptionId,
+              grossRevenueUsd: amountPaid / 100,
+            });
+
+          if (conversion.processed) {
+            logger.info('[Webhook] Affiliate commission credited', {
+              userId: dbSubscription.userId,
+              commissionId: conversion.commissionId,
+              commissionAmount: conversion.commissionAmount,
+            });
+            // F50: aggregateId is the affiliate who earned the commission,
+            // NOT the paying subscriber -- the outbox consumer resolves
+            // the recipient from aggregateId.
+            await this.emitOutboxEvent(
+              conversion.affiliateUserId as string,
+              'COMMISSION_CREDITED',
+              {
+                commissionId: conversion.commissionId,
+                commissionAmount: conversion.commissionAmount,
+                totalEarnings: conversion.totalEarnings,
+                code: conversion.code,
+                provider: 'STRIPE',
+              }
+            );
+            await this.prisma.subscription.update({
+              where: { id: dbSubscription.id },
+              data: { affiliateCodeId: null },
+            });
+          } else {
+            logger.warn('[Webhook] Affiliate commission not credited', {
+              userId: dbSubscription.userId,
+              reason: conversion.reason,
+            });
+          }
+        } catch (conversionError) {
+          // Never fail invoice processing because of commission
+          // bookkeeping -- the subscription/tax/receipt work above already
+          // succeeded and must not be rolled back over this.
+          logger.error('[Webhook] Affiliate commission crediting failed', {
+            userId: dbSubscription.userId,
+            error:
+              conversionError instanceof Error
+                ? conversionError.message
+                : 'Unknown error',
+          });
+        }
+      }
+
       logger.info('[Webhook] Payment succeeded', {
         userId: dbSubscription.userId,
         amountUsd: amountPaid / 100,
@@ -461,6 +516,139 @@ export class StripeWebhookService {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
+    }
+  }
+
+  /**
+   * Handle charge.refunded event.
+   *
+   * Cancels the affiliate commission tied to this customer's subscription
+   * if it hasn't been paid out yet. Completes the commission-hold design
+   * (davintrade-vat-stack follow-up): the hold window
+   * (SystemConfig.affiliate_commission_approval_days) only delays payout --
+   * this is what actually acts on a refund arriving during that window.
+   * Mirrors lib/stripe/webhook-handlers.ts's handleChargeRefunded.
+   */
+  async handleChargeRefunded(charge: Stripe.Charge): Promise<void> {
+    const customerId =
+      typeof charge.customer === 'string'
+        ? charge.customer
+        : charge.customer?.id;
+    await this.cancelCommissionForRefundOrDispute(customerId ?? null, 'refund');
+  }
+
+  /**
+   * Handle charge.dispute.created event.
+   *
+   * Same clawback as handleChargeRefunded, but for a cardholder dispute
+   * (chargeback). The dispute payload only carries the charge id, not the
+   * customer, so the charge is fetched via StripeService to resolve it.
+   */
+  async handleChargeDisputeCreated(dispute: Stripe.Dispute): Promise<void> {
+    try {
+      const chargeId =
+        typeof dispute.charge === 'string' ? dispute.charge : dispute.charge.id;
+      const charge = await this.stripeService.retrieveCharge(chargeId);
+      const customerId =
+        typeof charge.customer === 'string'
+          ? charge.customer
+          : charge.customer?.id;
+      await this.cancelCommissionForRefundOrDispute(
+        customerId ?? null,
+        'dispute'
+      );
+    } catch (error) {
+      logger.error('[Webhook] Error resolving disputed charge', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
+   * Shared clawback logic for both events above.
+   *
+   * - PENDING or APPROVED (not yet disbursed): cancelled, and both the
+   *   affiliate's pendingCommissions and totalEarnings are reversed --
+   *   symmetric with how they were incremented when the commission was
+   *   created.
+   * - Already PAID: cannot be silently reversed (the money already left
+   *   for the affiliate) -- logged prominently for manual recovery
+   *   instead of attempted automatically.
+   * - Already CANCELLED, or no commission at all for this customer: no-op
+   *   (idempotent against webhook redelivery, and the common case of a
+   *   refund with no affiliate code involved at all).
+   */
+  private async cancelCommissionForRefundOrDispute(
+    customerId: string | null,
+    reason: 'refund' | 'dispute'
+  ): Promise<void> {
+    if (!customerId) {
+      logger.error(`[Webhook] No customer ID on ${reason} event`);
+      return;
+    }
+
+    try {
+      const dbSubscription = await this.prisma.subscription.findFirst({
+        where: { stripeCustomerId: customerId },
+      });
+
+      if (!dbSubscription?.stripeSubscriptionId) {
+        logger.info(`[Webhook] No subscription found for ${reason} event`, {
+          customerId,
+        });
+        return;
+      }
+
+      const commission = await this.prisma.commission.findFirst({
+        where: { subscriptionId: dbSubscription.stripeSubscriptionId },
+      });
+
+      if (!commission) {
+        // The common case: most refunds/disputes involve no affiliate code.
+        return;
+      }
+
+      if (commission.status === 'CANCELLED') {
+        return;
+      }
+
+      if (commission.status === 'PAID') {
+        logger.error(
+          `[Webhook] ALERT: commission already PAID but underlying charge was ${reason} -- manual recovery needed`,
+          {
+            commissionId: commission.id,
+            affiliateProfileId: commission.affiliateProfileId,
+            amount: Number(commission.commissionAmount),
+          }
+        );
+        return;
+      }
+
+      // PENDING or APPROVED -- cancel before it's ever (or further) disbursed.
+      await this.prisma.commission.update({
+        where: { id: commission.id },
+        data: { status: 'CANCELLED', cancelledAt: new Date() },
+      });
+
+      await this.prisma.affiliateProfile.update({
+        where: { id: commission.affiliateProfileId },
+        data: {
+          totalCodesUsed: { decrement: 1 },
+          totalEarnings: { decrement: Number(commission.commissionAmount) },
+          pendingCommissions: {
+            decrement: Number(commission.commissionAmount),
+          },
+        },
+      });
+
+      logger.info(`[Webhook] Commission cancelled due to ${reason}`, {
+        commissionId: commission.id,
+        amount: Number(commission.commissionAmount),
+      });
+    } catch (error) {
+      logger.error(`[Webhook] Error cancelling commission for ${reason}`, {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   }
 

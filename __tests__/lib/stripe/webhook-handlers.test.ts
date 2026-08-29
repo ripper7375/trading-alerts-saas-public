@@ -13,6 +13,12 @@ const mockSubscriptionFindFirst = jest.fn();
 const mockSubscriptionUpdate = jest.fn();
 const mockSubscriptionUpsert = jest.fn();
 const mockInvoiceUpsert = jest.fn();
+const mockAffiliateCodeFindUnique = jest.fn();
+const mockAffiliateCodeUpdate = jest.fn();
+const mockCommissionFindFirst = jest.fn();
+const mockCommissionCreate = jest.fn();
+const mockCommissionUpdate = jest.fn();
+const mockAffiliateProfileUpdate = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
@@ -28,6 +34,18 @@ jest.mock('@/lib/db/prisma', () => ({
     },
     invoice: {
       upsert: (...args: unknown[]) => mockInvoiceUpsert(...args),
+    },
+    affiliateCode: {
+      findUnique: (...args: unknown[]) => mockAffiliateCodeFindUnique(...args),
+      update: (...args: unknown[]) => mockAffiliateCodeUpdate(...args),
+    },
+    commission: {
+      findFirst: (...args: unknown[]) => mockCommissionFindFirst(...args),
+      create: (...args: unknown[]) => mockCommissionCreate(...args),
+      update: (...args: unknown[]) => mockCommissionUpdate(...args),
+    },
+    affiliateProfile: {
+      update: (...args: unknown[]) => mockAffiliateProfileUpdate(...args),
     },
   },
 }));
@@ -55,21 +73,26 @@ jest.mock('@/lib/email/email', () => ({
     mockSendSubscriptionConfirmationEmail(...args),
 }));
 
+const mockCalculateFullBreakdown = jest.fn().mockReturnValue({
+  grossRevenue: 29,
+  discountAmount: 0,
+  netRevenue: 29,
+  commissionAmount: 5.8,
+});
+
 jest.mock('@/lib/affiliate/commission-calculator', () => ({
   __esModule: true,
-  calculateFullBreakdown: jest.fn().mockReturnValue({
-    grossRevenue: 29,
-    discountAmount: 0,
-    netRevenue: 29,
-    commissionAmount: 5.8,
-  }),
+  calculateFullBreakdown: (...args: unknown[]) =>
+    mockCalculateFullBreakdown(...args),
 }));
 
-jest.mock('@/lib/affiliate/constants', () => ({
+const mockChargesRetrieve = jest.fn();
+
+jest.mock('@/lib/stripe/stripe', () => ({
   __esModule: true,
-  AFFILIATE_CONFIG: {
-    BASE_PRICE_USD: 29,
-  },
+  getStripeClient: () => ({
+    charges: { retrieve: (...args: unknown[]) => mockChargesRetrieve(...args) },
+  }),
 }));
 
 import {
@@ -78,6 +101,8 @@ import {
   handleSubscriptionDeleted,
   handleInvoiceFailed,
   handleInvoiceSucceeded,
+  handleChargeRefunded,
+  handleChargeDisputeCreated,
 } from '@/lib/stripe/webhook-handlers';
 
 describe('Stripe Webhook Handlers', () => {
@@ -214,6 +239,108 @@ describe('Stripe Webhook Handlers', () => {
       await expect(handleCheckoutCompleted(mockSession)).rejects.toThrow(
         'Database error'
       );
+    });
+
+    describe('affiliate code reservation (commission-timing fix)', () => {
+      const sessionWithCode = {
+        ...mockSession,
+        metadata: { userId: 'user-123', affiliateCode: 'AFF10' },
+      } as unknown as Stripe.Checkout.Session;
+
+      beforeEach(() => {
+        mockUserUpdate.mockResolvedValue({
+          id: 'user-123',
+          email: 'user@example.com',
+          name: 'Test User',
+        });
+        mockSubscriptionUpsert.mockResolvedValue({ id: 'sub-db-123' });
+      });
+
+      it('reserves an active code (marks USED) but does NOT create a commission yet', async () => {
+        mockAffiliateCodeFindUnique.mockResolvedValue({
+          id: 'code-1',
+          code: 'AFF10',
+          status: 'ACTIVE',
+        });
+
+        await handleCheckoutCompleted(sessionWithCode);
+
+        expect(mockAffiliateCodeUpdate).toHaveBeenCalledWith({
+          where: { id: 'code-1' },
+          data: {
+            status: 'USED',
+            usedAt: expect.any(Date),
+            usedBy: 'user-123',
+            subscriptionId: 'sub_test_123',
+          },
+        });
+        expect(mockSubscriptionUpsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            update: expect.objectContaining({ affiliateCodeId: 'code-1' }),
+            create: expect.objectContaining({ affiliateCodeId: 'code-1' }),
+          })
+        );
+        // The whole point of the fix: no money has been collected yet
+        // (7-day trial), so no commission is paid at this stage.
+        expect(mockCommissionCreate).not.toHaveBeenCalled();
+        expect(mockAffiliateProfileUpdate).not.toHaveBeenCalled();
+      });
+
+      it('does not reserve an unknown code, and clears affiliateCodeId to null', async () => {
+        mockAffiliateCodeFindUnique.mockResolvedValue(null);
+
+        await handleCheckoutCompleted(sessionWithCode);
+
+        expect(mockAffiliateCodeUpdate).not.toHaveBeenCalled();
+        expect(mockSubscriptionUpsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            update: expect.objectContaining({ affiliateCodeId: null }),
+            create: expect.objectContaining({ affiliateCodeId: null }),
+          })
+        );
+      });
+
+      it('does not reserve an already-used/inactive code', async () => {
+        mockAffiliateCodeFindUnique.mockResolvedValue({
+          id: 'code-1',
+          code: 'AFF10',
+          status: 'USED',
+        });
+
+        await handleCheckoutCompleted(sessionWithCode);
+
+        expect(mockAffiliateCodeUpdate).not.toHaveBeenCalled();
+        expect(mockSubscriptionUpsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            create: expect.objectContaining({ affiliateCodeId: null }),
+          })
+        );
+      });
+
+      it('clears a stale affiliateCodeId when re-subscribing without a code this time', async () => {
+        // No affiliateCode in metadata at all -- mockSession, not
+        // sessionWithCode -- must still explicitly null out affiliateCodeId
+        // so a prior abandoned attempt's attribution can't leak into this
+        // signup and wrongly credit the old affiliate later.
+        await handleCheckoutCompleted(mockSession);
+
+        expect(mockAffiliateCodeFindUnique).not.toHaveBeenCalled();
+        expect(mockSubscriptionUpsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            update: expect.objectContaining({ affiliateCodeId: null }),
+            create: expect.objectContaining({ affiliateCodeId: null }),
+          })
+        );
+      });
+
+      it('does not fail checkout if reserving the code throws', async () => {
+        mockAffiliateCodeFindUnique.mockRejectedValue(new Error('db blip'));
+
+        await expect(
+          handleCheckoutCompleted(sessionWithCode)
+        ).resolves.toBeUndefined();
+        expect(mockSubscriptionUpsert).toHaveBeenCalled();
+      });
     });
   });
 
@@ -445,6 +572,7 @@ describe('Stripe Webhook Handlers', () => {
       id: 'sub-db-123',
       userId: 'user-123',
       stripeCustomerId: 'cus_test_123',
+      stripeSubscriptionId: 'sub_test_123',
     };
 
     // Subscription no longer carries a `user` relation (Session 2-3 FK
@@ -574,6 +702,7 @@ describe('Stripe Webhook Handlers', () => {
       id: 'sub-db-123',
       userId: 'user-123',
       stripeCustomerId: 'cus_test_123',
+      stripeSubscriptionId: 'sub_test_123',
     };
 
     // Subscription no longer carries a `user` relation (Session 2-3 FK
@@ -719,6 +848,100 @@ describe('Stripe Webhook Handlers', () => {
       );
     });
 
+    describe('affiliate commission crediting (commission-timing fix)', () => {
+      const dbSubscriptionWithCode = {
+        ...mockDbSubscription,
+        affiliateCodeId: 'code-1',
+      };
+
+      beforeEach(() => {
+        mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+        mockUserUpdate.mockResolvedValue({ id: 'user-123' });
+        mockSendPaymentReceiptEmail.mockResolvedValue(undefined);
+        mockAffiliateCodeFindUnique.mockResolvedValue({
+          id: 'code-1',
+          code: 'AFF10',
+          affiliateProfileId: 'aff-1',
+          discountPercent: 20,
+          commissionPercent: 20,
+        });
+        mockCommissionFindFirst.mockResolvedValue(null);
+        mockCommissionCreate.mockResolvedValue({ id: 'commission-1' });
+        mockAffiliateProfileUpdate.mockResolvedValue({
+          userId: 'affiliate-user-1',
+          totalEarnings: 5.8,
+        });
+      });
+
+      it('credits the commission and clears the pending attribution when a code was reserved', async () => {
+        mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
+
+        await handleInvoiceSucceeded(mockInvoice);
+
+        expect(mockCommissionCreate).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            affiliateProfileId: 'aff-1',
+            affiliateCodeId: 'code-1',
+            userId: 'user-123',
+            subscriptionId: 'sub_test_123',
+            status: 'PENDING',
+          }),
+        });
+        // Cleared so a later renewal never re-triggers this same code's payout.
+        expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
+          where: { id: 'sub-db-123' },
+          data: { affiliateCodeId: null },
+        });
+        expect(mockAffiliateProfileUpdate).toHaveBeenCalledWith({
+          where: { id: 'aff-1' },
+          data: {
+            totalCodesUsed: { increment: 1 },
+            totalEarnings: { increment: 5.8 },
+            pendingCommissions: { increment: 5.8 },
+          },
+        });
+      });
+
+      it('uses the actual invoice amount as gross revenue, not a static base price', async () => {
+        mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
+
+        await handleInvoiceSucceeded(mockInvoice);
+
+        // mockInvoice.amount_paid is 2900 cents = $29.00
+        expect(mockCalculateFullBreakdown).toHaveBeenCalledWith(29, 20, 20);
+      });
+
+      it('does not credit anything when the subscription has no pending affiliate attribution', async () => {
+        mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription); // no affiliateCodeId
+
+        await handleInvoiceSucceeded(mockInvoice);
+
+        expect(mockAffiliateCodeFindUnique).not.toHaveBeenCalled();
+        expect(mockCommissionCreate).not.toHaveBeenCalled();
+      });
+
+      it('is idempotent: skips creating a duplicate commission on a redelivered webhook', async () => {
+        mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
+        mockCommissionFindFirst.mockResolvedValue({ id: 'commission-already' });
+
+        await handleInvoiceSucceeded(mockInvoice);
+
+        expect(mockCommissionCreate).not.toHaveBeenCalled();
+        expect(mockAffiliateProfileUpdate).not.toHaveBeenCalled();
+      });
+
+      it('does not fail invoice processing if commission crediting throws', async () => {
+        mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
+        mockAffiliateCodeFindUnique.mockRejectedValue(new Error('db blip'));
+
+        await expect(
+          handleInvoiceSucceeded(mockInvoice)
+        ).resolves.toBeUndefined();
+        // The subscription renewal itself must still have gone through.
+        expect(mockSendPaymentReceiptEmail).toHaveBeenCalled();
+      });
+    });
+
     it('should skip $0 invoices (trial period)', async () => {
       const trialInvoice = {
         ...mockInvoice,
@@ -824,6 +1047,154 @@ describe('Stripe Webhook Handlers', () => {
       await handleInvoiceSucceeded(invoiceNoAmount);
 
       expect(mockSubscriptionFindFirst).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleChargeRefunded / handleChargeDisputeCreated (commission clawback)', () => {
+    const mockDbSubscription = {
+      id: 'sub-db-123',
+      userId: 'user-123',
+      stripeSubscriptionId: 'sub_test_123',
+    };
+    const mockCommission = {
+      id: 'commission-1',
+      affiliateProfileId: 'aff-1',
+      commissionAmount: 5.8,
+      status: 'PENDING',
+    };
+
+    beforeEach(() => {
+      mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+      mockCommissionUpdate.mockResolvedValue({});
+      mockAffiliateProfileUpdate.mockResolvedValue({});
+    });
+
+    it('cancels a PENDING commission and reverses the affiliate profile stats on refund', async () => {
+      mockCommissionFindFirst.mockResolvedValue(mockCommission);
+
+      await handleChargeRefunded({
+        customer: 'cus_test_123',
+      } as unknown as Stripe.Charge);
+
+      expect(mockCommissionUpdate).toHaveBeenCalledWith({
+        where: { id: 'commission-1' },
+        data: { status: 'CANCELLED', cancelledAt: expect.any(Date) },
+      });
+      expect(mockAffiliateProfileUpdate).toHaveBeenCalledWith({
+        where: { id: 'aff-1' },
+        data: {
+          totalCodesUsed: { decrement: 1 },
+          totalEarnings: { decrement: 5.8 },
+          pendingCommissions: { decrement: 5.8 },
+        },
+      });
+    });
+
+    it('also cancels an APPROVED (not yet disbursed) commission', async () => {
+      mockCommissionFindFirst.mockResolvedValue({
+        ...mockCommission,
+        status: 'APPROVED',
+      });
+
+      await handleChargeRefunded({
+        customer: 'cus_test_123',
+      } as unknown as Stripe.Charge);
+
+      expect(mockCommissionUpdate).toHaveBeenCalledWith({
+        where: { id: 'commission-1' },
+        data: { status: 'CANCELLED', cancelledAt: expect.any(Date) },
+      });
+    });
+
+    it('does NOT touch an already-PAID commission -- flags it for manual recovery instead', async () => {
+      mockCommissionFindFirst.mockResolvedValue({
+        ...mockCommission,
+        status: 'PAID',
+      });
+
+      await handleChargeRefunded({
+        customer: 'cus_test_123',
+      } as unknown as Stripe.Charge);
+
+      expect(mockCommissionUpdate).not.toHaveBeenCalled();
+      expect(mockAffiliateProfileUpdate).not.toHaveBeenCalled();
+    });
+
+    it('is idempotent: no-ops on an already-CANCELLED commission', async () => {
+      mockCommissionFindFirst.mockResolvedValue({
+        ...mockCommission,
+        status: 'CANCELLED',
+      });
+
+      await handleChargeRefunded({
+        customer: 'cus_test_123',
+      } as unknown as Stripe.Charge);
+
+      expect(mockCommissionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('no-ops when the refund has no associated affiliate commission at all', async () => {
+      mockCommissionFindFirst.mockResolvedValue(null);
+
+      await handleChargeRefunded({
+        customer: 'cus_test_123',
+      } as unknown as Stripe.Charge);
+
+      expect(mockCommissionUpdate).not.toHaveBeenCalled();
+    });
+
+    it('no-ops when there is no customer id on the charge', async () => {
+      await handleChargeRefunded({
+        customer: null,
+      } as unknown as Stripe.Charge);
+
+      expect(mockSubscriptionFindFirst).not.toHaveBeenCalled();
+    });
+
+    it('no-ops when no subscription is found for the customer', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue(null);
+
+      await handleChargeRefunded({
+        customer: 'cus_unknown',
+      } as unknown as Stripe.Charge);
+
+      expect(mockCommissionFindFirst).not.toHaveBeenCalled();
+    });
+
+    it('does not throw if the database errors mid-clawback', async () => {
+      mockCommissionFindFirst.mockRejectedValue(new Error('db blip'));
+
+      await expect(
+        handleChargeRefunded({
+          customer: 'cus_test_123',
+        } as unknown as Stripe.Charge)
+      ).resolves.toBeUndefined();
+    });
+
+    it('resolves the charge from the dispute payload, then applies the same clawback', async () => {
+      mockCommissionFindFirst.mockResolvedValue(mockCommission);
+      mockChargesRetrieve.mockResolvedValue({ customer: 'cus_test_123' });
+
+      await handleChargeDisputeCreated({
+        charge: 'ch_test_123',
+      } as unknown as Stripe.Dispute);
+
+      expect(mockChargesRetrieve).toHaveBeenCalledWith('ch_test_123');
+      expect(mockCommissionUpdate).toHaveBeenCalledWith({
+        where: { id: 'commission-1' },
+        data: { status: 'CANCELLED', cancelledAt: expect.any(Date) },
+      });
+    });
+
+    it('does not throw if resolving the disputed charge fails', async () => {
+      mockChargesRetrieve.mockRejectedValue(new Error('stripe api down'));
+
+      await expect(
+        handleChargeDisputeCreated({
+          charge: 'ch_test_123',
+        } as unknown as Stripe.Dispute)
+      ).resolves.toBeUndefined();
+      expect(mockCommissionFindFirst).not.toHaveBeenCalled();
     });
   });
 });
