@@ -9,8 +9,8 @@
 > Upgraded to full **DRAFT** by the Advisor / Antigravity (2026-08-30) per
 > `MASTER-ROADMAP-PHASES-7-15.md` §"Phase 14" and Session 14-0's closed order.
 
-**Session:** 14-2 · **Phase:** 14 (Web Chat / Contabo Support Stack, third of 4 sessions) · **Variant:** PORT · **Status:** CONFIRMED  
-**Generated:** 2026-08-30 (Executor PRE-DRAFT) · **Upgraded to DRAFT:** 2026-08-30 (Advisor / Antigravity) · **Approved:** 2026-08-30 (Davin — explicit sign-off on Decision 1 BFF token minting endpoint) · **CONFIRMED:** 2026-08-30 (Executor, after live re-verification below) · **Flags touched:** none (F72 already resolved in Session 14-0) · **Estimated time:** ~3–4h (one new API route, three ported/adapted components, one CSP update in `next.config.js`, global mounting in `client-providers.tsx`, live browser verification against `https://chat-api.davintrade.app`).
+**Session:** 14-2 · **Phase:** 14 (Web Chat / Contabo Support Stack, third of 4 sessions) · **Variant:** PORT · **Status:** CLOSED SUCCESSFUL  
+**Generated:** 2026-08-30 (Executor PRE-DRAFT) · **Upgraded to DRAFT:** 2026-08-30 (Advisor / Antigravity) · **Approved:** 2026-08-30 (Davin — explicit sign-off on Decision 1 BFF token minting endpoint) · **CONFIRMED:** 2026-08-30 (Executor, after live re-verification below) · **CLOSED SUCCESSFUL:** 2026-08-30 (Executor, all done-when checks passed, verified live) · **Flags touched:** none (F72 already resolved in Session 14-0) · **Estimated time:** ~3–4h (one new API route, three ported/adapted components, one CSP update in `next.config.js`, global mounting in `client-providers.tsx`, live browser verification against `https://chat-api.davintrade.app`).
 
 > **CONFIRM note (Executor, 2026-08-30):** at session OPEN, the committed `HEAD` of this file was
 > still the raw PRE-DRAFT (`Status: PRE-DRAFT`, no `Decisions taken`) — the DRAFT→APPROVED upgrade
@@ -167,13 +167,13 @@ Session 14-2 ports the UI components and socket client into the main Next.js rep
 
 ## Slice-level verification (done when)
 
-- [ ] `GET /api/chat/token` returns signed JWT for authenticated user and `{ token: null }` for guest (verified with unit tests).
-- [ ] `lib/socket-client.ts` and `components/chat-widget/` are ported, typechecked clean, and unit-tested.
-- [ ] `next.config.js` CSP `connect-src` updated with `https://chat-api.davintrade.app` and `wss://chat-api.davintrade.app`.
-- [ ] Floating chat widget renders in the browser and connects over WSS to `chat-api.davintrade.app`.
-- [ ] End-to-end message sent from the browser widget receives an intelligent AI reply from the Gemini bot worker.
-- [ ] With `NEXT_PUBLIC_SOCKET_CHAT_URL` unset, Help pages degrade gracefully to static FAQ and `mailto:support@davintrade.app` without errors.
-- [ ] Monolith `test:ci` suite passes with net-neutral or better results (151+ suites passing).
+- [x] `GET /api/chat/token` returns signed JWT for authenticated user and `{ token: null }` for guest (verified with unit tests) — 4 tests, `__tests__/api/chat/token.test.ts`.
+- [x] `lib/socket-client.ts` and `components/chat-widget/` are ported, typechecked clean, and unit-tested — `tsc --noEmit` clean; 5 + 6 tests respectively.
+- [x] `next.config.js` CSP `connect-src` updated with `https://chat-api.davintrade.app` and `wss://chat-api.davintrade.app`.
+- [x] Floating chat widget renders in the browser and connects over WSS to `chat-api.davintrade.app` — verified live in a real browser (guest/unauthenticated session).
+- [x] End-to-end message sent from the browser widget receives an intelligent AI reply from the Gemini bot worker — verified live: sent "Hello, testing the live chat connection", received a genuine contextual Gemini reply ("Your live chat connection is working perfectly...") after a real typing-indicator period, not the canned fallback text.
+- [x] With `NEXT_PUBLIC_SOCKET_CHAT_URL` unset, Help pages degrade gracefully to static FAQ and `mailto:support@davintrade.app` without errors — offline/unset-URL path proven by 2 unit tests (`initSocket()` never calls `io()`, `sendMessage()` degrades to the canned generator, neither throws); live-checked that `/help` renders with zero console errors alongside the globally-mounted widget.
+- [x] Monolith `test:ci` suite passes with net-neutral or better results (151+ suites passing) — 154/154 suites, 100% tests passing across 2 consecutive fresh runs (2264 then 2265 tests — see Deviations for the unexplained ±1 count note).
 
 ---
 
@@ -186,7 +186,13 @@ Session 14-2 ports the UI components and socket client into the main Next.js rep
 
 ## Deviations
 
-_(filled during execution — what/why/impact)_
+1. **`GET /api/chat/token` uses `lib/auth/session.ts`'s existing `getSession()` wrapper, not raw `getServerSession(authOptions)`.** Decision 1 named the raw call; `getSession()` is the repo's established, already-error-handled wrapper around the identical call (used throughout `app/api/**`) — same behavior, more idiomatic. Low risk, trivially reversible.
+2. **`lib/socket-client.ts`'s `io()` options match Session 14-0's frozen contract exactly (`reconnectionAttempts: 5, reconnectionDelay: 1000`), not the seed's own `reconnectionAttempts: 3, timeout: 5000, autoConnect: false`.** The seed pre-dates the frozen contract and was never itself connected to a real backend; `autoConnect: false` in particular would have silently prevented any real connection since nothing in the port calls `.connect()`. Applying Decision 2's own stated goal ("exact wire compatibility with the running Contabo/Vultr server") over the seed's literal code. Verified live — the socket connects and round-trips successfully with these settings.
+3. **Chat-error banner also handles `UNAUTHORIZED`**, one code beyond Decision 3's explicitly named three (`RATE_LIMIT_EXCEEDED`/`QUOTA_EXCEEDED`/`SERVER_ERROR`). `UNAUTHORIZED` exists in Session 14-0's frozen `ChatErrorPayload` type; leaving it unhandled would silently swallow a real error class the order's own Decision 3 explicitly rejected ("never silently swallowing error events"). Reuses the `SERVER_ERROR` messaging + mailto link. Low risk, purely additive.
+4. **Test-count non-determinism, unrelated to this session's code.** Two consecutive fresh `npm run test:ci` runs after all File 1–4 changes landed reported 2264 then 2265 passing tests (154/154 suites, 0 failures, both runs). Cross-checked: no pre-existing test file references any of this session's new modules (`lib/socket-client`, `components/chat-widget/*`, `app/api/chat/token`, `client-providers`), so the ±1 test is coming from somewhere in the pre-existing suite, not from 14-2's changes. Not investigated further — zero failures either run, doesn't meet the >30 min / recurred / reached-CI threshold for a new `LESSONS-LEARNED.md` entry (also at the 40-entry cap). Flagged here for the record in case it recurs.
+5. **`npm run validate`'s prettier-check step flagged 89 pre-existing files** (seed-code reference docs, `types/*.ts`, unrelated markdown under `ui-frontend-user-journey/`, etc.) as not matching current formatting rules; script still exited 0. None of this session's files are in that list. Not fixed — out of scope (CLAUDE.md non-negotiable #4), pre-existing repo-wide formatting debt.
+6. **Davin pasted the real `CHAT_JWT_SECRET` value in plaintext chat** to satisfy Entry Criterion 3. Written directly to the gitignored `.env.local` (confirmed untracked) and never echoed into any tool output, commit, or this document (value-blind per L4/L17) — but the value did transit an unencrypted chat transcript, the same exposure class as Session 14-1's VPS root password. Flagged for Davin to decide on rotation; lower urgency than that incident since this secret only signs short-lived (5-minute) JWTs between the BFF and already-deployed Contabo infra, not a durable login credential.
+7. **Found, not fixed:** `app/(marketing)/help/page.tsx` (and possibly `app/settings/help/`) still shows `support@davintrade.com` in its rendered copy, not `.app` — a pre-existing leftover from Session 9-0/14-0's domain correction that never propagated to this specific page's content. Out of scope for a PORT session touching only the chat widget; noted for a future session.
 
 ---
 

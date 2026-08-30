@@ -4435,8 +4435,55 @@ up -d` actually triggered a container **recreate** (not just a restart) — two 
 
 </details>
 
+<details>
+<summary>Session 14-2 (Frontend Binding, Phase 14 third-of-4, PORT) — 8 new, 4 modified, 0 deleted</summary>
+
+Ported the Support Centre chat widget from `seed-code/` into the main repo, wired it against the
+live Contabo backend deployed at Session 14-1, and mounted it site-wide.
+
+- **New (8 files):** `app/api/chat/token/route.ts` (BFF chat-token minting endpoint),
+  `lib/socket-client.ts` (ported + adapted socket client), `components/chat-widget/{chat-context,
+floating-chat-trigger,support-chat-widget}.tsx` (3 files), `__tests__/api/chat/token.test.ts`,
+  `__tests__/lib/socket-client.test.ts`, `__tests__/components/chat-widget/support-chat-widget.test.tsx`.
+- **Modified:** `next.config.js` (CSP `connect-src` +2 origins), `components/providers/
+client-providers.tsx` (widget mounted site-wide, replacing the deferred-since-9-1 placeholder),
+  `.env.example` (documented `CHAT_JWT_SECRET`/`NEXT_PUBLIC_SOCKET_CHAT_URL` keys, no values),
+  `docs/migration-orders/14-2-frontend-binding.migration-order.md` (PRE-DRAFT → CONFIRMED → CLOSED
+  SUCCESSFUL).
+- **L3 recurred again at CONFIRM** — committed `HEAD` was still the raw PRE-DRAFT; the DRAFT→APPROVED
+  upgrade and Davin's Decision-1 sign-off existed only as an uncommitted working-tree diff, no
+  independent corroboration in `CLAUDE.md`/`DECISION-LOG.md`. Surfaced directly; Davin confirmed live.
+- **Entry criterion 3 failed at first check, then resolved live:** value-blind grep of `.env`/
+  `.env.local`/`.env.example` found zero matches for `CHAT_JWT_SECRET`. Davin provided the real value
+  (generated Session 14-1 Step 3) live in chat — written to the gitignored `.env.local` only, never
+  echoed into any tool output or committed document.
+- **Deviated from the seed's own `io()` options to match Session 14-0's frozen contract exactly**
+  (`reconnectionAttempts: 5, reconnectionDelay: 1000`, no `autoConnect: false`) — the seed pre-dates
+  the frozen contract and was never itself connected to a real backend; its `autoConnect: false`
+  would have silently prevented any live connection.
+- **Live-verified, not assumed:** real browser session — floating trigger renders, opens, connects
+  over WSS to `chat-api.davintrade.app`; a genuine end-to-end message round trip received a real,
+  contextual Gemini reply (not the canned fallback) after a live typing-indicator period; zero
+  console errors, zero CSP violations; `/help` renders cleanly alongside the globally-mounted widget.
+- **Baselines re-measured fresh, both at CONFIRM and after all changes landed:** monolith `test:ci`
+  went from 151/151·2239/2239 (CONFIRM) to 154/154 suites, 100% passing (close, 3 new suites, 15 new
+  tests) across two consecutive clean runs — zero failures either time, though the exact
+  non-new-test count wobbled by 1 (2264 vs 2265) between runs for reasons unrelated to this session's
+  files (see the order's own Deviations §4). `operation-service` 43/43·401/401, `railway-gateway`
+  3/3·23/23 (both unchanged). `money-service` 62/62·565/565 with the known `prisma.shutdown.spec.ts`
+  flake (L24, 6th occurrence), confirmed clean in isolation.
+- **`migration-cutover-table.md` needs no changes** — `NEXT_PUBLIC_SOCKET_CHAT_URL` is set only in
+  local `.env.local`, not in Vercel production; the widget is built, tested, and live-verified
+  against the real backend but not yet traffic-carrying in production. That's explicitly Session
+  14-3's job (Cutover + runbook).
+- **Found, not fixed (out of scope):** `app/(marketing)/help/page.tsx` still shows
+  `support@davintrade.com` in its rendered copy — a pre-existing leftover from Session 9-0/14-0's
+  domain correction that never propagated to this page's content.
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-30 (Session 14-1, container stack build & deploy —
-Phase 14 continues at 14-2)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-30 (Session 14-2, frontend binding — Phase 14
+continues at 14-3)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

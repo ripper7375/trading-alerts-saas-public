@@ -53,7 +53,12 @@ file, not just leave a benign cosmetic diff -- recovery procedure documented). S
 lesson added (stayed at the cap) -- recurrence notes appended to L3 (an untracked order file AND
 its uncommitted roadmap/CLAUDE.md prerequisites, an entire multi-document chain with no commit
 trail rather than just a lagging header) and L24 (a fourth `prisma.shutdown.spec.ts`
-parallel-worker timeout flake). Full history in
+parallel-worker timeout flake). Session 14-1: **L45 added** (new — the `removeOnComplete`/
+`QueueEvents` race plus the Docker Compose restart-vs-recreate env-reload gotcha), net-zero against
+the cap via merging L29+L32 (same underlying `@nestjs/swagger`+Zod gap, now one entry). Session
+14-2: no new lesson added (stayed at the cap) -- recurrence count on L3 updated only (same
+status-integrity pattern: committed HEAD was still the raw PRE-DRAFT, DRAFT→APPROVED upgrade and
+Davin's sign-off existed only uncommitted; resolved live, as always). Full history in
 `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
 (same rule Session 9-6 hit at 41; nothing to merge yet, all 40 are still genuinely distinct).
 
@@ -77,8 +82,8 @@ parallel-worker timeout flake). Full history in
 - Symptom: an order arrived with header `Status: APPROVED` while its own Entry Criteria list still had an unchecked "Davin approves this DRAFT" box, and the file was untracked with no PRE-DRAFT→DRAFT→APPROVED commit history at all.
 - Rule: at CONFIRM, cross-check the header's claimed status against (a) the order's own entry-criteria checkboxes and (b) git history for that file. A self-contradicting order is a stop-and-ask trigger, not something to silently trust or silently fix.
 - Source: Session 4A-6 · Status: ACTIVE
-- Recurrence count: 30+ times through Session 14-0 (2026-08-30; confirmed recurring at 8-1, 8-2,
-  11-1, 11-2, 11-3, and 14-0 since the last count update) — the single most-recurring finding class
+- Recurrence count: 32+ times through Session 14-2 (2026-08-30; confirmed recurring at 8-1, 8-2,
+  11-1, 11-2, 11-3, 14-0, 14-1, and 14-2 since the last count update) — the single most-recurring finding class
   in the migration, almost always benign (order body byte-identical to its own committed PRE-DRAFT,
   or a DRAFT/corrected-DRAFT arriving as an uncommitted working-copy edit; Davin's own live
   confirmation is what closes the check every time). One genuinely NOT benign, worth keeping as a

@@ -61,7 +61,70 @@
 > `frontend/` (SEPARATE_STACK, do-not-touch per §5) has its own byte-identical dLocal
 > constants/components/tests — deliberately left untouched.
 
-- **Current:** Session 14-1 (Container Stack Build & Deploy, Phase 14 — second of 4 sessions,
+- **Current:** Session 14-2 (Frontend Binding, Phase 14 — third of 4 sessions, PORT), APPROVED,
+  CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. Ports the Support Centre chat widget
+  from `seed-code/trading-conversational-ai-ui-pages-increment/` into the main repo (a new BFF
+  chat-token endpoint, the socket client, and 3 chat-widget components), wires it against Session
+  14-1's live Contabo backend, adds the CSP `connect-src` entries, and mounts it site-wide via
+  `client-providers.tsx`. Session 14-3 can now perform the production cutover.
+  **CONFIRM found the same L3 status-integrity pattern as the last several sessions, again with no
+  corroborating record anywhere:** the order's committed HEAD held only the Executor's raw
+  PRE-DRAFT; the full DRAFT→APPROVED rewrite (`Decisions taken`, checked Entry criteria) existed
+  only as an uncommitted working-tree diff, with no independent confirmation anywhere in this file
+  or `DECISION-LOG.md`. Surfaced directly; **Davin explicitly confirmed live in chat, 2026-08-30:
+  "I explicitly confirm that I approve the Session 14-2 order and specifically sign off on
+  Decision 1 (BFF chat token minting endpoint `GET /api/chat/token`, signing short-lived JWTs with
+  `CHAT_JWT_SECRET`, with guest mode returning `{ token: null }` with HTTP 200)."**
+  **Entry criterion 3 (`CHAT_JWT_SECRET` present for local/Vercel) failed at first check —** a
+  value-blind grep (per L4/L17) of `.env`/`.env.local`/`.env.example` found zero matches. Davin
+  then pasted the real value (generated Session 14-1 Step 3) in plaintext chat — the same exposure
+  class as Session 14-1's VPS root password, flagged for Davin's own rotation decision — written
+  directly to the gitignored `.env.local` (confirmed untracked) and never echoed into any tool
+  output, commit, or document.
+  **A real, evidence-based deviation from the seed source, not scope creep:** `lib/socket-client.ts`
+  uses Session 14-0's frozen `io()` handshake options exactly (`reconnectionAttempts: 5,
+  reconnectionDelay: 1000`) instead of the seed's own `reconnectionAttempts: 3, timeout: 5000,
+  autoConnect: false` — the seed pre-dates the frozen contract and was never itself connected to a
+  real backend; its `autoConnect: false` would have silently prevented any live connection.
+  **Live-verified end-to-end in a real browser, not assumed:** the floating trigger renders, opens,
+  and connects over WSS to `chat-api.davintrade.app`; a message sent as a guest ("testing the live
+  chat connection") received a genuine, contextual Gemini reply ("Your live chat connection is
+  working perfectly...") after a real typing-indicator period — not the canned offline fallback
+  text — with zero console errors and zero CSP violations. `/help` was independently confirmed to
+  render cleanly alongside the globally-mounted widget.
+  **Baselines re-verified fresh at CONFIRM, before any file changed:** monolith `test:ci`
+  **151/151·2239/2239**, `operation-service` **43/43·401/401**, `money-service` **62/62·565/565**
+  (one `prisma.shutdown.spec.ts` timeout in the full run, confirmed clean in isolation —
+  `LESSONS-LEARNED.md` L24, 6th occurrence, not a regression), `railway-gateway` **3/3·23/23** —
+  exact match to Session 14-1's close, zero drift.
+  **Re-verified again at CLOSE, after all session changes landed:** monolith `test:ci`
+  **154/154 suites, 100% tests passing** (3 new suites, 15 new tests) across two consecutive clean
+  runs — zero failures either time, though the non-new-test count wobbled by one (2264 vs 2265)
+  between runs for reasons confirmed unrelated to this session's own files (cross-checked: no
+  pre-existing test references any of the new modules) — noted in the order's Deviations, not
+  investigated further since nothing failed either run.
+  **`migration-cutover-table.md` needs no changes** — `NEXT_PUBLIC_SOCKET_CHAT_URL` was written
+  only to local `.env.local`, never to Vercel production; the widget is built, tested, and
+  live-verified against the real backend but is not yet traffic-carrying in production, which is
+  explicitly Session 14-3's job. **`migration-stack-analysis.md` DOES need an entry** (8 new, 4
+  modified) — added. **`DECISION-LOG.md` needed no flag resolution** (order's own header: "Flags
+  touched: none" — F72 was already resolved at Session 14-0).
+  **Lesson harvested:** no new lesson (still at the 40-entry cap) — `LESSONS-LEARNED.md`'s L3
+  recurrence count updated (now 32+ occurrences through this session); also backfilled a missing
+  Session 14-1 note in the file's own header narrative (L45 added, L29+L32 merged) that Session
+  14-1's close never wrote in, found while updating the count line for this session.
+  **Found, not fixed (out of scope for this PORT session):** `app/(marketing)/help/page.tsx` still
+  shows `support@davintrade.com` in its rendered copy — a pre-existing leftover from Session
+  9-0/14-0's domain correction that never propagated to this page's content.
+  **Artifacts updated:** `14-2-frontend-binding.migration-order.md` (Status → CONFIRMED → CLOSED
+  SUCCESSFUL, full Deviations, checked Entry-criteria/Done-when boxes), `app/api/chat/token/
+route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new test files,
+  `next.config.js`, `components/providers/client-providers.tsx`, `.env.example` (documented keys,
+  no values), `migration-stack-analysis.md`, `LESSONS-LEARNED.md`,
+  `docs/migration-orders/14-3-cutover-and-runbook.migration-order.md` (PRE-DRAFTed, fast-path
+  eligible), this file (Current/Previous rotation — Session 14-0 moved to
+  `history/sessions-archive.md`).
+- **Previous:** Session 14-1 (Container Stack Build & Deploy, Phase 14 — second of 4 sessions,
   INFRA), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. Builds and deploys the
   3-container chat stack frozen at Session 14-0 onto Davin's Contabo VPS (`139.180.209.200`,
   `chat-api.davintrade.app`) — the first Docker/Docker-Compose deployment and first BullMQ-based
@@ -126,65 +189,6 @@ analysis.md` DOES need an entry** (24 new, 3 modified) — added. **`DECISION-LO
   (excluded `infra`), `migration-stack-analysis.md`, `LESSONS-LEARNED.md`,
   `docs/migration-orders/14-2-frontend-binding.migration-order.md` (PRE-DRAFTed), this file
   (Current/Previous rotation — Session 11-3 moved to `history/sessions-archive.md`).
-- **Previous:** Session 14-0 (Web Chat Decisions & Contract, Phase 14 — first of 4 sessions,
-  CONTRACT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. Resolves **F72**
-  (Contabo chat stack scope) — freezes the Socket.IO event contract, the 3-container Docker/Nginx
-  spec, the dual-mode BFF-token socket auth bridge, and the bot-worker system prompt/quota rules
-  for Sessions 14-1…14-3 to build against. No application code this session (CONTRACT variant).
-  **This session had no PRE-DRAFT** — Session 11-3 closed on 2026-08-24, before Davin's 2026-08-30
-  reorder decision (Phase 14 now runs ahead of Phases 12/13) existed; the Advisor wrote the order
-  straight to `DRAFT` from `TEMPLATE-CONTRACT.md` per its own handover prompt
-  (`HANDOVER-PROMPT-phase-14.md`), and Davin marked it `APPROVED`. Expected, not a gap.
-  **CONFIRM found the same L3 status-integrity pattern as nearly every recent session, in its most
-  extreme form yet:** the order file itself was entirely untracked (zero git history at all, not
-  just a lagging header), and its prerequisites — `MASTER-ROADMAP-PHASES-7-15.md`'s 2026-08-30
-  reorder banner and this file's own matching note — existed only as uncommitted working-tree
-  edits. Unlike most recurrences, this wasn't a single self-contradicting document: the reorder
-  story was told consistently across four independent artifacts (roadmap, this file, the handover
-  prompt, and the order), all dated 2026-08-30 with matching rationale — support for treating it as
-  benign, but not a substitute for asking. Both `⚠ NEEDS EXPLICIT SIGN-OFF` items (Decision 1
-  Domain/TLS, Decision 4 auth semantics) are not covered by a general order approval per
-  `EXECUTOR-PROTOCOL.md` §0. Surfaced directly; **Davin explicitly confirmed live in chat,
-  2026-08-30: "I explicitly confirm that I have reviewed and APPROVED the Session 14-0 order, with
-  explicit sign-offs on Decision 1 (Domain/TLS architecture for chat-api) and Decision 4 (Dual-mode
-  socket auth semantics via BFF token bridge)."**
-  **Execution found and corrected a real drafting error, not scope creep:** the DRAFT assumed the
-  chat subdomain would be `chat-api.davintrade.com` throughout (Nginx `server_name`, DNS target,
-  CSP `connect-src`, the `NEXT_PUBLIC_SOCKET_CHAT_URL` example) — but neither the codebase nor
-  `DECISION-LOG.md` had ever resolved Session 9-0's own still-open Batch-0 finding ("`davintrade.com`
-  vs `davin-trade.com`"), so this was asked of Davin directly rather than guessed between the two
-  flawed options on the table. **The real domain is `davintrade.app`** — neither `.com` spelling was
-  correct — confirmed via a live Zoho Mail admin dashboard screenshot showing the registered domain
-  and mail hosting (support email corrected to `support@davintrade.app` the same way, using a
-  generic alias, not the personal super-admin address the screenshot incidentally showed). This
-  also definitively resolves Session 9-0's long-open Batch-0 ambiguity; formally closing that
-  finding in `frontend-swap-route-map.md` is left to a future session. Every hostname/email
-  reference in the order was corrected to `.app` before being treated as frozen.
-  **Baselines re-verified fresh at CONFIRM, before any file changed:** monolith `test:ci`
-  **151/151·2239/2239** (+35 tests vs. 11-3's close — the 2026-08-29/30 VAT/affiliate ad-hoc work
-  landed in between, not a regression), `operation-service` **43/43·401/401** (unchanged),
-  `money-service` **62/62·565/565** (+33 tests, same reason) with one transient
-  `prisma.shutdown.spec.ts` timeout in the full run — re-ran in isolation (`--runInBand`), passed
-  clean in 7.0s, confirmed the known `LESSONS-LEARNED.md` L24 flake, not a regression,
-  `railway-gateway` **3/3·23/23** (unchanged).
-  **Step 4's bot-worker system-prompt deliverable, named in the order's Ordered Steps but never
-  written out verbatim in the DRAFT, authored during execution** — grounded in copy that already
-  ships in `lib/socket-client.ts`'s `generateFallbackResponse()` (existing, already-reviewed
-  product claims), not new copy invented for this order.
-  **`migration-cutover-table.md` needs no changes** (a CONTRACT/decision session, no route/slice
-  had a flag or rollback mechanism to move — confirmed no Phase 14 rows exist yet, as expected).
-  **`migration-stack-analysis.md` needs no entry** (no files created/moved/deleted — only the
-  pre-existing order file itself was edited). **`DECISION-LOG.md` DOES need a flag resolution** —
-  **F72** resolved (all 4 sub-questions), full detail in `history/decisions-archive.md`.
-  **Lesson harvested:** no new lesson (still at the 40-entry cap) — a recurrence note appended to
-  **L3** (the untracked-order-plus-prerequisites variant described above) and to **L24** (a fourth
-  occurrence of the `prisma.shutdown.spec.ts` parallel-worker timeout flake, same resolution).
-  **Artifacts updated:** `14-0-web-chat-decisions-and-contract.migration-order.md` (Status →
-  CONFIRMED → CLOSED SUCCESSFUL, domain corrections, bot system prompt added, full Deviations,
-  checked Done-when/entry-criteria boxes), `DECISION-LOG.md`, `history/decisions-archive.md`,
-  `LESSONS-LEARNED.md`, `docs/migration-orders/14-1-container-stack-build-and-deploy.migration-order.md`
-  (PRE-DRAFTed), this file (Current/Previous rotation — Session 11-2 moved to
-  `history/sessions-archive.md`).
 
 ## Key documents
 

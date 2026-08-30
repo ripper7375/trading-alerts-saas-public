@@ -7,6 +7,67 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 14-0** (Web Chat Decisions & Contract,
+  Phase 14 — first of 4 sessions, CONTRACT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL**
+  2026-08-30. Resolves **F72** (Contabo chat stack scope) — freezes the Socket.IO event contract,
+  the 3-container Docker/Nginx spec, the dual-mode BFF-token socket auth bridge, and the
+  bot-worker system prompt/quota rules for Sessions 14-1…14-3 to build against. No application
+  code this session (CONTRACT variant).
+  **This session had no PRE-DRAFT** — Session 11-3 closed on 2026-08-24, before Davin's 2026-08-30
+  reorder decision (Phase 14 now runs ahead of Phases 12/13) existed; the Advisor wrote the order
+  straight to `DRAFT` from `TEMPLATE-CONTRACT.md` per its own handover prompt
+  (`HANDOVER-PROMPT-phase-14.md`), and Davin marked it `APPROVED`. Expected, not a gap.
+  **CONFIRM found the same L3 status-integrity pattern as nearly every recent session, in its most
+  extreme form yet:** the order file itself was entirely untracked (zero git history at all, not
+  just a lagging header), and its prerequisites — `MASTER-ROADMAP-PHASES-7-15.md`'s 2026-08-30
+  reorder banner and this file's own matching note — existed only as uncommitted working-tree
+  edits. Unlike most recurrences, this wasn't a single self-contradicting document: the reorder
+  story was told consistently across four independent artifacts (roadmap, this file, the handover
+  prompt, and the order), all dated 2026-08-30 with matching rationale — support for treating it as
+  benign, but not a substitute for asking. Both `⚠ NEEDS EXPLICIT SIGN-OFF` items (Decision 1
+  Domain/TLS, Decision 4 auth semantics) are not covered by a general order approval per
+  `EXECUTOR-PROTOCOL.md` §0. Surfaced directly; **Davin explicitly confirmed live in chat,
+  2026-08-30: "I explicitly confirm that I have reviewed and APPROVED the Session 14-0 order, with
+  explicit sign-offs on Decision 1 (Domain/TLS architecture for chat-api) and Decision 4 (Dual-mode
+  socket auth semantics via BFF token bridge)."**
+  **Execution found and corrected a real drafting error, not scope creep:** the DRAFT assumed the
+  chat subdomain would be `chat-api.davintrade.com` throughout (Nginx `server_name`, DNS target,
+  CSP `connect-src`, the `NEXT_PUBLIC_SOCKET_CHAT_URL` example) — but neither the codebase nor
+  `DECISION-LOG.md` had ever resolved Session 9-0's own still-open Batch-0 finding ("`davintrade.com`
+  vs `davin-trade.com`"), so this was asked of Davin directly rather than guessed between the two
+  flawed options on the table. **The real domain is `davintrade.app`** — neither `.com` spelling was
+  correct — confirmed via a live Zoho Mail admin dashboard screenshot showing the registered domain
+  and mail hosting (support email corrected to `support@davintrade.app` the same way, using a
+  generic alias, not the personal super-admin address the screenshot incidentally showed). This
+  also definitively resolves Session 9-0's long-open Batch-0 ambiguity; formally closing that
+  finding in `frontend-swap-route-map.md` is left to a future session. Every hostname/email
+  reference in the order was corrected to `.app` before being treated as frozen.
+  **Baselines re-verified fresh at CONFIRM, before any file changed:** monolith `test:ci`
+  **151/151·2239/2239** (+35 tests vs. 11-3's close — the 2026-08-29/30 VAT/affiliate ad-hoc work
+  landed in between, not a regression), `operation-service` **43/43·401/401** (unchanged),
+  `money-service` **62/62·565/565** (+33 tests, same reason) with one transient
+  `prisma.shutdown.spec.ts` timeout in the full run — re-ran in isolation (`--runInBand`), passed
+  clean in 7.0s, confirmed the known `LESSONS-LEARNED.md` L24 flake, not a regression,
+  `railway-gateway` **3/3·23/23** (unchanged).
+  **Step 4's bot-worker system-prompt deliverable, named in the order's Ordered Steps but never
+  written out verbatim in the DRAFT, authored during execution** — grounded in copy that already
+  ships in `lib/socket-client.ts`'s `generateFallbackResponse()` (existing, already-reviewed
+  product claims), not new copy invented for this order.
+  **`migration-cutover-table.md` needs no changes** (a CONTRACT/decision session, no route/slice
+  had a flag or rollback mechanism to move — confirmed no Phase 14 rows exist yet, as expected).
+  **`migration-stack-analysis.md` needs no entry** (no files created/moved/deleted — only the
+  pre-existing order file itself was edited). **`DECISION-LOG.md` DOES need a flag resolution** —
+  **F72** resolved (all 4 sub-questions), full detail in `history/decisions-archive.md`.
+  **Lesson harvested:** no new lesson (still at the 40-entry cap) — a recurrence note appended to
+  **L3** (the untracked-order-plus-prerequisites variant described above) and to **L24** (a fourth
+  occurrence of the `prisma.shutdown.spec.ts` parallel-worker timeout flake, same resolution).
+  **Artifacts updated:** `14-0-web-chat-decisions-and-contract.migration-order.md` (Status →
+  CONFIRMED → CLOSED SUCCESSFUL, domain corrections, bot system prompt added, full Deviations,
+  checked Done-when/entry-criteria boxes), `DECISION-LOG.md`, `history/decisions-archive.md`,
+  `LESSONS-LEARNED.md`, `docs/migration-orders/14-1-container-stack-build-and-deploy.migration-order.md`
+  (PRE-DRAFTed), this file (Current/Previous rotation — Session 11-2 moved to
+  `history/sessions-archive.md`).
+
 - _(superseded-by-above, retained for context)_ **Session 11-3** (Token Metering & Schema, Phase 11
   — third and final session, INFRA + PORT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL**
   2026-08-25. **Phase 11 (Preparatory Tier-Access & Core Refactoring) is now CLOSED SUCCESSFUL** —
