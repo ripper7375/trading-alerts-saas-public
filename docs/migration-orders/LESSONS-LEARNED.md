@@ -392,11 +392,10 @@ diff --script` + `db execute` unconditionally, never plain `db push`.
 - Rule: Verification results are only valid in context — Railway logs for timing, background checks with in-flight edits, and scoped lint runs can all give false clean results. Re-run fresh, full-scope, with nothing in flight.
 - Source: Consolidated · Status: ACTIVE
 - Recurrence (Session 10-1, 2026-08-23): a functional-failure variant, not just a misleading-result one — a live `DispatcherService.dispatch()` call failed with a genuine Prisma `P2028` ("Unable to start a transaction in the given time") while running the monolith dev server, both `operation-service` processes, and several ad-hoc diagnostic scripts concurrently against the same shared pooled dev Postgres; plain non-transactional queries succeeded instantly throughout. Isolated by reproducing the exact `$transaction()` standalone — failed identically with default timeouts, then succeeded in 3.5s with an explicit extended `maxWait`. Reducing concurrent load (not a code change) made the real `dispatch()` succeed on retry. Rule extension: "nothing in flight" applies to real application code paths under test, not just to log/lint verification steps — a multi-process local smoke test against a shared pooled DB can produce a genuine, reproducible transaction-timeout failure from self-inflicted concurrent load, distinct from an actual code defect.
-- Recurrence (Session 14-0, 2026-08-30): a fourth occurrence of the same `prisma.shutdown.spec.ts`
-  SIGTERM-timeout flake (11-2, 11-3, now 14-0) — failed with "Exceeded timeout of 5000 ms" inside
-  `money-service`'s full `npm test` run (Jest's own parallel workers contending for CPU), passed
-  clean in 7.0s re-run alone with `--runInBand`. Same resolution every time: re-run the specific
-  spec in isolation before treating it as a regression.
+- Recurrence count (5+ occurrences: 11-2, 11-3, 14-0, 14-1 — per-session notes retired at the 3-line
+  cap): `money-service`'s `prisma.shutdown.spec.ts` SIGTERM-timeout flake under Jest's own
+  parallel-worker CPU contention in the full `npm test` run. Same resolution every time, no
+  exceptions so far: re-run that one spec alone with `--runInBand` — passes clean in ~7s.
 
 ### L25 — Cross-origin browser verification
 

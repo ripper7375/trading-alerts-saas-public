@@ -71,6 +71,13 @@
   **Baselines re-verified fresh at CONFIRM, before any file changed:** monolith `test:ci`
   **151/151·2239/2239**, `operation-service` **43/43·401/401**, `money-service` **62/62·565/565**,
   `railway-gateway` **3/3·23/23** — exact match to Session 14-0's close, zero drift.
+  **Re-verified again fresh at CLOSE, after all session changes landed:** identical results across
+  3 of 4 codebases (monolith, `operation-service`, `railway-gateway` all unchanged — this session's
+  real code changes are entirely confined to `infra/contabo-chat-stack/`, excluded from every
+  suite's scope). `money-service`'s full run hit `prisma.shutdown.spec.ts`'s timeout again — the
+  **5th** occurrence (11-2, 11-3, 14-0, now 14-1) — confirmed clean in isolation (`--runInBand`,
+  7.7s) as always; `LESSONS-LEARNED.md` L24's per-session notes retired for a single count line per
+  its own 3-line cap.
   **`migration-cutover-table.md` needs no changes** (the stack isn't traffic-carrying yet —
   `NEXT_PUBLIC_SOCKET_CHAT_URL` isn't set anywhere, Session 14-2's job). **`migration-stack-
 analysis.md` DOES need an entry** (24 new, 3 modified) — added. **`DECISION-LOG.md` needed no flag
