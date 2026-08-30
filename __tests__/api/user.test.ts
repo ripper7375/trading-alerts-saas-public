@@ -68,6 +68,7 @@ jest.mock('@/lib/preferences/defaults', () => ({
     'US',
     'EU',
     'JP',
+    'AE',
   ],
   mergePreferences: (
     defaults: Record<string, unknown>,

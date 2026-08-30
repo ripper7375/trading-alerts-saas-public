@@ -81,6 +81,14 @@ describe('Payment Methods Service', () => {
       expect(methods).toContain('Local Cards');
     });
 
+    it('should return payment methods for United Arab Emirates', async () => {
+      const methods = await getPaymentMethodsForCountry('AE');
+
+      expect(methods).toContain('Local Cards');
+      expect(methods).toContain('Apple Pay');
+      expect(methods).toContain('Bank Transfer');
+    });
+
     it('should throw error for unsupported country', async () => {
       await expect(
         getPaymentMethodsForCountry('US' as DLocalCountry)
@@ -97,6 +105,7 @@ describe('Payment Methods Service', () => {
         'TH',
         'ZA',
         'TR',
+        'AE',
       ];
 
       for (const country of countries) {
@@ -160,6 +169,16 @@ describe('Payment Methods Service', () => {
       expect(rabbitLine?.id).toBe('rabbit_line_pay');
     });
 
+    it("should assign 'wallet' type to Apple Pay for United Arab Emirates", async () => {
+      const details = await getPaymentMethodDetails('AE');
+
+      const applePay = details.find((m) => m.name === 'Apple Pay');
+      const localCards = details.find((m) => m.name === 'Local Cards');
+
+      expect(applePay?.type).toBe('wallet');
+      expect(localCards?.type).toBe('card');
+    });
+
     it('should throw error for unsupported country', async () => {
       await expect(
         getPaymentMethodDetails('US' as DLocalCountry)
@@ -184,6 +203,10 @@ describe('Payment Methods Service', () => {
       expect(getDefaultPaymentMethod('NG')).toBe('Bank Transfer');
     });
 
+    it('should return Local Cards for United Arab Emirates', () => {
+      expect(getDefaultPaymentMethod('AE')).toBe('Local Cards');
+    });
+
     it('should return default for all supported countries', () => {
       const countries: DLocalCountry[] = [
         'IN',
@@ -194,6 +217,7 @@ describe('Payment Methods Service', () => {
         'TH',
         'ZA',
         'TR',
+        'AE',
       ];
 
       countries.forEach((country) => {

@@ -42,6 +42,16 @@ describe('Currency Converter Service', () => {
       expect(rate).toBe(35.25);
     });
 
+    it('should get exchange rate for AED', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ rates: { AED: 3.67 } }),
+      });
+
+      const rate = await getExchangeRate('AED');
+      expect(rate).toBe(3.67);
+    });
+
     it('should cache exchange rates', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -145,6 +155,7 @@ describe('Currency Converter Service', () => {
         'THB',
         'ZAR',
         'TRY',
+        'AED',
       ];
 
       for (const currency of currencies) {
@@ -171,6 +182,11 @@ describe('Currency Converter Service', () => {
       expect(rate).toBe(83.12);
     });
 
+    it('should return fallback rate for AED', () => {
+      const rate = getFallbackRate('AED');
+      expect(rate).toBe(3.67);
+    });
+
     it('should return fallback rate for all currencies', () => {
       const currencies: DLocalCurrency[] = [
         'INR',
@@ -181,6 +197,7 @@ describe('Currency Converter Service', () => {
         'THB',
         'ZAR',
         'TRY',
+        'AED',
       ];
 
       currencies.forEach((currency) => {

@@ -23,8 +23,8 @@ import {
 
 describe('dLocal Constants', () => {
   describe('DLOCAL_SUPPORTED_COUNTRIES', () => {
-    it('should have exactly 8 supported countries', () => {
-      expect(DLOCAL_SUPPORTED_COUNTRIES).toHaveLength(8);
+    it('should have exactly 9 supported countries', () => {
+      expect(DLOCAL_SUPPORTED_COUNTRIES).toHaveLength(9);
     });
 
     it('should include all required countries', () => {
@@ -36,6 +36,7 @@ describe('dLocal Constants', () => {
       expect(DLOCAL_SUPPORTED_COUNTRIES).toContain('TH');
       expect(DLOCAL_SUPPORTED_COUNTRIES).toContain('ZA');
       expect(DLOCAL_SUPPORTED_COUNTRIES).toContain('TR');
+      expect(DLOCAL_SUPPORTED_COUNTRIES).toContain('AE');
     });
   });
 
@@ -78,11 +79,15 @@ describe('dLocal Constants', () => {
       expect(getCurrency('ZA')).toBe('ZAR');
       expect(getCurrency('TR')).toBe('TRY');
     });
+
+    it('should return correct currency for United Arab Emirates', () => {
+      expect(getCurrency('AE')).toBe('AED');
+    });
   });
 
   describe('COUNTRY_CURRENCY_MAP', () => {
-    it('should have mapping for all 8 countries', () => {
-      expect(Object.keys(COUNTRY_CURRENCY_MAP)).toHaveLength(8);
+    it('should have mapping for all 9 countries', () => {
+      expect(Object.keys(COUNTRY_CURRENCY_MAP)).toHaveLength(9);
     });
   });
 
@@ -109,6 +114,13 @@ describe('dLocal Constants', () => {
       expect(methods).toContain('Thai QR');
     });
 
+    it('should return payment methods for United Arab Emirates', () => {
+      const methods = getPaymentMethods('AE');
+      expect(methods).toContain('Local Cards');
+      expect(methods).toContain('Apple Pay');
+      expect(methods).toContain('Bank Transfer');
+    });
+
     it('should return payment methods for all countries', () => {
       DLOCAL_SUPPORTED_COUNTRIES.forEach((country) => {
         const methods = getPaymentMethods(country);
@@ -119,7 +131,7 @@ describe('dLocal Constants', () => {
 
   describe('PAYMENT_METHODS', () => {
     it('should have payment methods for all countries', () => {
-      expect(Object.keys(PAYMENT_METHODS)).toHaveLength(8);
+      expect(Object.keys(PAYMENT_METHODS)).toHaveLength(9);
     });
   });
 
@@ -135,11 +147,15 @@ describe('dLocal Constants', () => {
     it('should return South Africa for ZA', () => {
       expect(getCountryName('ZA')).toBe('South Africa');
     });
+
+    it('should return United Arab Emirates for AE', () => {
+      expect(getCountryName('AE')).toBe('United Arab Emirates');
+    });
   });
 
   describe('COUNTRY_NAMES', () => {
-    it('should have names for all 8 countries', () => {
-      expect(Object.keys(COUNTRY_NAMES)).toHaveLength(8);
+    it('should have names for all 9 countries', () => {
+      expect(Object.keys(COUNTRY_NAMES)).toHaveLength(9);
     });
   });
 
@@ -204,8 +220,8 @@ describe('dLocal Constants', () => {
   });
 
   describe('COUNTRY_CONFIGS', () => {
-    it('should have configs for all 8 countries', () => {
-      expect(COUNTRY_CONFIGS).toHaveLength(8);
+    it('should have configs for all 9 countries', () => {
+      expect(COUNTRY_CONFIGS).toHaveLength(9);
     });
 
     it('should have valid structure for each config', () => {

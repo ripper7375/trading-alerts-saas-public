@@ -29,7 +29,7 @@ describe('dLocal Types', () => {
   });
 
   describe('DLocalCountry', () => {
-    it('should have 8 supported countries', () => {
+    it('should have 9 supported countries', () => {
       const countries: DLocalCountry[] = [
         'IN',
         'NG',
@@ -39,8 +39,9 @@ describe('dLocal Types', () => {
         'TH',
         'ZA',
         'TR',
+        'AE',
       ];
-      expect(countries).toHaveLength(8);
+      expect(countries).toHaveLength(9);
     });
 
     it('should include India (IN)', () => {
@@ -51,6 +52,11 @@ describe('dLocal Types', () => {
     it('should include Nigeria (NG)', () => {
       const country: DLocalCountry = 'NG';
       expect(country).toBe('NG');
+    });
+
+    it('should include United Arab Emirates (AE)', () => {
+      const country: DLocalCountry = 'AE';
+      expect(country).toBe('AE');
     });
   });
 
@@ -65,8 +71,14 @@ describe('dLocal Types', () => {
         'THB',
         'ZAR',
         'TRY',
+        'AED',
       ];
-      expect(currencies).toHaveLength(8);
+      expect(currencies).toHaveLength(9);
+    });
+
+    it('should include UAE Dirham (AED)', () => {
+      const currency: DLocalCurrency = 'AED';
+      expect(currency).toBe('AED');
     });
 
     it('should include Indian Rupee (INR)', () => {
