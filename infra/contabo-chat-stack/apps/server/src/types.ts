@@ -65,6 +65,9 @@ export interface ChatJobData {
 }
 
 export interface ChatJobResult {
+  socketId: string; // carried in the result itself, not re-fetched from job.data —
+  // removeOnComplete can purge the job's stored data before the QueueEvents
+  // 'completed' listener runs (see order Deviations)
   message: SupportMessagePayload;
   errorCode?: ChatErrorCode; // set alongside a fallback message, e.g. QUOTA_EXCEEDED
 }

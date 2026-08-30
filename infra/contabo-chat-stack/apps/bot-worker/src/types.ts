@@ -42,6 +42,7 @@ export interface ChatJobData {
 }
 
 export interface ChatJobResult {
+  socketId: string;
   message: SupportMessagePayload;
   errorCode?: ChatErrorCode;
 }

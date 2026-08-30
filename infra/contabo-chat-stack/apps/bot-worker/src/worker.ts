@@ -38,11 +38,12 @@ function botMessage(
 const worker = new Worker<ChatJobData, ChatJobResult>(
   CHAT_QUEUE_NAME,
   async (job: Job<ChatJobData>) => {
-    const { user, payload } = job.data;
+    const { socketId, user, payload } = job.data;
 
     const { exceeded } = await checkAndIncrementAuthQuota(quotaRedis, user);
     if (exceeded) {
       return {
+        socketId,
         message: botMessage(AUTH_QUOTA_EXCEEDED_MESSAGE, payload.id),
         errorCode: 'QUOTA_EXCEEDED',
       };
@@ -50,10 +51,11 @@ const worker = new Worker<ChatJobData, ChatJobResult>(
 
     try {
       const replyText = await getLlmReply(payload.text);
-      return { message: botMessage(replyText, payload.id) };
+      return { socketId, message: botMessage(replyText, payload.id) };
     } catch (err) {
       console.error(`[chat-jobs] LLM call failed for job ${job.id}:`, err);
       return {
+        socketId,
         message: botMessage(SERVER_ERROR_MESSAGE, payload.id),
         errorCode: 'SERVER_ERROR',
       };

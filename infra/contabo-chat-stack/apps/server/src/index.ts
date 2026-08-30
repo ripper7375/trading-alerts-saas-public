@@ -104,8 +104,12 @@ io.on('connection', (socket: Socket) => {
       };
       await chatQueue.add(CHAT_QUEUE_NAME, jobData, {
         jobId: payload.id,
+        // Completed jobs no longer need to be re-read (socketId travels in the
+        // result itself), but 'failed' jobs are still looked up via
+        // Job.fromId below, so keep those around briefly rather than purging
+        // instantly.
         removeOnComplete: true,
-        removeOnFail: true,
+        removeOnFail: { age: 3600 },
       });
     } catch (err) {
       console.error('[client_message] failed to enqueue job:', err);
@@ -124,11 +128,7 @@ io.on('connection', (socket: Socket) => {
   socket.on('typing_stop', (_payload: ClientTypingPayload) => {});
 });
 
-chatQueueEvents.on('completed', async ({ jobId, returnvalue }) => {
-  const job = await Job.fromId(chatQueue, jobId);
-  const socketId = job?.data?.socketId as string | undefined;
-  if (!socketId) return;
-
+chatQueueEvents.on('completed', async ({ returnvalue }) => {
   let result: ChatJobResult;
   try {
     result =
@@ -137,6 +137,12 @@ chatQueueEvents.on('completed', async ({ jobId, returnvalue }) => {
     console.error('[chatQueueEvents] failed to parse job result:', err);
     return;
   }
+
+  // socketId travels inside the result itself rather than being re-fetched via
+  // Job.fromId — removeOnComplete can purge the job's stored data before this
+  // listener runs, which raced and silently dropped every reply in testing.
+  const { socketId } = result;
+  if (!socketId) return;
 
   io.to(socketId).emit('bot_typing', { isTyping: false });
   if (result.errorCode) {
