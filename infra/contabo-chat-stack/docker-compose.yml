@@ -1,0 +1,67 @@
+# Production 3-container chat stack, frozen at Session 14-0
+# (14-0-web-chat-decisions-and-contract.migration-order.md §"Technical Specifications
+# & Frozen Contracts" §2) and built/deployed at Session 14-1. Deploys to
+# /opt/saas-chat/ on Davin's Contabo VPS. NLLB-200 (translation) deferred per F72
+# Sub-Question 2 — not present here; the internal bridge network name is kept
+# unchanged so it can be added later without reworking the other two services.
+
+services:
+  # Container 1: Socket.IO Chat Server (Node.js / Express / Socket.IO)
+  chat_server:
+    build:
+      context: ./apps/server
+      dockerfile: Dockerfile
+    container_name: socket_chat_server
+    restart: always
+    ports:
+      - '127.0.0.1:3001:3001' # Bound to localhost only; reverse-proxied by host Nginx
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis_broker:6379
+      - CHAT_JWT_SECRET=${CHAT_JWT_SECRET}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+      - GUEST_RATE_LIMIT_PER_HOUR=${GUEST_RATE_LIMIT_PER_HOUR:-10}
+    depends_on:
+      - redis
+    networks:
+      - saas_chat_net
+
+  # Container 2: Redis 7 Broker (Pub/Sub & BullMQ queue)
+  redis:
+    image: redis:7-alpine
+    container_name: redis_broker
+    restart: always
+    command: redis-server --save 60 1 --loglevel warning
+    ports:
+      - '127.0.0.1:6379:6379' # Localhost only — never expose to 0.0.0.0
+    volumes:
+      - redis_chat_data:/data
+    networks:
+      - saas_chat_net
+
+  # Container 3: BullMQ AI Bot Worker (Node.js)
+  bot_worker:
+    build:
+      context: ./apps/bot-worker
+      dockerfile: Dockerfile
+    container_name: ai_bot_worker
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis_broker:6379
+      - LLM_PROVIDER=${LLM_PROVIDER}
+      - LLM_MODEL=${LLM_MODEL}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - AUTH_MONTHLY_QUOTA=${AUTH_MONTHLY_QUOTA:-500}
+    depends_on:
+      - redis
+    networks:
+      - saas_chat_net
+
+networks:
+  saas_chat_net:
+    driver: bridge
+
+volumes:
+  redis_chat_data:

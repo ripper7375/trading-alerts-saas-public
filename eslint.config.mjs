@@ -15,6 +15,7 @@ export default [
       'money-service/**',
       'operation-service/**',
       'railway-gateway/**',
+      'infra/**',
       'k6-tests/**',
       'davintrade-*/**',
       'backend-stack-*/**',
