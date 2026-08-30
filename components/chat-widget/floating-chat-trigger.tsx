@@ -5,7 +5,6 @@
 // (Session 14-2, Decision 3) — its useSupportChat()/useLocale() surface is
 // identical in the main repo, so no adaptation was needed.
 
-import React from 'react';
 import { useSupportChat } from '@/components/chat-widget/chat-context';
 import { Headphones } from 'lucide-react';
 import { useLocale } from '@/lib/context/locale-context';

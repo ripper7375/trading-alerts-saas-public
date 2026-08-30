@@ -6,7 +6,7 @@
 // QUOTA_EXCEEDED / SERVER_ERROR / UNAUTHORIZED) the seed never needed because
 // it had no real backend to report errors from.
 
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { useSupportChat } from '@/components/chat-widget/chat-context';
 import { Button } from '@/components/ui/button';

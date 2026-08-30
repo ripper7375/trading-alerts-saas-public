@@ -8,14 +8,16 @@ import {
 } from '@/lib/i18n/locale-resolver';
 import { AppearanceProvider } from '@/components/providers/appearance-provider';
 import { AppearanceSettings } from '@/lib/appearance/types';
+import { SupportChatProvider } from '@/components/chat-widget/chat-context';
+import { FloatingChatTrigger } from '@/components/chat-widget/floating-chat-trigger';
+import { SupportChatWidget } from '@/components/chat-widget/support-chat-widget';
 
 /**
- * Support-chat widget (SupportChatProvider/SupportChatWidget/FloatingChatTrigger
- * in seed-code) is deliberately NOT wired here. Its implementation falls back to
- * a hardcoded canned-response generator with no real backend (lib/socket-client.ts
- * points at NEXT_PUBLIC_SOCKET_CHAT_URL, which doesn't exist until Phase 14 builds
- * the Contabo Socket.io stack) -- mounting it now would present a fake "AI Support
- * Specialist" site-wide. Davin approved deferring it to Phase 14, Session 9-1.
+ * Support-chat widget mounted site-wide (Session 14-2, Decision 4). If
+ * NEXT_PUBLIC_SOCKET_CHAT_URL is unset, lib/socket-client.ts's
+ * chatSocketManager degrades to its existing canned-response generator
+ * rather than throwing -- zero-downtime rollback is unsetting that one
+ * env var (Session 14-2's own rollback invariant).
  */
 export default function ClientProviders({
   children,
@@ -29,7 +31,11 @@ export default function ClientProviders({
   return (
     <LocaleProvider initialPreferences={initialPreferences}>
       <AppearanceProvider initialSettings={initialAppearance}>
-        {children}
+        <SupportChatProvider>
+          {children}
+          <FloatingChatTrigger />
+          <SupportChatWidget />
+        </SupportChatProvider>
       </AppearanceProvider>
     </LocaleProvider>
   );
