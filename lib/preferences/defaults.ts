@@ -39,6 +39,7 @@ export const SUPPORTED_COUNTRY_CODES = [
   'US',
   'EU',
   'JP',
+  'AE',
 ] as const;
 
 export type SupportedCountryCode = (typeof SUPPORTED_COUNTRY_CODES)[number];

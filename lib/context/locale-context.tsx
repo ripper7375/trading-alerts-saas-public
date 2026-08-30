@@ -157,6 +157,9 @@ export function LocaleProvider({
   useEffect(() => {
     if (preferences.language) {
       document.documentElement.lang = preferences.language;
+      document.documentElement.dir = ['ar', 'ur'].includes(preferences.language)
+        ? 'rtl'
+        : 'ltr';
     }
   }, [preferences.language]);
 

@@ -10,6 +10,7 @@ import idDict from '@/lib/i18n/dictionaries/id.json';
 import trDict from '@/lib/i18n/dictionaries/tr.json';
 import urDict from '@/lib/i18n/dictionaries/ur.json';
 import ptDict from '@/lib/i18n/dictionaries/pt.json';
+import arDict from '@/lib/i18n/dictionaries/ar.json';
 
 /**
  * Server-safe mirror of `lib/context/locale-context.tsx`'s dictionary map, for
@@ -36,6 +37,7 @@ const dictionaries: Record<string, Record<string, string>> = {
   tr: trDict,
   ur: urDict,
   pt: ptDict,
+  ar: arDict,
 };
 
 /** Same fallback convention as `dictionaryFor()` in locale-context.tsx: en-GB is the base. */

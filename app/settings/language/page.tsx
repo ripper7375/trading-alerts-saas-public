@@ -45,6 +45,7 @@ const languages = [
   { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
   { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
   { code: 'zh', name: 'Chinese', flag: '🇨🇳' },
+  { code: 'ar', name: 'Arabic (العربية)', flag: '🇦🇪' },
 ];
 
 const timezones = [
@@ -59,6 +60,7 @@ const timezones = [
   { value: 'Asia/Shanghai', label: 'Shanghai (CST)' },
   { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
   { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+  { value: 'Asia/Dubai', label: 'Dubai / UAE (GST)' },
 ];
 
 const currencies = [
@@ -69,6 +71,7 @@ const currencies = [
   { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
   { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
   { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+  { code: 'AED', symbol: 'AED', name: 'UAE Dirham' },
 ];
 
 export default function LanguageSettingsPage(): React.ReactElement {

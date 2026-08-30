@@ -156,6 +156,18 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timeFormat: '24h',
     exchangeRate: 155,
   },
+  ae: {
+    code: 'AE',
+    name: 'United Arab Emirates',
+    flag: '🇦🇪',
+    language: 'ar',
+    currency: 'AED',
+    symbol: 'AED',
+    timezone: 'Asia/Dubai',
+    dateFormat: 'DMY',
+    timeFormat: '12h',
+    exchangeRate: 3.67,
+  },
 };
 
 export const DEFAULT_COUNTRY: CountryConfig = SUPPORTED_COUNTRIES['gb']!;

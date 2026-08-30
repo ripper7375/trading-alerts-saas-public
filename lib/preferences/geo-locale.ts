@@ -149,6 +149,14 @@ const GEO_COUNTRY_TO_LOCALE: Record<string, GeoLocaleBundle> = {
     timeFormat: '24h',
     currency: 'JPY',
   },
+  AE: {
+    countryCode: 'AE',
+    language: 'ar',
+    timezone: 'Asia/Dubai',
+    dateFormat: 'DMY',
+    timeFormat: '12h',
+    currency: 'AED',
+  },
 };
 
 for (const code of EUROZONE_COUNTRY_CODES) {
