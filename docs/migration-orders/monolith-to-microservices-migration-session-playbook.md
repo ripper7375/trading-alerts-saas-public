@@ -680,6 +680,12 @@ Source: `davintrade-stack-d-and-e/PREPARATORY-TIER-ACCESS-AND-CORE-REFACTORING-S
   header drop) · **11-3** Redis `trackAiTokenUsage()` limiter + `TokenUsageLog`/`profile` JSONB.
 - **You provide:** the tier matrix sign-off (F68) and the payment-currency decision (F74).
 
+> **⚠ RUN ORDER ≠ SECTION ORDER (reordered 2026-08-30).** The sections below stay in numeric
+> order, but Phase 14 now runs FIRST of the three: **11-3 → 14-0…14-3 → 12-0…12-5 →
+> 13-0…13-3 → 15-0…15-4 → 8B.** Davin is revising the Stack D/E architecture docs, so 12-0 and
+> 13-0 would otherwise draft against specs about to change. See
+> `MASTER-ROADMAP-PHASES-7-15.md` §0.
+
 ### Phase 12 — Stack D: Conversational AI Analyst, Parts 26–30 (6 sessions)
 
 - **12-0** Decisions & contracts (**F69** LLM provider + cost ceiling, **F70** VANNA/txtai host

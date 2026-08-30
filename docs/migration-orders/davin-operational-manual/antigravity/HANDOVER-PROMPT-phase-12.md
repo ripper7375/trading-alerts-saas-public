@@ -1,5 +1,15 @@
 # Antigravity Advisor — Handover Prompt for Phase 12 (Sessions 12-0 → 12-5)
 
+> ## ⏸ PARKED 2026-08-30 — DO NOT PASTE THIS INTO A CHAT YET
+>
+> The run order changed after this file was written. **Phase 14 (sessions 14-0…14-3) runs
+> before Phase 12**, because Davin is revising the Stack D and Stack E architecture documents.
+> Use **`HANDOVER-PROMPT-phase-14.md`** now.
+>
+> This file also predates the revised Stack D architecture documents, so its `CANONICAL_DOCUMENTS`,
+> baselines and `<YOUR_IMMEDIATE_TASK>` are all stale. **Session 14-3 rewrites it** at its close
+> (`MASTER-ROADMAP-PHASES-7-15.md` §4). Kept on disk as an audit trail only.
+
 **Loaded for session 12-0.** Created 2026-08-25 (at Session 11-3's close, per
 `MASTER-ROADMAP-PHASES-7-15.md`'s trigger table: "11-3 writes phase-12's").
 

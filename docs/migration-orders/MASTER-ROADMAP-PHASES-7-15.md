@@ -1,10 +1,12 @@
 # Master Roadmap — Phases 7 → 15 (revised migration workflow)
 
 **Status:** PROPOSED 2026-08-20 (Advisor) — pending Davin's approval.
-**Supersedes:** nothing. **Amends:** the session playbook (Phases 8+), the implementation plan
-(§10, §11), and `davin-operational-manual/SESSION-PROMPT-SCRIPT.md`. Those three files carry
-matching amendment notes dated 2026-08-20; if any of them disagrees with this file, this file is
-the newer statement of intent and the disagreement is a bug to fix, not a choice to make.
+
+> **Handbook:** `davin-operational-manual/antigravity/migration-process-handbook-antigravity-v13.xlsx` is the current handbook (2026-08-30). v12 and below are superseded.
+> **Supersedes:** nothing. **Amends:** the session playbook (Phases 8+), the implementation plan
+> (§10, §11), and `davin-operational-manual/SESSION-PROMPT-SCRIPT.md`. Those three files carry
+> matching amendment notes dated 2026-08-20; if any of them disagrees with this file, this file is
+> the newer statement of intent and the disagreement is a bug to fix, not a choice to make.
 
 **Why this document exists.** The original workflow (`monolith-to-microservices-migration-
 implementation-plan.md` + `…-session-playbook.md`) planned Phases 0–8 and ends at "migration
@@ -31,15 +33,15 @@ renumber). The running order is this list, top to bottom:
 
 | #   | Gate                                               | Sessions                   | Est. |
 | --- | -------------------------------------------------- | -------------------------- | ---- |
-| 1   | **Phase 7** — API Client Rewrite _(resume here)_   | 7-2, 7-3                   | 2    |
+| 1   | **Phase 7** — API Client Rewrite _(CLOSED)_        | 7-2, 7-3                   | 2    |
 | 2   | **Phase 4X** — carry-forward money cutovers        | 4A-13, 4A-14, 4A-15, 4A-16 | 4    |
 | 3   | **Phase 9** — Frontend Stack Replacement           | 9-0 … 9-10                 | 11   |
 | 4   | **Phase 10** — Drawing Engine & Line-Alert closure | 10-1 … 10-3                | 3    |
 | 5   | **Phase 8A** — Decommission, part 1                | 8-1, 8-2                   | 2    |
 | 6   | **Phase 11** — Preparatory Tier-Access Refactoring | 11-1 … 11-3                | 3    |
-| 7   | **Phase 12** — Stack D (Parts 26–30)               | 12-0 … 12-5                | 6    |
-| 8   | **Phase 13** — Stack E (Parts 31–33)               | 13-0 … 13-3                | 4    |
-| 9   | **Phase 14** — Web Chat / Contabo support stack    | 14-0 … 14-3                | 4    |
+| 7   | **Phase 14** — Web Chat _(resume here)_            | 14-0 … 14-3                | 4    |
+| 8   | **Phase 12** — Stack D (Parts 26–30)               | 12-0 … 12-5                | 6    |
+| 9   | **Phase 13** — Stack E (Parts 31–33)               | 13-0 … 13-3                | 4    |
 | 10  | **Phase 15** — Mobile App Integration              | 15-0 … 15-4                | 5    |
 | 11  | **Phase 8B** — Final verification & close-out      | 8-3, 8-4, 8-5              | 3    |
 
@@ -49,6 +51,19 @@ final e2e, load test and runbooks cover the AI, comments, chat and mobile stacks
 IDs are unchanged — only when they run changes.
 
 ### Why this order
+
+> **REORDERED 2026-08-30 (Davin's call).** Phase 14 moves ahead of Phases 12 and 13. Davin is
+> revising the Stack D and Stack E architecture documents, so 12-0 and 13-0 would otherwise draft
+> against specs that are about to change. Phase 14 is independent of both — it needs the Phase 9
+> shell (CLOSED) and Contabo, nothing from Stack D/E — so it runs while those docs are rewritten.
+> **New order after 11-3: 14-0…14-3 → 12-0…12-5 → 13-0…13-3 → 15-0…15-4 → 8B.** Phase numbers
+> are unchanged; only run order moved. **One real consequence, handled in F72 below:** the chat
+> bot worker can no longer "reuse Phase 12's LLM router", because that router will not exist yet.
+>
+> `12-0-decisions-and-contracts.migration-order.md` was PRE-DRAFTed at 11-3's close and is now
+> **PARKED, not cancelled.** It stays on disk, its header says PARKED, and it gets a full fresh
+> re-verification when Phase 12 actually opens — the same discipline 4A-13 needed after sitting
+> 16 days. Do not treat it as the next session merely because it is the newest PRE-DRAFT on disk.
 
 - **7-2/7-3 first.** They rewire `app/api/**` _route handlers_, not UI. The frontend swap does
   not touch them, and doing them first means Phase 9's new pages bind to one settled internal
@@ -103,18 +118,18 @@ exist. The file is `…-v11.xlsx` (same folder). The `.md` operating manual in t
 Highest existing flag is **F64**. These continue the sequence. Every one is a real fork in the
 road that a session downstream cannot answer for itself.
 
-| Flag    | Phase | Question                                                                                                                                                                                                                                                                                                                                                                                          | Must be resolved by |
-| ------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
-| **F65** | 9     | **BFF boundary.** Does the browser keep calling monolith `app/api/**` forever, or eventually call `operation-service`/`money-service` directly? Plan §10's 8-1 ("monolith contains only UI + keepers") assumes the latter; F45/F30 and 7-1's server-only `lib/api/index.ts` assume the former. Phase 9's data layer and 8-1's deletion list both depend on the answer. ⚠ NEEDS EXPLICIT SIGN-OFF | Session 9-0         |
-| **F66** | 9     | **Swap mechanism + brand scope.** Big-bang branch swap vs per-surface progressive replacement; and how far the "Trading Alerts" → "DavinTrade" rename goes (page titles, email templates, legal copy, Stripe product/price names, `manifest.json`, OG images).                                                                                                                                    | Session 9-0         |
-| **F67** | 10    | **Where the live drawing-alert smoke test runs.** Never executed — 2026-07-05 attempt had no Docker, no root, and an unreachable Railway Postgres. Contabo VPS vs local Docker vs a Railway scratch environment.                                                                                                                                                                                  | Session 10-1        |
-| **F68** | 11    | **The Parts 02–33 tier matrix.** The preparatory spec redefines FREE/PRO entitlements platform-wide, including surfaces already sold. Needs product sign-off and a cross-check against live Stripe entitlements before any code moves. ⚠ NEEDS EXPLICIT SIGN-OFF                                                                                                                                 | Session 11-1        |
-| **F69** | 12    | **LLM provider, model and monthly cost ceiling** for Stack D (Gemini vs Claude vs both behind the router), plus the fallback when the ceiling is hit. Money-adjacent → §7 escalation. ⚠ NEEDS EXPLICIT SIGN-OFF                                                                                                                                                                                  | Session 12-0        |
-| **F70** | 12    | **VANNA / txtai runtime host.** Both are Python. Contabo VPS (next to MT5/Flask) vs a new Railway service vs in-process. Also: which DB role reads `market_data_v6` — Phase 1's fences give `core_app` no market-data grant.                                                                                                                                                                      | Session 12-0        |
-| **F71** | 13    | **Stack E generation mechanism.** A PL/pgSQL trigger on `market_data_v6` writes into the schema `railway-gateway` owns and the `gateway_ingest` role writes; `EXECUTOR-PROTOCOL.md` §5 says the ingest path must never blip, and 8-2 is about to dedup that schema. DB trigger vs application-side generation. ⚠ NEEDS EXPLICIT SIGN-OFF                                                         | Session 13-0        |
-| **F72** | 14    | **Contabo chat stack scope.** Domain + TLS for `chat-api.<domain>`; whether NLLB-200 translation ships in v1 (model size vs Contabo CPU); whether the bot worker reuses Phase 12's LLM router; and how `client_message` authenticates — the hand-off spec has **no auth on the socket at all**.                                                                                                   | Session 14-0        |
-| **F73** | 15    | **Mobile distribution + push ownership.** Direct APK vs Play Store; FCM project ownership and key storage; iOS via PWA only or a paid Apple account.                                                                                                                                                                                                                                              | Session 15-0        |
-| **F74** | 11    | **Payment currency wiring** (language spec §6.D, deliberately deferred 2026-08-19). Reading `userPreference.currency` into checkout requires per-currency Stripe Price objects — a product-catalog decision, not a code one. ⚠ NEEDS EXPLICIT SIGN-OFF                                                                                                                                           | Session 11-1        |
+| Flag    | Phase | Question                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Must be resolved by |
+| ------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
+| **F65** | 9     | **BFF boundary.** Does the browser keep calling monolith `app/api/**` forever, or eventually call `operation-service`/`money-service` directly? Plan §10's 8-1 ("monolith contains only UI + keepers") assumes the latter; F45/F30 and 7-1's server-only `lib/api/index.ts` assume the former. Phase 9's data layer and 8-1's deletion list both depend on the answer. ⚠ NEEDS EXPLICIT SIGN-OFF                                                                                                                                                                                    | Session 9-0         |
+| **F66** | 9     | **Swap mechanism + brand scope.** Big-bang branch swap vs per-surface progressive replacement; and how far the "Trading Alerts" → "DavinTrade" rename goes (page titles, email templates, legal copy, Stripe product/price names, `manifest.json`, OG images).                                                                                                                                                                                                                                                                                                                       | Session 9-0         |
+| **F67** | 10    | **Where the live drawing-alert smoke test runs.** Never executed — 2026-07-05 attempt had no Docker, no root, and an unreachable Railway Postgres. Contabo VPS vs local Docker vs a Railway scratch environment.                                                                                                                                                                                                                                                                                                                                                                     | Session 10-1        |
+| **F68** | 11    | **The Parts 02–33 tier matrix.** The preparatory spec redefines FREE/PRO entitlements platform-wide, including surfaces already sold. Needs product sign-off and a cross-check against live Stripe entitlements before any code moves. ⚠ NEEDS EXPLICIT SIGN-OFF                                                                                                                                                                                                                                                                                                                    | Session 11-1        |
+| **F69** | 12    | **LLM provider, model and monthly cost ceiling** for Stack D (Gemini vs Claude vs both behind the router), plus the fallback when the ceiling is hit. Money-adjacent → §7 escalation. ⚠ NEEDS EXPLICIT SIGN-OFF                                                                                                                                                                                                                                                                                                                                                                     | Session 12-0        |
+| **F70** | 12    | **VANNA / txtai runtime host.** Both are Python. Contabo VPS (next to MT5/Flask) vs a new Railway service vs in-process. Also: which DB role reads `market_data_v6` — Phase 1's fences give `core_app` no market-data grant.                                                                                                                                                                                                                                                                                                                                                         | Session 12-0        |
+| **F71** | 13    | **Stack E generation mechanism.** A PL/pgSQL trigger on `market_data_v6` writes into the schema `railway-gateway` owns and the `gateway_ingest` role writes; `EXECUTOR-PROTOCOL.md` §5 says the ingest path must never blip, and 8-2 is about to dedup that schema. DB trigger vs application-side generation. ⚠ NEEDS EXPLICIT SIGN-OFF                                                                                                                                                                                                                                            | Session 13-0        |
+| **F72** | 14    | **Contabo chat stack scope.** Domain + TLS for `chat-api.<domain>`; whether NLLB-200 translation ships in v1 (model size vs Contabo CPU); **what the bot worker uses for AI now that Phase 12 runs AFTER Phase 14** (own minimal direct LLM call, metered through 11-3's `trackAiTokenUsage()`, re-pointed at Phase 12's router later · or rule-based FAQ + human handoff in v1, AI added post-12 · or defer the bot container entirely and ship the socket/Redis/TLS stack alone); and how `client_message` authenticates — the hand-off spec has **no auth on the socket at all**. | Session 14-0        |
+| **F73** | 15    | **Mobile distribution + push ownership.** Direct APK vs Play Store; FCM project ownership and key storage; iOS via PWA only or a paid Apple account.                                                                                                                                                                                                                                                                                                                                                                                                                                 | Session 15-0        |
+| **F74** | 11    | **Payment currency wiring** (language spec §6.D, deliberately deferred 2026-08-19). Reading `userPreference.currency` into checkout requires per-currency Stripe Price objects — a product-catalog decision, not a code one. ⚠ NEEDS EXPLICIT SIGN-OFF                                                                                                                                                                                                                                                                                                                              | Session 11-1        |
 
 ### Already-open flags this roadmap schedules
 
@@ -362,7 +377,7 @@ validation.ts`, NestJS `TierGuard`, the JWT payload in `operation-service/src/au
 Source: `STACK-D-CONVERSATIONAL-AI-CHART-ANALYSIS-ARCHITECTURE.md` §5 (Parts 26–30).
 Greenfield: the repo has **zero** LLM SDKs, no VANNA, no txtai.
 
-- **12-0 — Decisions & contracts** (CONTRACT, no code). Resolve **F69**, **F70**. Confirm Part
+- **12-0 — Decisions & contracts** (CONTRACT, no code). **Entry criterion added 2026-08-30: the revised `STACK-D-…-ARCHITECTURE.md` and `STACK-E-…-ARCHITECTURE.md` are final and dated after the rewrite** — this session was postponed precisely so it would not draft against superseded specs, and its own PRE-DRAFT (2026-08-30) predates them. Re-verify the entire PRE-DRAFT against the new documents before drafting. Then resolve **F69**, **F70**. Confirm Part
   24's `mtf_render` PNG pipeline actually exists and is reachable from wherever the router runs
   — the whole multimodal claim rests on it. Freeze the OpenAPI for `/api/ai/chat*` **before**
   building, so Phase 7's generated client picks it up rather than drifting from day one.
@@ -456,7 +471,7 @@ calls**, and the backend has **no FCM, no push dispatcher and no device-token mo
 Sessions 8-3/8-4/8-5, **amended**:
 
 - **8-3 — Full-system e2e.** Original journeys (ingest, auth/2FA, alert fire→notify, Stripe +
-  dLocal checkout, affiliate→commission→batch, tier gating) **plus**: draw→line-alert→fire;
+  dLocal checkout, affiliate→commission→batch, tier gating) **plus, from the 2026-08-29/30 ad-hoc work**: checkout with automatic VAT → `invoice.payment_succeeded` → stored tax breakdown + invoice PDF; commission credited only after the trial charge actually collects; refund/dispute clawback. **Plus**: draw→line-alert→fire;
   AI chat quad-retrieval → streamed answer → trade-setup card; market-comment generated →
   socket → Panel 3; support chat round trip; mobile push received.
 - **8-4 — Load test + capacity.** Original scope **plus** the AI token path (cost per user at
@@ -495,12 +510,20 @@ Currently written: `HANDOVER-PROMPT-phase-6.md` (history), `HANDOVER-PROMPT-phas
 (history — Phase 7 CLOSED 2026-08-20), **`HANDOVER-PROMPT-phase-4X.md` (live, loaded for
 4A-13)**. Each phase below owes one, and the trigger is recorded in the _last_ row of that
 phase's own session table so it cannot be forgotten: **4A-15 writes phase-9's · 9-10 writes
-phase-10's · 10-3 writes 8A's · 8-2 writes phase-11's · 11-3 writes phase-12's · 12-5 writes
-phase-13's · 13-3 writes phase-14's · 14-3 writes phase-15's · 15-4 writes 8B's.**
+phase-10's · 10-3 writes 8A's · 8-2 writes phase-11's · 11-3 writes phase-14's · 14-3 writes
+phase-12's · 12-5 writes phase-13's · 13-3 writes phase-15's · 15-4 writes 8B's.** _(Updated 2026-08-30 for the reorder.)_
 
 ---
 
 ## 5. Carried-forward residuals (things with no session until now)
+
+**Ad-hoc work completed outside the phase numbering (recorded 2026-08-30):** multi-jurisdiction VAT /
+tax-invoicing and an affiliate-commission timing + refund-clawback fix, both shipped 2026-08-29/30 across the
+monolith **and** the dark-launched `money-service` mirror (checkout writes are flag-gated between them, so both
+paths needed identical changes). Records: `davintrade-vat-and-affiliate-commission-stack/
+tax-invoicing-manifest-work-completion.md` and `…/affiliate-commission-issues-fix.md`. **One manual dependency
+is still open and belongs to Davin, not to any session:** Stripe Dashboard tax settings + the Irish OSS
+registration. 8-3's journey list above was extended to cover both features.
 
 | Item                                                                                                                               | Now owned by                                        |
 | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |

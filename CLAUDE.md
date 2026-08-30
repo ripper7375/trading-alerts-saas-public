@@ -26,7 +26,66 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 11-3 (Token Metering & Schema, Phase 11 — third and final session, INFRA +
+- **Current:** Session 14-0 (Web Chat Decisions & Contract, Phase 14 — first of 4 sessions,
+  CONTRACT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. Resolves **F72**
+  (Contabo chat stack scope) — freezes the Socket.IO event contract, the 3-container Docker/Nginx
+  spec, the dual-mode BFF-token socket auth bridge, and the bot-worker system prompt/quota rules
+  for Sessions 14-1…14-3 to build against. No application code this session (CONTRACT variant).
+  **This session had no PRE-DRAFT** — Session 11-3 closed on 2026-08-24, before Davin's 2026-08-30
+  reorder decision (Phase 14 now runs ahead of Phases 12/13) existed; the Advisor wrote the order
+  straight to `DRAFT` from `TEMPLATE-CONTRACT.md` per its own handover prompt
+  (`HANDOVER-PROMPT-phase-14.md`), and Davin marked it `APPROVED`. Expected, not a gap.
+  **CONFIRM found the same L3 status-integrity pattern as nearly every recent session, in its most
+  extreme form yet:** the order file itself was entirely untracked (zero git history at all, not
+  just a lagging header), and its prerequisites — `MASTER-ROADMAP-PHASES-7-15.md`'s 2026-08-30
+  reorder banner and this file's own matching note — existed only as uncommitted working-tree
+  edits. Unlike most recurrences, this wasn't a single self-contradicting document: the reorder
+  story was told consistently across four independent artifacts (roadmap, this file, the handover
+  prompt, and the order), all dated 2026-08-30 with matching rationale — support for treating it as
+  benign, but not a substitute for asking. Both `⚠ NEEDS EXPLICIT SIGN-OFF` items (Decision 1
+  Domain/TLS, Decision 4 auth semantics) are not covered by a general order approval per
+  `EXECUTOR-PROTOCOL.md` §0. Surfaced directly; **Davin explicitly confirmed live in chat,
+  2026-08-30: "I explicitly confirm that I have reviewed and APPROVED the Session 14-0 order, with
+  explicit sign-offs on Decision 1 (Domain/TLS architecture for chat-api) and Decision 4 (Dual-mode
+  socket auth semantics via BFF token bridge)."**
+  **Execution found and corrected a real drafting error, not scope creep:** the DRAFT assumed the
+  chat subdomain would be `chat-api.davintrade.com` throughout (Nginx `server_name`, DNS target,
+  CSP `connect-src`, the `NEXT_PUBLIC_SOCKET_CHAT_URL` example) — but neither the codebase nor
+  `DECISION-LOG.md` had ever resolved Session 9-0's own still-open Batch-0 finding ("`davintrade.com`
+  vs `davin-trade.com`"), so this was asked of Davin directly rather than guessed between the two
+  flawed options on the table. **The real domain is `davintrade.app`** — neither `.com` spelling was
+  correct — confirmed via a live Zoho Mail admin dashboard screenshot showing the registered domain
+  and mail hosting (support email corrected to `support@davintrade.app` the same way, using a
+  generic alias, not the personal super-admin address the screenshot incidentally showed). This
+  also definitively resolves Session 9-0's long-open Batch-0 ambiguity; formally closing that
+  finding in `frontend-swap-route-map.md` is left to a future session. Every hostname/email
+  reference in the order was corrected to `.app` before being treated as frozen.
+  **Baselines re-verified fresh at CONFIRM, before any file changed:** monolith `test:ci`
+  **151/151·2239/2239** (+35 tests vs. 11-3's close — the 2026-08-29/30 VAT/affiliate ad-hoc work
+  landed in between, not a regression), `operation-service` **43/43·401/401** (unchanged),
+  `money-service` **62/62·565/565** (+33 tests, same reason) with one transient
+  `prisma.shutdown.spec.ts` timeout in the full run — re-ran in isolation (`--runInBand`), passed
+  clean in 7.0s, confirmed the known `LESSONS-LEARNED.md` L24 flake, not a regression,
+  `railway-gateway` **3/3·23/23** (unchanged).
+  **Step 4's bot-worker system-prompt deliverable, named in the order's Ordered Steps but never
+  written out verbatim in the DRAFT, authored during execution** — grounded in copy that already
+  ships in `lib/socket-client.ts`'s `generateFallbackResponse()` (existing, already-reviewed
+  product claims), not new copy invented for this order.
+  **`migration-cutover-table.md` needs no changes** (a CONTRACT/decision session, no route/slice
+  had a flag or rollback mechanism to move — confirmed no Phase 14 rows exist yet, as expected).
+  **`migration-stack-analysis.md` needs no entry** (no files created/moved/deleted — only the
+  pre-existing order file itself was edited). **`DECISION-LOG.md` DOES need a flag resolution** —
+  **F72** resolved (all 4 sub-questions), full detail in `history/decisions-archive.md`.
+  **Lesson harvested:** no new lesson (still at the 40-entry cap) — a recurrence note appended to
+  **L3** (the untracked-order-plus-prerequisites variant described above) and to **L24** (a fourth
+  occurrence of the `prisma.shutdown.spec.ts` parallel-worker timeout flake, same resolution).
+  **Artifacts updated:** `14-0-web-chat-decisions-and-contract.migration-order.md` (Status →
+  CONFIRMED → CLOSED SUCCESSFUL, domain corrections, bot system prompt added, full Deviations,
+  checked Done-when/entry-criteria boxes), `DECISION-LOG.md`, `history/decisions-archive.md`,
+  `LESSONS-LEARNED.md`, `docs/migration-orders/14-1-container-stack-build-and-deploy.migration-order.md`
+  (PRE-DRAFTed), this file (Current/Previous rotation — Session 11-2 moved to
+  `history/sessions-archive.md`).
+- **Previous:** Session 11-3 (Token Metering & Schema, Phase 11 — third and final session, INFRA +
   PORT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-25. **Phase 11 (Preparatory
   Tier-Access & Core Refactoring) is now CLOSED SUCCESSFUL** — all 3 sessions (11-1, 11-2, 11-3)
   complete. Builds the Redis `trackAiTokenUsage()` sliding-window token-quota limiter and the
@@ -91,75 +150,8 @@ prisma/non-market-data/schema.prisma`) refused live, proposing to **DROP the liv
   `migration-stack-analysis.md`, `LESSONS-LEARNED.md`,
   `docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-12.md`
   (authored — Phase 12 handover, per the roadmap's own "11-3 writes phase-12's" trigger),
-  `docs/migration-orders/12-0-decisions-and-contracts.migration-order.md` (PRE-DRAFTed), this file
+  `docs/migration-orders/12-0-decisions-and-contracts.migration-order.md` (PRE-DRAFTed — **PARKED 2026-08-30 — Phase 14 runs first**; the next session is **14-0**, whose order does not exist yet and must be created from `TEMPLATE-CONTRACT.md`. Run order after 11-3: 14-0…14-3 → 12-0…12-5 → 13-0…13-3 → 15-0…15-4 → 8B, per `MASTER-ROADMAP-PHASES-7-15.md` §0), this file
   (Current/Previous rotation — Session 11-1 moved to `history/sessions-archive.md`).
-- **Previous:** Session 11-2 (Guards, JWT Claims & Header Forwarding, Phase 11 — second of 3
-  sessions, PORT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-24. Unifies tier
-  **enforcement** (not just config) across the monolith/`operation-service` boundary — guards, JWT
-  claims, header forwarding — the plumbing Stack D (Phase 12) and Stack E (Phase 13) will gate
-  their endpoints against.
-  **CONFIRM found the same L3 status-integrity gap as every recent session's own CONFIRM** —
-  committed HEAD held the order at `Status: PRE-DRAFT` with 3 "Decisions needed" and sketch-only
-  Ordered Steps; the `APPROVED` version (4 Decisions taken, full 6-step Ordered Steps) existed only
-  as an uncommitted working-copy edit, zero corroborating record in `DECISION-LOG.md` or this file.
-  Surfaced directly; **Davin explicitly confirmed live in chat, 2026-08-24: "Yes, authentic. The
-  working-copy APPROVED text for Session 11-2 is confirmed authentic."**
-  **CONFIRM also found two real plan-vs-live-code discrepancies, both corrected before execution
-  with Davin's explicit approval:** (1) the order's Step 2 named exactly 2 internal
-  `lib/tier-validation.ts` call sites to fix the `canAccessSymbol` argument-order footgun on (one
-  of which it mis-cited as `validateAlertCreation` — no such function exists; the real containing
-  function is `validateFullTierAccess`, line number correct, name wrong) — a live grep found 2 more
-  external call sites (`middleware/tier-check.ts`, `app/api/drawings/route.ts`) that import the
-  function directly and would have silently had their arguments swapped by the fix; folded into
-  Step 2's scope. (2) Decision 2.3 said to import `REQUIRE_TIER_KEY` from
-  `@trading-alerts/types/tier` — that package doesn't export it (only `Tier`/`TierConfig`/
-  constants/helpers); kept `REQUIRE_TIER_KEY`/`RequireTier` locally defined in
-  `operation-service/src/auth/tier.guard.ts`, only moving `Tier` itself to the shared import.
-  **Baselines re-verified fresh at CONFIRM, all exact matches to the order's own numbers:**
-  monolith `test:ci` 150/150·2190/2190, `operation-service` 42/42·395/395, `money-service`
-  62/62·532/532 (after ruling out a concurrent-run flake — `prisma.shutdown.spec.ts`'s SIGTERM test
-  blew its 5000ms timeout running alongside 3 other suites at once; clean in isolation,
-  `LESSONS-LEARNED.md` L24 territory, not a regression), `railway-gateway` 3/3·23/23.
-  **Execution surfaced one genuinely undisclosed pre-existing gap, not scope creep:**
-  `operation-service`'s own embedded `packages/types` — a physically separate, git-tracked copy
-  (commit `87242f09`, "embed packages/types locally for Railway single-directory upload";
-  `operation-service`'s `package.json` depends on `file:./packages/types`, a nested subdirectory,
-  not a symlink to the monorepo root) — was never updated with Session 11-1's new `tier/` module:
-  no `src/tier`, no `dist/tier`, no `./tier` export in its own `package.json`. Invisible until
-  `operation-service`'s own `npm test` tried to resolve `@trading-alerts/types/tier` and failed
-  outright. Synced `src/tier/*.ts` and the root barrel verbatim from the canonical copy, added the
-  `./tier` exports/`typesVersions` entries, rebuilt `dist/`.
-  **A pre-commit-hook incident during Step 2's first commit attempt, recovered cleanly, zero work
-  lost:** the commit failed on a real, pre-existing, unrelated `eslint` error (an unused
-  `checkFeatureAccess` import, fixed inline); `lint-staged`'s own stash-based "revert to original
-  state" recovery step then itself crashed trying to unlink a locked `.xlsx` file elsewhere in the
-  working tree, aborting mid-revert and leaving several just-edited files reverted in the working
-  tree while the git index still held the correct staged content. Recovered fully via the
-  automatic `lint-staged automatic backup` stash — `git checkout stash@{0} -- <path>` /
-  `git checkout -- <path>` per file, verifying zero diff against the stash before each retry.
-  `LESSONS-LEARNED.md` L36 extended with the recovery procedure.
-  **`DECISION-LOG.md` archival pass completed (Step 1, mandatory §1 size gate, carried forward
-  from 11-1's own CONFIRM finding):** 66,296 → 26,320 bytes. Moved 50 RESOLVED `F1`–`F64` rows
-  verbatim to `history/decisions-archive.md`'s new "Legacy Flag Register (F1–F64)" table
-  (`F12`/`F21` still OPEN and `PD1` stayed in the main table); removed 6 now-redundant stub
-  sections duplicating content already in the register table or already fully archived — zero
-  unique content lost.
-  **`migration-cutover-table.md` needs no changes** (a guards/plumbing session, no route/slice had
-  a flag or rollback mechanism to move). **`migration-stack-analysis.md` DOES need an entry** (4
-  new, 14 modified) — added. **`DECISION-LOG.md` needed no flag resolution** (order's own header:
-  "Flags touched: none" — plumbing, no product-level decision).
-  **Lesson harvested:** no new lesson (still at the 40-entry cap) — recurrence notes appended to
-  **L19** (a monorepo-mirror-drift variant: a service's own embedded copy of a shared package, kept
-  separate purely for an isolated-directory deploy, can silently miss a module added to the
-  canonical copy) and **L36** (a more severe variant: the pre-commit hook's own stash-based
-  revert-on-failure step can itself crash mid-recovery on a locked file, not just leave a benign
-  cosmetic diff — recovery procedure documented).
-  **Artifacts updated:** `11-2-guards-jwt-claims-header-forwarding.migration-order.md` (Status →
-  CONFIRMED → CLOSED SUCCESSFUL, full Deviations, checked Done-when/entry-criteria boxes),
-  `DECISION-LOG.md`, `history/decisions-archive.md`, `LESSONS-LEARNED.md`,
-  `migration-stack-analysis.md`,
-  `docs/migration-orders/11-3-token-metering-and-schema.migration-order.md` (PRE-DRAFTed), this
-  file (Current/Previous rotation — Session 8-2 moved to `history/sessions-archive.md`).
 
 ## Key documents
 

@@ -1,5 +1,16 @@
 # Migration Order — Session 12-0 — Decisions & Contracts (Stack D)
 
+> ## ⏸ PARKED 2026-08-30 — do not execute this next
+>
+> Davin postponed Phase 12 so he can revise the Stack D and Stack E architecture documents.
+> **Phase 14 (web chat / Contabo, sessions 14-0…14-3) runs first.** The order after 11-3 is now
+> `14-0…14-3 → 12-0…12-5 → 13-0…13-3 → 15-0…15-4 → 8B` (`MASTER-ROADMAP-PHASES-7-15.md` §0).
+>
+> This file stays on disk and keeps `Status: PRE-DRAFT`. It is **not** the next session merely
+> because it is the newest PRE-DRAFT here. When Phase 12 does open, it needs a **full fresh
+> re-verification against the REVISED architecture documents** — every citation in it predates
+> them — the same discipline 4A-13 needed after sitting stale for 16 days.
+
 > For sessions whose output is a **document or decision**, not running code: read
 > `00-SKELETON-AND-RULES.md` first — §4 autonomy clause applies. **Creativity dial: Medium**
 > (how you investigate is yours; what counts as evidence is not).

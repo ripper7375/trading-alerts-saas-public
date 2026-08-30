@@ -3705,6 +3705,56 @@ alert`), 42/42 suites, 395/395 tests (+2). Live end-to-end proof via the new New
   billing semantics). Same CONFIRM-time status-integrity gap and same live confirmation as F68
   above — Davin's quote covers both flags in one statement.
 
+## F72 — RESOLVED, Session 14-0 (2026-08-30)
+
+- Status: RESOLVED
+- Session: 14-0 · Date: 2026-08-30
+- Decision (4 sub-questions, per `14-0-web-chat-decisions-and-contract.migration-order.md`'s own
+  `## Decisions taken`):
+  1. **Domain/TLS:** dedicated public subdomain `chat-api.davintrade.app` (corrected during
+     CONFIRM/execution from the DRAFT's assumed `chat-api.davintrade.com` — see below), DNS
+     A-record to Davin's Contabo VPS, host Nginx terminating TLS via Certbot/Let's Encrypt,
+     `wss://` transport for the Vercel-hosted browser client.
+  2. **NLLB-200 translation:** deferred from v1. Ships 3 containers (socket server, Redis, bot
+     worker), not the spec's 4 — multilingual support handled by the LLM's own native
+     multilingual understanding instead of a local translation model.
+  3. **Bot worker AI engine:** Option (a) — direct lightweight LLM integration in the bot worker,
+     metered through Session 11-3's `trackAiTokenUsage()`, re-pointed at Phase 12's router later
+     once it exists.
+  4. **Socket auth:** dual-mode (authenticated + guest) via a new BFF token endpoint
+     (`GET /api/chat/token`), mirroring the existing `hooks/use-realtime-socket.ts` →
+     `GET /api/realtime/token` pattern (F8, Session 4B-17) rather than inventing a new one. Guest
+     connections are IP-rate-limited (10 msg/hour) and scoped to public FAQ topics only.
+- Evidence: both Contabo handoff spec documents
+  (`seed-code/trading-conversational-ai-ui-pages-increment/docs/web-chat-stack/`) read and
+  verified against current repo state; the socket contract spot-checked against live
+  `lib/socket-client.ts` and `components/chat-widget/support-chat-widget.tsx`; the auth-bridge
+  precedent spot-checked against live `hooks/use-realtime-socket.ts` +
+  `app/api/realtime/token/route.ts`; `next.config.js` CSP confirmed to correctly NOT yet include
+  the chat origin (deferred to Session 14-2 by design). All 4 baselines re-measured clean at
+  CONFIRM (monolith 151/151·2239/2239, `operation-service` 43/43·401/401, `money-service`
+  62/62·565/565, `railway-gateway` 3/3·23/23).
+  **Domain correction found and applied during CONFIRM/execution, not in the DRAFT:** the DRAFT
+  assumed `chat-api.davintrade.com` throughout (Nginx `server_name`, DNS target, CSP
+  `connect-src`, `NEXT_PUBLIC_SOCKET_CHAT_URL` example). Neither the codebase nor
+  `DECISION-LOG.md` resolved Session 9-0's own still-open Batch-0 finding
+  ("`davintrade.com` vs `davin-trade.com`"), so this was asked of Davin directly. The real
+  domain is **`davintrade.app`** — neither `.com` spelling offered was correct — confirmed via a
+  live Zoho Mail admin dashboard screenshot showing the registered domain and mail hosting. This
+  also definitively resolves Session 9-0's Batch-0 ambiguity, though closing that finding in its
+  own tracking doc is left to a future session (out of scope here). Every hostname/email
+  reference in the order was corrected to `.app` before being treated as frozen.
+- Approved by: Davin — Decisions 1 (Domain/TLS) and 4 (Auth semantics) carry
+  `⚠ NEEDS EXPLICIT SIGN-OFF` per `EXECUTOR-PROTOCOL.md` §0/§7 (new public hostname, auth
+  semantics). The order and its roadmap prerequisites (`MASTER-ROADMAP-PHASES-7-15.md`'s
+  2026-08-30 reorder banner, `CLAUDE.md`'s matching note) carried zero git commit history at
+  CONFIRM time — the same `LESSONS-LEARNED.md` L3 status-integrity pattern recurring, though
+  cross-document consistency (roadmap, `CLAUDE.md`, and the Phase 14 handover prompt all telling
+  the same story independently) supported treating it as benign pending confirmation. Davin
+  explicitly confirmed live in chat, 2026-08-30: _"I explicitly confirm that I have reviewed and
+  APPROVED the Session 14-0 order, with explicit sign-offs on Decision 1 (Domain/TLS architecture
+  for chat-api) and Decision 4 (Dual-mode socket auth semantics via BFF token bridge)."_
+
 ## Legacy Flag Register (F1–F64)
 
 Moved from `DECISION-LOG.md`'s own register table during Session 11-2's mandatory §1 size-gate archival pass (2026-08-24) — all RESOLVED, all superseded by later work, none touch anything active. Verbatim rows, nothing edited. F12/F21 (still OPEN) and PD1 stay in the main `DECISION-LOG.md` table.

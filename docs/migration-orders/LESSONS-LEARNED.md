@@ -49,7 +49,11 @@ added (stayed at the cap) -- recurrence notes appended to L19 (a monorepo-mirror
 service's own embedded copy of a shared package, kept separate purely for an isolated-directory
 deploy, can silently miss a module added to the canonical copy) and L36 (a more severe variant: the
 pre-commit hook's own stash-based revert-on-failure step can itself crash mid-recovery on a locked
-file, not just leave a benign cosmetic diff -- recovery procedure documented). Full history in
+file, not just leave a benign cosmetic diff -- recovery procedure documented). Session 14-0: no new
+lesson added (stayed at the cap) -- recurrence notes appended to L3 (an untracked order file AND
+its uncommitted roadmap/CLAUDE.md prerequisites, an entire multi-document chain with no commit
+trail rather than just a lagging header) and L24 (a fourth `prisma.shutdown.spec.ts`
+parallel-worker timeout flake). Full history in
 `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
 (same rule Session 9-6 hit at 41; nothing to merge yet, all 40 are still genuinely distinct).
 
@@ -73,18 +77,27 @@ file, not just leave a benign cosmetic diff -- recovery procedure documented). F
 - Symptom: an order arrived with header `Status: APPROVED` while its own Entry Criteria list still had an unchecked "Davin approves this DRAFT" box, and the file was untracked with no PRE-DRAFT→DRAFT→APPROVED commit history at all.
 - Rule: at CONFIRM, cross-check the header's claimed status against (a) the order's own entry-criteria checkboxes and (b) git history for that file. A self-contradicting order is a stop-and-ask trigger, not something to silently trust or silently fix.
 - Source: Session 4A-6 · Status: ACTIVE
-- Recurrence count: 29+ times through Session 11-1 (2026-08-24; confirmed recurring at 8-1, 8-2, and
-  11-1 since the last count update) — the single most-recurring finding class in the
-  migration, almost always benign (order body byte-identical to its own committed PRE-DRAFT, or a
-  DRAFT/corrected-DRAFT arriving as an uncommitted working-copy edit; Davin's own live confirmation
-  is what closes the check every time). One genuinely NOT benign, worth keeping as a worked
-  example — **Session 4B-20** (2026-08-03, auth semantics, the highest-blast-radius session in the
-  migration): the working copy silently dropped its own committed PRE-DRAFT's explicit "not
+- Recurrence count: 30+ times through Session 14-0 (2026-08-30; confirmed recurring at 8-1, 8-2,
+  11-1, 11-2, 11-3, and 14-0 since the last count update) — the single most-recurring finding class
+  in the migration, almost always benign (order body byte-identical to its own committed PRE-DRAFT,
+  or a DRAFT/corrected-DRAFT arriving as an uncommitted working-copy edit; Davin's own live
+  confirmation is what closes the check every time). One genuinely NOT benign, worth keeping as a
+  worked example — **Session 4B-20** (2026-08-03, auth semantics, the highest-blast-radius session
+  in the migration): the working copy silently dropped its own committed PRE-DRAFT's explicit "not
   fast-path eligible... needs full Advisor DRAFT and Davin APPROVED" framing, jumping straight to
   `Status: APPROVED` with zero `DECISION-LOG.md` entry and all 4 entry criteria still unchecked.
   Resolved the same way as every recurrence: ask Davin directly, never silently trust or silently
   correct. Compressed here 2026-08-22 (Session 9-5) per this file's own "5+ recurrences → single
   count line" rule; full per-session detail through Session 9-2 in `LESSONS-ARCHIVE.md`.
+- Recurrence (Session 14-0, 2026-08-30) — a more extreme variant than a lagging header: the order
+  file had **zero git history at all** (untracked, never committed at any lifecycle stage), and its
+  own prerequisites (`MASTER-ROADMAP-PHASES-7-15.md`'s reorder banner, `CLAUDE.md`'s matching note)
+  existed only as uncommitted working-tree edits too — an entire multi-document chain with no
+  commit trail, not one file. What made this instance easier to trust pending confirmation: the
+  reorder story was told consistently across four independent artifacts (roadmap, `CLAUDE.md`, the
+  Phase 14 handover prompt, and the order itself), all dated the same day with matching rationale —
+  cross-document consistency is a useful secondary signal, but still not a substitute for asking.
+  Davin's live confirmation closed it, as always.
 
 ### L41 — A page's DOM carrying a hidden, duplicate copy of its own content is React/Next's own Suspense-streaming reveal mechanism, not an app bug — verify with computed style, not element count
 
@@ -379,6 +392,11 @@ diff --script` + `db execute` unconditionally, never plain `db push`.
 - Rule: Verification results are only valid in context — Railway logs for timing, background checks with in-flight edits, and scoped lint runs can all give false clean results. Re-run fresh, full-scope, with nothing in flight.
 - Source: Consolidated · Status: ACTIVE
 - Recurrence (Session 10-1, 2026-08-23): a functional-failure variant, not just a misleading-result one — a live `DispatcherService.dispatch()` call failed with a genuine Prisma `P2028` ("Unable to start a transaction in the given time") while running the monolith dev server, both `operation-service` processes, and several ad-hoc diagnostic scripts concurrently against the same shared pooled dev Postgres; plain non-transactional queries succeeded instantly throughout. Isolated by reproducing the exact `$transaction()` standalone — failed identically with default timeouts, then succeeded in 3.5s with an explicit extended `maxWait`. Reducing concurrent load (not a code change) made the real `dispatch()` succeed on retry. Rule extension: "nothing in flight" applies to real application code paths under test, not just to log/lint verification steps — a multi-process local smoke test against a shared pooled DB can produce a genuine, reproducible transaction-timeout failure from self-inflicted concurrent load, distinct from an actual code defect.
+- Recurrence (Session 14-0, 2026-08-30): a fourth occurrence of the same `prisma.shutdown.spec.ts`
+  SIGTERM-timeout flake (11-2, 11-3, now 14-0) — failed with "Exceeded timeout of 5000 ms" inside
+  `money-service`'s full `npm test` run (Jest's own parallel workers contending for CPU), passed
+  clean in 7.0s re-run alone with `--runInBand`. Same resolution every time: re-run the specific
+  spec in isolation before treating it as a regression.
 
 ### L25 — Cross-origin browser verification
 

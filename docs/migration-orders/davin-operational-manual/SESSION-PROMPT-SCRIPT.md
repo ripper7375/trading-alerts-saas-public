@@ -329,7 +329,13 @@ silent header drop while you're in there — that's why the 2026-08-19 GeoIP wor
 mirrored."_ · [B]: U-B · [C]: U-C.
 **11-3 (token metering + schema):** [A]: U-A + _"integrate with the EXISTING three-layer rate
 limiter, don't add a fourth. Schema via prisma db push, authored in prisma/non-market-data/ only
-(L1)."_ · [B]: U-B · [C]: U-C + _"show me a tier-gated dummy AI route returning 429 at quota."_
+(L1)."_ · [B]: U-B · [C]: U-C + _"show me a tier-gated dummy AI route returning 429 at quota. Then PRE-DRAFT **14-0**, NOT 12-0 — Phase 14 runs first (reordered 2026-08-30). Also write HANDOVER-PROMPT-phase-14.md."_
+
+> **⚠ RUN ORDER ≠ SECTION ORDER (reordered 2026-08-30).** The sections below stay in numeric
+> order, but Phase 14 now runs FIRST of the three: **11-3 → 14-0…14-3 → 12-0…12-5 →
+> 13-0…13-3 → 15-0…15-4 → 8B.** Davin is revising the Stack D/E architecture docs, so 12-0 and
+> 13-0 would otherwise draft against specs about to change. See
+> `MASTER-ROADMAP-PHASES-7-15.md` §0.
 
 ## Phase 12 — Stack D: conversational AI analyst (Parts 26–30) — added 2026-08-20
 
@@ -363,7 +369,7 @@ before and after — a regression here is a data-pipeline outage, not a UI bug."
 no second socket server. Mind 4B-18b/18c/18d's CORS-origin, CSP connect-src and reconnect-loop
 lessons."_ · [B]: U-B · [C]: U-C.
 **13-3 (Part 33 feed + quality metrics UI):** [A]: U-A + _"replaces 9-4's empty state on the
-terminal's Panel 3."_ · [B]: U-B · [C]: U-C.
+terminal's Panel 3."_ · [B]: U-B · [C]: U-C + _"PRE-DRAFT **15-0** and write HANDOVER-PROMPT-phase-15.md."_
 
 ## Phase 14 — Web chat / Contabo support stack — added 2026-08-20
 
@@ -375,7 +381,7 @@ restart policy. Contabo access and DNS are mine to provide."_ · [B]: U-B · [C]
 **14-2 (frontend binding):** [A]: U-A + _"add the chat origin to next.config.js's CSP
 connect-src — exactly the bug class 4B-18c fixed for realtime."_ · [B]: U-B · [C]: U-C.
 **14-3 (cutover + runbook):** U-CUT · [B]: U-B + _"rollback is unsetting the env var — prove the
-widget degrades to the existing support-ticket form."_ · [C]: U-C.
+widget degrades to the existing support-ticket form."_ · [C]: U-C + _"PRE-DRAFT **12-0** next (reordered 2026-08-30) — but first confirm the revised Stack D/E architecture docs are final; the parked 12-0 PRE-DRAFT from 2026-08-30 predates them. Also write HANDOVER-PROMPT-phase-12.md."_
 
 ## Phase 15 — Mobile app integration — added 2026-08-20
 
@@ -392,6 +398,10 @@ wake lock, and the PWA/iOS path."_ · [B]: U-B · [C]: U-C.
 device with the right chime — mocks don't close this session."_ · [C]: U-C.
 
 ---
+
+> **Handbook version:** `antigravity/migration-process-handbook-antigravity-v13.xlsx` is current
+> (2026-08-30). Its `Instruction` / `Task_Description` / `Chat_Grouping` sheets carry a
+> **ลำดับที่จะเดินจริง (Run order)** column in column **C** reflecting the Phase-14-first reorder.
 
 ## If a session goes sideways (any phase)
 

@@ -7,6 +7,74 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 11-2** (Guards, JWT Claims & Header
+  Forwarding, Phase 11 — second of 3 sessions, PORT), APPROVED, CONFIRMED, executed,
+  **CLOSED SUCCESSFUL** 2026-08-24. Unifies tier **enforcement** (not just config) across the
+  monolith/`operation-service` boundary — guards, JWT claims, header forwarding — the plumbing
+  Stack D (Phase 12) and Stack E (Phase 13) will gate their endpoints against.
+  **CONFIRM found the same L3 status-integrity gap as every recent session's own CONFIRM** —
+  committed HEAD held the order at `Status: PRE-DRAFT` with 3 "Decisions needed" and sketch-only
+  Ordered Steps; the `APPROVED` version (4 Decisions taken, full 6-step Ordered Steps) existed only
+  as an uncommitted working-copy edit, zero corroborating record in `DECISION-LOG.md` or this file.
+  Surfaced directly; **Davin explicitly confirmed live in chat, 2026-08-24: "Yes, authentic. The
+  working-copy APPROVED text for Session 11-2 is confirmed authentic."**
+  **CONFIRM also found two real plan-vs-live-code discrepancies, both corrected before execution
+  with Davin's explicit approval:** (1) the order's Step 2 named exactly 2 internal
+  `lib/tier-validation.ts` call sites to fix the `canAccessSymbol` argument-order footgun on (one
+  of which it mis-cited as `validateAlertCreation` — no such function exists; the real containing
+  function is `validateFullTierAccess`, line number correct, name wrong) — a live grep found 2 more
+  external call sites (`middleware/tier-check.ts`, `app/api/drawings/route.ts`) that import the
+  function directly and would have silently had their arguments swapped by the fix; folded into
+  Step 2's scope. (2) Decision 2.3 said to import `REQUIRE_TIER_KEY` from
+  `@trading-alerts/types/tier` — that package doesn't export it (only `Tier`/`TierConfig`/
+  constants/helpers); kept `REQUIRE_TIER_KEY`/`RequireTier` locally defined in
+  `operation-service/src/auth/tier.guard.ts`, only moving `Tier` itself to the shared import.
+  **Baselines re-verified fresh at CONFIRM, all exact matches to the order's own numbers:**
+  monolith `test:ci` 150/150·2190/2190, `operation-service` 42/42·395/395, `money-service`
+  62/62·532/532 (after ruling out a concurrent-run flake — `prisma.shutdown.spec.ts`'s SIGTERM test
+  blew its 5000ms timeout running alongside 3 other suites at once; clean in isolation,
+  `LESSONS-LEARNED.md` L24 territory, not a regression), `railway-gateway` 3/3·23/23.
+  **Execution surfaced one genuinely undisclosed pre-existing gap, not scope creep:**
+  `operation-service`'s own embedded `packages/types` — a physically separate, git-tracked copy
+  (commit `87242f09`, "embed packages/types locally for Railway single-directory upload";
+  `operation-service`'s `package.json` depends on `file:./packages/types`, a nested subdirectory,
+  not a symlink to the monorepo root) — was never updated with Session 11-1's new `tier/` module:
+  no `src/tier`, no `dist/tier`, no `./tier` export in its own `package.json`. Invisible until
+  `operation-service`'s own `npm test` tried to resolve `@trading-alerts/types/tier` and failed
+  outright. Synced `src/tier/*.ts` and the root barrel verbatim from the canonical copy, added the
+  `./tier` exports/`typesVersions` entries, rebuilt `dist/`.
+  **A pre-commit-hook incident during Step 2's first commit attempt, recovered cleanly, zero work
+  lost:** the commit failed on a real, pre-existing, unrelated `eslint` error (an unused
+  `checkFeatureAccess` import, fixed inline); `lint-staged`'s own stash-based "revert to original
+  state" recovery step then itself crashed trying to unlink a locked `.xlsx` file elsewhere in the
+  working tree, aborting mid-revert and leaving several just-edited files reverted in the working
+  tree while the git index still held the correct staged content. Recovered fully via the
+  automatic `lint-staged automatic backup` stash — `git checkout stash@{0} -- <path>` /
+  `git checkout -- <path>` per file, verifying zero diff against the stash before each retry.
+  `LESSONS-LEARNED.md` L36 extended with the recovery procedure.
+  **`DECISION-LOG.md` archival pass completed (Step 1, mandatory §1 size gate, carried forward
+  from 11-1's own CONFIRM finding):** 66,296 → 26,320 bytes. Moved 50 RESOLVED `F1`–`F64` rows
+  verbatim to `history/decisions-archive.md`'s new "Legacy Flag Register (F1–F64)" table
+  (`F12`/`F21` still OPEN and `PD1` stayed in the main table); removed 6 now-redundant stub
+  sections duplicating content already in the register table or already fully archived — zero
+  unique content lost.
+  **`migration-cutover-table.md` needs no changes** (a guards/plumbing session, no route/slice had
+  a flag or rollback mechanism to move). **`migration-stack-analysis.md` DOES need an entry** (4
+  new, 14 modified) — added. **`DECISION-LOG.md` needed no flag resolution** (order's own header:
+  "Flags touched: none" — plumbing, no product-level decision).
+  **Lesson harvested:** no new lesson (still at the 40-entry cap) — recurrence notes appended to
+  **L19** (a monorepo-mirror-drift variant: a service's own embedded copy of a shared package, kept
+  separate purely for an isolated-directory deploy, can silently miss a module added to the
+  canonical copy) and **L36** (a more severe variant: the pre-commit hook's own stash-based
+  revert-on-failure step can itself crash mid-recovery on a locked file, not just leave a benign
+  cosmetic diff — recovery procedure documented).
+  **Artifacts updated:** `11-2-guards-jwt-claims-header-forwarding.migration-order.md` (Status →
+  CONFIRMED → CLOSED SUCCESSFUL, full Deviations, checked Done-when/entry-criteria boxes),
+  `DECISION-LOG.md`, `history/decisions-archive.md`, `LESSONS-LEARNED.md`,
+  `migration-stack-analysis.md`,
+  `docs/migration-orders/11-3-token-metering-and-schema.migration-order.md` (PRE-DRAFTed), this
+  file (Current/Previous rotation — Session 8-2 moved to `history/sessions-archive.md`).
+
 - _(superseded-by-above, retained for context)_ **Session 11-1** (Tier Matrix Decision +
   Types/Config, Phase 11 — first of 3 sessions, CONTRACT + PORT), APPROVED, CONFIRMED, executed,
   **CLOSED SUCCESSFUL** 2026-08-24. Resolves **F68** (Master Tier Access Rights Matrix, Parts
