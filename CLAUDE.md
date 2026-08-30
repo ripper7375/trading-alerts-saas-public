@@ -26,6 +26,41 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
+> **Ad-hoc session (2026-08-30, phase/session unchanged):** Davin requested UAE (`AE`) support
+> directly in chat — dLocal payment methods (Local Cards/Apple Pay/Bank Transfer, `AED`), Arabic
+> (`ar`) locale, and `Asia/Dubai`/DMY/12h regional defaults — outside the Session 14-x chat-stack
+> work above and outside the playbook numbering entirely, per `EXECUTOR-PROTOCOL.md` §6. Not a
+> migration slice: dLocal now supports 9 countries (`IN/NG/PK/VN/ID/TH/ZA/TR/AE`) in both the
+> monolith (`lib/dlocal/*`, `types/dlocal.ts`) and `money-service` (`src/dlocal/*`) in lockstep,
+> plus `lib/country-config.ts`, `lib/preferences/defaults.ts` +
+> `operation-service/src/users/users.schemas.ts` (`SUPPORTED_COUNTRY_CODES`, now 13),
+> `lib/preferences/geo-locale.ts`, `lib/i18n/locale-resolver.ts` (`PRIMARY_COUNTRY_FOR_LANGUAGE`),
+> RTL wiring in `lib/context/locale-context.tsx` (`dir="rtl"` for `ar`/`ur`), and
+> `app/settings/language/page.tsx`'s standalone language/timezone/currency lists.
+> **Found and fixed one real, undocumented dependency the request didn't name:**
+> `components/payments/PriceDisplay.tsx` has its own `Record<DLocalCurrency, ...>` maps
+> (symbols/names/fallback rates) — `tsc --noEmit` caught the missing `AED` member immediately
+> (same "file 6/10 gap" class already seen in this codebase's dLocal history); fixed before
+> declaring done, not deferred.
+> **Scope call on `lib/i18n/dictionaries/ar.json` (new file):** en-US.json is 2270 lines, ~2190 of
+> which are literal English marketing/mock-dashboard copy used as self-referencing keys (not real
+> i18n plumbing). Translated all ~65 real dotted-namespace keys (`nav.*`, `settings.*`, `form.*`,
+> `chart.*`, etc. — the actual `t()`-driven chrome) plus ~140 curated literal keys spanning
+> navigation, dashboard, alerts, pricing, checkout, auth, and admin/affiliate screens, rather than
+> forcing full 2270-key parity. Safe by design: `locale-context.tsx`'s `t()` falls back to its own
+> `fallback` param or the raw key, and `get-dictionary.ts` falls back to `en-GB` wholesale — a
+> partial dictionary degrades to English, it never breaks.
+> **Verified:** `npx tsc --noEmit` clean on monolith, `money-service`, and `operation-service`;
+> `eslint` clean on every changed file; monolith Jest **195/195** (`__tests__/lib/dlocal`,
+> `__tests__/types/dlocal.test.ts`, `__tests__/api/user.test.ts`,
+> `__tests__/e2e/dlocal-payment-flow.test.ts`, the last extended with an `AE` case not asked for
+> but consistent with its own existing per-country parametrization); `money-service` Jest
+> **112/112**. Live-verified in a real browser: `/ae` resolves `document.documentElement.lang` to
+> `ar` and `dir` to `rtl` with zero console errors (confirms `SUPPORTED_COUNTRIES`-driven
+> middleware prefix routing picked up `ae` with no `middleware.ts` change needed).
+> `frontend/` (SEPARATE_STACK, do-not-touch per §5) has its own byte-identical dLocal
+> constants/components/tests — deliberately left untouched.
+
 - **Current:** Session 14-1 (Container Stack Build & Deploy, Phase 14 — second of 4 sessions,
   INFRA), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. Builds and deploys the
   3-container chat stack frozen at Session 14-0 onto Davin's Contabo VPS (`139.180.209.200`,

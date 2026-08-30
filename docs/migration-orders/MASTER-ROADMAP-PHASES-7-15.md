@@ -525,6 +525,12 @@ tax-invoicing-manifest-work-completion.md` and `…/affiliate-commission-issues-
 is still open and belongs to Davin, not to any session:** Stripe Dashboard tax settings + the Irish OSS
 registration. 8-3's journey list above was extended to cover both features.
 
+**UAE (`AE`) dLocal + Arabic locale support (ad-hoc, 2026-08-30):** Davin-requested feature
+addition, outside the phase numbering — see `CLAUDE.md`'s matching ad-hoc note for full detail.
+dLocal now supports 9 countries (added `AE`/`AED`, Local Cards/Apple Pay/Bank Transfer) in the
+monolith and `money-service` in lockstep; `lib/i18n/dictionaries/ar.json` added (new file,
+partial-coverage-by-design, see `CLAUDE.md`); RTL wiring added to `lib/context/locale-context.tsx`.
+
 | Item                                                                                                                               | Now owned by                                        |
 | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
 | `BLOB_READ_WRITE_TOKEN` not provisioned — the real upload path is untested                                                         | **Davin**, before 9-8                               |
