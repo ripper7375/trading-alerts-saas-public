@@ -108,6 +108,34 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // No body or invalid JSON - that's fine, affiliateCode is optional
     }
 
+    // Look up first: `Subscription.userId` is unique, so a returning row
+    // here (any status -- ACTIVE, CANCELED, etc.) means this account has
+    // subscribed before. Also reused below to attach `customer_update` for
+    // an existing Stripe customer -- see createCheckoutSession's
+    // davintrade-vat-stack doc comment.
+    const existingSubscription = await prisma.subscription.findUnique({
+      where: { userId },
+      select: { stripeCustomerId: true },
+    });
+
+    // Recurring-commission follow-up: the one-time welcome discount (and
+    // the commission it unlocks for the referring affiliate) is a first-time
+    // benefit only. A resuming/returning account never gets a fresh
+    // discount code applied, regardless of which unused code it submits --
+    // this is what stops "cancel, then resubscribe with a new code" from
+    // re-opening either the discount or a new affiliate attribution.
+    if (affiliateCode && existingSubscription) {
+      return NextResponse.json(
+        {
+          error: 'Not eligible',
+          message:
+            'Affiliate discount codes only apply to your first subscription',
+          code: 'AFFILIATE_CODE_FIRST_TIME_ONLY',
+        },
+        { status: 400 }
+      );
+    }
+
     // Validate the affiliate code and resolve its discount BEFORE creating
     // the Stripe session, so the customer is actually charged the
     // discounted price (and invalid codes are rejected up front).
@@ -146,14 +174,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const baseUrl = process.env['NEXTAUTH_URL'] || 'http://localhost:3000';
     const successUrl = `${baseUrl}/upgrade/success?upgrade=success`;
     const cancelUrl = `${baseUrl}/pricing?upgrade=cancelled`;
-
-    // Reuse an existing Stripe customer (e.g. re-subscribing after a prior
-    // cancellation) so checkout can attach `customer_update` -- see
-    // createCheckoutSession's davintrade-vat-stack doc comment.
-    const existingSubscription = await prisma.subscription.findUnique({
-      where: { userId },
-      select: { stripeCustomerId: true },
-    });
 
     // Create Stripe Checkout session
     const idempotencyKey = buildCheckoutIdempotencyKey(

@@ -16,6 +16,7 @@ const mockInvoiceUpsert = jest.fn();
 const mockAffiliateCodeFindUnique = jest.fn();
 const mockAffiliateCodeUpdate = jest.fn();
 const mockCommissionFindFirst = jest.fn();
+const mockCommissionFindMany = jest.fn();
 const mockCommissionCreate = jest.fn();
 const mockCommissionUpdate = jest.fn();
 const mockAffiliateProfileUpdate = jest.fn();
@@ -41,6 +42,7 @@ jest.mock('@/lib/db/prisma', () => ({
     },
     commission: {
       findFirst: (...args: unknown[]) => mockCommissionFindFirst(...args),
+      findMany: (...args: unknown[]) => mockCommissionFindMany(...args),
       create: (...args: unknown[]) => mockCommissionCreate(...args),
       update: (...args: unknown[]) => mockCommissionUpdate(...args),
     },
@@ -494,10 +496,12 @@ describe('Stripe Webhook Handlers', () => {
         }),
       });
 
-      // Verify subscription was marked as cancelled
+      // Verify subscription was marked as cancelled, and the affiliate
+      // attribution explicitly cleared (recurring-commission follow-up:
+      // stops any further renewal from crediting commission).
       expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
         where: { id: 'sub-db-123' },
-        data: { status: 'CANCELED' },
+        data: { status: 'CANCELED', affiliateCodeId: null },
       });
 
       // Verify subscription canceled email was sent with access end date
@@ -848,7 +852,7 @@ describe('Stripe Webhook Handlers', () => {
       );
     });
 
-    describe('affiliate commission crediting (commission-timing fix)', () => {
+    describe('affiliate commission crediting (commission-timing fix + recurring-commission follow-up)', () => {
       const dbSubscriptionWithCode = {
         ...mockDbSubscription,
         affiliateCodeId: 'code-1',
@@ -865,7 +869,9 @@ describe('Stripe Webhook Handlers', () => {
           discountPercent: 20,
           commissionPercent: 20,
         });
-        mockCommissionFindFirst.mockResolvedValue(null);
+        // No prior cycles by default -- individual tests override to
+        // simulate later renewals / the cap being reached.
+        mockCommissionFindMany.mockResolvedValue([]);
         mockCommissionCreate.mockResolvedValue({ id: 'commission-1' });
         mockAffiliateProfileUpdate.mockResolvedValue({
           userId: 'affiliate-user-1',
@@ -873,7 +879,7 @@ describe('Stripe Webhook Handlers', () => {
         });
       });
 
-      it('credits the commission and clears the pending attribution when a code was reserved', async () => {
+      it('credits cycle 1 with the code discount, stamps the invoice id, and leaves the attribution in place for future renewals', async () => {
         mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
 
         await handleInvoiceSucceeded(mockInvoice);
@@ -884,11 +890,16 @@ describe('Stripe Webhook Handlers', () => {
             affiliateCodeId: 'code-1',
             userId: 'user-123',
             subscriptionId: 'sub_test_123',
+            stripeInvoiceId: 'inv_test_123',
             status: 'PENDING',
           }),
         });
-        // Cleared so a later renewal never re-triggers this same code's payout.
-        expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
+        // mockInvoice.amount_paid is 2900 cents = $29.00; cycle 1 applies
+        // the code's actual discountPercent (20).
+        expect(mockCalculateFullBreakdown).toHaveBeenCalledWith(29, 20, 20);
+        // NOT cleared -- the cap (24) hasn't been reached, so the next
+        // renewal must still see affiliateCodeId to keep crediting.
+        expect(mockSubscriptionUpdate).not.toHaveBeenCalledWith({
           where: { id: 'sub-db-123' },
           data: { affiliateCodeId: null },
         });
@@ -902,13 +913,60 @@ describe('Stripe Webhook Handlers', () => {
         });
       });
 
-      it('uses the actual invoice amount as gross revenue, not a static base price', async () => {
+      it('credits a renewal cycle (2+) on the FULL price -- no discount, since the Stripe coupon is one-time only', async () => {
         mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
+        // One prior cycle already credited -> this invoice is cycle 2.
+        mockCommissionFindMany.mockResolvedValue([
+          { stripeInvoiceId: 'inv_prev_1' },
+        ]);
 
         await handleInvoiceSucceeded(mockInvoice);
 
-        // mockInvoice.amount_paid is 2900 cents = $29.00
-        expect(mockCalculateFullBreakdown).toHaveBeenCalledWith(29, 20, 20);
+        expect(mockCalculateFullBreakdown).toHaveBeenCalledWith(29, 0, 20);
+        expect(mockCommissionCreate).toHaveBeenCalledWith({
+          data: expect.objectContaining({ stripeInvoiceId: 'inv_test_123' }),
+        });
+        expect(mockSubscriptionUpdate).not.toHaveBeenCalledWith({
+          where: { id: 'sub-db-123' },
+          data: { affiliateCodeId: null },
+        });
+      });
+
+      it('clears the attribution once the 24th cycle is credited', async () => {
+        mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
+        // 23 prior cycles -> this invoice is cycle 24, the cap.
+        mockCommissionFindMany.mockResolvedValue(
+          Array.from({ length: 23 }, (_, i) => ({
+            stripeInvoiceId: `inv_prev_${i}`,
+          }))
+        );
+
+        await handleInvoiceSucceeded(mockInvoice);
+
+        expect(mockCommissionCreate).toHaveBeenCalled();
+        expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
+          where: { id: 'sub-db-123' },
+          data: { affiliateCodeId: null },
+        });
+      });
+
+      it('does not credit a 25th cycle once the cap was already reached, and defensively re-clears the attribution', async () => {
+        mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
+        // 24 prior cycles already credited -> the cap was already hit.
+        mockCommissionFindMany.mockResolvedValue(
+          Array.from({ length: 24 }, (_, i) => ({
+            stripeInvoiceId: `inv_prev_${i}`,
+          }))
+        );
+
+        await handleInvoiceSucceeded(mockInvoice);
+
+        expect(mockCommissionCreate).not.toHaveBeenCalled();
+        expect(mockAffiliateProfileUpdate).not.toHaveBeenCalled();
+        expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
+          where: { id: 'sub-db-123' },
+          data: { affiliateCodeId: null },
+        });
       });
 
       it('does not credit anything when the subscription has no pending affiliate attribution', async () => {
@@ -920,9 +978,11 @@ describe('Stripe Webhook Handlers', () => {
         expect(mockCommissionCreate).not.toHaveBeenCalled();
       });
 
-      it('is idempotent: skips creating a duplicate commission on a redelivered webhook', async () => {
+      it('is idempotent: skips creating a duplicate commission for the SAME invoice on a redelivered webhook', async () => {
         mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
-        mockCommissionFindFirst.mockResolvedValue({ id: 'commission-already' });
+        mockCommissionFindMany.mockResolvedValue([
+          { stripeInvoiceId: 'inv_test_123' },
+        ]);
 
         await handleInvoiceSucceeded(mockInvoice);
 
@@ -1059,6 +1119,12 @@ describe('Stripe Webhook Handlers', () => {
     const mockCommission = {
       id: 'commission-1',
       affiliateProfileId: 'aff-1',
+      affiliateCodeId: 'code-1',
+      userId: 'user-123',
+      subscriptionId: 'sub_test_123',
+      grossRevenue: 29,
+      discountAmount: 5.8,
+      netRevenue: 23.2,
       commissionAmount: 5.8,
       status: 'PENDING',
     };
@@ -1090,6 +1156,19 @@ describe('Stripe Webhook Handlers', () => {
       });
     });
 
+    it('recurring-commission follow-up: targets the exact commission cycle tied to the refunded invoice', async () => {
+      mockCommissionFindFirst.mockResolvedValue(mockCommission);
+
+      await handleChargeRefunded({
+        customer: 'cus_test_123',
+        invoice: 'inv_5',
+      } as unknown as Stripe.Charge);
+
+      expect(mockCommissionFindFirst).toHaveBeenCalledWith({
+        where: { subscriptionId: 'sub_test_123', stripeInvoiceId: 'inv_5' },
+      });
+    });
+
     it('also cancels an APPROVED (not yet disbursed) commission', async () => {
       mockCommissionFindFirst.mockResolvedValue({
         ...mockCommission,
@@ -1106,18 +1185,47 @@ describe('Stripe Webhook Handlers', () => {
       });
     });
 
-    it('does NOT touch an already-PAID commission -- flags it for manual recovery instead', async () => {
+    it('does NOT flip an already-PAID commission -- instead creates a negative clawback row netted against the next payout', async () => {
       mockCommissionFindFirst.mockResolvedValue({
         ...mockCommission,
         status: 'PAID',
       });
+      mockCommissionCreate.mockResolvedValue({ id: 'commission-clawback-1' });
 
       await handleChargeRefunded({
         customer: 'cus_test_123',
       } as unknown as Stripe.Charge);
 
+      // The original PAID row is never touched -- money already left, so
+      // it can't be silently flipped back.
       expect(mockCommissionUpdate).not.toHaveBeenCalled();
-      expect(mockAffiliateProfileUpdate).not.toHaveBeenCalled();
+
+      // Instead, a new negative-amount row is created, referencing the
+      // original via clawbackOfCommissionId, immediately APPROVED (a
+      // correction, not a new earning -- no trial-safety hold needed).
+      expect(mockCommissionCreate).toHaveBeenCalledWith({
+        data: {
+          affiliateProfileId: 'aff-1',
+          affiliateCodeId: 'code-1',
+          userId: 'user-123',
+          subscriptionId: 'sub_test_123',
+          grossRevenue: -29,
+          discountAmount: -5.8,
+          netRevenue: -23.2,
+          commissionAmount: -5.8,
+          status: 'APPROVED',
+          approvedAt: expect.any(Date),
+          clawbackOfCommissionId: 'commission-1',
+        },
+      });
+
+      expect(mockAffiliateProfileUpdate).toHaveBeenCalledWith({
+        where: { id: 'aff-1' },
+        data: {
+          totalEarnings: { decrement: 5.8 },
+          pendingCommissions: { decrement: 5.8 },
+        },
+      });
     });
 
     it('is idempotent: no-ops on an already-CANCELLED commission', async () => {

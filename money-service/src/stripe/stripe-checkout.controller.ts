@@ -61,6 +61,28 @@ export class StripeCheckoutController {
 
       const affiliateCode = body?.affiliateCode;
 
+      // Reuse an existing Stripe customer (e.g. re-subscribing after a
+      // prior cancellation) so checkout can attach `customer_update` --
+      // mirrors app/api/checkout/route.ts (davintrade-vat-stack). Also
+      // doubles as the "has this account ever subscribed before" check
+      // below (Subscription.userId is unique).
+      const existingSubscription = await this.prisma.subscription.findUnique({
+        where: { userId },
+        select: { stripeCustomerId: true },
+      });
+
+      // Recurring-commission follow-up: the one-time welcome discount (and
+      // the commission it unlocks for the referring affiliate) is a
+      // first-time benefit only -- mirrors app/api/checkout/route.ts.
+      if (affiliateCode && existingSubscription) {
+        throw new BadRequestException({
+          error: 'Not eligible',
+          message:
+            'Affiliate discount codes only apply to your first subscription',
+          code: 'AFFILIATE_CODE_FIRST_TIME_ONLY',
+        });
+      }
+
       let discountPercent = 0;
       let normalizedAffiliateCode: string | undefined;
 
@@ -99,14 +121,6 @@ export class StripeCheckoutController {
         userId,
         normalizedAffiliateCode
       );
-
-      // Reuse an existing Stripe customer (e.g. re-subscribing after a
-      // prior cancellation) so checkout can attach `customer_update` --
-      // mirrors app/api/checkout/route.ts (davintrade-vat-stack).
-      const existingSubscription = await this.prisma.subscription.findUnique({
-        where: { userId },
-        select: { stripeCustomerId: true },
-      });
 
       const checkoutSession = await this.stripeService.createCheckoutSession(
         userId,

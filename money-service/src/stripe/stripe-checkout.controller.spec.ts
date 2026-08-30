@@ -153,6 +153,48 @@ describe('StripeCheckoutController', () => {
     );
   });
 
+  it('throws 400 AFFILIATE_CODE_FIRST_TIME_ONLY when a returning subscriber submits an affiliate code (recurring-commission follow-up)', async () => {
+    prismaMock.subscription.findUnique.mockResolvedValue({
+      stripeCustomerId: 'cus_returning_1',
+    } as never);
+
+    await expect(
+      controller.createCheckout(makeRequest(), { affiliateCode: 'GOOD10' })
+    ).rejects.toMatchObject({
+      response: { code: 'AFFILIATE_CODE_FIRST_TIME_ONLY' },
+      status: 400,
+    });
+    expect(prismaMock.affiliateCode.findFirst).not.toHaveBeenCalled();
+    expect(stripeServiceMock.createCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it('still applies a valid code for a genuinely first-time subscriber (no existing Subscription row)', async () => {
+    prismaMock.subscription.findUnique.mockResolvedValue(null);
+    prismaMock.affiliateCode.findFirst.mockResolvedValue({
+      discountPercent: 15,
+      affiliateProfile: { status: 'ACTIVE' },
+    } as never);
+    stripeServiceMock.createCheckoutSession.mockResolvedValue({
+      id: 'cs_789',
+      url: 'https://checkout.stripe.com/pay/cs_789',
+    });
+
+    await controller.createCheckout(makeRequest(), {
+      affiliateCode: 'good10',
+    });
+
+    expect(stripeServiceMock.createCheckoutSession).toHaveBeenCalledWith(
+      'user-1',
+      'user@example.com',
+      expect.any(String),
+      expect.any(String),
+      'GOOD10',
+      15,
+      'idem-key-1',
+      undefined
+    );
+  });
+
   it('maps a STRIPE_PRO_PRICE_ID error to 500 STRIPE_CONFIG_ERROR', async () => {
     stripeServiceMock.createCheckoutSession.mockRejectedValue(
       new Error('STRIPE_PRO_PRICE_ID environment variable is not set')

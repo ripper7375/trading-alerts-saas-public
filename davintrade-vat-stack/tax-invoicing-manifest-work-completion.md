@@ -4,6 +4,8 @@
 **Date:** 2026-08-29
 **Status:** Code complete; database migration applied to production and verified; Stripe Dashboard / Irish OSS registration still manual (guidance below)
 
+> **Scope note:** this document covers the multi-jurisdiction VAT/tax-invoicing feature only. The same working session also fixed an unrelated pre-existing bug in the affiliate commission flow and added a refund/dispute-clawback mechanism — none of that touches tax calculation or invoicing, so it's tracked separately in [`affiliate-commission-issues-fix.md`](./affiliate-commission-issues-fix.md).
+
 ---
 
 ## 1. What was built

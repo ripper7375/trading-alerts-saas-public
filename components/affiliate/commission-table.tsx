@@ -29,6 +29,13 @@ interface Commission {
   affiliateCode: {
     code: string;
   };
+  /**
+   * davintrade-vat-stack follow-up: set only on a clawback deduction row --
+   * created when a refund/dispute arrives for a customer whose commission
+   * was already PAID, netted against the affiliate's next payout instead
+   * of clawing back a disbursement that already happened.
+   */
+  clawbackOfCommissionId?: string | null;
 }
 
 interface CommissionTableProps {
@@ -114,34 +121,56 @@ export function CommissionTable({
           </tr>
         </thead>
         <tbody className="divide-y divide-border bg-card">
-          {commissions.map((commission) => (
-            <tr key={commission.id}>
-              <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-foreground">
-                {commission.affiliateCode.code}
-              </td>
-              <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-foreground">
-                ${Number(commission.commissionAmount).toFixed(2)}
-              </td>
-              <td className="whitespace-nowrap px-6 py-4">
-                <span
+          {commissions.map((commission) => {
+            const isClawback = Boolean(commission.clawbackOfCommissionId);
+            const amount = Number(commission.commissionAmount);
+
+            return (
+              <tr key={commission.id}>
+                <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-foreground">
+                  {commission.affiliateCode.code}
+                </td>
+                <td
                   className={cn(
-                    'rounded px-2 py-1 text-xs font-medium',
-                    statusStyles[commission.status]
+                    'whitespace-nowrap px-6 py-4 text-sm font-semibold',
+                    isClawback
+                      ? 'text-red-600 dark:text-red-400'
+                      : 'text-foreground'
                   )}
                 >
-                  {commission.status}
-                </span>
-              </td>
-              <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
-                {format(new Date(commission.earnedAt), 'MMM d, yyyy')}
-              </td>
-              <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
-                {commission.paidAt
-                  ? format(new Date(commission.paidAt), 'MMM d, yyyy')
-                  : '-'}
-              </td>
-            </tr>
-          ))}
+                  {`${isClawback && amount < 0 ? '-' : ''}$${Math.abs(amount).toFixed(2)}`}
+                </td>
+                <td className="whitespace-nowrap px-6 py-4">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span
+                      className={cn(
+                        'rounded px-2 py-1 text-xs font-medium',
+                        statusStyles[commission.status]
+                      )}
+                    >
+                      {commission.status}
+                    </span>
+                    {isClawback && (
+                      <span
+                        title="Deducted for a refund/dispute on a commission already paid out; nets against your next payout."
+                        className="rounded border border-red-500/30 bg-red-500/15 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400"
+                      >
+                        Clawback
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
+                  {format(new Date(commission.earnedAt), 'MMM d, yyyy')}
+                </td>
+                <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
+                  {commission.paidAt
+                    ? format(new Date(commission.paidAt), 'MMM d, yyyy')
+                    : '-'}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

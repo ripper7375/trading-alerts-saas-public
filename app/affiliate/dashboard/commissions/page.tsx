@@ -36,6 +36,12 @@ interface Commission {
   affiliateCode: {
     code: string;
   };
+  /**
+   * davintrade-vat-stack follow-up: set only on a clawback deduction row --
+   * created when a refund/dispute arrives for a customer whose commission
+   * was already PAID, netted against the next payout.
+   */
+  clawbackOfCommissionId?: string | null;
 }
 
 interface CommissionsResponse {
@@ -264,6 +270,15 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
               CANCELLED
             </span>
             <span className="text-muted-foreground">Refund/cancellation</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded border border-red-500/30 bg-red-500/15 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400">
+              CLAWBACK
+            </span>
+            <span className="text-muted-foreground">
+              Deduction for a refund on a commission already paid — offsets your
+              next payout
+            </span>
           </div>
         </div>
       </div>

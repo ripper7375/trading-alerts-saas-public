@@ -439,6 +439,12 @@ model Commission {
   userId         String
   subscriptionId String?
 
+  /// Recurring-commission follow-up: the Stripe invoice this commission
+  /// cycle was credited from. Per-cycle idempotency key + lets refund/
+  /// dispute clawback target the exact cycle refunded. Mirrors the
+  /// monolith's prisma/non-market-data/schema.prisma field verbatim.
+  stripeInvoiceId String?
+
   grossRevenue     Decimal
   discountAmount   Decimal
   netRevenue       Decimal
@@ -449,6 +455,13 @@ model Commission {
   approvedAt  DateTime?
   paidAt      DateTime?
   cancelledAt DateTime?
+
+  /// davintrade-vat-stack follow-up: set only on a clawback row (a
+  /// negative-amount Commission created when a refund/dispute arrives for
+  /// a customer whose commission was already PAID). Points at the id of
+  /// the original PAID row being clawed back. Mirrors the monolith's
+  /// prisma/non-market-data/schema.prisma field verbatim.
+  clawbackOfCommissionId String?
 
   paymentBatchId   String?
   paymentMethod    String?
@@ -465,6 +478,8 @@ model Commission {
   @@index([status])
   @@index([earnedAt])
   @@index([paidAt])
+  @@index([clawbackOfCommissionId])
+  @@index([stripeInvoiceId])
 }
 
 model Notification {

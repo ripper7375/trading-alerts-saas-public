@@ -263,6 +263,34 @@ describe('CommissionTable Component', () => {
     });
   });
 
+  describe('Clawback rows (davintrade-vat-stack follow-up)', () => {
+    it('shows a Clawback badge and negative amount in red for a clawback row', () => {
+      const clawback = {
+        id: '4',
+        commissionAmount: -5.8,
+        status: 'APPROVED' as const,
+        earnedAt: new Date('2024-02-01'),
+        paidAt: null,
+        affiliateCode: { code: 'TEST1234' },
+        clawbackOfCommissionId: 'commission-original-1',
+      };
+      render(<CommissionTable commissions={[clawback]} />);
+
+      expect(screen.getByText('Clawback')).toBeInTheDocument();
+      const amountCell = screen.getByText('-$5.80');
+      expect(amountCell).toBeInTheDocument();
+      expect(amountCell.className).toMatch(/red/i);
+      // The underlying status badge is still shown alongside it.
+      expect(screen.getByText('APPROVED')).toBeInTheDocument();
+    });
+
+    it('does not show a Clawback badge for a normal commission', () => {
+      render(<CommissionTable commissions={[mockCommissions[0]]} />);
+
+      expect(screen.queryByText('Clawback')).not.toBeInTheDocument();
+    });
+  });
+
   describe('Edge Cases', () => {
     it('should handle commission with zero amount', () => {
       const zeroCommission = {

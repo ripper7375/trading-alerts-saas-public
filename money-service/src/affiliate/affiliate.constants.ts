@@ -91,6 +91,14 @@ export const AFFILIATE_CONFIG = {
    * Base subscription price (before discount)
    */
   BASE_PRICE_USD: 29.0,
+
+  /**
+   * Recurring-commission follow-up: total number of billing cycles an
+   * affiliate is paid a commission for on one referred subscription --
+   * cycle 1 (the discounted signup) plus 23 further renewals, 24 total.
+   * Mirrors lib/affiliate/constants.ts verbatim.
+   */
+  MAX_RECURRING_COMMISSION_CYCLES: 24,
 } as const;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

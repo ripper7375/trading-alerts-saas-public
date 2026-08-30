@@ -99,6 +99,17 @@ export const AFFILIATE_CONFIG = {
    * Base subscription price (before discount)
    */
   BASE_PRICE_USD: 29.0,
+
+  /**
+   * Recurring-commission follow-up: total number of billing cycles an
+   * affiliate is paid a commission for on one referred subscription --
+   * cycle 1 (the discounted signup) plus 23 further renewals, 24 total.
+   * The discount itself is one-time only (cycle 1); cycles 2-24 pay
+   * commission on the full, undiscounted price. Once this cap is reached,
+   * or the subscription is cancelled, whichever comes first, no further
+   * commission is credited even if the customer keeps paying.
+   */
+  MAX_RECURRING_COMMISSION_CYCLES: 24,
 } as const;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

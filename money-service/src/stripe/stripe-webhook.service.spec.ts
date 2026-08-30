@@ -245,9 +245,11 @@ describe('StripeWebhookService', () => {
           trialStatus: 'CANCELLED',
         }),
       });
+      // Recurring-commission follow-up: affiliateCodeId explicitly cleared
+      // so no further renewal can credit commission after cancellation.
       expect(prismaMock.subscription.update).toHaveBeenCalledWith({
         where: { id: 'sub-row-1' },
-        data: { status: 'CANCELED' },
+        data: { status: 'CANCELED', affiliateCodeId: null },
       });
       expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
         prismaMock,
@@ -411,8 +413,8 @@ describe('StripeWebhookService', () => {
       );
     });
 
-    describe('affiliate commission crediting (commission-timing fix)', () => {
-      it('credits the commission and clears the pending attribution when a code was reserved', async () => {
+    describe('affiliate commission crediting (commission-timing fix + recurring-commission follow-up)', () => {
+      it('credits the commission but leaves the attribution in place when the cap has not been reached', async () => {
         prismaMock.subscription.findFirst.mockResolvedValue({
           id: 'sub-row-1',
           userId: 'user-1',
@@ -426,6 +428,7 @@ describe('StripeWebhookService', () => {
           affiliateUserId: 'affiliate-user-1',
           code: 'AFF10',
           totalEarnings: 123.45,
+          capReached: false,
         });
 
         await service.handleInvoiceSucceeded({
@@ -440,6 +443,7 @@ describe('StripeWebhookService', () => {
           userId: 'user-1',
           subscriptionId: 'sub_123',
           grossRevenueUsd: 29,
+          stripeInvoiceId: 'inv_123',
         });
         expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
           prismaMock,
@@ -456,6 +460,64 @@ describe('StripeWebhookService', () => {
               provider: 'STRIPE',
             }),
           })
+        );
+        // NOT cleared -- the cap hasn't been reached, so the next renewal
+        // must still see affiliateCodeId to keep crediting.
+        expect(prismaMock.subscription.update).not.toHaveBeenCalledWith({
+          where: { id: 'sub-row-1' },
+          data: { affiliateCodeId: null },
+        });
+      });
+
+      it('clears the attribution once creditAffiliateCommission reports capReached', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue({
+          id: 'sub-row-1',
+          userId: 'user-1',
+          stripeSubscriptionId: 'sub_123',
+          affiliateCodeId: 'code-1',
+        } as never);
+        conversionProcessorMock.creditAffiliateCommission.mockResolvedValue({
+          processed: true,
+          commissionId: 'comm-24',
+          commissionAmount: 5.8,
+          affiliateUserId: 'affiliate-user-1',
+          code: 'AFF10',
+          totalEarnings: 200,
+          capReached: true,
+        });
+
+        await service.handleInvoiceSucceeded({
+          ...baseInvoice,
+          amount_paid: 2900,
+        } as unknown as Stripe.Invoice);
+
+        expect(prismaMock.subscription.update).toHaveBeenCalledWith({
+          where: { id: 'sub-row-1' },
+          data: { affiliateCodeId: null },
+        });
+      });
+
+      it('clears the attribution when not processed but capReached (cap already hit on a prior cycle)', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue({
+          id: 'sub-row-1',
+          userId: 'user-1',
+          stripeSubscriptionId: 'sub_123',
+          affiliateCodeId: 'code-1',
+        } as never);
+        conversionProcessorMock.creditAffiliateCommission.mockResolvedValue({
+          processed: false,
+          reason: 'CAP_REACHED',
+          capReached: true,
+        });
+
+        await service.handleInvoiceSucceeded({
+          ...baseInvoice,
+          amount_paid: 2900,
+        } as unknown as Stripe.Invoice);
+
+        expect(outboxServiceMock.recordInTransaction).not.toHaveBeenCalledWith(
+          prismaMock,
+          expect.objectContaining({ eventType: 'COMMISSION_CREDITED' })
         );
         expect(prismaMock.subscription.update).toHaveBeenCalledWith({
           where: { id: 'sub-row-1' },
@@ -508,6 +570,12 @@ describe('StripeWebhookService', () => {
     const mockCommission = {
       id: 'commission-1',
       affiliateProfileId: 'aff-1',
+      affiliateCodeId: 'code-1',
+      userId: 'user-1',
+      subscriptionId: 'sub_123',
+      grossRevenue: 29,
+      discountAmount: 5.8,
+      netRevenue: 23.2,
       commissionAmount: 5.8,
       status: 'PENDING',
     };
@@ -543,6 +611,21 @@ describe('StripeWebhookService', () => {
       });
     });
 
+    it('recurring-commission follow-up: targets the exact commission cycle tied to the refunded invoice', async () => {
+      prismaMock.commission.findFirst.mockResolvedValue(
+        mockCommission as never
+      );
+
+      await service.handleChargeRefunded({
+        customer: 'cus_123',
+        invoice: 'inv_5',
+      } as unknown as Stripe.Charge);
+
+      expect(prismaMock.commission.findFirst).toHaveBeenCalledWith({
+        where: { subscriptionId: 'sub_123', stripeInvoiceId: 'inv_5' },
+      });
+    });
+
     it('also cancels an APPROVED (not yet disbursed) commission', async () => {
       prismaMock.commission.findFirst.mockResolvedValue({
         ...mockCommission,
@@ -559,18 +642,49 @@ describe('StripeWebhookService', () => {
       });
     });
 
-    it('does NOT touch an already-PAID commission -- flags it for manual recovery instead', async () => {
+    it('does NOT flip an already-PAID commission -- instead creates a negative clawback row netted against the next payout', async () => {
       prismaMock.commission.findFirst.mockResolvedValue({
         ...mockCommission,
         status: 'PAID',
+      } as never);
+      prismaMock.commission.create.mockResolvedValue({
+        id: 'commission-clawback-1',
       } as never);
 
       await service.handleChargeRefunded({
         customer: 'cus_123',
       } as unknown as Stripe.Charge);
 
+      // The original PAID row is never touched -- money already left, so
+      // it can't be silently flipped back.
       expect(prismaMock.commission.update).not.toHaveBeenCalled();
-      expect(prismaMock.affiliateProfile.update).not.toHaveBeenCalled();
+
+      // Instead, a new negative-amount row is created, referencing the
+      // original via clawbackOfCommissionId, immediately APPROVED (a
+      // correction, not a new earning -- no trial-safety hold needed).
+      expect(prismaMock.commission.create).toHaveBeenCalledWith({
+        data: {
+          affiliateProfileId: 'aff-1',
+          affiliateCodeId: 'code-1',
+          userId: 'user-1',
+          subscriptionId: 'sub_123',
+          grossRevenue: -29,
+          discountAmount: -5.8,
+          netRevenue: -23.2,
+          commissionAmount: -5.8,
+          status: 'APPROVED',
+          approvedAt: expect.any(Date),
+          clawbackOfCommissionId: 'commission-1',
+        },
+      });
+
+      expect(prismaMock.affiliateProfile.update).toHaveBeenCalledWith({
+        where: { id: 'aff-1' },
+        data: {
+          totalEarnings: { decrement: 5.8 },
+          pendingCommissions: { decrement: 5.8 },
+        },
+      });
     });
 
     it('is idempotent: no-ops on an already-CANCELLED commission', async () => {

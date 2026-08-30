@@ -23,6 +23,7 @@ import {
 } from '@/lib/email/subscription-emails';
 import { sendSubscriptionConfirmationEmail } from '@/lib/email/email';
 import { calculateFullBreakdown } from '@/lib/affiliate/commission-calculator';
+import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
 
 /**
  * Subscription/AffiliateProfile no longer carry a `user` relation (Session
@@ -263,10 +264,14 @@ export async function handleSubscriptionDeleted(
       },
     });
 
-    // Update subscription status to CANCELLED
+    // Update subscription status to CANCELLED. Recurring-commission
+    // follow-up: also clears affiliateCodeId explicitly -- renewals stop
+    // credit naturally once Stripe sends no further invoices, but clearing
+    // this here makes "commission stops on cancellation" an explicit,
+    // testable guarantee rather than relying only on that implicit absence.
     await prisma.subscription.update({
       where: { id: dbSubscription.id },
-      data: { status: 'CANCELED' },
+      data: { status: 'CANCELED', affiliateCodeId: null },
     });
 
     // Send subscription canceled email with access end date
@@ -437,13 +442,17 @@ export async function handleInvoiceSucceeded(
     // (davintrade-vat-stack follow-up fix) because the 7-day trial means no
     // charge happens there yet; crediting it that early paid affiliates on
     // signups that later failed to pay or were cancelled during the trial.
+    // Recurring-commission follow-up: fires on EVERY qualifying invoice (not
+    // just the first) up to MAX_RECURRING_COMMISSION_CYCLES -- see
+    // processAffiliateCommission's own doc comment.
     if (dbSubscription.affiliateCodeId) {
       await processAffiliateCommission(
         dbSubscription.id,
         dbSubscription.affiliateCodeId,
         dbSubscription.userId,
         dbSubscription.stripeSubscriptionId,
-        amountPaid / 100
+        amountPaid / 100,
+        invoice.id
       );
     }
 
@@ -517,7 +526,13 @@ export async function handleChargeRefunded(
 ): Promise<void> {
   const customerId =
     typeof charge.customer === 'string' ? charge.customer : charge.customer?.id;
-  await cancelCommissionForRefundOrDispute(customerId ?? null, 'refund');
+  const invoiceId =
+    typeof charge.invoice === 'string' ? charge.invoice : charge.invoice?.id;
+  await cancelCommissionForRefundOrDispute(
+    customerId ?? null,
+    invoiceId ?? null,
+    'refund'
+  );
 }
 
 /**
@@ -541,7 +556,13 @@ export async function handleChargeDisputeCreated(
       typeof charge.customer === 'string'
         ? charge.customer
         : charge.customer?.id;
-    await cancelCommissionForRefundOrDispute(customerId ?? null, 'dispute');
+    const invoiceId =
+      typeof charge.invoice === 'string' ? charge.invoice : charge.invoice?.id;
+    await cancelCommissionForRefundOrDispute(
+      customerId ?? null,
+      invoiceId ?? null,
+      'dispute'
+    );
   } catch (error) {
     console.error('[Webhook] Error resolving disputed charge:', error);
   }
@@ -560,9 +581,17 @@ export async function handleChargeDisputeCreated(
  * - Already CANCELLED, or no commission at all for this customer: no-op
  *   (idempotent against webhook redelivery, and the common case of a
  *   refund with no affiliate code involved at all).
+ *
+ * Recurring-commission follow-up: a subscription can now have up to
+ * MAX_RECURRING_COMMISSION_CYCLES separate Commission rows (one per billing
+ * cycle), so this must claw back the ONE row tied to the specific invoice
+ * that was actually refunded/disputed -- not just whichever commission for
+ * the subscription happens to be found first. Falls back to the
+ * subscription-wide lookup only when the invoice id can't be resolved.
  */
 async function cancelCommissionForRefundOrDispute(
   customerId: string | null,
+  invoiceId: string | null,
   reason: 'refund' | 'dispute'
 ): Promise<void> {
   if (!customerId) {
@@ -583,9 +612,16 @@ async function cancelCommissionForRefundOrDispute(
       return;
     }
 
-    const commission = await prisma.commission.findFirst({
-      where: { subscriptionId: dbSubscription.stripeSubscriptionId },
-    });
+    const commission = invoiceId
+      ? await prisma.commission.findFirst({
+          where: {
+            subscriptionId: dbSubscription.stripeSubscriptionId,
+            stripeInvoiceId: invoiceId,
+          },
+        })
+      : await prisma.commission.findFirst({
+          where: { subscriptionId: dbSubscription.stripeSubscriptionId },
+        });
 
     if (!commission) {
       // The common case: most refunds/disputes involve no affiliate code at all.
@@ -597,12 +633,45 @@ async function cancelCommissionForRefundOrDispute(
     }
 
     if (commission.status === 'PAID') {
-      console.error(
-        `[Webhook] ALERT: commission already PAID but underlying charge was ${reason} -- manual recovery needed`,
+      // Money already left for the affiliate -- can't silently reverse a
+      // disbursement that already happened. Instead, net it against their
+      // NEXT payout: create a negative-amount Commission row referencing
+      // the original, immediately APPROVED (this is a correction, not a
+      // new earning, so it doesn't need the trial-safety hold). No changes
+      // needed to CommissionAggregator/buildCommissionSummary -- both
+      // already just sum commissionAmount across rows, so a negative row
+      // nets out automatically wherever it's read.
+      await prisma.commission.create({
+        data: {
+          affiliateProfileId: commission.affiliateProfileId,
+          affiliateCodeId: commission.affiliateCodeId,
+          userId: commission.userId,
+          subscriptionId: commission.subscriptionId,
+          grossRevenue: Number(commission.grossRevenue) * -1,
+          discountAmount: Number(commission.discountAmount) * -1,
+          netRevenue: Number(commission.netRevenue) * -1,
+          commissionAmount: Number(commission.commissionAmount) * -1,
+          status: 'APPROVED',
+          approvedAt: new Date(),
+          clawbackOfCommissionId: commission.id,
+        },
+      });
+
+      await prisma.affiliateProfile.update({
+        where: { id: commission.affiliateProfileId },
+        data: {
+          totalEarnings: { decrement: Number(commission.commissionAmount) },
+          pendingCommissions: {
+            decrement: Number(commission.commissionAmount),
+          },
+        },
+      });
+
+      console.log(
+        `[Webhook] Commission already PAID -- created a $${Number(commission.commissionAmount).toFixed(2)} clawback deduction for the next payout due to ${reason}`,
         {
           commissionId: commission.id,
           affiliateProfileId: commission.affiliateProfileId,
-          amount: Number(commission.commissionAmount),
         }
       );
       return;
@@ -773,10 +842,24 @@ async function reserveAffiliateCode(
 /**
  * Credit the referring affiliate's commission for a code reserved earlier
  * at checkout (davintrade commission-timing fix). Called from
- * handleInvoiceSucceeded, only once real money has actually been
- * collected -- never from checkout completion, and never for a later
- * renewal (idempotent: clears Subscription.affiliateCodeId on success, and
- * a defensive existing-Commission check covers webhook redelivery too).
+ * handleInvoiceSucceeded on EVERY qualifying invoice -- not just the first
+ * (recurring-commission follow-up) -- for as long as the subscription stays
+ * active and the cycle cap below hasn't been reached.
+ *
+ * Cycle 1 (the original discounted signup) applies the code's
+ * discountPercent, since that's the invoice the discount actually landed
+ * on. Cycles 2..MAX_RECURRING_COMMISSION_CYCLES pay commission on the FULL,
+ * undiscounted price (discountPercent 0) -- the Stripe coupon itself is
+ * `duration: 'once'`, so the customer really is paying full price on every
+ * renewal; only the affiliate's commission recurs, not the customer's
+ * discount. Once the cap is reached, or the subscription is cancelled
+ * (handleSubscriptionDeleted clears affiliateCodeId), no further commission
+ * is credited even though the customer keeps paying.
+ *
+ * Idempotent per invoice (not per code): a redelivered invoice.payment_succeeded
+ * (Stripe is at-least-once) must never pay the SAME invoice's commission
+ * twice, but a genuinely later invoice (the next renewal) must still create
+ * its own row.
  *
  * @param dbSubscriptionId - DB Subscription row id (to clear affiliateCodeId)
  * @param affiliateCodeId - The AffiliateCode reserved at checkout
@@ -784,13 +867,15 @@ async function reserveAffiliateCode(
  * @param subscriptionId - Stripe subscription id (nullable to match the
  *   Subscription model's own stripeSubscriptionId type)
  * @param grossRevenueUsd - Actual amount collected on this invoice, in USD
+ * @param stripeInvoiceId - The Stripe invoice this cycle's commission is for
  */
 async function processAffiliateCommission(
   dbSubscriptionId: string,
   affiliateCodeId: string,
   userId: string,
   subscriptionId: string | null,
-  grossRevenueUsd: number
+  grossRevenueUsd: number,
+  stripeInvoiceId: string
 ): Promise<void> {
   try {
     const affiliateCode = await prisma.affiliateCode.findUnique({
@@ -805,32 +890,53 @@ async function processAffiliateCommission(
       return;
     }
 
-    // Idempotency guard: a redelivered invoice.payment_succeeded (Stripe is
-    // at-least-once) must never pay the same code's commission twice.
-    const alreadyCredited = await prisma.commission.findFirst({
-      where: { affiliateCodeId: affiliateCode.id },
+    // Prior cycles for this code, oldest last isn't needed -- just the
+    // count and whether this exact invoice was already credited (webhook
+    // redelivery guard).
+    const priorCommissions = await prisma.commission.findMany({
+      where: {
+        affiliateCodeId: affiliateCode.id,
+        clawbackOfCommissionId: null,
+      },
+      select: { stripeInvoiceId: true },
     });
-    if (alreadyCredited) {
+
+    if (priorCommissions.some((c) => c.stripeInvoiceId === stripeInvoiceId)) {
       console.log(
-        '[Webhook] Commission already credited for this code, skipping duplicate:',
-        affiliateCode.code
+        '[Webhook] Commission already credited for this invoice, skipping duplicate:',
+        { code: affiliateCode.code, stripeInvoiceId }
       );
       return;
     }
 
+    const cycleNumber = priorCommissions.length + 1;
+    const maxCycles = AFFILIATE_CONFIG.MAX_RECURRING_COMMISSION_CYCLES;
+
+    if (cycleNumber > maxCycles) {
+      // Cap was already reached on a prior cycle -- clear the attribution
+      // defensively so future invoices skip this lookup entirely.
+      await prisma.subscription.update({
+        where: { id: dbSubscriptionId },
+        data: { affiliateCodeId: null },
+      });
+      return;
+    }
+
+    const isFirstCycle = cycleNumber === 1;
     const breakdown = calculateFullBreakdown(
       grossRevenueUsd,
-      affiliateCode.discountPercent,
+      isFirstCycle ? affiliateCode.discountPercent : 0,
       affiliateCode.commissionPercent
     );
 
-    // Create commission record
+    // Create commission record for this billing cycle
     await prisma.commission.create({
       data: {
         affiliateProfileId: affiliateCode.affiliateProfileId,
         affiliateCodeId: affiliateCode.id,
         userId,
         subscriptionId,
+        stripeInvoiceId,
         grossRevenue: breakdown.grossRevenue,
         discountAmount: breakdown.discountAmount,
         netRevenue: breakdown.netRevenue,
@@ -840,13 +946,14 @@ async function processAffiliateCommission(
       },
     });
 
-    // Clear the pending attribution now that it has been realized as an
-    // actual commission -- prevents a later renewal from re-triggering
-    // this same code's payout.
-    await prisma.subscription.update({
-      where: { id: dbSubscriptionId },
-      data: { affiliateCodeId: null },
-    });
+    // Only clear the attribution once the cap is reached on THIS cycle --
+    // otherwise leave it in place so the next renewal keeps crediting.
+    if (cycleNumber >= maxCycles) {
+      await prisma.subscription.update({
+        where: { id: dbSubscriptionId },
+        data: { affiliateCodeId: null },
+      });
+    }
 
     // Update affiliate profile stats
     const updatedProfile = await prisma.affiliateProfile.update({
@@ -859,7 +966,7 @@ async function processAffiliateCommission(
     });
 
     console.log(
-      `[Webhook] Affiliate commission created: $${breakdown.commissionAmount} for code ${affiliateCode.code}`
+      `[Webhook] Affiliate commission created (cycle ${cycleNumber}/${maxCycles}): $${breakdown.commissionAmount} for code ${affiliateCode.code}`
     );
 
     // Send commission notification email to affiliate

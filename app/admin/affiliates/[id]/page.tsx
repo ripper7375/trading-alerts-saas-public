@@ -50,6 +50,12 @@ interface Commission {
   status: string;
   earnedAt: string;
   paidAt: string | null;
+  /**
+   * davintrade-vat-stack follow-up: set only on a clawback deduction row --
+   * created when a refund/dispute arrives for a customer whose commission
+   * was already PAID, netted against the affiliate's next payout.
+   */
+  clawbackOfCommissionId: string | null;
 }
 
 interface AffiliateDetails {
@@ -646,29 +652,54 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                     </td>
                   </tr>
                 ) : (
-                  affiliate.commissions.map((commission) => (
-                    <tr
-                      key={commission.id}
-                      className="border-border/50 hover:bg-accent/30 border-b transition-colors"
-                    >
-                      <td className="px-4 py-3 font-medium text-foreground">
-                        {formatCurrency(commission.commissionAmount)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge
-                          className={getStatusBadgeClass(commission.status)}
+                  affiliate.commissions.map((commission) => {
+                    const isClawback = Boolean(
+                      commission.clawbackOfCommissionId
+                    );
+
+                    return (
+                      <tr
+                        key={commission.id}
+                        className="border-border/50 hover:bg-accent/30 border-b transition-colors"
+                      >
+                        <td
+                          className={
+                            isClawback
+                              ? 'px-4 py-3 font-medium text-red-600 dark:text-red-400'
+                              : 'px-4 py-3 font-medium text-foreground'
+                          }
                         >
-                          {commission.status}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {formatDate(commission.earnedAt)}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {formatDate(commission.paidAt)}
-                      </td>
-                    </tr>
-                  ))
+                          {isClawback ? '-' : ''}
+                          {formatCurrency(
+                            Math.abs(Number(commission.commissionAmount))
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Badge
+                              className={getStatusBadgeClass(commission.status)}
+                            >
+                              {commission.status}
+                            </Badge>
+                            {isClawback && (
+                              <Badge
+                                title="Deduction for a refund/dispute on a commission already paid out; nets against the affiliate's next payout."
+                                className="bg-red-500/10 text-red-500 hover:bg-red-500/10"
+                              >
+                                CLAWBACK
+                              </Badge>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">
+                          {formatDate(commission.earnedAt)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">
+                          {formatDate(commission.paidAt)}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

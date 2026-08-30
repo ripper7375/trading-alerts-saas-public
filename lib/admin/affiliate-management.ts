@@ -69,6 +69,9 @@ export interface AffiliateDetails extends AffiliateWithUser {
     commissionAmount: number | { toNumber: () => number };
     status: string;
     earnedAt: Date;
+    paidAt?: Date | null;
+    /** davintrade-vat-stack follow-up: set only on a clawback deduction row. */
+    clawbackOfCommissionId?: string | null;
   }>;
 }
 
@@ -177,6 +180,7 @@ export async function getAffiliateDetails(
           status: true,
           earnedAt: true,
           paidAt: true,
+          clawbackOfCommissionId: true,
         },
       },
     },

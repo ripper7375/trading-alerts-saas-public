@@ -684,6 +684,16 @@ model Commission {
   userId         String // SaaS user who upgraded
   subscriptionId String? // Subscription created
 
+  /// Recurring-commission follow-up: the Stripe invoice this specific
+  /// commission cycle was credited from. Per-cycle idempotency key (a
+  /// redelivered invoice.payment_succeeded for the SAME invoice must not
+  /// double-pay), and lets a refund/dispute clawback target the exact cycle
+  /// that was refunded instead of grabbing whichever commission row for the
+  /// subscription happens to be found first. Null on rows created before
+  /// this field existed and on clawback rows (which reference the original
+  /// commission via clawbackOfCommissionId, not an invoice).
+  stripeInvoiceId String?
+
   // Amounts
   grossRevenue     Decimal // Full subscription amount
   discountAmount   Decimal // Discount given to user
@@ -696,6 +706,16 @@ model Commission {
   approvedAt  DateTime?
   paidAt      DateTime?
   cancelledAt DateTime?
+
+  /// davintrade-vat-stack follow-up: set only on a clawback row (a
+  /// negative-amount Commission created when a refund/dispute arrives
+  /// for a customer whose commission was already PAID). Points at the id
+  /// of the original PAID row being clawed back; nets against future
+  /// earnings in the normal payout aggregation (CommissionAggregator sums
+  /// commissionAmount across rows, so a negative row offsets automatically
+  /// -- no relation object, matching this schema's "relation only where
+  /// used" convention).
+  clawbackOfCommissionId String?
 
   // Payment tracking
   paymentBatchId   String?
@@ -712,6 +732,8 @@ model Commission {
   @@index([status])
   @@index([earnedAt])
   @@index([paidAt])
+  @@index([clawbackOfCommissionId])
+  @@index([stripeInvoiceId])
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

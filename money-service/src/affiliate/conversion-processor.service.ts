@@ -29,6 +29,7 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 
+import { AFFILIATE_CONFIG } from './affiliate.constants';
 import { AffiliateConfigService } from './affiliate-config.service';
 import { calculateFullBreakdown } from './commission-calculator';
 
@@ -91,6 +92,15 @@ export interface CreditInput {
   subscriptionId?: string | null;
   /** Actual amount collected on this invoice, in USD (gross, before discount) */
   grossRevenueUsd: number;
+  /** The Stripe invoice this billing cycle's commission is for -- per-cycle
+   * idempotency key (recurring-commission follow-up). */
+  stripeInvoiceId: string;
+}
+
+export interface CreditResult extends ConversionResult {
+  /** True once MAX_RECURRING_COMMISSION_CYCLES has been reached on this
+   * code -- callers use this to clear Subscription.affiliateCodeId. */
+  capReached?: boolean;
 }
 
 @Injectable()
@@ -253,13 +263,21 @@ export class ConversionProcessorService {
    * Credit the referring affiliate's commission for a code reserved
    * earlier at checkout (davintrade commission-timing fix). Call only once
    * real money has actually been collected -- the Stripe webhook path
-   * calls this from `invoice.payment_succeeded`, never from checkout
-   * completion. Idempotent: an existing Commission for this code is a
-   * no-op, covering both webhook redelivery and a later renewal.
+   * calls this from `invoice.payment_succeeded` on EVERY qualifying
+   * invoice, not just the first (recurring-commission follow-up).
+   *
+   * Cycle 1 (the original discounted signup) applies the code's
+   * discountPercent; cycles 2..MAX_RECURRING_COMMISSION_CYCLES pay
+   * commission on the FULL, undiscounted price (the Stripe coupon is
+   * `duration: 'once'`, so only the affiliate's commission recurs, not the
+   * customer's discount). Idempotent per invoice, not per code: a
+   * redelivered webhook for the SAME invoice is a no-op, but a genuinely
+   * later invoice (the next renewal) still creates its own row.
+   * `capReached: true` tells the caller (StripeWebhookService) to clear
+   * Subscription.affiliateCodeId -- either because this credit just hit the
+   * cap, or because it was already hit on a prior cycle.
    */
-  async creditAffiliateCommission(
-    input: CreditInput
-  ): Promise<ConversionResult> {
+  async creditAffiliateCommission(input: CreditInput): Promise<CreditResult> {
     const affiliateCode = await this.prisma.affiliateCode.findUnique({
       where: { id: input.affiliateCodeId },
       include: { affiliateProfile: { select: { id: true, userId: true } } },
@@ -269,16 +287,31 @@ export class ConversionProcessorService {
       return { processed: false, reason: 'CODE_NOT_FOUND' };
     }
 
-    const alreadyCredited = await this.prisma.commission.findFirst({
-      where: { affiliateCodeId: affiliateCode.id },
+    const priorCommissions = await this.prisma.commission.findMany({
+      where: {
+        affiliateCodeId: affiliateCode.id,
+        clawbackOfCommissionId: null,
+      },
+      select: { stripeInvoiceId: true },
     });
-    if (alreadyCredited) {
+
+    if (
+      priorCommissions.some((c) => c.stripeInvoiceId === input.stripeInvoiceId)
+    ) {
       return { processed: false, reason: 'ALREADY_CREDITED' };
     }
 
+    const cycleNumber = priorCommissions.length + 1;
+    const maxCycles = AFFILIATE_CONFIG.MAX_RECURRING_COMMISSION_CYCLES;
+
+    if (cycleNumber > maxCycles) {
+      return { processed: false, reason: 'CAP_REACHED', capReached: true };
+    }
+
+    const isFirstCycle = cycleNumber === 1;
     const breakdown = calculateFullBreakdown(
       input.grossRevenueUsd,
-      affiliateCode.discountPercent,
+      isFirstCycle ? affiliateCode.discountPercent : 0,
       affiliateCode.commissionPercent
     );
 
@@ -290,6 +323,7 @@ export class ConversionProcessorService {
             affiliateCodeId: affiliateCode.id,
             userId: input.userId,
             subscriptionId: input.subscriptionId ?? null,
+            stripeInvoiceId: input.stripeInvoiceId,
             grossRevenue: breakdown.grossRevenue,
             discountAmount: breakdown.discountAmount,
             netRevenue: breakdown.netRevenue,
@@ -319,6 +353,7 @@ export class ConversionProcessorService {
       affiliateUserId: affiliateCode.affiliateProfile.userId,
       code: affiliateCode.code,
       totalEarnings: Number(updatedProfile.totalEarnings),
+      capReached: cycleNumber >= maxCycles,
     };
   }
 }

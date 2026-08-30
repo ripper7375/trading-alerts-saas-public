@@ -275,9 +275,11 @@ export class StripeWebhookService {
           },
         });
 
+        // Recurring-commission follow-up: also clears affiliateCodeId
+        // explicitly -- mirrors lib/stripe/webhook-handlers.ts.
         await tx.subscription.update({
           where: { id: dbSubscription.id },
-          data: { status: 'CANCELED' },
+          data: { status: 'CANCELED', affiliateCodeId: null },
         });
 
         await this.outboxService.recordInTransaction(tx, {
@@ -450,9 +452,11 @@ export class StripeWebhookService {
 
       // Credit the referring affiliate's commission now that real money
       // has actually been collected (davintrade commission-timing fix) --
-      // never at checkout completion, and never for a later renewal
-      // (creditAffiliateCommission is idempotent and this clears the
-      // pending attribution on success either way).
+      // never at checkout completion. Recurring-commission follow-up:
+      // fires on EVERY qualifying invoice, not just the first, up to
+      // MAX_RECURRING_COMMISSION_CYCLES -- creditAffiliateCommission is
+      // idempotent per invoice, and reports capReached so this caller
+      // knows when to stop the attribution.
       if (dbSubscription.affiliateCodeId) {
         try {
           const conversion =
@@ -461,6 +465,7 @@ export class StripeWebhookService {
               userId: dbSubscription.userId,
               subscriptionId: dbSubscription.stripeSubscriptionId,
               grossRevenueUsd: amountPaid / 100,
+              stripeInvoiceId: invoice.id,
             });
 
           if (conversion.processed) {
@@ -483,14 +488,20 @@ export class StripeWebhookService {
                 provider: 'STRIPE',
               }
             );
-            await this.prisma.subscription.update({
-              where: { id: dbSubscription.id },
-              data: { affiliateCodeId: null },
-            });
           } else {
             logger.warn('[Webhook] Affiliate commission not credited', {
               userId: dbSubscription.userId,
               reason: conversion.reason,
+            });
+          }
+
+          // Only clear the attribution once the recurring-commission cap
+          // is reached -- otherwise leave it in place so the next renewal
+          // keeps crediting.
+          if (conversion.capReached) {
+            await this.prisma.subscription.update({
+              where: { id: dbSubscription.id },
+              data: { affiliateCodeId: null },
             });
           }
         } catch (conversionError) {
@@ -534,7 +545,13 @@ export class StripeWebhookService {
       typeof charge.customer === 'string'
         ? charge.customer
         : charge.customer?.id;
-    await this.cancelCommissionForRefundOrDispute(customerId ?? null, 'refund');
+    const invoiceId =
+      typeof charge.invoice === 'string' ? charge.invoice : charge.invoice?.id;
+    await this.cancelCommissionForRefundOrDispute(
+      customerId ?? null,
+      invoiceId ?? null,
+      'refund'
+    );
   }
 
   /**
@@ -553,8 +570,13 @@ export class StripeWebhookService {
         typeof charge.customer === 'string'
           ? charge.customer
           : charge.customer?.id;
+      const invoiceId =
+        typeof charge.invoice === 'string'
+          ? charge.invoice
+          : charge.invoice?.id;
       await this.cancelCommissionForRefundOrDispute(
         customerId ?? null,
+        invoiceId ?? null,
         'dispute'
       );
     } catch (error) {
@@ -578,8 +600,17 @@ export class StripeWebhookService {
    *   (idempotent against webhook redelivery, and the common case of a
    *   refund with no affiliate code involved at all).
    */
+  /**
+   * Recurring-commission follow-up: a subscription can now have up to
+   * MAX_RECURRING_COMMISSION_CYCLES separate Commission rows (one per
+   * billing cycle), so this must claw back the ONE row tied to the
+   * specific invoice that was actually refunded/disputed -- mirrors
+   * lib/stripe/webhook-handlers.ts. Falls back to the subscription-wide
+   * lookup only when the invoice id can't be resolved.
+   */
   private async cancelCommissionForRefundOrDispute(
     customerId: string | null,
+    invoiceId: string | null,
     reason: 'refund' | 'dispute'
   ): Promise<void> {
     if (!customerId) {
@@ -599,9 +630,16 @@ export class StripeWebhookService {
         return;
       }
 
-      const commission = await this.prisma.commission.findFirst({
-        where: { subscriptionId: dbSubscription.stripeSubscriptionId },
-      });
+      const commission = invoiceId
+        ? await this.prisma.commission.findFirst({
+            where: {
+              subscriptionId: dbSubscription.stripeSubscriptionId,
+              stripeInvoiceId: invoiceId,
+            },
+          })
+        : await this.prisma.commission.findFirst({
+            where: { subscriptionId: dbSubscription.stripeSubscriptionId },
+          });
 
       if (!commission) {
         // The common case: most refunds/disputes involve no affiliate code.
@@ -613,8 +651,45 @@ export class StripeWebhookService {
       }
 
       if (commission.status === 'PAID') {
-        logger.error(
-          `[Webhook] ALERT: commission already PAID but underlying charge was ${reason} -- manual recovery needed`,
+        // Money already left for the affiliate -- can't silently reverse a
+        // disbursement that already happened. Net it against their NEXT
+        // payout instead: a negative-amount Commission row referencing the
+        // original, immediately APPROVED (a correction, not a new earning,
+        // so no trial-safety hold needed). No changes needed to
+        // CommissionAggregator -- it already just sums commissionAmount
+        // across rows, so a negative row nets out automatically.
+        await this.prisma.$transaction(async (tx) => {
+          await tx.commission.create({
+            data: {
+              affiliateProfileId: commission.affiliateProfileId,
+              affiliateCodeId: commission.affiliateCodeId,
+              userId: commission.userId,
+              subscriptionId: commission.subscriptionId,
+              grossRevenue: Number(commission.grossRevenue) * -1,
+              discountAmount: Number(commission.discountAmount) * -1,
+              netRevenue: Number(commission.netRevenue) * -1,
+              commissionAmount: Number(commission.commissionAmount) * -1,
+              status: 'APPROVED',
+              approvedAt: new Date(),
+              clawbackOfCommissionId: commission.id,
+            },
+          });
+
+          await tx.affiliateProfile.update({
+            where: { id: commission.affiliateProfileId },
+            data: {
+              totalEarnings: {
+                decrement: Number(commission.commissionAmount),
+              },
+              pendingCommissions: {
+                decrement: Number(commission.commissionAmount),
+              },
+            },
+          });
+        });
+
+        logger.info(
+          `[Webhook] Commission already PAID -- created a clawback deduction for the next payout due to ${reason}`,
           {
             commissionId: commission.id,
             affiliateProfileId: commission.affiliateProfileId,
