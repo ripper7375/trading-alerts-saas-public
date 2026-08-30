@@ -8,7 +8,7 @@
 // Payment provider identifier
 export type PaymentProvider = 'DLOCAL' | 'STRIPE';
 
-// Supported dLocal countries (8 total)
+// Supported dLocal countries (9 total)
 export type DLocalCountry =
   | 'IN'
   | 'NG'
@@ -17,7 +17,8 @@ export type DLocalCountry =
   | 'ID'
   | 'TH'
   | 'ZA'
-  | 'TR';
+  | 'TR'
+  | 'AE';
 
 // Corresponding currencies for dLocal countries
 export type DLocalCurrency =
@@ -28,7 +29,8 @@ export type DLocalCurrency =
   | 'IDR'
   | 'THB'
   | 'ZAR'
-  | 'TRY';
+  | 'TRY'
+  | 'AED';
 
 // Plan types (3-day only for dLocal, monthly for both)
 export type PlanType = 'THREE_DAY' | 'MONTHLY';

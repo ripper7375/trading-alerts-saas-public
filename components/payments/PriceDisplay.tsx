@@ -52,6 +52,7 @@ const CURRENCY_SYMBOLS: Record<DLocalCurrency, string> = {
   THB: '฿',
   ZAR: 'R',
   TRY: '₺',
+  AED: 'AED',
 };
 
 const CURRENCY_NAMES: Record<DLocalCurrency, string> = {
@@ -63,6 +64,7 @@ const CURRENCY_NAMES: Record<DLocalCurrency, string> = {
   THB: 'Thai Baht',
   ZAR: 'South African Rand',
   TRY: 'Turkish Lira',
+  AED: 'UAE Dirham',
 };
 
 // Fallback rates (used if API fails)
@@ -75,6 +77,7 @@ const FALLBACK_RATES: Record<DLocalCurrency, number> = {
   THB: 35.0,
   ZAR: 18.5,
   TRY: 32.0,
+  AED: 3.67,
 };
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -234,7 +237,7 @@ export function PriceDisplay({
             type="button"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 hover:bg-muted/80 disabled:opacity-50"
+            className="hover:bg-muted/80 inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 disabled:opacity-50"
             aria-label="Refresh exchange rate"
           >
             <RefreshCw

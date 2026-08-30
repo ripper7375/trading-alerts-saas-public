@@ -166,6 +166,26 @@ const PAYMENT_METHODS_BY_COUNTRY: Record<DLocalCountry, PaymentMethodInfo[]> = {
       processingTime: 'Instant',
     },
   ],
+  AE: [
+    {
+      id: 'Local Cards',
+      name: 'Credit / Debit Card',
+      icon: 'card',
+      processingTime: 'Instant',
+    },
+    {
+      id: 'Apple Pay',
+      name: 'Apple Pay',
+      icon: 'mobile',
+      processingTime: 'Instant',
+    },
+    {
+      id: 'Bank Transfer',
+      name: 'Bank Transfer',
+      icon: 'bank',
+      processingTime: '1-2 hours',
+    },
+  ],
 };
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -25,6 +25,7 @@ const FALLBACK_RATES: Record<DLocalCurrency, number> = {
   THB: 35.25,
   ZAR: 18.65,
   TRY: 32.15,
+  AED: 3.67,
 };
 
 // Supported currencies for validation
@@ -37,6 +38,7 @@ const SUPPORTED_CURRENCIES: DLocalCurrency[] = [
   'THB',
   'ZAR',
   'TRY',
+  'AED',
 ];
 
 /**

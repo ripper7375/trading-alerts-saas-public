@@ -46,6 +46,7 @@ const COUNTRY_FLAGS: Record<DLocalCountry, string> = {
   TH: '🇹🇭',
   ZA: '🇿🇦',
   TR: '🇹🇷',
+  AE: '🇦🇪',
 };
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

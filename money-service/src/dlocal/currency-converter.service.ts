@@ -29,6 +29,7 @@ const FALLBACK_RATES: Record<DLocalCurrency, number> = {
   THB: 35.25,
   ZAR: 18.65,
   TRY: 32.15,
+  AED: 3.67,
 };
 
 const SUPPORTED_CURRENCIES: DLocalCurrency[] = [
@@ -40,6 +41,7 @@ const SUPPORTED_CURRENCIES: DLocalCurrency[] = [
   'THB',
   'ZAR',
   'TRY',
+  'AED',
 ];
 
 function isSupportedCurrency(currency: string): currency is DLocalCurrency {

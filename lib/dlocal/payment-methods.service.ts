@@ -34,6 +34,11 @@ export const DLOCAL_METHOD_CODE_MAP: Record<
   PK: { JazzCash: 'JAZZCASH', Easypaisa: 'EASYPAISA' },
   ZA: { 'Instant EFT': 'INSTANT_EFT', EFT: 'EFT' },
   TR: { 'Bank Transfer': 'BANK_TRANSFER', 'Local Cards': 'CARD' },
+  AE: {
+    'Local Cards': 'CARD',
+    'Apple Pay': 'APPLEPAY',
+    'Bank Transfer': 'BANK_TRANSFER',
+  },
 };
 
 /**
@@ -131,6 +136,7 @@ function getPaymentMethodType(method: string): string {
     'JazzCash',
     'Easypaisa',
     'Paystack',
+    'Apple Pay',
   ];
   const qrMethods = ['Thai QR'];
 
@@ -155,6 +161,7 @@ export function getDefaultPaymentMethod(country: DLocalCountry): string | null {
     TH: 'TrueMoney',
     ZA: 'Instant EFT',
     TR: 'Bank Transfer',
+    AE: 'Local Cards',
   };
 
   return defaultMethods[country] || null;
