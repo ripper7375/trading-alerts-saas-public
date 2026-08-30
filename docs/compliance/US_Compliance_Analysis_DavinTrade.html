@@ -1,0 +1,472 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>DavinTrade SaaS - US Regulatory & CFTC Compliance Master Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 20mm 16mm;
+      @bottom-right {
+        content: counter(page) " / " counter(pages);
+        font-family: 'Sarabun', sans-serif;
+        font-size: 8.5pt;
+        color: #64748b;
+      }
+      @bottom-left {
+        content: "DavinTrade App — US Legal & CFTC/FTC Compliance Report (Confidential)";
+        font-family: 'Sarabun', sans-serif;
+        font-size: 8.5pt;
+        color: #64748b;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      font-size: 10pt;
+      line-height: 1.6;
+      color: #1e293b;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Prompt', sans-serif;
+      color: #0f172a;
+      margin-top: 0;
+    }
+
+    .header-banner {
+      border-bottom: 2px solid #dc2626;
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .doc-badge {
+      display: inline-block;
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-family: 'Prompt', sans-serif;
+      font-size: 8pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .doc-title {
+      font-size: 18pt;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.25;
+      margin-bottom: 6px;
+    }
+
+    .doc-subtitle {
+      font-size: 10.5pt;
+      color: #475569;
+      font-weight: 500;
+    }
+
+    .meta-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 8.5pt;
+      min-width: 220px;
+      line-height: 1.5;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+
+    .meta-label {
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .meta-value {
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    h2 {
+      font-size: 12.5pt;
+      font-weight: 600;
+      border-left: 4px solid #dc2626;
+      padding-left: 8px;
+      margin-top: 22px;
+      margin-bottom: 10px;
+      page-break-after: avoid;
+      color: #991b1b;
+    }
+
+    h3 {
+      font-size: 10.5pt;
+      font-weight: 600;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      page-break-after: avoid;
+      color: #0f172a;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 8px;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-top: 0;
+      margin-bottom: 10px;
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    .callout {
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin: 12px 0;
+      page-break-inside: avoid;
+      font-size: 9pt;
+      line-height: 1.5;
+    }
+
+    .callout-important {
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      border-left: 4px solid #dc2626;
+      color: #991b1b;
+    }
+
+    .callout-info {
+      background-color: #eff6ff;
+      border: 1px solid #dbeafe;
+      border-left: 4px solid #2563eb;
+      color: #1e40af;
+    }
+
+    .callout-warning {
+      background-color: #fffbeb;
+      border: 1px solid #fef3c7;
+      border-left: 4px solid #d97706;
+      color: #92400e;
+    }
+
+    .callout-success {
+      background-color: #f0fdf4;
+      border: 1px solid #dcfce7;
+      border-left: 4px solid #16a34a;
+      color: #166534;
+    }
+
+    .callout-title {
+      font-family: 'Prompt', sans-serif;
+      font-weight: 600;
+      font-size: 9.5pt;
+      margin-bottom: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 9px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      font-family: 'Prompt', sans-serif;
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 8.5pt;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+
+    .code-block {
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8pt;
+      line-height: 1.4;
+      margin: 8px 0;
+      page-break-inside: avoid;
+    }
+
+    .badge-tag {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 7.5pt;
+      font-weight: 600;
+      font-family: 'Prompt', sans-serif;
+    }
+    .badge-red { background: #fee2e2; color: #b91c1c; }
+    .badge-amber { background: #fef3c7; color: #b45309; }
+    .badge-blue { background: #dbeafe; color: #1d4ed8; }
+    .badge-green { background: #dcfce7; color: #15803d; }
+
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Banner -->
+  <div class="header-banner">
+    <div>
+      <span class="doc-badge">DavinTrade Architecture & US Regulatory Affairs</span>
+      <div class="doc-title">US Compliance Master Report</div>
+      <div class="doc-subtitle">การวิเคราะห์ประเด็นกฎหมายของสหรัฐอเมริกา (CFTC, FTC, SEC, CCPA & OFAC) และแนวทางปฏิบัติตามกฎหมายสำหรับ DavinTrade</div>
+    </div>
+    <div class="meta-box">
+      <div class="meta-row"><span class="meta-label">วันที่จัดทำ:</span><span class="meta-value">26 สิงหาคม 2026</span></div>
+      <div class="meta-row"><span class="meta-label">เวอร์ชันเอกสาร:</span><span class="meta-value">1.0 (US Edition)</span></div>
+      <div class="meta-row"><span class="meta-label">ระบบเป้าหมาย:</span><span class="meta-value">DavinTrade SaaS Ecosystem</span></div>
+      <div class="meta-row"><span class="meta-label">กลุ่มผู้อ่าน:</span><span class="meta-value">Legal, Compliance & Dev Teams</span></div>
+    </div>
+  </div>
+
+  <!-- Executive Summary -->
+  <h2>1. บทสรุปสำหรับผู้บริหารและทีมงาน (Executive Summary)</h2>
+  <p>
+    ตลาดสหรัฐอเมริกา (US Market) เป็นตลาดซอฟต์แวร์การเงินและเทรดดิ้งที่มีขนาดใหญ่ที่สุดในโลก แต่ในขณะเดียวกันก็มี <strong>หน่วยงานกำกับดูแลที่เข้มงวดและมีบทลงโทษรุนแรงที่สุดแห่งหนึ่ง</strong> โดยเฉพาะในมิติของ **การซื้อขายทองคำสปอต (XAUUSD Margin/Spot Gold)**, **อนุพันธ์และฟอเร็กซ์**, **การโฆษณาเทคโนโลยี AI**, และ **กฎหมายการเก็บเงินแบบสมาชิกต่อเนื่อง (Auto-Renewal)**
+  </p>
+  <p>
+    ถึงแม้สหรัฐฯ จะยังไม่มีกฎหมายกลางรวมศูนย์แบบ EU AI Act แต่สหรัฐฯ บังคับใช้กฎหมายผ่านองค์กรกำกับดูแลเฉพาะทาง ได้แก่ <strong>CFTC / NFA</strong> (อนุพันธ์และสินค้าโภคภัณฑ์), <strong>FTC</strong> (คุ้มครองผู้บริโภคและการตลาด AI), <strong>SEC</strong> (หลักทรัพย์), <strong>CCPA/CPRA</strong> (ข้อมูลส่วนบุคคลรัฐแคลิฟอร์เนีย) และ <strong>OFAC</strong> (การคว่ำบาตรทางการค้า)
+  </p>
+
+  <div class="callout callout-important">
+    <div class="callout-title">⚠️ ประเด็นสำคัญสูงสุดสำหรับ DavinTrade ในสหรัฐฯ</div>
+    <div>
+      เนื่องจากผลิตภัณฑ์หลักของ DavinTrade คือระบบวิเคราะห์ทางเทคนิคสำหรับ <strong>XAUUSD (Spot Gold)</strong> ซึ่งในสหรัฐฯ ตกอยู่ใต้การกำกับของ <strong>CFTC (Commodity Futures Trading Commission)</strong> สิ่งสำคัญที่สุดคือ DavinTrade ต้องรักษาขอบเขตสถานะเป็น <strong>"Publisher / Execution-Only Software Tool"</strong> เท่านั้น และต้องใส่ข้อความปฏิเสธความรับผิดชอบผลการจำลองตาม <strong>CFTC Rule 4.41</strong> แบบคำต่อคำ
+    </div>
+  </div>
+
+  <!-- Section 2: Compliance Matrix -->
+  <h2>2. ตารางประเมินผลกระทบกฎหมายสหรัฐฯ (US Regulatory Matrix)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 20%;">หน่วยงาน / กฎหมาย</th>
+        <th style="width: 30%;">ประเด็นความเสี่ยงสำหรับ DavinTrade</th>
+        <th style="width: 35%;">ข้อกำหนดทางเทคนิค & แนวทางแก้ไข</th>
+        <th style="width: 15%;">ระดับความสำคัญ</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>CFTC & NFA</strong><br>(Commodity Exchange Act)</td>
+        <td>การให้จุดซื้อขาย (Entry/TP/SL) เสี่ยงถูกมองว่าเป็น CTA (Commodity Trading Advisor) เถื่อน</td>
+        <td>• วางสถานะตามข้อยกเว้น Publisher's Exemption (วิเคราะห์ทั่วไป ไม่รับเทรดแทน)<br>• ใส่ข้อความบังคับ <strong>CFTC Rule 4.41</strong> แบบคำต่อคำ</td>
+        <td><span class="badge-tag badge-red">วิกฤต / ห้ามขาด</span></td>
+      </tr>
+      <tr>
+        <td><strong>FTC Section 5</strong><br>(การตลาด & โฆษณา AI)</td>
+        <td>การเคลมความแม่นยำ AI หรือการการันตีกำไรเกินจริง (AI False Advertising)</td>
+        <td>• ห้ามเคลม Win Rate หรือความแม่นยำเกินจริง<br>• รีวิวผลการเทรดต้องใส่ Typical Results Disclosure</td>
+        <td><span class="badge-tag badge-red">สำคัญสูงมาก</span></td>
+      </tr>
+      <tr>
+        <td><strong>FTC & State ARL</strong><br>(Click-to-Cancel)</td>
+        <td>ความยากลำบากในการยกเลิก Subscription (Dark Patterns)</td>
+        <td>• ปุ่มยกเลิกใน <code>/settings/billing</code> ต้องกดยกเลิกได้เองทันทีใน 1-2 คลิก (Self-service cancellation)</td>
+        <td><span class="badge-tag badge-green">ผ่านเกณฑ์แล้ว</span></td>
+      </tr>
+      <tr>
+        <td><strong>SEC</strong><br>(Investment Advisers Act)</td>
+        <td>การขยายไปยังหุ้นสหรัฐฯ/Crypto เสี่ยงเข้าข่าย RIA (Registered Investment Adviser)</td>
+        <td>• ระบุใน Terms ชัดเจนว่าไม่มีบริการบริหารพอร์ตหรือแนะนำหลักทรัพย์ส่วนบุคคล</td>
+        <td><span class="badge-tag badge-amber">สำคัญปานกลาง</span></td>
+      </tr>
+      <tr>
+        <td><strong>CCPA / CPRA</strong><br>(ข้อมูลส่วนบุคคลรัฐแคลิฟอร์เนีย)</td>
+        <td>สิทธิการขอไม่เปิดเผยข้อมูล และการใช้ข้อมูลเทรนโมเดล AI</td>
+        <td>• เพิ่มปุ่ม "Do Not Sell/Share My Info" และตัวเลือก Opt-out จากการนำแชทไปเทรน AI</td>
+        <td><span class="badge-tag badge-amber">สำคัญปานกลาง</span></td>
+      </tr>
+      <tr>
+        <td><strong>OFAC Sanctions</strong><br>(กระทรวงการคลังสหรัฐฯ)</td>
+        <td>การให้บริการแก่ประเทศหรือบุคคลที่ถูกคว่ำบาตรเบ็ดเสร็จ</td>
+        <td>• ห้าม Bypass ตัวกรองประเทศของ Stripe / Cloudflare (บล็อก คิวบา, อิหร่าน, เกาหลีเหนือ, ซีเรีย)</td>
+        <td><span class="badge-tag badge-blue">ระบบรองรับแล้ว</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- Section 3: CFTC & Commodities In-depth -->
+  <h2>3. การเจาะลึกข้อกำหนด CFTC & NFA สำหรับทองคำ (XAUUSD)</h2>
+
+  <h3>3.1 การรักษาสถานะข้อยกเว้น Publisher's Exemption (เพื่อไม่ต้องจดทะเบียน CTA)</h3>
+  <p>
+    ในสหรัฐฯ ผู้ที่ให้คำแนะนำหรือสัญญาณการซื้อขายสินค้าโภคภัณฑ์/ทองคำแก่ผู้อื่นจะต้องจดทะเบียนเป็น <strong>Commodity Trading Advisor (CTA)</strong> กับ CFTC และสมัครเป็นสมาชิก NFA ซึ่งมีขั้นตอนและเงินกองทุนมหาศาล อย่างไรก็ตาม ศาลสูงสุดของสหรัฐฯ (คดีบรรทัดฐาน <em>Lowe v. SEC</em>) และข้อบังคับ <strong>CFTC Rule 4.14(a)(9)</strong> ได้ให้ข้อยกเว้นสำหรับผู้พัฒนาซอฟต์แวร์และสำนักพิมพ์ (<strong>Publisher's Exemption</strong>) โดย DavinTrade ต้องรักษาคุณสมบัติ 3 ข้อนี้อย่างเคร่งครัด:
+  </p>
+  <ul>
+    <li>
+      <strong>1. Impersonal Analysis (ไม่เจาะจงบุคคล):</strong> การวิเคราะห์กราฟ สัญญาณ และผลลัพธ์ของ AI ต้องเป็นการวิเคราะห์ตามสูตรคณิตศาสตร์เชิงปริมาณทั่วไป (Algorithmic / General Market Analysis) ไม่มีการปรับแต่งตามฐานะการเงินส่วนบุคคลของผู้ใช้รายใดรายหนึ่ง
+    </li>
+    <li>
+      <strong>2. Non-Custodial (ไม่ถือครองเงินทุน):</strong> DavinTrade เป็นเพียงผู้ให้บริการซอฟต์แวร์ SaaS ไม่มีการรับฝากเงินทุน ไม่เปิดบัญชีซื้อขาย และไม่ทำหน้าที่เป็นตัวกลางทางการเงิน
+    </li>
+    <li>
+      <strong>3. Non-Discretionary (ไม่ส่งคำสั่งเทรดอัตโนมัติ):</strong> ซอฟต์แวร์ต้องไม่ยิงคำสั่งเข้าพอร์ตโบรกเกอร์ของลูกค้าโดยพลการ การตัดสินใจเปิด-ปิดออเดอร์ต้องเกิดจากการกดด้วยมือของตัวผู้ใช้เองเท่านั้น (Execution-Only)
+    </li>
+  </ul>
+
+  <h3>3.2 ข้อความปฏิเสธความรับผิดชอบตามกฎ CFTC Rule 4.41 (Mandatory Word-for-Word Text)</h3>
+  <p>
+    กฎหมายสหรัฐฯ กำหนดว่า หากเว็บไซต์หรือแอปพลิเคชันมีการแสดงผลการทดสอบย้อนหลัง (Backtesting), สถิติอัตรากำไร (Win Rate), หรือสัญญาณจากโมเดล AI <strong><u>จะต้องระบุข้อความนี้แบบเป๊ะๆ ทุกตัวอักษร</u></strong> ลงในหน้า <code>/disclaimer</code>, <code>/pricing</code>, และหน้าสรุปผลการเทรด:
+  </p>
+
+  <div class="callout callout-important" style="font-size: 8pt; line-height: 1.45;">
+    <div class="callout-title" style="font-size: 8.5pt;">📜 CFTC RULE 4.41 MANDATORY DISCLAIMER</div>
+    <em>"CFTC RULE 4.41 – HYPOTHETICAL OR SIMULATED PERFORMANCE RESULTS HAVE CERTAIN LIMITATIONS. UNLIKE AN ACTUAL PERFORMANCE RECORD, SIMULATED RESULTS DO NOT REPRESENT ACTUAL TRADING. ALSO, SINCE THE TRADES HAVE NOT BEEN EXECUTED, THE RESULTS MAY HAVE UNDER-OR-OVER COMPENSATED FOR THE IMPACT, IF ANY, OF CERTAIN MARKET FACTORS, SUCH AS LACK OF LIQUIDITY. SIMULATED TRADING PROGRAMS IN GENERAL ARE ALSO SUBJECT TO THE FACT THAT THEY ARE DESIGNED WITH THE BENEFIT OF HINDSIGHT. NO REPRESENTATION IS BEING MADE THAT ANY ACCOUNT WILL OR IS LIKELY TO ACHIEVE PROFIT OR LOSSES SIMILAR TO THOSE SHOWN."</em>
+  </div>
+
+  <!-- Section 4: FTC Consumer Protection & AI Advertising -->
+  <h2>4. การคุ้มครองผู้บริโภคและการโฆษณา AI ตามหลักเกณฑ์ FTC</h2>
+
+  <h3>4.1 การป้องกันข้อหาหลอกลวงผู้บริโภคด้วย AI (FTC Deceptive AI Claims)</h3>
+  <p>
+    คณะกรรมาธิการการค้าแห่งสหรัฐฯ (<strong>FTC</strong>) ได้ออกแนวปฏิบัติเข้มงวดสำหรับการทำการตลาดของบริษัทเทคโนโลยีและ AI:
+  </p>
+  <ul>
+    <li>
+      <strong>ห้ามการันตีผลกำไร (No Guaranteed Returns):</strong> ห้ามใช้คำโฆษณาเช่น <em>"สร้างรายได้อัตโนมัติด้วย AI"</em>, <em>"เทรดทองคำแม่นยำ 95% ไร้ความเสี่ยง"</em>, หรือ <em>"เปลี่ยนมือใหม่ให้เป็นเศรษฐี"</em>
+    </li>
+    <li>
+      <strong>ความโปร่งใสของผลการทดสอบ (Substantiation of Claims):</strong> ทุกตัวเลขทางสถิติที่นำมาแสดงบนหน้า Landing Page หรือเอกสารการตลาดต้องมีข้อมูล Backtest หรือบันทึกทางสถิติรองรับจริง
+    </li>
+    <li>
+      <strong>การเปิดเผยผลลัพธ์เฉลี่ย (Testimonial Disclosure):</strong> หากนำรีวิวผู้ใช้ที่ทำกำไรได้สูงมาแสดง จะต้องมีตัวหนังสือระบุชัดเจนว่า <em>"These results are extraordinary and do not reflect the typical experience of average users. Most retail traders lose money."</em>
+    </li>
+  </ul>
+
+  <h3>4.2 กฎหมายยกเลิกสมาชิกแบบ 1-Click (FTC "Click-to-Cancel" & California ARL)</h3>
+  <p>
+    สหรัฐฯ ได้ผ่านกฎหมาย <strong>Click-to-Cancel</strong> เพื่อปราบปรามระบบที่สมัครสมาชิกง่ายแต่ยกเลิกยาก (Subscription Traps):
+  </p>
+  <div class="callout callout-success">
+    <div class="callout-title">✅ สถานะของ DavinTrade ปัจจุบัน:</div>
+    จากการตรวจสอบโค้ดใน <code>app/(dashboard)/settings/billing/page.tsx</code> และ Stripe Integration ระบบของ DavinTrade <strong>มีปุ่มกดยกเลิกแบบ Self-Service บนหน้าเว็บโดยตรงอยู่แล้ว</strong> ซึ่งสอดคล้องกับกฎหมาย Click-to-Cancel ของ FTC และกฎหมายของรัฐแคลิฟอร์เนียเรียบร้อยแล้ว
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Section 5: State Privacy & OFAC -->
+  <h2>5. กฎหมายข้อมูลส่วนบุคคลระดับรัฐ (CCPA/CPRA) และการคว่ำบาตร (OFAC)</h2>
+
+  <h3>5.1 สิทธิข้อมูลส่วนบุคคลของชาวแคลิฟอร์เนีย (CCPA / CPRA)</h3>
+  <p>
+    สำหรับผู้ใช้งานที่พำนักอยู่ในมลรัฐแคลิฟอร์เนียและรัฐที่มีกฎหมายข้อมูลส่วนบุคคล (เช่น เท็กซัส, เวอร์จิเนีย, โคโลราโด):
+  </p>
+  <ul>
+    <li>
+      <strong>สิทธิ "Do Not Sell or Share My Personal Information":</strong> หากระบบมีการส่งต่อ Data Telemetry หรือ Cookie ไปยังบุคคลที่สาม ต้องมีช่องทางให้ผู้ใช้เลือก Opt-out
+    </li>
+    <li>
+      <strong>AI Training Disclosure:</strong> ผู้ใช้มีสิทธิเลือกปิด (Opt-out) ไม่ให้ระบบนำข้อความที่ตนสนทนากับ Stack D AI Co-pilot ไปใช้ฝึกฝนโมเดล AI ในอนาคต
+    </li>
+  </ul>
+
+  <h3>5.2 การปฏิบัติตามมาตรการคว่ำบาตรของกระทรวงการคลังสหรัฐฯ (OFAC Sanctions)</h3>
+  <p>
+    สหรัฐฯ มีกฎหมายห้ามให้บริการทางเทคโนโลยีและการเงินแก่ประเทศหรือกลุ่มบุคคลที่ถูกคว่ำบาตร (Comprehensively Sanctioned Jurisdictions):
+  </p>
+  <ul>
+    <li><strong>ประเทศที่ถูกบล็อกเบ็ดเสร็จ:</strong> คิวบา (Cuba), อิหร่าน (Iran), เกาหลีเหนือ (North Korea), ซีเรีย (Syria), และภูมิภาคไครเมีย/โดเนตสค์/ลูฮานสค์ (Crimea, Donetsk, Luhansk regions)</li>
+    <li><strong>แนวทางปฏิบัติ:</strong> ระบบชำระเงินของ Stripe และ Gateway ของ Cloudflare มีการตรวจจับและบล็อก IP/บัตรจากประเทศเหล่านี้อยู่แล้ว ขอให้ทีมพัฒนา <strong>ไม่สร้างช่องทาง Bypass หรือปิดระบบคัดกรองดังกล่าว</strong></li>
+  </ul>
+
+  <!-- Section 6: Action Plan for Phase 16 -->
+  <h2>6. สรุปแผนปฏิบัติการสำหรับฝั่ง US (ผูกรวมใน Phase 16 หลังจบ Session 8B)</h2>
+  <p>
+    เช่นเดียวกับฝั่ง EU งานของฝั่ง US ทั้งหมดสามารถนำไปรวบทำใน <strong>Phase 16 (Global Legal & Compliance Polish)</strong> หลังจากที่คุณรัน Master Roadmap (Phases 7 → 15 → 8B) เสร็จสมบูรณ์แล้ว โดยมี Action Items ที่ชัดเจนดังนี้:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">หัวข้อ / พื้นที่ในระบบ</th>
+        <th style="width: 45%;">งานที่ต้องปฏิบัติสำหรับฝั่ง US (Action Item)</th>
+        <th style="width: 30%;">ไฟล์ที่เกี่ยวข้อง</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>CFTC 4.41 Mandatory Disclaimer</strong></td>
+        <td>เพิ่มข้อความปฏิเสธความรับผิดชอบผลการทดสอบย้อนหลังตาม CFTC Rule 4.41 แบบคำต่อคำ</td>
+        <td><code>app/(marketing)/disclaimer/page.tsx</code><br><code>app/(marketing)/pricing/page.tsx</code></td>
+      </tr>
+      <tr>
+        <td><strong>FTC Marketing & AI Copy Audit</strong></td>
+        <td>ตรวจทานข้อความโฆษณาบนหน้า Landing Page ห้ามเคลมกำไรหรือความแม่นยำ AI เกินจริง</td>
+        <td><code>app/(marketing)/page.tsx</code><br><code>landing-content.tsx</code></td>
+      </tr>
+      <tr>
+        <td><strong>Publisher's Exemption Demarcation</strong></td>
+        <td>ตอกย้ำข้อความใน Terms of Service ว่าเป็น Impersonal Quantitative Software เท่านั้น</td>
+        <td><code>app/(marketing)/terms/page.tsx</code></td>
+      </tr>
+      <tr>
+        <td><strong>CCPA / CPRA Privacy Controls</strong></td>
+        <td>เพิ่มตัวเลือก "Do Not Sell/Share My Info" และปุ่ม Opt-out การนำข้อมูลไปเทรน AI</td>
+        <td><code>app/(marketing)/privacy/page.tsx</code><br><code>app/(dashboard)/settings/privacy/page.tsx</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 7: Conclusion -->
+  <h2>7. สรุปคำแนะนำสำหรับ Davin</h2>
+  <div class="callout callout-success">
+    <div class="callout-title">🎯 ข้อสรุปความมั่นใจสำหรับผู้บริหาร:</div>
+    <strong>1. ระบบสถาปัตยกรรมของ DavinTrade ปัจจุบัน (Execution-Only SaaS) ถูกต้องตามทิศทางของกฎหมายสหรัฐฯ อยู่แล้ว</strong> ไม่ได้ทำตัวเป็นโบรกเกอร์หรือผู้ถือเงินลูกค้า จึงปลอดภัยจากการถูกเพ่งเล็งเรื่องใบอนุญาตซื้อขายหลักทรัพย์<br>
+    <strong>2. สิ่งที่ต้องปรับเพิ่มเป็นเพียงงานด้าน "ข้อความทางกฎหมาย (Legal Copy) และคำเตือนความเสี่ยง (CFTC Disclaimers)"</strong> ซึ่งทำได้ง่าย รวดเร็ว และไม่มีผลกระทบต่อแกนหลักของโค้ดโปรแกรม<br>
+    <strong>3. สามารถรันงานตาม Master Roadmap (Phases 7 → 15 → 8B) ต่อไปได้อย่างราบรื่น 100%</strong> แล้วค่อยนำเช็กลิสต์นี้ไปรันเป็น Phase 16 พร้อมกับฝั่ง EU ในรอบสุดท้ายครับ
+  </div>
+
+  <p style="text-align: center; color: #64748b; font-size: 8.5pt; margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+    เอกสารฉบับนี้จัดทำขึ้นเพื่อการวิเคราะห์และวางแผนทางสถาปัตยกรรมซอฟต์แวร์ของโครงการ DavinTrade ตามระเบียบข้อบังคับของสหรัฐอเมริกา (US Jurisdictions)
+  </p>
+
+</body>
+</html>

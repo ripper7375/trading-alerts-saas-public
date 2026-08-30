@@ -2,7 +2,7 @@
 
 > **Application Base Location**: `D:\SaaS Project\trading-alerts-saas-public\seed-code\trading-conversational-ai-ui\`  
 > **Development Server URL**: `http://localhost:3009/`  
-> **Framework & Engine**: Next.js 16.3.0 (Turbopack) | React 19 | TailwindCSS  
+> **Framework & Engine**: Next.js 16.3.3 (Turbopack) | React 19 | TailwindCSS  
 > **i18n & Regional Engine**: Native V8 `Intl` API + Centralized `<T>` Component Propagation
 
 ---

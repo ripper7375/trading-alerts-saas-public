@@ -1,0 +1,407 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>DavinTrade SaaS - Global Compliance Master Report (EU, US, UK, Japan)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 16mm 14mm 18mm 14mm;
+      @bottom-right {
+        content: counter(page) " / " counter(pages);
+        font-family: 'Sarabun', sans-serif;
+        font-size: 8.5pt;
+        color: #64748b;
+      }
+      @bottom-left {
+        content: "DavinTrade App — Global Compliance Master Framework (EU, US, UK, Japan)";
+        font-family: 'Sarabun', sans-serif;
+        font-size: 8.5pt;
+        color: #64748b;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      font-size: 9.5pt;
+      line-height: 1.55;
+      color: #1e293b;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Prompt', sans-serif;
+      color: #0f172a;
+      margin-top: 0;
+    }
+
+    .header-banner {
+      border-bottom: 3px solid #4f46e5;
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .doc-badge {
+      display: inline-block;
+      background: #eef2ff;
+      color: #4338ca;
+      border: 1px solid #c7d2fe;
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-family: 'Prompt', sans-serif;
+      font-size: 8pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .doc-title {
+      font-size: 17pt;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.25;
+      margin-bottom: 5px;
+    }
+
+    .doc-subtitle {
+      font-size: 10pt;
+      color: #475569;
+      font-weight: 500;
+    }
+
+    .meta-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 8pt;
+      min-width: 220px;
+      line-height: 1.45;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+
+    .meta-label {
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .meta-value {
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    h2 {
+      font-size: 12pt;
+      font-weight: 600;
+      border-left: 4px solid #4f46e5;
+      padding-left: 8px;
+      margin-top: 18px;
+      margin-bottom: 8px;
+      page-break-after: avoid;
+      color: #3730a3;
+    }
+
+    h3 {
+      font-size: 10pt;
+      font-weight: 600;
+      margin-top: 12px;
+      margin-bottom: 5px;
+      page-break-after: avoid;
+      color: #0f172a;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 7px;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-top: 0;
+      margin-bottom: 8px;
+      padding-left: 18px;
+    }
+
+    li {
+      margin-bottom: 3px;
+    }
+
+    .callout {
+      border-radius: 6px;
+      padding: 9px 12px;
+      margin: 10px 0;
+      page-break-inside: avoid;
+      font-size: 8.5pt;
+      line-height: 1.45;
+    }
+
+    .callout-important {
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      border-left: 4px solid #dc2626;
+      color: #991b1b;
+    }
+
+    .callout-info {
+      background-color: #eff6ff;
+      border: 1px solid #dbeafe;
+      border-left: 4px solid #2563eb;
+      color: #1e40af;
+    }
+
+    .callout-warning {
+      background-color: #fffbeb;
+      border: 1px solid #fef3c7;
+      border-left: 4px solid #d97706;
+      color: #92400e;
+    }
+
+    .callout-success {
+      background-color: #f0fdf4;
+      border: 1px solid #dcfce7;
+      border-left: 4px solid #16a34a;
+      color: #166534;
+    }
+
+    .callout-title {
+      font-family: 'Prompt', sans-serif;
+      font-weight: 600;
+      font-size: 9pt;
+      margin-bottom: 3px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 8pt;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 5px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      font-family: 'Prompt', sans-serif;
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 8pt;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+
+    .badge-tag {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 7pt;
+      font-weight: 600;
+      font-family: 'Prompt', sans-serif;
+    }
+    .badge-red { background: #fee2e2; color: #b91c1c; }
+    .badge-amber { background: #fef3c7; color: #b45309; }
+    .badge-blue { background: #dbeafe; color: #1d4ed8; }
+    .badge-green { background: #dcfce7; color: #15803d; }
+    .badge-purple { background: #f3e8ff; color: #7e22ce; }
+
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Banner -->
+  <div class="header-banner">
+    <div>
+      <span class="doc-badge">DavinTrade Architecture & Global Governance</span>
+      <div class="doc-title">Global Compliance Master Report</div>
+      <div class="doc-subtitle">แผนแม่บทการปฏิบัติตามกฎหมายระดับสากลครบวงจร (สหภาพยุโรป, สหรัฐอเมริกา, สหราชอาณาจักร, และญี่ปุ่น)</div>
+    </div>
+    <div class="meta-box">
+      <div class="meta-row"><span class="meta-label">วันที่จัดทำ:</span><span class="meta-value">26 สิงหาคม 2026</span></div>
+      <div class="meta-row"><span class="meta-label">เวอร์ชัน:</span><span class="meta-value">1.0 (Global Master Edition)</span></div>
+      <div class="meta-row"><span class="meta-label">ขอบเขต:</span><span class="meta-value">EU, US, UK & Japan</span></div>
+      <div class="meta-row"><span class="meta-label">กลุ่มผู้อ่าน:</span><span class="meta-value">Executive, Legal & Dev Teams</span></div>
+    </div>
+  </div>
+
+  <!-- Executive Summary -->
+  <h2>1. บทสรุปสำหรับผู้บริหาร (Executive Summary & Core Common Denominators)</h2>
+  <p>
+    รายงานฉบับนี้เป็นการประมวลและสังเคราะห์ข้อกำหนดทางกฎหมายจาก <strong>4 ตลาดการเงินและเทคโนโลยีที่สำคัญที่สุดในโลก</strong> ได้แก่ <strong>สหภาพยุโรป (EU), สหรัฐอเมริกา (US), สหราชอาณาจักร (UK), และประเทศญี่ปุ่น (Japan)</strong> เพื่อให้ DavinTrade SaaS มีสถาปัตยกรรมที่พร้อมรองรับผู้ใช้ทั่วโลกอย่างสมบูรณ์แบบ
+  </p>
+
+  <div class="callout callout-info">
+    <div class="callout-title">🌐 กฎเหล็ก 5 ประการที่ทุกตลาดสากลยอมรับร่วมกัน (The 5 Universal Pillars):</div>
+    <strong>1. สถานะ Execution-Only Analytical Tool:</strong> ทุกประเทศมีข้อยกเว้นให้ซอฟต์แวร์วิเคราะห์ข้อมูลเชิงปริมาณไม่ต้องขอใบอนุญาตที่ปรึกษาการเงิน ตราบใดที่เป็นสูตรคณิตศาสตร์ทั่วไป ไม่เจาะจงบุคคล และไม่ส่งคำสั่งเทรดอัตโนมัติ<br>
+    <strong>2. ความโปร่งใสของ AI & การไม่หลอกลวง (AI Transparency):</strong> ต้องมีป้ายบอกสถานะ AI ชัดเจน และไม่โฆษณาเคลมกำไรหรือความแม่นยำเกินจริง<br>
+    <strong>3. การคุ้มครองข้อมูลส่วนบุคคล & สิทธิการลบข้อมูล (Right to Erasure):</strong> การปิดช่องโหว่ลบข้อมูลบัญชี (ธง F21) ตอบโจทย์ทั้ง GDPR, UK GDPR, CCPA และ APPI พร้อมกันในจุดเดียว<br>
+    <strong>4. สิทธิผู้บริโภคและการยกเลิกแบบ 1-Click (Click-to-Cancel):</strong> การมีปุ่มยกเลิก Subscription บนหน้าเว็บแบบ Self-service สอดคล้องกับกฎหมายทุกภูมิภาค<br>
+    <strong>5. ภาษีและความปลอดภัยการชำระเงิน:</strong> การเปิดใช้ Stripe Tax จัดการภาษีแยกประเทศ (EU VAT, UK VAT 20%, Japan JCT 10%) และเปิดใช้ 3D Secure (3DS2)
+  </div>
+
+  <!-- Section 2: Master Comparison Table -->
+  <h2>2. ตารางเปรียบเทียบข้อกำหนดทั้ง 4 ประเทศ (Global Comparative Matrix)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 15%;">มิติทางกฎหมาย</th>
+        <th style="width: 21%;">🇪🇺 สหภาพยุโรป (EU)</th>
+        <th style="width: 21%;">🇺🇸 สหรัฐอเมริกา (US)</th>
+        <th style="width: 21%;">🇬🇧 สหราชอาณาจักร (UK)</th>
+        <th style="width: 22%;">🇯🇵 ประเทศญี่ปุ่น (Japan)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>หน่วยงาน / กฎหมายการเงิน</strong></td>
+        <td><strong>ESMA / MiFID II</strong><br>• Execution-Only Tool<br>• ข้อความเตือนความเสี่ยง CFD</td>
+        <td><strong>CFTC / NFA / SEC</strong><br>• Publisher's Exemption<br>• ข้อความบังคับ <strong>CFTC 4.41</strong></td>
+        <td><strong>FCA / FSMA 21</strong><br>• PERG 8.29 Non-Advisory<br>• คำเตือนความเสี่ยง PS19/18</td>
+        <td><strong>JFSA / FIEA</strong><br>• 投資助言業の適用除外<br>• คำเตือน 元本割れリスク</td>
+      </tr>
+      <tr>
+        <td><strong>การกำกับดูแล AI & ความโปร่งใส</strong></td>
+        <td><strong>EU AI Act (Art. 50)</strong><br>• บังคับใช้แล้ว 2 ส.ค. 26<br>• Machine-Readable Meta<br>• Persistent AI Badge</td>
+        <td><strong>FTC Section 5</strong><br>• ห้ามเคลม AI เกินจริง<br>• Testimonial Disclosures</td>
+        <td><strong>UK Sector Framework</strong><br>• กำกับโดย FCA & ICO<br>• AI Explainability & Safety</td>
+        <td><strong>METI/MIC AI Guidelines</strong><br>• AI事業者ガイドライン<br>• Transparency & Security</td>
+      </tr>
+      <tr>
+        <td><strong>ข้อมูลส่วนบุคคล (Privacy)</strong></td>
+        <td><strong>EU GDPR (Art. 17)</strong><br>• สิทธิขอลบข้อมูล (F21)<br>• Cookie Consent (ePrivacy)<br>• PII Sanitizer ก่อนเข้า AI</td>
+        <td><strong>CCPA / CPRA</strong><br>• Do Not Sell/Share Info<br>• AI Training Opt-Out</td>
+        <td><strong>UK GDPR & Data Act</strong><br>• Right to Erasure (F21)<br>• Cookie Consent (PECR)</td>
+        <td><strong>APPI (個人情報保護法)</strong><br>• แจ้งการโอนข้อมูลข้ามแดน<br>• Right to Erasure (F21)</td>
+      </tr>
+      <tr>
+        <td><strong>สิทธิผู้บริโภค / สมาชิก</strong></td>
+        <td><strong>EU Consumer Rights</strong><br>• สละสิทธิคืนเงิน 14 วัน (Waiver Checkbox)</td>
+        <td><strong>FTC Click-to-Cancel</strong><br>• ยกเลิกง่ายใน 1-2 คลิก บนหน้า Billing</td>
+        <td><strong>DMCC Act 2024</strong><br>• อีเมลเตือนก่อนตัดรอบปี<br>• 1-Click Exit Rights</td>
+        <td><strong>Tokushoho Act</strong><br>• จัดทำหน้า <code>/tokushoho</code> (特定商取引法に基づく表記)</td>
+      </tr>
+      <tr>
+        <td><strong>ภาษีการค้าดิจิทัล</strong></td>
+        <td><strong>EU VAT OSS</strong><br>• คำนวณ VAT ตามประเทศสมาชิก</td>
+        <td><strong>US Sales Tax</strong><br>• Economic Nexus (Stripe Tax)</td>
+        <td><strong>HMRC UK VAT</strong><br>• อัตราภาษี 20%</td>
+        <td><strong>National Tax Agency</strong><br>• ภาษีบริโภค JCT 10%</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- Section 3: Summary of Regional Requirements -->
+  <h2>3. สรุปสาระสำคัญแยกตามรายภูมิภาค</h2>
+
+  <h3>3.1 🇪🇺 สหภาพยุโรป (EU AI Act & GDPR)</h3>
+  <ul>
+    <li><strong>EU AI Act มาตรา 50 (มีผลบังคับใช้แล้ว):</strong> บังคับติดป้ายบอกสถานะ AI บน <code>AIAnalystPanel</code> และ Web Chat, ฝัง Machine-Readable Metadata ใน SSE Stream / API Payload, และมี Disclaimer ใต้ <code>TradeSetupCard.tsx</code> (High-risk เลื่อนไปปี 2027/2028 ไม่กระทบเรา)</li>
+    <li><strong>GDPR สิทธิการลบข้อมูล (ธง F21):</strong> สร้าง Deletion Worker สำหรับ Hard-Delete / Anonymize บัญชีที่ขอลบข้อมูล</li>
+    <li><strong>สิทธิถอนตัว 14 วัน:</strong> เพิ่ม Checkbox สละสิทธิคืนเงิน 14 วันเพื่อเริ่มใช้บริการทันทีบนหน้า <code>/checkout</code></li>
+  </ul>
+
+  <h3>3.2 🇺🇸 สหรัฐอเมริกา (CFTC, FTC & CCPA)</h3>
+  <ul>
+    <li><strong>CFTC Rule 4.41 Mandatory Disclaimer:</strong> กฎหมายบังคับให้ใส่ข้อความปฏิเสธความรับผิดชอบผลการทดสอบย้อนหลังแบบคำต่อคำลงในหน้า <code>/disclaimer</code> และ <code>/pricing</code></li>
+    <li><strong>Publisher's Exemption:</strong> ดำรงสถานะเป็นซอฟต์แวร์คณิตศาสตร์ทั่วไป ไม่รับฝากเงิน และไม่ส่งคำสั่งเทรดแทนลูกค้า เพื่อไม่ต้องจดทะเบียนเป็น Commodity Trading Advisor (CTA)</li>
+    <li><strong>FTC AI Advertising:</strong> ห้ามโฆษณาการันตีผลกำไรหรือความแม่นยำ AI เกินจริง</li>
+  </ul>
+
+  <h3>3.3 🇬🇧 สหราชอาณาจักร (FCA, DMCC Act & Post-Brexit UK VAT)</h3>
+  <ul>
+    <li><strong>FCA Financial Promotions (FSMA Section 21):</strong> ชี้แจงสถานะ Non-Advisory และใส่คำเตือนความเสี่ยงอนุพันธ์ CFD/Leverage ตามมาตรฐาน FCA PS19/18</li>
+    <li><strong>DMCC Act 2024:</strong> กฎหมายคุ้มครองสมาชิกใหม่ กำหนดให้มีระบบยกเลิกแบบ 1-Click และส่งอีเมลแจ้งเตือนล่วงหน้าก่อนตัดเงินรายปี</li>
+    <li><strong>HMRC UK VAT:</strong> แยกการคำนวณภาษีมูลค่าเพิ่ม UK VAT 20% ออกจากระบบ EU VAT</li>
+  </ul>
+
+  <h3>3.4 🇯🇵 ประเทศญี่ปุ่น (JFSA, Tokushoho & APPI)</h3>
+  <ul>
+    <li><strong>JFSA Software Scope:</strong> วางสถานะเป็นเครื่องมือวิเคราะห์เชิงปริมาณ (チャート分析ツール) และมีข้อความเตือนความเสี่ยงภาษาญี่ปุ่น (元本割れリスク)</li>
+    <li><strong>Tokushoho Act (特定商取引法):</strong> กฎหมายบังคับให้มีหน้า <code>/tokushoho</code> ระบุชื่อผู้ให้บริการ, ที่อยู่, ช่องทางติดต่อ และนโยบายการยกเลิก/คืนเงินอย่างชัดเจน</li>
+    <li><strong>JCT 10%:</strong> รองรับภาษีการบริโภคของญี่ปุ่น 10% ผ่าน Stripe Tax</li>
+  </ul>
+
+  <!-- Section 4: Phase 16 Master Implementation Plan -->
+  <h2>4. แผนแม่บทปฏิบัติการรวม: Phase 16 (Global Legal & Compliance Polish)</h2>
+  <p>
+    งานด้านกฎหมายสากลทั้งหมดจะถูกรวมเป็น <strong>Phase 16</strong> ดำเนินการหลังสิ้นสุด <strong>Session 8B</strong> ใน Master Roadmap โดยมีรายการงานแบ่งเป็น 4 หมวดดังนี้:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 22%;">หมวดงาน</th>
+        <th style="width: 48%;">รายละเอียดงานที่ต้องปฏิบัติ (Action Items)</th>
+        <th style="width: 30%;">ไฟล์เป้าหมายใน Codebase</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. หน้ากฎหมาย & ข้อความ<br>(Legal Copy & Disclaimers)</strong></td>
+        <td>• อัปเดต <code>/disclaimer</code> ใส่ข้อความ CFTC 4.41, FCA PS19/18, และ JFSA Risk Notice<br>• อัปเดต <code>/terms</code> ระบุสถานะ Execution-Only Software ทุกตลาด<br>• สร้างหน้า <code>/tokushoho</code> สำหรับตลาดญี่ปุ่น</td>
+        <td><code>app/(marketing)/disclaimer/page.tsx</code><br><code>app/(marketing)/terms/page.tsx</code><br><code>app/(marketing)/tokushoho/page.tsx</code></td>
+      </tr>
+      <tr>
+        <td><strong>2. หน้าจอ UI & เช็กเอาต์<br>(Frontend & Checkout UX)</strong></td>
+        <td>• เพิ่ม Cookie Consent Banner 3 ระดับ ใน <code>app/layout.tsx</code><br>• เพิ่ม Checkbox สละสิทธิคืนเงิน 14 วัน ใน <code>app/checkout/page.tsx</code><br>• เพิ่มลิงก์ Tokushoho ใน <code>components/layout/footer.tsx</code></td>
+        <td><code>app/layout.tsx</code><br><code>app/checkout/page.tsx</code><br><code>components/layout/footer.tsx</code></td>
+      </tr>
+      <tr>
+        <td><strong>3. AI Copilot & Feeds<br>(AI & Narrative Engine)</strong></td>
+        <td>• ติดป้าย 🤖 DavinTrade AI บน <code>AIAnalystPanel.tsx</code><br>• ฝัง Machine-Readable Meta ใน <code>/api/ai/chat/stream</code><br>• ติดป้าย Algorithmic Comment และ Disclaimer บน <code>TradeSetupCard.tsx</code><br>• ติดตั้ง PII Sanitizer กรองข้อมูลก่อนส่งเข้า LLM</td>
+        <td><code>components/terminal/AIAnalystPanel.tsx</code><br><code>app/api/ai/chat/stream/route.ts</code><br><code>components/cards/TradeSetupCard.tsx</code><br><code>operation-service/src/ai/</code></td>
+      </tr>
+      <tr>
+        <td><strong>4. งานระบบหลังบ้าน & ภาษี<br>(Backend Workers & Tax)</strong></td>
+        <td>• ปิดธง <strong>F21</strong> โดยสร้าง Account Deletion Worker ใน <code>operation-service</code><br>• สร้าง Pre-Renewal Email Cron สำหรับสมาชิกรายปีใน <code>money-service</code><br>• เปิดใช้ Stripe Tax สำหรับ EU VAT, UK VAT (20%) และ Japan JCT (10%)</td>
+        <td><code>operation-service/src/account/</code><br><code>money-service/src/crons/</code><br><code>money-service/src/stripe/</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 5: Conclusion -->
+  <h2>5. สรุปความมั่นใจสำหรับผู้บริหาร (Executive Confidence)</h2>
+  <div class="callout callout-success">
+    <div class="callout-title">🎯 ข้อสรุปเชิงกลยุทธ์สำหรับ Davin:</div>
+    <strong>1. สถาปัตยกรรมของ DavinTrade ผ่านเกณฑ์สากลเกือบทั้งหมดอยู่แล้ว:</strong> การเป็น SaaS เครื่องมือวิเคราะห์ข้อมูล ไม่ถือเงินลูกค้า และมีปุ่มยกเลิก 1-Click ทำให้ปลอดภัยจากข้อหาที่ร้ายแรงในทุกประเทศ<br>
+    <strong>2. การรวมทำใน Phase 16 เป็นแนวทางที่ดีที่สุด:</strong> ช่วยรักษาความต่อเนื่องและโฟกัสของทีมพัฒนาในการรัน Master Roadmap (Phases 7 → 15 → 8B) ให้เสร็จอย่างแม่นยำ แล้วค่อยเก็บงาน Compliance ทั้งหมดรอบเดียว<br>
+    <strong>3. DavinTrade จะกลายเป็นแพลตฟอร์มที่มีมาตรฐานความโปร่งใสและถูกต้องตามกฎหมายระดับสากล (Global Enterprise Ready) อย่างแท้จริงครับ!</strong>
+  </div>
+
+  <p style="text-align: center; color: #64748b; font-size: 8pt; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+    เอกสารฉบับนี้คือรายงานแผนแม่บทฉบับสมบูรณ์ (Master Compliance Framework) สำหรับโครงการ DavinTrade SaaS
+  </p>
+
+</body>
+</html>

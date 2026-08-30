@@ -49,7 +49,7 @@ Lightweight Charts.
 
 | Layer                      | Technology (version)                                                      | Where it lives in the repo                                                   |
 | -------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Web framework              | **Next.js 16.3.0** (App Router), **React 19**, TypeScript                 | `app/`, `components/`, `package.json`                                        |
+| Web framework              | **Next.js 16.3.3** (App Router), **React 19**, TypeScript                 | `app/`, `components/`, `package.json`                                        |
 | Charts                     | **Lightweight Charts ^4.1.1** (→ upgrade to v5)                           | `components/charts/trading-chart.tsx`, `app/(dashboard)/charts/...`          |
 | Live price (browser)       | **Socket.IO** client ^4.8                                                 | `hooks/use-ohlcv-socket.ts`                                                  |
 | Live price (source)        | **Flask 3 + flask-socketio 5.3.5 + python-socketio**, pandas, MetaTrader5 | `mt5-service/` (Python, Windows prod)                                        |

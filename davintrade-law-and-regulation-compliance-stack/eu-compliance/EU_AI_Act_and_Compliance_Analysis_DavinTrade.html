@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>DavinTrade SaaS - EU AI Act & Compliance Master Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 20mm 16mm;
+      @bottom-right {
+        content: counter(page) " / " counter(pages);
+        font-family: 'Sarabun', sans-serif;
+        font-size: 8.5pt;
+        color: #64748b;
+      }
+      @bottom-left {
+        content: "DavinTrade App — EU Legal & AI Act Compliance Report (Confidential)";
+        font-family: 'Sarabun', sans-serif;
+        font-size: 8.5pt;
+        color: #64748b;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      font-size: 10pt;
+      line-height: 1.6;
+      color: #1e293b;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Prompt', sans-serif;
+      color: #0f172a;
+      margin-top: 0;
+    }
+
+    .code-font {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8.5pt;
+    }
+
+    /* Cover / Header Section */
+    .header-banner {
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .doc-badge {
+      display: inline-block;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-family: 'Prompt', sans-serif;
+      font-size: 8pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .doc-title {
+      font-size: 18pt;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.25;
+      margin-bottom: 6px;
+    }
+
+    .doc-subtitle {
+      font-size: 10.5pt;
+      color: #475569;
+      font-weight: 500;
+    }
+
+    .meta-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 8.5pt;
+      min-width: 220px;
+      line-height: 1.5;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+
+    .meta-label {
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .meta-value {
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    /* Section Styling */
+    h2 {
+      font-size: 12.5pt;
+      font-weight: 600;
+      border-left: 4px solid #2563eb;
+      padding-left: 8px;
+      margin-top: 22px;
+      margin-bottom: 10px;
+      page-break-after: avoid;
+      color: #1e3a8a;
+    }
+
+    h3 {
+      font-size: 10.5pt;
+      font-weight: 600;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      page-break-after: avoid;
+      color: #0f172a;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 8px;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-top: 0;
+      margin-bottom: 10px;
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    /* Callout Boxes */
+    .callout {
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin: 12px 0;
+      page-break-inside: avoid;
+      font-size: 9pt;
+      line-height: 1.5;
+    }
+
+    .callout-important {
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      border-left: 4px solid #dc2626;
+      color: #991b1b;
+    }
+
+    .callout-info {
+      background-color: #eff6ff;
+      border: 1px solid #dbeafe;
+      border-left: 4px solid #2563eb;
+      color: #1e40af;
+    }
+
+    .callout-warning {
+      background-color: #fffbeb;
+      border: 1px solid #fef3c7;
+      border-left: 4px solid #d97706;
+      color: #92400e;
+    }
+
+    .callout-success {
+      background-color: #f0fdf4;
+      border: 1px solid #dcfce7;
+      border-left: 4px solid #16a34a;
+      color: #166534;
+    }
+
+    .callout-title {
+      font-family: 'Prompt', sans-serif;
+      font-weight: 600;
+      font-size: 9.5pt;
+      margin-bottom: 4px;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 9px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      font-family: 'Prompt', sans-serif;
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 8.5pt;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+
+    /* Code & Snippet Blocks */
+    .code-block {
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8pt;
+      line-height: 1.4;
+      margin: 8px 0;
+      page-break-inside: avoid;
+    }
+
+    .badge-tag {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 7.5pt;
+      font-weight: 600;
+      font-family: 'Prompt', sans-serif;
+    }
+    .badge-red { background: #fee2e2; color: #b91c1c; }
+    .badge-amber { background: #fef3c7; color: #b45309; }
+    .badge-blue { background: #dbeafe; color: #1d4ed8; }
+    .badge-green { background: #dcfce7; color: #15803d; }
+
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Banner -->
+  <div class="header-banner">
+    <div>
+      <span class="doc-badge">DavinTrade Architecture & Regulatory Affairs</span>
+      <div class="doc-title">EU Compliance Master Report</div>
+      <div class="doc-subtitle">ประเด็นสำคัญที่ต้องปรับปรุงและเตรียมความพร้อมเพื่อให้ DavinTrade App ให้บริการแก่ผู้ใช้ใน EU ได้อย่างถูกต้องตามกฎหมาย</div>
+    </div>
+    <div class="meta-box">
+      <div class="meta-row"><span class="meta-label">วันที่จัดทำ:</span><span class="meta-value">26 สิงหาคม 2026</span></div>
+      <div class="meta-row"><span class="meta-label">เวอร์ชันเอกสาร:</span><span class="meta-value">1.0 (Official Release)</span></div>
+      <div class="meta-row"><span class="meta-label">ระบบเป้าหมาย:</span><span class="meta-value">DavinTrade SaaS Ecosystem</span></div>
+      <div class="meta-row"><span class="meta-label">กลุ่มผู้อ่าน:</span><span class="meta-value">Legal & Engineering Teams</span></div>
+    </div>
+  </div>
+
+  <!-- Executive Summary -->
+  <h2>1. บทสรุปสำหรับผู้บริหารและทีมงาน (Executive Summary)</h2>
+  <p>
+    ตามที่สหภาพยุโรปได้ประกาศใช้ <strong>Digital Omnibus on AI (Regulation (EU) 2026/1744)</strong> ซึ่งมีผลบังคับใช้เมื่อวันที่ <strong>27 กรกฎาคม 2026</strong> สาระสำคัญคือการขยายเวลาบังคับใช้ข้อกำหนดสำหรับระบบ AI ที่มีความเสี่ยงสูง (High-Risk AI Systems) ออกไปเป็นวันที่ <strong>2 ธันวาคม 2027</strong> และ <strong>2 สิงหาคม 2028</strong> ตามลำดับ
+  </p>
+  <p>
+    อย่างไรก็ตาม <strong>มาตรา 50 ว่าด้วยหน้าที่ด้านความโปร่งใส (Transparency Obligations) <u>ไม่มีการเลื่อนกำหนด</u> และมีผลบังคับใช้แล้วตั้งแต่วันที่ 2 สิงหาคม 2026</strong> โดยมีข้อยกเว้นผ่อนผันเฉพาะข้อกำหนดเรื่องการทำเครื่องหมายเนื้อหาที่เครื่องอ่านได้ (มาตรา 50(2)) สำหรับระบบที่อยู่ในตลาดก่อน 2 ส.ค. 2026 ให้ดำเนินการให้ครบถ้วนภายใน <strong>2 ธันวาคม 2026</strong>
+  </p>
+
+  <div class="callout callout-important">
+    <div class="callout-title">⚠️ ขอบเขตการบังคับใช้นอกอาณาเขต (Extraterritorial Scope) & อัตราโทษปรับ</div>
+    <div>
+      กฎหมาย EU AI Act และ GDPR บังคับใช้กับผู้ให้บริการซอฟต์แวร์นอกสหภาพยุโรป <strong>หากระบบหรือผลลัพธ์ของระบบ (Outputs) ไปถึงผู้ใช้ปลายทางที่พำนักอยู่ใน 27 ประเทศสมาชิก EU</strong> โดยไม่คำนึงว่าบริษัทจะจดทะเบียนที่ใดในโลก การฝ่าฝืนมาตรา 50 มีโทษปรับสูงสุด <strong>15 ล้านยูโร หรือ 3% ของรายได้รวมทั่วโลก</strong> (สำหรับสตาร์ตอัปและ SME ใช้จำนวนที่ต่ำกว่า)
+    </div>
+  </div>
+
+  <p>
+    <strong>สถานะของ DavinTrade:</strong> แอปพลิเคชัน DavinTrade จัดอยู่ในกลุ่ม <strong>Limited Risk AI System</strong> (ไม่ใช่ High-Risk) แต่เนื่องจากมีฟีเจอร์ Conversational AI Analyst (Stack D), Automated Market Comment Narrative (Stack E), Customer Support Web Chat (Phase 14) และระบบแจ้งเตือนการเทรด จึงตกอยู่ภายใต้ <strong>มาตรา 50 (Transparency)</strong> พร้อมทั้งต้องสอดคล้องกับกฎหมายคุ้มครองข้อมูลส่วนบุคคล (<strong>GDPR</strong>) และระเบียบการเงินการคุ้มครองผู้บริโภค (<strong>MiFID II / ESMA</strong>)
+  </p>
+
+  <!-- Section 2 -->
+  <h2>2. ตารางสรุปภาพรวมความพร้อมและผลกระทบ (Compliance Matrix)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 22%;">กรอบกฎหมาย EU</th>
+        <th style="width: 28%;">ส่วนประกอบใน DavinTrade</th>
+        <th style="width: 35%;">ประเด็นความสอดคล้อง / สิ่งที่ต้องปรับปรุง</th>
+        <th style="width: 15%;">ระดับความสำคัญ</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>EU AI Act (Art. 50(1))</strong><br>การเปิดเผยตัวตน AI</td>
+        <td>• Stack D (AIAnalystPanel)<br>• Phase 14 (Web Chat Bot)</td>
+        <td>ติดป้ายแจ้งเตือนผู้ใช้ตั้งแต่ข้อความแรกว่าเป็น AI และมี Persistent Badge ห้ามแอบอ้างเป็นนักวิเคราะห์มนุษย์</td>
+        <td><span class="badge-tag badge-red">เร่งด่วนที่สุด</span></td>
+      </tr>
+      <tr>
+        <td><strong>EU AI Act (Art. 50(2))</strong><br>เครื่องหมายที่เครื่องอ่านได้</td>
+        <td>• /api/ai/chat/stream (SSE)<br>• Part 24 Chart PNG Images</td>
+        <td>ฝัง Machine-Readable Metadata (is_ai_generated: true, model, timestamp) ใน JSON payload, SSE และ Exif ของรูปภาพ</td>
+        <td><span class="badge-tag badge-red">เส้นตาย 2 ธ.ค. 26</span></td>
+      </tr>
+      <tr>
+        <td><strong>EU AI Act (Art. 50(4/5))</strong><br>ป้ายกำกับคำแนะนำ & Feeds</td>
+        <td>• Stack E (Market Comments)<br>• TradeSetupCard (Entry/TP/SL)</td>
+        <td>ติดป้ายชัดเจนว่าเป็น "AI-Generated Signal" และมี Disclaimer กำกับว่าไม่ใช่คำแนะนำการลงทุนส่วนบุคคล</td>
+        <td><span class="badge-tag badge-red">เร่งด่วนที่สุด</span></td>
+      </tr>
+      <tr>
+        <td><strong>EU GDPR (Art. 17)</strong><br>สิทธิการขอลบข้อมูล</td>
+        <td>• /settings/account<br>• ธง F21 (Deletion Gap)</td>
+        <td>สร้าง Background Worker ทำการ Hard-Delete / Anonymize ข้อมูลจริงหลังจากหมด 24h grace period (ปิดช่องโหว่ F21)</td>
+        <td><span class="badge-tag badge-amber">สำคัญสูง</span></td>
+      </tr>
+      <tr>
+        <td><strong>ePrivacy & GDPR</strong><br>Cookie Consent</td>
+        <td>• app/layout.tsx<br>• Tracking & Analytics</td>
+        <td>เพิ่ม Cookie Consent Banner แบบ Opt-in ที่แยกหมวดหมู่ Necessary, Functional และ Analytics</td>
+        <td><span class="badge-tag badge-amber">สำคัญสูง</span></td>
+      </tr>
+      <tr>
+        <td><strong>GDPR (Art. 13/14)</strong><br>Prompt Privacy</td>
+        <td>• Stack D Context Layer<br>• Gemini / Claude Router</td>
+        <td>ติดตั้ง PII Sanitization เพื่อตัดข้อมูลส่วนบุคคลก่อนส่งเข้า LLM และให้สิทธิผู้ใช้ Opt-out จากการใช้ข้อมูลเทรนโมเดล</td>
+        <td><span class="badge-tag badge-amber">สำคัญสูง</span></td>
+      </tr>
+      <tr>
+        <td><strong>MiFID II & ESMA</strong><br>คำเตือนความเสี่ยงการเงิน</td>
+        <td>• /disclaimer<br>• /pricing, /terminal</td>
+        <td>ระบุสถานะ "Execution-Only Software" และใส่คำเตือนความเสี่ยงอนุพันธ์ CFD/Forex ตามมาตรฐาน ESMA</td>
+        <td><span class="badge-tag badge-amber">สำคัญสูง</span></td>
+      </tr>
+      <tr>
+        <td><strong>EU Consumer Rights</strong><br>สิทธิยกเลิก 14 วัน</td>
+        <td>• /checkout (Stripe / dLocal)</td>
+        <td>เพิ่ม Checkbox สละสิทธิการถอนตัว 14 วัน เพื่อขอเข้าใช้งานระบบ SaaS ทันที (Right of Withdrawal Waiver)</td>
+        <td><span class="badge-tag badge-blue">ปานกลาง</span></td>
+      </tr>
+      <tr>
+        <td><strong>PSD2 (SCA) & VAT</strong><br>ความปลอดภัยการชำระเงิน</td>
+        <td>• Stripe & dLocal Webhooks<br>• Invoicing Service</td>
+        <td>บังคับใช้ 3D Secure 2 (3DS2) สำหรับบัตรธนาคารในยุโรป และคำนวณภาษีมูลค่าเพิ่มตามประเทศสมาชิก (EU VAT OSS)</td>
+        <td><span class="badge-tag badge-blue">ปานกลาง</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- Section 3: AI Act Deep Dive -->
+  <h2>3. การปรับปรุงทางเทคนิคตาม EU AI Act — มาตรา 50 (Transparency)</h2>
+
+  <h3>3.1 การแจ้งเตือนการโต้ตอบกับ AI (Article 50(1) — AI Chatbot Disclosure)</h3>
+  <p><strong>ข้อกำหนด:</strong> ผู้ให้บริการระบบ AI ที่มีปฏิสัมพันธ์กับบุคคลธรรมดาโดยตรง ต้องออกแบบระบบให้ผู้ใช้รับรู้ได้ในทันทีว่ากำลังสื่อสารกับปัญญาประดิษฐ์</p>
+  <ul>
+    <li>
+      <strong>Stack D (Conversational AI Analyst — Phase 12):</strong>
+      <br>— ในคอมโพเนนต์ <code>AIAnalystPanel.tsx</code> บนหน้าจอ <code>/terminal</code> ต้องมีป้ายกำกับถาวร (Persistent Badge) เช่น <span class="badge-tag badge-blue">🤖 DavinTrade AI Analyst</span> ตลอดเวลา
+      <br>— ในข้อความทักทายแรกของทุกเธรด (System Greeting) ต้องระบุข้อความชัดเจน: <em>"Hello! I am DavinTrade AI, an algorithmic co-pilot analyzing XAUUSD market structures. How can I assist your technical analysis today?"</em>
+      <br>— ในช่องเลือกโมเดล (Model Selector) เช่น <code>Gemini 3.6 Flash / Pro</code> หรือ <code>Claude 3.5 Sonnet</code> ต้องระบุชัดเจนว่าเป็น Third-party Foundation Models
+    </li>
+    <li>
+      <strong>Phase 14 (Web Chat / Support Bot บน Contabo):</strong>
+      <br>— บอทตอบคำถามลูกค้าต้องแนะนำตัวว่าเป็น AI Assistant และต้องมีปุ่ม <strong>"Transfer to Human Agent"</strong> หรือ Fallback ส่งเรื่องเข้า Support Ticket หากผู้ใช้ต้องการสนทนากับมนุษย์
+    </li>
+  </ul>
+
+  <h3>3.2 การทำเครื่องหมายเนื้อหาที่เครื่องอ่านได้ (Article 50(2) — Machine-Readable Marking)</h3>
+  <p><strong>ข้อกำหนด:</strong> ผลลัพธ์ที่เป็นข้อความ รูปภาพ หรือข้อมูลที่สร้างจาก AI ต้องมี Metadata ในรูปแบบที่ระบบคอมพิวเตอร์สามารถตรวจจับได้ (Detectable & Machine-Readable)</p>
+  <ul>
+    <li>
+      <strong>API & Server-Sent Events (SSE) Stream:</strong>
+      <br>ทุก Chunk และ Response Payload ของ <code>/api/ai/chat/stream</code> และ <code>/api/ai/chat</code> จะต้องแนบ Data Schema บ่งชี้ความเป็น AI:
+      <div class="code-block">
+{
+  "event": "message_chunk",
+  "data": {
+    "text": "Market structure indicates potential liquidity sweep at...",
+    "meta": {
+      "is_ai_generated": true,
+      "generator": "DavinTrade-Multimodal-Router",
+      "model_version": "gemini-3.6-flash",
+      "timestamp_utc": "2026-08-26T07:30:00Z"
+    }
+  }
+}
+      </div>
+    </li>
+    <li>
+      <strong>Part 24 Chart PNG Render Images:</strong>
+      <br>รูปภาพกราฟ 3-Panel ที่ส่งเข้าวิเคราะห์หรือส่งออกไปยังผู้ใช้ (<code>mtf_render_xauusd.png</code>) ควรกำหนดให้ Python <code>renderer.py</code> เขียนบันทึก Exif Tag / XMP Metadata หรือฝังเครื่องหมายดิจิทัลยืนยันว่าเป็น Technical Chart ที่เรนเดอร์โดยโปรแกรมคอมพิวเตอร์ และตรวจสอบว่ากระบวนการอัปโหลดผ่าน Vercel Blob ไม่ทำการตัด (strip) Metadata ดังกล่าวออก
+    </li>
+  </ul>
+
+  <h3>3.3 การติดป้ายกำกับคำแนะนำและข้อคิดเห็นทางการเงิน (Article 50(4) & 50(5) — Output Labeling)</h3>
+  <p><strong>ข้อกำหนด:</strong> ข้อมูลหรือสัญญาณเชิงปริมาณที่เผยแพร่สู่สาธารณะหรือผู้ใช้งาน จะต้องติดป้ายเปิดเผยเพื่อป้องกันการเข้าใจผิดว่าเป็นข้อคิดเห็นหรือคำแนะนำการลงทุนส่วนบุคคลจากมนุษย์</p>
+  <ul>
+    <li>
+      <strong>Stack E Market Comments (Phase 13):</strong> ในหน้าจอ <code>MarketCommentsFeed</code> ที่ดึงข้อมูลจาก PostgreSQL Trigger (<code>short_comment</code>, <code>call_action</code>) ต้องมีไอคอนระบุว่า <span class="badge-tag badge-amber">⚡ Algorithmic Comment</span> กำกับทุกแถว
+    </li>
+    <li>
+      <strong>TradeSetupCard (Phase 12-5):</strong> การ์ดแสดงจุด Entry, Take Profit (TP), Stop Loss (SL) และ Risk/Reward Ratio จะต้องมีข้อความกำกับท้ายการ์ดเสมอ:
+      <div class="callout callout-info" style="margin: 6px 0; padding: 6px 10px;">
+        <em>"Automated Quantitative Setup — Generated algorithmically based on centroid regression & SSA models. Not financial advice."</em>
+      </div>
+    </li>
+  </ul>
+
+  <!-- Section 4: GDPR -->
+  <h2>4. การปฏิบัติตามกฎหมายคุ้มครองข้อมูลส่วนบุคคล (EU GDPR)</h2>
+
+  <h3>4.1 การปิดช่องโหว่การลบข้อมูลบัญชีถาวร (Right to Erasure — ธง F21)</h3>
+  <p>
+    ในระบบปัจจุบัน บัญทึกใน <code>DECISION-LOG.md</code> มีธง <strong>F21 (24h Account-Deletion GDPR gap)</strong> ค้างสถานะ OPEN เนื่องจากหน้า <code>/settings/account</code> มีการส่งคำขอไปยัง <code>/api/user/account/deletion-request</code> และ <code>deletion-confirm</code> แต่ใน Backend ยังมีเฉพาะ <code>console.log</code> และยังไม่มี Background Worker ที่ทำการลบข้อมูลจริง
+  </p>
+  <div class="callout callout-warning">
+    <div class="callout-title">🔧 แผนการปิดธง F21 สำหรับทีมพัฒนา:</div>
+    1. สร้าง Cron Job <code>AccountDeletionScheduler</code> ใน <code>operation-service</code> ให้ตรวจจับบัญชีที่พ้น 24-hour grace period<br>
+    2. ทำการ Hard-Delete ข้อมูลที่ไม่มีภาระทางกฎหมาย (Sessions, Login History, Drawings, DrawingAlerts, Notification Preferences)<br>
+    3. ทำการ Anonymize ข้อมูลที่จำเป็นต้องเก็บตามกฎหมายบัญชี/ภาษี (User ID ในตาราง Payments / Invoices ให้เปลี่ยนเป็นค่า Anonymized Hash)
+  </div>
+
+  <h3>4.2 การจัดการความยินยอมคุกกี้ (Cookie Consent Management)</h3>
+  <p>
+    ต้องติดตั้ง <strong>Cookie Consent Banner</strong> บน <code>app/layout.tsx</code> สำหรับผู้ใช้งานจากกลุ่มประเทศ EU/EEA โดยมีสวิตช์เปิด-ปิดความยินยอมแยก 3 ระดับ: (1) <em>Strictly Necessary</em>, (2) <em>Functional / Preferences</em>, และ (3) <em>Analytics & Telemetry</em> โดยห้ามโหลดสคริปต์ Tracking ใดๆ ก่อนได้รับความยินยอมแบบ Explicit Opt-in
+  </p>
+
+  <h3>4.3 การส่งข้อมูลเข้า AI และความปลอดภัยของข้อมูล Prompt (Prompt Sanitization)</h3>
+  <p>
+    ใน <code>app/(marketing)/privacy/page.tsx</code> ระบุว่านำข้อมูลไปปรับปรุง Davin AI ซึ่งตาม GDPR ผู้ใช้ใน EU มีสิทธิ์เลือกว่าจะยินยอมให้นำข้อมูลไปเทรนหรือไม่ (Opt-out Right) นอกจากนี้ใน <strong>Phase 12-3 (Context Assembly Layer)</strong> ต้องติดตั้ง <strong>PII Sanitizer Filter</strong> เพื่อตัดข้อมูลส่วนบุคคล (เช่น ชื่อผู้ใช้, อีเมล, หมายเลขบัญชี, เลข IP) ออกจาก Payload ก่อนยิง API ไปยัง Google Gemini หรือ Anthropic ในประเทศที่สาม
+  </p>
+
+  <div class="page-break"></div>
+
+  <!-- Section 5: Financial & Consumer Laws -->
+  <h2>5. กฎหมายการเงินและการคุ้มครองผู้บริโภค (MiFID II, ESMA & Consumer Rights)</h2>
+
+  <h3>5.1 การกำหนดขอบเขต "เครื่องมือวิเคราะห์เชิงปริมาณ" เพื่อมิให้เข้าข่าย "คำแนะนำการลงทุน"</h3>
+  <p>
+    ภายใต้กฎหมาย <strong>MiFID II (Markets in Financial Instruments Directive)</strong> ของ EU การให้คำแนะนำเจาะจงซื้อขายสินทรัพย์แก่บุคคลโดยไม่มีใบอนุญาตประกอบธุรกิจหลักทรัพย์ถือเป็นความผิดร้ายแรง ดังนั้น DavinTrade ต้องตอกย้ำสถานะทางกฎหมายในทุกจุด:
+  </p>
+  <ul>
+    <li>
+      <strong>Legal Status:</strong> ต้องระบุชัดเจนว่าเป็น <em>"Execution-Only Technical Analysis Software & Algorithmic Tool"</em>
+    </li>
+    <li>
+      <strong>Risk Warnings:</strong> ปรับปรุง <code>app/(marketing)/disclaimer/page.tsx</code>, <code>/pricing</code>, และ <code>/checkout</code> ให้มีคำเตือนความเสี่ยงมาตรฐานของ ESMA สำหรับผลิตภัณฑ์อนุพันธ์ CFD และ Gold Margin Trading เช่น:
+      <div class="callout callout-important" style="margin: 6px 0; padding: 6px 10px; font-size: 8pt;">
+        <em>"CFDs and leveraged financial instruments are complex products with a high risk of losing money rapidly due to leverage. You should consider whether you understand how these products work and whether you can afford to take the high risk of losing your money. DavinTrade does not provide personalized investment advice."</em>
+      </div>
+    </li>
+  </ul>
+
+  <h3>5.2 สิทธิการบอกเลิกสัญญาภายใน 14 วัน (EU 14-Day Statutory Right of Withdrawal)</h3>
+  <p>
+    ตามระเบียบ <strong>EU Consumer Rights Directive</strong> ผู้บริโภคในยุโรปมีสิทธิยกเลิกการสั่งซื้อสินค้าดิจิทัลและขอเงินคืนได้ภายใน 14 วัน เว้นแต่ผู้บริโภคจะให้ความยินยอมโดยชัดแจ้งในการเริ่มใช้บริการทันทีและยอมรับการสละสิทธิถอนตัวดังกล่าว
+  </p>
+  <p>
+    <strong>สิ่งที่ต้องทำบนหน้า Checkout (Phase 9-6):</strong> เพิ่ม Checkbox บังคับติ๊กก่อนชำระเงินสำหรับลูกค้าในกลุ่มประเทศ EU:
+  </p>
+  <div class="callout callout-info" style="font-size: 8.5pt;">
+    ☑ <em>"I hereby request immediate access to the DavinTrade PRO subscription services upon completion of payment, and I acknowledge that I thereby lose my statutory 14-day right of withdrawal under EU consumer protection regulations."</em>
+  </div>
+
+  <h3>5.3 ความปลอดภัยในการชำระเงิน (PSD2 / 3DS2) และภาษีมูลค่าเพิ่ม (EU VAT OSS)</h3>
+  <ul>
+    <li>
+      <strong>Strong Customer Authentication (SCA):</strong> ตรวจสอบว่าโมดูล Stripe Webhook (Session 4A-13) และ dLocal Payment Methods (Session 4A-16) มีการบังคับใช้ 3D Secure 2 (3DS2) สำหรับบัตรที่ออกใน EU เพื่อป้องกันปัญหา Payment Decline
+    </li>
+    <li>
+      <strong>EU VAT Calculation:</strong> ปรับระบบ Invoicing ให้คำนวณและแสดงอัตราภาษีมูลค่าเพิ่ม (VAT) ตามประเทศสมาชิก EU ของผู้ซื้อ (หรือระบบ Reverse Charge ในกรณีลูกค้าองค์กร B2B ที่กรอกเลขนิติบุคคล EU VAT ID ที่ถูกต้อง)
+    </li>
+  </ul>
+
+  <!-- Section 6: Master Roadmap Integration Plan -->
+  <h2>6. แผนที่การนำข้อกำหนด EU ไปผูกกับ Master Roadmap (Phases 7–15)</h2>
+  <p>
+    เพื่อให้ทีมพัฒนาสามารถนำข้อกำหนดทั้งหมดไปปฏิบัติได้ทันทีโดยไม่กระทบต่อโครงสร้างการทำงานเดิม ข้อกำหนดทั้งหมดถูกจัดสรรลงใน Session ต่างๆ ของ Master Roadmap ดังนี้:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 18%;">Phase / Session</th>
+        <th style="width: 25%;">ชื่องานใน Roadmap</th>
+        <th style="width: 45%;">งานที่ต้องปฏิบัติเพื่อความสอดคล้องกับ EU</th>
+        <th style="width: 12%;">สถานะ</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Phase 9-0 / 9-2</strong></td>
+        <td>Frontend Swap & Marketing Legal Pages</td>
+        <td>• อัปเดต <code>disclaimer/page.tsx</code> และ <code>terms/page.tsx</code> รองรับ EU AI Act & ESMA<br>• ติดตั้ง Cookie Consent Banner ใน <code>app/layout.tsx</code></td>
+        <td><span class="badge-tag badge-blue">Phase 9</span></td>
+      </tr>
+      <tr>
+        <td><strong>Phase 9-5</strong></td>
+        <td>Settings Surface</td>
+        <td>• จัดการหน้า <code>/settings/privacy</code> ให้มีฟังก์ชัน Opt-out จาก AI Training<br>• เตรียม UI เชื่อมต่อคำขอลบข้อมูลบัญชี</td>
+        <td><span class="badge-tag badge-blue">Phase 9</span></td>
+      </tr>
+      <tr>
+        <td><strong>Phase 9-6</strong></td>
+        <td>Payments Flow</td>
+        <td>• เพิ่ม Checkbox สละสิทธิคืนเงิน 14 วัน (EU Withdrawal Waiver)<br>• ปรับแต่ง Stripe & dLocal ให้รองรับ EU VAT OSS & 3DS2</td>
+        <td><span class="badge-tag badge-blue">Phase 9</span></td>
+      </tr>
+      <tr>
+        <td><strong>Phase 11-2</strong></td>
+        <td>Header Forwarding</td>
+        <td>• ปรับปรุง <code>forwardedRequestContext()</code> ให้ส่งผ่าน GeoIP Country Header เพื่อให้ระบบตรวจจับผู้ใช้ใน EU ได้อย่างแม่นยำ</td>
+        <td><span class="badge-tag badge-blue">Phase 11</span></td>
+      </tr>
+      <tr>
+        <td><strong>Phase 12-0 / 12-3 / 12-5</strong></td>
+        <td>Stack D: AI Analyst & Dynamic Cards</td>
+        <td>• ติดตั้ง PII Sanitizer ใน Context Assembly Layer ก่อนส่ง Prompt<br>• ฝัง Machine-Readable Metadata ใน SSE Stream (Art. 50(2))<br>• ติดป้าย AI Badge และ Non-Advisory Disclaimer บน <code>TradeSetupCard.tsx</code></td>
+        <td><span class="badge-tag badge-red">Stack D</span></td>
+      </tr>
+      <tr>
+        <td><strong>Phase 13-0 / 13-3</strong></td>
+        <td>Stack E: Market Comments</td>
+        <td>• ติดป้ายกำกับ Algorithmic / Machine-Generated ใน Market Comments Feed</td>
+        <td><span class="badge-tag badge-red">Stack E</span></td>
+      </tr>
+      <tr>
+        <td><strong>Phase 14-0 / 14-2</strong></td>
+        <td>Web Chat Stack</td>
+        <td>• เพิ่ม Initial Disclosure ในบอทซัพพอร์ต และทำปุ่ม Transfer to Human Agent</td>
+        <td><span class="badge-tag badge-blue">Phase 14</span></td>
+      </tr>
+      <tr>
+        <td><strong>Phase 8A / F21</strong></td>
+        <td>Decommission & GDPR Closure</td>
+        <td>• ปิดธง <strong>F21</strong> โดยสร้าง Background Worker ลบข้อมูลบัญชีถาวรหลังพ้น 24 ชม.</td>
+        <td><span class="badge-tag badge-amber">Decom</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 7: Conclusion & Action Items -->
+  <h2>7. สรุปคำแนะนำและรายการตรวจสอบสำหรับผู้บริหาร (Executive Checklist)</h2>
+  <div class="callout callout-success">
+    <div class="callout-title">📋 สรุปจุดโฟกัส 3 ลำดับแรก (Top 3 Immediate Priorities):</div>
+    <strong>1. ด้านกฎหมาย & ข้อความระบุตัวตน (Legal & Branding):</strong> ตรวจสอบว่าทุกหน้าต่างแชท (Stack D / Phase 14) มีป้ายบอกสถานะ AI ชัดเจน และมี Disclaimer กำกับใต้ Trade Setup Cards ทุกใบ<br>
+    <strong>2. ด้านวิศวกรรมข้อมูล & AI (Engineering & Data):</strong> ออกแบบ API Response และ SSE Stream ให้มี Metadata บ่งบอกว่าเป็น AI-Generated ตั้งแต่เริ่มพัฒนา Phase 12 เพื่อให้เสร็จทันเส้นตายผ่อนผัน 2 ธ.ค. 2026<br>
+    <strong>3. ด้านความเป็นส่วนตัว (Privacy & GDPR):</strong> ปิดช่องโหว่ธง F21 โดยการสร้าง Account Deletion Worker ให้ลบข้อมูลจริง และติดตั้ง Cookie Consent Banner ก่อนเปิดตัวอย่างเป็นทางการ
+  </div>
+
+  <p style="text-align: center; color: #64748b; font-size: 8.5pt; margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+    เอกสารฉบับนี้จัดทำขึ้นสำหรับการวางแผนทางวิศวกรรมและสถาปัตยกรรมซอฟต์แวร์ของโครงการ DavinTrade เพื่อใช้ประกอบการพิจารณาของทีมกฎหมายและผู้บริหาร
+  </p>
+
+</body>
+</html>

@@ -1,0 +1,447 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>DavinTrade SaaS - UK Regulatory & FCA Compliance Master Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 20mm 16mm;
+      @bottom-right {
+        content: counter(page) " / " counter(pages);
+        font-family: 'Sarabun', sans-serif;
+        font-size: 8.5pt;
+        color: #64748b;
+      }
+      @bottom-left {
+        content: "DavinTrade App — UK Legal & FCA/ICO Compliance Report (Confidential)";
+        font-family: 'Sarabun', sans-serif;
+        font-size: 8.5pt;
+        color: #64748b;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      font-size: 10pt;
+      line-height: 1.6;
+      color: #1e293b;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1, h2, h3, h4, .font-heading {
+      font-family: 'Prompt', sans-serif;
+      color: #0f172a;
+      margin-top: 0;
+    }
+
+    .header-banner {
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .doc-badge {
+      display: inline-block;
+      background: #f0f9ff;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+      padding: 3px 9px;
+      border-radius: 4px;
+      font-family: 'Prompt', sans-serif;
+      font-size: 8pt;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .doc-title {
+      font-size: 18pt;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.25;
+      margin-bottom: 6px;
+    }
+
+    .doc-subtitle {
+      font-size: 10.5pt;
+      color: #475569;
+      font-weight: 500;
+    }
+
+    .meta-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 8.5pt;
+      min-width: 220px;
+      line-height: 1.5;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+
+    .meta-label {
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .meta-value {
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    h2 {
+      font-size: 12.5pt;
+      font-weight: 600;
+      border-left: 4px solid #0284c7;
+      padding-left: 8px;
+      margin-top: 22px;
+      margin-bottom: 10px;
+      page-break-after: avoid;
+      color: #0369a1;
+    }
+
+    h3 {
+      font-size: 10.5pt;
+      font-weight: 600;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      page-break-after: avoid;
+      color: #0f172a;
+    }
+
+    p {
+      margin-top: 0;
+      margin-bottom: 8px;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin-top: 0;
+      margin-bottom: 10px;
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    .callout {
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin: 12px 0;
+      page-break-inside: avoid;
+      font-size: 9pt;
+      line-height: 1.5;
+    }
+
+    .callout-important {
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      border-left: 4px solid #dc2626;
+      color: #991b1b;
+    }
+
+    .callout-info {
+      background-color: #eff6ff;
+      border: 1px solid #dbeafe;
+      border-left: 4px solid #0284c7;
+      color: #075985;
+    }
+
+    .callout-warning {
+      background-color: #fffbeb;
+      border: 1px solid #fef3c7;
+      border-left: 4px solid #d97706;
+      color: #92400e;
+    }
+
+    .callout-success {
+      background-color: #f0fdf4;
+      border: 1px solid #dcfce7;
+      border-left: 4px solid #16a34a;
+      color: #166534;
+    }
+
+    .callout-title {
+      font-family: 'Prompt', sans-serif;
+      font-weight: 600;
+      font-size: 9.5pt;
+      margin-bottom: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 6px 9px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      font-family: 'Prompt', sans-serif;
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 8.5pt;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+
+    .code-block {
+      background-color: #0f172a;
+      color: #f8fafc;
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8pt;
+      line-height: 1.4;
+      margin: 8px 0;
+      page-break-inside: avoid;
+    }
+
+    .badge-tag {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 7.5pt;
+      font-weight: 600;
+      font-family: 'Prompt', sans-serif;
+    }
+    .badge-red { background: #fee2e2; color: #b91c1c; }
+    .badge-amber { background: #fef3c7; color: #b45309; }
+    .badge-blue { background: #dbeafe; color: #1d4ed8; }
+    .badge-green { background: #dcfce7; color: #15803d; }
+
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Banner -->
+  <div class="header-banner">
+    <div>
+      <span class="doc-badge">DavinTrade Architecture & UK Regulatory Affairs</span>
+      <div class="doc-title">UK Compliance Master Report</div>
+      <div class="doc-subtitle">การวิเคราะห์ประเด็นกฎหมายสหราชอาณาจักร (FCA, FSMA, UK GDPR, DMCC Act & HMRC VAT) สำหรับ DavinTrade</div>
+    </div>
+    <div class="meta-box">
+      <div class="meta-row"><span class="meta-label">วันที่จัดทำ:</span><span class="meta-value">26 สิงหาคม 2026</span></div>
+      <div class="meta-row"><span class="meta-label">เวอร์ชันเอกสาร:</span><span class="meta-value">1.0 (UK Post-Brexit Edition)</span></div>
+      <div class="meta-row"><span class="meta-label">ระบบเป้าหมาย:</span><span class="meta-value">DavinTrade SaaS Ecosystem</span></div>
+      <div class="meta-row"><span class="meta-label">กลุ่มผู้อ่าน:</span><span class="meta-value">Legal, Compliance & Dev Teams</span></div>
+    </div>
+  </div>
+
+  <!-- Executive Summary -->
+  <h2>1. บทสรุปสำหรับผู้บริหารและทีมงาน (Executive Summary)</h2>
+  <p>
+    ภายหลังการออกจากสหภาพยุโรป (Post-Brexit) สหราชอาณาจักร (UK) ได้แยกกรอบกฎหมายการเงิน ข้อมูลส่วนบุคคล และการคุ้มครองผู้บริโภคออกมาเป็นระบบของตนเอง โดยมี <strong>FCA (Financial Conduct Authority)</strong> เป็นองค์กรกำกับดูแลทางการเงินที่มีความเข้มงวดและมีอำนาจตรวจสอบสูงที่สุดแห่งหนึ่งของโลก โดยเฉพาะต่อบริการสัญญาณการเทรด (Trading Signals), โค้ชการลงทุน (Finfluencers), และซอฟต์แวร์วิเคราะห์อนุพันธ์ CFD/Forex
+  </p>
+  <p>
+    ในด้านเทคโนโลยี AI สหราชอาณาจักร <strong>ไม่ได้ใช้ EU AI Act</strong> แต่ใช้แนวทาง <strong>Sector-Led Pro-Innovation AI Framework</strong> ซึ่งให้อำนาจองค์กรกำกับดูแลเดิม (เช่น FCA สำหรับการเงิน และ ICO สำหรับข้อมูลส่วนบุคคล) เป็นผู้บังคับใช้กฎระเบียบด้านความโปร่งใส ความปลอดภัย และความเป็นธรรม
+  </p>
+
+  <div class="callout callout-important">
+    <div class="callout-title">⚠️ ประเด็นสำคัญสูงสุดสำหรับ DavinTrade ในสหราชอาณาจักร (UK)</div>
+    <div>
+      <strong>กฎหมาย Financial Promotions (FSMA Section 21):</strong> FCA มีอำนาจขึ้นบัญชีดำ (FCA Warning List / Unauthorised Firms) และประสานงานปิดกั้นการชำระเงินต่อเว็บไซต์ต่างชาติที่เชิญชวนให้คนใน UK เข้ามาเทรดอนุพันธ์หรือซื้อสัญญาณการลงทุนโดยไม่ได้รับอนุญาต ดังนั้น DavinTrade ต้องตอกย้ำว่าซอฟต์แวร์เป็น <strong>"Educational / Execution-Only Analytical Tool"</strong> ไม่ใช่บริการแนะนำการลงทุน และต้องปฏิบัติตามกฎคำเตือนความเสี่ยงของ FCA อย่างเคร่งครัด
+    </div>
+  </div>
+
+  <!-- Section 2: UK Compliance Matrix -->
+  <h2>2. ตารางประเมินผลกระทบกฎหมายสหราชอาณาจักร (UK Regulatory Matrix)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 22%;">หน่วยงาน / กฎหมาย UK</th>
+        <th style="width: 28%;">ประเด็นความเสี่ยงสำหรับ DavinTrade</th>
+        <th style="width: 35%;">ข้อกำหนดทางเทคนิค & แนวทางแก้ไข</th>
+        <th style="width: 15%;">ระดับความสำคัญ</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>FCA — FSMA Section 21</strong><br>(Financial Promotions Regime)</td>
+        <td>การเชิญชวนหรือโปรโมตสัญญาณเทรด (Trade Signals) แก่ผู้บริโภคใน UK โดยไม่มีใบอนุญาต</td>
+        <td>• วางสถานะ Execution-Only Software Tool<br>• ใส่คำเตือนความเสี่ยงอนุพันธ์ CFD/Margin ตามมาตรฐาน FCA (PS19/18)</td>
+        <td><span class="badge-tag badge-red">วิกฤตสูงสุด</span></td>
+      </tr>
+      <tr>
+        <td><strong>FCA Regulated Activities</strong><br>(RAO Article 53 — Advice)</td>
+        <td>การให้จุดเข้าซื้อ-ขาย (Entry/TP/SL) เสี่ยงถูกตีความว่าเป็น Investment Advice</td>
+        <td>• ห้ามแนะนำพอร์ตเฉพาะบุคคล (Impersonal analysis only)<br>• มี Disclaimer ใต้ <code>TradeSetupCard.tsx</code> ทุกใบ</td>
+        <td><span class="badge-tag badge-red">สำคัญสูงมาก</span></td>
+      </tr>
+      <tr>
+        <td><strong>DMCC Act 2024</strong><br>(กฎหมายสมาชิก & ซับสคริปชันใหม่)</td>
+        <td>ข้อบังคับใหม่เรื่องการป้องกัน "Subscription Traps" และการต่ออายุอัตโนมัติ</td>
+        <td>• ระบบกดยกเลิกแบบ 1-Click บนหน้าเว็บ<br>• ส่งอีเมลเตือนล่วงหน้าก่อนตัดเงินรอบปี (Pre-renewal reminder)</td>
+        <td><span class="badge-tag badge-amber">สำคัญสูง</span></td>
+      </tr>
+      <tr>
+        <td><strong>UK GDPR & Data Act 2018</strong><br>(กำกับโดย ICO)</td>
+        <td>สิทธิการลบข้อมูล (Right to Erasure) และการโอนข้อมูลข้ามแดน (IDTA)</td>
+        <td>• ปิดช่องโหว่ธง F21 (24h Deletion Worker)<br>• ติดตั้ง Cookie Consent ตามระเบียบ PECR</td>
+        <td><span class="badge-tag badge-amber">สำคัญสูง</span></td>
+      </tr>
+      <tr>
+        <td><strong>UK AI Sector Framework</strong><br>(กำกับโดย FCA & ICO)</td>
+        <td>ความโปร่งใสของโมเดล AI และการไม่หลอกลวงในการวิเคราะห์ตลาด</td>
+        <td>• ติดป้าย AI Badge บน <code>AIAnalystPanel</code><br>• ติดตั้ง PII Sanitizer ก่อนส่งข้อมูลเข้า LLM</td>
+        <td><span class="badge-tag badge-blue">ปานกลาง</span></td>
+      </tr>
+      <tr>
+        <td><strong>HMRC UK VAT</strong><br>(ภาษีมูลค่าเพิ่มดิจิทัล 20%)</td>
+        <td>ภาษีการขาย B2C Digital Services ให้กับลูกค้าในสหราชอาณาจักร (20% VAT)</td>
+        <td>• แยกคำนวณ UK VAT ออกจาก EU VAT OSS (ใช้ Stripe Tax คำนวณตาม Postcode/UK IP)</td>
+        <td><span class="badge-tag badge-blue">ปานกลาง</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- Section 3: FCA In-depth -->
+  <h2>3. การเจาะลึกข้อกำหนด FCA และการโฆษณาทางการเงิน (FSMA Section 21)</h2>
+
+  <h3>3.1 การรักษาสถานะ "เครื่องมือวิเคราะห์เชิงปริมาณ" เพื่อไม่ให้เข้าข่ายการชักชวนทางการเงิน</h3>
+  <p>
+    ตามมาตรา 21 แห่ง <strong>Financial Services and Markets Act 2000 (FSMA)</strong> ของสหราชอาณาจักร การสื่อสารข้อความเชิญชวนหรือจูงใจให้ลงทุน (Financial Promotion) แก่บุคคลใน UK โดยไม่ได้รับความเห็นชอบจากผู้มีใบอนุญาต FCA ถือเป็นความผิดอาญา และ FCA มีหน่วยงานตรวจจับออนไลน์ตลอด 24 ชั่วโมง DavinTrade ต้องรักษามาตรฐาน 3 ประการ:
+  </p>
+  <ul>
+    <li>
+      <strong>1. Execution-Only / Educational Tool Demarcation (PERG 8.29 & 8.30):</strong> ข้อกำหนดการใช้งานและหน้าเว็บไซต์ต้องระบุชัดเจนว่า DavinTrade เป็นเพียงเครื่องมือซอฟต์แวร์ช่วยแสดงผลและคำนวณทางคณิตศาสตร์ ไม่ใช่สถาบันการเงิน ไม่ใช่โบรกเกอร์ และไม่ได้รับอนุญาตจาก FCA
+    </li>
+    <li>
+      <strong>2. การไม่ให้คำแนะนำเฉพาะบุคคล (Impersonal Analytical Data):</strong> สัญญาณบน <code>TradeSetupCard</code> และบทวิเคราะห์จาก Stack D AI Copilot ต้องเป็นสูตรคำนวณเชิงปริมาณแบบทั่วไป (Centroid Regression / SSA / ZigZag) ไม่มีการปรับแต่งตามสถานะพอร์ตการลงทุนของผู้ใช้รายบุคคล
+    </li>
+    <li>
+      <strong>3. FCA Standard CFD / Margin Risk Warning (PS19/18 Policy Statement):</strong> กฎหมาย FCA กำหนดให้ต้องมีคำเตือนความเสี่ยงการเทรดอนุพันธ์และทองคำ Leverage บนหน้า Pricing, Checkout และ Disclaimer เช่น:
+      <div class="callout callout-important" style="font-size: 8pt; line-height: 1.45;">
+        <em>"CFDs and margin instruments are complex products and come with a high risk of losing money rapidly due to leverage. A large majority of retail investor accounts lose money when trading CFDs. You should consider whether you understand how leveraged products work and whether you can afford to take the high risk of losing your money. DavinTrade AI is an analytical software tool, not an FCA-regulated investment firm."</em>
+      </div>
+    </li>
+  </ul>
+
+  <!-- Section 4: DMCC Act & Subscription Traps -->
+  <h2>4. กฎหมายคุ้มครองผู้บริโภคฉบับใหม่ (DMCC Act 2024 & Subscription Rules)</h2>
+  <p>
+    สหราชอาณาจักรได้ผ่านกฎหมาย <strong>Digital Markets, Competition and Consumers Act 2024 (DMCC Act)</strong> เพื่อยกระดับการคุ้มครองผู้บริโภคในระบบดิจิทัลและซอฟต์แวร์แบบบอกรับสมาชิก (SaaS):
+  </p>
+  <ul>
+    <li>
+      <strong>1-Click Exit Right:</strong> ผู้ใช้ใน UK ต้องสามารถยกเลิกการต่ออายุสมาชิกได้ด้วยตนเองผ่านหน้าเว็บอย่างง่ายดายใน 1-2 คลิก (ซึ่งหน้า <code>app/(dashboard)/settings/billing</code> ของ DavinTrade ผ่านเกณฑ์นี้แล้ว)
+    </li>
+    <li>
+      <strong>Pre-Renewal Reminders:</strong> สำหรับแผนสมาชิกรายปี (Annual PRO Plan) ระบบต้องส่งอีเมลแจ้งเตือนล่วงหน้าอย่างน้อย 14–21 วัน ก่อนถึงวันตัดเงินรอบถัดไป
+    </li>
+    <li>
+      <strong>Ban on Fake Reviews:</strong> ห้ามใช้รีวิวที่สร้างขึ้นเองหรือการันตีผลกำไรจากโมเดล AI โดยไม่มีหลักฐานสถิติรองรับจริง
+    </li>
+  </ul>
+
+  <!-- Section 5: UK GDPR & HMRC VAT -->
+  <h2>5. ความเป็นส่วนตัว (UK GDPR) และภาษีมูลค่าเพิ่ม (HMRC UK VAT)</h2>
+
+  <h3>5.1 การคุ้มครองข้อมูลส่วนบุคคล (UK GDPR & ICO Framework)</h3>
+  <ul>
+    <li>
+      <strong>การปิดช่องโหว่การลบข้อมูล (ธง F21):</strong> มาตรา 17 ของ UK GDPR ให้สิทธิแก่ผู้ใช้ในการขอลบข้อมูลบัญชีถาวร (Right to Erasure) ดังนั้นการสร้าง Background Worker สำหรับ Hard-delete ข้อมูลใน <code>operation-service</code> จึงตอบโจทย์ทั้งฝั่ง EU และ UK พร้อมกัน
+    </li>
+    <li>
+      <strong>Cookie Consent under PECR:</strong> ต้องมี Cookie Banner ให้ผู้ใช้ UK กดยอมรับก่อนโหลด Tracking Cookies
+    </li>
+  </ul>
+
+  <h3>5.2 ภาษีมูลค่าเพิ่มดิจิทัลของสหราชอาณาจักร (HMRC VAT 20%)</h3>
+  <p>
+    เนื่องจาก UK ได้ออกจากระบบ EU VAT OSS แล้ว การขายบริการดิจิทัลให้แก่ผู้บริโภค (B2C) ใน UK จะต้องเสียภาษีมูลค่าเพิ่มของ UK ในอัตรา <strong>20%</strong> โดยระบบของ DavinTrade ควรเปิดใช้ <strong>Stripe Tax</strong> เพื่อแยกการคำนวณ UK VAT ออกจาก EU VAT อย่างถูกต้องอัตโนมัติ
+  </p>
+
+  <div class="page-break"></div>
+
+  <!-- Section 6: Action Plan -->
+  <h2>6. สรุปแผนปฏิบัติการสำหรับฝั่ง UK (ผูกรวมใน Phase 16 หลังจบ Session 8B)</h2>
+  <p>
+    ข้อกำหนดของฝั่งสหราชอาณาจักร (UK) ทั้งหมดสามารถนำไปรวบทำพร้อมกับฝั่ง EU และ US ใน <strong>Phase 16 (Global Legal & Compliance Polish)</strong> หลังจากที่คุณรัน Master Roadmap (Phases 7 → 15 → 8B) เสร็จสมบูรณ์แล้ว:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">หัวข้อ / พื้นที่ในระบบ</th>
+        <th style="width: 45%;">งานที่ต้องปฏิบัติสำหรับฝั่ง UK (Action Item)</th>
+        <th style="width: 30%;">ไฟล์ที่เกี่ยวข้อง</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>FCA Risk Disclosure</strong></td>
+        <td>เพิ่มข้อความเตือนความเสี่ยงอนุพันธ์ CFD/Leverage ตามมาตรฐาน FCA PS19/18</td>
+        <td><code>app/(marketing)/disclaimer/page.tsx</code><br><code>app/(marketing)/pricing/page.tsx</code></td>
+      </tr>
+      <tr>
+        <td><strong>FSMA Section 21 Demarcation</strong></td>
+        <td>ระบุใน Terms ว่าเป็น Execution-Only Tool ไม่ใช่ FCA-regulated advisor</td>
+        <td><code>app/(marketing)/terms/page.tsx</code></td>
+      </tr>
+      <tr>
+        <td><strong>DMCC Annual Renewal Email</strong></td>
+        <td>สร้าง Email Reminder แจ้งเตือนก่อนตัดเงินรอบปีสำหรับแผนรายปี (Outbox Worker)</td>
+        <td><code>operation-service/src/mail/</code><br><code>money-service/src/crons/</code></td>
+      </tr>
+      <tr>
+        <td><strong>HMRC UK VAT (20%)</strong></td>
+        <td>ตั้งค่า Stripe Tax ให้รองรับการเก็บภาษี 20% สำหรับลูกค้าที่ใช้ที่อยู่ใน UK</td>
+        <td><code>money-service/src/stripe/</code><br><code>app/checkout/page.tsx</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 7: Conclusion -->
+  <h2>7. สรุปภาพรวมและคำแนะนำสำหรับ Davin</h2>
+  <div class="callout callout-success">
+    <div class="callout-title">🎯 ความพร้อมของ DavinTrade สู่ตลาด Global (EU, US & UK):</div>
+    <strong>1. การปรับปรุงทางกฎหมายของทั้ง 3 ภูมิภาค (EU, US, UK) มีทิศทางที่สอดคล้องกันเกือบ 90%</strong> เช่น การใส่ป้ายกำกับ AI, การวางสถานะเป็น Execution-Only Software, การมีปุ่มยกเลิก 1-Click, และการปิดช่องโหว่ลบข้อมูล (F21)<br>
+    <strong>2. ไม่มีอะไรที่ต้องแก้โครงสร้างระบบ Microservices หรือขัดขวาง Roadmap ปัจจุบัน</strong> งานทั้งหมดเป็นเพียงการปรับ Legal Copy, ติดตั้ง Badge, และเปิดใช้ฟังก์ชัน Stripe Tax<br>
+    <strong>3. Davin สามารถรันงานตาม Master Roadmap (Phases 7 → 15 → 8B) ต่อไปได้ตามปกติ</strong> แล้วค่อยรันงานด้าน Global Compliance ทั้งหมดนี้เป็น Phase 16 ในตอนท้ายได้อย่างราบรื่นที่สุดครับ!
+  </div>
+
+  <p style="text-align: center; color: #64748b; font-size: 8.5pt; margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+    เอกสารฉบับนี้จัดทำขึ้นเพื่อการวิเคราะห์และวางแผนทางสถาปัตยกรรมซอฟต์แวร์ของโครงการ DavinTrade ตามระเบียบข้อบังคับของสหราชอาณาจักร (UK Post-Brexit Regulatory Framework)
+  </p>
+
+</body>
+</html>
