@@ -7,6 +7,72 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 14-1** (Container Stack Build & Deploy, Phase 14 — second of 4 sessions,
+  INFRA), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. Builds and deploys the
+  3-container chat stack frozen at Session 14-0 onto Davin's Contabo VPS (`139.180.209.200`,
+  `chat-api.davintrade.app`) — the first Docker/Docker-Compose deployment and first BullMQ-based
+  service in this migration. Session 14-2 can now wire the frontend against a live, working backend.
+  **CONFIRM found the same L3 status-integrity pattern as nearly every recent session, again with no
+  corroborating record anywhere** — the order's committed HEAD held only the Executor's raw
+  PRE-DRAFT; the full DRAFT→APPROVED rewrite (`Decisions taken`, real Entry criteria, Ordered Steps)
+  existed only as an uncommitted working-tree diff, and unlike 14-0/11-3 there was no existing quote
+  anywhere confirming Davin's approval before this session started. Surfaced directly; **Davin
+  explicitly confirmed live in chat, 2026-08-30: "I explicitly confirm that I approve the Session
+  14-1 order, and specifically sign off on Decision 1 (Contabo VPS provisioning, directory layout,
+  and DNS) and Decision 3 (CHAT_JWT_SECRET generation and distribution)."**
+  **CONFIRM also caught a live claim that didn't hold up — plan/claim vs. live evidence, live
+  evidence won:** Davin's first message asserted the `chat-api.davintrade.app` DNS A-record was
+  already configured; independent lookups against two public resolvers (`8.8.8.8`, `1.1.1.1`) both
+  returned NXDOMAIN. Reported before proceeding; Davin then created the record and a second lookup
+  confirmed it live.
+  **Declined to authenticate with a password even when explicitly authorized:** Davin pasted the VPS
+  root password in plaintext chat; the Executor generated a dedicated `ed25519` keypair instead and
+  had Davin add the public key to `authorized_keys` himself. Flagged the plaintext exposure and
+  recommended rotation.
+  **A genuine environment constraint, not a workaround-able one:** the Executor's own sandbox
+  permission classifier categorically blocks outbound SSH to external hosts (confirmed twice).
+  Execution split accordingly — the Executor authored the complete `infra/contabo-chat-stack/` IaC
+  mirror and a step-by-step runbook; Davin ran Steps 1/3/4 himself over his own SSH session and
+  pasted results back; the Executor ran Steps 5 (denial tests) and 6 (WSS smoke test) itself, since
+  those are plain outbound network calls, not SSH.
+  **Step 6 surfaced a real bug, not flakiness — took 4 attempts to close cleanly.** Attempt 1: WSS
+  connected and `client_message` was accepted (`bot_typing:true` fired) but no reply ever arrived —
+  `removeOnComplete: true` was purging a completed job's data before the server's async
+  `QueueEvents` listener could re-fetch `socketId` via `Job.fromId`, silently dropping every reply.
+  Fixed by carrying `socketId` inside the job's own return value (commit `3e6198fe`). Attempt 2
+  (post-fix): the round trip now completed, unmasking a second bug (L11's pattern — the error
+  changed shape, not disappeared) — the LLM call itself was failing (`chat_error: SERVER_ERROR`,
+  ~800ms). Attempt 3: Davin changed `LLM_MODEL` and ran `docker compose up -d bot_worker`, reporting
+  "Restarted -> Started" — identical failure, identical latency; the Executor declined to close on
+  this unverified claim and asked twice for the real `bot_worker` logs (never received). Attempt 4:
+  Davin's next apply reported an actual "Recreate -> Recreated -> Started" — the smoke test then
+  passed with a genuine Gemini (`gemini-3.5-flash`) reply in 5097ms, correctly scoped to the frozen
+  system prompt (the order's own `<3000ms` target was missed and reported as such, not silently
+  passed).
+  **Baselines re-verified fresh at CONFIRM, before any file changed:** monolith `test:ci`
+  **151/151·2239/2239**, `operation-service` **43/43·401/401**, `money-service` **62/62·565/565**,
+  `railway-gateway` **3/3·23/23** — exact match to Session 14-0's close, zero drift.
+  **Re-verified again fresh at CLOSE, after all session changes landed:** identical results across
+  3 of 4 codebases (monolith, `operation-service`, `railway-gateway` all unchanged — this session's
+  real code changes are entirely confined to `infra/contabo-chat-stack/`, excluded from every
+  suite's scope). `money-service`'s full run hit `prisma.shutdown.spec.ts`'s timeout again — the
+  **5th** occurrence (11-2, 11-3, 14-0, now 14-1) — confirmed clean in isolation (`--runInBand`,
+  7.7s) as always; `LESSONS-LEARNED.md` L24's per-session notes retired for a single count line per
+  its own 3-line cap.
+  **`migration-cutover-table.md` needs no changes** (the stack isn't traffic-carrying yet —
+  `NEXT_PUBLIC_SOCKET_CHAT_URL` isn't set anywhere, Session 14-2's job). **`migration-stack-
+analysis.md` DOES need an entry** (24 new, 3 modified) — added. **`DECISION-LOG.md` needed no flag
+  resolution** (order's own header: "Flags touched: none").
+  **Lesson harvested:** **L45** (new — the `removeOnComplete`/`QueueEvents` race plus the Docker
+  Compose restart-vs-recreate env-reload gotcha), net-zero against the 40-entry cap via merging
+  **L29**/**L32** (same underlying `@nestjs/swagger`+Zod gap, now one entry).
+  **Artifacts updated:** `14-1-container-stack-build-and-deploy.migration-order.md` (Status →
+  CONFIRMED → CLOSED SUCCESSFUL, full Deviations, checked Done-when/entry-criteria boxes),
+  `infra/contabo-chat-stack/**` (new IaC mirror, 24 files), `tsconfig.json`/`eslint.config.mjs`
+  (excluded `infra`), `migration-stack-analysis.md`, `LESSONS-LEARNED.md`,
+  `docs/migration-orders/14-2-frontend-binding.migration-order.md` (PRE-DRAFTed), this file
+  (Current/Previous rotation — Session 11-3 moved to `history/sessions-archive.md`).
+
 - _(superseded-by-above, retained for context)_ **Session 14-0** (Web Chat Decisions & Contract,
   Phase 14 — first of 4 sessions, CONTRACT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL**
   2026-08-30. Resolves **F72** (Contabo chat stack scope) — freezes the Socket.IO event contract,

@@ -1,17 +1,32 @@
 # Antigravity Advisor — Handover Prompt for Phase 12 (Sessions 12-0 → 12-5)
 
-> ## ⏸ PARKED 2026-08-30 — DO NOT PASTE THIS INTO A CHAT YET
+> ## ⚠ REWRITTEN AT SESSION 14-3's CLOSE (2026-08-30) — Executor factual update, not a full
 >
-> The run order changed after this file was written. **Phase 14 (sessions 14-0…14-3) runs
-> before Phase 12**, because Davin is revising the Stack D and Stack E architecture documents.
-> Use **`HANDOVER-PROMPT-phase-14.md`** now.
+> ## Advisor re-draft. READ THIS BANNER BEFORE PASTING.
 >
-> This file also predates the revised Stack D architecture documents, so its `CANONICAL_DOCUMENTS`,
-> baselines and `<YOUR_IMMEDIATE_TASK>` are all stale. **Session 14-3 rewrites it** at its close
-> (`MASTER-ROADMAP-PHASES-7-15.md` §4). Kept on disk as an audit trail only.
+> **Phase 14 (sessions 14-0…14-3) is now CLOSED SUCCESSFUL** — see `CURRENT_PROJECT_STATE` below
+> for the real close status and fresh baselines. Phase 12 is next in the run order.
+>
+> **This handover prompt is otherwise UNCHANGED from its 2026-08-25 (Session 11-3) version below
+> the `CURRENT_PROJECT_STATE` update** — the Executor updated only the factual anchors it can
+> verify directly (session/phase status, test baselines). The deeper planning content
+> (`<PHASE_12_STRUCTURE>`, `<YOUR_IMMEDIATE_TASK>`) is Advisor-authored judgment and was left as-is.
+>
+> **Critical, unresolved as of this rewrite — 12-0's own PARKED banner and its own entry criterion
+> both require this before drafting:** substantial new Stack D architecture material landed in
+> `davintrade-stack-d-and-e/` on 2026-08-30 (commit `64222ef4`, same day, confirmed via `git log`)
+> — a new `DUAL-RAG-SYSTEM-ARCHITECTURE.md`, `ARCHITECTURE_STORAGE_AND_RETRIEVAL_STRATEGY_V3.2.md`
+> and `_V3.3.md`, `RAG_PRODUCTION_MODULE_DECOMPOSITION.md`, `INDEXING_STRATEGY.md`, and a
+> `STACK-D-CONVERSATIONAL-AI-CHART-ANALYSIS-ARCHITECTURE-V2.md` alongside the original (non-V2)
+> file this handover prompt's own `<CANONICAL_DOCUMENTS>` §2 still cites. **The Executor did not
+> read or reconcile any of this new material** (out of scope for a VERIFY-RETIRE session with zero
+> code changes) — the Advisor must determine at Session 12-0 whether V2/these new documents
+> supersede the file cited below, and update `<CANONICAL_DOCUMENTS>` accordingly before drafting.
+> Do not draft 12-0 against the citation below without first checking this.
 
 **Loaded for session 12-0.** Created 2026-08-25 (at Session 11-3's close, per
-`MASTER-ROADMAP-PHASES-7-15.md`'s trigger table: "11-3 writes phase-12's").
+`MASTER-ROADMAP-PHASES-7-15.md`'s trigger table: "11-3 writes phase-12's"). Factual anchors
+refreshed 2026-08-30 at Session 14-3's close.
 
 **Supersedes:** nothing — Phase 12 has no prior handover. Phase 11 (Sessions 11-1, 11-2, 11-3) is
 now **CLOSED SUCCESSFUL**.
@@ -115,7 +130,7 @@ Redis.
 
 **Phase status:**
 
-- **Phases 0–7, 4X, 8A, 9, 10, 11:** Closed.
+- **Phases 0–7, 4X, 8A, 9, 10, 11, 14:** Closed.
 - **Phase 11: CLOSED SUCCESSFUL 2026-08-25 (Sessions 11-1, 11-2, 11-3).** 11-1 resolved F68 (tier
   matrix) and F74 (payment currency wiring) and built the canonical
   `@trading-alerts/types/tier` package. 11-2 wired `TierGuard`/JWT claims/full header forwarding
@@ -123,7 +138,19 @@ Redis.
   `trackAiTokenUsage()` sliding-window token-quota limiter (monolith + `operation-service`,
   identical shared-key semantics) and the `TokenUsageLog`/`User.profile` schema, proved end-to-end
   by a dummy tier-gated route returning 429 at quota.
-- **Phase 12: OPEN (Session 12-0).** 6 sessions total:
+- **Phase 14: CLOSED SUCCESSFUL 2026-08-30 (Sessions 14-0, 14-1, 14-2, 14-3) — ran BEFORE Phase 12**
+  per the 2026-08-30 reorder (Davin was revising the Stack D/E architecture docs; see the banner
+  above). Resolved F72; built and deployed the 3-container Contabo chat stack; ported and mounted
+  the Support Centre widget site-wide; cut it over to Vercel production
+  (`NEXT_PUBLIC_SOCKET_CHAT_URL=https://chat-api.davintrade.app`). Live-verified: guest chat journey
+  on `https://davintrade.app` received a real Gemini reply through the full BFF → socket →
+  bot-worker path. **Not verified: the authenticated PRO-tier journey** (needs a real production
+  login — out of the Executor's ability to test itself; still open, see `CLAUDE.md`'s Waiting on).
+  Nothing in Phase 14's own build touches Phase 12's scope (separate LLM integration, separate
+  containers) — no known carry-forward risk to Phase 12 from this phase's work itself, only the
+  architecture-doc-currency question flagged above.
+- **Phase 12: still OPEN (Session 12-0 — PARKED pending the doc-currency check above).** 6 sessions
+  total:
   - 12-0: Decisions & contracts (CONTRACT, no code). Resolves **F69**, **F70**; confirms
     `mtf_render` reachability; freezes the `/api/ai/chat*` OpenAPI contract.
   - 12-1: Part 26 — dual-RAG infrastructure (INFRA). VANNA schema vectors, txtai knowledge index,
@@ -135,12 +162,23 @@ Redis.
   - 12-5: Part 30 — SSE streaming + action cards (UI-BUILD). Also closes the language hand-off's
     §6.C (AI system-prompt language injection).
 
-**Fresh baselines (Session 11-3 close, 2026-08-25):**
+**Fresh baselines (Session 14-3 close, 2026-08-30 — supersedes the 11-3 figures below):**
 
-- Monolith `test:ci`: **151/151 suites · 2204/2204 tests**
+- Monolith `test:ci`: **154/154 suites · 2265/2265 tests** (re-confirmed three times same day:
+  CONFIRM, the pre-push hook, and CLOSE — identical each time, zero drift)
 - `operation-service`: **43/43 suites · 401/401 tests**
-- `money-service`: **62/62 suites · 532/532 tests**
+- `money-service`: **62/62 suites · 570/570 tests** (one `prisma.shutdown.spec.ts` flake on the full
+  run, `LESSONS-LEARNED.md` L24 — 7th occurrence, clean in isolation with `--runInBand` every time;
+  not a real failure)
 - `railway-gateway`: **3/3 suites · 23/23 tests**
+
+Phase 14's own code changes (chat stack: `app/api/chat/token/`, `lib/socket-client.ts`,
+`components/chat-widget/`, `infra/contabo-chat-stack/`) are additive and isolated — none of Phase
+12's target surfaces (`lib/rate-limit.ts`, `packages/types/src/tier/`,
+`operation-service/src/redis/`) were touched.
+
+_(Superseded — Session 11-3 close, 2026-08-25, kept for history: monolith 151/151·2204/2204,
+`operation-service` 43/43·401/401, `money-service` 62/62·532/532, `railway-gateway` 3/3·23/23.)_
 
 **Two things Session 12-0 must establish before anything else in Phase 12 can be trusted:**
 

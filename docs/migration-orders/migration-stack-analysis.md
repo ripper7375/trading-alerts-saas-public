@@ -4482,8 +4482,78 @@ client-providers.tsx` (widget mounted site-wide, replacing the deferred-since-9-
 
 </details>
 
+<details>
+<summary>Session 14-3 (Cutover + Runbook, Phase 14 fourth-of-4 — CLOSES PHASE 14, VERIFY-RETIRE) — 1 new, 3 modified, 0 deleted</summary>
+
+Production Vercel cutover of the Support Centre chat widget, live end-to-end verification, the
+CC-G operational runbook, and formal Phase 14 close. Zero application source-code changes.
+
+- **New (1 file):** `docs/runbooks/contabo-chat-stack.md` (CC-G operational runbook — architecture,
+  maintenance, monitoring, disaster recovery).
+- **Modified:** `docs/migration-orders/14-3-cutover-and-runbook.migration-order.md` (PRE-DRAFT →
+  CONFIRMED → CLOSED SUCCESSFUL), `docs/migration-orders/migration-cutover-table.md` (new row — Web
+  Chat Stack, CUT-OVER), this file.
+- **L3 recurred again at CONFIRM, same shape as 14-1/14-2:** committed `HEAD` was still the raw
+  PRE-DRAFT; the DRAFT→APPROVED upgrade and Davin's Decision-1 sign-off existed only as an
+  uncommitted working-tree diff. Resolved: Davin's explicit, separate live confirmation quoted in
+  the order itself; that commit (`61ea9c0b`) is the corroborating record.
+- **A second, distinct CONFIRM finding — live code beat the plan's own claim:** the order's Rollback
+  Invariant and Journey C originally claimed the widget "degrades to static Help pages... and
+  `mailto:`." Live-tested (dev server, `NEXT_PUBLIC_SOCKET_CHAT_URL` unset, real browser) before
+  sign-off: false — the widget stays mounted everywhere and falls back to its own in-widget
+  canned-response generator (`lib/socket-client.ts:148-199`), never touching the static help pages.
+  Corrected in the order text per `EXECUTOR-PROTOCOL.md` §0 before Decision 1 was signed off.
+- **A genuine deployment-mechanism gap, not guessed around:** assumed `git push origin main` would
+  auto-trigger a Vercel production build (per `vercel.json`'s `ignoreCommand` referencing
+  `VERCEL_GIT_COMMIT_REF`). Pushed commit `61ea9c0b`; production kept serving a build **older than
+  Session 14-2** (`GET /api/chat/token` 404'd, no widget rendered, confirmed ~8+ minutes post-push).
+  No Vercel CLI/dashboard access from this environment — stopped and escalated rather than guess at
+  deploy hooks. Davin resolved it by (re-)assigning `davintrade.app` to the working Vercel project
+  and confirming a fresh deployment of `61ea9c0b`; the Executor then re-verified live
+  (`GET /api/chat/token` → `{"token":null,"url":"https://chat-api.davintrade.app"}`).
+- **Journey A (guest) live-verified** on `https://davintrade.app/pricing` (substituted for `/help`
+  — see below): a genuine, markdown-formatted Gemini reply (impossible from the canned fallback,
+  which is fixed plain-text) came back through the real BFF → socket → bot-worker path; zero
+  console/CSP errors.
+- **Journey B (authenticated PRO user) NOT verified by the Executor** — requires logging into a
+  real production account, which the Executor is categorically prohibited from doing (never enters
+  credentials). Flagged, not silently skipped; needs Davin's own click-through or a provided test
+  session before it can be marked verified.
+- **Journey C / rollback rehearsal accepted from the earlier local proof rather than re-toggled live
+  on production** — toggling `NEXT_PUBLIC_SOCKET_CHAT_URL` off in Vercel would need its own full
+  build-and-deploy cycle; the mechanism was already proven clean (real browser, dev server, zero
+  console errors, screenshot evidence) during CONFIRM, before sign-off. Deliberate choice to avoid
+  an unnecessary second production build cycle, not a skipped check.
+- **Unrelated finding, discovered incidentally, not fixed:** `/help` and `/about` 404 on production
+  while `/` and `/pricing` return 200. Confirmed unrelated to this session — zero application source
+  files were shipped before the gap was found. Out of scope for a zero-code-changes VERIFY-RETIRE
+  session; flagged for a future session, not investigated further.
+- **Baselines re-verified fresh at CONFIRM, before any file changed:** monolith `test:ci`
+  **154/154·2265/2265**, `operation-service` **43/43·401/401**, `money-service` **62/62·570/570**
+  (1 flake on the full run — `prisma.shutdown.spec.ts`, L24, **7th** occurrence — clean in isolation,
+  `--runInBand`, 7.6s), `railway-gateway` **3/3·23/23** — zero drift from Session 14-2's own close.
+  Re-confirmed a second time automatically by the pre-push hook's own full `test:ci` run
+  (**154/154·2265/2265**, identical) when pushing the CONFIRMED order commit.
+- **`migration-cutover-table.md` DOES need an entry** (this session is the point the slice becomes
+  genuinely traffic-carrying) — added: Web Chat Stack, `CUT-OVER`, 2026-08-30, commit `61ea9c0b`.
+  **`DECISION-LOG.md` needed no flag resolution** (order's own header: "Flags touched: none" — F72
+  already resolved at Session 14-0).
+- **Phase 14 CLOSED.** Next: Phase 12 (Stack D), gated on `12-0-decisions-and-contracts.migration-
+order.md`'s own PARKED note — full fresh re-verification against the (possibly revised) Stack D/E
+  architecture docs required before treating it as ready, not un-parked on the strength of this
+  session alone.
+- **Lesson harvested:** no new lesson promoted (still at the 40-entry cap) — recurrence notes
+  appended to **L3** (now 33+ occurrences) and **L24** (7th occurrence). **One genuinely new candidate
+  lesson surfaced** (git push to `main` is not reliable proof a Vercel production deployment
+  actually shipped — verify the live commit/build directly, e.g. via a route only the new code
+  serves, before treating a push as a completed cutover step) but was **not promoted**, per this
+  file's own cap rule — noted here for the Advisor to consider consolidating into an existing lesson
+  or promoting once room exists, same as Session 9-10's precedent.
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-30 (Session 14-2, frontend binding — Phase 14
-continues at 14-3)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-30 (Session 14-3, cutover + runbook — Phase 14
+CLOSED, Phase 12 next)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly

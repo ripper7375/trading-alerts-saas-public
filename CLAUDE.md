@@ -84,7 +84,79 @@ terms/page.tsx` (×2); `privacy@` in `(marketing)/privacy/page.tsx` (×2); `care
 > (a flagged single-instance finding is as much a floor-not-ceiling risk as an order's own
 > checklist; grep the pattern before declaring a spot-fix complete).
 
-- **Current:** Session 14-2 (Frontend Binding, Phase 14 — third of 4 sessions, PORT), APPROVED,
+- **Current:** Session 14-3 (Cutover + Runbook, Phase 14 — fourth and last of 4 sessions,
+  VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. **Phase 14
+  (Web Chat / Contabo Support Stack) is now COMPLETE.** Flips `NEXT_PUBLIC_SOCKET_CHAT_URL` +
+  `CHAT_JWT_SECRET` live in Vercel production, verifies the guest chat journey end-to-end against
+  `https://davintrade.app`, authors the CC-G operational runbook, and formally closes the phase.
+  Zero application source-code changes (VERIFY-RETIRE, as scoped).
+  **CONFIRM found the same L3 status-integrity pattern as the last several sessions, again with no
+  corroborating record anywhere:** the order's committed HEAD held only the Executor's raw
+  PRE-DRAFT; the DRAFT→APPROVED rewrite and Decision 1's sign-off existed only as an uncommitted
+  working-tree diff. Surfaced directly; **Davin explicitly confirmed live in chat, 2026-08-30: "I
+  explicitly confirm that I approve the Session 14-3 order and specifically sign off on Decision 1
+  (Production Vercel cutover with `NEXT_PUBLIC_SOCKET_CHAT_URL=https://chat-api.davintrade.app`
+  and `CHAT_JWT_SECRET`)."** That commit (`61ea9c0b`) is now the corroborating record.
+  **A second, distinct CONFIRM finding — live code beat the plan's own claim, per
+  `EXECUTOR-PROTOCOL.md` §0:** the order's Rollback Invariant and Journey C originally claimed the
+  widget "degrades to static Help pages... and `mailto:`." Live-tested (dev server,
+  `NEXT_PUBLIC_SOCKET_CHAT_URL` unset, real browser, before sign-off): false. The widget stays
+  mounted site-wide regardless of the env var and falls back to its own in-widget canned-response
+  generator (`lib/socket-client.ts:148-199`) — it never touches or redirects to the static help
+  pages. Corrected in the order text before Decision 1 was signed off.
+  **A genuine deployment-mechanism gap, escalated rather than guessed around:** assumed
+  `git push origin main` would auto-trigger a Vercel production build (per `vercel.json`'s
+  `ignoreCommand` referencing `VERCEL_GIT_COMMIT_REF`). Pushed the CONFIRMED-order commit
+  (`61ea9c0b`); production kept serving a build **older than Session 14-2** for 8+ minutes
+  (`GET /api/chat/token` 404'd, no widget rendered on any page checked). No Vercel CLI/dashboard
+  access exists in this environment — stopped and asked Davin rather than guess at deploy hooks.
+  Davin resolved it by (re-)assigning `davintrade.app` to the correct Vercel project and confirming
+  a fresh deployment of `61ea9c0b` had finished; the Executor then re-verified live directly
+  (`GET /api/chat/token` → `{"token":null,"url":"https://chat-api.davintrade.app"}`).
+  **Journey A (unauthenticated guest) live-verified** on `https://davintrade.app/pricing`
+  (substituted for `/help` — see below): a genuine, markdown-formatted Gemini reply — impossible
+  from the canned fallback, which is fixed plain-text — came back through the real
+  BFF → socket → bot-worker path; zero console/CSP errors.
+  **Journey B (authenticated PRO user) NOT verified by the Executor** — requires logging into a
+  real production account, which the Executor is categorically prohibited from doing (never enters
+  credentials, per standing safety rules). Flagged, not silently skipped; needs Davin's own
+  click-through, or a provided test session, before it can be marked verified.
+  **Journey C / rollback rehearsal accepted from the local CONFIRM-time proof rather than re-toggled
+  live on production** — toggling the env var off in Vercel would require its own full
+  build-and-deploy cycle; the degradation mechanism was already proven clean (real browser, dev
+  server, zero console errors) before sign-off. Deliberate choice to avoid an unnecessary second
+  production build cycle, documented as a deviation, not a skipped check.
+  **Unrelated finding, discovered incidentally, not fixed:** `/help` and `/about` 404 on production
+  while `/` and `/pricing` return 200 — confirmed unrelated to this session (zero application
+  source files shipped before the gap was found). Out of scope for a zero-code-changes
+  VERIFY-RETIRE session; flagged for a future session.
+  **Baselines re-verified fresh at CONFIRM, before any file changed:** monolith `test:ci`
+  **154/154·2265/2265**, `operation-service` **43/43·401/401**, `money-service` **62/62·570/570**
+  (1 flake on the full run — `prisma.shutdown.spec.ts`, `LESSONS-LEARNED.md` L24, **7th**
+  occurrence — confirmed clean in isolation, `--runInBand`, 7.6s), `railway-gateway`
+  **3/3·23/23** — zero drift from Session 14-2's own close. Re-confirmed a second time
+  automatically by the pre-push hook's own `test:ci` run (**154/154·2265/2265**, identical) when
+  pushing the CONFIRMED order.
+  **`migration-cutover-table.md` DOES need an entry** — this is the point the slice becomes
+  genuinely traffic-carrying — added: Web Chat Stack, `CUT-OVER`, 2026-08-30, commit `61ea9c0b`.
+  **`migration-stack-analysis.md` DOES need an entry** (1 new, 3 modified) — added.
+  **`DECISION-LOG.md` needed no flag resolution** (order's own header: "Flags touched: none" — F72
+  already resolved at Session 14-0).
+  **Lesson harvested:** no new lesson promoted (still at the 40-entry cap) — recurrence notes
+  appended to `LESSONS-LEARNED.md`'s **L3** and **L24**. One genuinely new candidate lesson
+  surfaced (a `git push` to `main` is not reliable proof a Vercel production deployment actually
+  shipped — verify the live commit/build directly before treating a push as a completed cutover
+  step) but was not promoted, per the file's own cap rule; noted in `migration-stack-analysis.md`'s
+  Session 14-3 entry for the Advisor to consider consolidating or promoting once room exists.
+  **Artifacts updated:** `14-3-cutover-and-runbook.migration-order.md` (Status → CONFIRMED →
+  CLOSED SUCCESSFUL, full CONFIRM Evidence + Deviations, checked Entry-criteria/Done-when boxes),
+  `docs/runbooks/contabo-chat-stack.md` (new, CC-G), `migration-cutover-table.md`,
+  `migration-stack-analysis.md`, `LESSONS-LEARNED.md`,
+  `davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-12.md` (factual anchors refreshed —
+  Phase 14 close, fresh baselines, flagged new Stack D architecture material pending Advisor
+  review; full planning re-draft deliberately not attempted, out of Executor scope), this file
+  (Current/Previous rotation — Session 14-1 moved to `history/sessions-archive.md`).
+- **Previous:** Session 14-2 (Frontend Binding, Phase 14 — third of 4 sessions, PORT), APPROVED,
   CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. Ports the Support Centre chat widget
   from `seed-code/trading-conversational-ai-ui-pages-increment/` into the main repo (a new BFF
   chat-token endpoint, the socket client, and 3 chat-widget components), wires it against Session
@@ -147,71 +219,21 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   `docs/migration-orders/14-3-cutover-and-runbook.migration-order.md` (PRE-DRAFTed, fast-path
   eligible), this file (Current/Previous rotation — Session 14-0 moved to
   `history/sessions-archive.md`).
-- **Previous:** Session 14-1 (Container Stack Build & Deploy, Phase 14 — second of 4 sessions,
-  INFRA), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. Builds and deploys the
-  3-container chat stack frozen at Session 14-0 onto Davin's Contabo VPS (`139.180.209.200`,
-  `chat-api.davintrade.app`) — the first Docker/Docker-Compose deployment and first BullMQ-based
-  service in this migration. Session 14-2 can now wire the frontend against a live, working backend.
-  **CONFIRM found the same L3 status-integrity pattern as nearly every recent session, again with no
-  corroborating record anywhere** — the order's committed HEAD held only the Executor's raw
-  PRE-DRAFT; the full DRAFT→APPROVED rewrite (`Decisions taken`, real Entry criteria, Ordered Steps)
-  existed only as an uncommitted working-tree diff, and unlike 14-0/11-3 there was no existing quote
-  anywhere confirming Davin's approval before this session started. Surfaced directly; **Davin
-  explicitly confirmed live in chat, 2026-08-30: "I explicitly confirm that I approve the Session
-  14-1 order, and specifically sign off on Decision 1 (Contabo VPS provisioning, directory layout,
-  and DNS) and Decision 3 (CHAT_JWT_SECRET generation and distribution)."**
-  **CONFIRM also caught a live claim that didn't hold up — plan/claim vs. live evidence, live
-  evidence won:** Davin's first message asserted the `chat-api.davintrade.app` DNS A-record was
-  already configured; independent lookups against two public resolvers (`8.8.8.8`, `1.1.1.1`) both
-  returned NXDOMAIN. Reported before proceeding; Davin then created the record and a second lookup
-  confirmed it live.
-  **Declined to authenticate with a password even when explicitly authorized:** Davin pasted the VPS
-  root password in plaintext chat; the Executor generated a dedicated `ed25519` keypair instead and
-  had Davin add the public key to `authorized_keys` himself. Flagged the plaintext exposure and
-  recommended rotation.
-  **A genuine environment constraint, not a workaround-able one:** the Executor's own sandbox
-  permission classifier categorically blocks outbound SSH to external hosts (confirmed twice).
-  Execution split accordingly — the Executor authored the complete `infra/contabo-chat-stack/` IaC
-  mirror and a step-by-step runbook; Davin ran Steps 1/3/4 himself over his own SSH session and
-  pasted results back; the Executor ran Steps 5 (denial tests) and 6 (WSS smoke test) itself, since
-  those are plain outbound network calls, not SSH.
-  **Step 6 surfaced a real bug, not flakiness — took 4 attempts to close cleanly.** Attempt 1: WSS
-  connected and `client_message` was accepted (`bot_typing:true` fired) but no reply ever arrived —
-  `removeOnComplete: true` was purging a completed job's data before the server's async
-  `QueueEvents` listener could re-fetch `socketId` via `Job.fromId`, silently dropping every reply.
-  Fixed by carrying `socketId` inside the job's own return value (commit `3e6198fe`). Attempt 2
-  (post-fix): the round trip now completed, unmasking a second bug (L11's pattern — the error
-  changed shape, not disappeared) — the LLM call itself was failing (`chat_error: SERVER_ERROR`,
-  ~800ms). Attempt 3: Davin changed `LLM_MODEL` and ran `docker compose up -d bot_worker`, reporting
-  "Restarted -> Started" — identical failure, identical latency; the Executor declined to close on
-  this unverified claim and asked twice for the real `bot_worker` logs (never received). Attempt 4:
-  Davin's next apply reported an actual "Recreate -> Recreated -> Started" — the smoke test then
-  passed with a genuine Gemini (`gemini-3.5-flash`) reply in 5097ms, correctly scoped to the frozen
-  system prompt (the order's own `<3000ms` target was missed and reported as such, not silently
-  passed).
-  **Baselines re-verified fresh at CONFIRM, before any file changed:** monolith `test:ci`
-  **151/151·2239/2239**, `operation-service` **43/43·401/401**, `money-service` **62/62·565/565**,
-  `railway-gateway` **3/3·23/23** — exact match to Session 14-0's close, zero drift.
-  **Re-verified again fresh at CLOSE, after all session changes landed:** identical results across
-  3 of 4 codebases (monolith, `operation-service`, `railway-gateway` all unchanged — this session's
-  real code changes are entirely confined to `infra/contabo-chat-stack/`, excluded from every
-  suite's scope). `money-service`'s full run hit `prisma.shutdown.spec.ts`'s timeout again — the
-  **5th** occurrence (11-2, 11-3, 14-0, now 14-1) — confirmed clean in isolation (`--runInBand`,
-  7.7s) as always; `LESSONS-LEARNED.md` L24's per-session notes retired for a single count line per
-  its own 3-line cap.
-  **`migration-cutover-table.md` needs no changes** (the stack isn't traffic-carrying yet —
-  `NEXT_PUBLIC_SOCKET_CHAT_URL` isn't set anywhere, Session 14-2's job). **`migration-stack-
-analysis.md` DOES need an entry** (24 new, 3 modified) — added. **`DECISION-LOG.md` needed no flag
-  resolution** (order's own header: "Flags touched: none").
-  **Lesson harvested:** **L45** (new — the `removeOnComplete`/`QueueEvents` race plus the Docker
-  Compose restart-vs-recreate env-reload gotcha), net-zero against the 40-entry cap via merging
-  **L29**/**L32** (same underlying `@nestjs/swagger`+Zod gap, now one entry).
-  **Artifacts updated:** `14-1-container-stack-build-and-deploy.migration-order.md` (Status →
-  CONFIRMED → CLOSED SUCCESSFUL, full Deviations, checked Done-when/entry-criteria boxes),
-  `infra/contabo-chat-stack/**` (new IaC mirror, 24 files), `tsconfig.json`/`eslint.config.mjs`
-  (excluded `infra`), `migration-stack-analysis.md`, `LESSONS-LEARNED.md`,
-  `docs/migration-orders/14-2-frontend-binding.migration-order.md` (PRE-DRAFTed), this file
-  (Current/Previous rotation — Session 11-3 moved to `history/sessions-archive.md`).
+
+## Waiting on
+
+- **Phase 12 handover prompt full re-draft** — Session 14-3 refreshed its factual anchors only
+  (Phase 14 close, fresh baselines) and flagged that new Stack D architecture material landed
+  2026-08-30 (`davintrade-stack-d-and-e/`, commit `64222ef4` — a `DUAL-RAG-SYSTEM-ARCHITECTURE.md`,
+  two versioned storage-strategy docs, a `-V2.md` Stack D architecture variant). The Advisor must
+  resolve whether these supersede the file the handover prompt's `<CANONICAL_DOCUMENTS>` still
+  cites before Session 12-0 drafts against it.
+- **Journey B (authenticated PRO user) chat verification** — not run against production; needs
+  Davin's own login click-through on `https://davintrade.app` (or a provided test session), since
+  the Executor cannot enter credentials itself.
+- **`/help` and `/about` 404 on production** — found live during Session 14-3, confirmed unrelated
+  to the chat cutover (zero application source changes shipped before the gap was found). Needs its
+  own investigation session.
 
 ## Key documents
 
