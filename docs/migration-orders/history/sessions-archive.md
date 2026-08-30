@@ -7,6 +7,77 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 ---
 
+- _(superseded-by-above, retained for context)_ **Session 11-3** (Token Metering & Schema, Phase 11
+  — third and final session, INFRA + PORT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL**
+  2026-08-25. **Phase 11 (Preparatory Tier-Access & Core Refactoring) is now CLOSED SUCCESSFUL** —
+  all 3 sessions (11-1, 11-2, 11-3) complete. Builds the Redis `trackAiTokenUsage()` sliding-window
+  token-quota limiter and the `TokenUsageLog`/`User.profile` schema — the mechanism Stack D (Phase 12) will meter and cap AI-token spend against, proven end-to-end by a dummy tier-gated route
+  returning 429 at quota.
+  **CONFIRM found a variant of the same L3 status-integrity gap every recent session's own CONFIRM
+  has found, but with a real difference this time:** the order's committed HEAD held `Status:
+PRE-DRAFT` (4 "Decisions needed", sketch-only Ordered Steps) and the uncommitted working copy
+  held `Status: DRAFT` (4 "Decisions taken", full 5-step Ordered Steps) — **neither version claimed
+  `APPROVED`**, unlike 11-1/11-2 where the working copy already claimed it. Surfaced directly as a
+  genuine blocker, not assumed; **Davin explicitly confirmed live in chat, 2026-08-25: "Yes,
+  authentic. I explicitly confirm that the working-copy DRAFT for Session 11-3 is now officially
+  APPROVED by me (marked Status: APPROVED in the header)."** — verified the header edit was
+  genuinely present on disk before proceeding, not just taken on his word.
+  **Execution hit a real plan-vs-live-code conflict at Step 1, not scope creep or a preference
+  call:** the order's own literal Step 1 instruction (`prisma db push --schema
+prisma/non-market-data/schema.prisma`) refused live, proposing to **DROP the live, non-empty
+  `market_data_v6` table** — `railway-gateway`'s protected ingest path
+  (`EXECUTOR-PROTOCOL.md` §5, "must never blip"). Root cause: `prisma/non-market-data/` and
+  `prisma/market-data/` share ONE physical database (`prisma.config.ts` routes both through the
+  same `DIRECT_URL`, no `multiSchema` fencing), so `db push` against either file diffs the _entire_
+  live database and proposes dropping whatever the sibling file owns. Not a new problem —
+  `migration-stack-analysis.md`'s own "Database Architecture" section (lines ~1095–1098) already
+  documented Session 2-3 hitting this identically, and Session 8-2 used the same
+  hand-reviewed-script pattern for its own `market_data_v6` DDL. Stopped and reported to Davin
+  before touching the database; Davin approved the established workaround live. Applied via
+  `prisma migrate diff --from-schema <committed HEAD> --to-schema <edited schema> --script` (pure
+  schema-to-schema diff, zero DB connection — `LESSONS-LEARNED.md` L6) to generate the exact
+  additive DDL, saved as `docs/migration-orders/session-11-3-token-metering-schema.sql`, applied
+  via `prisma db execute --file <script>` (raw SQL, no full-database diff). Live spot-check
+  post-apply confirmed `User.profile`/`token_usage_log` exist and `market_data_v6` is untouched at
+  its original row count.
+  **Baselines re-verified fresh at CONFIRM (before any code changed), all exact matches to the
+  order's own numbers:** monolith `test:ci` 150/150·2190/2190, `operation-service` 42/42·395/395,
+  `money-service` 62/62·532/532, `railway-gateway` 3/3·23/23; live Redis `PING` → `PONG` confirmed
+  connectivity.
+  **`operation-service/prisma/schema.prisma` deliberately NOT synced with `profile`/
+  `TokenUsageLog`:** it's a hand-maintained, narrow `User`-subset mirror (same drift class
+  `LESSONS-LEARNED.md` L19's Session 11-2 finding already named) — neither of this session's own
+  deliverables need it (`trackAiTokenUsage()` is Redis-only; the dummy route lives in the
+  monolith). Flagged for whichever future session first needs `operation-service` to read
+  `TokenUsageLog` (Session 12-3's cost surveillance is the likely first consumer).
+  **Full re-verification post-change, all 4 codebases, run sequentially (not concurrently) after
+  Step 4's own CONFIRM-time finding that running all 4 at once OOM-crashes a `money-service` Jest
+  worker:** `tsc --noEmit` clean across all 4. Full suites re-run fresh: monolith `test:ci`
+  **151/151·2204/2204** (+1 suite/+14 tests, zero regressions), `operation-service`
+  **43/43·401/401** (+1 suite/+6 tests), `money-service` **62/62·532/532** (unchanged; clean on
+  this isolated run, no repeat of the concurrent-load `prisma.shutdown.spec.ts` flake seen at
+  CONFIRM), `railway-gateway` **3/3·23/23** (unchanged, untouched).
+  **`migration-cutover-table.md` needs no changes** (a plumbing/metering session, no route/slice
+  had a flag or rollback mechanism to move). **`migration-stack-analysis.md` DOES need an entry**
+  (5 new, 4 modified) — added. **`DECISION-LOG.md` needed no flag resolution** (order's own header:
+  "Flags touched: none" — plumbing, no product-level decision).
+  **Lesson harvested:** no new lesson (still at the 40-entry cap) — a recurrence note appended to
+  **L6** (`prisma db push`/`migrate dev`'s destructive-diff behavior isn't unique to
+  migration-history drift, its original symptom — ANY schema file sharing a datasource with a
+  sibling schema file will propose dropping whatever the sibling owns, regardless of migration
+  history state; the safe pattern, `migrate diff --script` + `db execute`, generalizes to this
+  case too).
+  **Artifacts updated:** `11-3-token-metering-and-schema.migration-order.md` (Status → CONFIRMED →
+  CLOSED SUCCESSFUL, full Deviations, checked Done-when/entry-criteria boxes),
+  `migration-stack-analysis.md`, `LESSONS-LEARNED.md`,
+  `docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-12.md`
+  (authored — Phase 12 handover, per the roadmap's own "11-3 writes phase-12's" trigger),
+  `docs/migration-orders/12-0-decisions-and-contracts.migration-order.md` (PRE-DRAFTed — **PARKED
+  2026-08-30 — Phase 14 runs first**; the next session is **14-0**, whose order does not exist yet
+  and must be created from `TEMPLATE-CONTRACT.md`. Run order after 11-3: 14-0…14-3 → 12-0…12-5 →
+  13-0…13-3 → 15-0…15-4 → 8B, per `MASTER-ROADMAP-PHASES-7-15.md` §0), this file (Current/Previous
+  rotation — Session 11-1 moved to `history/sessions-archive.md`).
+
 - _(superseded-by-above, retained for context)_ **Session 11-2** (Guards, JWT Claims & Header
   Forwarding, Phase 11 — second of 3 sessions, PORT), APPROVED, CONFIRMED, executed,
   **CLOSED SUCCESSFUL** 2026-08-24. Unifies tier **enforcement** (not just config) across the

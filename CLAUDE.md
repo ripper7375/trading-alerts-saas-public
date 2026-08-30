@@ -26,7 +26,65 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
-- **Current:** Session 14-0 (Web Chat Decisions & Contract, Phase 14 — first of 4 sessions,
+- **Current:** Session 14-1 (Container Stack Build & Deploy, Phase 14 — second of 4 sessions,
+  INFRA), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. Builds and deploys the
+  3-container chat stack frozen at Session 14-0 onto Davin's Contabo VPS (`139.180.209.200`,
+  `chat-api.davintrade.app`) — the first Docker/Docker-Compose deployment and first BullMQ-based
+  service in this migration. Session 14-2 can now wire the frontend against a live, working backend.
+  **CONFIRM found the same L3 status-integrity pattern as nearly every recent session, again with no
+  corroborating record anywhere** — the order's committed HEAD held only the Executor's raw
+  PRE-DRAFT; the full DRAFT→APPROVED rewrite (`Decisions taken`, real Entry criteria, Ordered Steps)
+  existed only as an uncommitted working-tree diff, and unlike 14-0/11-3 there was no existing quote
+  anywhere confirming Davin's approval before this session started. Surfaced directly; **Davin
+  explicitly confirmed live in chat, 2026-08-30: "I explicitly confirm that I approve the Session
+  14-1 order, and specifically sign off on Decision 1 (Contabo VPS provisioning, directory layout,
+  and DNS) and Decision 3 (CHAT_JWT_SECRET generation and distribution)."**
+  **CONFIRM also caught a live claim that didn't hold up — plan/claim vs. live evidence, live
+  evidence won:** Davin's first message asserted the `chat-api.davintrade.app` DNS A-record was
+  already configured; independent lookups against two public resolvers (`8.8.8.8`, `1.1.1.1`) both
+  returned NXDOMAIN. Reported before proceeding; Davin then created the record and a second lookup
+  confirmed it live.
+  **Declined to authenticate with a password even when explicitly authorized:** Davin pasted the VPS
+  root password in plaintext chat; the Executor generated a dedicated `ed25519` keypair instead and
+  had Davin add the public key to `authorized_keys` himself. Flagged the plaintext exposure and
+  recommended rotation.
+  **A genuine environment constraint, not a workaround-able one:** the Executor's own sandbox
+  permission classifier categorically blocks outbound SSH to external hosts (confirmed twice).
+  Execution split accordingly — the Executor authored the complete `infra/contabo-chat-stack/` IaC
+  mirror and a step-by-step runbook; Davin ran Steps 1/3/4 himself over his own SSH session and
+  pasted results back; the Executor ran Steps 5 (denial tests) and 6 (WSS smoke test) itself, since
+  those are plain outbound network calls, not SSH.
+  **Step 6 surfaced a real bug, not flakiness — took 4 attempts to close cleanly.** Attempt 1: WSS
+  connected and `client_message` was accepted (`bot_typing:true` fired) but no reply ever arrived —
+  `removeOnComplete: true` was purging a completed job's data before the server's async
+  `QueueEvents` listener could re-fetch `socketId` via `Job.fromId`, silently dropping every reply.
+  Fixed by carrying `socketId` inside the job's own return value (commit `3e6198fe`). Attempt 2
+  (post-fix): the round trip now completed, unmasking a second bug (L11's pattern — the error
+  changed shape, not disappeared) — the LLM call itself was failing (`chat_error: SERVER_ERROR`,
+  ~800ms). Attempt 3: Davin changed `LLM_MODEL` and ran `docker compose up -d bot_worker`, reporting
+  "Restarted -> Started" — identical failure, identical latency; the Executor declined to close on
+  this unverified claim and asked twice for the real `bot_worker` logs (never received). Attempt 4:
+  Davin's next apply reported an actual "Recreate -> Recreated -> Started" — the smoke test then
+  passed with a genuine Gemini (`gemini-3.5-flash`) reply in 5097ms, correctly scoped to the frozen
+  system prompt (the order's own `<3000ms` target was missed and reported as such, not silently
+  passed).
+  **Baselines re-verified fresh at CONFIRM, before any file changed:** monolith `test:ci`
+  **151/151·2239/2239**, `operation-service` **43/43·401/401**, `money-service` **62/62·565/565**,
+  `railway-gateway` **3/3·23/23** — exact match to Session 14-0's close, zero drift.
+  **`migration-cutover-table.md` needs no changes** (the stack isn't traffic-carrying yet —
+  `NEXT_PUBLIC_SOCKET_CHAT_URL` isn't set anywhere, Session 14-2's job). **`migration-stack-
+analysis.md` DOES need an entry** (24 new, 3 modified) — added. **`DECISION-LOG.md` needed no flag
+  resolution** (order's own header: "Flags touched: none").
+  **Lesson harvested:** **L45** (new — the `removeOnComplete`/`QueueEvents` race plus the Docker
+  Compose restart-vs-recreate env-reload gotcha), net-zero against the 40-entry cap via merging
+  **L29**/**L32** (same underlying `@nestjs/swagger`+Zod gap, now one entry).
+  **Artifacts updated:** `14-1-container-stack-build-and-deploy.migration-order.md` (Status →
+  CONFIRMED → CLOSED SUCCESSFUL, full Deviations, checked Done-when/entry-criteria boxes),
+  `infra/contabo-chat-stack/**` (new IaC mirror, 24 files), `tsconfig.json`/`eslint.config.mjs`
+  (excluded `infra`), `migration-stack-analysis.md`, `LESSONS-LEARNED.md`,
+  `docs/migration-orders/14-2-frontend-binding.migration-order.md` (PRE-DRAFTed), this file
+  (Current/Previous rotation — Session 11-3 moved to `history/sessions-archive.md`).
+- **Previous:** Session 14-0 (Web Chat Decisions & Contract, Phase 14 — first of 4 sessions,
   CONTRACT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. Resolves **F72**
   (Contabo chat stack scope) — freezes the Socket.IO event contract, the 3-container Docker/Nginx
   spec, the dual-mode BFF-token socket auth bridge, and the bot-worker system prompt/quota rules
@@ -85,73 +143,6 @@
   `LESSONS-LEARNED.md`, `docs/migration-orders/14-1-container-stack-build-and-deploy.migration-order.md`
   (PRE-DRAFTed), this file (Current/Previous rotation — Session 11-2 moved to
   `history/sessions-archive.md`).
-- **Previous:** Session 11-3 (Token Metering & Schema, Phase 11 — third and final session, INFRA +
-  PORT), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-25. **Phase 11 (Preparatory
-  Tier-Access & Core Refactoring) is now CLOSED SUCCESSFUL** — all 3 sessions (11-1, 11-2, 11-3)
-  complete. Builds the Redis `trackAiTokenUsage()` sliding-window token-quota limiter and the
-  `TokenUsageLog`/`User.profile` schema — the mechanism Stack D (Phase 12) will meter and cap
-  AI-token spend against, proven end-to-end by a dummy tier-gated route returning 429 at quota.
-  **CONFIRM found a variant of the same L3 status-integrity gap every recent session's own CONFIRM
-  has found, but with a real difference this time:** the order's committed HEAD held `Status:
-PRE-DRAFT` (4 "Decisions needed", sketch-only Ordered Steps) and the uncommitted working copy
-  held `Status: DRAFT` (4 "Decisions taken", full 5-step Ordered Steps) — **neither version claimed
-  `APPROVED`**, unlike 11-1/11-2 where the working copy already claimed it. Surfaced directly as a
-  genuine blocker, not assumed; **Davin explicitly confirmed live in chat, 2026-08-25: "Yes,
-  authentic. I explicitly confirm that the working-copy DRAFT for Session 11-3 is now officially
-  APPROVED by me (marked Status: APPROVED in the header)."** — verified the header edit was
-  genuinely present on disk before proceeding, not just taken on his word.
-  **Execution hit a real plan-vs-live-code conflict at Step 1, not scope creep or a preference
-  call:** the order's own literal Step 1 instruction (`prisma db push --schema
-prisma/non-market-data/schema.prisma`) refused live, proposing to **DROP the live, non-empty
-  `market_data_v6` table** — `railway-gateway`'s protected ingest path
-  (`EXECUTOR-PROTOCOL.md` §5, "must never blip"). Root cause: `prisma/non-market-data/` and
-  `prisma/market-data/` share ONE physical database (`prisma.config.ts` routes both through the
-  same `DIRECT_URL`, no `multiSchema` fencing), so `db push` against either file diffs the _entire_
-  live database and proposes dropping whatever the sibling file owns. Not a new problem —
-  `migration-stack-analysis.md`'s own "Database Architecture" section (lines ~1095–1098) already
-  documented Session 2-3 hitting this identically, and Session 8-2 used the same
-  hand-reviewed-script pattern for its own `market_data_v6` DDL. Stopped and reported to Davin
-  before touching the database; Davin approved the established workaround live. Applied via
-  `prisma migrate diff --from-schema <committed HEAD> --to-schema <edited schema> --script` (pure
-  schema-to-schema diff, zero DB connection — `LESSONS-LEARNED.md` L6) to generate the exact
-  additive DDL, saved as `docs/migration-orders/session-11-3-token-metering-schema.sql`, applied
-  via `prisma db execute --file <script>` (raw SQL, no full-database diff). Live spot-check
-  post-apply confirmed `User.profile`/`token_usage_log` exist and `market_data_v6` is untouched at
-  its original row count.
-  **Baselines re-verified fresh at CONFIRM (before any code changed), all exact matches to the
-  order's own numbers:** monolith `test:ci` 150/150·2190/2190, `operation-service` 42/42·395/395,
-  `money-service` 62/62·532/532, `railway-gateway` 3/3·23/23; live Redis `PING` → `PONG` confirmed
-  connectivity.
-  **`operation-service/prisma/schema.prisma` deliberately NOT synced with `profile`/
-  `TokenUsageLog`:** it's a hand-maintained, narrow `User`-subset mirror (same drift class
-  `LESSONS-LEARNED.md` L19's Session 11-2 finding already named) — neither of this session's own
-  deliverables need it (`trackAiTokenUsage()` is Redis-only; the dummy route lives in the
-  monolith). Flagged for whichever future session first needs `operation-service` to read
-  `TokenUsageLog` (Session 12-3's cost surveillance is the likely first consumer).
-  **Full re-verification post-change, all 4 codebases, run sequentially (not concurrently) after
-  Step 4's own CONFIRM-time finding that running all 4 at once OOM-crashes a `money-service` Jest
-  worker:** `tsc --noEmit` clean across all 4. Full suites re-run fresh: monolith `test:ci`
-  **151/151·2204/2204** (+1 suite/+14 tests, zero regressions), `operation-service`
-  **43/43·401/401** (+1 suite/+6 tests), `money-service` **62/62·532/532** (unchanged; clean on
-  this isolated run, no repeat of the concurrent-load `prisma.shutdown.spec.ts` flake seen at
-  CONFIRM), `railway-gateway` **3/3·23/23** (unchanged, untouched).
-  **`migration-cutover-table.md` needs no changes** (a plumbing/metering session, no route/slice
-  had a flag or rollback mechanism to move). **`migration-stack-analysis.md` DOES need an entry**
-  (5 new, 4 modified) — added. **`DECISION-LOG.md` needed no flag resolution** (order's own header:
-  "Flags touched: none" — plumbing, no product-level decision).
-  **Lesson harvested:** no new lesson (still at the 40-entry cap) — a recurrence note appended to
-  **L6** (`prisma db push`/`migrate dev`'s destructive-diff behavior isn't unique to
-  migration-history drift, its original symptom — ANY schema file sharing a datasource with a
-  sibling schema file will propose dropping whatever the sibling owns, regardless of migration
-  history state; the safe pattern, `migrate diff --script` + `db execute`, generalizes to this
-  case too).
-  **Artifacts updated:** `11-3-token-metering-and-schema.migration-order.md` (Status → CONFIRMED →
-  CLOSED SUCCESSFUL, full Deviations, checked Done-when/entry-criteria boxes),
-  `migration-stack-analysis.md`, `LESSONS-LEARNED.md`,
-  `docs/migration-orders/davin-operational-manual/antigravity/HANDOVER-PROMPT-phase-12.md`
-  (authored — Phase 12 handover, per the roadmap's own "11-3 writes phase-12's" trigger),
-  `docs/migration-orders/12-0-decisions-and-contracts.migration-order.md` (PRE-DRAFTed — **PARKED 2026-08-30 — Phase 14 runs first**; the next session is **14-0**, whose order does not exist yet and must be created from `TEMPLATE-CONTRACT.md`. Run order after 11-3: 14-0…14-3 → 12-0…12-5 → 13-0…13-3 → 15-0…15-4 → 8B, per `MASTER-ROADMAP-PHASES-7-15.md` §0), this file
-  (Current/Previous rotation — Session 11-1 moved to `history/sessions-archive.md`).
 
 ## Key documents
 

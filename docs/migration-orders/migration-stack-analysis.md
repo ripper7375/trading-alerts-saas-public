@@ -4383,8 +4383,60 @@ redis.service.ts` (both gained an identically-behaved `trackAiTokenUsage()` — 
 
 </details>
 
+<details>
+<summary>Session 14-1 (Container Stack Build & Deploy, Phase 14 second-of-4, INFRA) — 24 new, 3 modified, 0 deleted</summary>
+
+Built and deployed the 3-container chat stack frozen at Session 14-0 onto Davin's Contabo VPS
+(`139.180.209.200`, `chat-api.davintrade.app`) — first Docker/Docker-Compose deployment and first
+BullMQ-based service in this migration.
+
+- **New (24 files, all under `infra/contabo-chat-stack/`, new top-level directory):**
+  `docker-compose.yml`, `nginx/chat-api.conf`, `.env.example`, `README.md` (doubles as the VPS
+  deployment runbook); `apps/server/` — Socket.IO chat server (`package.json`, `package-lock.json`,
+  `tsconfig.json`, `Dockerfile`, `src/{types,redisClient,auth,rateLimiter,queue,index}.ts` — dual-mode
+  JWT/guest auth, Redis-backed guest rate limit, BullMQ job handoff); `apps/bot-worker/` — BullMQ AI
+  bot worker (`package.json`, `package-lock.json`, `tsconfig.json`, `Dockerfile`,
+  `src/{types,systemPrompt,quota,llmClient,worker}.ts` — Gemini/Claude via plain `fetch`, Session
+  14-0's frozen system prompt, self-contained monthly quota counter).
+- **Modified:** `docs/migration-orders/14-1-container-stack-build-and-deploy.migration-order.md`
+  (PRE-DRAFT → CONFIRMED → CLOSED SUCCESSFUL); root `tsconfig.json` and `eslint.config.mjs` (added
+  `infra` to both exclude/ignore lists, matching every other standalone sub-project — the two new
+  apps have their own `tsconfig.json`/`package.json` and un-hoisted dependencies and would otherwise
+  break `npm run validate:types`).
+- **Executor's sandbox cannot execute SSH to any external host (categorical, confirmed twice via
+  the harness's own permission classifier) — execution split accordingly.** The Executor authored
+  the full IaC mirror and a step-by-step runbook; Davin ran Steps 1/3/4 himself over his own SSH
+  session and pasted results back. Steps 5 (denial tests) and 6 (WSS smoke test) needed no SSH — the
+  Executor ran those directly against the public endpoint.
+- **DNS claim contradicted by live lookup, then fixed:** Davin's first message asserted the
+  `chat-api.davintrade.app` A-record was already configured; independent lookups against two public
+  resolvers (`8.8.8.8`, `1.1.1.1`) both returned NXDOMAIN. Reported before proceeding; Davin created
+  the record, a second lookup confirmed it live (`139.180.209.200`) before continuing.
+- **Root-password SSH authentication declined.** Davin pasted the VPS root password in plaintext
+  chat; the Executor generated a dedicated `ed25519` keypair instead, handed over only the public
+  key, and had Davin add it to `authorized_keys` himself — never entering a password to authenticate,
+  even when explicitly authorized to. Flagged the plaintext exposure and recommended rotation.
+- **Real bug found live at Step 6, not scope creep — `LESSONS-LEARNED.md` L45 (new entry, net-zero
+  against the 40-entry cap via an L29/L32 merge — those two were the same underlying
+  `@nestjs/swagger`+Zod gap and belonged together anyway).** `removeOnComplete: true` was purging a
+  completed job's data before the server's async `QueueEvents` listener could re-fetch `socketId` via
+  `Job.fromId`, silently dropping every bot reply. Fixed by carrying `socketId` inside the job's own
+  return value. Separately, an `.env` `LLM_MODEL` edit on the VPS had no effect until `docker compose
+up -d` actually triggered a container **recreate** (not just a restart) — two apply attempts looked
+  identical and failed identically until one actually recreated the container.
+- **Live-verification, not assumed:** baselines re-measured fresh before any file changed — monolith
+  `test:ci` 151/151·2239/2239, `operation-service` 43/43·401/401, `money-service` 62/62·565/565,
+  `railway-gateway` 3/3·23/23 (all exact matches to Session 14-0's close, zero drift). Post-deploy:
+  denial tests confirmed ports 6379/3001 unreachable externally while 443 is reachable; a real WSS
+  smoke test round-tripped a `client_message` to a genuine Gemini-generated `support_message` in
+  5097ms (order's own `<3000ms` target missed — flagged, not silently passed) after the `removeOnComplete` fix landed.
+- **`migration-cutover-table.md` needs no changes** (the stack isn't traffic-carrying yet —
+  `NEXT_PUBLIC_SOCKET_CHAT_URL` isn't set anywhere, Session 14-2's job).
+
+</details>
+
 ---
 
-**Compiled:** 2026-07-08 · **Updated:** 2026-08-25 (Session 11-3, token metering & schema — Phase
-11 CLOSED SUCCESSFUL)
+**Compiled:** 2026-07-08 · **Updated:** 2026-08-30 (Session 14-1, container stack build & deploy —
+Phase 14 continues at 14-2)
 **Status:** Initial version — regenerate via the categorization script if the codebase changes significantly
