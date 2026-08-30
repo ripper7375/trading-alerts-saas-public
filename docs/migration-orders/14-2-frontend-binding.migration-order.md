@@ -5,150 +5,196 @@
 > Medium-Low** — the socket contract, container hostnames, and auth-bridge shape are strictly
 > fixed by Session 14-0's frozen contract and already proven live by Session 14-1; what's open is
 > how the seed's UI components get adapted to the main repo's real session/i18n/theme plumbing.
-> **PRE-DRAFT written by the Executor at Session 14-1's close (2026-08-30).** Raw facts and
-> candidate steps only — the Advisor resolves any remaining judgment calls and produces the DRAFT
-> per `00-SKELETON-AND-RULES.md` §1.0.
+> **PRE-DRAFT written by the Executor at Session 14-1's close (2026-08-30).**
+> Upgraded to full **DRAFT** by the Advisor / Antigravity (2026-08-30) per
+> `MASTER-ROADMAP-PHASES-7-15.md` §"Phase 14" and Session 14-0's closed order.
 
-**Session:** 14-2 · **Phase:** 14 (Web Chat / Contabo Support Stack, third of 4 sessions) ·
-**Variant:** PORT · **Status:** PRE-DRAFT
-**Generated:** 2026-08-30 (Executor PRE-DRAFT) · **Flags touched:** none (F72 resolved at 14-0) ·
-**Estimated time:** ~3–4h (one new API route, three ported/adapted components, one CSP edit, live
-verification against the real Contabo backend)
+**Session:** 14-2 · **Phase:** 14 (Web Chat / Contabo Support Stack, third of 4 sessions) · **Variant:** PORT · **Status:** CONFIRMED  
+**Generated:** 2026-08-30 (Executor PRE-DRAFT) · **Upgraded to DRAFT:** 2026-08-30 (Advisor / Antigravity) · **Approved:** 2026-08-30 (Davin — explicit sign-off on Decision 1 BFF token minting endpoint) · **CONFIRMED:** 2026-08-30 (Executor, after live re-verification below) · **Flags touched:** none (F72 already resolved in Session 14-0) · **Estimated time:** ~3–4h (one new API route, three ported/adapted components, one CSP update in `next.config.js`, global mounting in `client-providers.tsx`, live browser verification against `https://chat-api.davintrade.app`).
 
-## Raw facts carried forward from Sessions 14-0/14-1 (both CLOSED SUCCESSFUL, 2026-08-30)
+> **CONFIRM note (Executor, 2026-08-30):** at session OPEN, the committed `HEAD` of this file was
+> still the raw PRE-DRAFT (`Status: PRE-DRAFT`, no `Decisions taken`) — the DRAFT→APPROVED upgrade
+> existed only as an uncommitted working-tree diff, with no independent corroboration of Davin's
+> approval anywhere in `CLAUDE.md` or `DECISION-LOG.md`. This is `LESSONS-LEARNED.md` L3's
+> recurring pattern, same as nearly every recent session. Surfaced directly; **Davin explicitly
+> confirmed live in chat, 2026-08-30: "I explicitly confirm that I approve the Session 14-2 order
+> and specifically sign off on Decision 1 (BFF chat token minting endpoint `GET /api/chat/token`,
+> signing short-lived JWTs with `CHAT_JWT_SECRET`, with guest mode returning `{ token: null }` with
+> HTTP 200)."** Entry criterion 3 (`CHAT_JWT_SECRET` present for local/Vercel) also failed at first
+> check — value-blind grep of `.env`/`.env.local`/`.env.example` found zero matches. Davin then
+> provided the real value (generated Session 14-1 Step 3) and `NEXT_PUBLIC_SOCKET_CHAT_URL`; both
+> written to `.env.local` (gitignored, confirmed untracked) without the secret value ever being
+> echoed into any tool output or this file, per L4/L17. All 5 entry criteria pass as of this note.
+> **Target components:** Monolith Next.js frontend (`app/api/chat/token/route.ts`, `lib/socket-client.ts`, `components/chat-widget/*`, `components/providers/client-providers.tsx`, `next.config.js`). **Zero changes to microservices (`operation-service`, `money-service`, `railway-gateway`) or database schemas.**
 
-- **The backend is live and proven, not theoretical.** `wss://chat-api.davintrade.app` is deployed
-  and was verified end-to-end at Session 14-1's close: a real WSS handshake, a `client_message`
-  round trip, and a genuine LLM-generated `support_message` reply (`gemini-3.5-flash`, ~5s
-  latency — see wrinkle below). This session has a real target to test against from day one, not a
-  guess.
-- **`CHAT_JWT_SECRET` already exists on Contabo** (`/opt/saas-chat/.env`, generated via `openssl
-rand -hex 32` at 14-1 Step 3, per Decision 3). Davin holds the value. This session's `GET
-/api/chat/token` must sign with the **identical** value, added to Vercel's production env vars —
-  Davin will need to supply/confirm it (value-blind, per `LESSONS-LEARNED.md` L4/L17 — never ask
-  for or echo the literal string; confirm presence/length only).
-- **Live precedent to mirror, already verified to exist:** `app/api/realtime/token/route.ts`
-  (F8, Session 4B-17) is the working pattern for a same-origin, session-authenticated BFF token
-  endpoint — it reads the NextAuth session server-side and hands back a token, `401` if
-  unauthenticated. `GET /api/chat/token` differs in one important way: 4B-17's route forwards an
-  **existing** operation-service token, while this route must **mint a new, short-lived JWT**
-  signed with `CHAT_JWT_SECRET` containing `{ userId, name, email, tier }` (Session 14-0 §"Auth
-  bridge" / Decision 4) — Contabo is a separate trust domain, not something an existing token
-  already satisfies. For a guest (no session), the route should return `{ token: null }` rather
-  than `401` — Decision 4's guest mode is a first-class, intended path, not an error case.
-- **Seed source files verified to exist, exactly where the spec says:**
-  `seed-code/trading-conversational-ai-ui-pages-increment/lib/socket-client.ts` (4.6 KB) and three
-  components under `seed-code/trading-conversational-ai-ui-pages-increment/components/chat-widget/`
-  — `chat-context.tsx`, `floating-chat-trigger.tsx`, `support-chat-widget.tsx`. **Correction to a
-  claim in 14-0's own order text:** its Step 4 verify line said the bot system prompt was
-  "grounded in copy that already ships in `lib/socket-client.ts`'s `generateFallbackResponse()`" —
-  that file does **not** exist in the main repo (`ls lib/socket-client.ts` → not found); the
-  reference was to the **seed's** copy of that file. Neither `lib/socket-client.ts` nor
-  `components/chat-widget/` exist in the main repo yet — creating them IS this session's port, not
-  something already partially done.
-- **Target integration points verified to exist:** `app/(marketing)/help/page.tsx`,
-  `app/settings/help/page.tsx` (both hold the static-FAQ/`mailto:support@davintrade.app` fallback
-  the widget must degrade to if `NEXT_PUBLIC_SOCKET_CHAT_URL` is unset — Session 14-0's rollback
-  plan), and `components/providers/client-providers.tsx` (where the widget/provider gets mounted
-  globally).
-- **CSP `connect-src` confirmed NOT yet updated** — `next.config.js`'s current policy (one line,
-  `next.config.js:131`) has no `chat-api.davintrade.app` entry in any form. Session 4B-18c is the
-  exact precedent for this class of fix (adding `operation-service`'s realtime origin to this same
-  policy) — same mechanism applies here, just a different origin/scheme pair
-  (`https://chat-api.davintrade.app` + `wss://chat-api.davintrade.app`).
-- **A frozen-contract drift already flagged, not yet resolved (14-0 Deviation 5):** the frozen
-  `ClientMessagePayload`/`SupportMessagePayload` shapes omit the `sender` field the seed's own
-  `ChatMessage` type carries — the server stamps identity itself (anti-spoofing, Decision 4), so
-  the client is not expected to send or trust a `sender` on outgoing messages. When porting
-  `socket-client.ts`, reconcile against the frozen contract in
-  `14-0-web-chat-decisions-and-contract.migration-order.md` §1, not the seed's own type as-is.
-- **Known UX wrinkles from 14-1's live testing, not yet designed around:**
-  1. Real LLM latency observed was **5097ms**, missing the order's own `<3000ms` target — the
-     widget's loading/typing state needs to assume multi-second waits are normal, not treat one as
-     a stall.
-  2. A guest who exceeds the 10 msg/hour limit gets a `chat_error: RATE_LIMIT_EXCEEDED` event, not
-     a friendly bot `support_message` bubble (14-1 Deviation 7) — decide here how the widget
-     renders that error state (e.g., inline system message vs. a distinct banner).
-  3. Authenticated quota is enforced by a bot-worker-local Redis counter, not integrated with
-     Session 11-3's `trackAiTokenUsage()` (14-1 Deviation 8) — the widget will see a
-     `QUOTA_EXCEEDED` `chat_error` alongside a bot `support_message` carrying the frozen
-     quota-ceiling text; both arrive, by design.
-- **CORS on Contabo is currently `https://davintrade.app,https://trading-alerts-saas-public.vercel.app`**
-  (`/opt/saas-chat/.env`) — verify this actually matches the real Vercel production origin(s) this
-  session will call from before assuming the socket handshake will pass browser CORS; if the
-  production domain differs, this is a one-line `.env` edit on Contabo, not a code change.
+---
 
-## Candidate entry criteria (Advisor/Davin to finalize)
+## Decisions taken
 
-- [ ] Session 14-1 confirmed **CLOSED SUCCESSFUL** (`CLAUDE.md` state block verified).
-- [ ] Davin has added `CHAT_JWT_SECRET` (the exact value already generated on Contabo) to Vercel's
-      production environment variables.
-- [ ] `CORS_ORIGIN` on Contabo re-verified against the actual production frontend origin(s).
-- [ ] Baseline test suites re-measured and clean (monolith `test:ci`, `operation-service`,
-      `money-service`, `railway-gateway`, run sequentially per `LESSONS-LEARNED.md` L24).
+> Four authoritative technical choices taken by the Advisor per `00-SKELETON-AND-RULES.md` §1.0 & `DECISION-LOG.md` PD1.
+> **Decision 1 carries `⚠ NEEDS EXPLICIT SIGN-OFF`** because it implements the security token issuance for live user sessions.
 
-## Candidate File Port Order (raw sketch — Advisor to firm up dependency order)
+1. **BFF Chat Token Endpoint & Dual-Mode Auth Minting (`GET /api/chat/token`) (`⚠ NEEDS EXPLICIT SIGN-OFF`)**
+   - **Chosen:** Implement `app/api/chat/token/route.ts` reading the server-side NextAuth session (`getServerSession(authOptions)` / `auth()`) and minting a short-lived (5-minute / 300s) signed JWT via `jsonwebtoken`.
+     - **Authenticated Payload:** `{ userId: session.user.id, name: session.user.name, email: session.user.email, tier: session.user.tier ?? 'FREE' }`.
+     - **Signing Key:** `process.env.CHAT_JWT_SECRET` (the identical 256-bit secret generated on Contabo/Vultr in Session 14-1 Step 3).
+     - **Guest Semantics:** If no session is present (unauthenticated visitor), return HTTP 200 with `{ token: null }` (NOT HTTP 401). Guest mode is a first-class supported path per Session 14-0 Decision 4 for pre-sales inquiries and public FAQ guidance.
+     - **Development Fallback:** In non-production environments where `CHAT_JWT_SECRET` may not yet be set, fall back to `process.env.NEXTAUTH_SECRET` with a warning log rather than throwing an unhandled exception.
+   - **Rejected:** Returning HTTP 401 on missing session (breaks unauthenticated public help widget); signing long-lived tokens; exposing `CHAT_JWT_SECRET` to the client-side bundle.
+   - **Why:** Full alignment with Decision 4 (BFF token bridge) and F65 (BFF boundary). Completely prevents user identity spoofing while supporting both subscribers and prospective guests.
+   - **How hard to undo:** Low (isolated to `app/api/chat/token/route.ts`).
 
-### File 1/4 — BFF token endpoint (new, not a port)
+2. **Socket Client Event Normalization & Transport Architecture (`lib/socket-client.ts`)**
+   - **Chosen:** Port and adapt `seed-code/.../lib/socket-client.ts` into `lib/socket-client.ts`:
+     - **Contract Schema Alignment:** Reconcile outgoing `client_message` to the frozen schema (`{ id, text, topic, timestamp }`), omitting any client-asserted `sender` field (the backend stamps `socket.data.user` server-side per Decision 4).
+     - **Handshake Protocol:** When `initSocket()` is invoked, fetch `GET /api/chat/token` first to obtain the JWT (or null), then initialize `io(NEXT_PUBLIC_SOCKET_CHAT_URL, { auth: { token }, transports: ['websocket', 'polling'] })`.
+     - **Zero-Crash Resilience:** If `NEXT_PUBLIC_SOCKET_CHAT_URL` is unset or empty, `chatSocketManager` operates in offline mode without throwing unhandled errors or console spam.
+   - **Rejected:** Retaining the seed's client-asserted `sender: 'user'` field in payloads; hardcoding connection URLs.
+   - **Why:** Guarantees exact wire compatibility with the running Contabo/Vultr `socket_chat_server` (tested and proven in Session 14-1).
+   - **How hard to undo:** Low.
 
-- **SOURCE:** none (new file, modeled on `app/api/realtime/token/route.ts`) → **TARGET:**
-  `app/api/chat/token/route.ts`
-- **Kind:** new glue — mints a short-lived JWT signed with `CHAT_JWT_SECRET`, claims
-  `{ userId, name, email, tier }` from the NextAuth session; returns `{ token: null }` for an
-  unauthenticated (guest) request rather than `401`.
-- **Invariants:** never logs or returns `CHAT_JWT_SECRET` itself; token claims must match exactly
-  what Session 14-0 §"Auth bridge" and the live `socket_chat_server`'s verifier expect.
+3. **Chat Widget Component Architecture & UX Error States (`components/chat-widget/*`)**
+   - **Chosen:** Port `chat-context.tsx`, `floating-chat-trigger.tsx`, and `support-chat-widget.tsx` from `seed-code/` into `components/chat-widget/`:
+     - **Design System & Theme Integration:** Adapt styling to the monolith's standard Tailwind tokens (`bg-background`, `text-foreground`, `border-border`), Radix UI primitives, Lucide icons, and `LocaleContext` date formatting.
+     - **Multi-Second Inference Handling:** Accommodate real LLM inference latency (~5s observed in 14-1) by maintaining an animated `isTyping = true` bubble until `support_message` or `chat_error` arrives, preventing premature timeout assumptions.
+     - **Error & Quota UX:**
+       - `RATE_LIMIT_EXCEEDED`: Display inline system message: _"Guest message limit reached (10 msgs/hr). Please log in or email support@davintrade.app"_.
+       - `QUOTA_EXCEEDED`: Render quota alert alongside quick-reply topic chips (`Product Info`, `Technical Support`, `PRO Subscription`, `Billing`).
+       - `SERVER_ERROR`: Present fallback guidance and a direct `mailto:support@davintrade.app` link.
+   - **Rejected:** Separate bespoke CSS modules; silently swallowing error events.
+   - **Why:** Delivers a responsive, theme-consistent, and accessible chat experience across mobile and desktop.
+   - **How hard to undo:** Low.
 
-### File 2/4 — Socket client
+4. **CSP `connect-src` Policy & Global Widget Mounting (`next.config.js` & `client-providers.tsx`)**
+   - **Chosen:**
+     - In `next.config.js:131`, append `https://chat-api.davintrade.app` and `wss://chat-api.davintrade.app` to `connect-src` (precedent: Session 4B-18c).
+     - In `components/providers/client-providers.tsx`, wrap the application in `<SupportChatProvider>` and mount `<FloatingChatTrigger />` and `<SupportChatWidget />`.
+     - **Rollback Invariant:** If `NEXT_PUBLIC_SOCKET_CHAT_URL` is unset or cleared in Vercel, the widget gracefully falls back to static Help pages (`app/settings/help/page.tsx`, `app/(marketing)/help/page.tsx`) and `mailto:support@davintrade.app` with zero user downtime.
+   - **Rejected:** Mounting the widget on specific page templates only; omitting `wss://` from CSP.
+   - **Why:** Makes support accessible across all marketing and dashboard routes while strictly preventing browser CSP blocking.
+   - **How hard to undo:** Trivial (unmount components or clear environment variable).
 
-- **SOURCE:** `seed-code/trading-conversational-ai-ui-pages-increment/lib/socket-client.ts`
-  (4.6 KB) → **TARGET:** `lib/socket-client.ts` (new file in the main repo)
-- **Kind:** port + adapt — reconcile the seed's `ChatMessage` shape against the frozen
-  `ClientMessagePayload`/`SupportMessagePayload` contract (drop/ignore any client-side `sender`
-  field per the note above); point at `NEXT_PUBLIC_SOCKET_CHAT_URL`; fetch the handshake token from
-  `GET /api/chat/token` before connecting.
-- **Invariants:** event names/payload shapes byte-for-byte match Session 14-0 §1 — this is the
-  live contract Session 14-1 already proved works, not a draft.
+---
 
-### File 3/4 — Chat widget components
+## Why this session exists
 
-- **SOURCE:** `seed-code/.../components/chat-widget/{chat-context,floating-chat-trigger,
-support-chat-widget}.tsx` → **TARGET:** `components/chat-widget/` (new directory, main repo)
-- **Kind:** port + adapt — bind to the real (ported) `lib/socket-client.ts` instead of any seed
-  mock; wire the guest-rate-limit and quota `chat_error` UX decisions from the wrinkles above; use
-  the main repo's real theme tokens/i18n, not the seed's standalone styling.
+Per `MASTER-ROADMAP-PHASES-7-15.md` §"Phase 14":
+"14-2 — Frontend binding (PORT). Port and adapt the Support Centre widget from seed-code/trading-conversational-ai-ui-pages-increment to connect to the Contabo Socket.io stack. Implement dual-mode socket auth per F72. Next.js CSP connect-src addition. Fallback to mailto support channel when disconnected/error."
 
-### File 4/4 — Global wiring + CSP + rollback verification
+Session 14-0 froze the architecture, contracts, and prompt. Session 14-1 deployed and verified the live backend on `https://chat-api.davintrade.app`.
 
-- **SOURCE:** n/a → **TARGET:** `components/providers/client-providers.tsx` (mount the widget
-  provider), `next.config.js` (append `https://chat-api.davintrade.app` and
-  `wss://chat-api.davintrade.app` to the existing `connect-src` line, precedent: Session 4B-18c)
-- **Verify:** with `NEXT_PUBLIC_SOCKET_CHAT_URL` unset, `app/(marketing)/help/page.tsx` and
-  `app/settings/help/page.tsx` render exactly as they do today (zero regression) — this is the
-  session's own rollback path and must be proven, not assumed.
+Session 14-2 ports the UI components and socket client into the main Next.js repository, adds the BFF token bridge, updates CSP headers, and wires the live widget into the application layout.
+
+---
+
+## Entry criteria
+
+- [x] Session 14-1 confirmed **CLOSED SUCCESSFUL** (`CLAUDE.md` state block and order verified).
+- [x] Backend at `https://chat-api.davintrade.app` confirmed live and responding with valid Let's Encrypt SSL (`curl -I https://chat-api.davintrade.app` returns HTTP 200 — verified 0.26s response).
+- [x] Davin has provided/confirmed `CHAT_JWT_SECRET` (the value generated at 14-1 Step 3) for Vercel/local `.env` configuration (value-blind check per L4/L17) — provided live in chat 2026-08-30, written to `.env.local` only, never echoed.
+- [x] Baseline test suites re-measured and clean (monolith `test:ci`, `operation-service`, `money-service`, `railway-gateway` run sequentially per L24) — monolith 151/151·2239/2239, operation-service 43/43·401/401, railway-gateway 3/3·23/23 (exact match to 14-1's close, zero drift); money-service 62/62·565/565 with `prisma.shutdown.spec.ts` failing in the full run, re-ran isolated (`--runInBand`) and passed clean in 29.7s — the known L24 flake, 6th occurrence, not a regression.
+- [x] Davin has explicitly authorized Decision 1 (BFF token minting endpoint) — confirmed live in chat 2026-08-30, quoted above.
+
+---
+
+## Integration points
+
+- **Incoming:** Browser user actions (floating trigger click, message input, quick-reply chip selection).
+- **Internal Monolith Calls:** NextAuth session (`getServerSession`) called by `app/api/chat/token/route.ts`.
+- **Outgoing WebSocket:** Persistent WSS connection to `wss://chat-api.davintrade.app` via `lib/socket-client.ts`.
+- **Security Policy:** `next.config.js` CSP header (`connect-src`).
+
+---
+
+## File Port Order
+
+### File 1/4 — BFF Token Endpoint (New Glue)
+
+- **SOURCE:** none (new file, modeled on `app/api/realtime/token/route.ts` & Session 14-0 Decision 4) → **TARGET:** `app/api/chat/token/route.ts`
+- **Kind:** new glue
+- **Port steps:**
+  1. Read NextAuth session via `getServerSession(authOptions)` (or current `auth()` helper).
+  2. If session exists: mint JWT containing `{ userId, name, email, tier }` signed with `CHAT_JWT_SECRET` (expires in 5m). Return `NextResponse.json({ token, url: process.env.NEXT_PUBLIC_SOCKET_CHAT_URL })`.
+  3. If unauthenticated: return `NextResponse.json({ token: null, url: process.env.NEXT_PUBLIC_SOCKET_CHAT_URL })` with status 200.
+- **Invariants:** Never expose `CHAT_JWT_SECRET` in response payloads or logs; claims must match what `socket_chat_server`'s `verifyChatToken` expects.
+- **Parity proof:** Automated route unit test `__tests__/api/chat/token.test.ts` testing authenticated vs guest responses.
+
+### File 2/4 — Socket Client Module (Port & Adapt)
+
+- **SOURCE:** `seed-code/trading-conversational-ai-ui-pages-increment/lib/socket-client.ts` (142 lines) → **TARGET:** `lib/socket-client.ts` (new file in main repo)
+- **Kind:** port + adapt
+- **Port steps:**
+  1. Fetch handshake token from `GET /api/chat/token` before connecting.
+  2. Reconcile `ChatMessage` and payload shapes to match Session 14-0 §1 (omit client-asserted `sender` in `client_message`).
+  3. Wire socket listeners for `connect`, `disconnect`, `support_message`, `bot_typing`, and `chat_error`.
+  4. Implement graceful fallback response generator for offline/unreachable scenarios.
+- **Invariants:** Payload interfaces match Session 14-0 §1 byte-for-byte; no crashes if `NEXT_PUBLIC_SOCKET_CHAT_URL` is undefined.
+- **Parity proof:** Unit test `__tests__/lib/socket-client.test.ts`.
+
+### File 3/4 — Chat Widget Components (Port & Adapt)
+
+- **SOURCE:** `seed-code/trading-conversational-ai-ui-pages-increment/components/chat-widget/` (3 files: `chat-context.tsx`, `floating-chat-trigger.tsx`, `support-chat-widget.tsx`) → **TARGET:** `components/chat-widget/` (new directory)
+- **Kind:** port + adapt
+- **Port steps:**
+  1. Import `chatSocketManager` from real `@/lib/socket-client`.
+  2. Replace standalone styling with main repo Tailwind classes and Lucide React icons (`MessageCircle`, `X`, `Minimize2`, `Maximize2`, `Send`, `Bot`, `User`).
+  3. Connect `isTyping` state to `bot_typing` socket events.
+  4. Render `chat_error` events (`RATE_LIMIT_EXCEEDED`, `QUOTA_EXCEEDED`, `SERVER_ERROR`) with friendly visual feedback.
+  5. Use `useLocale()` / `formatTimestamp()` for consistent localized message timestamps.
+- **Invariants:** Zero visual regressions; keyboard accessible (Enter to send, Escape to minimize); responsive across mobile/desktop viewports.
+- **Parity proof:** React component tests `__tests__/components/chat-widget/support-chat-widget.test.tsx`.
+
+### File 4/4 — Global Mounting, CSP & Rollback Verification
+
+- **SOURCE:** none → **TARGET:** `next.config.js` and `components/providers/client-providers.tsx`
+- **Kind:** integration & configuration
+- **Steps:**
+  1. In `next.config.js:131`, add `https://chat-api.davintrade.app` and `wss://chat-api.davintrade.app` to CSP `connect-src`.
+  2. In `components/providers/client-providers.tsx`, wrap children with `<SupportChatProvider>` and render `<FloatingChatTrigger />` and `<SupportChatWidget />`.
+  3. Verify that unsetting `NEXT_PUBLIC_SOCKET_CHAT_URL` degrades Help pages to static FAQ and `mailto:support@davintrade.app` seamlessly.
+- **Invariants:** Zero CSP console violations in browser; zero regressions on existing Help pages.
+- **Parity proof:** `npm run validate` + `npm run test:ci` passing 100%.
+
+---
 
 ## Rules specific to this variant
 
-- Nothing in `seed-code/**` gets edited — it stays read-only reference; every file above is a NEW
-  file in the main repo, adapted, not the seed file moved in place.
-- The Socket.IO event contract is frozen and already live — treat any mismatch against Session
-  14-0 §1 as a bug in the port, not a reason to renegotiate the contract.
-- Money/auth escalation still applies: `CHAT_JWT_SECRET` handling is value-blind end to end.
+- **Read-only seed code:** Never edit anything under `seed-code/**`. All new code is written into `app/`, `lib/`, and `components/`.
+- **Value-blind secret rule (L4/L17):** Never log, echo, or commit the actual value of `CHAT_JWT_SECRET`.
+- **Contract parity:** Event names (`client_message`, `support_message`, `bot_typing`, `chat_error`) and payload fields must match Session 14-0's frozen contract without deviation.
 
-## Done when (candidate)
+---
 
-- [ ] `GET /api/chat/token` returns a valid signed token for an authenticated session and
-      `{ token: null }` for a guest; live-verified, not just unit-tested.
-- [ ] The chat widget renders on Help pages, connects to the live Contabo backend, and a real
-      message round-trips to a real bot reply in the browser (not just via a CLI smoke test).
-- [ ] `next.config.js` CSP updated; no browser console CSP violation on connect.
-- [ ] Unsetting `NEXT_PUBLIC_SOCKET_CHAT_URL` reproduces today's static-FAQ/`mailto` behavior
-      exactly — proven live.
-- [ ] `test:ci` net-neutral-or-better; route-manifest diff (if any new routes) clean.
+## Slice-level verification (done when)
+
+- [ ] `GET /api/chat/token` returns signed JWT for authenticated user and `{ token: null }` for guest (verified with unit tests).
+- [ ] `lib/socket-client.ts` and `components/chat-widget/` are ported, typechecked clean, and unit-tested.
+- [ ] `next.config.js` CSP `connect-src` updated with `https://chat-api.davintrade.app` and `wss://chat-api.davintrade.app`.
+- [ ] Floating chat widget renders in the browser and connects over WSS to `chat-api.davintrade.app`.
+- [ ] End-to-end message sent from the browser widget receives an intelligent AI reply from the Gemini bot worker.
+- [ ] With `NEXT_PUBLIC_SOCKET_CHAT_URL` unset, Help pages degrade gracefully to static FAQ and `mailto:support@davintrade.app` without errors.
+- [ ] Monolith `test:ci` suite passes with net-neutral or better results (151+ suites passing).
+
+---
+
+## Cutover & rollback (Session 14-3 reference)
+
+- **Rollback Mechanism:** If the live widget experiences issues, remove `NEXT_PUBLIC_SOCKET_CHAT_URL` from Vercel environment variables. The client hook immediately falls back to static Help channels with zero downtime.
+- **Full Cutover (Session 14-3):** Live production verification on `davintrade.app` and archiving operational runbooks.
+
+---
+
+## Deviations
+
+_(filled during execution — what/why/impact)_
+
+---
 
 ## Next-session handoff
 
-At the close of Session 14-2, the Executor PRE-DRAFTs **Session 14-3** (`14-3-cutover-and-runbook.migration-order.md`,
-Variant: VERIFY-RETIRE) — live handshake proof with `NEXT_PUBLIC_SOCKET_CHAT_URL` actually set in
-Vercel production, the rollback rehearsed for real (not just code-reviewed), and the CC-G runbook
-entry under `docs/runbooks/`.
+At the close of Session 14-2, the Executor will PRE-DRAFT **Session 14-3** (`14-3-cutover-and-runbook.migration-order.md`, Variant: VERIFY-RETIRE) to:
+
+1. Perform production cutover verification on Vercel (`davintrade.app`).
+2. Run live end-to-end user journeys (authenticated PRO user chat, unauthenticated guest chat, quota alerts).
+3. Rehearse production rollback by toggling `NEXT_PUBLIC_SOCKET_CHAT_URL`.
+4. Create production runbooks under `docs/runbooks/contabo-chat-stack.md` and retire Phase 14 flags in `DECISION-LOG.md`.
