@@ -107,7 +107,7 @@ export default function HelpPage() {
 
           {/* Direct Support Channel */}
           <div className="mx-auto max-w-md">
-            <a href="mailto:support@davintrade.com" className="block">
+            <a href="mailto:support@davintrade.app" className="block">
               <Card className="border-slate-200 bg-white p-5 shadow-md transition-all hover:border-amber-500/40 dark:border-slate-800 dark:bg-[#090b14]/80">
                 <div className="flex items-center gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-300">
@@ -118,7 +118,7 @@ export default function HelpPage() {
                       {t('Email Support Desk')}
                     </h3>
                     <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                      support@davintrade.com • {t('Response within 4 hours')}
+                      support@davintrade.app • {t('Response within 4 hours')}
                     </p>
                   </div>
                 </div>

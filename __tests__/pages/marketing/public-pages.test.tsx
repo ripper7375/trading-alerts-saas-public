@@ -211,8 +211,8 @@ describe('Public marketing content pages', () => {
     render(withLocale(<CareersPage />));
     expect(screen.getByText('No open positions right now')).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /careers@davintrade\.com/ })
-    ).toHaveAttribute('href', 'mailto:careers@davintrade.com');
+      screen.getByRole('link', { name: /careers@davintrade\.app/ })
+    ).toHaveAttribute('href', 'mailto:careers@davintrade.app');
   });
 
   it('renders /help with FAQ content and a real email support channel', () => {
@@ -225,7 +225,7 @@ describe('Public marketing content pages', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /Email Support Desk/ })
-    ).toHaveAttribute('href', 'mailto:support@davintrade.com');
+    ).toHaveAttribute('href', 'mailto:support@davintrade.app');
     expect(
       screen.getByText('Can I cancel my subscription anytime?')
     ).toBeInTheDocument();

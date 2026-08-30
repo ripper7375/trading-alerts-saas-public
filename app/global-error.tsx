@@ -62,7 +62,7 @@ export default function GlobalError({
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
             If the problem persists, please{' '}
             <a
-              href="mailto:support@davintrade.com"
+              href="mailto:support@davintrade.app"
               className="text-amber-700 underline underline-offset-4 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
             >
               contact support

@@ -35,7 +35,7 @@ import {
  *  - seed-code's "Launch Support Chat" button calls useSupportChat() from
  *    components/chat-widget/chat-context -- that widget was explicitly
  *    deferred to Phase 14 (Session 9-1) and is not mounted anywhere in the
- *    main repo. Replaced with a real `mailto:support@davintrade.com` link,
+ *    main repo. Replaced with a real `mailto:support@davintrade.app` link,
  *    matching this order's own Step 2 instruction.
  *  - seed-code's ticket form "submits" via a fake setTimeout with no real
  *    endpoint (confirmed: no /api/support, /api/contact, or /api/ticket
@@ -62,13 +62,13 @@ const quickLinks = [
     icon: Mail,
     title: '24/7 Email Support',
     desc: 'Get assistance via email (sub-2 hour PRO SLA)',
-    href: 'mailto:support@davintrade.com',
+    href: 'mailto:support@davintrade.app',
   },
   {
     icon: Bug,
     title: 'Report a Bug',
     desc: 'Help us improve by reporting interface issues',
-    href: 'mailto:support@davintrade.com?subject=Bug%20Report',
+    href: 'mailto:support@davintrade.app?subject=Bug%20Report',
   },
 ];
 
@@ -107,7 +107,7 @@ export default function HelpPage(): React.ReactElement {
 
     const mailBody = encodeURIComponent(message);
     const mailSubject = encodeURIComponent(`[${subject}] Support Request`);
-    window.location.href = `mailto:support@davintrade.com?subject=${mailSubject}&body=${mailBody}`;
+    window.location.href = `mailto:support@davintrade.app?subject=${mailSubject}&body=${mailBody}`;
 
     setSent(true);
     setSubject('');
@@ -149,7 +149,7 @@ export default function HelpPage(): React.ReactElement {
             </div>
           </div>
           <Button asChild className="h-9 shrink-0 text-xs font-extrabold">
-            <a href="mailto:support@davintrade.com">Email Support</a>
+            <a href="mailto:support@davintrade.app">Email Support</a>
           </Button>
         </div>
 
@@ -227,7 +227,7 @@ export default function HelpPage(): React.ReactElement {
           {sent ? (
             <div className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-xs font-bold text-emerald-700 dark:text-emerald-300">
               <Check className="h-4 w-4" /> Opening your email client to send
-              this to support@davintrade.com...
+              this to support@davintrade.app...
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="max-w-xl space-y-3">

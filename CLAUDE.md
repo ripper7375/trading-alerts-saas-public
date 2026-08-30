@@ -61,6 +61,29 @@
 > `frontend/` (SEPARATE_STACK, do-not-touch per §5) has its own byte-identical dLocal
 > constants/components/tests — deliberately left untouched.
 
+> **Ad-hoc session (2026-08-30, phase/session unchanged):** Davin asked to fix the stale
+> `support@davintrade.com` email flagged (not fixed) in Session 14-2's close-out, per
+> `EXECUTOR-PROTOCOL.md` §6. **Scope was wider than the single page originally named** — a live
+> grep (`LESSONS-LEARNED.md` L22 recurrence) found 6 `.com` email occurrences across 7 `app/`
+> files, not one: `support@` in `error.tsx`, `global-error.tsx`, `(marketing)/help/page.tsx`
+> (×2), `settings/help/page.tsx` (×5 incl. one doc comment); `legal@` in `(marketing)/
+terms/page.tsx` (×2); `privacy@` in `(marketing)/privacy/page.tsx` (×2); `careers@` in
+> `(marketing)/careers/page.tsx` (×2). All corrected to `davintrade.app` — the real domain per
+> Session 14-0's live Zoho Mail confirmation, not either `.com` spelling the original Batch-0
+> finding posed. One test (`__tests__/pages/marketing/public-pages.test.tsx`) asserted the old
+> addresses — updated, not a fabricated-test finding, just the test encoding the bug.
+> **Checked, correctly out of scope, left untouched:** `lib/email/` transactional templates
+> (zero occurrences — never affected); `mobile-app/` (8 files, same `.com` pattern) — belongs to
+> Phase 15, not started; `seed-code/**` (read-only per §5).
+> **Verified:** `npx tsc --noEmit` clean; `public-pages.test.tsx` 13/13; full monolith `test:ci`
+> **154/154 suites, 2265/2265 tests** (net-neutral vs. Session 14-2's own close baseline, same
+> count — no drift); live-verified in a real browser, `/help` renders `support@davintrade.app`.
+> **`frontend-swap-route-map.md` gap-inventory row 6d** (the original Batch-0 finding this closes)
+> updated to RESOLVED for main-repo scope, `mobile-app/` remainder assigned to Phase 15.
+> **Lesson harvested:** no new lesson (at the 40-entry cap) — recurrence note appended to **L22**
+> (a flagged single-instance finding is as much a floor-not-ceiling risk as an order's own
+> checklist; grep the pattern before declaring a spot-fix complete).
+
 - **Current:** Session 14-2 (Frontend Binding, Phase 14 — third of 4 sessions, PORT), APPROVED,
   CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. Ports the Support Centre chat widget
   from `seed-code/trading-conversational-ai-ui-pages-increment/` into the main repo (a new BFF

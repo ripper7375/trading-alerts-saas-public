@@ -63,7 +63,7 @@ export default function Error({
           <p className="mt-8 text-sm text-muted-foreground">
             If the problem persists, please{' '}
             <a
-              href="mailto:support@davintrade.com"
+              href="mailto:support@davintrade.app"
               className="hover:text-primary/80 text-primary underline underline-offset-4"
             >
               contact support

@@ -187,10 +187,10 @@ export default function PrivacyPage() {
               <p>
                 {t('Questions about this Privacy Policy? Contact us at')}{' '}
                 <a
-                  href="mailto:privacy@davintrade.com"
+                  href="mailto:privacy@davintrade.app"
                   className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                 >
-                  privacy@davintrade.com
+                  privacy@davintrade.app
                 </a>
                 .
               </p>

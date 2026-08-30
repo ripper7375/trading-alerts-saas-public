@@ -53,11 +53,11 @@ export default function CareersPage() {
               )}
             </p>
             <a
-              href="mailto:careers@davintrade.com"
+              href="mailto:careers@davintrade.app"
               className="inline-flex items-center gap-2 font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
             >
               <Mail className="h-4 w-4" aria-hidden="true" />
-              careers@davintrade.com
+              careers@davintrade.app
             </a>
           </CardContent>
         </Card>

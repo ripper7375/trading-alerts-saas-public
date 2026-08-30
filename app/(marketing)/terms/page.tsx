@@ -171,10 +171,10 @@ export default function TermsPage() {
                   'If you have any questions about these Terms, please contact us at:'
                 )}{' '}
                 <a
-                  href="mailto:legal@davintrade.com"
+                  href="mailto:legal@davintrade.app"
                   className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                 >
-                  legal@davintrade.com
+                  legal@davintrade.app
                 </a>
               </p>
             </section>
