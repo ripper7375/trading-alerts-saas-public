@@ -1,0 +1,524 @@
+[
+  {
+    "id": "01-business-intelligence-01-public-affiliate-page-hero-cta",
+    "manifest": "Business Intelligence Dashboard & VAT Threshold",
+    "category": "01-business-intelligence",
+    "name": "Public Affiliate Marketing Page (Hero CTA \"See Top Earners\")",
+    "url": "/affiliate",
+    "authRequired": "None",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/01-business-intelligence/01-public-affiliate-page-hero-cta.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/affiliate",
+      "Document Title: DavinTrade AI",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 5803
+  },
+  {
+    "id": "01-business-intelligence-02-public-affiliate-leaderboard",
+    "manifest": "Business Intelligence Dashboard & VAT Threshold",
+    "category": "01-business-intelligence",
+    "name": "Public Affiliate Leaderboard Page (/affiliate/leaderboard)",
+    "url": "/affiliate/leaderboard",
+    "authRequired": "None",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/01-business-intelligence/02-public-affiliate-leaderboard.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/affiliate/leaderboard",
+      "Document Title: Top Affiliate Earners | DavinTrade Partner Program | DavinTrade",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 3554
+  },
+  {
+    "id": "01-business-intelligence-03-admin-overview-bi-link",
+    "manifest": "Business Intelligence Dashboard & VAT Threshold",
+    "category": "01-business-intelligence",
+    "name": "Admin System Overview (with BI Card & Nav Link)",
+    "url": "/admin",
+    "authRequired": "Admin",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/01-business-intelligence/03-admin-overview-bi-link.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/admin",
+      "Document Title: DavinTrade AI",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 5945
+  },
+  {
+    "id": "01-business-intelligence-04-bi-dashboard-executive",
+    "manifest": "Business Intelligence Dashboard & VAT Threshold",
+    "category": "01-business-intelligence",
+    "name": "Admin BI Dashboard 5 - Executive Command Center",
+    "url": "/admin/dashboards/executive",
+    "authRequired": "Admin",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/01-business-intelligence/04-bi-dashboard-executive.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/admin/dashboards/executive",
+      "Document Title: Executive Command Center | DavinTrade Admin | DavinTrade",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 3922
+  },
+  {
+    "id": "01-business-intelligence-05-bi-dashboard-revenue",
+    "manifest": "Business Intelligence Dashboard & VAT Threshold",
+    "category": "01-business-intelligence",
+    "name": "Admin BI Dashboard 1 - Revenue & Growth (Stripe + dLocal)",
+    "url": "/admin/dashboards/revenue",
+    "authRequired": "Admin",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/01-business-intelligence/05-bi-dashboard-revenue.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/admin/dashboards/revenue",
+      "Document Title: Revenue & Growth | DavinTrade Admin | DavinTrade",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 3978
+  },
+  {
+    "id": "01-business-intelligence-06-bi-dashboard-users",
+    "manifest": "Business Intelligence Dashboard & VAT Threshold",
+    "category": "01-business-intelligence",
+    "name": "Admin BI Dashboard 2 - Customer Base & Funnel",
+    "url": "/admin/dashboards/users",
+    "authRequired": "Admin",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/01-business-intelligence/06-bi-dashboard-users.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/admin/dashboards/users",
+      "Document Title: User Base & Funnel | DavinTrade Admin | DavinTrade",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 3961
+  },
+  {
+    "id": "01-business-intelligence-07-bi-dashboard-regional",
+    "manifest": "Business Intelligence Dashboard & VAT Threshold",
+    "category": "01-business-intelligence",
+    "name": "Admin BI Dashboard 3 - Regional & Tax Surveillance (17 Jurisdictions)",
+    "url": "/admin/dashboards/regional",
+    "authRequired": "Admin",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/01-business-intelligence/07-bi-dashboard-regional.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/admin/dashboards/regional",
+      "Document Title: Regional & Tax Surveillance | DavinTrade Admin | DavinTrade",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 4410
+  },
+  {
+    "id": "01-business-intelligence-08-bi-dashboard-affiliates",
+    "manifest": "Business Intelligence Dashboard & VAT Threshold",
+    "category": "01-business-intelligence",
+    "name": "Admin BI Dashboard 4 - Affiliate Partner Network (Masked IDs)",
+    "url": "/admin/dashboards/affiliates",
+    "authRequired": "Admin",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/01-business-intelligence/08-bi-dashboard-affiliates.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/admin/dashboards/affiliates",
+      "Document Title: Affiliate Partner Network | DavinTrade Admin | DavinTrade",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 3978
+  },
+  {
+    "id": "01-business-intelligence-09-bi-dashboard-redirect-executive",
+    "manifest": "Business Intelligence Dashboard & VAT Threshold",
+    "category": "01-business-intelligence",
+    "name": "Admin BI Dashboards Root Redirect (/admin/dashboards -> /executive)",
+    "url": "/admin/dashboards",
+    "authRequired": "Admin",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/01-business-intelligence/09-bi-dashboard-redirect-executive.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/admin/dashboards/executive",
+      "Document Title: Executive Command Center | DavinTrade Admin | DavinTrade",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 4466
+  },
+  {
+    "id": "02-uae-dlocal-arabic-01-uae-locale-landing-ar-rtl",
+    "manifest": "UAE dLocal & Arabic Support",
+    "category": "02-uae-dlocal-arabic",
+    "name": "UAE Geo-Locale Home Page (/ae - Arabic lang & dir=\"rtl\")",
+    "url": "/ae",
+    "authRequired": "None",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/02-uae-dlocal-arabic/01-uae-locale-landing-ar-rtl.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/ae",
+      "Document Title: DavinTrade AI",
+      "HTML lang: \"ar\"",
+      "HTML dir: \"rtl\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 4258
+  },
+  {
+    "id": "02-uae-dlocal-arabic-02-settings-language-region-arabic",
+    "manifest": "UAE dLocal & Arabic Support",
+    "category": "02-uae-dlocal-arabic",
+    "name": "Language & Region Settings (Arabic 🇦🇪, Dubai, AED)",
+    "url": "/settings/language",
+    "authRequired": "User",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/02-uae-dlocal-arabic/02-settings-language-region-arabic.png",
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "Image with src \"/DavinTrade_Logo.jpg\" has \"fill\" but is missing \"sizes\" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes"
+    ],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/settings/language",
+      "Document Title: DavinTrade AI",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 5367
+  },
+  {
+    "id": "02-uae-dlocal-arabic-03-checkout-uae-payment-methods",
+    "manifest": "UAE dLocal & Arabic Support",
+    "category": "02-uae-dlocal-arabic",
+    "name": "Checkout Page (UAE & Multi-Currency Payment Selector)",
+    "url": "/checkout",
+    "authRequired": "User",
+    "status": "WARNING",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/02-uae-dlocal-arabic/03-checkout-uae-payment-methods.png",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/checkout",
+      "Document Title: DavinTrade AI",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Encountered 1 console error(s)."
+    ],
+    "loadTimeMs": 3592
+  },
+  {
+    "id": "03-tax-invoicing-01-settings-billing-invoices-tax",
+    "manifest": "Tax Invoicing Stack",
+    "category": "03-tax-invoicing",
+    "name": "Settings - Billing & Invoices Page (VAT Breakdown & Hosted Invoices)",
+    "url": "/settings/billing",
+    "authRequired": "User",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/03-tax-invoicing/01-settings-billing-invoices-tax.png",
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "Image with src \"/DavinTrade_Logo.jpg\" has \"fill\" but is missing \"sizes\" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes"
+    ],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/settings/billing",
+      "Document Title: DavinTrade AI",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 3745
+  },
+  {
+    "id": "04-affiliate-commission-01-affiliate-dashboard-commissions",
+    "manifest": "Affiliate Commission Issues Fix",
+    "category": "04-affiliate-commission",
+    "name": "Affiliate Dashboard - Commissions Page (Clawback & Status Guide)",
+    "url": "/affiliate/dashboard/commissions",
+    "authRequired": "Affiliate",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/04-affiliate-commission/01-affiliate-dashboard-commissions.png",
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "Image with src \"/DavinTrade_Logo.jpg\" has \"fill\" but is missing \"sizes\" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes"
+    ],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/affiliate/dashboard/commissions",
+      "Document Title: DavinTrade AI",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 3697
+  },
+  {
+    "id": "04-affiliate-commission-02-admin-affiliates-management",
+    "manifest": "Affiliate Commission Issues Fix",
+    "category": "04-affiliate-commission",
+    "name": "Admin Affiliate Management Console (/admin/affiliates)",
+    "url": "/admin/affiliates",
+    "authRequired": "Admin",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/04-affiliate-commission/02-admin-affiliates-management.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/admin/affiliates",
+      "Document Title: DavinTrade AI",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 3849
+  },
+  {
+    "id": "04-affiliate-commission-03-admin-affiliate-detail-clawback",
+    "manifest": "Affiliate Commission Issues Fix",
+    "category": "04-affiliate-commission",
+    "name": "Admin Affiliate Detail Page (/admin/affiliates/profit-loss)",
+    "url": "/admin/affiliates/profit-loss",
+    "authRequired": "Admin",
+    "status": "WARNING",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/04-affiliate-commission/03-admin-affiliate-detail-clawback.png",
+    "consoleErrors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/admin/affiliates/profit-loss",
+      "Document Title: DavinTrade AI",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Encountered 2 console error(s)."
+    ],
+    "loadTimeMs": 6170
+  },
+  {
+    "id": "05-davintrade-academy-01-public-academy-listing",
+    "manifest": "DavinTrade Academy",
+    "category": "05-davintrade-academy",
+    "name": "Public Academy Video Listing Page (/academy)",
+    "url": "/academy",
+    "authRequired": "None",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/05-davintrade-academy/01-public-academy-listing.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/academy",
+      "Document Title: DavinTrade Academy | Learn to Trade & Master the Platform | DavinTrade",
+      "HTML lang: \"ar\"",
+      "HTML dir: \"rtl\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 4103
+  },
+  {
+    "id": "05-davintrade-academy-02-public-academy-category-trading-strategies",
+    "manifest": "DavinTrade Academy",
+    "category": "05-davintrade-academy",
+    "name": "Public Academy - Trading Strategies Category Filter (?category=TRADING_STRATEGIES)",
+    "url": "/academy?category=TRADING_STRATEGIES",
+    "authRequired": "None",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/05-davintrade-academy/02-public-academy-category-trading-strategies.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/academy?category=TRADING_STRATEGIES",
+      "Document Title: DavinTrade Academy | Learn to Trade & Master the Platform | DavinTrade",
+      "HTML lang: \"ar\"",
+      "HTML dir: \"rtl\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 4778
+  },
+  {
+    "id": "05-davintrade-academy-03-public-academy-category-platform-walkthrough",
+    "manifest": "DavinTrade Academy",
+    "category": "05-davintrade-academy",
+    "name": "Public Academy - Platform Walkthrough Category Filter (?category=PLATFORM_WALKTHROUGH)",
+    "url": "/academy?category=PLATFORM_WALKTHROUGH",
+    "authRequired": "None",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/05-davintrade-academy/03-public-academy-category-platform-walkthrough.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/academy?category=PLATFORM_WALKTHROUGH",
+      "Document Title: DavinTrade Academy | Learn to Trade & Master the Platform | DavinTrade",
+      "HTML lang: \"ar\"",
+      "HTML dir: \"rtl\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 3885
+  },
+  {
+    "id": "05-davintrade-academy-04-public-academy-video-detail-player",
+    "manifest": "DavinTrade Academy",
+    "category": "05-davintrade-academy",
+    "name": "Public Academy - Tutorial Video Detail Page (/academy/cmth0k03q001c0gv2cqtu8p1z)",
+    "url": "/academy/cmth0k03q001c0gv2cqtu8p1z",
+    "authRequired": "None",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/05-davintrade-academy/04-public-academy-video-detail-player.png",
+    "consoleErrors": [],
+    "consoleWarnings": [
+      "Unrecognized feature: 'web-share'.",
+      "[GroupMarkerNotSet(crbug.com/242999)!:A87018002C440000]Automatic fallback to software WebGL has been deprecated. Please use the --enable-unsafe-swiftshader (about:flags#enable-unsafe-swiftshader) flag to opt in to lower security guarantees for trusted content.",
+      "The powerPreference option is currently ignored when calling requestAdapter() on Windows. See https://crbug.com/369219127",
+      "No available adapters."
+    ],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/academy/cmth0k03q001c0gv2cqtu8p1z",
+      "Document Title: Mastering Market Structure & Fractal Breakouts | DavinTrade Academy | DavinTrade",
+      "HTML lang: \"ar\"",
+      "HTML dir: \"rtl\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 6809
+  },
+  {
+    "id": "05-davintrade-academy-05-marketing-navbar-academy-link",
+    "manifest": "DavinTrade Academy",
+    "category": "05-davintrade-academy",
+    "name": "Marketing Navbar displaying \"Academy\" Link",
+    "url": "/",
+    "authRequired": "None",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/05-davintrade-academy/05-marketing-navbar-academy-link.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/",
+      "Document Title: DavinTrade AI",
+      "HTML lang: \"ar\"",
+      "HTML dir: \"rtl\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 5802
+  },
+  {
+    "id": "05-davintrade-academy-06-admin-tutorials-crud-table",
+    "manifest": "DavinTrade Academy",
+    "category": "05-davintrade-academy",
+    "name": "Admin Academy Tutorials Console (/admin/tutorials)",
+    "url": "/admin/tutorials",
+    "authRequired": "Admin",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/05-davintrade-academy/06-admin-tutorials-crud-table.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/admin/tutorials",
+      "Document Title: DavinTrade AI",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 5938
+  },
+  {
+    "id": "05-davintrade-academy-07-admin-tutorials-add-modal-dialog",
+    "manifest": "DavinTrade Academy",
+    "category": "05-davintrade-academy",
+    "name": "Admin Academy Tutorials - \"Add New Tutorial\" Modal Dialog",
+    "url": "/admin/tutorials",
+    "authRequired": "Admin",
+    "status": "PASSED",
+    "httpStatus": 200,
+    "screenshotFile": "screenshots/05-davintrade-academy/07-admin-tutorials-add-modal-dialog.png",
+    "consoleErrors": [],
+    "consoleWarnings": [],
+    "networkErrors": [],
+    "details": [
+      "Final URL: http://localhost:3000/admin/tutorials",
+      "Document Title: DavinTrade AI",
+      "HTML lang: \"en-GB\"",
+      "HTML dir: \"ltr\"",
+      "Rendered successfully with zero runtime errors."
+    ],
+    "loadTimeMs": 5374
+  }
+]

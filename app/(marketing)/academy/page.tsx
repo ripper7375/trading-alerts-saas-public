@@ -50,7 +50,7 @@ function isValidCategory(value: string | undefined): value is TutorialCategory {
 export default async function AcademyPage({
   searchParams,
 }: AcademyPageProps): Promise<React.ReactElement> {
-  const params = await searchParams;
+  const params = (await searchParams) || {};
   const activeCategory = isValidCategory(params.category)
     ? params.category
     : undefined;

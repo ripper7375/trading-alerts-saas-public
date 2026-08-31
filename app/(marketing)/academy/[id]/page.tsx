@@ -29,7 +29,10 @@ interface TutorialDetailPageProps {
 }
 
 export async function generateMetadata({ params }: TutorialDetailPageProps) {
-  const { id } = await params;
+  const { id } = (await params) || {};
+  if (!id) {
+    return { title: 'Tutorial Not Found | DavinTrade Academy' };
+  }
   const tutorial = await getPublishedTutorialById(id);
 
   if (!tutorial) {
@@ -52,7 +55,10 @@ export async function generateMetadata({ params }: TutorialDetailPageProps) {
 export default async function TutorialDetailPage({
   params,
 }: TutorialDetailPageProps): Promise<React.ReactElement> {
-  const { id } = await params;
+  const { id } = (await params) || {};
+  if (!id) {
+    notFound();
+  }
   const tutorial = await getPublishedTutorialById(id);
 
   if (!tutorial) {

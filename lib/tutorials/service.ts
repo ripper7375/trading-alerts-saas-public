@@ -179,13 +179,21 @@ function isRecordNotFoundError(error: unknown): boolean {
 export async function listPublishedTutorials(filters: {
   category?: TutorialCategory;
 }): Promise<TutorialVideo[]> {
-  return prisma.tutorialVideo.findMany({
-    where: {
-      status: 'ACTIVE',
-      ...(filters.category && { category: filters.category }),
-    },
-    orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
-  });
+  try {
+    return await prisma.tutorialVideo.findMany({
+      where: {
+        status: 'ACTIVE',
+        ...(filters.category && { category: filters.category }),
+      },
+      orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
+    });
+  } catch (error) {
+    console.error(
+      '[Academy Service] Failed to list published tutorials:',
+      error
+    );
+    return [];
+  }
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -202,13 +210,18 @@ export async function listPublishedTutorials(filters: {
 export async function getPublishedTutorialById(
   id: string
 ): Promise<TutorialVideo | null> {
-  const tutorial = await prisma.tutorialVideo.findUnique({ where: { id } });
+  try {
+    const tutorial = await prisma.tutorialVideo.findUnique({ where: { id } });
 
-  if (!tutorial || tutorial.status !== 'ACTIVE') {
+    if (!tutorial || tutorial.status !== 'ACTIVE') {
+      return null;
+    }
+
+    return tutorial;
+  } catch (error) {
+    console.error('[Academy Service] Failed to get tutorial by ID:', error);
     return null;
   }
-
-  return tutorial;
 }
 
 /**
@@ -218,10 +231,14 @@ export async function getPublishedTutorialById(
  * component for the same request).
  */
 export async function incrementTutorialViewCount(id: string): Promise<void> {
-  await prisma.tutorialVideo.update({
-    where: { id },
-    data: { viewCount: { increment: 1 } },
-  });
+  try {
+    await prisma.tutorialVideo.update({
+      where: { id },
+      data: { viewCount: { increment: 1 } },
+    });
+  } catch (error) {
+    console.error('[Academy Service] Failed to increment view count:', error);
+  }
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -233,13 +250,18 @@ export async function getRelatedTutorials(
   excludeId: string,
   limit = 3
 ): Promise<TutorialVideo[]> {
-  return prisma.tutorialVideo.findMany({
-    where: {
-      status: 'ACTIVE',
-      category,
-      id: { not: excludeId },
-    },
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-  });
+  try {
+    return await prisma.tutorialVideo.findMany({
+      where: {
+        status: 'ACTIVE',
+        category,
+        id: { not: excludeId },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  } catch (error) {
+    console.error('[Academy Service] Failed to get related tutorials:', error);
+    return [];
+  }
 }
