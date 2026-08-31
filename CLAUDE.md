@@ -331,6 +331,44 @@ health` — the `api/v1` controller prefix, not a bare `/health`) and got back `
 > new migration order or runbook — a CLI redeploy of an already-committed change, not a slice
 > cutover.
 
+> **Ad-hoc session (2026-08-31, phase/session unchanged):** Davin asked to connect `railway-gateway`
+> to GitHub too, closing the gap the entry above deferred as "Davin's own call." Used
+> `railway service source connect --repo ripper7375/trading-alerts-saas-public --branch main
+--service railway-gateway` (a CLI subcommand, no browser OAuth click-through needed since the
+> Railway GitHub App was already installed and authorized for this repo via `money-service`/
+> `operation-service`'s own connections).
+> **The exact risk this session's own earlier advisory flagged materialized immediately, not
+> hypothetically:** connecting auto-triggered a build with no Root Directory set (`railway service
+source connect` has no flag for it — confirmed via `--help` before connecting), and it built from
+> the monorepo root instead of `railway-gateway/`: the log showed Railway's Railpack builder trying
+> to `deno cache components/affiliate/index.ts`, the Next.js monolith's own code, entirely unrelated
+> to this service. Build failed as a direct result — **not silently papered over or retried blindly**;
+> confirmed via `railway status` and a live health-endpoint hit that production was completely
+> unaffected first (Railway never cuts a failed build over — the prior good deployment kept serving,
+> `200 healthy` throughout).
+> **Fix required a manual step neither the CLI nor `railway config` (needs an external SDK,
+> deliberately not installed for this) could do:** Root Directory is web-UI-only. Talked Davin
+> through setting it to `railway-gateway` in Settings → Source (the same panel from Davin's own
+> screenshot) rather than attempting it via the API blind. Davin applied the pending change via the
+> UI's own "Deploy" button — confirmed this mattered, not just clicked for form: `railway redeploy`
+> would only re-run the _last successful build's image_ unchanged, not a fresh build honoring a
+> browser-side-drafted setting change, so the fix genuinely required that specific click, not a CLI
+> shortcut.
+> **Verified via CLI polling, not assumed from the UI's own success indicator:** polled
+> `railway deployment list --json` every 10s until the new deployment (`4d8e54dc`) left BUILDING/
+> DEPLOYING; confirmed `SUCCESS`, then independently hit the live health endpoint again —
+> `200 {"status":"healthy", "services": all "up"}`, uptime ~26s confirming it was genuinely the new
+> deployment serving traffic, not a cached response.
+> **Left open, flagged not silently dropped:** Watch Paths are still unset (`watchPatterns: []` on
+> the connected deployment) — Davin only set Root Directory this pass. Until scoped to
+> `railway-gateway/**`, every push to `main` anywhere in the monorepo will trigger a rebuild attempt
+> here. Low severity (a wasted/no-op rebuild, not a breakage — confirmed the same way the Root
+> Directory bug was: Railway never cuts over a bad or redundant build over a good one), but real
+> — flagged for Davin to set in the same Settings → Source panel when convenient, not assumed done.
+> **Artifacts:** none in the repo — this session's changes live entirely in Railway's own project
+> configuration (source connection, Root Directory), not in tracked files; this CLAUDE.md entry is
+> the only record.
+
 - **Current:** Session 14-3 (Cutover + Runbook, Phase 14 — fourth and last of 4 sessions,
   VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. **Phase 14
   (Web Chat / Contabo Support Stack) is now COMPLETE.** Flips `NEXT_PUBLIC_SOCKET_CHAT_URL` +
