@@ -15,8 +15,11 @@ import type {
   AdminTutorialListQuery,
   CreateTutorialFields,
   UpdateTutorialFields,
+  TutorialCategory,
 } from './validators';
 import { TUTORIAL_CATEGORIES } from './validators';
+
+export type { TutorialCategory, TutorialStatus } from './validators';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ADMIN: LIST + STATS
@@ -174,7 +177,7 @@ function isRecordNotFoundError(error: unknown): boolean {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export async function listPublishedTutorials(filters: {
-  category?: (typeof TUTORIAL_CATEGORIES)[number];
+  category?: TutorialCategory;
 }): Promise<TutorialVideo[]> {
   return prisma.tutorialVideo.findMany({
     where: {
@@ -190,9 +193,11 @@ export async function listPublishedTutorials(filters: {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * Returns a published tutorial and atomically increments its view count, or
- * `null` if it doesn't exist or isn't published (DRAFT/ARCHIVED tutorials
- * are never reachable from the public site, regardless of a guessed ID).
+ * Returns a published tutorial, or `null` if it doesn't exist or isn't
+ * published (DRAFT/ARCHIVED tutorials are never reachable from the public
+ * site, regardless of a guessed ID). Read-only — safe to call more than
+ * once per request (e.g. both `generateMetadata` and the page body), unlike
+ * `incrementTutorialViewCount`, which must only ever run once per real view.
  */
 export async function getPublishedTutorialById(
   id: string
@@ -203,7 +208,17 @@ export async function getPublishedTutorialById(
     return null;
   }
 
-  return prisma.tutorialVideo.update({
+  return tutorial;
+}
+
+/**
+ * Atomically increments a tutorial's view count. Call exactly once per real
+ * page view — from the detail page's own body only, never from
+ * `generateMetadata` (which Next.js may invoke independently of the page
+ * component for the same request).
+ */
+export async function incrementTutorialViewCount(id: string): Promise<void> {
+  await prisma.tutorialVideo.update({
     where: { id },
     data: { viewCount: { increment: 1 } },
   });
@@ -214,7 +229,7 @@ export async function getPublishedTutorialById(
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export async function getRelatedTutorials(
-  category: (typeof TUTORIAL_CATEGORIES)[number],
+  category: TutorialCategory,
   excludeId: string,
   limit = 3
 ): Promise<TutorialVideo[]> {

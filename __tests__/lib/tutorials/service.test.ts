@@ -32,6 +32,7 @@ import {
   deleteTutorial,
   listPublishedTutorials,
   getPublishedTutorialById,
+  incrementTutorialViewCount,
   getRelatedTutorials,
 } from '@/lib/tutorials/service';
 
@@ -228,7 +229,6 @@ describe('getPublishedTutorialById', () => {
     const result = await getPublishedTutorialById('missing');
 
     expect(result).toBeNull();
-    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
   it('returns null for a tutorial that is not ACTIVE (DRAFT/ARCHIVED never publicly reachable)', async () => {
@@ -237,20 +237,30 @@ describe('getPublishedTutorialById', () => {
     const result = await getPublishedTutorialById('tut-1');
 
     expect(result).toBeNull();
-    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
-  it('atomically increments viewCount for an ACTIVE tutorial', async () => {
+  it('is read-only -- never calls update (safe to call more than once per request)', async () => {
     mockFindUnique.mockResolvedValue({ id: 'tut-1', status: 'ACTIVE' });
-    mockUpdate.mockResolvedValue({ id: 'tut-1', viewCount: 6 });
 
     const result = await getPublishedTutorialById('tut-1');
+
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(result?.id).toBe('tut-1');
+  });
+});
+
+describe('incrementTutorialViewCount', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('atomically increments viewCount', async () => {
+    mockUpdate.mockResolvedValue({ id: 'tut-1', viewCount: 6 });
+
+    await incrementTutorialViewCount('tut-1');
 
     expect(mockUpdate).toHaveBeenCalledWith({
       where: { id: 'tut-1' },
       data: { viewCount: { increment: 1 } },
     });
-    expect(result?.viewCount).toBe(6);
   });
 });
 

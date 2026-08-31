@@ -35,6 +35,7 @@ export function MarketingNavbar() {
     { href: '/pricing', label: t('Pricing') },
     { href: '/docs', label: t('Docs') },
     { href: '/blog', label: t('Blog') },
+    { href: '/academy', label: t('Academy') },
     { href: '/affiliate', label: t('Affiliates') },
   ];
 

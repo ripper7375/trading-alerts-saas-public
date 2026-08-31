@@ -22,7 +22,11 @@ export const TUTORIAL_CATEGORIES = [
   'MARKET_ANALYSIS',
 ] as const;
 
+export type TutorialCategory = (typeof TUTORIAL_CATEGORIES)[number];
+
 export const TUTORIAL_STATUSES = ['ACTIVE', 'DRAFT', 'ARCHIVED'] as const;
+
+export type TutorialStatus = (typeof TUTORIAL_STATUSES)[number];
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ADMIN: LIST QUERY
