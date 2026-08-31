@@ -239,6 +239,47 @@ deploy`, then recorded it via `prisma migrate resolve --applied <name>` so `_pri
 > as the template) and a Plan agent pass (concrete schema/API/UI design) before any code was
 > written, per §0's "live code wins" rule.
 
+> **Ad-hoc session (2026-08-31, phase/session unchanged):** Davin asked for a read on upgrading to
+> NestJS 12 (prompted by `https://github.com/nestjs/nest/releases`), outside the Session 14-x
+> playbook numbering entirely, per `EXECUTOR-PROTOCOL.md` §6. Checked live code before answering
+> rather than assume: `money-service`/`operation-service` were pinned to NestJS **11.1.28**,
+> `railway-gateway` still on **10.4.15** — a materially different situation, treated separately.
+> Live-browsed the actual `v12.0.0` and `v11.0.0` GitHub release notes (`WebFetch`/`WebSearch` were
+> erroring in this environment — MiniMax model unavailable — so this ran through the Browser pane
+> instead) rather than answer from training-data memory of NestJS's version history.
+> **Recommended holding off v12:** freshly tagged with zero patch releases behind it yet, requires
+> Node 20.19+/22.12+ which could not be confirmed against the live Railway deployment (no Railway
+> CLI/dashboard access in this environment — same class of gap as prior sessions' "no Vercel CLI
+> access" finding), and its lifecycle-hook-reordering / custom-pipe-signature changes touch code
+> that matters most in exactly the two services this repo's own standing rule 5 says need explicit
+> sign-off before any money/auth-adjacent change. Checked both services' `ConfigModule.forRoot()`
+> calls directly (`app.module.ts`) and confirmed neither uses a Joi `validationSchema` — v12's
+> Standard Schema config change is a non-issue here either way. Davin approved a narrower,
+> same-major patch bump instead.
+> **Executed:** `@nestjs/common`/`core`/`platform-express`/`testing` bumped **11.1.28 → 11.2.3** in
+> both `money-service` and `operation-service`; `operation-service`'s caret-ranged
+> `@nestjs/platform-socket.io`/`@nestjs/websockets` picked up the same version on `npm install`
+> with no manual edit needed. Confirmed via the (also live-browsed) 11.2.0–11.2.3 changelog that
+> this range is bugfixes plus additive features only, no breaking entries — unlike the v10→v11 or
+> v11→v12 jumps.
+> **`railway-gateway` deliberately left untouched** — still on NestJS 10.4.15. Its path to v11 is a
+> real major-version migration (bundled Express v5 route-matching changes, `@nestjs/config` v3→v4,
+> `@nestjs/throttler` v5→v6 — the last already de-risked in production by the other two services
+> running that exact combination), not a drop-in bump; belongs in its own scoped session rather than
+> riding along with this one.
+> **Verified before commit:** `npx tsc --noEmit` clean in both services. `npm test`:
+> `operation-service` **43/43 suites, 401/401 tests**, clean. `money-service` **62/62 suites,
+> 570/570 tests**, one `prisma.shutdown.spec.ts` SIGTERM-timeout failure on the full parallel run —
+> re-ran that spec alone with `--runInBand`, passed clean in ~20s. Matches `LESSONS-LEARNED.md`
+> **L24**'s documented `prisma.shutdown.spec.ts` flake pattern exactly (Jest parallel-worker CPU
+> contention, not a real defect); not itself logged as a new L24 occurrence in that file, since this
+> was a chat advisory that became a patch bump, not a numbered session — flagged here for whoever
+> next touches L24's recurrence count. `git status` after `npm install` confirmed the diff stayed
+> scoped to the intended `@nestjs/*` packages only (4 changed in `money-service`, 6 in
+> `operation-service`) — no source file changes needed anywhere, no breaking-change fallout.
+> **Artifacts:** `money-service/package.json`, `money-service/package-lock.json`,
+> `operation-service/package.json`, `operation-service/package-lock.json`, this file.
+
 - **Current:** Session 14-3 (Cutover + Runbook, Phase 14 — fourth and last of 4 sessions,
   VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. **Phase 14
   (Web Chat / Contabo Support Stack) is now COMPLETE.** Flips `NEXT_PUBLIC_SOCKET_CHAT_URL` +
