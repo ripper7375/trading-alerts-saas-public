@@ -102,6 +102,12 @@ const adminNavItems: AdminNavItem[] = [
     label: 'Marketing Resources',
     href: '/admin/resources',
   },
+  {
+    id: 'tutorials',
+    icon: '🎓',
+    label: 'Academy Tutorials',
+    href: '/admin/tutorials',
+  },
 ];
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
