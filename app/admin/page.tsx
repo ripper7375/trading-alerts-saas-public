@@ -224,6 +224,28 @@ export default function AdminDashboardPage(): React.ReactElement {
         </Card>
       </div>
 
+      {/* Business Intelligence Suite */}
+      <Card className="border-border bg-card">
+        <CardContent className="flex flex-col items-start justify-between gap-4 px-6 sm:flex-row sm:items-center">
+          <div>
+            <CardTitle className="text-foreground">
+              📈 Business Intelligence Dashboards
+            </CardTitle>
+            <CardDescription className="mt-1 text-muted-foreground">
+              5 executive dashboards synthesizing all 25 business metrics --
+              Revenue, Customer Funnel, Regional &amp; Tax, Affiliate Network,
+              and a unified Executive Command Center.
+            </CardDescription>
+          </div>
+          <Link
+            href="/admin/dashboards/executive"
+            className="hover:bg-primary/90 shrink-0 whitespace-nowrap rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors"
+          >
+            Business Intelligence →
+          </Link>
+        </CardContent>
+      </Card>
+
       {/* Secondary Metrics */}
       <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Conversion Rate */}

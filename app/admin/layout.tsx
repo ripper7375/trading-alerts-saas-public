@@ -32,6 +32,12 @@ interface AdminNavItem {
 
 const adminNavItems: AdminNavItem[] = [
   { id: 'dashboard', icon: '📊', label: 'Dashboard', href: '/admin' },
+  {
+    id: 'bi-dashboards',
+    icon: '📈',
+    label: 'Business Intelligence',
+    href: '/admin/dashboards/executive',
+  },
   { id: 'users', icon: '👥', label: 'Users', href: '/admin/users' },
   {
     id: 'fraud-alerts',
