@@ -84,6 +84,91 @@ terms/page.tsx` (×2); `privacy@` in `(marketing)/privacy/page.tsx` (×2); `care
 > (a flagged single-instance finding is as much a floor-not-ceiling risk as an order's own
 > checklist; grep the pattern before declaring a spot-fix complete).
 
+> **Ad-hoc session (2026-08-31, phase/session unchanged):** Davin requested the DavinTrade
+> Multi-Dashboard Business Intelligence System — 5 admin-only dashboards (Revenue, User Base &
+> Funnel, Regional & Tax Surveillance, Affiliate Network, Executive Command Center) synthesizing
+> the 25-metric catalog in
+> `davintrade-dashboard-stack/DavinTrade-Business-Intelligence-Dashboards-Implementation-Plan.md`,
+> referencing the two HTML interactive prototypes
+> (`davintrade-dashboards-interactive-preview.html` dark / `-light-theme.html` light) and the
+> master Excel workbook (`countries-vat-and-business-dashboard.xlsx`) for UI fidelity and
+> calculation accuracy. Outside the Session 14-x playbook numbering entirely, per
+> `EXECUTOR-PROTOCOL.md` §6. Built via `EnterPlanMode` with an Explore agent (live-schema
+> verification) and a Plan agent (implementation design) before any code was written, per
+> §0's "live code wins" rule — the spec doc's own SQL/schema assumptions were largely correct but
+> had real gaps, all corrected rather than silently worked around:
+> **Corrected vs. the spec doc's prose (workbook is authoritative):** the "17 primary
+> jurisdictions" list existed nowhere in live code (the plan's own 17-item list matches the
+> workbook's "Tax Rules & Thresholds" sheet exactly, now codified in new
+> `lib/admin/analytics/jurisdictions.ts`) — and within that list, `NG` has a real statutory
+> threshold (NGN 25,000,000), **not** a zero-threshold/day-one-collecting jurisdiction as the
+> doc's prose implied, and `HK` has no VAT/GST regime on digital services at all (excluded from
+> alerting, not "collecting from day one" either) — the true zero-threshold set is 7 countries
+> (`EU, KR, IN, VN, TR, PK, AE`), not 8. FX rates are static, documented-as-approximate reference
+> constants (matching Metric #17's own "Approximation" framing; no live FX infra exists anywhere
+> in this codebase to build on) — sourced from the workbook or `lib/country-config.ts` where
+> available, with `HK`/`TW`/`KR` explicitly flagged as unsourced placeholders needing finance
+> sign-off before being treated as authoritative.
+> **Two consequential scope decisions escalated to Davin directly (both answered live in
+> chat) rather than assumed:** (1) headline revenue Metrics #8-11 and country-sales #16 merge
+> Stripe `Invoice.amountTotal` **and** completed dLocal `Payment.amountUSD` — Stripe-only would
+> have silently excluded all dLocal-billed-country revenue from "Monthly Sales," given this
+> codebase's heavy recent dLocal investment (9 countries). VAT/tax surveillance (#17) stays
+> Invoice-only regardless — Stripe Tax/OSS is inherently Stripe-specific, dLocal countries handle
+> local tax differently. (2) the existing 447-line `app/admin/page.tsx` ("System Overview": fraud
+> alerts, MRR/ARR, quick actions) is left untouched rather than replaced by the new Executive
+> dashboard (which the spec wanted mounted at root `/admin` too) — `/admin/dashboards/executive`
+> is the canonical DB5 route instead, with one link card added into the existing page. Zero
+> regression risk to existing admin workflows.
+> **A real, undocumented data-quality gap found and worked around, not silently papered over:**
+> `User` has no `country` field at all, and the schema's `UserSession.country` column — the
+> spec's own intended source for user-geography metrics (#13/#14/#18) — is **never written by any
+> live code path** (`trackSession()` in `lib/auth/session-tracker.ts` never persists it, despite
+> the column existing and a working `detectCountry()` geo-IP helper existing elsewhere,
+> unconnected). Built a two-tier fallback instead (`Invoice.taxCountry` → `UserSession.country`),
+> which is spec-correct and free once a future session-tracking fix lands, but means FREE-tier-
+> only country rankings render mostly as "Other Countries" today — documented in the route's own
+> doc comment and in a UI caption, not hidden. **Fixing `session-tracker.ts` itself was explicitly
+> ruled out of scope** (an auth/session-flow change, not a dashboards change) and is flagged below
+> for a future session instead of being bundled in.
+> **Verified, not assumed:** `npx tsc --noEmit` clean; `eslint` clean on every new/changed file;
+> full monolith `npm test` **160/160 suites, 2307/2307 tests** (154/2265 baseline + this session's
+> own 6 new suites/42 new tests, zero drift elsewhere) — including boundary-exact VAT-alert-level
+> tests (59.9/60.0/79.9/80.0/94.9/95.0/99.9/100.0%) and "Other Countries" aggregation-correctness
+> tests, the highest-value tests in the suite since an off-by-one there silently misclassifies a
+> real compliance alert. **Every raw SQL query was additionally run directly against the live dev
+> database** (bypassing HTTP/auth via a throwaway script, deleted after use, never committed) —
+> all queries executed cleanly against real schema (table/column names, `DISTINCT ON`,
+> `generate_series`, the pre-existing `v_country_trailing_12m_sales` view all confirmed valid),
+> and the real (sparse) dev data — 8 users, empty `Invoice`/`Payment` tables, 2 affiliate
+> profiles — behaved exactly as the "Other Countries"/empty-state design predicted, not a crash.
+> **All 7 new/changed admin routes were also live-checked in a real browser** (`preview_start`,
+> Turbopack dev server): every dashboard route compiles and correctly redirects an unauthenticated
+> visitor to `/login?callbackUrl=...` via the inherited `app/admin/layout.tsx` RBAC check, zero
+> server or console errors. **Full authenticated visual verification (rendered charts, tables,
+> dark/light theming) was NOT performed** — the dev login page exposes one-click "Admin"
+> test-credential autofill buttons, but entering/submitting credentials to authenticate is
+> categorically off-limits regardless of whether the account is a test account; flagged for Davin
+> exactly like Session 14-3's Journey B, not silently skipped (dev server left running for Davin's
+> own click-through).
+> **Not built, flagged rather than silently dropped:** the CSV export button shown in both
+> prototypes' headers; RAG health-matrix thresholds in the Executive dashboard are a documented
+> first-pass heuristic (no cutoffs exist anywhere in the spec or workbook) explicitly labeled
+> "tune with Davin later," not presented as authoritative.
+> **New dependency:** `recharts@2.15.4` (React-19-compatible) — no BI/general-purpose charting
+> library existed (`lightweight-charts` is TradingView-candlestick-specific). Added via `pnpm add
+-w` (this is a pnpm workspace; plain `npm install` fails on the `workspace:*` protocol).
+> **Artifacts:**
+> `lib/admin/analytics/{jurisdictions,date-windows,revenue,users,regional,affiliates,executive}.ts`,
+> 5 new `app/api/admin/analytics/*/route.ts`, 7 new `components/admin/analytics/*.tsx`,
+> `app/admin/dashboards/{layout,page,dashboard-tabs,revenue/page,users/page,regional/page,
+affiliates/page,executive/page}.tsx`, `app/admin/layout.tsx` (nav entry), `app/admin/page.tsx`
+> (link card), 6 new test files (`__tests__/api/admin-analytics-*.test.ts`,
+> `__tests__/lib/admin/analytics/jurisdictions.test.ts`), `package.json`/`pnpm-lock.yaml`
+> (recharts). Built and committed in 4 phased
+> checkpoints (`d36771cf` foundation, `c56c5a4f` backend complete, `90da3aaa` components,
+> `1f74a93c` pages+nav), each gated on green `tsc`/tests, per the approved implementation plan.
+
 - **Current:** Session 14-3 (Cutover + Runbook, Phase 14 — fourth and last of 4 sessions,
   VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. **Phase 14
   (Web Chat / Contabo Support Stack) is now COMPLETE.** Flips `NEXT_PUBLIC_SOCKET_CHAT_URL` +
@@ -222,6 +307,14 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 
 ## Waiting on
 
+- **BI dashboard authenticated visual verification** — the new `/admin/dashboards/*` suite
+  (2026-08-31 ad-hoc session) is verified structurally (routes compile, RBAC redirect works,
+  raw SQL runs clean against live data) but not visually as a logged-in admin — needs Davin's own
+  click-through (dev server left running) to confirm chart rendering, dark/light theming, and
+  real dashboard content, since the Executor cannot enter credentials even for the dev login
+  page's test-account autofill buttons. Also needs Davin/finance sign-off on the placeholder FX
+  reference rates for `HK`/`TW`/`KR` in `lib/admin/analytics/jurisdictions.ts` (not sourced from
+  the workbook or any existing config) before they're treated as authoritative.
 - **Phase 12 handover prompt full re-draft** — Session 14-3 refreshed its factual anchors only
   (Phase 14 close, fresh baselines) and flagged that new Stack D architecture material landed
   2026-08-30 (`davintrade-stack-d-and-e/`, commit `64222ef4` — a `DUAL-RAG-SYSTEM-ARCHITECTURE.md`,
