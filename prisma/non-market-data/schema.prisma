@@ -88,6 +88,14 @@ enum MarketingAssetStatus {
   ARCHIVED
 }
 
+enum TutorialCategory {
+  GETTING_STARTED
+  PLATFORM_WALKTHROUGH
+  TRADING_STRATEGIES
+  RISK_MANAGEMENT
+  MARKET_ANALYSIS
+}
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MODELS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -755,6 +763,33 @@ model MarketingAsset {
   copyText        String? // swipe-file text content; only set for SWIPE_COPY
   downloadCount   Int                    @default(0)
   status          MarketingAssetStatus   @default(ACTIVE)
+  createdByUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([status])
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PUBLIC ACADEMY / TUTORIAL VIDEOS (ad-hoc, 2026-08-31)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// Admin-curated YouTube tutorial shown on the public, unauthenticated
+// /academy marketing pages — trading education + how-to-use-the-app videos,
+// meant to drive PRO upgrades and Affiliate Program signups. Reuses
+// MarketingAssetStatus (ACTIVE/DRAFT/ARCHIVED) rather than a duplicate enum.
+model TutorialVideo {
+  id              String               @id @default(cuid())
+  title           String
+  description     String
+  youtubeUrl      String // raw admin-submitted URL, kept for reference/editing
+  youtubeVideoId  String // parsed 11-char ID; render paths never re-parse the URL
+  category        TutorialCategory
+  featured        Boolean              @default(false)
+  viewCount       Int                  @default(0)
+  status          MarketingAssetStatus @default(ACTIVE)
   createdByUserId String?
 
   createdAt DateTime @default(now())
