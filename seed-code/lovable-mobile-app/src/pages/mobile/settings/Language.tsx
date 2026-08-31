@@ -1,11 +1,29 @@
-import { ArrowLeft, Check, Globe, Search } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  Clock,
+  DollarSign,
+  Globe,
+  Search,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useLocaleSettings } from '@/hooks/useLocaleSettings';
 
+// `region` doubles as the display badge and, for Arabic, pins the UAE as
+// its primary country/currency/timezone — matching the monolith's
+// PRIMARY_COUNTRY_FOR_LANGUAGE correction (`ar -> ae`, not Saudi Arabia).
 const languages = [
   { code: 'en', name: 'English', nativeName: 'English', region: 'US' },
   { code: 'es', name: 'Spanish', nativeName: 'Español', region: 'ES' },
@@ -16,7 +34,7 @@ const languages = [
   { code: 'zh', name: 'Chinese', nativeName: '中文', region: 'CN' },
   { code: 'ja', name: 'Japanese', nativeName: '日本語', region: 'JP' },
   { code: 'ko', name: 'Korean', nativeName: '한국어', region: 'KR' },
-  { code: 'ar', name: 'Arabic', nativeName: 'العربية', region: 'SA' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية', region: 'AE' },
   { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', region: 'IN' },
   { code: 'ru', name: 'Russian', nativeName: 'Русский', region: 'RU' },
   { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', region: 'NL' },
@@ -32,9 +50,31 @@ const languages = [
   },
 ];
 
+const timezones = [
+  { value: 'America/New_York', label: 'Eastern Time (ET)' },
+  { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+  { value: 'Europe/London', label: 'London (GMT)' },
+  { value: 'Europe/Berlin', label: 'Berlin (CET)' },
+  { value: 'Asia/Dubai', label: 'Dubai / UAE (GST)' },
+  { value: 'Asia/Kolkata', label: 'India (IST)' },
+  { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
+  { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+  { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
+];
+
+const currencies = [
+  { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: 'GBP', symbol: '£', name: 'British Pound' },
+  { code: 'AED', symbol: 'AED', name: 'UAE Dirham' },
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+];
+
 const Language = () => {
   const navigate = useNavigate();
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const { language, timezone, currency, updateSettings } = useLocaleSettings();
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredLanguages = languages.filter(
@@ -44,12 +84,12 @@ const Language = () => {
   );
 
   const handleLanguageChange = (code: string) => {
-    setSelectedLanguage(code);
-    const language = languages.find((l) => l.code === code);
-    toast.success(`Language changed to ${language?.name}`);
+    const selected = languages.find((l) => l.code === code);
+    updateSettings({ language: code });
+    toast.success(`Language changed to ${selected?.name}`);
   };
 
-  const currentLanguage = languages.find((l) => l.code === selectedLanguage);
+  const currentLanguage = languages.find((l) => l.code === language);
 
   return (
     <div className="min-h-screen bg-background">
@@ -104,30 +144,30 @@ const Language = () => {
             Available Languages ({filteredLanguages.length})
           </h2>
           <div className="space-y-2">
-            {filteredLanguages.map((language) => (
+            {filteredLanguages.map((lang) => (
               <Card
-                key={language.code}
+                key={lang.code}
                 className={`cursor-pointer transition-all ${
-                  selectedLanguage === language.code
+                  language === lang.code
                     ? 'border-primary bg-primary/5'
                     : 'hover:border-primary/50'
                 }`}
-                onClick={() => handleLanguageChange(language.code)}
+                onClick={() => handleLanguageChange(lang.code)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                        {language.region}
+                        {lang.region}
                       </div>
                       <div>
-                        <p className="font-medium">{language.name}</p>
+                        <p className="font-medium">{lang.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          {language.nativeName}
+                          {lang.nativeName}
                         </p>
                       </div>
                     </div>
-                    {selectedLanguage === language.code && (
+                    {language === lang.code && (
                       <Check className="h-5 w-5 text-primary" />
                     )}
                   </div>
@@ -146,6 +186,55 @@ const Language = () => {
             </p>
           </div>
         )}
+
+        {/* Timezone */}
+        <div>
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            Timezone
+          </h2>
+          <Select
+            value={timezone}
+            onValueChange={(value) => updateSettings({ timezone: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select timezone" />
+            </SelectTrigger>
+            <SelectContent>
+              {timezones.map((tz) => (
+                <SelectItem key={tz.value} value={tz.value}>
+                  {tz.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Currency */}
+        <div>
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <DollarSign className="h-4 w-4" />
+            Currency
+          </h2>
+          <Select
+            value={currency}
+            onValueChange={(value) => updateSettings({ currency: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select currency" />
+            </SelectTrigger>
+            <SelectContent>
+              {currencies.map((curr) => (
+                <SelectItem key={curr.code} value={curr.code}>
+                  {curr.code} {curr.symbol} — {curr.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Used for displaying prices and monetary values
+          </p>
+        </div>
 
         {/* Note */}
         <Card>

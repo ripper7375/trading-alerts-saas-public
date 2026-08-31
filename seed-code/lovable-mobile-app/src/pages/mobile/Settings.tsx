@@ -13,6 +13,7 @@ import {
   HelpCircle,
   Info,
   Loader2,
+  Gift,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
@@ -65,6 +66,17 @@ const settingsSections = [
         label: 'Language',
         description: 'English',
         route: '/settings/language',
+      },
+    ],
+  },
+  {
+    title: 'Earn',
+    items: [
+      {
+        icon: Gift,
+        label: 'Affiliate Program',
+        description: 'Referral code, commissions, payouts',
+        route: '/settings/affiliate',
       },
     ],
   },

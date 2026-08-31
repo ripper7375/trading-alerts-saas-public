@@ -20,9 +20,60 @@ import {
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { CountrySelector } from '@/components/payments/CountrySelector';
+import { PaymentMethodSelector } from '@/components/payments/PaymentMethodSelector';
+import { PriceDisplay } from '@/components/payments/PriceDisplay';
+import { InvoiceList, type Invoice } from '@/components/billing/InvoiceList';
+import { getCurrency } from '@/lib/dlocal/constants';
+import type { DLocalCountry } from '@/types/dlocal';
+
+// Reference-only mock billing history, illustrating the VAT/tax-invoicing
+// stack's UI states: a standard EU-VAT invoice, a validated B2B
+// reverse-charge invoice, and an untaxed US invoice (zero visual change).
+const MOCK_INVOICES: Invoice[] = [
+  {
+    id: 'inv_1',
+    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    amount: 29.0,
+    status: 'paid',
+    description: 'Pro plan — monthly',
+    invoicePdfUrl: '#',
+    hostedInvoiceUrl: '#',
+    taxAmount: 5.51,
+    taxRate: 0.19,
+    taxCountry: 'DE',
+    reverseCharge: false,
+  },
+  {
+    id: 'inv_2',
+    date: new Date(Date.now() - 33 * 24 * 60 * 60 * 1000).toISOString(),
+    amount: 29.0,
+    status: 'paid',
+    description: 'Pro plan — monthly',
+    invoicePdfUrl: null,
+    hostedInvoiceUrl: '#',
+    taxAmount: 0,
+    taxRate: 0,
+    taxCountry: 'FR',
+    reverseCharge: true,
+  },
+  {
+    id: 'inv_3',
+    date: new Date(Date.now() - 63 * 24 * 60 * 60 * 1000).toISOString(),
+    amount: 29.0,
+    status: 'paid',
+    description: 'Pro plan — monthly',
+    invoicePdfUrl: '#',
+    hostedInvoiceUrl: '#',
+    taxAmount: 0,
+    taxRate: 0,
+    taxCountry: 'US',
+    reverseCharge: false,
+  },
+];
 
 // Stripe product/price configuration
 const SUBSCRIPTION_TIERS = {
@@ -126,6 +177,21 @@ const Subscription = () => {
   const [subscriptionStatus, setSubscriptionStatus] =
     useState<SubscriptionStatus | null>(null);
   const [currentPlanId, setCurrentPlanId] = useState<string>('free');
+  const [paymentRegion, setPaymentRegion] = useState<DLocalCountry | 'GLOBAL'>(
+    'GLOBAL'
+  );
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
+
+  const handleRegionChange = (region: DLocalCountry | 'GLOBAL') => {
+    setPaymentRegion(region);
+    setPaymentMethod(null);
+  };
+
+  const selectedPlanUsdPrice = useMemo(() => {
+    const plan = plans.find((p) => p.id === selectedPlan);
+    const parsed = plan ? Number(plan.price.replace('$', '')) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 29;
+  }, [selectedPlan]);
 
   // Check for success/canceled URL params
   useEffect(() => {
@@ -185,6 +251,21 @@ const Subscription = () => {
   const handleUpgrade = async (planId: string, priceId: string | null) => {
     if (!priceId) {
       toast.info("You're on the Free plan");
+      return;
+    }
+
+    // Reference-only local-payment path: this seed app's Supabase backend
+    // only wires up Stripe, so a chosen dLocal country demonstrates the UI
+    // flow (country -> payment method -> local-currency price) without a
+    // real checkout call, mirroring the monolith's dLocal payment intent.
+    if (paymentRegion !== 'GLOBAL') {
+      if (!paymentMethod) {
+        toast.error('Select a payment method to continue');
+        return;
+      }
+      toast.info(
+        `This is a reference build — real DavinTrade checkout would create a dLocal ${paymentMethod} payment in ${paymentRegion}.`
+      );
       return;
     }
 
@@ -378,6 +459,34 @@ const Subscription = () => {
 
         <Separator />
 
+        {/* Payment Region */}
+        <Card>
+          <CardContent className="space-y-4 p-4">
+            <CountrySelector
+              value={paymentRegion}
+              onChange={handleRegionChange}
+            />
+
+            {paymentRegion !== 'GLOBAL' && (
+              <>
+                <PaymentMethodSelector
+                  country={paymentRegion}
+                  value={paymentMethod}
+                  onChange={setPaymentMethod}
+                />
+                <div className="rounded-lg bg-secondary/50 p-3">
+                  <PriceDisplay
+                    usdAmount={selectedPlanUsdPrice}
+                    currency={getCurrency(paymentRegion)}
+                  />
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Separator />
+
         {/* Available Plans */}
         <div>
           <div className="mb-3 flex items-center justify-between">
@@ -501,21 +610,30 @@ const Subscription = () => {
               Manage your payment methods and billing
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {currentPlanId !== 'free' ? (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleManageSubscription}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                )}
-                Manage Billing
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleManageSubscription}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                  )}
+                  Manage Billing
+                </Button>
+
+                <div>
+                  <h3 className="mb-2 text-sm font-medium text-muted-foreground">
+                    Invoice History
+                  </h3>
+                  <InvoiceList invoices={MOCK_INVOICES} />
+                </div>
+              </>
             ) : (
               <p className="py-2 text-center text-sm text-muted-foreground">
                 Upgrade to a paid plan to manage billing

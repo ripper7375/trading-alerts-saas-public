@@ -2,7 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Loader2, ArrowLeft, TrendingUp } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  Loader2,
+  ArrowLeft,
+  TrendingUp,
+  Trophy,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -109,7 +116,15 @@ export default function Auth() {
       </div>
 
       {/* Footer */}
-      <div className="p-6 text-center">
+      <div className="space-y-4 p-6 text-center">
+        <button
+          onClick={() => navigate('/affiliate/leaderboard')}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:underline dark:text-amber-400"
+        >
+          <Trophy className="h-4 w-4" />
+          See Top Earners
+        </button>
+
         {view === 'login' && (
           <p className="text-sm text-muted-foreground">
             Don't have an account?{' '}

@@ -29,6 +29,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "start:dev", "--prefix", "money-service"],
       "port": 3002
+    },
+    {
+      "name": "lovable-mobile",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "seed-code/lovable-mobile-app"],
+      "port": 8080
     }
   ]
 }

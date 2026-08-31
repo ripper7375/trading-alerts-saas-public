@@ -9,6 +9,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 import { useAppearanceSettings } from '@/hooks/useAppearanceSettings';
+import { useLocaleSettings } from '@/hooks/useLocaleSettings';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 // Mobile Pages
@@ -33,12 +34,17 @@ import HelpSupport from '@/pages/mobile/settings/HelpSupport';
 import AboutLegal from '@/pages/mobile/settings/AboutLegal';
 import Subscription from '@/pages/mobile/settings/Subscription';
 import Language from '@/pages/mobile/settings/Language';
+import Affiliate from '@/pages/mobile/settings/Affiliate';
+import AffiliateLeaderboard from '@/pages/AffiliateLeaderboard';
 
 const queryClient = new QueryClient();
 
 // Component to apply global appearance settings
 const AppearanceProvider = ({ children }: { children: React.ReactNode }) => {
   useAppearanceSettings();
+  // Stamps document dir="rtl" app-wide for Arabic, not just while the
+  // Language settings screen is mounted (mirrors locale-context.tsx).
+  useLocaleSettings();
   return <>{children}</>;
 };
 
@@ -63,6 +69,13 @@ const App = () => (
                     <Route
                       path="/.lovable/oauth/consent"
                       element={<OAuthConsent />}
+                    />
+
+                    {/* Public affiliate leaderboard — reachable without login,
+                        mirrors the web marketing page at /affiliate/leaderboard */}
+                    <Route
+                      path="/affiliate/leaderboard"
+                      element={<AffiliateLeaderboard />}
                     />
 
                     {/* Protected Mobile App Routes */}
@@ -188,6 +201,14 @@ const App = () => (
                         element={
                           <ProtectedRoute>
                             <Language />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings/affiliate"
+                        element={
+                          <ProtectedRoute>
+                            <Affiliate />
                           </ProtectedRoute>
                         }
                       />
