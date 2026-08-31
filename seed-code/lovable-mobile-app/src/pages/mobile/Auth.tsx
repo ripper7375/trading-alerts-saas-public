@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   TrendingUp,
   Trophy,
+  GraduationCap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -117,13 +118,22 @@ export default function Auth() {
 
       {/* Footer */}
       <div className="space-y-4 p-6 text-center">
-        <button
-          onClick={() => navigate('/affiliate/leaderboard')}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:underline dark:text-amber-400"
-        >
-          <Trophy className="h-4 w-4" />
-          See Top Earners
-        </button>
+        <div className="flex items-center justify-center gap-4">
+          <button
+            onClick={() => navigate('/academy')}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:underline dark:text-amber-400"
+          >
+            <GraduationCap className="h-4 w-4" />
+            Browse Academy
+          </button>
+          <button
+            onClick={() => navigate('/affiliate/leaderboard')}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 hover:underline dark:text-amber-400"
+          >
+            <Trophy className="h-4 w-4" />
+            See Top Earners
+          </button>
+        </div>
 
         {view === 'login' && (
           <p className="text-sm text-muted-foreground">

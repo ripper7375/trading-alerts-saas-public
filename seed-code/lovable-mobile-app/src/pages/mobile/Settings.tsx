@@ -14,6 +14,7 @@ import {
   Info,
   Loader2,
   Gift,
+  GraduationCap,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
@@ -95,6 +96,12 @@ const settingsSections = [
   {
     title: 'Support',
     items: [
+      {
+        icon: GraduationCap,
+        label: 'DavinTrade Academy',
+        description: 'Free video tutorials',
+        route: '/academy',
+      },
       {
         icon: HelpCircle,
         label: 'Help & Support',

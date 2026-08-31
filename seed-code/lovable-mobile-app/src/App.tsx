@@ -36,6 +36,8 @@ import Subscription from '@/pages/mobile/settings/Subscription';
 import Language from '@/pages/mobile/settings/Language';
 import Affiliate from '@/pages/mobile/settings/Affiliate';
 import AffiliateLeaderboard from '@/pages/AffiliateLeaderboard';
+import Academy from '@/pages/Academy';
+import AcademyDetail from '@/pages/AcademyDetail';
 
 const queryClient = new QueryClient();
 
@@ -77,6 +79,11 @@ const App = () => (
                       path="/affiliate/leaderboard"
                       element={<AffiliateLeaderboard />}
                     />
+
+                    {/* DavinTrade Academy — public tutorial library, reachable
+                        without login, mirrors the (marketing)/academy pages */}
+                    <Route path="/academy" element={<Academy />} />
+                    <Route path="/academy/:id" element={<AcademyDetail />} />
 
                     {/* Protected Mobile App Routes */}
                     <Route element={<MobileLayout />}>
