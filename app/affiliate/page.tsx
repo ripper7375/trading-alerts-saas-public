@@ -23,6 +23,7 @@ import {
   Users,
   CheckCircle2,
   Calculator,
+  Trophy,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 
@@ -180,6 +181,15 @@ export default function AffiliateLandingPage(): React.ReactElement {
                 <Button className="bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-5 font-bold text-slate-950 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500">
                   <Sparkles className="mr-2 h-4 w-4" />
                   {t('Join Affiliate Program')}
+                </Button>
+              </Link>
+              <Link href="/affiliate/leaderboard">
+                <Button
+                  variant="outline"
+                  className="border-slate-300 bg-white px-6 py-5 text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  <Trophy className="mr-2 h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  {t('See Top Earners')}
                 </Button>
               </Link>
               <Link href="/affiliate/dashboard">

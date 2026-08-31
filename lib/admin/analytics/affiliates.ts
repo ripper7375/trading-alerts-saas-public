@@ -334,3 +334,38 @@ export const getAffiliatesAnalytics = unstable_cache(
   ['admin-analytics-affiliates'],
   { revalidate: 300, tags: ['admin-analytics-affiliates'] }
 );
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PUBLIC-SAFE ACCESSOR
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface PublicAffiliateLeaderboard {
+  totalActiveAffiliates: number;
+  top20Leaderboard: AffiliatesAnalyticsResponse['top20Leaderboard'];
+}
+
+/**
+ * Public-facing subset of the affiliate analytics, for the unauthenticated
+ * marketing leaderboard at `app/affiliate/leaderboard/page.tsx` (Davin,
+ * 2026-08-31 ad-hoc follow-up -- explicit business decision to show real
+ * gross-sales/commission dollar figures publicly as affiliate-program
+ * social proof).
+ *
+ * Deliberately its own function, not "just call getAffiliatesAnalytics()
+ * from the public page" -- returns only the already-privacy-preserving
+ * leaderboard rows (no name/email, masked partner ID) plus a headline
+ * count, and explicitly excludes every other field on
+ * `AffiliatesAnalyticsResponse` (total commissions paid company-wide, MoM
+ * growth %, geographic tier ratios) which are internal business metrics
+ * that must stay admin-only regardless of the leaderboard-specific
+ * decision above. Reuses the same cached `getAffiliatesAnalytics()` call
+ * (same cache entry the admin dashboard already warms) rather than
+ * running a second, duplicate query.
+ */
+export async function getPublicAffiliateLeaderboard(): Promise<PublicAffiliateLeaderboard> {
+  const full = await getAffiliatesAnalytics('3months');
+  return {
+    totalActiveAffiliates: full.summary.totalAffiliates,
+    top20Leaderboard: full.top20Leaderboard,
+  };
+}
