@@ -280,6 +280,36 @@ deploy`, then recorded it via `prisma migrate resolve --applied <name>` so `_pri
 > **Artifacts:** `money-service/package.json`, `money-service/package-lock.json`,
 > `operation-service/package.json`, `operation-service/package-lock.json`, this file.
 
+> **Ad-hoc session (2026-08-31, phase/session unchanged):** Follow-on to the same-day NestJS
+> advisory above — Davin asked whether `railway-gateway` (still on NestJS **10.4.15**, flagged in
+> that entry as its own future session) should also move to v11. Investigated the two specific risks
+> the prior entry raised rather than assume they still applied: (1) Express v5's route-matching
+> change — `railway-gateway` has exactly three routes (`@Get('health')`, `@Get('queue/stats')`,
+> `@Post()` on `MarketDataController`), no wildcards or regex params, so a non-issue; (2)
+> `@nestjs/config` v4's env-var-precedence reorder (live-checked its actual release notes) — the
+> service has no `load:` config namespaces/factories at all (just `ConfigModule.forRoot({ isGlobal:
+true })`, same bare pattern as `money-service`/`operation-service`), so nothing for the reorder to
+> affect. Confirmed on npm that `@nestjs/bull@11.0.5` still pairs with the plain `bull` package (not
+> a forced `bullmq` migration) and that `@nestjs/throttler` v6 was already de-risked in production by
+> the other two services. With both flagged risks resolved to non-issues, recommended proceeding now
+> rather than deferring to a separate formal session; Davin approved.
+> **Executed:** `@nestjs/{common,core,platform-express,testing}` 10.4.15 → **11.2.3**,
+> `@nestjs/config` 3.3.0 → **4.0.4**, `@nestjs/throttler` 5.2.0 → **6.5.0**, `@nestjs/bull`
+> 10.2.3 → **11.0.5**, `@nestjs/cli` 10.4.9 → **11.0.24** — matching the same v11 minor line the
+> other two services now run. `npm install` printed ERESOLVE warnings mid-resolution; checked the
+> installed tree directly (`node_modules/@nestjs/*/package.json`, searched for nested duplicates)
+> rather than trust the warning text — confirmed a clean, fully-deduped `11.2.3` tree with no
+> leftover v10 copies anywhere.
+> **Verified:** `npx tsc --noEmit` clean. `npm test` **3/3 suites, 23/23 tests**, matches the
+> existing baseline exactly. `npm run test:e2e` **1/1 suite, 9/9 tests** — real HTTP requests
+> through the live Express adapter (malformed-OHLC rejection, auth-header checks, idempotent
+> re-posting, health/queue-stats endpoints), the strongest available confirmation the Express v5
+> route-matching change didn't break anything here. `npm run lint` fails ("no files matching
+> pattern") — confirmed via `git stash` that this reproduces identically on the pre-change code (no
+> `eslint.config.js` exists in this service at all); pre-existing, unrelated to this bump, left
+> untouched per scope discipline.
+> **Artifacts:** `railway-gateway/package.json`, `railway-gateway/package-lock.json`, this file.
+
 - **Current:** Session 14-3 (Cutover + Runbook, Phase 14 — fourth and last of 4 sessions,
   VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. **Phase 14
   (Web Chat / Contabo Support Stack) is now COMPLETE.** Flips `NEXT_PUBLIC_SOCKET_CHAT_URL` +
