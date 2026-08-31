@@ -17,6 +17,18 @@
  * - HK has no VAT/GST regime on digital services at all -- excluded from
  *   alerting entirely, not "collecting from day one" either.
  *
+ * FX rates: refreshed 2026-08-31 from a live snapshot (exchangerate-api.com
+ * via https://open.er-api.com/v6/latest/USD, "time_last_update_utc": "Mon,
+ * 31 Aug 2026"), replacing the workbook/lib/country-config.ts/placeholder
+ * figures used at first-draft time -- several of those were >10% stale
+ * (TRY alone had moved ~33%). Still static reference constants, NOT
+ * live-fetched at runtime -- matches Metric #17's own "Approximation"
+ * framing and there is no live FX infrastructure in this codebase to wire
+ * up instead. Re-snapshot periodically; there is no automated refresh.
+ * Per-country note: HKD is pegged to USD (~7.75-7.85 band) so it barely
+ * moves, but its rate is unused in practice anyway -- HK's `thresholdKind`
+ * is 'NONE' (no VAT/GST regime), so `classifyAlertLevel` never reads it.
+ *
  * @module lib/admin/analytics/jurisdictions
  */
 
@@ -93,7 +105,7 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'EUR',
     thresholdLocalAmount: null,
     evaluationPeriod: 'From first transaction (Non-Union OSS)',
-    approxUsdFxRate: 0.92, // source: workbook "Tax Rules & Thresholds"
+    approxUsdFxRate: 0.8623, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'GB',
@@ -103,7 +115,7 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'GBP',
     thresholdLocalAmount: 90_000,
     evaluationPeriod: 'Rolling 12-month UK domestic sales',
-    approxUsdFxRate: 0.78, // source: workbook
+    approxUsdFxRate: 0.7382, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'US',
@@ -124,7 +136,7 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'THB',
     thresholdLocalAmount: 1_800_000,
     evaluationPeriod: 'Fiscal/accounting year',
-    approxUsdFxRate: 36.5, // source: workbook
+    approxUsdFxRate: 33.11, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'SG',
@@ -134,7 +146,7 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'SGD',
     thresholdLocalAmount: 100_000,
     evaluationPeriod: 'Rolling 12-month SG B2C sales',
-    approxUsdFxRate: 1.34, // source: workbook
+    approxUsdFxRate: 1.2738, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'HK',
@@ -144,9 +156,10 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'HKD',
     thresholdLocalAmount: null,
     evaluationPeriod: 'Not applicable -- no VAT/GST regime',
-    // Not in the workbook or lib/country-config.ts -- flagged placeholder,
-    // needs finance sign-off before this rate is treated as authoritative.
-    approxUsdFxRate: 7.82,
+    // Unused in practice (thresholdKind 'NONE' short-circuits before this
+    // is ever read) -- still populated for type-completeness and in case
+    // a future UI wants to display it. HKD is USD-pegged (~7.75-7.85).
+    approxUsdFxRate: 7.8404, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'JP',
@@ -156,7 +169,7 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'JPY',
     thresholdLocalAmount: 10_000_000,
     evaluationPeriod: 'Base-year taxable sales in JP',
-    approxUsdFxRate: 155, // source: lib/country-config.ts
+    approxUsdFxRate: 160.05, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'TW',
@@ -166,8 +179,13 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'TWD',
     thresholdLocalAmount: 480_000,
     evaluationPeriod: 'Per year (or TWD 40,000/month)',
-    // Not in the workbook or lib/country-config.ts -- flagged placeholder.
-    approxUsdFxRate: 32.0,
+    // Taiwan-sourced revenue is assessed against this threshold in TWD
+    // regardless of the currency actually collected -- dLocal has no TW
+    // support, so every TW customer already pays via Stripe in USD, but
+    // that doesn't exempt them from the local TWD-denominated threshold.
+    // This rate is the one placeholder that genuinely drove a real
+    // compliance determination; now a dated live figure, not a guess.
+    approxUsdFxRate: 31.65, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'KR',
@@ -177,9 +195,10 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'KRW',
     thresholdLocalAmount: null,
     evaluationPeriod: 'From first transaction',
-    // Not in the workbook or lib/country-config.ts -- flagged placeholder,
-    // display-only since ZERO-kind jurisdictions have no threshold math.
-    approxUsdFxRate: 1_380,
+    // Display-only -- ZERO-kind jurisdictions have no threshold math, so
+    // this only feeds the cosmetic approxLocalSales figure, never the
+    // alert-level decision itself.
+    approxUsdFxRate: 1_376.6, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'ID',
@@ -190,7 +209,7 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdLocalAmount: 600_000_000,
     evaluationPeriod:
       'Rolling 12-month sales (also 12k-txn traffic threshold, not modeled here)',
-    approxUsdFxRate: 15_800, // source: workbook
+    approxUsdFxRate: 17_733.6, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'IN',
@@ -200,7 +219,7 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'INR',
     thresholdLocalAmount: null,
     evaluationPeriod: 'From first transaction',
-    approxUsdFxRate: 83.5, // source: lib/country-config.ts
+    approxUsdFxRate: 95.58, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'VN',
@@ -210,7 +229,7 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'VND',
     thresholdLocalAmount: null,
     evaluationPeriod: 'From first transaction',
-    approxUsdFxRate: 25_400, // source: lib/country-config.ts
+    approxUsdFxRate: 26_006.4, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'ZA',
@@ -220,7 +239,7 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'ZAR',
     thresholdLocalAmount: 1_000_000,
     evaluationPeriod: '12 consecutive months turnover',
-    approxUsdFxRate: 18.5, // source: lib/country-config.ts
+    approxUsdFxRate: 16.13, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'TR',
@@ -230,9 +249,9 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'TRY',
     thresholdLocalAmount: null,
     evaluationPeriod: 'From first transaction',
-    // source: lib/country-config.ts -- TRY is historically volatile,
-    // this static rate goes stale faster than most others in this table.
-    approxUsdFxRate: 32.5,
+    // TRY is historically volatile -- this snapshot moved ~33% from the
+    // figure this table shipped with at first draft. Re-snapshot often.
+    approxUsdFxRate: 48.25, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'PK',
@@ -242,7 +261,7 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'PKR',
     thresholdLocalAmount: null,
     evaluationPeriod: 'From first transaction',
-    approxUsdFxRate: 278, // source: lib/country-config.ts
+    approxUsdFxRate: 277.82, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'NG',
@@ -252,9 +271,8 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'NGN',
     thresholdLocalAmount: 25_000_000,
     evaluationPeriod: 'Rolling 12-month sales',
-    // source: lib/country-config.ts -- NGN is volatile, this static rate
-    // goes stale faster than most others in this table.
-    approxUsdFxRate: 1_500,
+    // NGN is volatile -- re-snapshot more often than the pegged currencies.
+    approxUsdFxRate: 1_338.8, // live snapshot 2026-08-31, exchangerate-api.com
   },
   {
     iso: 'AE',
@@ -264,7 +282,7 @@ export const JURISDICTIONS: JurisdictionConfig[] = [
     thresholdCurrency: 'AED',
     thresholdLocalAmount: null,
     evaluationPeriod: 'From first transaction',
-    approxUsdFxRate: 3.67, // source: lib/country-config.ts (pegged, stable)
+    approxUsdFxRate: 3.6725, // live snapshot 2026-08-31, exchangerate-api.com (pegged, stable)
   },
 ];
 

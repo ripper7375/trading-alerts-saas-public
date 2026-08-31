@@ -312,9 +312,19 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   raw SQL runs clean against live data) but not visually as a logged-in admin — needs Davin's own
   click-through (dev server left running) to confirm chart rendering, dark/light theming, and
   real dashboard content, since the Executor cannot enter credentials even for the dev login
-  page's test-account autofill buttons. Also needs Davin/finance sign-off on the placeholder FX
-  reference rates for `HK`/`TW`/`KR` in `lib/admin/analytics/jurisdictions.ts` (not sourced from
-  the workbook or any existing config) before they're treated as authoritative.
+  page's test-account autofill buttons.
+  **FX-rate placeholder concern in `lib/admin/analytics/jurisdictions.ts` resolved same session:**
+  Davin clarified dLocal never supported `HK`/`TW`/`KR` — those customers already pay via Stripe
+  in USD, which doesn't change the merged-revenue logic (dLocal `Payment` rows simply never exist
+  for those 3 countries) but does mean Taiwan's TWD threshold is the one rate that actually drives
+  a real compliance decision (Taiwan-sourced revenue is assessed in TWD regardless of billing
+  currency); `HK`'s rate is provably dead code (`thresholdKind: 'NONE'` never reads it) and `KR`'s
+  only feeds a cosmetic display figure (zero-threshold, no math depends on it). All 17 jurisdictions'
+  `approxUsdFxRate` values were refreshed from a live, dated snapshot (exchangerate-api.com,
+  2026-08-31) rather than left as mixed workbook/reused-config/guessed figures — several were
+  > 10% stale (`TRY` had moved ~33%). Still static reference constants, not live-fetched; **needs
+  > periodic re-snapshotting** (no automated refresh exists), which is the one genuinely open item
+  > here now, not missing sourcing.
 - **Phase 12 handover prompt full re-draft** — Session 14-3 refreshed its factual anchors only
   (Phase 14 close, fresh baselines) and flagged that new Stack D architecture material landed
   2026-08-30 (`davintrade-stack-d-and-e/`, commit `64222ef4` — a `DUAL-RAG-SYSTEM-ARCHITECTURE.md`,

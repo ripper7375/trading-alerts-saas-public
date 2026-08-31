@@ -11,6 +11,8 @@
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
+import { getJurisdiction } from '@/lib/admin/analytics/jurisdictions';
+
 jest.mock('next/server', () => ({
   __esModule: true,
   NextResponse: {
@@ -113,7 +115,7 @@ describe('GET /api/admin/analytics/regional', () => {
       // Deliberately smaller than the #16 merged figure above -- #17 is
       // Invoice-only (Stripe Tax/OSS scope), so it's a subset of #16's
       // Stripe+dLocal total, not the same number. Chosen to land inside
-      // the LEVEL_1_WARN band: 75000 * 0.78 / 90000 * 100 = 65.0%.
+      // the LEVEL_1_WARN band at the live GB FX rate (jurisdictions.ts).
       .mockResolvedValueOnce([
         { jurisdiction_iso: 'GB', trailing_12m_sales: 75000 },
       ]);
@@ -146,7 +148,11 @@ describe('GET /api/admin/analytics/regional', () => {
     const gbTax = data.taxSurveillance.find(
       (t: { isoCode: string }) => t.isoCode === 'GB'
     );
-    expect(gbTax.utilizationPct).toBeCloseTo(((75000 * 0.78) / 90000) * 100, 1);
+    const gbFxRate = getJurisdiction('GB')!.approxUsdFxRate;
+    expect(gbTax.utilizationPct).toBeCloseTo(
+      ((75000 * gbFxRate) / 90000) * 100,
+      1
+    );
     expect(gbTax.alertLevel).toBe('LEVEL_1_WARN');
   });
 

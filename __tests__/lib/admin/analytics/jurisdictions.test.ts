@@ -89,7 +89,7 @@ describe('jurisdictionCaseSql', () => {
 });
 
 describe('classifyAlertLevel -- VAT/tax threshold boundary correctness', () => {
-  const gb = getJurisdiction('GB')!; // AMOUNT kind, GBP 90,000 threshold, FX 0.78
+  const gb = getJurisdiction('GB')!; // AMOUNT kind, GBP 90,000 threshold
 
   function usdSalesForUtilization(pct: number): number {
     // approxLocalSales = usdSales * fxRate; utilization = approxLocalSales / threshold * 100
