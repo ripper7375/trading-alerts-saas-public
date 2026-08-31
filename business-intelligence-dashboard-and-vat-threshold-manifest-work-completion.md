@@ -7,10 +7,11 @@ phase/session numbering, per `docs/migration-orders/EXECUTOR-PROTOCOL.md` §6. R
 `CLAUDE.md`'s matching ad-hoc note.
 
 > **Scope note:** this document covers the 5-dashboard DavinTrade Business Intelligence system
-> (25 business metrics) and its VAT/multi-jurisdiction sales-tax threshold surveillance engine
-> only. It does not touch or depend on any Session 14-x chat-stack work, the VAT invoicing
-> migration (`prisma/migrations/20260829000000_vat_tax_invoicing_stack`, already-existing
-> infrastructure this feature reads from but did not create), or the UAE dLocal/Arabic session.
+> (25 business metrics), its VAT/multi-jurisdiction sales-tax threshold surveillance engine, and
+> the public affiliate leaderboard marketing follow-up (§1.6) built the same day on top of it. It
+> does not touch or depend on any Session 14-x chat-stack work, the VAT invoicing migration
+> (`prisma/migrations/20260829000000_vat_tax_invoicing_stack`, already-existing infrastructure
+> this feature reads from but did not create), or the UAE dLocal/Arabic session.
 
 ---
 
@@ -101,6 +102,32 @@ Davin's follow-up question, that Stripe's own webhook handler (`lib/stripe/webho
 captures `taxCountry` directly from `invoice.customer_address.country` with no artificial
 country whitelist — so `HK`/`TW`/`KR` billing addresses are captured correctly upstream too.
 
+### 1.6 Public affiliate leaderboard (marketing follow-up, same day)
+
+Davin asked whether the (admin-only) affiliate leaderboard could be surfaced publicly, reachable
+without login, as social proof to convince visitors to become affiliates. Rather than assuming an
+exposure level, this was put back to Davin as an explicit choice via `AskUserQuestion` (full
+dollar figures vs. a sanitized rows-only variant vs. relative badges) — **Davin chose full $
+figures for maximum marketing impact.**
+
+- **New** `getPublicAffiliateLeaderboard()` in `lib/admin/analytics/affiliates.ts` — a
+  deliberately narrow public-safe accessor, not "just call `getAffiliatesAnalytics()` from the
+  public page." Returns only the already-privacy-preserving leaderboard rows (masked partner ID,
+  no name/email) plus a headline active-partner count, explicitly excluding every other field on
+  the full response (total commissions paid company-wide, MoM growth %, geographic tier ratios)
+  which must stay admin-only regardless of the leaderboard-specific decision. Reuses the same
+  cached `getAffiliatesAnalytics()` call the admin dashboard already warms — no duplicate query.
+- **New page** `app/affiliate/leaderboard/page.tsx` — public, unauthenticated Server Component,
+  styled to match the existing `/affiliate` marketing page's amber theme, reusing the
+  already-built `TopAffiliatesLeaderboard` component as-is (no changes needed to it).
+- `app/affiliate/page.tsx` — one new "🏆 See Top Earners" button added to the existing hero CTA
+  row, linking to the new leaderboard page.
+- No new public API route was added — the page is a Server Component calling the cached getter
+  directly (same pattern as all 5 admin dashboards), so public traffic is naturally bounded by the
+  existing 5-minute `unstable_cache` TTL rather than needing a dedicated rate-limit layer.
+- **Live-verified in a real browser** (see §4) — unlike the admin dashboards, this page needs no
+  login, so it was actually visually confirmed end-to-end, not just structurally checked.
+
 ---
 
 ## 2. Files changed
@@ -147,6 +174,16 @@ country whitelist — so `HK`/`TW`/`KR` billing addresses are captured correctly
 
 **38 files touched (32 added, 6 modified)**, 5,431 insertions across 6 commits.
 
+**§1.6 follow-up (public leaderboard):**
+
+| File                                 | Change                                                    |
+| ------------------------------------ | --------------------------------------------------------- |
+| `lib/admin/analytics/affiliates.ts`  | Extended — new `getPublicAffiliateLeaderboard()` accessor |
+| `app/affiliate/leaderboard/page.tsx` | **Added.** Public marketing leaderboard page              |
+| `app/affiliate/page.tsx`             | One new CTA button ("See Top Earners") added              |
+
+**3 files touched (1 added, 2 modified)**, ~155 insertions.
+
 ---
 
 ## 3. Test verification
@@ -163,6 +200,11 @@ The two highest-value tests in the suite are boundary-exact: VAT alert-level cla
 every threshold (59.9/60.0/79.9/80.0/94.9/95.0/99.9/100.0%) and "Other Countries" aggregation
 (mixed non-whitelisted/null country codes collapsing into one correctly-summed `OTHERS` row) — an
 off-by-one in either would silently misclassify a real compliance alert or misroute revenue.
+
+**§1.6 follow-up re-verification:** full suite re-run after adding the public leaderboard —
+**160/160 suites, 2,307/2,307 tests passed** (identical count; the follow-up added a new function
+and two pages, no new test files, since it's a thin, already-tested-by-construction accessor over
+the existing, already-tested `getAffiliatesAnalytics()`). `tsc --noEmit` and `eslint` both clean.
 
 ---
 
@@ -182,6 +224,13 @@ off-by-one in either would silently misclassify a real compliance alert or misro
   autofill buttons, but entering/submitting credentials to authenticate is categorically
   off-limits regardless of account type — flagged for Davin's own click-through, not silently
   skipped. Recorded in `CLAUDE.md`'s "Waiting on" section.
+- **§1.6 follow-up — actually visually verified this time**, since `/affiliate/leaderboard` needs
+  no login: real browser screenshot confirmed the hero, headline active-partner count sourced live
+  from the dev database (`2`), the correct empty-state message when no commissions exist yet in
+  dev data, and zero console errors. The full click-through was driven end-to-end — `/affiliate` →
+  click **See Top Earners** → `/affiliate/leaderboard` renders → click **Become an Affiliate Now**
+  → confirmed landing on `/affiliate/register` — via `read_page`, not assumed from a screenshot
+  alone.
 
 ---
 
@@ -199,6 +248,12 @@ committing:
 | `34554d5f` | `docs: close BI dashboard ad-hoc session — verification results and handoff (Phase 5/5)`   |
 | `9b93d949` | `fix(admin-analytics): refresh BI jurisdiction FX rates from live data`                    |
 
+**§1.6 follow-up commit:**
+
+| Commit     | Summary                                                                        |
+| ---------- | ------------------------------------------------------------------------------ |
+| `bd1886cf` | `feat(affiliate): add public affiliate leaderboard for marketing social proof` |
+
 ---
 
 ## 6. Key decisions confirmed live with Davin
@@ -214,6 +269,11 @@ committing:
 3. **HK/TW/KR FX-rate framing (post-close):** confirmed dLocal never supported these 3 countries
    (Stripe/USD-only), which resolved the FX-rate placeholder concern differently per country
    rather than uniformly — see §1.5.
+4. **Public affiliate leaderboard data-exposure level (§1.6):** put to Davin as an explicit
+   3-way choice via `AskUserQuestion` (full $ figures / sanitized counts-only / relative badges)
+   rather than assumed — **Davin chose full dollar figures** (gross sales, commission earned) for
+   maximum marketing impact, accepting the tradeoff that this discloses real commission economics
+   publicly in exchange for stronger social proof.
 
 ---
 
@@ -237,3 +297,9 @@ committing:
   small follow-up, not silently dropped.
 - **`frontend/` (SEPARATE_STACK)** — out of scope for this migration entirely per
   `EXECUTOR-PROTOCOL.md` §5; not touched.
+- **Public leaderboard (§1.6) has no dedicated rate-limit layer.** A deliberate scope call, not an
+  oversight: the page is server-rendered and shares the same 5-minute `unstable_cache` entry the
+  admin dashboard already warms, so repeated public traffic can't hammer the database regardless
+  of request volume. `lib/rate-limit.ts` (Redis sliding-window) exists in this codebase and could
+  be layered on later if bot/scraper traffic ever becomes a concern for this specific route — not
+  needed today.
