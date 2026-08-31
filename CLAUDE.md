@@ -308,7 +308,28 @@ true })`, same bare pattern as `money-service`/`operation-service`), so nothing 
 > pattern") — confirmed via `git stash` that this reproduces identically on the pre-change code (no
 > `eslint.config.js` exists in this service at all); pre-existing, unrelated to this bump, left
 > untouched per scope discipline.
-> **Artifacts:** `railway-gateway/package.json`, `railway-gateway/package-lock.json`, this file.
+> **Correction to a prior-session assumption, found live rather than repeated:** the money-service/
+> operation-service entry above assumed "no Railway CLI/dashboard access" by analogy with this
+> repo's documented "no Vercel CLI access" gap — checked directly this time (`railway whoami`) and
+> that assumption was wrong: the Railway CLI in this environment is authenticated as Davin and
+> already linked to this exact project/service (`trading-alerts` → `production` →
+> `railway-gateway`). Worth knowing for future sessions touching Railway-deployed services.
+> **Deployed to production, not left merged-only:** `railway status` showed `railway-gateway` has no
+> connected GitHub source (unlike `money-service`/`operation-service`, which auto-rebuilt from the
+> two pushes above) — it's deployed via direct CLI upload, so merging to `main` alone would not have
+> shipped this change. Confirmed with Davin before deploying (three options offered: deploy now via
+> CLI, connect GitHub first, or hold off) — Davin chose the CLI deploy, consistent with the service's
+> existing workflow. Ran `railway up --ci`; build succeeded (Nixpacks, `nest build`), deploy
+> completed clean. Live-verified after rollout, not just trusted the "Deploy complete" line: hit the
+> real public health endpoint (`GET https://railway-gateway-production-3796.up.railway.app/api/v1/
+health` — the `api/v1` controller prefix, not a bare `/health`) and got back `200 {"status":
+"healthy", "services": {"redis":"up","queue":"up","database":"up"}, "uptime": ~56s}`, the uptime
+> confirming it's the fresh deployment. Whether to also connect GitHub for future auto-deploys (would
+> need Watch Paths scoped to `railway-gateway/**`, since this is a monorepo) was left as Davin's own
+> call, not decided here — deferred, not silently skipped.
+> **Artifacts:** `railway-gateway/package.json`, `railway-gateway/package-lock.json`, this file. No
+> new migration order or runbook — a CLI redeploy of an already-committed change, not a slice
+> cutover.
 
 - **Current:** Session 14-3 (Cutover + Runbook, Phase 14 — fourth and last of 4 sessions,
   VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. **Phase 14
