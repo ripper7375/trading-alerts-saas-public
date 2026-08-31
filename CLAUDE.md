@@ -169,6 +169,76 @@ affiliates/page,executive/page}.tsx`, `app/admin/layout.tsx` (nav entry), `app/a
 > checkpoints (`d36771cf` foundation, `c56c5a4f` backend complete, `90da3aaa` components,
 > `1f74a93c` pages+nav), each gated on green `tsc`/tests, per the approved implementation plan.
 
+> **Ad-hoc session (2026-08-31, phase/session unchanged):** Davin requested a public **DavinTrade
+> Academy** — admin-curated YouTube tutorials teaching general trading concepts and how to use the
+> app, aimed at increasing awareness and funneling visitors toward PRO upgrade or the Affiliate
+> Program. Outside the Session 14-x playbook numbering entirely, per `EXECUTOR-PROTOCOL.md` §6.
+> Closely mirrors the existing Marketing Resources / Media Kit feature (`MarketingAsset` model →
+> `lib/marketing-resources/*` → admin CRUD → admin page → public page) rather than inventing a new
+> pattern — actually simpler, since a YouTube URL needs no file upload (no Vercel Blob dependency,
+> plain JSON bodies instead of multipart). New `TutorialCategory` enum + `TutorialVideo` model
+> (reuses the existing `MarketingAssetStatus` enum rather than duplicating it) in
+> `prisma/non-market-data/schema.prisma`; `lib/tutorials/{youtube,validators,service}.ts`;
+> `app/api/admin/tutorials/route.ts` (GET/POST) + `[id]/route.ts` (PATCH/DELETE — unlike the
+> media-kit feature, tutorials get real edit support, since there's no file-replace complexity);
+> `app/admin/tutorials/page.tsx` (CRUD console, nav entry added to `app/admin/layout.tsx`); public
+> `app/(marketing)/academy/page.tsx` + `[id]/page.tsx` (Server Components calling the service layer
+> directly, same pattern `app/affiliate/leaderboard/page.tsx` established this session for public
+> Prisma-backed marketing content — no separate public API route); nav link added to
+> `components/marketing/marketing-navbar.tsx`; CSP (`next.config.js`) extended for
+> `i.ytimg.com` (thumbnails, `img-src`) and `www.youtube-nocookie.com` (embedded player,
+> `frame-src`, privacy-enhanced mode). No seed data — matches the "Zero Mock Data" principle
+> already stated in `app/admin/resources/page.tsx`'s own doc comment; the table starts empty and
+> admins populate real content through the UI.
+> **A real, undocumented scheduling hazard found and worked around, not silently pushed
+> through:** `prisma migrate status` (part of the standard L6 migration-diff-and-apply procedure)
+> surfaced an already-pending, never-applied migration — `20260214000000_rag_dual_memory` — sitting
+> in `prisma/migrations/` ahead of this session's own new one. This is concrete, previously-missing
+> evidence for the already-flagged "Phase 12 handover prompt" `Waiting on` item below (the Stack D
+> RAG architecture material that landed 2026-08-30, commit `64222ef4`) — its actual migration SQL
+> exists on disk, untracked in `_prisma_migrations`, still awaiting the Advisor's resolution.
+> `prisma migrate deploy` applies every pending migration in history order, so running it as L6
+> prescribes would have silently applied that unrelated, unreviewed migration alongside this
+> session's own additive change. Not this Executor's call to make — stopped, applied this
+> session's own script standalone via `prisma db execute --file <script>` instead of `migrate
+deploy`, then recorded it via `prisma migrate resolve --applied <name>` so `_prisma_migrations`
+> stays accurate without touching the RAG migration's pending status at all. Verified before and
+> after via `prisma migrate status` (RAG migration shows pending, unchanged, both times) and a real
+> query against the pooled connection (`TutorialVideo` exists, 0 rows, post-apply).
+> **A real correctness bug caught and fixed before it shipped, not after:** the first-drafted
+> `getPublishedTutorialById()` incremented `viewCount` as a side effect, but the detail page's
+> `generateMetadata()` and its page body both need to read the same tutorial — calling it from both
+> (a completely normal Next.js App Router shape) would have double-counted every real view, with no
+> test or type error to catch it. Split into a pure `getPublishedTutorialById()` (safe to call
+> twice per request) and a separate `incrementTutorialViewCount()`, called exactly once from the
+> page body only.
+> **Live browser verification blocked by an environment constraint, not an auth boundary this
+> time:** unlike the BI dashboards (blocked by "cannot log in as admin"), `/academy` is fully
+> public — but another chat session already had `next dev` running against this same repo's shared
+> `.next` build directory, and every `next dev` instance this session tried to spin up (4 attempts,
+> auto-assigned ports) died within moments of starting — `netstat` confirmed only port 3000 had an
+> actual listening socket throughout, consistent with `.next/`-directory file-lock contention on
+> Windows between two concurrent dev-server processes. Fixed `.claude/launch.json`'s `nextdev` entry
+> with `"autoPort": true` (needed regardless, since port 3000 was already taken) but the underlying
+> shared-`.next` crash persisted across every retry; stopped rather than risk disrupting the other
+> session's live server by forcing a `next build` against the same directory. Verification fell
+> back to `tsc --noEmit` (clean), `eslint` (clean — same pre-existing `no-img-element` warning class
+> the admin resources page already carries, from the same deliberate plain-`<img>`-for-YouTube-
+> thumbnails choice), and a full fresh `npm run test:ci` (**165/165 suites, 2382/2382 tests**, zero
+> regressions) — plus a manual audit of the module boundary `next build` would have caught per
+> `LESSONS-LEARNED.md` L2 (`lib/tutorials/service.ts`, which touches Prisma, is only ever imported
+> by the two server-component pages and the two API routes, never by the client-component admin
+> page — same split `lib/marketing-resources/{validators,service}.ts` already proves safe in
+> production). **Flagged below, not silently skipped:** needs a real click-through once a dev
+> server is free — `/academy`, `/academy/[id]`, and (same boundary as the BI dashboards) an
+> authenticated `/admin/tutorials` check.
+> **Built via 4 phased checkpoints** (`a9d8d5e5` foundation (schema+migration+youtube/validators),
+> `501135c2` backend (service+API routes), `155b05fe` admin UI+nav, `94f2b440` public pages+navbar+
+> CSP), each gated on green `tsc`/tests, mirroring the BI-dashboard session's own checkpoint
+> pattern — planned via `EnterPlanMode` with an Explore pass (mapped the existing media-kit feature
+> as the template) and a Plan agent pass (concrete schema/API/UI design) before any code was
+> written, per §0's "live code wins" rule.
+
 - **Current:** Session 14-3 (Cutover + Runbook, Phase 14 — fourth and last of 4 sessions,
   VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. **Phase 14
   (Web Chat / Contabo Support Stack) is now COMPLETE.** Flips `NEXT_PUBLIC_SOCKET_CHAT_URL` +
@@ -337,6 +407,21 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 - **`/help` and `/about` 404 on production** — found live during Session 14-3, confirmed unrelated
   to the chat cutover (zero application source changes shipped before the gap was found). Needs its
   own investigation session.
+- **DavinTrade Academy live browser verification** — the new `/academy`, `/academy/[id]`, and
+  `/admin/tutorials` (2026-08-31 ad-hoc session) are verified via `tsc`/`eslint`/a full fresh
+  `test:ci` (165/165·2382/2382) and a manual module-boundary audit, but not click-through-verified
+  in a real browser: `/admin/tutorials` hits the same "cannot log in as admin" boundary as the BI
+  dashboards above; `/academy` and `/academy/[id]` are fully public but this session's own `next
+dev` attempts couldn't stay alive against the repo's shared `.next` directory while another chat
+  session had a dev server already running there (see the ad-hoc entry above for the full finding).
+  Needs a real click-through once a dev server is free — confirm chart-free rendering, the YouTube
+  iframe embed, category filter pills, and the PRO/Affiliate CTA buttons all work as expected.
+- **`20260214000000_rag_dual_memory` migration still pending** — confirmed still sitting
+  unapplied in `prisma/migrations/` as of the 2026-08-31 Academy ad-hoc session (found via `prisma
+migrate status`, left untouched, see that session's entry above for detail). This is concrete,
+  on-disk evidence for the "Phase 12 handover prompt" item directly below — the Stack D RAG
+  architecture material's actual migration SQL exists and is ready to apply, still awaiting the
+  Advisor's resolution of whether it supersedes the handover prompt's canonical documents.
 
 ## Key documents
 
