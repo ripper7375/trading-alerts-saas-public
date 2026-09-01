@@ -1,7 +1,7 @@
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { type NextAuthOptions } from 'next-auth';
 import type { Account, User } from 'next-auth';
-import type { Adapter, AdapterUser } from 'next-auth/adapters';
+import type { Adapter, AdapterAccount, AdapterUser } from 'next-auth/adapters';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import GoogleProvider from 'next-auth/providers/google';
@@ -21,6 +21,27 @@ const isTwitterConfigured = !!(
 const isLinkedInConfigured = !!(
   process.env['LINKEDIN_CLIENT_ID'] && process.env['LINKEDIN_CLIENT_SECRET']
 );
+
+// The app is reachable on both https://davintrade.app (apex, NEXTAUTH_URL)
+// and https://www.davintrade.app. NEXTAUTH_URL is fixed to one host, so
+// NextAuth always builds the OAuth redirect_uri it sends to Google/Twitter/
+// LinkedIn from that one host - regardless of which host a given user was
+// actually browsing when they clicked "Sign in". The state/PKCE cookies set
+// during signin used to be host-only (no `domain` below), so a user who
+// started the flow on the *other* host arrived at the callback with none of
+// the cookies NextAuth needed to validate - it threw, and that surfaced as
+// `error=Callback` even though the provider's own consent screen succeeded.
+// `.davintrade.app` (leading dot) makes these cookies valid for the apex
+// domain AND every subdomain, so whichever host the callback lands on, the
+// cookie set on the other host is still there.
+// Gated on VERCEL_ENV (not NODE_ENV): Vercel sets NODE_ENV=production for
+// *both* the real production deployment and preview deployments on
+// *.vercel.app - a `.davintrade.app` Domain attribute is invalid for a
+// vercel.app host and browsers silently drop the cookie rather than error,
+// which would break OAuth on every preview deploy. VERCEL_ENV is
+// 'production' only for the real davintrade.app deployment.
+const COOKIE_DOMAIN =
+  process.env['VERCEL_ENV'] === 'production' ? '.davintrade.app' : undefined;
 
 // Log which providers are configured (helpful for debugging)
 if (process.env.NODE_ENV === 'development') {
@@ -66,6 +87,50 @@ function CustomPrismaAdapter(): Adapter {
         return user as AdapterUser;
       } catch (error) {
         console.error('[OAuth] Error creating user:', error);
+        throw error;
+      }
+    },
+    // Diagnostic wrappers only (delegate straight to the base adapter) - a
+    // failure in either of these during the OAuth callback used to bubble up
+    // as a bare `error=Callback` with nothing in the server logs to say why.
+    linkAccount: async (account: AdapterAccount) => {
+      try {
+        console.log(
+          '[OAuth] Linking account:',
+          account.provider,
+          'to user:',
+          account.userId
+        );
+        const result = await baseAdapter.linkAccount!(account);
+        console.log('[OAuth] Account linked successfully:', account.provider);
+        return result;
+      } catch (error) {
+        console.error(
+          '[OAuth] Error linking account:',
+          account.provider,
+          error
+        );
+        throw error;
+      }
+    },
+    getUserByAccount: async (
+      providerAccountId: Pick<AdapterAccount, 'provider' | 'providerAccountId'>
+    ) => {
+      try {
+        const user = await baseAdapter.getUserByAccount!(providerAccountId);
+        console.log(
+          '[OAuth] getUserByAccount:',
+          providerAccountId.provider,
+          'found:',
+          !!user
+        );
+        return user;
+      } catch (error) {
+        console.error(
+          '[OAuth] Error in getUserByAccount:',
+          providerAccountId.provider,
+          error
+        );
         throw error;
       }
     },
@@ -641,6 +706,7 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
+        domain: COOKIE_DOMAIN,
       },
     },
     callbackUrl: {
@@ -653,6 +719,7 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
+        domain: COOKIE_DOMAIN,
       },
     },
     csrfToken: {
@@ -665,6 +732,54 @@ export const authOptions: NextAuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
+        domain: COOKIE_DOMAIN,
+      },
+    },
+    // These three were previously left undefined, silently falling back to
+    // NextAuth's own defaults (host-only, no `domain`) - state and
+    // pkceCodeVerifier are exactly the cookies the OAuth callback validates,
+    // so leaving them host-only is what actually produced error=Callback for
+    // any user who started sign-in on the other host. Explicit here so they
+    // share COOKIE_DOMAIN like the rest.
+    state: {
+      name:
+        process.env.NODE_ENV === 'production'
+          ? '__Secure-next-auth.state'
+          : 'next-auth.state',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 900, // 15 minutes - matches NextAuth's own default
+        domain: COOKIE_DOMAIN,
+      },
+    },
+    pkceCodeVerifier: {
+      name:
+        process.env.NODE_ENV === 'production'
+          ? '__Secure-next-auth.pkce.code_verifier'
+          : 'next-auth.pkce.code_verifier',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 900, // 15 minutes - matches NextAuth's own default
+        domain: COOKIE_DOMAIN,
+      },
+    },
+    nonce: {
+      name:
+        process.env.NODE_ENV === 'production'
+          ? '__Secure-next-auth.nonce'
+          : 'next-auth.nonce',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        domain: COOKIE_DOMAIN,
       },
     },
   },

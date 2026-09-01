@@ -433,6 +433,80 @@ source connect` has no flag for it — confirmed via `--help` before connecting)
 > configuration (source connection, Root Directory), not in tracked files; this CLAUDE.md entry is
 > the only record.
 
+> **Ad-hoc session (2026-09-01, phase/session unchanged):** Davin reported Google/Twitter OAuth
+> passing the provider's own consent screen cleanly, then rolling back to
+> `https://davintrade.app/login?callbackUrl=https%3A%2F%2Fwww.davintrade.app%2Fdashboard&error=Callback`
+> instead of reaching `/dashboard`. Outside the Session 14-x playbook numbering entirely, per
+> `EXECUTOR-PROTOCOL.md` §6. The prior same-day commit (`9c575a93`) had already tried
+> `allowDangerousEmailAccountLinking` and a post-signin `redirect()` callback normalizing apex/www
+> — investigated live rather than assuming those were insufficient for the wrong reason.
+> **Root cause, found in live code, not the task's own checklist order:** `lib/auth/auth-options.ts`
+> defines explicit cookie options for `sessionToken`/`callbackUrl`/`csrfToken` but never defined
+> `state`/`pkceCodeVerifier`/`nonce` at all — those silently fell back to NextAuth's own defaults,
+> which are host-only (no `domain`). The app is reachable on both `https://davintrade.app`
+> (`NEXTAUTH_URL`, fixed) and `https://www.davintrade.app`; NextAuth always builds the OAuth
+> `redirect_uri` it sends to the provider from the fixed `NEXTAUTH_URL` host regardless of which
+> host the user was actually on. A user who starts sign-in on `www` gets their state/PKCE cookies
+> set on `www`, then gets redirected back to the apex host per the fixed `redirect_uri` — a
+> different host that never receives those cookies — so NextAuth throws and it surfaces as the
+> generic `error=Callback`, exactly matching the reported URL (apex error page, `www` callbackUrl
+> baked into the query string from where the flow began). This also explains why the previous
+> commit's fixes didn't resolve it: account-linking and the post-signin `redirect()` callback both
+> run _after_ a successful callback — neither touches the state-cookie/host mismatch that happens
+> during the callback itself. That prior commit's csrfToken rename (`__Host-` → `__Secure-`) was a
+> correct but incomplete first step toward this same fix — `__Host-` cookies cannot carry a
+> `domain` attribute at all, so that rename was necessary groundwork, but no cookie was ever given
+> one.
+> **Fix:** `.davintrade.app` (leading dot) `domain` added to all six auth cookies
+> (`sessionToken`/`callbackUrl`/`csrfToken`/`state`/`pkceCodeVerifier`/`nonce` — the last three now
+> explicitly defined rather than left to defaults), so a cookie set on either host is valid on both.
+> **Gated on `VERCEL_ENV`, deliberately not `NODE_ENV`** — Vercel sets `NODE_ENV=production` for
+> preview deployments too (`*.vercel.app`), and a `.davintrade.app` Domain attribute on a
+> `vercel.app` host is invalid; browsers silently drop such a cookie rather than erroring, which
+> would have broken OAuth on every preview deploy. `VERCEL_ENV` is `'production'` only for the real
+> davintrade.app deployment, so `COOKIE_DOMAIN` is `undefined` (host-only, unchanged behavior)
+> everywhere else, local dev included. **Deliberately not `trustHost: true`** — that alternative
+> fix (build `redirect_uri` from the actual request host instead) would additionally require both
+> `https://davintrade.app/api/auth/callback/{provider}` and
+> `https://www.davintrade.app/api/auth/callback/{provider}` to be registered as authorized redirect
+> URIs in the Google/Twitter/LinkedIn OAuth app consoles — dashboards the Executor has no access to
+> and couldn't verify — where the cookie-domain fix is fully self-contained in code and requires no
+> external provider-side change.
+> **Also added, per the task's own ask (checklist item B2):** `CustomPrismaAdapter`'s `linkAccount`
+> and `getUserByAccount` were previously unwrapped passthroughs to the base Prisma adapter — any
+> failure there during the OAuth callback bubbled up as a bare `error=Callback` with nothing in the
+> server logs. Wrapped both with the same try/catch+console.error pattern `createUser` already used,
+> so a future failure (schema drift, DB error) is diagnosable from Vercel logs directly instead of
+> requiring another investigation session.
+> **Checked and ruled out, not left unexamined:** `prisma/non-market-data/schema.prisma`'s
+> `User`/`Account`/`Session`/`VerificationToken` models match `@next-auth/prisma-adapter`'s expected
+> shape exactly (composite `@@unique([provider, providerAccountId])` present, all OAuth-nullable
+> fields correctly nullable) — no schema mismatch found. `middleware.ts` does not redirect between
+> apex/www (matcher runs on `/api/auth/*` too, but `isProtectedPath()` only gates
+> `/dashboard|/alerts|/charts|/settings|/admin|/notifications|/affiliate`, never `/api/auth/*`) — not
+> the mechanism here. `lib/csrf.ts`'s `validateOrigin()` already allows the current request's own
+> host dynamically, not just the fixed `NEXTAUTH_URL` — not implicated. Email/password login
+> (`callbacks.signIn`'s `credentials` branch, `app/api/auth/token-login/route.ts`) was not reported
+> broken and needed no change; not deep-dived beyond confirming its own test suite still passes.
+> **Verified:** `npx tsc --noEmit` clean; `eslint lib/auth/auth-options.ts` clean; full monolith
+> `npm run test:ci` **165/165 suites, 2382/2382 tests** — exact match to the locale-i18n-compliance
+> session's own close baseline immediately above, zero drift. Local `next dev` (single-host
+> `localhost`, `VERCEL_ENV` unset) confirmed the app boots clean post-change and `/api/auth/providers`
+>
+> - `/api/auth/csrf` both return 200 with zero server/console errors — the httpOnly cookies aren't
+>   readable from `document.cookie`, confirming `httpOnly: true` survived the rewrite rather than
+>   being dropped by omission.
+>   **Not verified, flagged rather than assumed:** the actual apex/www dual-host OAuth round-trip
+>   cannot be reproduced on `localhost` (only one host exists there — `COOKIE_DOMAIN` is correctly
+>   `undefined` in that environment by design). This needs a real deploy to production and a live
+>   Google/Twitter/LinkedIn sign-in click-through from **both** `davintrade.app` and
+>   `www.davintrade.app` starting points — the Executor cannot perform this itself, per this file's
+>   own standing rule that it never enters OAuth/login credentials, matching every prior session's
+>   identical "Journey B" boundary (see Waiting on).
+>   **Artifacts:** `lib/auth/auth-options.ts` (cookie `domain` wiring + adapter diagnostic logging),
+>   this file. Not yet committed — left for Davin's review of this entry before it becomes a commit,
+>   consistent with this file's own established CONFIRM-before-commit pattern.
+
 - **Current:** Session 14-3 (Cutover + Runbook, Phase 14 — fourth and last of 4 sessions,
   VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. **Phase 14
   (Web Chat / Contabo Support Stack) is now COMPLETE.** Flips `NEXT_PUBLIC_SOCKET_CHAT_URL` +
@@ -571,6 +645,16 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 
 ## Waiting on
 
+- **OAuth apex/www cookie-domain fix — live click-through not yet performed** (2026-09-01 ad-hoc
+  session) — `lib/auth/auth-options.ts` now shares the state/PKCE/session cookies across
+  `davintrade.app` and `www.davintrade.app` via an explicit `.davintrade.app` cookie `domain`
+  (gated on `VERCEL_ENV==='production'` so preview deploys stay unaffected). `tsc`/`eslint`/full
+  `test:ci` all clean, and the fix's underlying mechanism (host-only OAuth state cookies breaking
+  the callback when the initiating host differs from the fixed-`NEXTAUTH_URL` callback host) is
+  well-established NextAuth behavior, not a guess — but it cannot be exercised on `localhost`
+  (single host). Needs Davin to deploy and complete one real Google/Twitter/LinkedIn sign-in
+  starting from **each** of `davintrade.app` and `www.davintrade.app`, since the Executor never
+  enters OAuth credentials itself.
 - **BI dashboard authenticated visual verification** — the new `/admin/dashboards/*` suite
   (2026-08-31 ad-hoc session) is verified structurally (routes compile, RBAC redirect works,
   raw SQL runs clean against live data) but not visually as a logged-in admin — needs Davin's own
