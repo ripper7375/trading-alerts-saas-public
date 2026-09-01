@@ -15,6 +15,7 @@ import { Download, ExternalLink, FileText, Loader2 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -56,39 +57,21 @@ interface InvoiceListProps {
 
 const STATUS_CONFIG = {
   paid: {
+    labelKey: 'billing.status.paid',
     label: 'Paid',
     className: 'bg-green-100 text-green-800',
   },
   open: {
+    labelKey: 'billing.status.open',
     label: 'Open',
     className: 'bg-yellow-100 text-yellow-800',
   },
   failed: {
+    labelKey: 'billing.status.failed',
     label: 'Failed',
     className: 'bg-red-100 text-red-800',
   },
 } as const;
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// HELPERS
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-/**
- * Formats the "incl. $X VAT (rate%, country)" line under a taxed invoice's
- * amount. Built as one string (rather than several JSX text/expression
- * children) so JSX's line-break whitespace collapsing can't insert stray
- * spaces around the parenthesis/comma.
- */
-function formatVatLine(
-  invoice: Pick<Invoice, 'taxAmount' | 'taxRate' | 'taxCountry'>
-): string {
-  const ratePercent = Math.round(invoice.taxRate * 100);
-  const countrySuffix =
-    invoice.taxCountry && invoice.taxCountry !== 'UNKNOWN'
-      ? `, ${invoice.taxCountry}`
-      : '';
-  return `incl. $${invoice.taxAmount.toFixed(2)} VAT (${ratePercent}%${countrySuffix})`;
-}
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COMPONENT
@@ -114,12 +97,30 @@ export function InvoiceList({
   hasMore = false,
   onLoadMore,
 }: InvoiceListProps): React.ReactElement {
+  const { t, formatDate, formatCurrency } = useLocale();
+
+  const formatVatLine = (
+    invoice: Pick<Invoice, 'taxAmount' | 'taxRate' | 'taxCountry'>
+  ): string => {
+    const ratePercent = Math.round(invoice.taxRate * 100);
+    const countrySuffix =
+      invoice.taxCountry && invoice.taxCountry !== 'UNKNOWN'
+        ? `, ${invoice.taxCountry}`
+        : '';
+    return t('billing.vat_included', 'incl. {amount} VAT ({rate}%{country})')
+      .replace('{amount}', formatCurrency(invoice.taxAmount))
+      .replace('{rate}', String(ratePercent))
+      .replace('{country}', countrySuffix);
+  };
+
   // Loading state
   if (isLoading && invoices.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-        <p className="mt-4 text-muted-foreground">Loading invoices...</p>
+        <p className="mt-4 text-muted-foreground">
+          {t('billing.loading_invoices', 'Loading invoices...')}
+        </p>
       </div>
     );
   }
@@ -129,9 +130,14 @@ export function InvoiceList({
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <FileText className="mb-4 h-12 w-12 text-muted-foreground" />
-        <h3 className="mb-2 text-lg font-medium">No invoices yet</h3>
+        <h3 className="mb-2 text-lg font-medium">
+          {t('billing.no_invoices', 'No invoices yet')}
+        </h3>
         <p className="max-w-sm text-muted-foreground">
-          Your billing history will appear here after your first payment.
+          {t(
+            'billing.no_invoices_subtitle',
+            'Your billing history will appear here after your first payment.'
+          )}
         </p>
       </div>
     );
@@ -145,19 +151,19 @@ export function InvoiceList({
           <thead>
             <tr className="bg-muted/50 border-b">
               <th className="px-4 py-3 text-left text-sm font-semibold">
-                Date
+                {t('Date')}
               </th>
               <th className="px-4 py-3 text-left text-sm font-semibold">
-                Description
+                {t('Description')}
               </th>
               <th className="px-4 py-3 text-left text-sm font-semibold">
-                Amount
+                {t('Amount')}
               </th>
               <th className="px-4 py-3 text-left text-sm font-semibold">
-                Status
+                {t('Status')}
               </th>
               <th className="px-4 py-3 text-right text-sm font-semibold">
-                Invoice
+                {t('billing.invoice_col', 'Invoice')}
               </th>
             </tr>
           </thead>
@@ -175,11 +181,7 @@ export function InvoiceList({
                 >
                   {/* Date */}
                   <td className="px-4 py-3 text-sm">
-                    {new Date(invoice.date).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
+                    {formatDate(invoice.date)}
                   </td>
 
                   {/* Description */}
@@ -188,14 +190,14 @@ export function InvoiceList({
                   {/* Amount */}
                   <td className="px-4 py-3 text-sm">
                     <div className="font-semibold">
-                      ${invoice.amount.toFixed(2)}
+                      {formatCurrency(invoice.amount)}
                     </div>
                     {invoice.reverseCharge ? (
                       <Badge
                         variant="outline"
                         className="mt-1 text-xs font-normal"
                       >
-                        Reverse charge — 0% VAT
+                        {t('billing.reverse_charge', 'Reverse charge — 0% VAT')}
                       </Badge>
                     ) : invoice.taxAmount > 0 ? (
                       <div className="mt-0.5 text-xs text-muted-foreground">
@@ -207,7 +209,7 @@ export function InvoiceList({
                   {/* Status */}
                   <td className="px-4 py-3">
                     <Badge className={statusConfig.className}>
-                      {statusConfig.label}
+                      {t(statusConfig.labelKey, statusConfig.label)}
                     </Badge>
                   </td>
 
@@ -223,7 +225,9 @@ export function InvoiceList({
                             className="inline-flex items-center gap-1"
                           >
                             <ExternalLink className="h-4 w-4" />
-                            <span className="sr-only sm:not-sr-only">View</span>
+                            <span className="sr-only sm:not-sr-only">
+                              {t('View')}
+                            </span>
                           </a>
                         </Button>
                       )}
@@ -258,10 +262,10 @@ export function InvoiceList({
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading...
+                {t('Loading...')}
               </>
             ) : (
-              'Load More'
+              t('Load More')
             )}
           </Button>
         </div>

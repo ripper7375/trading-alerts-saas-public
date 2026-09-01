@@ -24,6 +24,7 @@ import {
 import { InvoiceList } from '@/components/billing/invoice-list';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { TIER_CONFIG, type Tier } from '@/types/tier';
+import { useLocale } from '@/lib/context/locale-context';
 
 /**
  * Billing Settings Page (Row 75)
@@ -98,6 +99,7 @@ interface UsageStats {
 
 export default function BillingSettingsPage(): React.ReactElement {
   const { data: session } = useSession();
+  const { t, formatDate, formatCurrency } = useLocale();
 
   const [subscriptionData, setSubscriptionData] =
     useState<SubscriptionData | null>(null);
@@ -262,7 +264,7 @@ export default function BillingSettingsPage(): React.ReactElement {
   return (
     <div className="animate-fade-in">
       <h2 className="mb-6 text-2xl font-bold text-foreground">
-        Billing &amp; Subscription
+        {t('billing.title', 'Billing & Subscription')}
       </h2>
 
       {(session?.user as { role?: string })?.role === 'AFFILIATE' && (
@@ -270,12 +272,13 @@ export default function BillingSettingsPage(): React.ReactElement {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-semibold text-indigo-900 dark:text-indigo-200">
-                Affiliate Partner Account
+                {t('billing.affiliate_account', 'Affiliate Partner Account')}
               </p>
               <p className="text-sm text-indigo-700 dark:text-indigo-300">
-                Your account is enrolled in the Affiliate Partner Program.
-                Manage your commission earnings and disbursement bank details in
-                the partner portal.
+                {t(
+                  'billing.affiliate_account_subtitle',
+                  'Your account is enrolled in the Affiliate Partner Program. Manage your commission earnings and disbursement bank details in the partner portal.'
+                )}
               </p>
             </div>
             <div className="flex shrink-0 gap-2">
@@ -285,10 +288,14 @@ export default function BillingSettingsPage(): React.ReactElement {
                 variant="outline"
                 className="border-indigo-300 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:text-indigo-200"
               >
-                <Link href="/affiliate/dashboard/payouts">View Payouts</Link>
+                <Link href="/affiliate/dashboard/payouts">
+                  {t('billing.view_payouts', 'View Payouts')}
+                </Link>
               </Button>
               <Button asChild size="sm">
-                <Link href="/affiliate/settings/payout">Payout Settings</Link>
+                <Link href="/affiliate/settings/payout">
+                  {t('billing.payout_settings', 'Payout Settings')}
+                </Link>
               </Button>
             </div>
           </div>
@@ -304,25 +311,21 @@ export default function BillingSettingsPage(): React.ReactElement {
       {trial && trial.status === 'ACTIVE' && subscription?.trialEnd && (
         <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-900/20">
           <p className="text-sm text-blue-800 dark:text-blue-200">
-            <strong>Free Trial Active:</strong> ends{' '}
-            {new Date(subscription.trialEnd).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
+            <strong>
+              {t('billing.free_trial_active', 'Free Trial Active:')}
+            </strong>{' '}
+            {t('billing.ends', 'ends')} {formatDate(subscription.trialEnd)}
           </p>
         </div>
       )}
       {trial && trial.status === 'CANCELLED' && trial.cancelledAt && (
         <div className="bg-muted/40 mb-6 rounded-lg border border-border p-4">
           <p className="text-sm text-muted-foreground">
-            Your free trial was cancelled on{' '}
-            {new Date(trial.cancelledAt).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
-            .
+            {t(
+              'billing.trial_cancelled_on',
+              'Your free trial was cancelled on'
+            )}{' '}
+            {formatDate(trial.cancelledAt)}.
           </p>
         </div>
       )}
@@ -344,48 +347,65 @@ export default function BillingSettingsPage(): React.ReactElement {
                   : 'bg-muted text-muted-foreground'
               }
             >
-              {userTier === 'PRO' ? 'PRO TIER' : 'FREE TIER'}
+              {userTier === 'PRO'
+                ? t('billing.pro_tier', 'PRO TIER')
+                : t('billing.free_tier', 'FREE TIER')}
             </Badge>
             <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-              Active
+              {t('Active')}
             </Badge>
           </div>
 
           <h3 className="mb-2 text-2xl font-bold text-foreground">
-            {userTier === 'PRO' ? 'Pro Plan' : 'Free Plan'}
+            {userTier === 'PRO'
+              ? t('billing.pro_plan', 'Pro Plan')
+              : t('billing.free_plan', 'Free Plan')}
           </h3>
 
           <div className="mb-4 flex items-baseline gap-2">
             <span className="text-4xl font-bold text-foreground">
-              ${userTier === 'PRO' ? regularPrice.toFixed(2) : '0'}
+              {userTier === 'PRO'
+                ? formatCurrency(regularPrice)
+                : formatCurrency(0)}
             </span>
-            <span className="text-muted-foreground">/month</span>
+            <span className="text-muted-foreground">
+              /{t('billing.month', 'month')}
+            </span>
           </div>
 
           <ul className="mb-6 space-y-2">
             <li className="flex items-center gap-2 text-sm text-foreground">
               <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              XAUUSD (Gold) — M5 &amp; M15
+              {t('billing.feature.xauusd', 'XAUUSD (Gold) — M5 & M15')}
             </li>
             <li className="flex items-center gap-2 text-sm text-foreground">
               <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              Full market data &amp; indicators
+              {t(
+                'billing.feature.market_data',
+                'Full market data & indicators'
+              )}
             </li>
             <li className="flex items-center gap-2 text-sm text-foreground">
               <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               {userTier === 'PRO'
-                ? `${tierConfig.maxAlerts} Price Alerts`
-                : 'No Alerts (PRO feature)'}
+                ? `${tierConfig.maxAlerts} ${t('billing.price_alerts', 'Price Alerts')}`
+                : t('billing.no_alerts', 'No Alerts (PRO feature)')}
             </li>
             {userTier === 'PRO' && (
               <>
                 <li className="flex items-center gap-2 text-sm text-foreground">
                   <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  Drawing Engine Line Alerts
+                  {t(
+                    'billing.feature.drawing_engine',
+                    'Drawing Engine Line Alerts'
+                  )}
                 </li>
                 <li className="flex items-center gap-2 text-sm text-foreground">
                   <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  Multi-Timeframe Visualization
+                  {t(
+                    'billing.feature.multi_timeframe',
+                    'Multi-Timeframe Visualization'
+                  )}
                 </li>
               </>
             )}
@@ -396,14 +416,16 @@ export default function BillingSettingsPage(): React.ReactElement {
           {userTier === 'FREE' ? (
             <Link href="/pricing">
               <Button>
-                Upgrade to PRO
+                {t('billing.upgrade_to_pro', 'Upgrade to PRO')}
                 <ArrowUpRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
           ) : (
             <div className="flex gap-3">
               <Button variant="outline" asChild>
-                <Link href="/settings/billing">Manage Subscription</Link>
+                <Link href="/settings/billing">
+                  {t('billing.manage_subscription', 'Manage Subscription')}
+                </Link>
               </Button>
               <AlertDialog
                 open={cancelDialogOpen}
@@ -419,17 +441,19 @@ export default function BillingSettingsPage(): React.ReactElement {
                     variant="ghost"
                     className="text-red-600 hover:text-red-700"
                   >
-                    Cancel Plan
+                    {t('billing.cancel_plan', 'Cancel Plan')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
+                    <AlertDialogTitle>
+                      {t('billing.cancel_subscription', 'Cancel Subscription')}
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to cancel your PRO subscription?
-                      Your subscription will be cancelled immediately and you
-                      will be downgraded to the FREE tier. You can re-subscribe
-                      any time from the Pricing page.
+                      {t(
+                        'billing.cancel_confirm_body',
+                        'Are you sure you want to cancel your PRO subscription? Your subscription will be cancelled immediately and you will be downgraded to the FREE tier. You can re-subscribe any time from the Pricing page.'
+                      )}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <div className="py-4">
@@ -437,7 +461,10 @@ export default function BillingSettingsPage(): React.ReactElement {
                       htmlFor="cancellation-reason"
                       className="mb-2 block text-sm font-medium text-foreground"
                     >
-                      Reason for cancellation (optional)
+                      {t(
+                        'billing.cancellation_reason_label',
+                        'Reason for cancellation (optional)'
+                      )}
                     </label>
                     <select
                       id="cancellation-reason"
@@ -447,12 +474,30 @@ export default function BillingSettingsPage(): React.ReactElement {
                       }
                       className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                     >
-                      <option value="">Select a reason...</option>
-                      <option value="too_expensive">Too expensive</option>
-                      <option value="not_using">Not using enough</option>
-                      <option value="missing_features">Missing features</option>
-                      <option value="switching">Switching to competitor</option>
-                      <option value="other">Other</option>
+                      <option value="">
+                        {t('billing.select_a_reason', 'Select a reason...')}
+                      </option>
+                      <option value="too_expensive">
+                        {t('billing.reason.too_expensive', 'Too expensive')}
+                      </option>
+                      <option value="not_using">
+                        {t('billing.reason.not_using', 'Not using enough')}
+                      </option>
+                      <option value="missing_features">
+                        {t(
+                          'billing.reason.missing_features',
+                          'Missing features'
+                        )}
+                      </option>
+                      <option value="switching">
+                        {t(
+                          'billing.reason.switching',
+                          'Switching to competitor'
+                        )}
+                      </option>
+                      <option value="other">
+                        {t('billing.reason.other', 'Other')}
+                      </option>
                     </select>
                     {cancelError && (
                       <p className="mt-3 text-sm text-red-600">{cancelError}</p>
@@ -460,7 +505,7 @@ export default function BillingSettingsPage(): React.ReactElement {
                   </div>
                   <AlertDialogFooter>
                     <AlertDialogCancel disabled={cancelling}>
-                      Keep Subscription
+                      {t('billing.keep_subscription', 'Keep Subscription')}
                     </AlertDialogCancel>
                     <AlertDialogAction
                       className="bg-red-600 hover:bg-red-700"
@@ -470,7 +515,12 @@ export default function BillingSettingsPage(): React.ReactElement {
                         void handleConfirmCancellation();
                       }}
                     >
-                      {cancelling ? 'Cancelling...' : 'Confirm Cancellation'}
+                      {cancelling
+                        ? t('billing.cancelling', 'Cancelling...')
+                        : t(
+                            'billing.confirm_cancellation',
+                            'Confirm Cancellation'
+                          )}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -480,11 +530,8 @@ export default function BillingSettingsPage(): React.ReactElement {
 
           {userTier === 'PRO' && subscription?.currentPeriodEnd && (
             <p className="mt-4 text-sm text-muted-foreground">
-              Next billing date:{' '}
-              {new Date(subscription.currentPeriodEnd).toLocaleDateString(
-                'en-US',
-                { year: 'numeric', month: 'long', day: 'numeric' }
-              )}
+              {t('billing.next_billing_date', 'Next billing date:')}{' '}
+              {formatDate(subscription.currentPeriodEnd)}
             </p>
           )}
         </CardContent>
@@ -496,21 +543,21 @@ export default function BillingSettingsPage(): React.ReactElement {
           <section className="mb-8">
             <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
               <CreditCard className="h-5 w-5" />
-              Payment Method
+              {t('billing.payment_method', 'Payment Method')}
             </h3>
             <Card>
               <CardContent className="flex flex-col items-start justify-between gap-4 p-4 sm:flex-row sm:items-center">
                 {subscription.provider === 'DLOCAL' ? (
                   <div>
                     <p className="font-semibold text-foreground">
-                      Paid via dLocal
+                      {t('billing.paid_via_dlocal', 'Paid via dLocal')}
                       {subscription.dLocalPaymentMethod
                         ? ` (${subscription.dLocalPaymentMethod})`
                         : ''}
                     </p>
                     {subscription.dLocalCountry && (
                       <p className="text-sm text-muted-foreground">
-                        Country: {subscription.dLocalCountry}
+                        {t('Country')}: {subscription.dLocalCountry}
                       </p>
                     )}
                   </div>
@@ -525,17 +572,22 @@ export default function BillingSettingsPage(): React.ReactElement {
                           .charAt(0)
                           .toUpperCase() +
                           subscription.paymentMethod.brand.slice(1)}{' '}
-                        ending in ****{subscription.paymentMethod.last4}
+                        {t('billing.ending_in', 'ending in')} ****
+                        {subscription.paymentMethod.last4}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Expires: {subscription.paymentMethod.expiryMonth}/
+                        {t('billing.expires', 'Expires:')}{' '}
+                        {subscription.paymentMethod.expiryMonth}/
                         {subscription.paymentMethod.expiryYear}
                       </p>
                     </div>
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    No payment method on file.
+                    {t(
+                      'billing.no_payment_method',
+                      'No payment method on file.'
+                    )}
                   </p>
                 )}
               </CardContent>
@@ -549,7 +601,7 @@ export default function BillingSettingsPage(): React.ReactElement {
       {/* Usage Statistics */}
       <section className="mb-8">
         <h3 className="mb-4 text-lg font-semibold text-foreground">
-          Usage This Month
+          {t('billing.usage_this_month', 'Usage This Month')}
         </h3>
         {usageError ? (
           <p className="text-sm text-red-600">{usageError}</p>
@@ -558,7 +610,7 @@ export default function BillingSettingsPage(): React.ReactElement {
             <div>
               <div className="mb-2 flex justify-between">
                 <span className="text-sm font-medium text-foreground">
-                  Active Alerts
+                  {t('billing.active_alerts', 'Active Alerts')}
                 </span>
                 <span className="text-sm text-muted-foreground">
                   {usageStats.alerts.current}/{usageStats.alerts.max}
@@ -581,7 +633,7 @@ export default function BillingSettingsPage(): React.ReactElement {
       {userTier === 'PRO' && (
         <section>
           <h3 className="mb-4 text-lg font-semibold text-foreground">
-            Invoice History
+            {t('billing.invoice_history', 'Invoice History')}
           </h3>
           {invoicesError ? (
             <Card>
@@ -606,15 +658,18 @@ export default function BillingSettingsPage(): React.ReactElement {
             <div className="flex flex-col items-center gap-6 sm:flex-row">
               <div className="text-4xl">🚀</div>
               <div className="flex-1 text-center sm:text-left">
-                <h3 className="mb-2 text-xl font-bold">Unlock More with PRO</h3>
+                <h3 className="mb-2 text-xl font-bold">
+                  {t('billing.unlock_more_with_pro', 'Unlock More with PRO')}
+                </h3>
                 <p className="text-primary-foreground/90 mb-4">
-                  Get 100 price alerts, drawing engine line alerts,
-                  multi-timeframe visualization, and priority support for just $
-                  {regularPrice}/month.
+                  {t(
+                    'billing.upgrade_prompt',
+                    'Get 100 price alerts, drawing engine line alerts, multi-timeframe visualization, and priority support for just {price}/month.'
+                  ).replace('{price}', formatCurrency(regularPrice))}
                 </p>
                 <Link href="/pricing">
                   <Button className="bg-white font-semibold text-foreground hover:bg-white/90">
-                    View Pricing Plans
+                    {t('billing.view_pricing_plans', 'View Pricing Plans')}
                   </Button>
                 </Link>
               </div>

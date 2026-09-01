@@ -13,6 +13,34 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import BillingSettingsPage from '@/app/settings/billing/page';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+// BillingSettingsPage calls useLocale() -- needs a LocaleProvider ancestor
+// (LESSONS-LEARNED.md L40). Pre-seed localStorage with US/USD preferences so
+// formatCurrency()/formatDate() reproduce this file's pre-existing literal
+// "$X.XX" assertions (LocaleProvider's own default, absent a seeded
+// preference, resolves to GB/GBP -- a real conversion, not the same numbers).
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/settings/billing',
+}));
+
+const US_PREFERENCES = {
+  countryCode: 'US',
+  language: 'en-US',
+  timezone: 'America/New_York',
+  dateFormat: 'MDY',
+  timeFormat: '12h',
+  currency: 'USD',
+};
+
+function renderBilling(): ReturnType<typeof render> {
+  return render(
+    <LocaleProvider>
+      <BillingSettingsPage />
+    </LocaleProvider>
+  );
+}
 
 jest.mock('@/lib/hooks/useAffiliateConfig', () => ({
   useAffiliateConfig: () => ({
@@ -151,6 +179,7 @@ function mockFetchImplementation(overrides: {
 describe('BillingSettingsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.setItem(LOCALE_STORAGE_KEY, JSON.stringify(US_PREFERENCES));
   });
 
   it('renders real subscription, payment method, and invoice data for a PRO user', async () => {
@@ -170,7 +199,7 @@ describe('BillingSettingsPage', () => {
       alertCount: 7,
     }) as unknown as typeof fetch;
 
-    render(<BillingSettingsPage />);
+    renderBilling();
 
     expect(await screen.findByText('PRO TIER')).toBeInTheDocument();
     expect(screen.getByText(/Visa ending in \*\*\*\*4242/)).toBeInTheDocument();
@@ -205,7 +234,7 @@ describe('BillingSettingsPage', () => {
       alertCount: 0,
     }) as unknown as typeof fetch;
 
-    render(<BillingSettingsPage />);
+    renderBilling();
 
     expect(await screen.findByText('$34.51')).toBeInTheDocument();
     expect(screen.getByText('incl. $5.51 VAT (19%, DE)')).toBeInTheDocument();
@@ -238,7 +267,7 @@ describe('BillingSettingsPage', () => {
       alertCount: 0,
     }) as unknown as typeof fetch;
 
-    render(<BillingSettingsPage />);
+    renderBilling();
 
     // $58.00 (not $29.00) avoids colliding with the plan-price card's own
     // "$29.00" text elsewhere on the page.
@@ -271,7 +300,7 @@ describe('BillingSettingsPage', () => {
       alertCount: 0,
     }) as unknown as typeof fetch;
 
-    render(<BillingSettingsPage />);
+    renderBilling();
 
     expect(await screen.findByText('$19.99')).toBeInTheDocument();
     expect(screen.queryByText(/VAT/)).not.toBeInTheDocument();
@@ -286,7 +315,7 @@ describe('BillingSettingsPage', () => {
       alertCount: 0,
     }) as unknown as typeof fetch;
 
-    render(<BillingSettingsPage />);
+    renderBilling();
 
     expect(await screen.findByText('FREE TIER')).toBeInTheDocument();
     expect(screen.getByText('View Pricing Plans')).toBeInTheDocument();
@@ -299,7 +328,7 @@ describe('BillingSettingsPage', () => {
     mockUseSession.mockReturnValue({ data: { user: { tier: 'PRO' } } });
     global.fetch = mockFetchImplementation({}) as unknown as typeof fetch;
 
-    render(<BillingSettingsPage />);
+    renderBilling();
     await screen.findByText('PRO TIER');
 
     await user.click(screen.getByRole('button', { name: 'Cancel Plan' }));
@@ -326,7 +355,7 @@ describe('BillingSettingsPage', () => {
       cancelOk: false,
     }) as unknown as typeof fetch;
 
-    render(<BillingSettingsPage />);
+    renderBilling();
     await screen.findByText('PRO TIER');
 
     await user.click(screen.getByRole('button', { name: 'Cancel Plan' }));
