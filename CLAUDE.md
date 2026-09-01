@@ -587,6 +587,65 @@ P2022 — The column User.profile does not exist in the current database`, throw
 > now confirmed as the actual fix), this file. Both migrations committed and pushed
 > (`de40dc05`, `b5d34b7c`).
 
+> **Ad-hoc session (2026-09-01, same day, phase/session unchanged):** Davin reported a follow-on
+> bug found while verifying the OAuth fix above — the `/login` "Already Signed In" screen's Sign
+> Out button rolled back to the same screen no matter how many times it was clicked, and asked
+> whether the other `FIXED_TEST_ACCOUNTS` (pro-test, admin-test, affiliate-test, etc.) had the same
+> problem. Outside the Session 14-x playbook numbering entirely, per `EXECUTOR-PROTOCOL.md` §6.
+> **Two compounding, distinct bugs found via live DevTools evidence Davin captured (Network +
+> Application tabs), not guessed:**
+>
+> 1. `app/(auth)/login/page.tsx` and `app/(auth)/verify-2fa/page.tsx`'s "already signed in" Sign Out
+>    buttons only ever called `next-auth/react`'s `signOut()` — every other sign-out call site in
+>    the app (`app-header.tsx`, `chat-sidebar.tsx`, `affiliate-nav.tsx`) already additionally calls
+>    `/api/auth/token-logout` (bridge-aware, gated on `isAuthBridgeEnabled()` — confirmed live and
+>    active in production, per Session 4B-21's own cutover). `signOut()` alone leaves the
+>    operation-service refresh-token cookie untouched, and — the actual cause of the "rolls back to
+>    the same screen" symptom — it can only clear a cookie matching its _current_ config's exact
+>    `Domain` scope. Any session cookie set before this same day's earlier `Domain=.davintrade.app`
+>    fix was host-only (no `Domain` attribute) — a browser treats that as a genuinely different
+>    cookie from the new domain-scoped one, so `signOut()` correctly cleared the new cookie every
+>    time while the pre-existing host-only one (still cryptographically valid for up to 30 days)
+>    kept getting sent and read as an active session. Davin's own Application-tab screenshot showed
+>    both `__Secure-next-auth.session-token` rows side by side, one per `Domain` — direct
+>    confirmation, not inference. Fixed by bringing both screens in line with the established
+>    bridge-aware pattern already used everywhere else.
+> 2. **A second, pre-existing bug found only because fix #1 required actually reading
+>    `token-logout/route.ts` closely:** it cleared cookies via `cookieStore.delete(name)`, which
+>    Next.js's `ResponseCookies.delete()` builds without a `Secure` attribute (confirmed by reading
+>    `next/dist/compiled/@edge-runtime/cookies/index.js` directly — `delete()` → `set()` →
+>    `normalizeCookie()` only defaults `path`, nothing else). Both `SESSION_COOKIE_NAME` and
+>    `REFRESH_COOKIE_NAME` are `__Secure-`-prefixed in production, and per the cookie-prefix spec a
+>    browser silently rejects an _entire_ Set-Cookie header for a `__Secure-`-prefixed name if
+>    `Secure` is missing — meaning this route's cookie clearing has never actually taken effect in
+>    production, for any user, since it was created (Session 3-3). The server-side operation-service
+>    revocation call still worked correctly (a separate code path, unaffected), so leaked refresh
+>    tokens were never reusable — but the cookies themselves lingered client-side indefinitely.
+>    Switched to `.set()` using the already-existing `tokenCookieOptions()` helper (the same one
+>    that correctly set these cookies in the first place), rather than inventing new options inline.
+>    **Verified:** `npx tsc --noEmit` clean; `eslint` clean on all four changed files; the existing
+>    `__tests__/api/auth/token-logout.test.ts` suite updated (its 3 affected tests asserted
+>    `cookieStore.delete` was called — now assert `.set()` with the correct clearing options) and
+>    passes 4/4; full monolith `npm run test:ci` **165/165 suites, 2382/2382 tests** — zero
+>    regressions. Local `next dev` confirmed `/login` still renders clean with zero console/server
+>    errors post-change. **Not verified by the Executor** — the actual authenticated click-through
+>    (does Sign Out now redirect to a genuinely logged-out `/login` for a real session): the Executor
+>    never enters credentials, so this needs Davin's own confirmation post-deploy, same boundary as
+>    every other authenticated flow in this file's history. Davin's existing session will still carry
+>    the orphaned host-only cookie until the _first_ post-deploy Sign Out click (which will now
+>    correctly clear it) or a manual browser cookie clear — flagged directly to Davin, not silently
+>    assumed fixed retroactively.
+>    **A drive-by non-finding, verified rather than assumed:** while reading `app/(auth)/login/page.tsx`
+>    for this fix, a line that appeared as `'\admin'` (backslash) in this Executor's own earlier
+>    conversation-transcript read of the file looked like a real bug (would resolve to a bare `admin`
+>    string) — re-reading the file directly showed the actual bytes were always `'/admin'` (forward
+>    slash); the backslash was a display artifact in how the tool rendered that earlier read, not
+>    something in the file. No fix applied; noted here only so a future session doesn't rediscover the
+>    same false lead.
+>    **Artifacts:** `app/(auth)/login/page.tsx`, `app/(auth)/verify-2fa/page.tsx`,
+>    `app/api/auth/token-logout/route.ts`, `__tests__/api/auth/token-logout.test.ts`, this file.
+>    Committed and pushed (`946880ab`).
+
 - **Current:** Session 14-3 (Cutover + Runbook, Phase 14 — fourth and last of 4 sessions,
   VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. **Phase 14
   (Web Chat / Contabo Support Stack) is now COMPLETE.** Flips `NEXT_PUBLIC_SOCKET_CHAT_URL` +
@@ -725,6 +784,15 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 
 ## Waiting on
 
+- **Sign-out fix — live click-through not yet confirmed** (2026-09-01 ad-hoc session) — fixed
+  `/login` and `/verify-2fa`'s "already signed in" Sign Out buttons plus a second, independent bug
+  in `token-logout/route.ts` (cookie clearing silently failing in production, `__Secure-` prefix +
+  missing `Secure` attribute). `tsc`/`eslint`/full `test:ci` all clean, but the Executor never
+  authenticates, so the actual "does Sign Out now work" click-through needs Davin. His existing
+  Free Test User session will still carry the pre-fix orphaned cookie until the _first_ post-deploy
+  Sign Out click or a manual browser cookie clear — not automatically resolved by the deploy alone.
+  Also needs a pass across the other `FIXED_TEST_ACCOUNTS` (pro-test, admin-test, affiliate-test,
+  etc.) Davin asked about — the fix isn't account-specific, but wasn't verified against each one.
 - **RESOLVED 2026-09-01:** OAuth `error=Callback` — see the two same-day ad-hoc entries above.
   Root cause was untracked schema drift (`User.profile`, then a second layer:
   `MarketingAsset`/`MarketingAssetStatus`/`MarketingAssetCategory`), not the apex/www cookie theory
