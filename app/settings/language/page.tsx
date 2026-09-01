@@ -20,12 +20,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useLocale } from '@/lib/context/locale-context';
 
 /**
  * Language & Region Settings Page (Row 77)
  *
  * Bound to the real GET/PUT /api/user/preferences endpoint -- already has
  * a real backend (Session 9-0's language/timezone hand-off), not rebuilt.
+ *
+ * `handleSave()` also calls `setLocalePreferences()` from `useLocale()` (the
+ * same write path `components/layout/app-header.tsx` already uses) so a save
+ * takes effect immediately in the current session, not just in the database
+ * -- see `docs/policies/08-locale-i18n-compliance.md` §0.
  */
 
 interface LanguageSettings {
@@ -36,15 +42,16 @@ interface LanguageSettings {
   currency: string;
 }
 
+// `fr` and `zh` removed: no backing dictionary in `lib/i18n/dictionaries/`
+// (see `docs/policies/08-locale-i18n-compliance.md` §0) -- selecting either
+// would silently degrade to English forever.
 const languages = [
   { code: 'en-US', name: 'English (US)', flag: '🇺🇸' },
   { code: 'en-GB', name: 'English (UK)', flag: '🇬🇧' },
   { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-  { code: 'fr', name: 'French', flag: '🇫🇷' },
   { code: 'de', name: 'German', flag: '🇩🇪' },
   { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
   { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
-  { code: 'zh', name: 'Chinese', flag: '🇨🇳' },
   { code: 'ar', name: 'Arabic (العربية)', flag: '🇦🇪' },
 ];
 
@@ -75,6 +82,7 @@ const currencies = [
 ];
 
 export default function LanguageSettingsPage(): React.ReactElement {
+  const { t, setLocalePreferences } = useLocale();
   const [settings, setSettings] = useState<LanguageSettings>({
     language: 'en-US',
     timezone: 'America/New_York',
@@ -159,6 +167,7 @@ export default function LanguageSettingsPage(): React.ReactElement {
         throw new Error('Failed to save settings');
       }
 
+      setLocalePreferences(settings);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
@@ -171,24 +180,24 @@ export default function LanguageSettingsPage(): React.ReactElement {
   return (
     <div className="animate-fade-in">
       <h2 className="mb-6 text-2xl font-bold text-foreground">
-        Language &amp; Region
+        {t('settings.nav.language', 'Language & Region')}
       </h2>
 
       <section className="mb-8">
         <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
           <Globe className="h-5 w-5" />
-          Language
+          {t('Language')}
         </h3>
         <div className="max-w-md">
           <Label htmlFor="language" className="mb-2 block text-sm font-medium">
-            Display Language
+            {t('form.display_language', 'Display Language')}
           </Label>
           <Select
             value={settings.language}
             onValueChange={(value) => handleChange('language', value)}
           >
             <SelectTrigger id="language">
-              <SelectValue placeholder="Select language" />
+              <SelectValue placeholder={t('Select language')} />
             </SelectTrigger>
             <SelectContent>
               {languages.map((lang) => (
@@ -206,18 +215,18 @@ export default function LanguageSettingsPage(): React.ReactElement {
       <section className="mb-8">
         <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
           <Clock className="h-5 w-5" />
-          Timezone
+          {t('Timezone')}
         </h3>
         <div className="max-w-md">
           <Label htmlFor="timezone" className="mb-2 block text-sm font-medium">
-            Your Timezone
+            {t('Your Timezone')}
           </Label>
           <Select
             value={settings.timezone}
             onValueChange={(value) => handleChange('timezone', value)}
           >
             <SelectTrigger id="timezone">
-              <SelectValue placeholder="Select timezone" />
+              <SelectValue placeholder={t('Select timezone')} />
             </SelectTrigger>
             <SelectContent>
               {timezones.map((tz) => (
@@ -228,7 +237,7 @@ export default function LanguageSettingsPage(): React.ReactElement {
             </SelectContent>
           </Select>
           <p className="mt-2 text-sm text-muted-foreground">
-            Current time: {getCurrentTime()}
+            {t('Current time:')} {getCurrentTime()}
           </p>
         </div>
       </section>
@@ -238,12 +247,12 @@ export default function LanguageSettingsPage(): React.ReactElement {
       <section className="mb-8">
         <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
           <Calendar className="h-5 w-5" />
-          Date &amp; Time Format
+          {t('Date & Time Format')}
         </h3>
         <div className="max-w-md space-y-6">
           <div>
             <Label className="mb-3 block text-sm font-medium">
-              Date Format
+              {t('form.date_format', 'Date Format')}
             </Label>
             <div className="space-y-2">
               {[
@@ -283,18 +292,26 @@ export default function LanguageSettingsPage(): React.ReactElement {
               ))}
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              Preview: {getDatePreview()}
+              {t('Preview:')} {getDatePreview()}
             </p>
           </div>
 
           <div>
             <Label className="mb-3 block text-sm font-medium">
-              Time Format
+              {t('form.time_format', 'Time Format')}
             </Label>
             <div className="space-y-2">
               {[
-                { value: '12h' as const, label: '12-hour', example: '2:30 PM' },
-                { value: '24h' as const, label: '24-hour', example: '14:30' },
+                {
+                  value: '12h' as const,
+                  label: t('12-hour'),
+                  example: '2:30 PM',
+                },
+                {
+                  value: '24h' as const,
+                  label: t('24-hour'),
+                  example: '14:30',
+                },
               ].map((format) => (
                 <label
                   key={format.value}
@@ -324,18 +341,18 @@ export default function LanguageSettingsPage(): React.ReactElement {
       <section className="mb-8">
         <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
           <DollarSign className="h-5 w-5" />
-          Currency
+          {t('Currency')}
         </h3>
         <div className="max-w-md">
           <Label htmlFor="currency" className="mb-2 block text-sm font-medium">
-            Display Currency
+            {t('Display Currency')}
           </Label>
           <Select
             value={settings.currency}
             onValueChange={(value) => handleChange('currency', value)}
           >
             <SelectTrigger id="currency">
-              <SelectValue placeholder="Select currency" />
+              <SelectValue placeholder={t('Select currency')} />
             </SelectTrigger>
             <SelectContent>
               {currencies.map((curr) => (
@@ -346,7 +363,7 @@ export default function LanguageSettingsPage(): React.ReactElement {
             </SelectContent>
           </Select>
           <p className="mt-2 text-sm text-muted-foreground">
-            Used for displaying prices and monetary values
+            {t('Used for displaying prices and monetary values')}
           </p>
         </div>
       </section>
@@ -356,15 +373,15 @@ export default function LanguageSettingsPage(): React.ReactElement {
           {isSaving ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
+              {t('Saving...')}
             </>
           ) : saveSuccess ? (
             <>
               <Check className="mr-2 h-4 w-4" />
-              Saved!
+              {t('Saved!')}
             </>
           ) : (
-            'Save Changes'
+            t('Save Changes')
           )}
         </Button>
       </div>
