@@ -13,7 +13,7 @@
     "lint:fix": "next lint --fix",
     "type-check": "npm run prisma:generate:market-data && npm run prisma:generate:non-market-data && tsc --noEmit",
     "test": "jest",
-    "test:quick": "jest --bail --passWithNoTests",
+    "test:quick": "jest --bail --maxWorkers=2 --passWithNoTests",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --coverageReporters=text --coverageReporters=json-summary --coverageReporters=lcov",
     "test:ci": "jest --ci --coverage --maxWorkers=2 --silent",
