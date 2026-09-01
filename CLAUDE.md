@@ -26,6 +26,70 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
+> **Ad-hoc session (2026-09-01, phase/session unchanged):** Executed
+> `docs/migration-orders/adhoc-locale-i18n-compliance.migration-order.md` end to end — CONFIRMED,
+> executed across 5 sequenced batches, **CLOSED SUCCESSFUL**, per `EXECUTOR-PROTOCOL.md` §6.
+> Remediates the recurring "new UI ships with zero locale wiring" failure class documented in
+> `docs/policies/08-locale-i18n-compliance.md` (SSOT) across the 5 most-recently-built feature
+> stacks (Settings→Language page, BI Dashboards, VAT/Tax Invoicing, Affiliate Commissions,
+> DavinTrade Academy + Payments), plus the §0 CRITICAL bug where the Settings page saved to the
+> database but nothing ever read it back.
+> **CONFIRM found the by-now-familiar L3 status-integrity pattern:** the order file and the policy
+> doc it's governed by were both untracked (zero git history). Treated Davin's own chat instruction
+> naming this exact order file as his live confirmation, consistent with how Sessions 14-2/14-3
+> resolved the identical pattern. Baseline re-verified fresh before touching anything: `tsc
+--noEmit` clean, `npm run test:ci` **165/165 suites, 2382/2382 tests**.
+> **A real architecture correction found via live code, not the order's own file-grouping:** the
+> order's Batch 2 grouped `kpi-summary-card.tsx` and `tax-threshold-gauge.tsx` as "Client
+> Components," but neither file had a `'use client'` directive and neither does its own currency
+> formatting — made them async Server Components instead (`getServerLanguage()`+`getDictionary()`),
+> avoiding an unforced client-bundle increase. `ranked-country-table.tsx` and
+> `top-affiliates-leaderboard.tsx` genuinely did need to become Client Components, since they format
+> their own confirmed-USD columns and only `useLocale()`'s `formatCurrency()` does real per-user
+> currency conversion.
+> **Two new shared primitives added, not requested by name but needed to satisfy the order's own
+> Decision 4** (BI dashboard money routes through `formatCurrency()`): `formatCurrencyAmount()`
+> (`lib/country-config.ts`) and `getServerLocalePreferences()` (`lib/i18n/server-locale.ts`), so
+> Server Component dashboard pages can convert confirmed-USD figures into the viewer's own currency
+> the same way client components do. `locale-context.tsx`'s own `formatCurrency()` now delegates to
+> the shared helper — verified byte-for-byte identical output, not a behavior change.
+> **`LESSONS-LEARNED.md` L40 recurred 4 more times in this one session** (5th–8th occurrences
+> overall): every pre-existing test file exercising a component newly wired to `useLocale()` broke
+> with `useLocale must be used within a LocaleProvider` (`billing.test.tsx`,
+> `commission-table.test.tsx`, `commissions-payouts.test.tsx`, `PriceDisplay.test.tsx`) — fixed each
+> with the established seed-preferences-and-wrap-in-`LocaleProvider` pattern. Two of the four also
+> needed real assertion updates (not just the wrapper): `formatCurrency()` rounds to 0 decimals with
+> a thousands separator once an amount reaches 1000 (an existing, intentional rule, not new), so
+> `"$1234.56"` is now `"$1,235"`; `formatDate()` renders the seeded date format instead of a
+> hardcoded `'MMM d, yyyy'`/`en-US` shape. Recorded as an L40 recurrence, not a new lesson (at the
+> 40-entry cap). Repo-wide `jest.setup.js` default mock still not built — flagged again, out of this
+> order's own scope (locale wiring, not test infrastructure).
+> **Repo-wide audit re-run at close, not just trusted from CONFIRM-time §6:** the order's own final
+> `git diff origin/main...HEAD` audit script returned zero unhandled occurrences; additionally
+> individually re-grepped all 29 files named in the policy doc's §6 inventory — 28/29 now call
+> `useLocale()`/`getServerLanguage()`/`getDictionary()` directly, the one exception
+> (`app/admin/dashboards/page.tsx`) being a redirect stub with zero user-facing text, left
+> deliberately untouched.
+> **Live-verified in a real browser, not assumed:** `/affiliate/leaderboard` and `/academy` +
+> `/academy/[id]` — the only fully public surfaces among the 5 stacks — render correctly in Arabic
+> with `dir="rtl"`, zero console/server errors, translated category pills/CTA/related-tutorials
+> chrome. The other 8 admin/settings/checkout pages this order touches are all auth-gated;
+> confirmed each compiles and redirects cleanly for an unauthenticated visitor (zero server errors)
+> but full authenticated click-through was **not** performed — the Executor is categorically
+> prohibited from entering credentials, including the dev login page's own test-account autofill
+> buttons, matching this repo's own established handling of the identical boundary in the
+> 2026-08-31 BI-dashboard and Academy ad-hoc sessions (see Waiting on).
+> **Artifacts:** `app/settings/language/page.tsx`; all 7
+> `components/admin/analytics/*.tsx` + 8 `app/admin/dashboards/**`/`app/affiliate/leaderboard`
+> pages; `components/billing/invoice-list.tsx` + `app/settings/billing/page.tsx`;
+> `components/affiliate/commission-table.tsx` + `app/affiliate/dashboard/commissions/page.tsx` +
+> `app/admin/affiliates/[id]/page.tsx`; `app/(marketing)/academy/{page,[id]/page}.tsx` +
+> `app/admin/tutorials/page.tsx` + all 3 `components/payments/*.tsx`; shared
+> `lib/country-config.ts`, `lib/context/locale-context.tsx`, `lib/i18n/server-locale.ts`; ~250 new
+> curated `ar`/`th` dictionary keys plus a handful of `en-GB`/`en-US` identity entries; 4 fixed
+> pre-existing test files; `docs/policies/08-locale-i18n-compliance.md` (§6 pointer note + §8 log
+> entry); `LESSONS-LEARNED.md` (L40 recurrence note); this file. 5 commits, one per batch.
+
 > **Ad-hoc session (2026-08-30, phase/session unchanged):** Davin requested UAE (`AE`) support
 > directly in chat — dLocal payment methods (Local Cards/Apple Pay/Bank Transfer, `AED`), Arabic
 > (`ar`) locale, and `Asia/Dubai`/DMY/12h regional defaults — outside the Session 14-x chat-stack
@@ -537,15 +601,22 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 - **`/help` and `/about` 404 on production** — found live during Session 14-3, confirmed unrelated
   to the chat cutover (zero application source changes shipped before the gap was found). Needs its
   own investigation session.
-- **DavinTrade Academy live browser verification** — the new `/academy`, `/academy/[id]`, and
-  `/admin/tutorials` (2026-08-31 ad-hoc session) are verified via `tsc`/`eslint`/a full fresh
-  `test:ci` (165/165·2382/2382) and a manual module-boundary audit, but not click-through-verified
-  in a real browser: `/admin/tutorials` hits the same "cannot log in as admin" boundary as the BI
-  dashboards above; `/academy` and `/academy/[id]` are fully public but this session's own `next
-dev` attempts couldn't stay alive against the repo's shared `.next` directory while another chat
-  session had a dev server already running there (see the ad-hoc entry above for the full finding).
-  Needs a real click-through once a dev server is free — confirm chart-free rendering, the YouTube
-  iframe embed, category filter pills, and the PRO/Affiliate CTA buttons all work as expected.
+- **DavinTrade Academy live browser verification — `/academy` and `/academy/[id]` RESOLVED
+  2026-09-01** (locale-i18n-compliance ad-hoc session): both live-verified in a real browser
+  (Arabic, `dir="rtl"`, translated chrome, zero console/server errors) once a dev server was free.
+  `/admin/tutorials` still needs Davin's own click-through — same "cannot log in as admin" boundary
+  as everything else below.
+- **Authenticated click-through for the locale-i18n-compliance session's 8 auth-gated pages**
+  (2026-09-01 ad-hoc session) — `/settings/language`, `/admin/dashboards/*` (5 dashboards),
+  `/settings/billing`, `/affiliate/dashboard/commissions`, `/admin/affiliates/[id]`,
+  `/admin/tutorials`, and `/checkout` (mounts `CountrySelector`/`PaymentMethodSelector`/
+  `PriceDisplay`) all compile and redirect cleanly for an unauthenticated visitor (zero server
+  errors) but were not click-through-verified as a logged-in user — same "Executor never enters
+  credentials" boundary as the BI dashboards and Academy items above. Needs Davin's own pass to
+  confirm: the Settings→Language page's Save actually flips live app context and survives reload;
+  the 5 BI dashboards, billing/invoice history, and affiliate commissions/admin pages render
+  correctly with a non-English locale selected (`ar`/`th`); the checkout page's country/payment
+  selectors and price display localize as expected.
 - **`20260214000000_rag_dual_memory` migration still pending** — confirmed still sitting
   unapplied in `prisma/migrations/` as of the 2026-08-31 Academy ad-hoc session (found via `prisma
 migrate status`, left untouched, see that session's entry above for detail). This is concrete,
@@ -555,17 +626,18 @@ migrate status`, left untouched, see that session's entry above for detail). Thi
 
 ## Key documents
 
-| What                                 | Where                                                                                     |
-| ------------------------------------ | ----------------------------------------------------------------------------------------- |
-| **Master roadmap (Phases 7–15)**     | `docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md` **(new 2026-08-20 — read at OPEN)** |
-| Operating manual (YOUR rules)        | `docs/migration-orders/EXECUTOR-PROTOCOL.md`                                              |
-| Migration plan (phases, flags)       | `docs/migration-orders/monolith-to-microservices-migration-implementation-plan.md` (v1.3) |
-| Session playbook                     | `docs/migration-orders/monolith-to-microservices-migration-session-playbook.md`           |
-| Order rules + templates              | `docs/migration-orders/00-SKELETON-AND-RULES.md` + `TEMPLATE-*.md`                        |
-| Decision Log                         | `docs/migration-orders/DECISION-LOG.md`                                                   |
-| Lessons learned (read at every OPEN) | `docs/migration-orders/LESSONS-LEARNED.md`                                                |
-| Cutover table                        | `docs/migration-orders/migration-cutover-table.md`                                        |
-| File inventory                       | `docs/migration-orders/migration-stack-analysis.md`                                       |
+| What                                                                                                    | Where                                                                                     |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Master roadmap (Phases 7–15)**                                                                        | `docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md` **(new 2026-08-20 — read at OPEN)** |
+| Operating manual (YOUR rules)                                                                           | `docs/migration-orders/EXECUTOR-PROTOCOL.md`                                              |
+| Migration plan (phases, flags)                                                                          | `docs/migration-orders/monolith-to-microservices-migration-implementation-plan.md` (v1.3) |
+| Session playbook                                                                                        | `docs/migration-orders/monolith-to-microservices-migration-session-playbook.md`           |
+| Order rules + templates                                                                                 | `docs/migration-orders/00-SKELETON-AND-RULES.md` + `TEMPLATE-*.md`                        |
+| Decision Log                                                                                            | `docs/migration-orders/DECISION-LOG.md`                                                   |
+| Lessons learned (read at every OPEN)                                                                    | `docs/migration-orders/LESSONS-LEARNED.md`                                                |
+| Cutover table                                                                                           | `docs/migration-orders/migration-cutover-table.md`                                        |
+| File inventory                                                                                          | `docs/migration-orders/migration-stack-analysis.md`                                       |
+| Locale/i18n compliance — incl. §0 CRITICAL Settings-page bug (read before building ANY new frontend UI) | `docs/policies/08-locale-i18n-compliance.md`                                              |
 
 ## Non-negotiables (short form — manual has details)
 

@@ -65,7 +65,11 @@ genuinely new candidate lesson surfaced (`git push` to `main` is not reliable pr
 production deployment actually shipped -- verify the live commit/build directly, e.g. via a route
 only the new code serves, before treating a push as a completed cutover step) but was not
 promoted, per this file's own cap rule -- noted in `migration-stack-analysis.md`'s Session 14-3
-entry for the Advisor to consider consolidating or promoting once room exists. Full history in
+entry for the Advisor to consider consolidating or promoting once room exists. Ad-hoc locale-i18n-
+compliance session (2026-09-01): no new lesson added (stayed at the cap) -- a recurrence note
+appended to L40 (5th-8th occurrences in one session, same LocaleProvider-in-tests fix pattern,
+plus one new variant: a blanket `global.fetch` mock also answering LocaleProvider's own geo-IP
+call). Full history in
 `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
 (same rule Session 9-6 hit at 41; nothing to merge yet, all 40 are still genuinely distinct).
 
@@ -545,6 +549,23 @@ does not exist`, even connecting via the byte-identical `DATABASE_URL` `operatio
   the fetch branch entirely) + a `usePathname: () => '/'` stub; 9-4 also needed a `next-auth/react`
   mock it was missing entirely. Repo-wide `jest.setup.js` default still owed, 4 sessions running —
   this lesson's own stated trigger for adding one; the next session that hits this should add it.
+- Recurrence (ad-hoc locale-i18n-compliance session, 2026-09-01), 5th–8th occurrences in one
+  session: wiring `useLocale()`/`formatCurrency()` into 4 previously-unwired components
+  (`invoice-list.tsx`, `commission-table.tsx`, `PriceDisplay.tsx`, and the `BillingSettingsPage`/
+  `AffiliateCommissionsPage` pages that render them) broke their existing test files identically,
+  every time — same fix (seed `LOCALE_STORAGE_KEY` with a full `LocalePreferences` object, stub
+  `next/navigation`'s `usePathname`, wrap `render()`/`rerender()` in `<LocaleProvider>`). One new
+  variant: `PriceDisplay.test.tsx`'s blanket `global.fetch` mock answered LocaleProvider's own
+  first-visit geo-IP call too, inflating call-count assertions by exactly one until a preference was
+  seeded — seeding is required even when the test never asserts on locale text at all. Separately,
+  two real (not test-only) behavior changes surfaced switching hardcoded formatting to
+  `formatCurrency()`/`formatDate()`: amounts ≥ 1000 round to 0 decimals with a thousands separator
+  ("$1234.56" → "$1,235"), and dates render the seeded `dateFormat` instead of a fixed
+  `'MMM d, yyyy'`/`'en-US'` shape — both are `formatCurrency()`/`formatDate()`'s own pre-existing,
+  intentional rules (not introduced this session), but any test asserting exact old-format strings
+  needs its literal expectations updated, not just re-wrapped. Still not promoted to a repo-wide
+  `jest.setup.js` default (5 sessions now) — this order's own scope was locale wiring, not test
+  infrastructure; flagged again for whichever session next has room to add it.
 
 ### L42 — A local dev environment that doesn't mirror production's service wiring produces real-looking errors that are environment gaps, not app bugs — verify with a curl/log check before touching app code
 
