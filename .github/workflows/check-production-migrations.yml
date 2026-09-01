@@ -22,6 +22,21 @@ jobs:
     name: Verify production database matches migration history
     runs-on: ubuntu-latest
 
+    env:
+      # A direct (non-pooled) connection to the REAL production database -
+      # deliberately a distinct secret name from any existing DATABASE_URL
+      # secret in this repo, whose target isn't confirmed to be production
+      # specifically. Set this in GitHub: Settings -> Secrets and variables
+      # -> Actions -> New repository secret. Get the value from Railway's
+      # "trading-alerts" project (not "postgre for staging" or any other
+      # project) -> Postgres service -> Variables -> DATABASE_PUBLIC_URL.
+      #
+      # Set at job level, not just on the migrate-status step below:
+      # `pnpm install`'s own postinstall hook runs `prisma generate`, which
+      # (Prisma 7 + prisma.config.ts) needs DIRECT_URL resolvable just to
+      # load the config, before the install step even finishes.
+      DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -41,19 +56,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Check migration status against production
-        env:
-          # A direct (non-pooled) connection to the REAL production
-          # database - deliberately a distinct secret name from any
-          # existing DATABASE_URL secret in this repo, whose target isn't
-          # confirmed to be production specifically. Set this in GitHub:
-          # Settings -> Secrets and variables -> Actions -> New repository
-          # secret. Get the value from Railway's "trading-alerts" project
-          # (not "postgre for staging" or any other project) -> Postgres
-          # service -> Variables -> DATABASE_PUBLIC_URL.
-          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+        id: migrate-status
         run: pnpm exec prisma migrate status --schema=prisma/non-market-data/schema.prisma
 
       - name: Explain failure
-        if: failure()
+        if: failure() && steps.migrate-status.outcome == 'failure'
         run: |
           echo "::error title=Production migration drift::One or more migrations in prisma/migrations/ have not been applied to production (see the 'Check migration status against production' step above for the exact list). This does NOT mean the deploy failed or was blocked - it's a heads-up only. Review each pending migration, then apply with: prisma migrate deploy --schema=prisma/non-market-data/schema.prisma (using production's real DIRECT_URL, pulled fresh - never reuse a stale local copy)."
