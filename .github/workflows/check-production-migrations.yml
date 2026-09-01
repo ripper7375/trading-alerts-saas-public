@@ -1,0 +1,59 @@
+name: Check Production Migration Status
+
+# Detects schema drift between prisma/migrations/ and the real production
+# database. Read-only: runs `prisma migrate status`, which only queries the
+# database (never applies anything). Deliberately does NOT auto-apply
+# migrations and does NOT gate the deploy workflow - see CLAUDE.md's
+# 2026-09-01 OAuth ad-hoc session for why blind auto-deploy was rejected
+# (an unrelated pending migration sitting ahead of the one that mattered has
+# already burned this repo once, per that same session's own history).
+# This job's only purpose is to make drift visible within minutes of a push
+# instead of sitting unnoticed for days - the actual `migrate deploy` stays
+# a deliberate, human-run step, same as every other production database
+# change in this repo's history.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  check-migrations:
+    name: Verify production database matches migration history
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check migration status against production
+        env:
+          # A direct (non-pooled) connection to the REAL production
+          # database - deliberately a distinct secret name from any
+          # existing DATABASE_URL secret in this repo, whose target isn't
+          # confirmed to be production specifically. Set this in GitHub:
+          # Settings -> Secrets and variables -> Actions -> New repository
+          # secret. Get the value from Railway's "trading-alerts" project
+          # (not "postgre for staging" or any other project) -> Postgres
+          # service -> Variables -> DATABASE_PUBLIC_URL.
+          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+        run: pnpm exec prisma migrate status --schema=prisma/non-market-data/schema.prisma
+
+      - name: Explain failure
+        if: failure()
+        run: |
+          echo "::error title=Production migration drift::One or more migrations in prisma/migrations/ have not been applied to production (see the 'Check migration status against production' step above for the exact list). This does NOT mean the deploy failed or was blocked - it's a heads-up only. Review each pending migration, then apply with: prisma migrate deploy --schema=prisma/non-market-data/schema.prisma (using production's real DIRECT_URL, pulled fresh - never reuse a stale local copy)."
