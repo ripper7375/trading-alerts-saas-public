@@ -21,24 +21,26 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { useLocaleSettings } from '@/hooks/useLocaleSettings';
 
-// `region` doubles as the display badge and, for Arabic, pins the UAE as
-// its primary country/currency/timezone — matching the monolith's
-// PRIMARY_COUNTRY_FOR_LANGUAGE correction (`ar -> ae`, not Saudi Arabia).
+// Curated to exactly the monolith's real dictionary-backed languages
+// (`lib/i18n/dictionaries/*.json`: ar, de, en-GB, en-US, es, hi, id, ja,
+// pt, th, tr, ur, vi — `en` here stands in for both English variants).
+// Previously listed several languages (fr, it, zh, ko, ru, nl, pl) with no
+// real translation anywhere in the app -- the same class of issue the
+// locale/i18n compliance session's §0 fix addressed on the web Language
+// page ("selecting either would silently degrade to English forever"),
+// removed here for the same reason. `region` doubles as the display badge
+// and, for Arabic, pins the UAE as its primary country/currency/timezone —
+// matching the monolith's PRIMARY_COUNTRY_FOR_LANGUAGE correction
+// (`ar -> ae`, not Saudi Arabia).
 const languages = [
   { code: 'en', name: 'English', nativeName: 'English', region: 'US' },
   { code: 'es', name: 'Spanish', nativeName: 'Español', region: 'ES' },
-  { code: 'fr', name: 'French', nativeName: 'Français', region: 'FR' },
   { code: 'de', name: 'German', nativeName: 'Deutsch', region: 'DE' },
-  { code: 'it', name: 'Italian', nativeName: 'Italiano', region: 'IT' },
   { code: 'pt', name: 'Portuguese', nativeName: 'Português', region: 'BR' },
-  { code: 'zh', name: 'Chinese', nativeName: '中文', region: 'CN' },
   { code: 'ja', name: 'Japanese', nativeName: '日本語', region: 'JP' },
-  { code: 'ko', name: 'Korean', nativeName: '한국어', region: 'KR' },
   { code: 'ar', name: 'Arabic', nativeName: 'العربية', region: 'AE' },
+  { code: 'ur', name: 'Urdu', nativeName: 'اردو', region: 'PK' },
   { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', region: 'IN' },
-  { code: 'ru', name: 'Russian', nativeName: 'Русский', region: 'RU' },
-  { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', region: 'NL' },
-  { code: 'pl', name: 'Polish', nativeName: 'Polski', region: 'PL' },
   { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', region: 'TR' },
   { code: 'vi', name: 'Vietnamese', nativeName: 'Tiếng Việt', region: 'VN' },
   { code: 'th', name: 'Thai', nativeName: 'ไทย', region: 'TH' },

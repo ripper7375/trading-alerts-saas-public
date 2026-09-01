@@ -8,7 +8,7 @@ const STORAGE_KEYS = {
 
 /** Languages that read right-to-left, matching the monolith's
  *  lib/context/locale-context.tsx dir-switching rule. */
-const RTL_LANGUAGES = new Set(['ar']);
+const RTL_LANGUAGES = new Set(['ar', 'ur']);
 
 export interface LocaleSettings {
   language: string;
