@@ -9,6 +9,7 @@ import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import {
   REFRESH_COOKIE_NAME,
   SESSION_COOKIE_NAME,
+  tokenCookieOptions,
 } from '@/lib/operation-service/cookies';
 
 // Additive logout for the operation-service token bridge — does not touch
@@ -37,8 +38,17 @@ export async function POST(): Promise<NextResponse> {
     }
   }
 
-  cookieStore.delete(SESSION_COOKIE_NAME);
-  cookieStore.delete(REFRESH_COOKIE_NAME);
+  // `cookieStore.delete(name)` builds its Set-Cookie without a `Secure`
+  // attribute (Next.js's ResponseCookies.delete() -> set() only defaults
+  // `path`, nothing else). Both cookie names are __Secure--prefixed in
+  // production, and browsers silently reject an entire Set-Cookie header
+  // for a __Secure--prefixed name if it's missing `Secure` - so this clear
+  // has never actually taken effect there. tokenCookieOptions() carries the
+  // same secure/httpOnly/sameSite/path this cookie was originally set with;
+  // maxAge: 0 expires it immediately.
+  const clearOptions = tokenCookieOptions(0);
+  cookieStore.set(SESSION_COOKIE_NAME, '', clearOptions);
+  cookieStore.set(REFRESH_COOKIE_NAME, '', clearOptions);
 
   return NextResponse.json({ success: true });
 }

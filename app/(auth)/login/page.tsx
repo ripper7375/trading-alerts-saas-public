@@ -6,6 +6,22 @@ import { useSession, signOut } from 'next-auth/react';
 
 import LoginForm from '@/components/auth/login-form';
 import { Button } from '@/components/ui/button';
+import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+
+// Same bridge-aware logout as components/layout/app-header.tsx — calling
+// next-auth/react's signOut() alone leaves the operation-service refresh-
+// token cookie (and, for any session established before a past cookie-
+// domain change, an orphaned host-only session-token cookie signOut() can
+// no longer reach) uncleared, so this screen kept showing "Already Signed
+// In" no matter how many times Sign Out was clicked.
+async function handleSignOut(): Promise<void> {
+  if (isAuthBridgeEnabled()) {
+    await fetch('/api/auth/token-logout', { method: 'POST' });
+  }
+  await signOut({ redirect: false });
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full browser navigation is deliberate, matches app-header.tsx
+  window.location.href = '/login';
+}
 
 export default function LoginPage(): JSX.Element {
   const { data: session, status } = useSession();
@@ -44,7 +60,7 @@ export default function LoginPage(): JSX.Element {
           <Button
             variant="outline"
             className="flex w-full items-center justify-center gap-2"
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={() => void handleSignOut()}
           >
             <LogOut className="h-4 w-4" />
             Sign Out

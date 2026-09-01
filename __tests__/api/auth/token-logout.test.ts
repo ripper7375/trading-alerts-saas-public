@@ -45,7 +45,7 @@ describe('POST /api/auth/token-logout', () => {
     expect(response.status).toBe(403);
   });
 
-  it('calls operation-service logout and clears both cookies when a refresh cookie exists', async () => {
+  it('calls operation-service logout and clears both cookies (with Secure) when a refresh cookie exists', async () => {
     mockCookieStore.get.mockReturnValueOnce({ value: 'raw-refresh' });
     (global.fetch as jest.Mock).mockResolvedValueOnce(
       mockFetchResponse(200, { success: true })
@@ -56,7 +56,14 @@ describe('POST /api/auth/token-logout', () => {
 
     expect(body).toEqual({ success: true });
     expect(global.fetch).toHaveBeenCalledTimes(1);
-    expect(mockCookieStore.delete).toHaveBeenCalledTimes(2);
+    // cookieStore.delete(name) never sets `Secure`, so browsers silently
+    // reject the whole Set-Cookie for a __Secure--prefixed name in
+    // production — must be .set() with explicit options instead.
+    expect(mockCookieStore.delete).not.toHaveBeenCalled();
+    expect(mockCookieStore.set).toHaveBeenCalledTimes(2);
+    for (const call of mockCookieStore.set.mock.calls) {
+      expect(call[2]).toMatchObject({ maxAge: 0, path: '/', httpOnly: true });
+    }
   });
 
   it('still clears cookies and succeeds even when no refresh cookie is present', async () => {
@@ -67,7 +74,7 @@ describe('POST /api/auth/token-logout', () => {
 
     expect(body).toEqual({ success: true });
     expect(global.fetch).not.toHaveBeenCalled();
-    expect(mockCookieStore.delete).toHaveBeenCalledTimes(2);
+    expect(mockCookieStore.set).toHaveBeenCalledTimes(2);
   });
 
   it('still clears cookies and succeeds even when operation-service is unreachable (idempotent logout)', async () => {
@@ -81,6 +88,6 @@ describe('POST /api/auth/token-logout', () => {
 
     expect(response.status).toBe(200);
     expect(body).toEqual({ success: true });
-    expect(mockCookieStore.delete).toHaveBeenCalledTimes(2);
+    expect(mockCookieStore.set).toHaveBeenCalledTimes(2);
   });
 });
