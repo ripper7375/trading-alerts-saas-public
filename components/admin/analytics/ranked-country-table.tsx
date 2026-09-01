@@ -1,4 +1,7 @@
+'use client';
+
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 
 export interface RankedCountryRow {
   rank: number;
@@ -43,25 +46,44 @@ const METRIC_CONFIG = {
  * bars. Rank-1 row gets a subtle highlight, matching the prototype's
  * ranked-table pattern via `warning`/`info` tokens instead of raw hex.
  */
+const METRIC_LABEL_KEY: Record<string, string> = {
+  Users: 'analytics.metric_label.users',
+  PRO: 'analytics.metric_label.pro',
+  Sales: 'analytics.metric_label.sales',
+};
+
 export function RankedCountryTable({
   rows,
   highlightMetric = 'totalUsers',
 }: RankedCountryTableProps): React.ReactElement {
+  const { t, formatCurrency } = useLocale();
   const metric = METRIC_CONFIG[highlightMetric];
+  const metricLabel = t(
+    METRIC_LABEL_KEY[metric.label] ?? metric.label,
+    metric.label
+  );
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-xs">
         <thead className="bg-muted/50 font-mono text-muted-foreground">
           <tr>
-            <th className="px-3 py-2.5 text-center">Rank</th>
-            <th className="px-3 py-2.5">Country / Territory</th>
-            <th className="px-3 py-2.5 text-center">ISO</th>
-            <th className="px-3 py-2.5 text-right">Total Users</th>
-            <th className="px-3 py-2.5 text-right">FREE</th>
-            <th className="px-3 py-2.5 text-right">PRO</th>
-            <th className="px-3 py-2.5 text-right">Trailing 12M Sales</th>
-            <th className="px-3 py-2.5 text-right">{metric.label} Share</th>
+            <th className="px-3 py-2.5 text-center">{t('Rank')}</th>
+            <th className="px-3 py-2.5">
+              {t('analytics.country_territory', 'Country / Territory')}
+            </th>
+            <th className="px-3 py-2.5 text-center">{t('ISO')}</th>
+            <th className="px-3 py-2.5 text-right">
+              {t('analytics.total_users', 'Total Users')}
+            </th>
+            <th className="px-3 py-2.5 text-right">{t('FREE')}</th>
+            <th className="px-3 py-2.5 text-right">{t('PRO')}</th>
+            <th className="px-3 py-2.5 text-right">
+              {t('analytics.trailing_12m_sales', 'Trailing 12M Sales')}
+            </th>
+            <th className="px-3 py-2.5 text-right">
+              {metricLabel} {t('Share')}
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border font-mono">
@@ -103,7 +125,7 @@ export function RankedCountryTable({
                   {row.proUsers.toLocaleString()}
                 </td>
                 <td className="px-3 py-2 text-right text-success">
-                  ${row.trailing12mSalesUsd.toLocaleString()}
+                  {formatCurrency(row.trailing12mSalesUsd)}
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex items-center justify-end gap-2">

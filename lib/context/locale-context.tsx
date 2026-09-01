@@ -10,7 +10,11 @@ import React, {
   useState,
 } from 'react';
 import { usePathname } from 'next/navigation';
-import { SUPPORTED_COUNTRIES, getCountryByCode } from '@/lib/country-config';
+import {
+  SUPPORTED_COUNTRIES,
+  getCountryByCode,
+  formatCurrencyAmount,
+} from '@/lib/country-config';
 import type { CountryConfig } from '@/lib/country-config';
 import {
   LOCALE_COOKIE,
@@ -319,19 +323,12 @@ export function LocaleProvider({
       }
     };
 
-    const formatCurrency = (amountInUSD: number): string => {
-      try {
-        const config = getCountryByCode(preferences.countryCode);
-        const convertedAmount = amountInUSD * (config.exchangeRate || 1.0);
-        return new Intl.NumberFormat(preferences.language || 'en-GB', {
-          style: 'currency',
-          currency: preferences.currency || 'GBP',
-          maximumFractionDigits: convertedAmount >= 1000 ? 0 : 2,
-        }).format(convertedAmount);
-      } catch {
-        return `${preferences.currency || 'GBP'} ${amountInUSD.toFixed(2)}`;
-      }
-    };
+    const formatCurrency = (amountInUSD: number): string =>
+      formatCurrencyAmount(amountInUSD, {
+        currency: preferences.currency || 'GBP',
+        exchangeRate: getCountryByCode(preferences.countryCode).exchangeRate,
+        language: preferences.language,
+      });
 
     const formatRelativeTime = (minutesAgo: number): string => {
       if (minutesAgo < 1) return t('time.just_now', 'just now');

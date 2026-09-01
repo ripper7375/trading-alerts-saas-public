@@ -177,3 +177,35 @@ export function getCountryByCode(code?: string): CountryConfig {
   const lower = code.toLowerCase();
   return SUPPORTED_COUNTRIES[lower] || DEFAULT_COUNTRY;
 }
+
+/**
+ * Converts a USD amount into a display currency and formats it. The
+ * exchange rate and the display currency are deliberately separate
+ * parameters, not both read off one `CountryConfig` -- a user can set a
+ * `currency` preference independently of their `countryCode` (see
+ * `app/settings/language/page.tsx`), and this preserves that exact
+ * original behavior (convert using the country's rate, label using the
+ * user's chosen currency) rather than silently re-deriving one from the
+ * other. Framework-agnostic (no React/browser APIs) so it can run in both
+ * `lib/context/locale-context.tsx`'s client `formatCurrency()` and Server
+ * Components that resolve preferences via `getServerLocalePreferences()`.
+ */
+export function formatCurrencyAmount(
+  amountInUSD: number,
+  {
+    currency,
+    exchangeRate,
+    language,
+  }: { currency: string; exchangeRate: number; language?: string }
+): string {
+  try {
+    const convertedAmount = amountInUSD * (exchangeRate || 1.0);
+    return new Intl.NumberFormat(language || 'en-GB', {
+      style: 'currency',
+      currency: currency || 'GBP',
+      maximumFractionDigits: convertedAmount >= 1000 ? 0 : 2,
+    }).format(convertedAmount);
+  } catch {
+    return `${currency || 'GBP'} ${amountInUSD.toFixed(2)}`;
+  }
+}

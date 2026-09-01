@@ -1,5 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 export interface KpiSummaryCardProps {
   label: string;
@@ -20,7 +22,7 @@ export interface KpiSummaryCardProps {
  * bar-sparkline. Mirrors the prototype's `.glass-panel` KPI card layout
  * using theme-aware design tokens instead of raw slate/emerald/amber hex.
  */
-export function KpiSummaryCard({
+export async function KpiSummaryCard({
   label,
   metricBadge,
   value,
@@ -29,7 +31,8 @@ export function KpiSummaryCard({
   comparisonSubtext,
   sparkline,
   accentClassName,
-}: KpiSummaryCardProps): React.ReactElement {
+}: KpiSummaryCardProps): Promise<React.ReactElement> {
+  const dict = getDictionary(await getServerLanguage());
   const isPositive = deltaPct !== null && deltaPct >= 0;
   const isNegative = deltaPct !== null && deltaPct < 0;
 
@@ -60,7 +63,7 @@ export function KpiSummaryCard({
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-medium">
             {deltaPct === null ? (
               <span className="rounded-full bg-muted px-2 py-0.5 font-bold text-muted-foreground">
-                New
+                {dict['analytics.new_badge'] ?? 'New'}
               </span>
             ) : (
               <span

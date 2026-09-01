@@ -1,6 +1,7 @@
 'use client';
 
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { useLocale } from '@/lib/context/locale-context';
 
 export interface DonutMarketShareSlice {
   country: string;
@@ -38,6 +39,9 @@ export function DonutMarketShare({
   centerLabel,
   centerValue,
 }: DonutMarketShareProps): React.ReactElement {
+  const { language } = useLocale();
+  const formatCount = (value: number): string =>
+    new Intl.NumberFormat(language || 'en-GB').format(value);
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row">
       <div className="relative h-52 w-52 shrink-0">
@@ -65,7 +69,7 @@ export function DonutMarketShare({
             </Pie>
             <Tooltip
               formatter={(value: number, _name, entry) => [
-                `${value.toLocaleString()} (${(entry.payload as DonutMarketShareSlice).percentage.toFixed(2)}%)`,
+                `${formatCount(value)} (${(entry.payload as DonutMarketShareSlice).percentage.toFixed(2)}%)`,
                 (entry.payload as DonutMarketShareSlice).country,
               ]}
               contentStyle={{
@@ -108,7 +112,7 @@ export function DonutMarketShare({
               </span>
             </div>
             <span className="whitespace-nowrap font-mono font-semibold text-muted-foreground">
-              {slice.count.toLocaleString()} ({slice.percentage.toFixed(1)}%)
+              {formatCount(slice.count)} ({slice.percentage.toFixed(1)}%)
             </span>
           </div>
         ))}

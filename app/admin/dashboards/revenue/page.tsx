@@ -5,15 +5,11 @@ import {
   getRevenueAnalytics,
   type RevenueTimeframe,
 } from '@/lib/admin/analytics/revenue';
+import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
+import { getCountryByCode, formatCurrencyAmount } from '@/lib/country-config';
 
 export const metadata = { title: 'Revenue & Growth | DavinTrade Admin' };
-
-const TIMEFRAME_OPTIONS = [
-  { value: '6M', label: 'Trailing 6 Months (Standard)' },
-  { value: '12M', label: 'Trailing 12 Months' },
-  { value: 'YTD', label: 'Year-To-Date' },
-  { value: 'ALL', label: 'All-Time' },
-];
 
 interface RevenuePageProps {
   searchParams: Promise<{ timeframe?: string }>;
@@ -30,16 +26,40 @@ export default async function RevenuePage({
   const params = await searchParams;
   const timeframe = (params.timeframe as RevenueTimeframe) || '6M';
   const data = await getRevenueAnalytics(timeframe);
+  const prefs = await getServerLocalePreferences();
+  const dict = getDictionary(prefs.language);
+  const exchangeRate = getCountryByCode(prefs.countryCode).exchangeRate;
+  const usd = (amount: number): string =>
+    formatCurrencyAmount(amount, {
+      currency: prefs.currency,
+      exchangeRate,
+      language: prefs.language,
+    });
+  const newLabel = dict['analytics.new_badge'] ?? 'New';
+
+  const TIMEFRAME_OPTIONS = [
+    {
+      value: '6M',
+      label: dict['analytics.timeframe.6m'] ?? 'Trailing 6 Months (Standard)',
+    },
+    {
+      value: '12M',
+      label: dict['analytics.timeframe.12m'] ?? 'Trailing 12 Months',
+    },
+    { value: 'YTD', label: dict['analytics.timeframe.ytd'] ?? 'Year-To-Date' },
+    { value: 'ALL', label: dict['analytics.timeframe.all'] ?? 'All-Time' },
+  ];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-foreground">
-            Sales &amp; Revenue Velocity
+            {dict['analytics.tab.revenue'] ?? 'Sales & Revenue Velocity'}
           </h2>
           <p className="text-xs text-muted-foreground">
-            Merged Stripe + dLocal revenue -- Metrics #8, #9, #10, #11
+            {dict['analytics.revenue_subtitle'] ??
+              'Merged Stripe + dLocal revenue -- Metrics #8, #9, #10, #11'}
           </p>
         </div>
         <TimeframeFilter current={timeframe} options={TIMEFRAME_OPTIONS} />
@@ -47,27 +67,30 @@ export default async function RevenuePage({
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiSummaryCard
-          label="Monthly Sales (USD)"
+          label={dict['analytics.monthly_sales'] ?? 'Monthly Sales (USD)'}
           metricBadge="Metric #8"
-          value={`$${data.summary.currentMonthSales.toLocaleString()}`}
+          value={usd(data.summary.currentMonthSales)}
           deltaPct={data.summary.momGrowthPct}
           deltaLabel="MoM"
           comparisonSubtext={
             data.summary.prevMonthSales !== null
-              ? `vs prior month $${data.summary.prevMonthSales.toLocaleString()}`
+              ? `${dict['analytics.vs_prior_month'] ?? 'vs prior month'} ${usd(data.summary.prevMonthSales)}`
               : undefined
           }
         />
         <KpiSummaryCard
-          label="Monthly YoY Growth"
+          label={dict['analytics.monthly_yoy_growth'] ?? 'Monthly YoY Growth'}
           metricBadge="Metric #10"
           value={
             data.summary.monthlyYoYGrowthPct !== null
               ? `${data.summary.monthlyYoYGrowthPct >= 0 ? '+' : ''}${data.summary.monthlyYoYGrowthPct.toFixed(1)}%`
-              : 'New'
+              : newLabel
           }
           deltaPct={null}
-          comparisonSubtext="vs same month prior year"
+          comparisonSubtext={
+            dict['analytics.vs_same_month_prior_year'] ??
+            'vs same month prior year'
+          }
           accentClassName={
             data.summary.monthlyYoYGrowthPct !== null &&
             data.summary.monthlyYoYGrowthPct >= 0
@@ -76,27 +99,32 @@ export default async function RevenuePage({
           }
         />
         <KpiSummaryCard
-          label="Quarterly Sales (USD)"
+          label={dict['analytics.quarterly_sales'] ?? 'Quarterly Sales (USD)'}
           metricBadge="Metric #9"
-          value={`$${data.summary.currentQuarterSales.toLocaleString()}`}
+          value={usd(data.summary.currentQuarterSales)}
           deltaPct={data.summary.qoqGrowthPct}
           deltaLabel="QoQ"
           comparisonSubtext={
             data.summary.prevQuarterSales !== null
-              ? `vs prior quarter $${data.summary.prevQuarterSales.toLocaleString()}`
+              ? `${dict['analytics.vs_prior_quarter'] ?? 'vs prior quarter'} ${usd(data.summary.prevQuarterSales)}`
               : undefined
           }
         />
         <KpiSummaryCard
-          label="Quarterly YoY Growth"
+          label={
+            dict['analytics.quarterly_yoy_growth'] ?? 'Quarterly YoY Growth'
+          }
           metricBadge="Metric #11"
           value={
             data.summary.quarterlyYoYGrowthPct !== null
               ? `${data.summary.quarterlyYoYGrowthPct >= 0 ? '+' : ''}${data.summary.quarterlyYoYGrowthPct.toFixed(1)}%`
-              : 'New'
+              : newLabel
           }
           deltaPct={null}
-          comparisonSubtext="vs same quarter prior year"
+          comparisonSubtext={
+            dict['analytics.vs_same_quarter_prior_year'] ??
+            'vs same quarter prior year'
+          }
           accentClassName={
             data.summary.quarterlyYoYGrowthPct !== null &&
             data.summary.quarterlyYoYGrowthPct >= 0
@@ -110,26 +138,26 @@ export default async function RevenuePage({
         <Card className="border-border bg-card lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-sm font-extrabold">
-              MRR / ARR Run-Rate
+              {dict['analytics.mrr_arr_run_rate'] ?? 'MRR / ARR Run-Rate'}
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-3 gap-4 font-mono">
             <div>
               <div className="text-xs text-muted-foreground">MRR</div>
               <div className="text-xl font-bold text-foreground">
-                ${data.summary.mrr.toLocaleString()}
+                {usd(data.summary.mrr)}
               </div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">ARR</div>
               <div className="text-xl font-bold text-foreground">
-                ${data.summary.arr.toLocaleString()}
+                {usd(data.summary.arr)}
               </div>
             </div>
             <div>
               <div className="text-xs text-muted-foreground">ARPPU</div>
               <div className="text-xl font-bold text-foreground">
-                ${data.summary.arppu.toFixed(2)}
+                {usd(data.summary.arppu)}
               </div>
             </div>
           </CardContent>
@@ -139,7 +167,8 @@ export default async function RevenuePage({
       <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-sm font-extrabold">
-            Trailing Monthly Breakdown
+            {dict['analytics.trailing_monthly_breakdown'] ??
+              'Trailing Monthly Breakdown'}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -147,13 +176,21 @@ export default async function RevenuePage({
             <table className="w-full text-left text-xs">
               <thead className="bg-muted/50 font-mono text-muted-foreground">
                 <tr>
-                  <th className="px-3 py-2.5">Month</th>
-                  <th className="px-3 py-2.5 text-right">Revenue (USD)</th>
-                  <th className="px-3 py-2.5 text-right">Prior Month</th>
+                  <th className="px-3 py-2.5">{dict['Month'] ?? 'Month'}</th>
+                  <th className="px-3 py-2.5 text-right">
+                    {dict['analytics.revenue_usd'] ?? 'Revenue (USD)'}
+                  </th>
+                  <th className="px-3 py-2.5 text-right">
+                    {dict['Prior Month'] ?? 'Prior Month'}
+                  </th>
                   <th className="px-3 py-2.5 text-right">MoM %</th>
-                  <th className="px-3 py-2.5 text-right">Prior Year</th>
+                  <th className="px-3 py-2.5 text-right">
+                    {dict['Prior Year'] ?? 'Prior Year'}
+                  </th>
                   <th className="px-3 py-2.5 text-right">YoY %</th>
-                  <th className="px-3 py-2.5 text-right">Transactions</th>
+                  <th className="px-3 py-2.5 text-right">
+                    {dict['Transactions'] ?? 'Transactions'}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border font-mono">
@@ -163,27 +200,23 @@ export default async function RevenuePage({
                       {row.monthLabel}
                     </td>
                     <td className="px-3 py-2 text-right">
-                      ${row.revenueUsd.toLocaleString()}
+                      {usd(row.revenueUsd)}
                     </td>
                     <td className="px-3 py-2 text-right text-muted-foreground">
-                      {row.prevMonthUsd !== null
-                        ? `$${row.prevMonthUsd.toLocaleString()}`
-                        : '-'}
+                      {row.prevMonthUsd !== null ? usd(row.prevMonthUsd) : '-'}
                     </td>
                     <td className="px-3 py-2 text-right">
                       {row.momGrowthPct !== null
                         ? `${row.momGrowthPct.toFixed(1)}%`
-                        : 'New'}
+                        : newLabel}
                     </td>
                     <td className="px-3 py-2 text-right text-muted-foreground">
-                      {row.prevYearUsd !== null
-                        ? `$${row.prevYearUsd.toLocaleString()}`
-                        : '-'}
+                      {row.prevYearUsd !== null ? usd(row.prevYearUsd) : '-'}
                     </td>
                     <td className="px-3 py-2 text-right">
                       {row.yoyGrowthPct !== null
                         ? `${row.yoyGrowthPct.toFixed(1)}%`
-                        : 'New'}
+                        : newLabel}
                     </td>
                     <td className="px-3 py-2 text-right">
                       {row.transactionCount}
@@ -196,7 +229,8 @@ export default async function RevenuePage({
                       colSpan={7}
                       className="px-3 py-8 text-center font-sans text-muted-foreground"
                     >
-                      No revenue recorded yet.
+                      {dict['analytics.no_revenue_yet'] ??
+                        'No revenue recorded yet.'}
                     </td>
                   </tr>
                 )}

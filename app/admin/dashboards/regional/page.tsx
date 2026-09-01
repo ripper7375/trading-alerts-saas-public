@@ -5,6 +5,9 @@ import { TaxThresholdGauge } from '@/components/admin/analytics/tax-threshold-ga
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { OTHERS_ISO } from '@/lib/admin/analytics/jurisdictions';
 import { getRegionalAnalytics } from '@/lib/admin/analytics/regional';
+import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
+import { getCountryByCode, formatCurrencyAmount } from '@/lib/country-config';
 
 export const metadata = {
   title: 'Regional & Tax Surveillance | DavinTrade Admin',
@@ -20,6 +23,16 @@ export const metadata = {
  */
 export default async function RegionalPage(): Promise<React.ReactElement> {
   const data = await getRegionalAnalytics();
+  const prefs = await getServerLocalePreferences();
+  const dict = getDictionary(prefs.language);
+  const exchangeRate = getCountryByCode(prefs.countryCode).exchangeRate;
+  const usd = (amount: number): string =>
+    formatCurrencyAmount(amount, {
+      currency: prefs.currency,
+      exchangeRate,
+      language: prefs.language,
+    });
+  const noDataYet = dict['analytics.no_data_yet'] ?? 'No data yet';
 
   const realRankings = data.countryRankings.filter(
     (r) => r.isoCode !== OTHERS_ISO
@@ -45,49 +58,55 @@ export default async function RegionalPage(): Promise<React.ReactElement> {
     <div className="space-y-6">
       <div>
         <h2 className="text-lg font-bold text-foreground">
-          Regional &amp; Tax Surveillance
+          {dict['analytics.tab.regional'] ?? 'Regional & Tax Surveillance'}
         </h2>
         <p className="text-xs text-muted-foreground">
-          Metrics #13-#19 -- 17 Whitelisted Jurisdictions + Other Countries
+          {dict['analytics.regional_subtitle'] ??
+            'Metrics #13-#19 -- 17 Whitelisted Jurisdictions + Other Countries'}
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiSummaryCard
-          label="Top Revenue Jurisdiction"
+          label={
+            dict['analytics.top_revenue_jurisdiction'] ??
+            'Top Revenue Jurisdiction'
+          }
           metricBadge="Metric #16"
           value={
             topRevenue
               ? `${topRevenue.countryName} (${topRevenue.isoCode})`
-              : 'No data yet'
+              : noDataYet
           }
           deltaPct={null}
           comparisonSubtext={
             topRevenue
-              ? `$${topRevenue.trailing12mSalesUsd.toLocaleString()} / ${topRevenue.salesSharePct.toFixed(1)}%`
+              ? `${usd(topRevenue.trailing12mSalesUsd)} / ${topRevenue.salesSharePct.toFixed(1)}%`
               : undefined
           }
         />
         <KpiSummaryCard
-          label="Top User Base Market"
+          label={
+            dict['analytics.top_user_base_market'] ?? 'Top User Base Market'
+          }
           metricBadge="Metric #13 & #18"
           value={
             topUsers
               ? `${topUsers.countryName} (${topUsers.isoCode})`
-              : 'No data yet'
+              : noDataYet
           }
           deltaPct={null}
           comparisonSubtext={
             topUsers
-              ? `${topUsers.totalUsers.toLocaleString()} users / ${topUsers.allUsersSharePct.toFixed(1)}%`
+              ? `${topUsers.totalUsers.toLocaleString()} ${dict['Users'] ?? 'users'} / ${topUsers.allUsersSharePct.toFixed(1)}%`
               : undefined
           }
         />
         <KpiSummaryCard
-          label="Top Paid PRO Market"
+          label={dict['analytics.top_pro_market'] ?? 'Top Paid PRO Market'}
           metricBadge="Metric #15 & #19"
           value={
-            topPro ? `${topPro.countryName} (${topPro.isoCode})` : 'No data yet'
+            topPro ? `${topPro.countryName} (${topPro.isoCode})` : noDataYet
           }
           deltaPct={null}
           comparisonSubtext={
@@ -98,12 +117,12 @@ export default async function RegionalPage(): Promise<React.ReactElement> {
           accentClassName="text-primary"
         />
         <KpiSummaryCard
-          label="Active Tax Warning"
+          label={dict['analytics.active_tax_warning'] ?? 'Active Tax Warning'}
           metricBadge="Metric #17"
           value={
             topAlert
               ? `${topAlert.alertLevel.replace(/_/g, ' ')}`
-              : 'No active alerts'
+              : (dict['analytics.no_active_alerts'] ?? 'No active alerts')
           }
           deltaPct={null}
           comparisonSubtext={
@@ -119,13 +138,14 @@ export default async function RegionalPage(): Promise<React.ReactElement> {
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-sm font-extrabold">
-              All Users Geographic Distribution (#18)
+              {dict['analytics.all_users_geo_distribution'] ??
+                'All Users Geographic Distribution (#18)'}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <DonutMarketShare
               data={data.donutMarketShare.allUsers}
-              centerLabel="Total Users"
+              centerLabel={dict['analytics.total_users'] ?? 'Total Users'}
               centerValue={realRankings
                 .reduce((s, r) => s + r.totalUsers, 0)
                 .toLocaleString()}
@@ -135,13 +155,14 @@ export default async function RegionalPage(): Promise<React.ReactElement> {
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-sm font-extrabold">
-              PRO Paid Subscribers Distribution (#19)
+              {dict['analytics.pro_subscribers_distribution'] ??
+                'PRO Paid Subscribers Distribution (#19)'}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <DonutMarketShare
               data={data.donutMarketShare.proUsers}
-              centerLabel="PRO Users"
+              centerLabel={dict['analytics.pro_users'] ?? 'PRO Users'}
               centerValue={realRankings
                 .reduce((s, r) => s + r.proUsers, 0)
                 .toLocaleString()}
@@ -153,7 +174,8 @@ export default async function RegionalPage(): Promise<React.ReactElement> {
       <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-sm font-extrabold">
-            Master Country Rankings
+            {dict['analytics.master_country_rankings'] ??
+              'Master Country Rankings'}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -164,7 +186,8 @@ export default async function RegionalPage(): Promise<React.ReactElement> {
       <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-sm font-extrabold">
-            Metric #17: VAT &amp; Sales Tax Threshold Surveillance
+            {dict['analytics.vat_threshold_surveillance'] ??
+              'Metric #17: VAT & Sales Tax Threshold Surveillance'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">

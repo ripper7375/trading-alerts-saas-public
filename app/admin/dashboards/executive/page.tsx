@@ -5,6 +5,9 @@ import {
   getExecutiveAnalytics,
   type RagStatus,
 } from '@/lib/admin/analytics/executive';
+import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
+import { getCountryByCode, formatCurrencyAmount } from '@/lib/country-config';
 
 export const metadata = {
   title: 'Executive Command Center | DavinTrade Admin',
@@ -29,6 +32,16 @@ const RAG_BADGE_CLASS: Record<RagStatus, string> = {
  */
 export default async function ExecutivePage(): Promise<React.ReactElement> {
   const data = await getExecutiveAnalytics();
+  const prefs = await getServerLocalePreferences();
+  const dict = getDictionary(prefs.language);
+  const exchangeRate = getCountryByCode(prefs.countryCode).exchangeRate;
+  const usd = (amount: number): string =>
+    formatCurrencyAmount(amount, {
+      currency: prefs.currency,
+      exchangeRate,
+      language: prefs.language,
+    });
+  const newLabel = dict['analytics.new_badge'] ?? 'New';
   const overallRag: RagStatus = data.healthStatusMatrix.some(
     (r) => r.ragStatus === 'RED'
   )
@@ -41,10 +54,12 @@ export default async function ExecutivePage(): Promise<React.ReactElement> {
     <div className="space-y-6">
       <div>
         <h2 className="text-lg font-bold text-foreground">
-          Executive Business Command Center
+          {dict['analytics.executive_command_center'] ??
+            'Executive Business Command Center'}
         </h2>
         <p className="text-xs text-muted-foreground">
-          Cross-functional C-suite synthesis across all 4 pillars
+          {dict['analytics.executive_subtitle'] ??
+            'Cross-functional C-suite synthesis across all 4 pillars'}
         </p>
       </div>
 
@@ -52,10 +67,10 @@ export default async function ExecutivePage(): Promise<React.ReactElement> {
         <Card className="border-l-4 border-border border-l-primary bg-card">
           <CardContent className="px-5">
             <span className="text-xs font-black uppercase tracking-wider text-primary">
-              1. Revenue Run-Rate
+              {dict['analytics.pillar.revenue'] ?? '1. Revenue Run-Rate'}
             </span>
             <div className="mt-1 font-mono text-2xl font-black text-foreground">
-              ${data.revenuePillar.currentMonthSales.toLocaleString()}
+              {usd(data.revenuePillar.currentMonthSales)}
               <span className="text-xs font-normal text-muted-foreground">
                 {' '}
                 /mo
@@ -65,7 +80,7 @@ export default async function ExecutivePage(): Promise<React.ReactElement> {
               <div>
                 ARR:{' '}
                 <strong className="text-foreground">
-                  ${data.revenuePillar.arr.toLocaleString()}
+                  {usd(data.revenuePillar.arr)}
                 </strong>
               </div>
               <div>
@@ -73,14 +88,14 @@ export default async function ExecutivePage(): Promise<React.ReactElement> {
                 <strong className="text-success">
                   {data.revenuePillar.momGrowthPct !== null
                     ? `${data.revenuePillar.momGrowthPct.toFixed(1)}%`
-                    : 'New'}
+                    : newLabel}
                 </strong>
                 {' | '}
                 YoY:{' '}
                 <strong className="text-success">
                   {data.revenuePillar.yoyGrowthPct !== null
                     ? `${data.revenuePillar.yoyGrowthPct.toFixed(1)}%`
-                    : 'New'}
+                    : newLabel}
                 </strong>
               </div>
             </div>
@@ -90,13 +105,13 @@ export default async function ExecutivePage(): Promise<React.ReactElement> {
         <Card className="border-l-4 border-border border-l-info bg-card">
           <CardContent className="px-5">
             <span className="text-xs font-black uppercase tracking-wider text-info">
-              2. Active Customer Base
+              {dict['analytics.pillar.customer'] ?? '2. Active Customer Base'}
             </span>
             <div className="mt-1 font-mono text-2xl font-black text-foreground">
               {data.customerPillar.totalUsers.toLocaleString()}
               <span className="text-xs font-normal text-muted-foreground">
                 {' '}
-                Users
+                {dict['Users'] ?? 'Users'}
               </span>
             </div>
             <div className="mt-2 space-y-1 font-mono text-xs text-muted-foreground">
@@ -105,10 +120,11 @@ export default async function ExecutivePage(): Promise<React.ReactElement> {
                 <strong className="text-info">
                   {data.customerPillar.proUsers.toLocaleString()}
                 </strong>{' '}
-                ({data.customerPillar.conversionRate}% Conv)
+                ({data.customerPillar.conversionRate}%{' '}
+                {dict['analytics.conv_abbr'] ?? 'Conv'})
               </div>
               <div>
-                Churn:{' '}
+                {dict['analytics.churn_abbr'] ?? 'Churn'}:{' '}
                 <strong className="text-warning">
                   {data.customerPillar.trueChurnRate}%
                 </strong>
@@ -117,7 +133,7 @@ export default async function ExecutivePage(): Promise<React.ReactElement> {
                 <strong className="text-success">
                   {data.customerPillar.momGrowthPct !== null
                     ? `${data.customerPillar.momGrowthPct.toFixed(1)}%`
-                    : 'New'}
+                    : newLabel}
                 </strong>
               </div>
             </div>
@@ -127,24 +143,24 @@ export default async function ExecutivePage(): Promise<React.ReactElement> {
         <Card className="border-l-4 border-border border-l-warning bg-card">
           <CardContent className="px-5">
             <span className="text-xs font-black uppercase tracking-wider text-warning">
-              3. Global Footprint
+              {dict['analytics.pillar.regional'] ?? '3. Global Footprint'}
             </span>
             <div className="mt-1 font-mono text-2xl font-black text-foreground">
               {data.regionalPillar.activeTaxAlertsCount}
               <span className="text-xs font-normal text-muted-foreground">
                 {' '}
-                Active Alerts
+                {dict['analytics.active_alerts'] ?? 'Active Alerts'}
               </span>
             </div>
             <div className="mt-2 space-y-1 font-mono text-xs text-muted-foreground">
               <div>
-                Top Rev:{' '}
+                {dict['analytics.top_rev_abbr'] ?? 'Top Rev'}:{' '}
                 <strong className="text-foreground">
                   {data.regionalPillar.topRevenueCountry}
                 </strong>
               </div>
               <div>
-                Top Users:{' '}
+                {dict['analytics.top_users_abbr'] ?? 'Top Users'}:{' '}
                 <strong className="text-foreground">
                   {data.regionalPillar.topUserCountry}
                 </strong>
@@ -156,33 +172,33 @@ export default async function ExecutivePage(): Promise<React.ReactElement> {
         <Card className="border-l-4 border-border border-l-chart-bullish bg-card">
           <CardContent className="px-5">
             <span className="text-xs font-black uppercase tracking-wider text-chart-bullish">
-              4. Affiliate Network
+              {dict['analytics.pillar.affiliate'] ?? '4. Affiliate Network'}
             </span>
             <div className="mt-1 font-mono text-2xl font-black text-foreground">
               {data.affiliatePillar.totalAffiliates.toLocaleString()}
               <span className="text-xs font-normal text-muted-foreground">
                 {' '}
-                Partners
+                {dict['analytics.partners'] ?? 'Partners'}
               </span>
             </div>
             <div className="mt-2 space-y-1 font-mono text-xs text-muted-foreground">
               <div>
-                Growth:{' '}
+                {dict['Growth'] ?? 'Growth'}:{' '}
                 <strong className="text-success">
                   {data.affiliatePillar.momGrowthPct !== null
                     ? `${data.affiliatePillar.momGrowthPct.toFixed(1)}%`
-                    : 'New'}
+                    : newLabel}
                 </strong>
                 {' | '}
-                Avg:{' '}
+                {dict['analytics.avg_abbr'] ?? 'Avg'}:{' '}
                 <strong className="text-foreground">
-                  ${data.affiliatePillar.avgCommission.toFixed(2)}
+                  {usd(data.affiliatePillar.avgCommission)}
                 </strong>
               </div>
               <div>
-                Sales Influenced:{' '}
+                {dict['analytics.sales_influenced'] ?? 'Sales Influenced'}:{' '}
                 <strong className="text-foreground">
-                  ${data.affiliatePillar.salesInfluencedUsd.toLocaleString()}
+                  {usd(data.affiliatePillar.salesInfluencedUsd)}
                 </strong>
               </div>
             </div>
@@ -194,15 +210,18 @@ export default async function ExecutivePage(): Promise<React.ReactElement> {
         <CardHeader>
           <div className="flex items-center justify-between gap-2">
             <CardTitle className="text-sm font-extrabold">
-              Cross-Functional Performance &amp; Strategic RAG Health Matrix
+              {dict['analytics.rag_matrix_title'] ??
+                'Cross-Functional Performance & Strategic RAG Health Matrix'}
             </CardTitle>
             <Badge className={cn('text-xs', RAG_BADGE_CLASS[overallRag])}>
-              {RAG_DOT[overallRag]} Overall Status:{' '}
+              {RAG_DOT[overallRag]}{' '}
+              {dict['analytics.overall_status'] ?? 'Overall Status:'}{' '}
               {overallRag === 'GREEN'
-                ? 'Optimal'
+                ? (dict['analytics.rag.optimal'] ?? 'Optimal')
                 : overallRag === 'AMBER'
-                  ? 'Attention Needed'
-                  : 'Critical'}
+                  ? (dict['analytics.rag.attention_needed'] ??
+                    'Attention Needed')
+                  : (dict['analytics.rag.critical'] ?? 'Critical')}
             </Badge>
           </div>
         </CardHeader>
@@ -211,14 +230,26 @@ export default async function ExecutivePage(): Promise<React.ReactElement> {
             <table className="w-full text-left text-xs">
               <thead className="bg-muted/50 font-mono text-muted-foreground">
                 <tr>
-                  <th className="px-3 py-2.5">Pillar</th>
-                  <th className="px-3 py-2.5">Primary KPI</th>
-                  <th className="px-3 py-2.5 text-right">Current</th>
-                  <th className="px-3 py-2.5 text-right">Prior</th>
-                  <th className="px-3 py-2.5 text-right">MoM Trend</th>
-                  <th className="px-3 py-2.5 text-right">YoY Benchmark</th>
+                  <th className="px-3 py-2.5">
+                    {dict['analytics.pillar_col'] ?? 'Pillar'}
+                  </th>
+                  <th className="px-3 py-2.5">
+                    {dict['analytics.primary_kpi'] ?? 'Primary KPI'}
+                  </th>
+                  <th className="px-3 py-2.5 text-right">
+                    {dict['Current'] ?? 'Current'}
+                  </th>
+                  <th className="px-3 py-2.5 text-right">
+                    {dict['Prior'] ?? 'Prior'}
+                  </th>
+                  <th className="px-3 py-2.5 text-right">
+                    {dict['analytics.mom_trend'] ?? 'MoM Trend'}
+                  </th>
+                  <th className="px-3 py-2.5 text-right">
+                    {dict['analytics.yoy_benchmark'] ?? 'YoY Benchmark'}
+                  </th>
                   <th className="px-3 py-2.5 text-center">RAG</th>
-                  <th className="px-3 py-2.5">Notes</th>
+                  <th className="px-3 py-2.5">{dict['Notes'] ?? 'Notes'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border font-mono">

@@ -1,5 +1,7 @@
 import type { AlertLevel } from '@/lib/admin/analytics/jurisdictions';
 import { cn } from '@/lib/utils';
+import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 export interface TaxThresholdGaugeProps {
   countryName: string;
@@ -40,15 +42,17 @@ function fmtLocal(amount: number | null, currency: string): string {
  * surveillance table. `NOT_APPLICABLE` (HK -- no VAT/GST regime) renders
  * text instead of a bar rather than a misleading 0%/full bar.
  */
-export function TaxThresholdGauge({
+export async function TaxThresholdGauge({
   countryName,
   utilizationPct,
   alertLevel,
   approxLocalSales,
   statutoryThreshold,
   statutoryThresholdCurrency,
-}: TaxThresholdGaugeProps): React.ReactElement {
+}: TaxThresholdGaugeProps): Promise<React.ReactElement> {
+  const dict = getDictionary(await getServerLanguage());
   const token = ALERT_LEVEL_TOKEN[alertLevel];
+  const alertLevelLabel = ALERT_LEVEL_LABEL[alertLevel];
 
   return (
     <div
@@ -71,27 +75,28 @@ export function TaxThresholdGauge({
             token === 'muted' && 'bg-muted text-muted-foreground'
           )}
         >
-          {ALERT_LEVEL_LABEL[alertLevel]}
+          {dict[alertLevelLabel] ?? alertLevelLabel}
         </span>
       </div>
 
       {alertLevel === 'NOT_APPLICABLE' ? (
         <p className="text-[11px] text-muted-foreground">
-          No VAT/GST regime applies to digital services in this jurisdiction.
+          {dict['analytics.no_vat_regime'] ??
+            'No VAT/GST regime applies to digital services in this jurisdiction.'}
         </p>
       ) : (
         <>
           <div className="flex justify-between font-mono text-[11px] text-muted-foreground">
             <span>
-              Approx. Local Sales:{' '}
+              {dict['analytics.approx_local_sales'] ?? 'Approx. Local Sales:'}{' '}
               <strong className="text-foreground">
                 {fmtLocal(approxLocalSales, statutoryThresholdCurrency)}
               </strong>
               {' / '}
-              Threshold:{' '}
+              {dict['Threshold:'] ?? 'Threshold:'}{' '}
               <strong className="text-foreground">
                 {statutoryThreshold === null
-                  ? 'Zero (Day 1)'
+                  ? (dict['analytics.zero_day_one'] ?? 'Zero (Day 1)')
                   : fmtLocal(statutoryThreshold, statutoryThresholdCurrency)}
               </strong>
             </span>

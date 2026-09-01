@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useLocale } from '@/lib/context/locale-context';
 
 export interface TimeframeOption {
   value: string;
@@ -32,6 +33,7 @@ export function TimeframeFilter({
   current,
   options,
 }: TimeframeFilterProps): React.ReactElement {
+  const { t } = useLocale();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -44,7 +46,9 @@ export function TimeframeFilter({
 
   return (
     <div className="bg-muted/50 flex items-center gap-1.5 rounded-xl border border-border px-3.5 py-1.5 text-xs shadow-inner">
-      <span className="text-muted-foreground">📅 Range:</span>
+      <span className="text-muted-foreground">
+        📅 {t('analytics.range', 'Range:')}
+      </span>
       <Select value={current} onValueChange={handleChange}>
         <SelectTrigger className="h-auto w-auto border-none bg-transparent p-0 font-bold text-foreground shadow-none focus:ring-0">
           <SelectValue />

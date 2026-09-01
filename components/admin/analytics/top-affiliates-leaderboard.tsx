@@ -1,5 +1,8 @@
+'use client';
+
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 
 export interface LeaderboardRow {
   rank: number;
@@ -34,21 +37,26 @@ const PAYOUT_BADGE_CLASS: Record<LeaderboardRow['payoutStatus'], string> = {
 export function TopAffiliatesLeaderboard({
   rows,
 }: TopAffiliatesLeaderboardProps): React.ReactElement {
+  const { t, formatCurrency } = useLocale();
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-xs">
         <thead className="bg-muted/50 font-mono text-muted-foreground">
           <tr>
-            <th className="px-3 py-2.5 text-center">Rank</th>
-            <th className="px-3 py-2.5">Masked Partner ID</th>
-            <th className="px-3 py-2.5">Country</th>
-            <th className="px-3 py-2.5 text-center">Tier</th>
-            <th className="px-3 py-2.5">Referral Code</th>
-            <th className="px-3 py-2.5 text-right">Codes Used</th>
-            <th className="px-3 py-2.5 text-right">Subscribers</th>
-            <th className="px-3 py-2.5 text-right">Gross Sales</th>
-            <th className="px-3 py-2.5 text-right text-success">Commission</th>
-            <th className="px-3 py-2.5 text-center">Payout</th>
+            <th className="px-3 py-2.5 text-center">{t('Rank')}</th>
+            <th className="px-3 py-2.5">
+              {t('analytics.masked_partner_id', 'Masked Partner ID')}
+            </th>
+            <th className="px-3 py-2.5">{t('Country')}</th>
+            <th className="px-3 py-2.5 text-center">{t('Tier')}</th>
+            <th className="px-3 py-2.5">{t('Referral Code')}</th>
+            <th className="px-3 py-2.5 text-right">{t('Codes Used')}</th>
+            <th className="px-3 py-2.5 text-right">{t('Subscribers')}</th>
+            <th className="px-3 py-2.5 text-right">{t('Gross Sales')}</th>
+            <th className="px-3 py-2.5 text-right text-success">
+              {t('Commission')}
+            </th>
+            <th className="px-3 py-2.5 text-center">{t('Payout')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border font-mono">
@@ -97,10 +105,10 @@ export function TopAffiliatesLeaderboard({
                 {row.subscribersReferred}
               </td>
               <td className="px-3 py-2 text-right font-semibold">
-                ${row.grossSalesUsd.toLocaleString()}
+                {formatCurrency(row.grossSalesUsd)}
               </td>
               <td className="px-3 py-2 text-right font-black text-success">
-                ${row.commissionEarnedUsd.toFixed(2)}
+                {formatCurrency(row.commissionEarnedUsd)}
               </td>
               <td className="px-3 py-2 text-center">
                 <Badge
@@ -120,7 +128,10 @@ export function TopAffiliatesLeaderboard({
                 colSpan={10}
                 className="px-3 py-8 text-center font-sans text-muted-foreground"
               >
-                No affiliate earnings recorded for this period yet.
+                {t(
+                  'analytics.no_affiliate_earnings',
+                  'No affiliate earnings recorded for this period yet.'
+                )}
               </td>
             </tr>
           )}

@@ -4,35 +4,41 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 
 const TABS = [
   {
     href: '/admin/dashboards/revenue',
     icon: '📊',
+    labelKey: 'analytics.tab.revenue',
     label: 'Sales & Revenue Velocity',
     badge: 'Metrics #8-#11',
   },
   {
     href: '/admin/dashboards/users',
     icon: '👥',
+    labelKey: 'analytics.tab.users',
     label: 'Customer Funnel & 6M Trajectory',
     badge: 'Metrics #1-#7, #12',
   },
   {
     href: '/admin/dashboards/regional',
     icon: '🌍',
+    labelKey: 'analytics.tab.regional',
     label: 'Regional & Tax Surveillance',
     badge: 'Metrics #13-#19',
   },
   {
     href: '/admin/dashboards/affiliates',
     icon: '🤝',
+    labelKey: 'analytics.tab.affiliates',
     label: 'Affiliate Partner Network',
     badge: 'Metrics #20-#25',
   },
   {
     href: '/admin/dashboards/executive',
     icon: '⚡',
+    labelKey: 'analytics.tab.executive',
     label: 'Executive Command Center',
     badge: 'C-Suite Overview',
   },
@@ -45,6 +51,7 @@ const TABS = [
  */
 export function DashboardTabs(): React.ReactElement {
   const pathname = usePathname();
+  const { t } = useLocale();
 
   return (
     <nav
@@ -65,7 +72,7 @@ export function DashboardTabs(): React.ReactElement {
             )}
           >
             <span>{tab.icon}</span>
-            <span>{tab.label}</span>
+            <span>{t(tab.labelKey, tab.label)}</span>
             <span
               className={cn(
                 'rounded px-1.5 py-0.5 font-mono text-[10px]',

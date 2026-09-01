@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useLocale } from '@/lib/context/locale-context';
 
 export interface HistoricalTrendPoint {
   monthLabel: string;
@@ -30,6 +31,7 @@ export interface HistoricalTrendChartProps {
 export function HistoricalTrendChart({
   data,
 }: HistoricalTrendChartProps): React.ReactElement {
+  const { t } = useLocale();
   return (
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -75,8 +77,8 @@ export function HistoricalTrendChart({
             formatter={(value: number, name: string) => [
               `${value.toFixed(2)}%`,
               name === 'conversionRatePct'
-                ? 'Conversion Rate'
-                : 'True Churn Rate',
+                ? t('Conversion Rate')
+                : t('True Churn Rate'),
             ]}
           />
           <Area
