@@ -325,6 +325,7 @@ export const authOptions: NextAuthOptions = {
           GoogleProvider({
             clientId: process.env['GOOGLE_CLIENT_ID']!,
             clientSecret: process.env['GOOGLE_CLIENT_SECRET']!,
+            allowDangerousEmailAccountLinking: true,
             authorization: {
               params: {
                 prompt: 'consent',
@@ -342,6 +343,7 @@ export const authOptions: NextAuthOptions = {
             clientId: process.env['TWITTER_CLIENT_ID']!,
             clientSecret: process.env['TWITTER_CLIENT_SECRET']!,
             version: '2.0',
+            allowDangerousEmailAccountLinking: true,
             authorization: {
               params: {
                 scope: 'tweet.read users.read offline.access',
@@ -356,6 +358,7 @@ export const authOptions: NextAuthOptions = {
           LinkedInProvider({
             clientId: process.env['LINKEDIN_CLIENT_ID']!,
             clientSecret: process.env['LINKEDIN_CLIENT_SECRET']!,
+            allowDangerousEmailAccountLinking: true,
             authorization: {
               params: {
                 scope: 'openid profile email',
@@ -578,6 +581,34 @@ export const authOptions: NextAuthOptions = {
         return session;
       }
     },
+
+    /**
+     * Redirect Callback - Handle safe redirection across local and production apex/www domains
+     */
+    async redirect({ url, baseUrl }) {
+      // Allows relative callback URLs
+      if (url.startsWith('/')) {
+        return `${baseUrl}${url}`;
+      }
+      try {
+        const targetUrl = new URL(url);
+        const currentBase = new URL(baseUrl);
+        // Normalize apex and www domains (e.g. davintrade.app vs www.davintrade.app)
+        const targetHost = targetUrl.hostname.replace(/^www\./, '');
+        const baseHost = currentBase.hostname.replace(/^www\./, '');
+        if (
+          targetHost === baseHost ||
+          targetHost.endsWith('.vercel.app') ||
+          targetHost === 'localhost' ||
+          targetHost === '127.0.0.1'
+        ) {
+          return url;
+        }
+      } catch {
+        // Fall back to default baseUrl on parsing error
+      }
+      return baseUrl;
+    },
   },
 
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -627,7 +658,7 @@ export const authOptions: NextAuthOptions = {
     csrfToken: {
       name:
         process.env.NODE_ENV === 'production'
-          ? '__Host-next-auth.csrf-token'
+          ? '__Secure-next-auth.csrf-token'
           : 'next-auth.csrf-token',
       options: {
         httpOnly: true,
