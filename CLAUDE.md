@@ -507,6 +507,86 @@ source connect` has no flag for it — confirmed via `--help` before connecting)
 >   this file. Not yet committed — left for Davin's review of this entry before it becomes a commit,
 >   consistent with this file's own established CONFIRM-before-commit pattern.
 
+> **Ad-hoc session (2026-09-01, same day, phase/session unchanged) — correction to the entry
+> immediately above:** the cookie-domain fix above was real, necessary groundwork, but Davin
+> confirmed live in chat it did **not** fix the actual reported bug — `error=Callback` persisted
+> after that fix deployed. **Live production testing (browser-driven, stopping short of entering
+> any credentials) found the actual mechanism was entirely different from what the prior entry
+> diagnosed:** navigating to the apex domain 308-redirects to `www.davintrade.app` at the Vercel/DNS
+> edge, before any application code runs — the whole OAuth round trip (initiation, Google's
+> `redirect_uri`, the callback) happens on one consistent host every time. The apex/www split
+> never actually occurs in practice; that half of the prior diagnosis was wrong.
+> **The real root cause, surfaced only once Davin pulled the actual Vercel runtime logs** (the
+> `[OAuth]`/`[SignIn]` diagnostic logging added in the entry above): `PrismaClientKnownRequestError
+P2022 — The column User.profile does not exist in the current database`, thrown by
+> `getUserByAccount`'s very first `prisma.account.findUnique({ include: { user: true } })` call —
+> every single OAuth sign-in died there, before ever reaching adapter linking logic, `signIn`, or
+> `jwt`. **`User.profile` (`Json?`, added for the Session 11-3 AI Token Metering feature) was never
+> captured in any tracked Prisma migration** — it was applied directly to some database via
+> `db push`/manual SQL outside migration history at some point, so `prisma migrate deploy` alone
+> could never have caught this either; there was nothing in `prisma/migrations/` to deploy.
+> **A second, deeper untracked-drift layer found while investigating, not assumed:** replaying all
+> 14 (at the time) tracked migrations from empty into a disposable shadow database (created and
+> dropped on the same Postgres server, zero real data touched) failed partway through
+> `20260831061759_add_tutorial_videos` — `type "MarketingAssetStatus" does not exist`. That enum,
+> its sibling `MarketingAssetCategory`, and the entire `MarketingAsset` table (the Marketing
+> Resources / Media Kit feature) were **also** never captured in any migration — same drift class,
+> earlier and separate incident. Confirmed directly against a database where the feature is known
+> live and working (read-only introspection) to get the exact column/index shape before writing
+> anything.
+> **A third finding, load-bearing for the whole session, not merely academic:** the "railway"
+> Postgres this Executor could reach via the repo's own `.env.local` turned out to be a **separate
+> Railway project literally named "postgre for staging"** — not production at all. Discovered only
+> because Davin screenshotted the Railway dashboard directly; every check this session ran against
+> that connection (schema structure, `migrate status`, the shadow-DB replay) was accurate about
+> _that_ database but told us nothing about production's actual state. Production lives in the
+> "trading-alerts" Railway project instead, and its `DATABASE_URL` there is Railway's **internal**
+> address (`postgres.railway.internal`) — unreachable from outside Railway's network entirely
+> (Vercel included), so Vercel's own copy must run through `DATABASE_PUBLIC_URL` / the project's
+> `pgbouncer` service instead. Also found live, not assumed: `vercel env pull` cannot retrieve
+> `DATABASE_URL`/`DIRECT_URL` at all once a Vercel env var is marked Sensitive — the CLI writes a
+> `[SENSITIVE]` placeholder instead of the real value, by design, permanently. Davin retrieved the
+> real production connection string directly from Railway's own dashboard instead (Railway, not
+> Vercel, is the value's actual source of truth) and pasted it only into a local, gitignored
+> `.env.production.local` — never into this chat.
+> **Both migrations applied directly to production** via `prisma migrate deploy`, run by Davin from
+> his own machine against a throwaway `prisma.production-check.config.ts` (pointed at
+> `.env.production.local` specifically, since the repo's real `prisma.config.ts` loads `.env.local`
+> with `override: true` and would otherwise silently substitute the staging credential for whatever
+> was set beforehand) — six migrations total applied cleanly in one pass:
+> `vat_tax_invoicing_stack`, `commission_clawback_link`, `commission_recurring_invoice_id`,
+> `backfill_marketing_assets`, `add_tutorial_videos`, `add_user_profile_column`. The first three
+> were pre-existing, unrelated pending migrations discovered as a side effect of finally checking
+> production's real status (dating back to 2026-08-29) — each independently reviewed for
+> safety (self-contained `CREATE TABLE`, or nullable-column `ALTER TABLE` on an existing table, no
+> external dependencies) before deploying rather than trusting migration count alone.
+> **Verified after deploy, not assumed:** `prisma migrate status` against production reports "up to
+> date"; Davin confirmed live, in his own browser, that both Google and Twitter/X sign-in now work
+> end to end. This Executor independently re-checked `/affiliate/leaderboard` and `/academy` (the
+> latter reads the now-created `TutorialVideo` table) — both render live data, zero console/server
+> errors, confirming the six-migration deploy caused no regression elsewhere.
+> **Lesson harvested:** no new lesson promoted (file's own 40-entry cap) — worth flagging to the
+> Advisor for a future consolidation pass regardless: this session found _three_ separate instances
+> of the same failure class (`db push` bypassing migration tracking, leaving a database durably
+> ahead of `prisma/migrations/`) across three unrelated features (AI Token Metering, Marketing
+> Resources, and whatever produced the staging/production project split itself), plus confirmation
+> that `prisma migrate status`/`deploy` give zero warning about this specific class of drift — they
+> only compare against tracked history, never against what the live schema actually contains. A
+> repo-wide audit (introspect every environment's real schema, diff against `schema.prisma` directly
+> rather than via migration history) would proactively catch further instances of exactly this
+> pattern before they reach a live-production incident like today's.
+> **Cleaned up, not left lying around:** the disposable shadow database, all throwaway diagnostic
+> scripts, `prisma.production-check.config.ts`, and `.env.production.local` (the file holding the
+> real production connection string) were all deleted from disk once the fix was confirmed working
+> — nothing with production credentials was left behind, committed, or ever appeared in this
+> session's own chat transcript.
+> **Artifacts:** `lib/auth/auth-options.ts` (unchanged from the entry above — kept, since the
+> apex/www cookie-domain sharing is still correct hardening even though it wasn't the active cause
+> here), `prisma/migrations/20260830020000_backfill_marketing_assets/migration.sql` (new),
+> `prisma/migrations/20260901062245_add_user_profile_column/migration.sql` (from the entry above,
+> now confirmed as the actual fix), this file. Both migrations committed and pushed
+> (`de40dc05`, `b5d34b7c`).
+
 - **Current:** Session 14-3 (Cutover + Runbook, Phase 14 — fourth and last of 4 sessions,
   VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. **Phase 14
   (Web Chat / Contabo Support Stack) is now COMPLETE.** Flips `NEXT_PUBLIC_SOCKET_CHAT_URL` +
@@ -645,16 +725,13 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 
 ## Waiting on
 
-- **OAuth apex/www cookie-domain fix — live click-through not yet performed** (2026-09-01 ad-hoc
-  session) — `lib/auth/auth-options.ts` now shares the state/PKCE/session cookies across
-  `davintrade.app` and `www.davintrade.app` via an explicit `.davintrade.app` cookie `domain`
-  (gated on `VERCEL_ENV==='production'` so preview deploys stay unaffected). `tsc`/`eslint`/full
-  `test:ci` all clean, and the fix's underlying mechanism (host-only OAuth state cookies breaking
-  the callback when the initiating host differs from the fixed-`NEXTAUTH_URL` callback host) is
-  well-established NextAuth behavior, not a guess — but it cannot be exercised on `localhost`
-  (single host). Needs Davin to deploy and complete one real Google/Twitter/LinkedIn sign-in
-  starting from **each** of `davintrade.app` and `www.davintrade.app`, since the Executor never
-  enters OAuth credentials itself.
+- **RESOLVED 2026-09-01:** OAuth `error=Callback` — see the two same-day ad-hoc entries above.
+  Root cause was untracked schema drift (`User.profile`, then a second layer:
+  `MarketingAsset`/`MarketingAssetStatus`/`MarketingAssetCategory`), not the apex/www cookie theory
+  the first entry chased — that fix stayed in as valid hardening but wasn't the active cause.
+  Davin confirmed live, in his own browser, that both Google and Twitter/X sign-in now work.
+  **LinkedIn was never actually tested** (Davin's original report and every live check this session
+  ran only covered Google/Twitter/X) — flagged in case it still needs its own confirmation pass.
 - **BI dashboard authenticated visual verification** — the new `/admin/dashboards/*` suite
   (2026-08-31 ad-hoc session) is verified structurally (routes compile, RBAC redirect works,
   raw SQL runs clean against live data) but not visually as a logged-in admin — needs Davin's own
