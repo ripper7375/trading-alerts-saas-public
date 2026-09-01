@@ -15,6 +15,16 @@ import {
   getYouTubeEmbedUrl,
   getYouTubeThumbnailUrl,
 } from '@/lib/tutorials/youtube';
+import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
+
+const CATEGORY_LABEL_KEYS: Record<TutorialCategory, string> = {
+  GETTING_STARTED: 'academy.category.getting_started',
+  PLATFORM_WALKTHROUGH: 'academy.category.platform_walkthrough',
+  TRADING_STRATEGIES: 'academy.category.trading_strategies',
+  RISK_MANAGEMENT: 'academy.category.risk_management',
+  MARKET_ANALYSIS: 'academy.category.market_analysis',
+};
 
 const CATEGORY_LABELS: Record<TutorialCategory, string> = {
   GETTING_STARTED: 'Getting Started',
@@ -68,6 +78,9 @@ export default async function TutorialDetailPage({
   await incrementTutorialViewCount(id);
 
   const related = await getRelatedTutorials(tutorial.category, tutorial.id);
+  const dict = getDictionary(await getServerLanguage());
+  const categoryLabel = (cat: TutorialCategory): string =>
+    dict[CATEGORY_LABEL_KEYS[cat]] ?? CATEGORY_LABELS[cat];
 
   return (
     <div className="bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
@@ -88,11 +101,12 @@ export default async function TutorialDetailPage({
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400">
-                  {CATEGORY_LABELS[tutorial.category]}
+                  {categoryLabel(tutorial.category)}
                 </Badge>
                 <span className="flex items-center gap-1 text-xs text-slate-500">
                   <Eye className="h-3.5 w-3.5" />
-                  {(tutorial.viewCount + 1).toLocaleString()} views
+                  {(tutorial.viewCount + 1).toLocaleString()}{' '}
+                  {dict['academy.views'] ?? 'views'}
                 </span>
               </div>
 
@@ -109,7 +123,8 @@ export default async function TutorialDetailPage({
               href="/academy"
               className="inline-block text-sm font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
             >
-              &larr; Back to all tutorials
+              &larr;{' '}
+              {dict['academy.back_to_all_tutorials'] ?? 'Back to all tutorials'}
             </Link>
           </div>
 
@@ -118,25 +133,27 @@ export default async function TutorialDetailPage({
             <Card className="border-amber-500/40 bg-white shadow-xl dark:border-amber-500/20 dark:bg-[#090b14]/90">
               <CardContent className="space-y-3 p-5">
                 <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                  Ready to put it into practice?
+                  {dict['academy.cta_title'] ??
+                    'Ready to put it into practice?'}
                 </h2>
                 <p className="text-xs text-slate-600 dark:text-slate-400">
-                  Get full AI pattern recognition and real-time alerts with
-                  DavinTrade PRO.
+                  {dict['academy.sidebar_cta_subtitle'] ??
+                    'Get full AI pattern recognition and real-time alerts with DavinTrade PRO.'}
                 </p>
                 <Button
                   asChild
                   className="w-full bg-gradient-to-r from-amber-500 to-amber-600 font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
                 >
                   <Link href="/checkout">
-                    Upgrade to PRO Now
+                    {dict['academy.upgrade_to_pro_now'] ?? 'Upgrade to PRO Now'}
                     <ArrowRight className="ml-1.5 h-4 w-4" />
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="w-full">
                   <Link href="/affiliate/register">
                     <Sparkles className="mr-1.5 h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    Join Affiliate Program
+                    {dict['analytics.join_affiliate_program'] ??
+                      'Join Affiliate Program'}
                   </Link>
                 </Button>
               </CardContent>
@@ -145,7 +162,7 @@ export default async function TutorialDetailPage({
             {related.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                  Related Tutorials
+                  {dict['academy.related_tutorials'] ?? 'Related Tutorials'}
                 </h3>
                 {related.map((r) => (
                   <Link

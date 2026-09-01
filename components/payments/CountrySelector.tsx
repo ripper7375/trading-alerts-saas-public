@@ -17,6 +17,7 @@ import {
   COUNTRY_NAMES,
   DLOCAL_SUPPORTED_COUNTRIES,
 } from '@/lib/dlocal/constants';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -59,6 +60,7 @@ export function CountrySelector({
   autoDetect = true,
   disabled = false,
 }: CountrySelectorProps): React.ReactElement {
+  const { t } = useLocale();
   const [detecting, setDetecting] = useState(autoDetect && !value);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,10 +108,12 @@ export function CountrySelector({
   if (detecting) {
     return (
       <div className="space-y-2">
-        <label className="text-sm font-medium">Select your country</label>
+        <label className="text-sm font-medium">
+          {t('payments.select_your_country', 'Select your country')}
+        </label>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          Detecting your country...
+          {t('payments.detecting_country', 'Detecting your country...')}
         </div>
       </div>
     );
@@ -118,7 +122,7 @@ export function CountrySelector({
   return (
     <div className="space-y-2">
       <label htmlFor="country-select" className="text-sm font-medium">
-        Select your country
+        {t('payments.select_your_country', 'Select your country')}
       </label>
       <select
         id="country-select"
@@ -126,9 +130,11 @@ export function CountrySelector({
         onChange={handleChange}
         disabled={disabled}
         className="w-full rounded-lg border border-input bg-background p-3 text-sm ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-        aria-label="Select your country"
+        aria-label={t('payments.select_your_country', 'Select your country')}
       >
-        <option value="">Choose a country</option>
+        <option value="">
+          {t('payments.choose_a_country', 'Choose a country')}
+        </option>
         {DLOCAL_SUPPORTED_COUNTRIES.map((country) => (
           <option key={country} value={country}>
             {COUNTRY_FLAGS[country]} {COUNTRY_NAMES[country]}

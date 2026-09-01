@@ -61,6 +61,7 @@ import {
   extractYouTubeVideoId,
   getYouTubeThumbnailUrl,
 } from '@/lib/tutorials/youtube';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -74,6 +75,14 @@ type TutorialCategory =
   | 'MARKET_ANALYSIS';
 
 type TutorialStatus = 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
+
+const CATEGORY_LABEL_KEYS: Record<TutorialCategory, string> = {
+  GETTING_STARTED: 'academy.category.getting_started',
+  PLATFORM_WALKTHROUGH: 'academy.category.platform_walkthrough',
+  TRADING_STRATEGIES: 'academy.category.trading_strategies',
+  RISK_MANAGEMENT: 'academy.category.risk_management',
+  MARKET_ANALYSIS: 'academy.category.market_analysis',
+};
 
 const CATEGORY_LABELS: Record<TutorialCategory, string> = {
   GETTING_STARTED: 'Getting Started',
@@ -107,22 +116,13 @@ interface AdminTutorialListResponse {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// HELPERS
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COMPONENT
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function AdminTutorialsPage(): React.ReactElement {
+  const { t, formatDate } = useLocale();
+  const categoryLabel = (cat: TutorialCategory): string =>
+    t(CATEGORY_LABEL_KEYS[cat], CATEGORY_LABELS[cat]);
   const [tutorials, setTutorials] = useState<Tutorial[]>([]);
   const [total, setTotal] = useState(0);
   const [totalViews, setTotalViews] = useState(0);
@@ -252,8 +252,11 @@ export default function AdminTutorialsPage(): React.ReactElement {
       resetForm();
       setSuccessMessage(
         editingTutorial
-          ? 'Tutorial updated.'
-          : 'Tutorial published to the Academy.'
+          ? t('academy.admin.tutorial_updated', 'Tutorial updated.')
+          : t(
+              'academy.admin.tutorial_published',
+              'Tutorial published to the Academy.'
+            )
       );
       setTimeout(() => setSuccessMessage(''), 4000);
       await fetchTutorials();
@@ -300,7 +303,12 @@ export default function AdminTutorialsPage(): React.ReactElement {
         throw new Error(data.error || 'Failed to delete tutorial');
       }
       setDeleteTarget(null);
-      setSuccessMessage('Tutorial removed from the Academy.');
+      setSuccessMessage(
+        t(
+          'academy.admin.tutorial_removed',
+          'Tutorial removed from the Academy.'
+        )
+      );
       setTimeout(() => setSuccessMessage(''), 3000);
       await fetchTutorials();
     } catch (err) {
@@ -318,11 +326,13 @@ export default function AdminTutorialsPage(): React.ReactElement {
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            Academy Tutorials
+            {t('academy.admin.title', 'Academy Tutorials')}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Curate the YouTube trading &amp; platform tutorials shown on the
-            public /academy pages
+            {t(
+              'academy.admin.subtitle',
+              'Curate the YouTube trading & platform tutorials shown on the public /academy pages'
+            )}
           </p>
         </div>
 
@@ -335,28 +345,40 @@ export default function AdminTutorialsPage(): React.ReactElement {
         >
           <Button onClick={openAddDialog}>
             <Plus className="mr-1.5 h-4 w-4" />
-            Add Tutorial
+            {t('academy.admin.add_tutorial', 'Add Tutorial')}
           </Button>
           <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {editingTutorial ? 'Edit Tutorial' : 'Publish New Tutorial'}
+                {editingTutorial
+                  ? t('academy.admin.edit_tutorial', 'Edit Tutorial')
+                  : t(
+                      'academy.admin.publish_new_tutorial',
+                      'Publish New Tutorial'
+                    )}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="tutorial-title">Title *</Label>
+                <Label htmlFor="tutorial-title">
+                  {t('academy.admin.title_field', 'Title')} *
+                </Label>
                 <Input
                   id="tutorial-title"
                   required
-                  placeholder="e.g. Reading the Order Book Like a Pro"
+                  placeholder={t(
+                    'academy.admin.title_placeholder',
+                    'e.g. Reading the Order Book Like a Pro'
+                  )}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="tutorial-url">YouTube URL *</Label>
+                <Label htmlFor="tutorial-url">
+                  {t('academy.admin.youtube_url', 'YouTube URL')} *
+                </Label>
                 <Input
                   id="tutorial-url"
                   required
@@ -370,27 +392,42 @@ export default function AdminTutorialsPage(): React.ReactElement {
                     <div className="bg-accent/30 flex items-center gap-3 rounded-md border border-border p-2">
                       <img
                         src={getYouTubeThumbnailUrl(previewVideoId)}
-                        alt="Thumbnail preview"
+                        alt={t(
+                          'academy.admin.thumbnail_preview_alt',
+                          'Thumbnail preview'
+                        )}
                         className="h-12 w-20 rounded object-cover"
                       />
                       <span className="text-xs text-emerald-600 dark:text-emerald-400">
-                        Video ID recognized: {previewVideoId}
+                        {t(
+                          'academy.admin.video_id_recognized',
+                          'Video ID recognized:'
+                        )}{' '}
+                        {previewVideoId}
                       </span>
                     </div>
                   ) : (
                     <p className="text-xs text-red-500">
-                      Doesn&apos;t look like a valid YouTube URL yet
+                      {t(
+                        'academy.admin.invalid_youtube_url',
+                        "Doesn't look like a valid YouTube URL yet"
+                      )}
                     </p>
                   ))}
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="tutorial-description">Description *</Label>
+                <Label htmlFor="tutorial-description">
+                  {t('Description')} *
+                </Label>
                 <Textarea
                   id="tutorial-description"
                   required
                   rows={3}
-                  placeholder="What will viewers learn from this video?"
+                  placeholder={t(
+                    'academy.admin.description_placeholder',
+                    'What will viewers learn from this video?'
+                  )}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
@@ -398,7 +435,9 @@ export default function AdminTutorialsPage(): React.ReactElement {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="tutorial-category">Category *</Label>
+                  <Label htmlFor="tutorial-category">
+                    {t('academy.admin.category_field', 'Category')} *
+                  </Label>
                   <Select
                     value={category}
                     onValueChange={(value) =>
@@ -412,7 +451,7 @@ export default function AdminTutorialsPage(): React.ReactElement {
                       {(Object.keys(CATEGORY_LABELS) as TutorialCategory[]).map(
                         (c) => (
                           <SelectItem key={c} value={c}>
-                            {CATEGORY_LABELS[c]}
+                            {categoryLabel(c)}
                           </SelectItem>
                         )
                       )}
@@ -427,7 +466,10 @@ export default function AdminTutorialsPage(): React.ReactElement {
                     onCheckedChange={(checked) => setFeatured(checked === true)}
                   />
                   <Label htmlFor="tutorial-featured" className="font-normal">
-                    Feature at top of Academy
+                    {t(
+                      'academy.admin.feature_at_top',
+                      'Feature at top of Academy'
+                    )}
                   </Label>
                 </div>
               </div>
@@ -442,14 +484,17 @@ export default function AdminTutorialsPage(): React.ReactElement {
                   variant="ghost"
                   onClick={() => setIsDialogOpen(false)}
                 >
-                  Cancel
+                  {t('Cancel')}
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting
-                    ? 'Saving...'
+                    ? t('Saving...')
                     : editingTutorial
-                      ? 'Save Changes'
-                      : 'Publish to Academy'}
+                      ? t('Save Changes')
+                      : t(
+                          'academy.admin.publish_to_academy',
+                          'Publish to Academy'
+                        )}
                 </Button>
               </DialogFooter>
             </form>
@@ -476,7 +521,7 @@ export default function AdminTutorialsPage(): React.ReactElement {
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Total Tutorials
+                {t('academy.admin.total_tutorials', 'Total Tutorials')}
               </p>
               <div className="mt-1 text-2xl font-bold text-foreground">
                 {total}
@@ -492,7 +537,7 @@ export default function AdminTutorialsPage(): React.ReactElement {
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Total Views
+                {t('academy.admin.total_views', 'Total Views')}
               </p>
               <div className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                 {totalViews.toLocaleString()}
@@ -508,7 +553,7 @@ export default function AdminTutorialsPage(): React.ReactElement {
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Categories
+                {t('academy.admin.categories', 'Categories')}
               </p>
               <div className="mt-1 text-2xl font-bold text-primary">
                 {categoryCount}
@@ -528,7 +573,10 @@ export default function AdminTutorialsPage(): React.ReactElement {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search tutorials..."
+                placeholder={t(
+                  'academy.admin.search_tutorials',
+                  'Search tutorials...'
+                )}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-64 pl-9"
@@ -545,11 +593,13 @@ export default function AdminTutorialsPage(): React.ReactElement {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All Categories</SelectItem>
+                <SelectItem value="ALL">
+                  {t('academy.admin.all_categories', 'All Categories')}
+                </SelectItem>
                 {(Object.keys(CATEGORY_LABELS) as TutorialCategory[]).map(
                   (c) => (
                     <SelectItem key={c} value={c}>
-                      {CATEGORY_LABELS[c]}
+                      {categoryLabel(c)}
                     </SelectItem>
                   )
                 )}
@@ -566,16 +616,27 @@ export default function AdminTutorialsPage(): React.ReactElement {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All Statuses</SelectItem>
-                <SelectItem value="ACTIVE">Active</SelectItem>
-                <SelectItem value="ARCHIVED">Archived</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
+                <SelectItem value="ALL">
+                  {t('academy.admin.all_statuses', 'All Statuses')}
+                </SelectItem>
+                <SelectItem value="ACTIVE">{t('Active')}</SelectItem>
+                <SelectItem value="ARCHIVED">
+                  {t('academy.admin.archived', 'Archived')}
+                </SelectItem>
+                <SelectItem value="DRAFT">
+                  {t('academy.admin.draft', 'Draft')}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <span className="text-sm text-muted-foreground">
-            Showing {tutorials.length} of {total} tutorials
+            {t(
+              'academy.admin.showing_x_of_y_tutorials',
+              'Showing {shown} of {total} tutorials'
+            )
+              .replace('{shown}', String(tutorials.length))
+              .replace('{total}', String(total))}
           </span>
         </CardContent>
       </Card>
@@ -593,19 +654,19 @@ export default function AdminTutorialsPage(): React.ReactElement {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Tutorial
+                      {t('academy.admin.tutorial_col', 'Tutorial')}
                     </th>
                     <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
-                      Category
+                      {t('academy.category_col', 'Category')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Views
+                      {t('academy.admin.views_col', 'Views')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Status
+                      {t('Status')}
                     </th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                      Actions
+                      {t('Actions')}
                     </th>
                   </tr>
                 </thead>
@@ -616,7 +677,10 @@ export default function AdminTutorialsPage(): React.ReactElement {
                         colSpan={5}
                         className="px-4 py-12 text-center text-muted-foreground"
                       >
-                        No tutorials found
+                        {t(
+                          'academy.admin.no_tutorials_found',
+                          'No tutorials found'
+                        )}
                       </td>
                     </tr>
                   ) : (
@@ -642,7 +706,8 @@ export default function AdminTutorialsPage(): React.ReactElement {
                                 {tutorial.title}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                Updated: {formatDate(tutorial.updatedAt)}
+                                {t('academy.admin.updated', 'Updated:')}{' '}
+                                {formatDate(tutorial.updatedAt)}
                               </div>
                             </div>
                           </div>
@@ -652,7 +717,7 @@ export default function AdminTutorialsPage(): React.ReactElement {
                             variant="outline"
                             className="border-border bg-muted text-muted-foreground"
                           >
-                            {CATEGORY_LABELS[tutorial.category]}
+                            {categoryLabel(tutorial.category)}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 font-mono text-sm font-medium text-emerald-600 dark:text-emerald-400">
@@ -663,7 +728,10 @@ export default function AdminTutorialsPage(): React.ReactElement {
                             type="button"
                             disabled={togglingId === tutorial.id}
                             onClick={() => void handleToggleStatus(tutorial)}
-                            title="Click to toggle Active/Archived"
+                            title={t(
+                              'academy.admin.toggle_active_archived',
+                              'Click to toggle Active/Archived'
+                            )}
                           >
                             <Badge
                               className={
@@ -684,7 +752,10 @@ export default function AdminTutorialsPage(): React.ReactElement {
                               variant="ghost"
                               size="sm"
                               onClick={() => openEditDialog(tutorial)}
-                              title="Edit Tutorial"
+                              title={t(
+                                'academy.admin.edit_tutorial_title',
+                                'Edit Tutorial'
+                              )}
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -704,7 +775,10 @@ export default function AdminTutorialsPage(): React.ReactElement {
                                   size="sm"
                                   className="text-red-500 hover:bg-red-500/10 hover:text-red-500"
                                   onClick={() => setDeleteTarget(tutorial)}
-                                  title="Delete Tutorial"
+                                  title={t(
+                                    'academy.admin.delete_tutorial_title',
+                                    'Delete Tutorial'
+                                  )}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
@@ -712,11 +786,16 @@ export default function AdminTutorialsPage(): React.ReactElement {
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>
-                                    Delete &ldquo;{tutorial.title}&rdquo;?
+                                    {t(
+                                      'academy.admin.delete_confirm_title',
+                                      'Delete "{title}"?'
+                                    ).replace('{title}', tutorial.title)}
                                   </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This removes the tutorial from the public
-                                    Academy pages. This cannot be undone.
+                                    {t(
+                                      'academy.admin.delete_confirm_body',
+                                      'This removes the tutorial from the public Academy pages. This cannot be undone.'
+                                    )}
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 {deleteError && (
@@ -726,14 +805,19 @@ export default function AdminTutorialsPage(): React.ReactElement {
                                 )}
                                 <AlertDialogFooter>
                                   <AlertDialogCancel disabled={isDeleting}>
-                                    Cancel
+                                    {t('Cancel')}
                                   </AlertDialogCancel>
                                   <AlertDialogAction
                                     disabled={isDeleting}
                                     onClick={() => void handleDelete()}
                                     className="hover:bg-destructive/90 bg-destructive text-white"
                                   >
-                                    {isDeleting ? 'Deleting...' : 'Delete'}
+                                    {isDeleting
+                                      ? t(
+                                          'academy.admin.deleting',
+                                          'Deleting...'
+                                        )
+                                      : t('Delete')}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>

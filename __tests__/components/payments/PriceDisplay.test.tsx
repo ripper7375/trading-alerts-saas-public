@@ -14,10 +14,32 @@
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { PriceDisplay } from '@/components/payments/PriceDisplay';
+import {
+  LocaleProvider,
+  defaultPreferences,
+} from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/checkout',
+}));
 
 // Mock fetch
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
+
+// PriceDisplay calls useLocale() -- needs a LocaleProvider ancestor
+// (LESSONS-LEARNED.md L40). Pre-seed a known preference so LocaleProvider's
+// own first-visit geo-IP fetch() never fires -- this file's mockFetch is a
+// blanket mock answering ANY fetch call, so an unseeded LocaleProvider
+// would inflate this suite's own call-count assertions by one.
+beforeEach(() => {
+  localStorage.setItem(LOCALE_STORAGE_KEY, JSON.stringify(defaultPreferences));
+});
+
+function withLocale(ui: React.ReactElement): React.ReactElement {
+  return <LocaleProvider>{ui}</LocaleProvider>;
+}
 
 describe('PriceDisplay', () => {
   const defaultProps = {
@@ -38,7 +60,7 @@ describe('PriceDisplay', () => {
 
   describe('loading state', () => {
     it('should display loading state initially', () => {
-      render(<PriceDisplay {...defaultProps} />);
+      render(withLocale(<PriceDisplay {...defaultProps} />));
 
       expect(screen.getByText(/calculating price/i)).toBeInTheDocument();
     });
@@ -46,7 +68,7 @@ describe('PriceDisplay', () => {
 
   describe('display', () => {
     it('should display local currency amount after loading', async () => {
-      render(<PriceDisplay {...defaultProps} />);
+      render(withLocale(<PriceDisplay {...defaultProps} />));
 
       await waitFor(() => {
         expect(screen.getByText(/₹2,407\.48/)).toBeInTheDocument();
@@ -54,7 +76,7 @@ describe('PriceDisplay', () => {
     });
 
     it('should display USD equivalent', async () => {
-      render(<PriceDisplay {...defaultProps} />);
+      render(withLocale(<PriceDisplay {...defaultProps} />));
 
       await waitFor(() => {
         expect(screen.getByText(/≈ \$29\.00 USD/)).toBeInTheDocument();
@@ -62,7 +84,7 @@ describe('PriceDisplay', () => {
     });
 
     it('should display exchange rate', async () => {
-      render(<PriceDisplay {...defaultProps} />);
+      render(withLocale(<PriceDisplay {...defaultProps} />));
 
       await waitFor(() => {
         expect(screen.getByText(/1 USD = 83\.00 INR/)).toBeInTheDocument();
@@ -70,7 +92,7 @@ describe('PriceDisplay', () => {
     });
 
     it('should display currency name', async () => {
-      render(<PriceDisplay {...defaultProps} />);
+      render(withLocale(<PriceDisplay {...defaultProps} />));
 
       await waitFor(() => {
         expect(screen.getByText('Indian Rupee')).toBeInTheDocument();
@@ -78,7 +100,7 @@ describe('PriceDisplay', () => {
     });
 
     it('should display last updated time', async () => {
-      render(<PriceDisplay {...defaultProps} />);
+      render(withLocale(<PriceDisplay {...defaultProps} />));
 
       await waitFor(() => {
         expect(screen.getByText(/updated just now/i)).toBeInTheDocument();
@@ -88,7 +110,7 @@ describe('PriceDisplay', () => {
 
   describe('compact mode', () => {
     it('should show compact display when compact=true', async () => {
-      render(<PriceDisplay {...defaultProps} compact />);
+      render(withLocale(<PriceDisplay {...defaultProps} compact />));
 
       await waitFor(() => {
         // Should show price without currency name
@@ -100,7 +122,7 @@ describe('PriceDisplay', () => {
 
   describe('refresh functionality', () => {
     it('should show refresh button by default', async () => {
-      render(<PriceDisplay {...defaultProps} />);
+      render(withLocale(<PriceDisplay {...defaultProps} />));
 
       await waitFor(() => {
         expect(
@@ -110,7 +132,9 @@ describe('PriceDisplay', () => {
     });
 
     it('should hide refresh button when showRefresh=false', async () => {
-      render(<PriceDisplay {...defaultProps} showRefresh={false} />);
+      render(
+        withLocale(<PriceDisplay {...defaultProps} showRefresh={false} />)
+      );
 
       await waitFor(() => {
         expect(
@@ -120,7 +144,7 @@ describe('PriceDisplay', () => {
     });
 
     it('should call API again when refresh is clicked', async () => {
-      render(<PriceDisplay {...defaultProps} />);
+      render(withLocale(<PriceDisplay {...defaultProps} />));
 
       await waitFor(() => {
         expect(
@@ -142,7 +166,7 @@ describe('PriceDisplay', () => {
 
   describe('API integration', () => {
     it('should call the convert API with correct parameters', async () => {
-      render(<PriceDisplay usdAmount={1.99} currency="NGN" />);
+      render(withLocale(<PriceDisplay usdAmount={1.99} currency="NGN" />));
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
@@ -152,13 +176,15 @@ describe('PriceDisplay', () => {
     });
 
     it('should update when currency changes', async () => {
-      const { rerender } = render(<PriceDisplay {...defaultProps} />);
+      const { rerender } = render(
+        withLocale(<PriceDisplay {...defaultProps} />)
+      );
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
       });
 
-      rerender(<PriceDisplay usdAmount={29.0} currency="NGN" />);
+      rerender(withLocale(<PriceDisplay usdAmount={29.0} currency="NGN" />));
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -169,13 +195,15 @@ describe('PriceDisplay', () => {
     });
 
     it('should update when amount changes', async () => {
-      const { rerender } = render(<PriceDisplay {...defaultProps} />);
+      const { rerender } = render(
+        withLocale(<PriceDisplay {...defaultProps} />)
+      );
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
       });
 
-      rerender(<PriceDisplay usdAmount={1.99} currency="INR" />);
+      rerender(withLocale(<PriceDisplay usdAmount={1.99} currency="INR" />));
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -187,7 +215,7 @@ describe('PriceDisplay', () => {
     it('should use fallback rate on API failure', async () => {
       mockFetch.mockRejectedValueOnce(new Error('API error'));
 
-      render(<PriceDisplay {...defaultProps} />);
+      render(withLocale(<PriceDisplay {...defaultProps} />));
 
       await waitFor(() => {
         // Fallback rate for INR is 83.0
@@ -199,7 +227,7 @@ describe('PriceDisplay', () => {
     it('should show estimated rate warning on API failure', async () => {
       mockFetch.mockRejectedValueOnce(new Error('API error'));
 
-      render(<PriceDisplay {...defaultProps} />);
+      render(withLocale(<PriceDisplay {...defaultProps} />));
 
       await waitFor(() => {
         expect(screen.getByText(/using estimated rate/i)).toBeInTheDocument();
@@ -217,7 +245,7 @@ describe('PriceDisplay', () => {
         }),
       });
 
-      render(<PriceDisplay usdAmount={29.0} currency="VND" />);
+      render(withLocale(<PriceDisplay usdAmount={29.0} currency="VND" />));
 
       await waitFor(() => {
         // VND should not have decimal places
@@ -234,7 +262,7 @@ describe('PriceDisplay', () => {
         }),
       });
 
-      render(<PriceDisplay usdAmount={29.0} currency="IDR" />);
+      render(withLocale(<PriceDisplay usdAmount={29.0} currency="IDR" />));
 
       await waitFor(() => {
         // IDR should not have decimal places

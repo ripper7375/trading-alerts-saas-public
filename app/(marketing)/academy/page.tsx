@@ -16,11 +16,30 @@ import {
 } from '@/lib/tutorials/service';
 import { TUTORIAL_CATEGORIES } from '@/lib/tutorials/validators';
 import { getYouTubeThumbnailUrl } from '@/lib/tutorials/youtube';
+import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
 
-export const metadata = {
-  title: 'DavinTrade Academy | Learn to Trade & Master the Platform',
-  description:
-    'Free video tutorials on trading fundamentals, risk management, market analysis, and how to get the most out of the DavinTrade AI platform.',
+export async function generateMetadata(): Promise<{
+  title: string;
+  description: string;
+}> {
+  const dict = getDictionary(await getServerLanguage());
+  return {
+    title:
+      dict['academy.meta_title'] ??
+      'DavinTrade Academy | Learn to Trade & Master the Platform',
+    description:
+      dict['academy.meta_description'] ??
+      'Free video tutorials on trading fundamentals, risk management, market analysis, and how to get the most out of the DavinTrade AI platform.',
+  };
+}
+
+const CATEGORY_LABEL_KEYS: Record<TutorialCategory, string> = {
+  GETTING_STARTED: 'academy.category.getting_started',
+  PLATFORM_WALKTHROUGH: 'academy.category.platform_walkthrough',
+  TRADING_STRATEGIES: 'academy.category.trading_strategies',
+  RISK_MANAGEMENT: 'academy.category.risk_management',
+  MARKET_ANALYSIS: 'academy.category.market_analysis',
 };
 
 const CATEGORY_LABELS: Record<TutorialCategory, string> = {
@@ -56,6 +75,9 @@ export default async function AcademyPage({
     : undefined;
 
   const tutorials = await listPublishedTutorials({ category: activeCategory });
+  const dict = getDictionary(await getServerLanguage());
+  const categoryLabel = (cat: TutorialCategory): string =>
+    dict[CATEGORY_LABEL_KEYS[cat]] ?? CATEGORY_LABELS[cat];
 
   return (
     <div className="bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
@@ -64,19 +86,18 @@ export default async function AcademyPage({
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(245,158,11,0.15),transparent_60%)]" />
         <div className="container relative mx-auto max-w-4xl space-y-5 text-center">
           <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-400">
-            DavinTrade Academy
+            {dict['academy.badge'] ?? 'DavinTrade Academy'}
           </Badge>
 
           <h1 className="flex items-center justify-center gap-3 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl md:text-5xl">
             <GraduationCap className="h-9 w-9 text-amber-500" />
-            Learn to Trade. Master the Platform.
+            {dict['academy.hero_title'] ??
+              'Learn to Trade. Master the Platform.'}
           </h1>
 
           <p className="mx-auto max-w-2xl text-base leading-relaxed text-slate-600 dark:text-slate-400 md:text-lg">
-            Free video lessons on trading fundamentals and risk management, plus
-            hands-on walkthroughs of DavinTrade&apos;s AI pattern recognition,
-            alerts, and fractal analytics -- everything you need to trade with
-            confidence.
+            {dict['academy.hero_subtitle'] ??
+              "Free video lessons on trading fundamentals and risk management, plus hands-on walkthroughs of DavinTrade's AI pattern recognition, alerts, and fractal analytics -- everything you need to trade with confidence."}
           </p>
 
           {/* Category filter pills */}
@@ -89,7 +110,7 @@ export default async function AcademyPage({
                   : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
               }`}
             >
-              All
+              {dict['academy.category.all'] ?? 'All'}
             </Link>
             {TUTORIAL_CATEGORIES.map((cat) => (
               <Link
@@ -101,7 +122,7 @@ export default async function AcademyPage({
                     : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900/80 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'
                 }`}
               >
-                {CATEGORY_LABELS[cat]}
+                {categoryLabel(cat)}
               </Link>
             ))}
           </div>
@@ -116,8 +137,10 @@ export default async function AcademyPage({
               <PlayCircle className="h-10 w-10 text-slate-400" />
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 {activeCategory
-                  ? 'No tutorials in this category yet -- check back soon.'
-                  : 'New tutorials are on the way -- check back soon.'}
+                  ? (dict['academy.no_tutorials_in_category'] ??
+                    'No tutorials in this category yet -- check back soon.')
+                  : (dict['academy.no_tutorials_yet'] ??
+                    'New tutorials are on the way -- check back soon.')}
               </p>
             </CardContent>
           </Card>
@@ -139,7 +162,7 @@ export default async function AcademyPage({
                       {tutorial.featured && (
                         <Badge className="absolute left-2 top-2 gap-1 bg-amber-500 text-slate-950">
                           <Star className="h-3 w-3 fill-slate-950" />
-                          Featured
+                          {dict['academy.featured'] ?? 'Featured'}
                         </Badge>
                       )}
                     </div>
@@ -147,7 +170,7 @@ export default async function AcademyPage({
                     <div className="flex flex-1 flex-col justify-between space-y-2 p-4 pt-0">
                       <div className="space-y-2">
                         <Badge className="border-amber-500/30 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-400">
-                          {CATEGORY_LABELS[tutorial.category]}
+                          {categoryLabel(tutorial.category)}
                         </Badge>
                         <h3 className="text-base font-bold leading-snug text-slate-900 dark:text-slate-100">
                           {tutorial.title}
@@ -169,12 +192,11 @@ export default async function AcademyPage({
       <section className="border-t border-slate-200 bg-slate-100/60 px-4 py-14 dark:border-slate-800/80 dark:bg-[#070910] md:px-6">
         <div className="container mx-auto max-w-3xl space-y-5 text-center">
           <h2 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 md:text-3xl">
-            Ready to put it into practice?
+            {dict['academy.cta_title'] ?? 'Ready to put it into practice?'}
           </h2>
           <p className="text-slate-600 dark:text-slate-400">
-            Upgrade to PRO for full AI pattern recognition and real-time alerts,
-            or turn what you&apos;ve learned into recurring income by
-            introducing other traders to DavinTrade.
+            {dict['academy.cta_subtitle'] ??
+              "Upgrade to PRO for full AI pattern recognition and real-time alerts, or turn what you've learned into recurring income by introducing other traders to DavinTrade."}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <Button
@@ -182,7 +204,7 @@ export default async function AcademyPage({
               className="bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-5 font-bold text-slate-950 shadow-lg shadow-amber-500/25 hover:from-amber-400 hover:to-amber-500"
             >
               <Link href="/checkout">
-                Upgrade to PRO Now
+                {dict['academy.upgrade_to_pro_now'] ?? 'Upgrade to PRO Now'}
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
@@ -193,7 +215,8 @@ export default async function AcademyPage({
             >
               <Link href="/affiliate/register">
                 <Sparkles className="mr-2 h-4 w-4 text-amber-600 dark:text-amber-400" />
-                Join Affiliate Program
+                {dict['analytics.join_affiliate_program'] ??
+                  'Join Affiliate Program'}
               </Link>
             </Button>
           </div>

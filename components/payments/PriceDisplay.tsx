@@ -18,6 +18,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import type { DLocalCurrency } from '@/types/dlocal';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -111,6 +112,7 @@ export function PriceDisplay({
   compact = false,
   showRefresh = true,
 }: PriceDisplayProps): React.ReactElement {
+  const { t, formatRelativeTime } = useLocale();
   const [conversion, setConversion] = useState<ConversionResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -145,12 +147,12 @@ export function PriceDisplay({
         exchangeRate: fallbackRate,
       });
       setLastUpdated(new Date());
-      setError('Using estimated rate');
+      setError(t('payments.using_estimated_rate', 'Using estimated rate'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [usdAmount, currency]);
+  }, [usdAmount, currency, t]);
 
   useEffect(() => {
     setLoading(true);
@@ -164,22 +166,15 @@ export function PriceDisplay({
 
   const getTimeSinceUpdate = (): string => {
     if (!lastUpdated) return '';
-
     const minutes = Math.floor((Date.now() - lastUpdated.getTime()) / 60000);
-    if (minutes < 1) return 'just now';
-    if (minutes === 1) return '1 minute ago';
-    if (minutes < 60) return `${minutes} minutes ago`;
-
-    const hours = Math.floor(minutes / 60);
-    if (hours === 1) return '1 hour ago';
-    return `${hours} hours ago`;
+    return formatRelativeTime(minutes);
   };
 
   if (loading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
-        Calculating price...
+        {t('payments.calculating_price', 'Calculating price...')}
       </div>
     );
   }
@@ -187,7 +182,10 @@ export function PriceDisplay({
   if (!conversion) {
     return (
       <div className="text-sm text-destructive">
-        Unable to calculate price. Please try again.
+        {t(
+          'payments.unable_to_calculate',
+          'Unable to calculate price. Please try again.'
+        )}
       </div>
     );
   }
@@ -228,8 +226,8 @@ export function PriceDisplay({
       {/* Exchange rate info */}
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <span className="rounded-full bg-muted px-2 py-1">
-          1 USD = {formatLocalAmount(conversion.exchangeRate, currency)}{' '}
-          {currency}
+          {t('payments.one_usd_equals', '1 USD =')}{' '}
+          {formatLocalAmount(conversion.exchangeRate, currency)} {currency}
         </span>
 
         {showRefresh && (
@@ -238,12 +236,15 @@ export function PriceDisplay({
             onClick={handleRefresh}
             disabled={refreshing}
             className="hover:bg-muted/80 inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 disabled:opacity-50"
-            aria-label="Refresh exchange rate"
+            aria-label={t(
+              'payments.refresh_exchange_rate',
+              'Refresh exchange rate'
+            )}
           >
             <RefreshCw
               className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`}
             />
-            Refresh
+            {t('Refresh')}
           </button>
         )}
       </div>
@@ -251,7 +252,7 @@ export function PriceDisplay({
       {/* Last updated */}
       {lastUpdated && (
         <p className="text-xs italic text-muted-foreground">
-          Updated {getTimeSinceUpdate()}
+          {t('payments.updated', 'Updated')} {getTimeSinceUpdate()}
           {error && <span className="ml-1 text-yellow-600">({error})</span>}
         </p>
       )}

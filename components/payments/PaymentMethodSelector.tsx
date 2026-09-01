@@ -28,6 +28,7 @@ import type { DLocalCountry } from '@/types/dlocal';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -218,6 +219,7 @@ export function PaymentMethodSelector({
   onChange,
   disabled = false,
 }: PaymentMethodSelectorProps): React.ReactElement {
+  const { t } = useLocale();
   const [methods, setMethods] = useState<PaymentMethodInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -299,10 +301,12 @@ export function PaymentMethodSelector({
   if (loading) {
     return (
       <div className="space-y-2">
-        <label className="text-sm font-medium">Payment method</label>
+        <label className="text-sm font-medium">
+          {t('payments.payment_method', 'Payment method')}
+        </label>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Loading payment methods...
+          {t('payments.loading_payment_methods', 'Loading payment methods...')}
         </div>
       </div>
     );
@@ -311,7 +315,9 @@ export function PaymentMethodSelector({
   if (error) {
     return (
       <div className="space-y-2">
-        <label className="text-sm font-medium">Payment method</label>
+        <label className="text-sm font-medium">
+          {t('payments.payment_method', 'Payment method')}
+        </label>
         <p className="text-sm text-destructive">{error}</p>
       </div>
     );
@@ -320,9 +326,14 @@ export function PaymentMethodSelector({
   if (methods.length === 0) {
     return (
       <div className="space-y-2">
-        <label className="text-sm font-medium">Payment method</label>
+        <label className="text-sm font-medium">
+          {t('payments.payment_method', 'Payment method')}
+        </label>
         <p className="text-sm text-muted-foreground">
-          No payment methods available for this country.
+          {t(
+            'payments.no_methods_available',
+            'No payment methods available for this country.'
+          )}
         </p>
       </div>
     );
@@ -330,18 +341,30 @@ export function PaymentMethodSelector({
 
   return (
     <div className="space-y-3">
-      <label className="text-sm font-medium">Payment method</label>
+      <label className="text-sm font-medium">
+        {t('payments.payment_method', 'Payment method')}
+      </label>
       <p className="text-sm text-muted-foreground">
-        Select your preferred local payment option
+        {t(
+          'payments.select_preferred_method',
+          'Select your preferred local payment option'
+        )}
       </p>
 
       <div
         className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4"
         role="radiogroup"
-        aria-label="Select payment method"
+        aria-label={t(
+          'payments.select_payment_method',
+          'Select payment method'
+        )}
       >
         {methods.map((method) => {
           const isSelected = value === method.id;
+          const processingTimeLabel =
+            method.processingTime === 'Instant'
+              ? t('payments.instant', 'Instant')
+              : t('payments.one_to_two_hours', '1-2 hours');
 
           return (
             <Card
@@ -361,7 +384,7 @@ export function PaymentMethodSelector({
               role="radio"
               aria-checked={isSelected}
               aria-disabled={disabled}
-              aria-label={`${method.name}, ${method.processingTime}${method.sublabel ? `, ${method.sublabel}` : ''}`}
+              aria-label={`${method.name}, ${processingTimeLabel}${method.sublabel ? `, ${method.sublabel}` : ''}`}
             >
               {isSelected && (
                 <CheckCircle
@@ -389,7 +412,7 @@ export function PaymentMethodSelector({
                       : 'bg-yellow-100 text-yellow-700'
                   )}
                 >
-                  {method.processingTime}
+                  {processingTimeLabel}
                 </Badge>
               </CardContent>
             </Card>
