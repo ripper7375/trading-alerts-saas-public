@@ -14,6 +14,35 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 
 import AffiliateCommissionsPage from '@/app/affiliate/dashboard/commissions/page';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/affiliate/dashboard/commissions',
+}));
+
+// AffiliateCommissionsPage calls useLocale() -- needs a LocaleProvider
+// ancestor (LESSONS-LEARNED.md L40). Pre-seed US/USD preferences so
+// formatCurrency() reproduces this file's pre-existing literal
+// "$X.XX" assertions.
+function renderCommissionsPage(): ReturnType<typeof render> {
+  localStorage.setItem(
+    LOCALE_STORAGE_KEY,
+    JSON.stringify({
+      countryCode: 'US',
+      language: 'en-US',
+      timezone: 'America/New_York',
+      dateFormat: 'MDY',
+      timeFormat: '12h',
+      currency: 'USD',
+    })
+  );
+  return render(
+    <LocaleProvider>
+      <AffiliateCommissionsPage />
+    </LocaleProvider>
+  );
+}
 
 const mockCommissionReport = {
   summary: {},
@@ -51,7 +80,7 @@ describe('AffiliateCommissionsPage', () => {
   });
 
   it('renders real per-commission CommissionStatus values, not batch vocabulary', async () => {
-    render(<AffiliateCommissionsPage />);
+    renderCommissionsPage();
 
     await waitFor(() => expect(screen.getByText('PAID')).toBeInTheDocument());
     expect(screen.getByText('APPROVED')).toBeInTheDocument();
@@ -61,7 +90,7 @@ describe('AffiliateCommissionsPage', () => {
   });
 
   it('correctly sums commissionAmount (Decimal-as-string) into totals, not the fictional amount field', async () => {
-    render(<AffiliateCommissionsPage />);
+    renderCommissionsPage();
 
     // 4.64 (PAID) + 4.64 (APPROVED, counted as pending-bucket) = totalEarned 9.28
     await waitFor(() => expect(screen.getByText('$9.28')).toBeInTheDocument());
@@ -70,7 +99,7 @@ describe('AffiliateCommissionsPage', () => {
   });
 
   it('links out to the payouts page for real Wise/batch status', async () => {
-    render(<AffiliateCommissionsPage />);
+    renderCommissionsPage();
 
     await waitFor(() =>
       expect(screen.getByText('View Payout Status →')).toBeInTheDocument()

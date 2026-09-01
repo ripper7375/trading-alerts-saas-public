@@ -13,6 +13,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { CommissionTable } from '@/components/affiliate/commission-table';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPE DEFINITIONS
@@ -60,6 +61,7 @@ interface CommissionsResponse {
  * Lists all commissions with filtering
  */
 export default function AffiliateCommissionsPage(): React.ReactElement {
+  const { t, formatCurrency } = useLocale();
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -128,16 +130,21 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Commissions</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t('affiliate.commissions_title', 'Commissions')}
+          </h1>
           <p className="text-muted-foreground">
-            Track your earnings from referrals
+            {t(
+              'affiliate.commissions_subtitle',
+              'Track your earnings from referrals'
+            )}
           </p>
         </div>
         <Link
           href="/affiliate/dashboard/payouts"
           className="rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
         >
-          View Payout Status →
+          {t('affiliate.view_payout_status', 'View Payout Status →')}
         </Link>
       </div>
 
@@ -145,22 +152,26 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
           <p className="text-sm text-muted-foreground">
-            Total Earned (This Page)
+            {t('affiliate.total_earned_this_page', 'Total Earned (This Page)')}
           </p>
           <p className="text-2xl font-bold text-foreground">
-            ${totalEarned.toFixed(2)}
+            {formatCurrency(totalEarned)}
           </p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-          <p className="text-sm text-muted-foreground">Pending</p>
+          <p className="text-sm text-muted-foreground">
+            {t('affiliate.status.pending', 'Pending')}
+          </p>
           <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-            ${pendingAmount.toFixed(2)}
+            {formatCurrency(pendingAmount)}
           </p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-          <p className="text-sm text-muted-foreground">Paid</p>
+          <p className="text-sm text-muted-foreground">
+            {t('affiliate.status.paid', 'Paid')}
+          </p>
           <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-            ${paidAmount.toFixed(2)}
+            {formatCurrency(paidAmount)}
           </p>
         </div>
       </div>
@@ -173,7 +184,7 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
               htmlFor="statusFilter"
               className="mb-1 block text-sm font-medium text-foreground"
             >
-              Status
+              {t('Status')}
             </label>
             <select
               id="statusFilter"
@@ -184,16 +195,29 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
               }}
               className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
             >
-              <option value="ALL">All Status</option>
-              <option value="PENDING">Pending</option>
-              <option value="APPROVED">Approved</option>
-              <option value="PAID">Paid</option>
-              <option value="CANCELLED">Cancelled</option>
+              <option value="ALL">
+                {t('affiliate.all_status', 'All Status')}
+              </option>
+              <option value="PENDING">
+                {t('affiliate.status.pending', 'Pending')}
+              </option>
+              <option value="APPROVED">
+                {t('affiliate.status.approved', 'Approved')}
+              </option>
+              <option value="PAID">{t('affiliate.status.paid', 'Paid')}</option>
+              <option value="CANCELLED">
+                {t('affiliate.status.cancelled', 'Cancelled')}
+              </option>
             </select>
           </div>
 
           <div className="ml-auto text-sm text-muted-foreground">
-            Showing {commissions.length} of {total} commissions
+            {t(
+              'affiliate.showing_x_of_y_commissions',
+              'Showing {shown} of {total} commissions'
+            )
+              .replace('{shown}', String(commissions.length))
+              .replace('{total}', String(total))}
           </div>
         </div>
       </div>
@@ -224,11 +248,13 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
             disabled={page === 1}
             className="rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Previous
+            {t('Previous')}
           </button>
 
           <span className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
+            {t('affiliate.page_x_of_y', 'Page {page} of {total}')
+              .replace('{page}', String(page))
+              .replace('{total}', String(totalPages))}
           </span>
 
           <button
@@ -236,7 +262,7 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
             disabled={page === totalPages}
             className="rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Next
+            {t('Next')}
           </button>
         </div>
       )}
@@ -244,40 +270,50 @@ export default function AffiliateCommissionsPage(): React.ReactElement {
       {/* Info Section */}
       <div className="bg-muted/40 rounded-lg border border-border p-6">
         <h3 className="mb-3 font-semibold text-foreground">
-          Commission Status Guide
+          {t('affiliate.status_guide_title', 'Commission Status Guide')}
         </h3>
         <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2 lg:grid-cols-4">
           <div className="flex items-center gap-2">
             <span className="rounded border border-amber-500/30 bg-amber-500/15 px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
-              PENDING
+              {t('affiliate.status.pending', 'Pending').toUpperCase()}
             </span>
-            <span className="text-muted-foreground">Awaiting approval</span>
+            <span className="text-muted-foreground">
+              {t('affiliate.status_guide.pending', 'Awaiting approval')}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded border border-blue-500/30 bg-blue-500/15 px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400">
-              APPROVED
+              {t('affiliate.status.approved', 'Approved').toUpperCase()}
             </span>
-            <span className="text-muted-foreground">Ready for payout</span>
+            <span className="text-muted-foreground">
+              {t('affiliate.status_guide.approved', 'Ready for payout')}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded border border-green-500/30 bg-green-500/15 px-2 py-1 text-xs font-medium text-green-700 dark:text-green-400">
-              PAID
-            </span>
-            <span className="text-muted-foreground">Payment completed</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded border border-red-500/30 bg-red-500/15 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400">
-              CANCELLED
-            </span>
-            <span className="text-muted-foreground">Refund/cancellation</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded border border-red-500/30 bg-red-500/15 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400">
-              CLAWBACK
+              {t('affiliate.status.paid', 'Paid').toUpperCase()}
             </span>
             <span className="text-muted-foreground">
-              Deduction for a refund on a commission already paid — offsets your
-              next payout
+              {t('affiliate.status_guide.paid', 'Payment completed')}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded border border-red-500/30 bg-red-500/15 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400">
+              {t('affiliate.status.cancelled', 'Cancelled').toUpperCase()}
+            </span>
+            <span className="text-muted-foreground">
+              {t('affiliate.status_guide.cancelled', 'Refund/cancellation')}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded border border-red-500/30 bg-red-500/15 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400">
+              {t('affiliate.clawback_badge', 'Clawback').toUpperCase()}
+            </span>
+            <span className="text-muted-foreground">
+              {t(
+                'affiliate.status_guide.clawback',
+                'Deduction for a refund on a commission already paid — offsets your next payout'
+              )}
             </span>
           </div>
         </div>

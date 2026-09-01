@@ -8,29 +8,43 @@
 import React from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { describe, it, expect } from '@jest/globals';
-import { CommissionTable } from '@/components/affiliate/commission-table';
+import {
+  CommissionTable,
+  type CommissionTableProps,
+} from '@/components/affiliate/commission-table';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
 
-// Mock date-fns format
-jest.mock('date-fns', () => ({
-  format: (date: Date, _formatStr: string) => {
-    const d = new Date(date);
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-  },
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/affiliate/dashboard/commissions',
 }));
+
+// CommissionTable calls useLocale() -- needs a LocaleProvider ancestor
+// (LESSONS-LEARNED.md L40). Pre-seed US/USD preferences so formatCurrency()
+// reproduces this file's pre-existing literal "$X.XX" assertions.
+beforeEach(() => {
+  localStorage.setItem(
+    LOCALE_STORAGE_KEY,
+    JSON.stringify({
+      countryCode: 'US',
+      language: 'en-US',
+      timezone: 'America/New_York',
+      dateFormat: 'MDY',
+      timeFormat: '12h',
+      currency: 'USD',
+    })
+  );
+});
+
+function renderCT(
+  commissions: CommissionTableProps['commissions']
+): ReturnType<typeof render> {
+  return render(
+    <LocaleProvider>
+      <CommissionTable commissions={commissions} />
+    </LocaleProvider>
+  );
+}
 
 describe('CommissionTable Component', () => {
   const mockCommissions = [
@@ -62,7 +76,7 @@ describe('CommissionTable Component', () => {
 
   describe('Basic Rendering', () => {
     it('should render commissions table', () => {
-      render(<CommissionTable commissions={mockCommissions} />);
+      renderCT(mockCommissions);
 
       expect(screen.getByText('TEST1234')).toBeInTheDocument();
       expect(screen.getByText('TEST5678')).toBeInTheDocument();
@@ -70,7 +84,7 @@ describe('CommissionTable Component', () => {
     });
 
     it('should render table headers', () => {
-      render(<CommissionTable commissions={mockCommissions} />);
+      renderCT(mockCommissions);
 
       expect(screen.getByText('Code')).toBeInTheDocument();
       expect(screen.getByText('Amount')).toBeInTheDocument();
@@ -80,7 +94,7 @@ describe('CommissionTable Component', () => {
     });
 
     it('should render as a table element', () => {
-      render(<CommissionTable commissions={mockCommissions} />);
+      renderCT(mockCommissions);
 
       expect(screen.getByRole('table')).toBeInTheDocument();
     });
@@ -88,7 +102,7 @@ describe('CommissionTable Component', () => {
 
   describe('Amount Formatting', () => {
     it('should format amounts correctly with dollar sign', () => {
-      render(<CommissionTable commissions={mockCommissions} />);
+      renderCT(mockCommissions);
 
       expect(screen.getAllByText('$4.64')).toHaveLength(3);
     });
@@ -98,7 +112,7 @@ describe('CommissionTable Component', () => {
         ...mockCommissions[0],
         commissionAmount: 10,
       };
-      render(<CommissionTable commissions={[commission]} />);
+      renderCT([commission]);
 
       expect(screen.getByText('$10.00')).toBeInTheDocument();
     });
@@ -108,7 +122,7 @@ describe('CommissionTable Component', () => {
         ...mockCommissions[0],
         commissionAmount: 0.5,
       };
-      render(<CommissionTable commissions={[commission]} />);
+      renderCT([commission]);
 
       expect(screen.getByText('$0.50')).toBeInTheDocument();
     });
@@ -118,15 +132,19 @@ describe('CommissionTable Component', () => {
         ...mockCommissions[0],
         commissionAmount: 1234.56,
       };
-      render(<CommissionTable commissions={[commission]} />);
+      renderCT([commission]);
 
-      expect(screen.getByText('$1234.56')).toBeInTheDocument();
+      // formatCurrency() rounds to 0 decimals and adds a thousands
+      // separator once the converted amount reaches 1000 (same rule the
+      // BI dashboards use) -- a real, intentional precision change from
+      // the old manual `$${amount.toFixed(2)}`, not a regression.
+      expect(screen.getByText('$1,235')).toBeInTheDocument();
     });
   });
 
   describe('Status Badges', () => {
     it('should show PENDING status badge', () => {
-      render(<CommissionTable commissions={[mockCommissions[0]]} />);
+      renderCT([mockCommissions[0]]);
 
       const statusBadge = screen.getByText('PENDING');
       expect(statusBadge).toBeInTheDocument();
@@ -134,7 +152,7 @@ describe('CommissionTable Component', () => {
     });
 
     it('should show PAID status badge', () => {
-      render(<CommissionTable commissions={[mockCommissions[1]]} />);
+      renderCT([mockCommissions[1]]);
 
       const statusBadge = screen.getByText('PAID');
       expect(statusBadge).toBeInTheDocument();
@@ -142,7 +160,7 @@ describe('CommissionTable Component', () => {
     });
 
     it('should show APPROVED status badge', () => {
-      render(<CommissionTable commissions={[mockCommissions[2]]} />);
+      renderCT([mockCommissions[2]]);
 
       const statusBadge = screen.getByText('APPROVED');
       expect(statusBadge).toBeInTheDocument();
@@ -154,7 +172,7 @@ describe('CommissionTable Component', () => {
         ...mockCommissions[0],
         status: 'CANCELLED' as const,
       };
-      render(<CommissionTable commissions={[cancelledCommission]} />);
+      renderCT([cancelledCommission]);
 
       expect(screen.getByText('CANCELLED')).toBeInTheDocument();
     });
@@ -162,14 +180,16 @@ describe('CommissionTable Component', () => {
 
   describe('Date Formatting', () => {
     it('should format earned date correctly', () => {
-      render(<CommissionTable commissions={mockCommissions} />);
+      renderCT(mockCommissions);
 
-      expect(screen.getByText('Jan 15, 2024')).toBeInTheDocument();
-      expect(screen.getByText('Jan 10, 2024')).toBeInTheDocument();
+      // formatDate() renders the seeded MDY preference, not the old
+      // date-fns 'MMM d, yyyy' format.
+      expect(screen.getByText('01/15/2024')).toBeInTheDocument();
+      expect(screen.getByText('01/10/2024')).toBeInTheDocument();
     });
 
     it('should show dash for unpaid commissions', () => {
-      render(<CommissionTable commissions={[mockCommissions[0]]} />);
+      renderCT([mockCommissions[0]]);
 
       const rows = screen.getAllByRole('row');
       const dataRow = rows[1];
@@ -177,21 +197,21 @@ describe('CommissionTable Component', () => {
     });
 
     it('should show paid date when commission was paid', () => {
-      render(<CommissionTable commissions={[mockCommissions[1]]} />);
+      renderCT([mockCommissions[1]]);
 
-      expect(screen.getByText('Feb 1, 2024')).toBeInTheDocument();
+      expect(screen.getByText('02/01/2024')).toBeInTheDocument();
     });
   });
 
   describe('Empty State', () => {
     it('should handle empty commissions array', () => {
-      render(<CommissionTable commissions={[]} />);
+      renderCT([]);
 
       expect(screen.getByText(/no commissions/i)).toBeInTheDocument();
     });
 
     it('should not render table when no commissions', () => {
-      render(<CommissionTable commissions={[]} />);
+      renderCT([]);
 
       expect(screen.queryByRole('table')).not.toBeInTheDocument();
     });
@@ -199,14 +219,14 @@ describe('CommissionTable Component', () => {
 
   describe('Code Display', () => {
     it('should apply monospace font to code column', () => {
-      render(<CommissionTable commissions={mockCommissions} />);
+      renderCT(mockCommissions);
 
       const codeCell = screen.getByText('TEST1234');
       expect(codeCell.className).toContain('font-mono');
     });
 
     it('should display affiliate code from nested object', () => {
-      render(<CommissionTable commissions={mockCommissions} />);
+      renderCT(mockCommissions);
 
       expect(screen.getByText('TEST1234')).toBeInTheDocument();
     });
@@ -214,7 +234,7 @@ describe('CommissionTable Component', () => {
 
   describe('Amount Styling', () => {
     it('should emphasize amount values', () => {
-      render(<CommissionTable commissions={mockCommissions} />);
+      renderCT(mockCommissions);
 
       const amountCells = screen.getAllByText('$4.64');
       amountCells.forEach((cell) => {
@@ -225,7 +245,7 @@ describe('CommissionTable Component', () => {
 
   describe('Multiple Commissions', () => {
     it('should render all commissions in order', () => {
-      render(<CommissionTable commissions={mockCommissions} />);
+      renderCT(mockCommissions);
 
       const rows = screen.getAllByRole('row');
       // 1 header row + 3 data rows
@@ -233,7 +253,7 @@ describe('CommissionTable Component', () => {
     });
 
     it('should render correct data for each row', () => {
-      render(<CommissionTable commissions={mockCommissions} />);
+      renderCT(mockCommissions);
 
       const table = screen.getByRole('table');
       const rows = within(table).getAllByRole('row');
@@ -246,7 +266,7 @@ describe('CommissionTable Component', () => {
 
   describe('Accessibility', () => {
     it('should have proper table structure', () => {
-      render(<CommissionTable commissions={mockCommissions} />);
+      renderCT(mockCommissions);
 
       expect(screen.getByRole('table')).toBeInTheDocument();
       expect(screen.getAllByRole('columnheader')).toHaveLength(5);
@@ -254,7 +274,7 @@ describe('CommissionTable Component', () => {
     });
 
     it('should have accessible header cells', () => {
-      render(<CommissionTable commissions={mockCommissions} />);
+      renderCT(mockCommissions);
 
       const headers = screen.getAllByRole('columnheader');
       expect(headers[0]).toHaveTextContent('Code');
@@ -274,7 +294,7 @@ describe('CommissionTable Component', () => {
         affiliateCode: { code: 'TEST1234' },
         clawbackOfCommissionId: 'commission-original-1',
       };
-      render(<CommissionTable commissions={[clawback]} />);
+      renderCT([clawback]);
 
       expect(screen.getByText('Clawback')).toBeInTheDocument();
       const amountCell = screen.getByText('-$5.80');
@@ -285,7 +305,7 @@ describe('CommissionTable Component', () => {
     });
 
     it('does not show a Clawback badge for a normal commission', () => {
-      render(<CommissionTable commissions={[mockCommissions[0]]} />);
+      renderCT([mockCommissions[0]]);
 
       expect(screen.queryByText('Clawback')).not.toBeInTheDocument();
     });
@@ -297,7 +317,7 @@ describe('CommissionTable Component', () => {
         ...mockCommissions[0],
         commissionAmount: 0,
       };
-      render(<CommissionTable commissions={[zeroCommission]} />);
+      renderCT([zeroCommission]);
 
       expect(screen.getByText('$0.00')).toBeInTheDocument();
     });
@@ -307,7 +327,7 @@ describe('CommissionTable Component', () => {
         ...mockCommissions[0],
         commissionAmount: 4.644,
       };
-      render(<CommissionTable commissions={[preciseCommission]} />);
+      renderCT([preciseCommission]);
 
       // Should round to 2 decimal places
       expect(screen.getByText('$4.64')).toBeInTheDocument();

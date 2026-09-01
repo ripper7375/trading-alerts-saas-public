@@ -29,6 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -87,6 +88,9 @@ interface AffiliateDetails {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function AdminAffiliateDetailPage(): React.ReactElement {
+  const { t, formatDate: formatDateValue, formatCurrency } = useLocale();
+  const formatDate = (date: string | null): string =>
+    date ? formatDateValue(date) : '-';
   const params = useParams();
   const affiliateId = params['id'] as string;
 
@@ -216,25 +220,6 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
     }
   };
 
-  const formatCurrency = (
-    amount: number | { toNumber?: () => number }
-  ): string => {
-    const value =
-      typeof amount === 'object' && amount.toNumber
-        ? amount.toNumber()
-        : Number(amount);
-    return `$${value.toFixed(2)}`;
-  };
-
-  const formatDate = (date: string | null): string => {
-    if (!date) return '-';
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
   const getStatusBadgeClass = (status: string): string => {
     switch (status) {
       case 'ACTIVE':
@@ -272,7 +257,7 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
           href="/admin/affiliates"
           className="inline-block text-sm text-primary hover:underline"
         >
-          &larr; Back to Affiliates
+          &larr; {t('affiliate.back_to_affiliates', 'Back to Affiliates')}
         </Link>
       </div>
     );
@@ -286,7 +271,7 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
           href="/admin/affiliates"
           className="text-sm text-muted-foreground transition-colors hover:text-primary"
         >
-          &larr; Back to Affiliates
+          &larr; {t('affiliate.back_to_affiliates', 'Back to Affiliates')}
         </Link>
         <div className="mt-4 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div>
@@ -300,22 +285,29 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
               <>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button disabled={actionLoading}>Distribute Codes</Button>
+                    <Button disabled={actionLoading}>
+                      {t('affiliate.distribute_codes', 'Distribute Codes')}
+                    </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>
-                        Distribute Bonus Codes
+                        {t(
+                          'affiliate.distribute_bonus_codes',
+                          'Distribute Bonus Codes'
+                        )}
                       </AlertDialogTitle>
                       <AlertDialogDescription>
-                        Generate new affiliate codes for {affiliate.fullName}.
-                        This action is logged and cannot be undone.
+                        {t(
+                          'affiliate.distribute_codes_body',
+                          'Generate new affiliate codes for {name}. This action is logged and cannot be undone.'
+                        ).replace('{name}', affiliate.fullName)}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="distribute-count">
-                          Number of Codes
+                          {t('affiliate.number_of_codes', 'Number of Codes')}
                         </Label>
                         <Input
                           id="distribute-count"
@@ -329,12 +321,17 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="distribute-reason">Reason</Label>
+                        <Label htmlFor="distribute-reason">
+                          {t('affiliate.reason', 'Reason')}
+                        </Label>
                         <Textarea
                           id="distribute-reason"
                           value={distributeReason}
                           onChange={(e) => setDistributeReason(e.target.value)}
-                          placeholder="e.g., Performance bonus"
+                          placeholder={t(
+                            'affiliate.reason_placeholder_bonus',
+                            'e.g., Performance bonus'
+                          )}
                         />
                       </div>
                       {actionError && (
@@ -343,13 +340,15 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                     </div>
                     <AlertDialogFooter>
                       <AlertDialogCancel onClick={() => setActionError(null)}>
-                        Cancel
+                        {t('Cancel')}
                       </AlertDialogCancel>
                       <AlertDialogAction
                         disabled={!distributeReason.trim() || actionLoading}
                         onClick={() => void handleDistributeCodes()}
                       >
-                        {actionLoading ? 'Distributing...' : 'Distribute'}
+                        {actionLoading
+                          ? t('affiliate.distributing', 'Distributing...')
+                          : t('affiliate.distribute', 'Distribute')}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -358,25 +357,36 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" disabled={actionLoading}>
-                      Suspend
+                      {t('affiliate.suspend', 'Suspend')}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Suspend Affiliate?</AlertDialogTitle>
+                      <AlertDialogTitle>
+                        {t(
+                          'affiliate.suspend_affiliate_q',
+                          'Suspend Affiliate?'
+                        )}
+                      </AlertDialogTitle>
                       <AlertDialogDescription>
-                        {affiliate.fullName} will lose active affiliate status
-                        and their codes will stop earning commissions. This can
-                        be reversed via Reactivate.
+                        {t(
+                          'affiliate.suspend_body',
+                          '{name} will lose active affiliate status and their codes will stop earning commissions. This can be reversed via Reactivate.'
+                        ).replace('{name}', affiliate.fullName)}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="space-y-2">
-                      <Label htmlFor="suspend-reason">Suspension Reason</Label>
+                      <Label htmlFor="suspend-reason">
+                        {t('affiliate.suspension_reason', 'Suspension Reason')}
+                      </Label>
                       <Textarea
                         id="suspend-reason"
                         value={suspendReason}
                         onChange={(e) => setSuspendReason(e.target.value)}
-                        placeholder="e.g., Suspected fraudulent code usage"
+                        placeholder={t(
+                          'affiliate.reason_placeholder_fraud',
+                          'e.g., Suspected fraudulent code usage'
+                        )}
                       />
                       {actionError && (
                         <p className="text-sm text-red-500">{actionError}</p>
@@ -384,14 +394,16 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                     </div>
                     <AlertDialogFooter>
                       <AlertDialogCancel onClick={() => setActionError(null)}>
-                        Cancel
+                        {t('Cancel')}
                       </AlertDialogCancel>
                       <AlertDialogAction
                         disabled={!suspendReason.trim() || actionLoading}
                         onClick={() => void handleSuspend()}
                         className="hover:bg-destructive/90 bg-destructive text-white"
                       >
-                        {actionLoading ? 'Suspending...' : 'Suspend'}
+                        {actionLoading
+                          ? t('affiliate.suspending', 'Suspending...')
+                          : t('affiliate.suspend', 'Suspend')}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -401,14 +413,23 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
             {affiliate.status === 'SUSPENDED' && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button disabled={actionLoading}>Reactivate</Button>
+                  <Button disabled={actionLoading}>
+                    {t('affiliate.reactivate', 'Reactivate')}
+                  </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Reactivate Affiliate?</AlertDialogTitle>
+                    <AlertDialogTitle>
+                      {t(
+                        'affiliate.reactivate_affiliate_q',
+                        'Reactivate Affiliate?'
+                      )}
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
-                      {affiliate.fullName} will regain active affiliate status
-                      and their codes will resume earning commissions.
+                      {t(
+                        'affiliate.reactivate_body',
+                        '{name} will regain active affiliate status and their codes will resume earning commissions.'
+                      ).replace('{name}', affiliate.fullName)}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   {actionError && (
@@ -416,13 +437,15 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                   )}
                   <AlertDialogFooter>
                     <AlertDialogCancel onClick={() => setActionError(null)}>
-                      Cancel
+                      {t('Cancel')}
                     </AlertDialogCancel>
                     <AlertDialogAction
                       disabled={actionLoading}
                       onClick={() => void handleReactivate()}
                     >
-                      {actionLoading ? 'Reactivating...' : 'Reactivate'}
+                      {actionLoading
+                        ? t('affiliate.reactivating', 'Reactivating...')
+                        : t('affiliate.reactivate', 'Reactivate')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -437,13 +460,13 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-foreground">
-              Profile Information
+              {t('affiliate.profile_information', 'Profile Information')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="space-y-3">
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Status</dt>
+                <dt className="text-muted-foreground">{t('Status')}</dt>
                 <dd>
                   <Badge className={getStatusBadgeClass(affiliate.status)}>
                     {affiliate.status.replace('_', ' ')}
@@ -451,32 +474,40 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Country</dt>
+                <dt className="text-muted-foreground">{t('Country')}</dt>
                 <dd className="font-medium text-foreground">
                   {affiliate.country}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Payment Method</dt>
+                <dt className="text-muted-foreground">
+                  {t('billing.payment_method', 'Payment Method')}
+                </dt>
                 <dd className="font-medium text-foreground">
                   {affiliate.paymentMethod}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Verified At</dt>
+                <dt className="text-muted-foreground">
+                  {t('affiliate.verified_at', 'Verified At')}
+                </dt>
                 <dd className="font-medium text-foreground">
                   {formatDate(affiliate.verifiedAt)}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Joined</dt>
+                <dt className="text-muted-foreground">
+                  {t('affiliate.joined', 'Joined')}
+                </dt>
                 <dd className="font-medium text-foreground">
                   {formatDate(affiliate.createdAt)}
                 </dd>
               </div>
               {affiliate.suspensionReason && (
                 <div className="border-t border-border pt-3">
-                  <dt className="text-sm text-red-500">Suspension Reason:</dt>
+                  <dt className="text-sm text-red-500">
+                    {t('affiliate.suspension_reason', 'Suspension Reason')}:
+                  </dt>
                   <dd className="font-medium text-red-500">
                     {affiliate.suspensionReason}
                   </dd>
@@ -488,42 +519,56 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
 
         <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-foreground">Earnings Summary</CardTitle>
+            <CardTitle className="text-foreground">
+              {t('affiliate.earnings_summary', 'Earnings Summary')}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="space-y-3">
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Total Earnings</dt>
+                <dt className="text-muted-foreground">
+                  {t('affiliate.total_earnings', 'Total Earnings')}
+                </dt>
                 <dd className="text-lg font-medium text-foreground">
                   {formatCurrency(affiliate.totalEarnings)}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Pending Commissions</dt>
+                <dt className="text-muted-foreground">
+                  {t('affiliate.pending_commissions', 'Pending Commissions')}
+                </dt>
                 <dd className="font-medium text-amber-600 dark:text-amber-400">
                   {formatCurrency(affiliate.pendingCommissions)}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Paid Commissions</dt>
+                <dt className="text-muted-foreground">
+                  {t('affiliate.paid_commissions', 'Paid Commissions')}
+                </dt>
                 <dd className="font-medium text-emerald-600 dark:text-emerald-400">
                   {formatCurrency(affiliate.paidCommissions)}
                 </dd>
               </div>
               <div className="flex justify-between border-t border-border pt-3">
-                <dt className="text-muted-foreground">Codes Distributed</dt>
+                <dt className="text-muted-foreground">
+                  {t('affiliate.codes_distributed', 'Codes Distributed')}
+                </dt>
                 <dd className="font-medium text-foreground">
                   {affiliate.totalCodesDistributed}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Codes Used</dt>
+                <dt className="text-muted-foreground">
+                  {t('affiliate.codes_used', 'Codes Used')}
+                </dt>
                 <dd className="font-medium text-foreground">
                   {affiliate.totalCodesUsed}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Conversion Rate</dt>
+                <dt className="text-muted-foreground">
+                  {t('affiliate.conversion_rate', 'Conversion Rate')}
+                </dt>
                 <dd className="font-medium text-foreground">
                   {affiliate.totalCodesDistributed > 0
                     ? (
@@ -544,7 +589,8 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
       <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-foreground">
-            Affiliate Codes ({affiliate.affiliateCodes.length})
+            {t('affiliate.affiliate_codes', 'Affiliate Codes')} (
+            {affiliate.affiliateCodes.length})
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -553,22 +599,22 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
               <thead>
                 <tr className="border-b border-border">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Code
+                    {t('Code')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Status
+                    {t('Status')}
                   </th>
                   <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
-                    Reason
+                    {t('affiliate.reason', 'Reason')}
                   </th>
                   <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
-                    Distributed
+                    {t('affiliate.distributed', 'Distributed')}
                   </th>
                   <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
-                    Expires
+                    {t('affiliate.expires_col', 'Expires')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Used
+                    {t('affiliate.used_col', 'Used')}
                   </th>
                 </tr>
               </thead>
@@ -579,7 +625,10 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                       colSpan={6}
                       className="px-4 py-8 text-center text-muted-foreground"
                     >
-                      No codes distributed yet
+                      {t(
+                        'affiliate.no_codes_distributed_yet',
+                        'No codes distributed yet'
+                      )}
                     </td>
                   </tr>
                 ) : (
@@ -620,7 +669,9 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
       {/* Recent Commissions */}
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-foreground">Recent Commissions</CardTitle>
+          <CardTitle className="text-foreground">
+            {t('affiliate.recent_commissions', 'Recent Commissions')}
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -628,16 +679,16 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
               <thead>
                 <tr className="border-b border-border">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Amount
+                    {t('Amount')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Status
+                    {t('Status')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Earned
+                    {t('affiliate.earned_col', 'Earned')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Paid
+                    {t('affiliate.paid_col', 'Paid')}
                   </th>
                 </tr>
               </thead>
@@ -648,7 +699,7 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                       colSpan={4}
                       className="px-4 py-8 text-center text-muted-foreground"
                     >
-                      No commissions yet
+                      {t('affiliate.no_commissions_yet', 'No commissions yet')}
                     </td>
                   </tr>
                 ) : (
@@ -669,10 +720,7 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                               : 'px-4 py-3 font-medium text-foreground'
                           }
                         >
-                          {isClawback ? '-' : ''}
-                          {formatCurrency(
-                            Math.abs(Number(commission.commissionAmount))
-                          )}
+                          {formatCurrency(Number(commission.commissionAmount))}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap items-center gap-1.5">
@@ -683,10 +731,16 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
                             </Badge>
                             {isClawback && (
                               <Badge
-                                title="Deduction for a refund/dispute on a commission already paid out; nets against the affiliate's next payout."
+                                title={t(
+                                  'affiliate.clawback_tooltip_short',
+                                  "Deduction for a refund/dispute on a commission already paid out; nets against the affiliate's next payout."
+                                )}
                                 className="bg-red-500/10 text-red-500 hover:bg-red-500/10"
                               >
-                                CLAWBACK
+                                {t(
+                                  'affiliate.clawback_badge',
+                                  'Clawback'
+                                ).toUpperCase()}
                               </Badge>
                             )}
                           </div>

@@ -8,8 +8,8 @@
  */
 
 import React from 'react';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPE DEFINITIONS
@@ -38,7 +38,7 @@ interface Commission {
   clawbackOfCommissionId?: string | null;
 }
 
-interface CommissionTableProps {
+export interface CommissionTableProps {
   /** Array of commissions to display */
   commissions: Commission[];
   /** Additional CSS classes */
@@ -59,6 +59,13 @@ const statusStyles: Record<CommissionStatus, string> = {
     'bg-red-500/15 text-red-700 dark:text-red-400 border border-red-500/30',
 };
 
+const statusLabelKeys: Record<CommissionStatus, string> = {
+  PENDING: 'affiliate.status.pending',
+  APPROVED: 'affiliate.status.approved',
+  PAID: 'affiliate.status.paid',
+  CANCELLED: 'affiliate.status.cancelled',
+};
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COMPONENT
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -75,10 +82,12 @@ export function CommissionTable({
   commissions,
   className,
 }: CommissionTableProps): React.ReactElement {
+  const { t, formatDate, formatCurrency } = useLocale();
+
   if (commissions.length === 0) {
     return (
       <div className="py-8 text-center text-muted-foreground">
-        No commissions yet
+        {t('affiliate.no_commissions_yet', 'No commissions yet')}
       </div>
     );
   }
@@ -92,31 +101,31 @@ export function CommissionTable({
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
-              Code
+              {t('Code')}
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
-              Amount
+              {t('Amount')}
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
-              Status
+              {t('Status')}
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
-              Earned
+              {t('affiliate.earned_col', 'Earned')}
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
-              Paid
+              {t('affiliate.paid_col', 'Paid')}
             </th>
           </tr>
         </thead>
@@ -138,7 +147,7 @@ export function CommissionTable({
                       : 'text-foreground'
                   )}
                 >
-                  {`${isClawback && amount < 0 ? '-' : ''}$${Math.abs(amount).toFixed(2)}`}
+                  {formatCurrency(amount)}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4">
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -148,25 +157,26 @@ export function CommissionTable({
                         statusStyles[commission.status]
                       )}
                     >
-                      {commission.status}
+                      {t(statusLabelKeys[commission.status], commission.status)}
                     </span>
                     {isClawback && (
                       <span
-                        title="Deducted for a refund/dispute on a commission already paid out; nets against your next payout."
+                        title={t(
+                          'affiliate.clawback_tooltip',
+                          'Deducted for a refund/dispute on a commission already paid out; nets against your next payout.'
+                        )}
                         className="rounded border border-red-500/30 bg-red-500/15 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400"
                       >
-                        Clawback
+                        {t('affiliate.clawback_badge', 'Clawback')}
                       </span>
                     )}
                   </div>
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
-                  {format(new Date(commission.earnedAt), 'MMM d, yyyy')}
+                  {formatDate(commission.earnedAt)}
                 </td>
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
-                  {commission.paidAt
-                    ? format(new Date(commission.paidAt), 'MMM d, yyyy')
-                    : '-'}
+                  {commission.paidAt ? formatDate(commission.paidAt) : '-'}
                 </td>
               </tr>
             );
