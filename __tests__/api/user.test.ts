@@ -69,6 +69,8 @@ jest.mock('@/lib/preferences/defaults', () => ({
     'EU',
     'JP',
     'AE',
+    'FR',
+    'KR',
   ],
   mergePreferences: (
     defaults: Record<string, unknown>,
@@ -456,7 +458,7 @@ describe('User Settings API', () => {
         user: { id: 'user-123' },
       });
 
-      const request = createMockRequest('PUT', { countryCode: 'FR' });
+      const request = createMockRequest('PUT', { countryCode: 'XX' });
       const response = await putPreferences(request);
       const data = await response.json();
 
