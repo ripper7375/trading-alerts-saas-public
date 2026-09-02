@@ -36,10 +36,14 @@ const EUROZONE_BUNDLE: GeoLocaleBundle = {
   currency: 'EUR',
 };
 
-/** ISO alpha-2 codes of current Eurozone member states — all resolve to EUROZONE_BUNDLE. */
+/**
+ * ISO alpha-2 codes of current Eurozone member states — all resolve to
+ * EUROZONE_BUNDLE. `FR` is deliberately excluded: it has its own explicit
+ * bundle in `GEO_COUNTRY_TO_LOCALE` below (French language, not the
+ * Eurozone default's German) now that `fr` has a real dictionary.
+ */
 const EUROZONE_COUNTRY_CODES = [
   'DE',
-  'FR',
   'IT',
   'ES',
   'NL',
@@ -156,6 +160,22 @@ const GEO_COUNTRY_TO_LOCALE: Record<string, GeoLocaleBundle> = {
     dateFormat: 'DMY',
     timeFormat: '12h',
     currency: 'AED',
+  },
+  FR: {
+    countryCode: 'FR',
+    language: 'fr',
+    timezone: 'Europe/Paris',
+    dateFormat: 'DMY',
+    timeFormat: '24h',
+    currency: 'EUR',
+  },
+  KR: {
+    countryCode: 'KR',
+    language: 'ko',
+    timezone: 'Asia/Seoul',
+    dateFormat: 'YMD',
+    timeFormat: '24h',
+    currency: 'KRW',
   },
 };
 

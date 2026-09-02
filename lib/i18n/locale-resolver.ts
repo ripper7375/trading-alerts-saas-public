@@ -61,6 +61,8 @@ const PRIMARY_COUNTRY_FOR_LANGUAGE: Record<string, string> = {
   de: 'eu',
   ja: 'jp',
   ar: 'ae',
+  fr: 'fr',
+  ko: 'kr',
 };
 
 /** Expand a country config into the full preference set (never a partial one). */

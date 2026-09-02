@@ -40,6 +40,8 @@ export const SUPPORTED_COUNTRY_CODES = [
   'EU',
   'JP',
   'AE',
+  'FR',
+  'KR',
 ] as const;
 
 export type SupportedCountryCode = (typeof SUPPORTED_COUNTRY_CODES)[number];

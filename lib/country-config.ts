@@ -168,6 +168,30 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timeFormat: '12h',
     exchangeRate: 3.67,
   },
+  fr: {
+    code: 'FR',
+    name: 'France',
+    flag: '🇫🇷',
+    language: 'fr',
+    currency: 'EUR',
+    symbol: '€',
+    timezone: 'Europe/Paris',
+    dateFormat: 'DMY',
+    timeFormat: '24h',
+    exchangeRate: 0.92,
+  },
+  kr: {
+    code: 'KR',
+    name: 'South Korea',
+    flag: '🇰🇷',
+    language: 'ko',
+    currency: 'KRW',
+    symbol: '₩',
+    timezone: 'Asia/Seoul',
+    dateFormat: 'YMD',
+    timeFormat: '24h',
+    exchangeRate: 1350,
+  },
 };
 
 export const DEFAULT_COUNTRY: CountryConfig = SUPPORTED_COUNTRIES['gb']!;
