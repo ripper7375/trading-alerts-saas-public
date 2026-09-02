@@ -710,6 +710,61 @@ geo-locale.ts`, `lib/i18n/locale-resolver.ts`, `operation-service/src/users/user
 > (commit `61f0ac5d`); this file. 4 commits, one per logical group, per
 > `EXECUTOR-PROTOCOL.md` §2's "never batch a whole session into one commit."
 
+> **Ad-hoc session (2026-09-03, phase/session unchanged):** Davin requested (a fully-specified
+> task order given directly in chat) upgrading `/settings/language`'s Timezone dropdown from a
+> hardcoded 13-entry regional list to an "All Round Clock" dropdown covering every standard GMT
+> offset from `-12:00` to `+14:00`, standardized `(GMT ±HH:MM) Region/City` labels, and free-text
+> search by city/country/GMT offset. Outside the Session 14-x playbook numbering entirely, per
+> `EXECUTOR-PROTOCOL.md` §6.
+> **New `lib/utils/timezones.ts`:** `getAllTimezones()` prefers `Intl.supportedValuesOf('timeZone')`
+> (live-verified in a real browser — resolves 419 real IANA identifiers) with a ~90-zone curated
+> fallback (every standard offset `-12:00`..`+14:00`) for environments lacking that API; sorted by
+> offset then alphabetically by identifier, exactly per spec. `tsconfig.json`'s `lib` is pinned to
+> `ES2020` (no `ES2022.Intl`), so referencing `Intl.supportedValuesOf` needed an `Intl as unknown as
+{...}` cast to satisfy `tsc` — a real compiler finding, not a style choice. 100% backward-compatible
+> with stored preferences by construction: every legacy value (`America/New_York`, `Asia/Dubai`,
+> `Asia/Seoul`, etc.) is a real IANA identifier already present in the full ICU list.
+> **A real architectural risk checked before shipping the order's literal JSX, not assumed safe:**
+> the order's own Step 2 nests a raw `<input>` inside `components/ui/select.tsx`'s
+> `<SelectContent>` — that component wraps `@radix-ui/react-select` (confirmed by reading it
+> directly), not a `cmdk`-based combobox, and Radix `Select.Content` owns its own keyboard-driven
+> typeahead/roving-focus — a well-known conflict source for an embedded search input. The order's
+> own `onKeyDown`/`onClick` `stopPropagation()` calls anticipated exactly this risk; rather than
+> trust that the mitigation works, live-verified it in a real browser via a temporary,
+> non-authenticated throwaway route (`app/dev-tz-preview/page.tsx`, deliberately placed outside
+> `app/settings/` to route around its `layout.tsx`'s own server-side `getServerSession`+`redirect`
+> gate — the exact mechanism `LESSONS-LEARNED.md` L17 documents — deleted immediately after use,
+> never committed): the dropdown opens, typing "Dubai" filters live from 419 entries to the one
+> match with the dropdown staying open (no typeahead hijack), typing a raw offset string (`+05:30`)
+> correctly filters by `gmtPrefix` too, clicking a filtered result selects it and updates the
+> trigger label, and reopening the dropdown resets the search box. No deviation from the order's
+> JSX was needed — confirmed working, not assumed.
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean on all changed/new files; new
+> `__tests__/lib/utils/timezones.test.ts` **8/8** (offset formatting incl. half/quarter-hour zones,
+> chronological + alphabetical sort, financial-hub presence, zero duplicates, empty/invalid-input
+> fallback); `__tests__/api/user.test.ts` **26/26** unaffected; full monolith `npm run test:ci`
+> **166/166 suites, 2390/2390 tests** (165→166 suites, 2382→2390 tests — exactly this session's 1
+> new suite/8 new tests, zero regressions elsewhere), exact match to the France/Korea session's own
+> close baseline plus this session's own additions.
+> **Live-verified structurally for the real page too, not just the throwaway route:** local
+> Turbopack `next dev` compiles `app/settings/language/page.tsx` with zero build errors from the
+> new `lib/utils/timezones.ts` import; `GET /settings/language` cleanly redirects an unauthenticated
+> visitor to `/login?callbackUrl=%2Fsettings%2Flanguage` (200), zero server errors — same
+> `app/settings/layout.tsx` auth gate as every other settings page in this file's history.
+> **Authenticated click-through not performed** — same "Executor never enters credentials" boundary
+> as every prior session; flagged below.
+> **Not touched, deliberately:** `docs/policies/08-locale-i18n-compliance.md` — this order only
+> changes the timezone list, not the language/currency arrays or `handleSave()`'s locale-write
+> path, both already fixed in the 2026-09-01 locale-i18n-compliance session.
+> **Lesson harvested:** no new lesson added (`LESSONS-LEARNED.md` still at its 40-entry cap) —
+> nothing here rose above an already-covered pattern (L17's route-group/layout-auth-gate mechanism,
+> applied here for a new purpose: verifying a third-party UI primitive's real interaction behavior
+> in a live browser, not working around test infrastructure).
+> **Artifacts:** `lib/utils/timezones.ts` (new), `app/settings/language/page.tsx`,
+> `__tests__/lib/utils/timezones.test.ts` (new), `next-env.d.ts` (Next.js dev-server auto-regen,
+> per this file's own "This is NOT the Next.js you know" note), this file. 2 commits (utility+test,
+> then page wiring), plus this docs commit.
+
 - **Current:** Session 14-3 (Cutover + Runbook, Phase 14 — fourth and last of 4 sessions,
   VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. **Phase 14
   (Web Chat / Contabo Support Stack) is now COMPLETE.** Flips `NEXT_PUBLIC_SOCKET_CHAT_URL` +
@@ -848,6 +903,14 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 
 ## Waiting on
 
+- **All Round Clock timezone dropdown — authenticated click-through not yet confirmed**
+  (2026-09-03 ad-hoc session) — `tsc`/`eslint`/new-test (8/8)/full `test:ci` (166/166 · 2390/2390)
+  all clean, and the real search/select interaction was live-verified in a browser via a temporary
+  unauthenticated throwaway route (deleted after use) — but `/settings/language` itself is
+  auth-gated, so needs Davin's own pass to confirm: the Timezone field shows the correct
+  `(GMT ±HH:MM)` label for the user's saved preference on load, the search box filters as expected
+  inside the real page's styling/positioning, selecting a new zone updates the "Current time"
+  preview live, and Save persists it correctly.
 - **France/South Korea + French/Korean/Chinese — authenticated click-through not yet confirmed**
   (2026-09-03 ad-hoc session) — `tsc`/`eslint`/full `test:ci` (165/165 · 2382/2382) all clean, and
   a local dev server booted with zero build errors, but the header's "Select Country & Region"
