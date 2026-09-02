@@ -11,6 +11,9 @@ import trDict from '@/lib/i18n/dictionaries/tr.json';
 import urDict from '@/lib/i18n/dictionaries/ur.json';
 import ptDict from '@/lib/i18n/dictionaries/pt.json';
 import arDict from '@/lib/i18n/dictionaries/ar.json';
+import frDict from '@/lib/i18n/dictionaries/fr.json';
+import koDict from '@/lib/i18n/dictionaries/ko.json';
+import zhDict from '@/lib/i18n/dictionaries/zh.json';
 
 /**
  * Server-safe mirror of `lib/context/locale-context.tsx`'s dictionary map, for
@@ -38,6 +41,9 @@ const dictionaries: Record<string, Record<string, string>> = {
   ur: urDict,
   pt: ptDict,
   ar: arDict,
+  fr: frDict,
+  ko: koDict,
+  zh: zhDict,
 };
 
 /** Same fallback convention as `dictionaryFor()` in locale-context.tsx: en-GB is the base. */
