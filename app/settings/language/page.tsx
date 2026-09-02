@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Globe,
   Clock,
@@ -21,6 +21,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useLocale } from '@/lib/context/locale-context';
+import {
+  getAllTimezones,
+  getTimezoneLabel,
+  type TimezoneOption,
+} from '@/lib/utils/timezones';
 
 /**
  * Language & Region Settings Page (Row 77)
@@ -55,22 +60,6 @@ const languages = [
   { code: 'zh', name: 'Chinese (中文)', flag: '🇨🇳' },
 ];
 
-const timezones = [
-  { value: 'America/New_York', label: 'Eastern Time (ET)' },
-  { value: 'America/Chicago', label: 'Central Time (CT)' },
-  { value: 'America/Denver', label: 'Mountain Time (MT)' },
-  { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
-  { value: 'Europe/London', label: 'London (GMT)' },
-  { value: 'Europe/Paris', label: 'Paris (CET)' },
-  { value: 'Europe/Berlin', label: 'Berlin (CET)' },
-  { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
-  { value: 'Asia/Shanghai', label: 'Shanghai (CST)' },
-  { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
-  { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
-  { value: 'Asia/Dubai', label: 'Dubai / UAE (GST)' },
-  { value: 'Asia/Seoul', label: 'Seoul / Korea (KST)' },
-];
-
 const currencies = [
   { code: 'USD', symbol: '$', name: 'US Dollar' },
   { code: 'EUR', symbol: '€', name: 'Euro' },
@@ -94,6 +83,19 @@ export default function LanguageSettingsPage(): React.ReactElement {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const allTimezones = useMemo<TimezoneOption[]>(() => getAllTimezones(), []);
+  const [timezoneSearch, setTimezoneSearch] = useState('');
+
+  const filteredTimezones = useMemo(() => {
+    if (!timezoneSearch.trim()) return allTimezones;
+    const query = timezoneSearch.toLowerCase();
+    return allTimezones.filter(
+      (tz) =>
+        tz.label.toLowerCase().includes(query) ||
+        tz.value.toLowerCase().includes(query) ||
+        tz.gmtPrefix.toLowerCase().includes(query)
+    );
+  }, [allTimezones, timezoneSearch]);
 
   useEffect(() => {
     const loadSettings = async (): Promise<void> => {
@@ -225,21 +227,51 @@ export default function LanguageSettingsPage(): React.ReactElement {
           </Label>
           <Select
             value={settings.timezone}
-            onValueChange={(value) => handleChange('timezone', value)}
+            onValueChange={(value) => {
+              handleChange('timezone', value);
+              setTimezoneSearch('');
+            }}
           >
-            <SelectTrigger id="timezone">
-              <SelectValue placeholder={t('Select timezone')} />
+            <SelectTrigger
+              id="timezone"
+              className="w-full font-mono text-xs sm:text-sm"
+            >
+              <SelectValue placeholder={t('Select timezone')}>
+                {getTimezoneLabel(settings.timezone)}
+              </SelectValue>
             </SelectTrigger>
-            <SelectContent>
-              {timezones.map((tz) => (
-                <SelectItem key={tz.value} value={tz.value}>
-                  {tz.label}
-                </SelectItem>
-              ))}
+            <SelectContent className="max-h-80 w-[380px] overflow-y-auto sm:w-[440px]">
+              <div className="sticky top-0 z-10 border-b border-border bg-popover p-2">
+                <input
+                  type="text"
+                  placeholder={t('Search city, country, or GMT offset...')}
+                  value={timezoneSearch}
+                  onChange={(e) => setTimezoneSearch(e.target.value)}
+                  className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                />
+              </div>
+              {filteredTimezones.length === 0 ? (
+                <div className="p-4 text-center text-xs text-muted-foreground">
+                  {t('No timezones found')}
+                </div>
+              ) : (
+                filteredTimezones.map((tz) => (
+                  <SelectItem
+                    key={tz.value}
+                    value={tz.value}
+                    className="font-mono text-xs"
+                  >
+                    {tz.label}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
           <p className="mt-2 text-sm text-muted-foreground">
-            {t('Current time:')} {getCurrentTime()}
+            {t('Current time:')}{' '}
+            <span className="font-mono font-semibold">{getCurrentTime()}</span>
           </p>
         </div>
       </section>
