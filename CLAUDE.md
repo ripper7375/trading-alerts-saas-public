@@ -646,6 +646,70 @@ P2022 — The column User.profile does not exist in the current database`, throw
 >    `app/api/auth/token-logout/route.ts`, `__tests__/api/auth/token-logout.test.ts`, this file.
 >    Committed and pushed (`946880ab`).
 
+> **Ad-hoc session (2026-09-03, phase/session unchanged):** Davin requested 2 new
+> countries/regions (France `FR`/`fr`, South Korea `KR`/`kr`) in the header's "Select Country &
+> Region" dropdown, and 3 new display languages (French `fr`, Korean `ko`, Chinese `zh`) on
+> `/settings/language`, via a fully-specified task order given directly in chat. Outside the
+> Session 14-x playbook numbering entirely, per `EXECUTOR-PROTOCOL.md` §6.
+> **Verified against live code before executing, per §0** — the order's own plan matched the
+> live tree closely: `app/settings/language/page.tsx`'s `languages` array carried a comment
+> ("`fr` and `zh` removed: no backing dictionary... would silently degrade to English forever")
+> confirming this order directly closes the exact gap `docs/policies/08-locale-i18n-compliance.md`
+> §0 already documented. `middleware.ts`'s country-prefix routing and the header dropdown
+> (`app-header.tsx`) both read `SUPPORTED_COUNTRIES`/its derived prefixes dynamically, and the
+> client `LocaleProvider` lazy-loads any non-bundled dictionary via `import()` keyed by language
+> code — none of those three needed a direct code change once `lib/country-config.ts` and the new
+> dictionary files existed.
+> **Correctly left untouched, confirmed via live grep before assuming otherwise:** `lib/dlocal/
+constants.ts`'s own `DLOCAL_SUPPORTED_COUNTRIES` (9 countries, payment-provider-specific) is a
+> completely separate list from `lib/country-config.ts`'s general locale `SUPPORTED_COUNTRIES` —
+> dLocal does not support France or South Korea, and this order never asked for payment-provider
+> changes, so `lib/dlocal/**`, `components/payments/CountrySelector.tsx`, and `app/checkout/
+page.tsx` were deliberately not touched (would be a money-adjacent change needing its own
+> explicit sign-off per `CLAUDE.md` non-negotiable #5).
+> **A real test-fixture bug found and fixed, not just the order's own asked-for mock update:**
+> `__tests__/api/user.test.ts`'s "should return 400 for an unsupported countryCode" test used the
+> literal `'FR'` as its example of an unsupported code — now genuinely supported, that request
+> correctly started returning 200, failing the old assertion. Swapped the literal to `'XX'`
+> (already this repo's convention for an unrecognized/placeholder ISO code). A repo-wide grep for
+> stray `'FR'`/`'KR'` literals elsewhere in `__tests__/` found only this one collision;
+> `dlocal-payment-flow.test.ts`'s own `'FR'` (asserting dLocal correctly rejects it) is unaffected
+> since dLocal's own supported-country list wasn't touched.
+> **Verified:** `npx tsc --noEmit` clean on both the monolith and `operation-service` (the schema
+> mirror). `npx eslint` clean on every changed file (`next lint`/`npm run lint` still broken per
+> `LESSONS-LEARNED.md` L38). Targeted `__tests__/api/user.test.ts` +
+> `__tests__/lib/geo/detect-country.test.ts` **52/52** (the latter is generic ISO-header detection,
+> unrelated to `SUPPORTED_COUNTRIES` and unaffected either way — run per the order's own ask).
+> Full monolith `npm run test:ci` **165/165 suites, 2382/2382 tests** — exact match to the
+> locale-i18n-compliance session's own close baseline, zero regressions.
+> **Live-verified structurally, not visually — same boundary as every prior session's
+> authenticated surfaces:** a local Turbopack `next dev` booted clean with no build/import errors
+> from the 3 new dictionary JSON files (a malformed one would fail the build immediately). Every
+> route reachable without a session — including `/free`, unexpectedly, which is not in
+> `middleware.ts`'s `PROTECTED_PREFIXES` list but still redirects to `/login`, meaning it has its
+> own independent auth gate somewhere the same way `app/(dashboard)/layout.tsx` does per
+> `LESSONS-LEARNED.md` L17 — bounced to `/login`, so the header's country dropdown and
+> `/settings/language` (both auth-gated) could not be visually click-through-verified; the console
+> errors observed on the login page itself (Google Fonts fetch failures, `/api/auth/session`
+> 404s) are pre-existing local-dev-environment gaps, confirmed unrelated by inspection, not caused
+> by this session. A stray `tsc` run against `.next/dev/types/routes.d.ts` while the dev server
+> was still live and actively regenerating that file produced a wall of parse errors — confirmed
+> as a build-artifact race (not a real code issue) by stopping the server, clearing
+> `.next/dev/types/`, and re-running clean.
+> **Not built, deliberately:** `docs/policies/08-locale-i18n-compliance.md`'s own §0 prose (which
+> narrates the exact `fr`/`zh`-no-dictionary gap this session closes) was left unedited — a
+> documentation-maintenance pass beyond this order's explicit scope, flagged here instead.
+> **Lesson harvested:** no new lesson added (`LESSONS-LEARNED.md` still at its 40-entry cap,
+> nothing here rose above an already-covered `L22`-family pattern: a value used in a test as
+> "the unsupported example" going stale the moment the supported set changes).
+> **Artifacts:** `lib/country-config.ts`, `lib/preferences/defaults.ts`, `lib/preferences/
+geo-locale.ts`, `lib/i18n/locale-resolver.ts`, `operation-service/src/users/users.schemas.ts`
+> (commit `9dbd6f03`); new `lib/i18n/dictionaries/{fr,ko,zh}.json` + `lib/i18n/get-dictionary.ts`
+> registration + France/South Korea keys added to `en-US.json`/`en-GB.json`/`ar.json` (commit
+> `03b7f675`); `app/settings/language/page.tsx` (commit `a5f3b03b`); `__tests__/api/user.test.ts`
+> (commit `61f0ac5d`); this file. 4 commits, one per logical group, per
+> `EXECUTOR-PROTOCOL.md` §2's "never batch a whole session into one commit."
+
 - **Current:** Session 14-3 (Cutover + Runbook, Phase 14 — fourth and last of 4 sessions,
   VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. **Phase 14
   (Web Chat / Contabo Support Stack) is now COMPLETE.** Flips `NEXT_PUBLIC_SOCKET_CHAT_URL` +
@@ -784,6 +848,17 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 
 ## Waiting on
 
+- **France/South Korea + French/Korean/Chinese — authenticated click-through not yet confirmed**
+  (2026-09-03 ad-hoc session) — `tsc`/`eslint`/full `test:ci` (165/165 · 2382/2382) all clean, and
+  a local dev server booted with zero build errors, but the header's "Select Country & Region"
+  dropdown and `/settings/language` are both auth-gated (confirmed even `/free` redirects to
+  `/login` despite not being in `middleware.ts`'s own protected-prefix list) — the Executor never
+  authenticates, so needs Davin's own pass to confirm: the header shows `🇫🇷 France €` /
+  `🇰🇷 South Korea ₩` and switching to either actually re-locales the app; the Language & Region
+  page offers French/Korean/Chinese and each renders its own dictionary with zero console/
+  hydration errors. Separately, `ar.json` is still missing a translated country name for every
+  `SUPPORTED_COUNTRIES` entry except France/South Korea (added this session) — a pre-existing gap
+  from the UAE ad-hoc session, not introduced here, flagged for a future pass.
 - **Sign-out fix — live click-through not yet confirmed** (2026-09-01 ad-hoc session) — fixed
   `/login` and `/verify-2fa`'s "already signed in" Sign Out buttons plus a second, independent bug
   in `token-logout/route.ts` (cookie clearing silently failing in production, `__Secure-` prefix +
