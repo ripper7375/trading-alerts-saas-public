@@ -42,9 +42,6 @@ interface LanguageSettings {
   currency: string;
 }
 
-// `fr` and `zh` removed: no backing dictionary in `lib/i18n/dictionaries/`
-// (see `docs/policies/08-locale-i18n-compliance.md` §0) -- selecting either
-// would silently degrade to English forever.
 const languages = [
   { code: 'en-US', name: 'English (US)', flag: '🇺🇸' },
   { code: 'en-GB', name: 'English (UK)', flag: '🇬🇧' },
@@ -53,6 +50,9 @@ const languages = [
   { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
   { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
   { code: 'ar', name: 'Arabic (العربية)', flag: '🇦🇪' },
+  { code: 'fr', name: 'French (Français)', flag: '🇫🇷' },
+  { code: 'ko', name: 'Korean (한국어)', flag: '🇰🇷' },
+  { code: 'zh', name: 'Chinese (中文)', flag: '🇨🇳' },
 ];
 
 const timezones = [
@@ -68,6 +68,7 @@ const timezones = [
   { value: 'Asia/Singapore', label: 'Singapore (SGT)' },
   { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
   { value: 'Asia/Dubai', label: 'Dubai / UAE (GST)' },
+  { value: 'Asia/Seoul', label: 'Seoul / Korea (KST)' },
 ];
 
 const currencies = [
@@ -79,6 +80,7 @@ const currencies = [
   { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
   { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
   { code: 'AED', symbol: 'AED', name: 'UAE Dirham' },
+  { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
 ];
 
 export default function LanguageSettingsPage(): React.ReactElement {
