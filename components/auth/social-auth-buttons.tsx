@@ -4,6 +4,8 @@ import { Loader2 } from 'lucide-react';
 import { signIn, getProviders } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
+import { useLocale } from '@/lib/context/locale-context';
+
 type LoadingProvider = 'google' | 'twitter' | null;
 
 interface AvailableProviders {
@@ -12,6 +14,7 @@ interface AvailableProviders {
 }
 
 export default function SocialAuthButtons(): JSX.Element {
+  const { t } = useLocale();
   const [loadingProvider, setLoadingProvider] = useState<LoadingProvider>(null);
   const [availableProviders, setAvailableProviders] =
     useState<AvailableProviders>({
@@ -72,8 +75,10 @@ export default function SocialAuthButtons(): JSX.Element {
   if (providersLoaded && !hasAnyOAuthProvider) {
     return (
       <div className="py-2 text-center text-xs text-muted-foreground">
-        <p>Social login not configured.</p>
-        <p className="mt-1 text-[11px]">Use email/password to sign in.</p>
+        <p>{t('Social login not configured.')}</p>
+        <p className="mt-1 text-[11px]">
+          {t('Use email/password to sign in.')}
+        </p>
       </div>
     );
   }
@@ -114,7 +119,7 @@ export default function SocialAuthButtons(): JSX.Element {
               />
             </svg>
           )}
-          Sign in with Google
+          {t('Sign in with Google')}
         </button>
       )}
 
@@ -137,7 +142,7 @@ export default function SocialAuthButtons(): JSX.Element {
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
             </svg>
           )}
-          Login with X
+          {t('Login with X')}
         </button>
       )}
     </div>
