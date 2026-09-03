@@ -11,14 +11,27 @@
  * @module __tests__/pages/settings/account-settings-page.test
  */
 
-import { render, screen, waitFor, within } from '@testing-library/react';
+import {
+  render as rtlRender,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
 
 jest.mock('next/navigation', () => ({
   redirect: jest.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);
   }),
+  usePathname: () => '/settings/account',
 }));
 
 jest.mock('next/link', () => {
@@ -68,6 +81,17 @@ describe('AccountSettingsPage (server component)', () => {
     global.fetch = jest.fn(() =>
       Promise.resolve(sessionsResponse())
     ) as unknown as typeof fetch;
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({
+        countryCode: 'US',
+        language: 'en-US',
+        timezone: 'America/New_York',
+        dateFormat: 'MDY',
+        timeFormat: '12h',
+        currency: 'USD',
+      })
+    );
   });
 
   it('redirects unauthenticated callers to /login', async () => {

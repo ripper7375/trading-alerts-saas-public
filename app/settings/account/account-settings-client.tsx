@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { useState, useEffect, useCallback } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ToastContainer } from '@/components/ui/toast-container';
 import { useToast } from '@/hooks/use-toast';
+import { useLocale } from '@/lib/context/locale-context';
 
 /**
  * Account Settings Page (Row 73, client half)
@@ -161,6 +162,7 @@ function PendingDeletionBanner({
   isCancelling: boolean;
   onCancel: () => void;
 }): React.ReactElement {
+  const { t } = useLocale();
   const isConfirmed = deletionStatus.status === 'CONFIRMED';
   const targetDate = getDeletionTargetDate(deletionStatus);
 
@@ -179,18 +181,33 @@ function PendingDeletionBanner({
             <div>
               <p className="font-semibold text-red-900 dark:text-red-200">
                 {isConfirmed
-                  ? 'Account Deletion Confirmed'
-                  : 'Account Deletion Pending'}
+                  ? t(
+                      'settings.account.deletion_confirmed',
+                      'Account Deletion Confirmed'
+                    )
+                  : t(
+                      'settings.account.deletion_pending',
+                      'Account Deletion Pending'
+                    )}
               </p>
               <p className="text-sm text-red-800 dark:text-red-300">
                 {isConfirmed
-                  ? `Your account will be permanently deleted in about ${formatDistanceToNow(
-                      targetDate
-                    )} (around ${format(targetDate, 'PPp')}).`
-                  : `Confirm via the link in your email within ${formatDistanceToNow(
-                      targetDate
-                    )} (link expires ${format(targetDate, 'PPp')}), or cancel below.`}
-                {' You can still cancel this request.'}
+                  ? t(
+                      'settings.account.deletion_confirmed_desc',
+                      'Your account will be permanently deleted in about {duration} (around {date}).'
+                    )
+                      .replace('{duration}', formatDistanceToNow(targetDate))
+                      .replace('{date}', format(targetDate, 'PPp'))
+                  : t(
+                      'settings.account.deletion_pending_desc',
+                      'Confirm via the link in your email within {duration} (link expires {date}), or cancel below.'
+                    )
+                      .replace('{duration}', formatDistanceToNow(targetDate))
+                      .replace('{date}', format(targetDate, 'PPp'))}{' '}
+                {t(
+                  'settings.account.deletion_still_cancellable',
+                  'You can still cancel this request.'
+                )}
               </p>
             </div>
           </div>
@@ -207,10 +224,13 @@ function PendingDeletionBanner({
                   className="mr-2 h-4 w-4 animate-spin"
                   aria-hidden="true"
                 />
-                Cancelling...
+                {t('settings.account.cancelling', 'Cancelling...')}
               </>
             ) : (
-              'Cancel Deletion Request'
+              t(
+                'settings.account.cancel_deletion_request',
+                'Cancel Deletion Request'
+              )
             )}
           </Button>
         </div>
@@ -222,6 +242,7 @@ function PendingDeletionBanner({
 export function AccountSettingsClient({
   initialDeletionStatus,
 }: AccountSettingsClientProps): React.ReactElement {
+  const { t } = useLocale();
   const { data: session } = useSession();
 
   const { toasts, removeToast, success, error: showError } = useToast();
@@ -281,15 +302,34 @@ export function AccountSettingsClient({
       });
 
       if (response.ok) {
-        success('Session Revoked', 'The session has been logged out.');
+        success(
+          t('settings.account.session_revoked', 'Session Revoked'),
+          t(
+            'settings.account.session_revoked_desc',
+            'The session has been logged out.'
+          )
+        );
         setSessions((prev) => prev.filter((s) => s.id !== sessionId));
       } else {
         const data = await response.json();
-        showError('Failed', data.error || 'Could not revoke session');
+        showError(
+          t('Failed', 'Failed'),
+          data.error ||
+            t(
+              'settings.account.error_revoke_session',
+              'Could not revoke session'
+            )
+        );
       }
     } catch (error) {
       console.error('Error revoking session:', error);
-      showError('Error', 'Failed to revoke session');
+      showError(
+        t('Error', 'Error'),
+        t(
+          'settings.account.error_revoke_session_generic',
+          'Failed to revoke session'
+        )
+      );
     } finally {
       setIsRevokingSession(null);
     }
@@ -308,32 +348,57 @@ export function AccountSettingsClient({
     setPasswordError(null);
 
     if (!currentPassword) {
-      setPasswordError('Please enter your current password');
+      setPasswordError(
+        t(
+          'settings.account.error_enter_current_password',
+          'Please enter your current password'
+        )
+      );
       return;
     }
 
     if (newPassword.length < 8) {
-      setPasswordError('New password must be at least 8 characters');
+      setPasswordError(
+        t(
+          'settings.account.error_password_min_length',
+          'New password must be at least 8 characters'
+        )
+      );
       return;
     }
 
     if (!/[A-Z]/.test(newPassword)) {
-      setPasswordError('Password must contain at least one uppercase letter');
+      setPasswordError(
+        t(
+          'settings.account.error_password_uppercase',
+          'Password must contain at least one uppercase letter'
+        )
+      );
       return;
     }
 
     if (!/[a-z]/.test(newPassword)) {
-      setPasswordError('Password must contain at least one lowercase letter');
+      setPasswordError(
+        t(
+          'settings.account.error_password_lowercase',
+          'Password must contain at least one lowercase letter'
+        )
+      );
       return;
     }
 
     if (!/[0-9]/.test(newPassword)) {
-      setPasswordError('Password must contain at least one number');
+      setPasswordError(
+        t(
+          'settings.account.error_password_number',
+          'Password must contain at least one number'
+        )
+      );
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match');
+      setPasswordError(t('Passwords do not match'));
       return;
     }
 
@@ -348,7 +413,13 @@ export function AccountSettingsClient({
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to change password');
+        throw new Error(
+          data.error ||
+            t(
+              'settings.account.error_change_password',
+              'Failed to change password'
+            )
+        );
       }
 
       setPasswordChangeSuccess(true);
@@ -359,7 +430,12 @@ export function AccountSettingsClient({
       setTimeout(() => setPasswordChangeSuccess(false), 3000);
     } catch (error) {
       setPasswordError(
-        error instanceof Error ? error.message : 'Failed to change password'
+        error instanceof Error
+          ? error.message
+          : t(
+              'settings.account.error_change_password',
+              'Failed to change password'
+            )
       );
     } finally {
       setIsChangingPassword(false);
@@ -375,16 +451,33 @@ export function AccountSettingsClient({
       if (response.ok) {
         const data = await response.json();
         success(
-          'Sessions Revoked',
-          `Logged out from ${data.revokedCount} other device${data.revokedCount === 1 ? '' : 's'}.`
+          t('settings.account.sessions_revoked', 'Sessions Revoked'),
+          t(
+            'settings.account.sessions_revoked_desc',
+            'Logged out from {count} other device{plural}.'
+          )
+            .replace('{count}', String(data.revokedCount))
+            .replace('{plural}', data.revokedCount === 1 ? '' : 's')
         );
         fetchSessions();
       } else {
-        showError('Failed', 'Could not revoke other sessions');
+        showError(
+          t('Failed', 'Failed'),
+          t(
+            'settings.account.error_revoke_other_sessions',
+            'Could not revoke other sessions'
+          )
+        );
       }
     } catch (error) {
       console.error('Error signing out all devices:', error);
-      showError('Error', 'Failed to sign out other devices');
+      showError(
+        t('Error', 'Error'),
+        t(
+          'settings.account.error_sign_out_other_devices',
+          'Failed to sign out other devices'
+        )
+      );
     }
   };
 
@@ -402,7 +495,13 @@ export function AccountSettingsClient({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to request account deletion');
+        throw new Error(
+          data.error ||
+            t(
+              'settings.account.error_request_deletion',
+              'Failed to request account deletion'
+            )
+        );
       }
 
       setIsDeleteDialogOpen(false);
@@ -414,16 +513,22 @@ export function AccountSettingsClient({
         });
       }
       success(
-        'Deletion Request Sent',
-        'Check your email for confirmation link.'
+        t('settings.account.deletion_request_sent', 'Deletion Request Sent'),
+        t(
+          'settings.account.deletion_request_sent_desc',
+          'Check your email for confirmation link.'
+        )
       );
     } catch (error) {
       console.error('Delete account error:', error);
       showError(
-        'Request Failed',
+        t('settings.account.request_failed', 'Request Failed'),
         error instanceof Error
           ? error.message
-          : 'Failed to request account deletion'
+          : t(
+              'settings.account.error_request_deletion',
+              'Failed to request account deletion'
+            )
       );
     } finally {
       setIsDeleting(false);
@@ -443,17 +548,34 @@ export function AccountSettingsClient({
 
       if (!response.ok) {
         showError(
-          'Failed',
-          data.message || data.error || 'Could not cancel deletion request'
+          t('Failed', 'Failed'),
+          data.message ||
+            data.error ||
+            t(
+              'settings.account.error_cancel_deletion',
+              'Could not cancel deletion request'
+            )
         );
         return;
       }
 
       setDeletionStatus(null);
-      success('Deletion Cancelled', 'Your account remains active.');
+      success(
+        t('settings.account.deletion_cancelled', 'Deletion Cancelled'),
+        t(
+          'settings.account.deletion_cancelled_desc',
+          'Your account remains active.'
+        )
+      );
     } catch (error) {
       console.error('Cancel deletion error:', error);
-      showError('Error', 'Failed to cancel deletion request');
+      showError(
+        t('Error', 'Error'),
+        t(
+          'settings.account.error_cancel_deletion_generic',
+          'Failed to cancel deletion request'
+        )
+      );
     } finally {
       setIsCancellingDeletion(false);
     }
@@ -462,7 +584,7 @@ export function AccountSettingsClient({
   return (
     <div className="animate-fade-in">
       <h2 className="mb-6 text-2xl font-bold text-foreground">
-        Account Settings
+        {t('settings.account_settings', 'Account Settings')}
       </h2>
 
       {deletionStatus && (
@@ -477,12 +599,12 @@ export function AccountSettingsClient({
       <section className="mb-8">
         <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
           <Lock className="h-5 w-5" />
-          Change Password
+          {t('Change Password', 'Change Password')}
         </h3>
         <form onSubmit={handlePasswordChange} className="space-y-4">
           <div>
             <Label htmlFor="currentPassword" className="text-sm font-medium">
-              Current Password
+              {t('Current Password', 'Current Password')}
             </Label>
             <div className="relative mt-1">
               <Input
@@ -490,7 +612,10 @@ export function AccountSettingsClient({
                 type={showPasswords.current ? 'text' : 'password'}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Enter current password"
+                placeholder={t(
+                  'settings.account.enter_current_password',
+                  'Enter current password'
+                )}
               />
               <button
                 type="button"
@@ -498,8 +623,14 @@ export function AccountSettingsClient({
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 aria-label={
                   showPasswords.current
-                    ? 'Hide current password'
-                    : 'Show current password'
+                    ? t(
+                        'settings.account.hide_current_password',
+                        'Hide current password'
+                      )
+                    : t(
+                        'settings.account.show_current_password',
+                        'Show current password'
+                      )
                 }
               >
                 {showPasswords.current ? (
@@ -513,7 +644,7 @@ export function AccountSettingsClient({
 
           <div>
             <Label htmlFor="newPassword" className="text-sm font-medium">
-              New Password
+              {t('New Password', 'New Password')}
             </Label>
             <div className="relative mt-1">
               <Input
@@ -521,14 +652,25 @@ export function AccountSettingsClient({
                 type={showPasswords.new ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter new password"
+                placeholder={t(
+                  'settings.account.enter_new_password',
+                  'Enter new password'
+                )}
               />
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('new')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 aria-label={
-                  showPasswords.new ? 'Hide new password' : 'Show new password'
+                  showPasswords.new
+                    ? t(
+                        'settings.account.hide_new_password',
+                        'Hide new password'
+                      )
+                    : t(
+                        'settings.account.show_new_password',
+                        'Show new password'
+                      )
                 }
               >
                 {showPasswords.new ? (
@@ -542,7 +684,10 @@ export function AccountSettingsClient({
               <div className="mt-2">
                 <div className="mb-1 flex justify-between text-xs">
                   <span className="text-muted-foreground">
-                    Password strength:
+                    {t(
+                      'settings.account.password_strength',
+                      'Password strength:'
+                    )}
                   </span>
                   <span
                     className={`font-semibold ${
@@ -553,8 +698,11 @@ export function AccountSettingsClient({
                           : 'text-red-600'
                     }`}
                   >
-                    {passwordStrength.charAt(0).toUpperCase() +
-                      passwordStrength.slice(1)}
+                    {passwordStrength === 'strong'
+                      ? t('settings.account.strength_strong', 'Strong')
+                      : passwordStrength === 'medium'
+                        ? t('settings.account.strength_medium', 'Medium')
+                        : t('settings.account.strength_weak', 'Weak')}
                   </span>
                 </div>
                 <div className="h-1 w-full rounded-full bg-muted">
@@ -571,7 +719,7 @@ export function AccountSettingsClient({
 
           <div>
             <Label htmlFor="confirmPassword" className="text-sm font-medium">
-              Confirm New Password
+              {t('Confirm New Password', 'Confirm New Password')}
             </Label>
             <div className="relative mt-1">
               <Input
@@ -579,7 +727,10 @@ export function AccountSettingsClient({
                 type={showPasswords.confirm ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm new password"
+                placeholder={t(
+                  'settings.account.confirm_new_password_placeholder',
+                  'Confirm new password'
+                )}
               />
               <button
                 type="button"
@@ -587,8 +738,14 @@ export function AccountSettingsClient({
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 aria-label={
                   showPasswords.confirm
-                    ? 'Hide password confirmation'
-                    : 'Show password confirmation'
+                    ? t(
+                        'settings.account.hide_password_confirmation',
+                        'Hide password confirmation'
+                      )
+                    : t(
+                        'settings.account.show_password_confirmation',
+                        'Show password confirmation'
+                      )
                 }
               >
                 {showPasswords.confirm ? (
@@ -600,7 +757,7 @@ export function AccountSettingsClient({
             </div>
             {confirmPassword && newPassword !== confirmPassword && (
               <p className="mt-1 text-xs text-red-600">
-                Passwords do not match
+                {t('Passwords do not match')}
               </p>
             )}
           </div>
@@ -615,7 +772,10 @@ export function AccountSettingsClient({
           {passwordChangeSuccess && (
             <p className="flex items-center gap-1 text-sm text-emerald-600 dark:text-emerald-400">
               <Check className="h-4 w-4" />
-              Password changed successfully
+              {t(
+                'settings.account.password_changed_success',
+                'Password changed successfully'
+              )}
             </p>
           )}
 
@@ -623,10 +783,10 @@ export function AccountSettingsClient({
             {isChangingPassword ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Updating...
+                {t('settings.account.updating', 'Updating...')}
               </>
             ) : (
-              'Update Password'
+              t('Update Password', 'Update Password')
             )}
           </Button>
         </form>
@@ -638,21 +798,28 @@ export function AccountSettingsClient({
       <section className="mb-8">
         <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
           <Shield className="h-5 w-5" />
-          Two-Factor Authentication
+          {t('Two-Factor Authentication', 'Two-Factor Authentication')}
         </h3>
         <Card>
           <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-semibold text-foreground">
-                Manage Two-Factor Authentication
+                {t(
+                  'settings.account.manage_2fa_title',
+                  'Manage Two-Factor Authentication'
+                )}
               </p>
               <p className="text-sm text-muted-foreground">
-                Set up, verify, disable 2FA, or regenerate backup codes from
-                Security Settings.
+                {t(
+                  'settings.account.manage_2fa_desc',
+                  'Set up, verify, disable 2FA, or regenerate backup codes from Security Settings.'
+                )}
               </p>
             </div>
             <Link href="/settings/security">
-              <Button variant="outline">Manage 2FA</Button>
+              <Button variant="outline">
+                {t('settings.account.manage_2fa_button', 'Manage 2FA')}
+              </Button>
             </Link>
           </CardContent>
         </Card>
@@ -664,7 +831,7 @@ export function AccountSettingsClient({
       <section className="mb-8">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground">
-            Active Sessions
+            {t('Active Sessions', 'Active Sessions')}
           </h3>
           <Button
             variant="ghost"
@@ -675,7 +842,7 @@ export function AccountSettingsClient({
             <RefreshCw
               className={`mr-1 h-4 w-4 ${isLoadingSessions ? 'animate-spin' : ''}`}
             />
-            Refresh
+            {t('Refresh', 'Refresh')}
           </Button>
         </div>
 
@@ -699,7 +866,10 @@ export function AccountSettingsClient({
           ) : sessions.length === 0 ? (
             <Card>
               <CardContent className="p-4 text-center text-muted-foreground">
-                No active sessions found
+                {t(
+                  'settings.account.no_active_sessions',
+                  'No active sessions found'
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -715,7 +885,7 @@ export function AccountSettingsClient({
                           {sessionItem.device}
                           {sessionItem.isCurrent && (
                             <Badge className="ml-2 bg-emerald-100 text-xs text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-                              Current
+                              {t('settings.account.current_session', 'Current')}
                             </Badge>
                           )}
                         </p>
@@ -735,7 +905,7 @@ export function AccountSettingsClient({
                         {isRevokingSession === sessionItem.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          'Revoke'
+                          t('Revoke', 'Revoke')
                         )}
                       </Button>
                     )}
@@ -752,7 +922,10 @@ export function AccountSettingsClient({
             className="mt-4"
             onClick={handleSignOutAllDevices}
           >
-            Sign Out All Other Devices
+            {t(
+              'settings.account.sign_out_all_devices',
+              'Sign Out All Other Devices'
+            )}
           </Button>
         )}
       </section>
@@ -763,16 +936,20 @@ export function AccountSettingsClient({
       <section>
         <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-red-600 dark:text-red-400">
           <AlertTriangle className="h-5 w-5" />
-          Danger Zone
+          {t('settings.account.danger_zone', 'Danger Zone')}
         </h3>
         <Card className="border-red-200 dark:border-red-900">
           <CardContent className="p-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-semibold text-foreground">Delete Account</p>
+                <p className="font-semibold text-foreground">
+                  {t('Delete Account', 'Delete Account')}
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  Permanently delete your account and all associated data. This
-                  action cannot be undone.
+                  {t(
+                    'settings.account.delete_account_desc',
+                    'Permanently delete your account and all associated data. This action cannot be undone.'
+                  )}
                 </p>
               </div>
               <Dialog
@@ -782,43 +959,64 @@ export function AccountSettingsClient({
                 <DialogTrigger asChild>
                   <Button variant="destructive" disabled={!!deletionStatus}>
                     {deletionStatus
-                      ? 'Deletion Already Requested'
-                      : 'Delete Account'}
+                      ? t(
+                          'settings.account.deletion_already_requested',
+                          'Deletion Already Requested'
+                        )
+                      : t('Delete Account', 'Delete Account')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-red-600">
                       <AlertTriangle className="h-5 w-5" />
-                      Delete Account
+                      {t('Delete Account', 'Delete Account')}
                     </DialogTitle>
                     <DialogDescription>
-                      This action cannot be undone. This will permanently delete
-                      your account and remove all your data from our servers.
+                      {t(
+                        'settings.account.delete_account_dialog_desc',
+                        'This action cannot be undone. This will permanently delete your account and remove all your data from our servers.'
+                      )}
                     </DialogDescription>
                     {(session?.user as { role?: string })?.role ===
                       'AFFILIATE' && (
                       <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
                         <p className="font-semibold">
-                          ⚠️ Affiliate Partner Notice:
+                          {t(
+                            'settings.account.affiliate_notice_title',
+                            '⚠️ Affiliate Partner Notice:'
+                          )}
                         </p>
                         <p className="mt-1">
-                          Deleting your account will forfeit any pending or
-                          unpaid commission balances and invalidate your active
-                          promo codes. Make sure your payouts are completed
-                          before deleting.
+                          {t(
+                            'settings.account.affiliate_notice_desc',
+                            'Deleting your account will forfeit any pending or unpaid commission balances and invalidate your active promo codes. Make sure your payouts are completed before deleting.'
+                          )}
                         </p>
                       </div>
                     )}
                   </DialogHeader>
                   <div className="my-4">
                     <p className="mb-2 text-sm text-muted-foreground">
-                      Type <strong>DELETE</strong> to confirm:
+                      {t(
+                        'settings.account.type_delete_instruction',
+                        'Type {word} to confirm:'
+                      )
+                        .split('{word}')
+                        .map((part, i) => (
+                          <Fragment key={i}>
+                            {i > 0 && <strong>DELETE</strong>}
+                            {part}
+                          </Fragment>
+                        ))}
                     </p>
                     <Input
                       value={deleteConfirmation}
                       onChange={(e) => setDeleteConfirmation(e.target.value)}
-                      placeholder="Type DELETE to confirm"
+                      placeholder={t(
+                        'settings.account.type_delete_placeholder',
+                        'Type DELETE to confirm'
+                      )}
                     />
                   </div>
                   <DialogFooter>
@@ -826,7 +1024,7 @@ export function AccountSettingsClient({
                       variant="outline"
                       onClick={() => setIsDeleteDialogOpen(false)}
                     >
-                      Cancel
+                      {t('Cancel')}
                     </Button>
                     <Button
                       variant="destructive"
@@ -836,10 +1034,10 @@ export function AccountSettingsClient({
                       {isDeleting ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Deleting...
+                          {t('settings.account.deleting', 'Deleting...')}
                         </>
                       ) : (
-                        'Delete Account'
+                        t('Delete Account', 'Delete Account')
                       )}
                     </Button>
                   </DialogFooter>
