@@ -13,6 +13,8 @@ import { Layers, Lock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { JSX } from 'react';
 
+import { useLocale } from '@/lib/context/locale-context';
+
 interface MtfToggleProps {
   isPro: boolean;
   enabled: boolean;
@@ -27,17 +29,21 @@ export function MtfToggle({
   onToggle,
 }: MtfToggleProps): JSX.Element {
   const router = useRouter();
+  const { t } = useLocale();
 
   if (!isPro) {
     return (
       <button
         type="button"
         onClick={() => router.push('/pricing')}
-        title="Multi-timeframe visualization is a PRO feature — upgrade to unlock"
-        className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-gray-50 px-3 py-1.5 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-colors"
+        title={t(
+          'charts.mtf_pro_hint',
+          'Multi-timeframe visualization is a PRO feature — upgrade to unlock'
+        )}
+        className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-gray-50 px-3 py-1.5 text-sm text-gray-500 transition-colors hover:border-blue-400 hover:text-blue-600"
       >
         <Lock className="h-3.5 w-3.5" />
-        M5 Overlay
+        {t('charts.m5_overlay', 'M5 Overlay')}
         <span className="rounded bg-blue-600 px-1 text-[10px] font-bold text-white">
           PRO
         </span>
@@ -52,8 +58,11 @@ export function MtfToggle({
       disabled={isLoading}
       title={
         enabled
-          ? 'Hide the M5 equal-distance channel overlay'
-          : 'Overlay the M5 equal-distance channel on this chart'
+          ? t('charts.mtf_hide', 'Hide the M5 equal-distance channel overlay')
+          : t(
+              'charts.mtf_show',
+              'Overlay the M5 equal-distance channel on this chart'
+            )
       }
       className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${
         enabled
@@ -62,7 +71,7 @@ export function MtfToggle({
       } ${isLoading ? 'opacity-60' : ''}`}
     >
       <Layers className="h-3.5 w-3.5" />
-      M5 Overlay
+      {t('charts.m5_overlay', 'M5 Overlay')}
       {isLoading && <span className="text-xs">…</span>}
     </button>
   );

@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useLocale } from '@/lib/context/locale-context';
 
 import type { DrawingStyle, DrawingType } from './types';
 
@@ -46,6 +47,7 @@ export function StyleEditor({
   style,
   onChange,
 }: StyleEditorProps): JSX.Element {
+  const { t } = useLocale();
   const color = typeof style?.color === 'string' ? style.color : '#2962FF';
   const lineWidth = typeof style?.lineWidth === 'number' ? style.lineWidth : 2;
   const lineStyle =
@@ -59,13 +61,13 @@ export function StyleEditor({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xs">
         <DialogHeader>
-          <DialogTitle>Style</DialogTitle>
+          <DialogTitle>{t('charts.style', 'Style')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           {isText && (
             <div className="space-y-2">
-              <Label htmlFor="style-text">Text</Label>
+              <Label htmlFor="style-text">{t('charts.text', 'Text')}</Label>
               <Input
                 id="style-text"
                 value={text}
@@ -76,7 +78,7 @@ export function StyleEditor({
           )}
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="style-color">Color</Label>
+            <Label htmlFor="style-color">{t('charts.color', 'Color')}</Label>
             <input
               id="style-color"
               type="color"
@@ -89,7 +91,9 @@ export function StyleEditor({
           {!isText && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="style-width">Line width</Label>
+                <Label htmlFor="style-width">
+                  {t('charts.line_width', 'Line width')}
+                </Label>
                 <Select
                   value={String(lineWidth)}
                   onValueChange={(v) => onChange({ lineWidth: Number(v) })}
@@ -108,7 +112,9 @@ export function StyleEditor({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="style-dash">Line style</Label>
+                <Label htmlFor="style-dash">
+                  {t('charts.line_style', 'Line style')}
+                </Label>
                 <Select
                   value={lineStyle}
                   onValueChange={(v) =>
@@ -121,9 +127,15 @@ export function StyleEditor({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="solid">Solid</SelectItem>
-                    <SelectItem value="dashed">Dashed</SelectItem>
-                    <SelectItem value="dotted">Dotted</SelectItem>
+                    <SelectItem value="solid">
+                      {t('charts.solid', 'Solid')}
+                    </SelectItem>
+                    <SelectItem value="dashed">
+                      {t('charts.dashed', 'Dashed')}
+                    </SelectItem>
+                    <SelectItem value="dotted">
+                      {t('charts.dotted', 'Dotted')}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -132,7 +144,9 @@ export function StyleEditor({
         </div>
 
         <DialogFooter>
-          <Button onClick={() => onOpenChange(false)}>Done</Button>
+          <Button onClick={() => onOpenChange(false)}>
+            {t('charts.done', 'Done')}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

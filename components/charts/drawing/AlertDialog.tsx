@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { useLocale } from '@/lib/context/locale-context';
 
 export interface LineAlertValues {
   targetLevel: string;
@@ -56,6 +57,7 @@ export function AlertDialog({
   error,
   onSubmit,
 }: AlertDialogProps): JSX.Element {
+  const { t } = useLocale();
   const [targetLevel, setTargetLevel] = useState('');
   const [direction, setDirection] =
     useState<LineAlertValues['direction']>('either');
@@ -88,15 +90,21 @@ export function AlertDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add price alert</DialogTitle>
+          <DialogTitle>
+            {t('charts.add_price_alert', 'Add price alert')}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="alert-level">Target level</Label>
+            <Label htmlFor="alert-level">
+              {t('charts.target_level', 'Target level')}
+            </Label>
             <Select value={targetLevel} onValueChange={setTargetLevel}>
               <SelectTrigger id="alert-level">
-                <SelectValue placeholder="Select a level" />
+                <SelectValue
+                  placeholder={t('charts.select_a_level', 'Select a level')}
+                />
               </SelectTrigger>
               <SelectContent>
                 {levels.map((l) => (
@@ -109,7 +117,9 @@ export function AlertDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="alert-direction">Direction</Label>
+            <Label htmlFor="alert-direction">
+              {t('charts.direction', 'Direction')}
+            </Label>
             <Select
               value={direction}
               onValueChange={(v) =>
@@ -120,16 +130,24 @@ export function AlertDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="either">Cross either way</SelectItem>
-                <SelectItem value="cross_up">Cross up</SelectItem>
-                <SelectItem value="cross_down">Cross down</SelectItem>
+                <SelectItem value="either">
+                  {t('charts.cross_either', 'Cross either way')}
+                </SelectItem>
+                <SelectItem value="cross_up">
+                  {t('charts.cross_up', 'Cross up')}
+                </SelectItem>
+                <SelectItem value="cross_down">
+                  {t('charts.cross_down', 'Cross down')}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="alert-tolerance">Tolerance (price)</Label>
+              <Label htmlFor="alert-tolerance">
+                {t('charts.tolerance_price', 'Tolerance (price)')}
+              </Label>
               <Input
                 id="alert-tolerance"
                 type="number"
@@ -140,7 +158,9 @@ export function AlertDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="alert-cooldown">Cooldown (sec)</Label>
+              <Label htmlFor="alert-cooldown">
+                {t('charts.cooldown_sec', 'Cooldown (sec)')}
+              </Label>
               <Input
                 id="alert-cooldown"
                 type="number"
@@ -152,7 +172,10 @@ export function AlertDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="alert-name">Name (optional)</Label>
+            <Label htmlFor="alert-name">
+              {t('alerts.alert_name_label', 'Alert Name')} (
+              {t('alerts.optional', 'optional')})
+            </Label>
             <Input
               id="alert-name"
               value={name}
@@ -163,7 +186,9 @@ export function AlertDialog({
           </div>
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="alert-oneshot">Fire once, then disable</Label>
+            <Label htmlFor="alert-oneshot">
+              {t('charts.fire_once', 'Fire once, then disable')}
+            </Label>
             <Switch
               id="alert-oneshot"
               checked={oneShot}
@@ -180,10 +205,12 @@ export function AlertDialog({
             onClick={() => onOpenChange(false)}
             disabled={submitting}
           >
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button onClick={handleSubmit} disabled={submitting || !targetLevel}>
-            {submitting ? 'Creating…' : 'Create alert'}
+            {submitting
+              ? t('charts.creating', 'Creating…')
+              : t('charts.create_alert_action', 'Create alert')}
           </Button>
         </DialogFooter>
       </DialogContent>

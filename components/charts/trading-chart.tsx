@@ -12,6 +12,7 @@ import { useSession } from 'next-auth/react';
 import { useEffect, useRef, useState } from 'react';
 
 import { useOhlcvSocket } from '@/hooks/use-ohlcv-socket';
+import { useLocale } from '@/lib/context/locale-context';
 
 import { DrawingLayer } from './drawing/DrawingLayer';
 import { useFiredAlertMarkers } from './drawing/useFiredAlertMarkers';
@@ -39,6 +40,7 @@ export function TradingChart({
   symbol,
   timeframe,
 }: TradingChartProps): React.JSX.Element {
+  const { t } = useLocale();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
@@ -205,7 +207,9 @@ export function TradingChart({
                 isConnected ? 'bg-green-500' : 'bg-red-500'
               }`}
             />
-            {isConnected ? 'Live' : 'Disconnected'}
+            {isConnected
+              ? t('charts.live', 'Live')
+              : t('charts.disconnected', 'Disconnected')}
           </span>
         </div>
       </div>
@@ -221,7 +225,7 @@ export function TradingChart({
             <div className="text-center">
               <div className="mb-2 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
               <p className="text-sm text-muted-foreground">
-                Connecting to live data...
+                {t('charts.connecting', 'Connecting to live data...')}
               </p>
             </div>
           </div>
@@ -230,7 +234,9 @@ export function TradingChart({
         {error && (
           <div className="bg-background/50 absolute inset-0 flex items-center justify-center">
             <div className="text-center text-destructive">
-              <p className="font-semibold">Error loading chart</p>
+              <p className="font-semibold">
+                {t('charts.error_loading', 'Error loading chart')}
+              </p>
               <p className="text-sm">{error}</p>
             </div>
           </div>
@@ -251,8 +257,15 @@ export function TradingChart({
 
       {/* Chart info */}
       <div className="text-sm text-muted-foreground">
-        <p>Displaying live OHLCV candlestick data</p>
-        <p>Updates in real-time via WebSocket</p>
+        <p>
+          {t(
+            'charts.displaying_ohlcv',
+            'Displaying live OHLCV candlestick data'
+          )}
+        </p>
+        <p>
+          {t('charts.updates_realtime', 'Updates in real-time via WebSocket')}
+        </p>
       </div>
     </div>
   );

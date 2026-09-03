@@ -11,6 +11,7 @@ import { Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useState, type JSX } from 'react';
 
 import { Switch } from '@/components/ui/switch';
+import { useLocale } from '@/lib/context/locale-context';
 
 import { createAlertsApi, type LineAlertDTO } from './alertsApi';
 import { alertUsage, drawingUsage, type Tier } from './tierUsage';
@@ -34,6 +35,7 @@ export function AlertsPanel({
   refreshKey,
   onClose,
 }: AlertsPanelProps): JSX.Element {
+  const { t } = useLocale();
   const [alerts, setAlerts] = useState<LineAlertDTO[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +73,9 @@ export function AlertsPanel({
   return (
     <div className="absolute right-2 top-2 z-10 flex max-h-[90%] w-72 flex-col rounded-lg border border-[#2a2e39] bg-[#1e222d]/95 text-[#d1d4dc] shadow-lg">
       <div className="flex items-center justify-between border-b border-[#2a2e39] px-3 py-2">
-        <span className="text-sm font-semibold">Alerts</span>
+        <span className="text-sm font-semibold">
+          {t('alerts.page_title', 'Alerts')}
+        </span>
         <button
           type="button"
           aria-label="Close alerts panel"
@@ -84,19 +88,21 @@ export function AlertsPanel({
 
       <div className="flex gap-3 border-b border-[#2a2e39] px-3 py-2 text-xs text-[#9aa0aa]">
         <span className={au.atLimit ? 'text-[#ef5350]' : ''}>
-          Alerts {au.label}
+          {t('alerts.page_title', 'Alerts')} {au.label}
         </span>
         <span className={du.atLimit ? 'text-[#ef5350]' : ''}>
-          Drawings {du.label}
+          {t('charts.drawings', 'Drawings')} {du.label}
         </span>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <p className="px-3 py-4 text-sm text-[#9aa0aa]">Loading…</p>
+          <p className="px-3 py-4 text-sm text-[#9aa0aa]">
+            {t('charts.loading_ellipsis', 'Loading…')}
+          </p>
         ) : alerts.length === 0 ? (
           <p className="px-3 py-4 text-sm text-[#9aa0aa]">
-            No alerts on this chart yet.
+            {t('charts.no_alerts_on_chart', 'No alerts on this chart yet.')}
           </p>
         ) : (
           <ul className="divide-y divide-[#2a2e39]">

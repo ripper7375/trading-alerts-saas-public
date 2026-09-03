@@ -10,8 +10,34 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import {
+  render as rtlRender,
+  screen,
+  waitFor,
+  type RenderOptions,
+} from '@testing-library/react';
 import { describe, it, expect, beforeEach } from '@jest/globals';
+
+import { LocaleProvider } from '@/lib/context/locale-context';
+import {
+  LOCALE_STORAGE_KEY,
+  defaultPreferences,
+} from '@/lib/i18n/locale-resolver';
+
+// TradingChart (batch-5 locale wiring) now calls useLocale() -- needs a
+// LocaleProvider ancestor. Shadow `render` once here instead of touching
+// every one of this file's many render()/rerender() call sites: RTL's own
+// `rerender()` re-uses whatever wrapper was passed to the original render(),
+// so wrapping only the import fixes every call site in one place
+// (LESSONS-LEARNED.md L40).
+function render(ui: React.ReactElement, options?: RenderOptions) {
+  return rtlRender(ui, { wrapper: LocaleProvider, ...options });
+}
+
+// LocaleProvider calls usePathname() directly (L40's own stub).
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/terminal',
+}));
 
 // ─────────────────────────────────────────────────────────────
 // Mock useOhlcvSocket — prevents real Socket.IO connections
@@ -130,6 +156,12 @@ describe('TradingChart Component', () => {
     jest.clearAllMocks();
     // Default: connected with data
     mockUseOhlcvSocket.mockReturnValue(connectedState);
+    // Seeding skips LocaleProvider's real geo-IP fetch(), which otherwise
+    // races jsdom teardown (LESSONS-LEARNED.md L40).
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify(defaultPreferences)
+    );
   });
 
   // ──────────────────────────────────────────────────────────
@@ -283,9 +315,7 @@ describe('TradingChart Component', () => {
         <TradingChart symbol="XAUUSD" timeframe="H1" />
       );
 
-      expect(
-        container.querySelector('.bg-green-500')
-      ).toBeInTheDocument();
+      expect(container.querySelector('.bg-green-500')).toBeInTheDocument();
     });
 
     it('should show red dot when disconnected', () => {
@@ -322,7 +352,13 @@ describe('TradingChart Component', () => {
         symbol: 'USDJPY',
         timeframe: 'H1',
         ohlcv: [
-          { time: 1704067200, open: 145.123, high: 145.5, low: 145.0, close: 145.234 },
+          {
+            time: 1704067200,
+            open: 145.123,
+            high: 145.5,
+            low: 145.0,
+            close: 145.234,
+          },
         ],
         metadata: { timestamp: 1704067200, bars: 1 },
       };
@@ -338,9 +374,7 @@ describe('TradingChart Component', () => {
 
       await waitFor(() => {
         expect(mockSetData).toHaveBeenCalledWith(
-          expect.arrayContaining([
-            expect.objectContaining({ close: 145.234 }),
-          ])
+          expect.arrayContaining([expect.objectContaining({ close: 145.234 })])
         );
       });
     });
@@ -350,7 +384,13 @@ describe('TradingChart Component', () => {
         symbol: 'EURUSD',
         timeframe: 'H1',
         ohlcv: [
-          { time: 1704067200, open: 1.085, high: 1.086, low: 1.084, close: 1.08523 },
+          {
+            time: 1704067200,
+            open: 1.085,
+            high: 1.086,
+            low: 1.084,
+            close: 1.08523,
+          },
         ],
         metadata: { timestamp: 1704067200, bars: 1 },
       };
@@ -366,9 +406,7 @@ describe('TradingChart Component', () => {
 
       await waitFor(() => {
         expect(mockSetData).toHaveBeenCalledWith(
-          expect.arrayContaining([
-            expect.objectContaining({ close: 1.08523 }),
-          ])
+          expect.arrayContaining([expect.objectContaining({ close: 1.08523 })])
         );
       });
     });
