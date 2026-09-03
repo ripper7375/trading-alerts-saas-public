@@ -607,13 +607,14 @@ longer tell which element you're checking.
 > components; full batch-by-batch detail in `CLAUDE.md`'s 2026-09-03
 > ad-hoc entry, not duplicated here to avoid two copies drifting apart).
 > The 🔴/🟠 markers below are frozen as they were found on 2026-09-01 —
-> every file in this table is now wired. **Known residual gaps as of
-> 2026-09-03** (real, not exhaustive — re-run §5 before trusting this list
-> is still complete): `components/auth/social-auth-buttons.tsx` (shared by
-> login/register, out of the 2026-09-03 audit's approved scope, flagged
-> not fixed); and authenticated click-through verification for the large
-> majority of newly-wired pages was not performed (Executor never enters
-> credentials) — see `CLAUDE.md`'s "Waiting on" section for the current
+> every file in this table is now wired. **`components/auth/social-auth-buttons.tsx`**
+> was flagged out of the 2026-09-03 audit's approved scope but fixed
+> same-day as an ad-hoc follow-up (public pre-login page, no click-through
+> needed — live-verified in French, zero console errors). **The one real
+> residual gap as of 2026-09-03**: authenticated click-through verification
+> for the large majority of newly-wired pages was not performed (Executor
+> never enters credentials) — see `CLAUDE.md`'s "Waiting on" section for
+> the current
 > list of pages needing Davin's own pass.
 
 **Where this list comes from:** every file below is drawn directly from the

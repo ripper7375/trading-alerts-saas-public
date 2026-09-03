@@ -1039,8 +1039,13 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   surfaces this effort touched (account-delete pages, the public affiliate resources page, the
   auth pages' pre-login state, and Batch 18's marketing/status pages) were structurally verified
   (clean build, zero server errors) but not click-through-verified in a real browser either.
-  Separately flagged, not fixed: `components/auth/social-auth-buttons.tsx` (shared by login and
-  register) was out of the approved plan's explicit scope and remains unwired.
+  **`components/auth/social-auth-buttons.tsx` — RESOLVED same-day, ad-hoc follow-up** (Davin
+  asked directly whether this component was real and needed his click-through): it renders on the
+  public, pre-login `/login`/`/register` pages, so unlike the rest of this list it needed no
+  authenticated verification at all. Wired and live-verified in a real browser — switching to
+  French renders "Se connecter avec Google"/"Se connecter avec X" correctly, zero console errors.
+  `tsc`/`eslint` clean; `login-form.test.tsx`/`register-form.test.tsx` (13/13) and full `test:ci`
+  (166/166 · 2390/2390) unaffected. Commit `efe07233`.
 - **All Round Clock timezone dropdown — authenticated click-through not yet confirmed**
   (2026-09-03 ad-hoc session) — `tsc`/`eslint`/new-test (8/8)/full `test:ci` (166/166 · 2390/2390)
   all clean, and the real search/select interaction was live-verified in a browser via a temporary
