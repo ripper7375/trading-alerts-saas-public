@@ -16,6 +16,8 @@ import AppHeader from '@/components/layout/app-header';
 import { NotificationList } from '@/components/notifications/notification-list';
 import { getSession } from '@/lib/auth/session';
 import type { Tier } from '@/lib/tier-config';
+import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 // Force dynamic rendering since this page uses headers via getSession
 export const dynamic = 'force-dynamic';
@@ -28,12 +30,16 @@ export default async function NotificationsPage(): Promise<React.JSX.Element> {
   }
 
   const tier = (session.user?.tier as Tier) || 'FREE';
+  const dict = getDictionary(await getServerLanguage());
 
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
       <AppHeader
-        title="Notifications Centre"
-        subtitle="Live Signal Alerts, System Announcements & Security Events"
+        title={dict['notifications.page_title'] || 'Notifications Centre'}
+        subtitle={
+          dict['notifications.page_subtitle'] ||
+          'Live Signal Alerts, System Announcements & Security Events'
+        }
         tier={tier}
       />
       <main className="mx-auto w-full max-w-4xl flex-1 p-4 md:p-6">

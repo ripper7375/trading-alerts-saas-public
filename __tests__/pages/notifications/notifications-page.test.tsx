@@ -14,6 +14,20 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+// NotificationsPage now resolves a dictionary via getServerLanguage()
+// (batch-4 locale wiring), which calls next/headers's cookies()/headers()
+// -- unavailable when a Server Component is invoked directly as a plain
+// function in a test (no real Next.js request scope). Mock both to no-op
+// stores so resolvePreferences() falls back to defaultPreferences (matches
+// this file's existing English-text assertions either way).
+const mockCookieStore = { get: jest.fn(() => undefined) };
+const mockHeaderStore = { get: jest.fn(() => undefined) };
+jest.mock('next/headers', () => ({
+  __esModule: true,
+  cookies: jest.fn(() => Promise.resolve(mockCookieStore)),
+  headers: jest.fn(() => Promise.resolve(mockHeaderStore)),
+}));
+
 import NotificationsPage from '@/app/notifications/page';
 import { LocaleProvider } from '@/lib/context/locale-context';
 import {

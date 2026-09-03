@@ -26,6 +26,7 @@ import {
   useRealtimeSocket,
   type RealtimeNotification,
 } from '@/hooks/use-realtime-socket';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -72,6 +73,7 @@ type TypeFilter = 'ALERT' | 'SUBSCRIPTION' | 'PAYMENT' | 'SYSTEM' | undefined;
  */
 export function NotificationList(): React.JSX.Element {
   const router = useRouter();
+  const { t } = useLocale();
   const { data: session } = useSession();
   const isPro = session?.user?.tier === 'PRO';
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -119,7 +121,9 @@ export function NotificationList(): React.JSX.Element {
           router.push('/login');
           return;
         }
-        throw new Error('Failed to fetch notifications');
+        throw new Error(
+          t('notifications.error_fetch', 'Failed to fetch notifications')
+        );
       }
 
       const data: NotificationsResponse = await response.json();
@@ -130,12 +134,14 @@ export function NotificationList(): React.JSX.Element {
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
       setError(
-        err instanceof Error ? err.message : 'Failed to load notifications'
+        err instanceof Error
+          ? err.message
+          : t('notifications.error_load', 'Failed to load notifications')
       );
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter, typeFilter, page, router]);
+  }, [statusFilter, typeFilter, page, router, t]);
 
   // Fetch on mount and when filters change
   useEffect(() => {
@@ -419,6 +425,22 @@ export function NotificationList(): React.JSX.Element {
     }
   };
 
+  // Translated notification-type label
+  const getTypeLabel = (type: Notification['type']): string => {
+    switch (type) {
+      case 'ALERT':
+        return t('notifications.type_alert', 'Alert');
+      case 'SUBSCRIPTION':
+        return t('notifications.type_subscription', 'Subscription');
+      case 'PAYMENT':
+        return t('notifications.type_payment', 'Payment');
+      case 'SYSTEM':
+        return t('notifications.type_system', 'System');
+      default:
+        return type;
+    }
+  };
+
   // Format date
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -429,11 +451,15 @@ export function NotificationList(): React.JSX.Element {
 
     if (hours < 1) {
       const minutes = Math.floor(diff / (1000 * 60));
-      return minutes < 1 ? 'Just now' : `${minutes}m ago`;
+      return minutes < 1
+        ? t('notifications.just_now', 'Just now')
+        : `${minutes}${t('notifications.minutes_ago_suffix', 'm ago')}`;
     }
-    if (hours < 24) return `${hours}h ago`;
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days} days ago`;
+    if (hours < 24)
+      return `${hours}${t('notifications.hours_ago_suffix', 'h ago')}`;
+    if (days === 1) return t('notifications.yesterday', 'Yesterday');
+    if (days < 7)
+      return `${days} ${t('notifications.days_ago_suffix', 'days ago')}`;
 
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -450,9 +476,13 @@ export function NotificationList(): React.JSX.Element {
       </div>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div>
-          <CardTitle className="text-2xl font-bold">Notifications</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            {t('notifications.title', 'Notifications')}
+          </CardTitle>
           <p className="text-sm text-muted-foreground">
-            {total} total, {unreadCount} unread
+            {t('notifications.total_unread', '{total} total, {unread} unread')
+              .replace('{total}', String(total))
+              .replace('{unread}', String(unreadCount))}
           </p>
         </div>
         <div className="flex gap-2">
@@ -465,12 +495,12 @@ export function NotificationList(): React.JSX.Element {
             <RefreshCw
               className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
             />
-            Refresh
+            {t('notifications.refresh', 'Refresh')}
           </Button>
           {unreadCount > 0 && (
             <Button variant="outline" size="sm" onClick={handleMarkAllAsRead}>
               <Check className="mr-2 h-4 w-4" />
-              Mark all as read
+              {t('notifications.mark_all_read', 'Mark all as read')}
             </Button>
           )}
         </div>
@@ -484,9 +514,13 @@ export function NotificationList(): React.JSX.Element {
           className="mb-4"
         >
           <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="unread">Unread ({unreadCount})</TabsTrigger>
-            <TabsTrigger value="read">Read</TabsTrigger>
+            <TabsTrigger value="all">{t('alerts.all', 'All')}</TabsTrigger>
+            <TabsTrigger value="unread">
+              {t('notifications.unread', 'Unread')} ({unreadCount})
+            </TabsTrigger>
+            <TabsTrigger value="read">
+              {t('notifications.read', 'Read')}
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -497,7 +531,7 @@ export function NotificationList(): React.JSX.Element {
             size="sm"
             onClick={() => setTypeFilter(undefined)}
           >
-            All Types
+            {t('notifications.all_types', 'All Types')}
           </Button>
           {(['ALERT', 'SUBSCRIPTION', 'PAYMENT', 'SYSTEM'] as const).map(
             (type) => (
@@ -507,7 +541,7 @@ export function NotificationList(): React.JSX.Element {
                 size="sm"
                 onClick={() => setTypeFilter(type)}
               >
-                {type.charAt(0) + type.slice(1).toLowerCase()}
+                {getTypeLabel(type)}
               </Button>
             )
           )}
@@ -516,7 +550,9 @@ export function NotificationList(): React.JSX.Element {
         {/* Undo Delete Banner */}
         {showUndo && deletedNotification && (
           <div className="animate-in slide-in-from-top-2 mb-4 flex items-center justify-between rounded-lg bg-gray-800 px-4 py-3 text-white">
-            <span className="text-sm">Notification deleted</span>
+            <span className="text-sm">
+              {t('notifications.deleted', 'Notification deleted')}
+            </span>
             <Button
               variant="ghost"
               size="sm"
@@ -524,7 +560,7 @@ export function NotificationList(): React.JSX.Element {
               className="text-white hover:bg-gray-700 hover:text-white"
             >
               <Undo2 className="mr-2 h-4 w-4" />
-              Undo
+              {t('alerts.undo', 'Undo')}
             </Button>
           </div>
         )}
@@ -534,7 +570,7 @@ export function NotificationList(): React.JSX.Element {
           <div className="py-12 text-center">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-400" />
             <p className="mt-2 text-sm text-gray-500">
-              Loading notifications...
+              {t('notifications.loading', 'Loading notifications...')}
             </p>
           </div>
         ) : error ? (
@@ -547,7 +583,7 @@ export function NotificationList(): React.JSX.Element {
               onClick={fetchNotifications}
               className="mt-4"
             >
-              Try again
+              {t('notifications.try_again', 'Try again')}
             </Button>
           </div>
         ) : notifications.length === 0 ? (
@@ -556,28 +592,38 @@ export function NotificationList(): React.JSX.Element {
             <div className="py-12 text-center">
               <Bell className="mx-auto h-12 w-12 text-gray-300" />
               <p className="mt-4 text-lg font-semibold text-gray-700">
-                Alert notifications are a PRO feature
+                {t(
+                  'notifications.alert_pro_feature',
+                  'Alert notifications are a PRO feature'
+                )}
               </p>
               <p className="mb-4 mt-1 text-sm text-gray-500">
-                Upgrade to create up to 100 price alerts on XAUUSD M5/M15 and
-                get notified when they trigger.
+                {t(
+                  'notifications.alert_pro_desc',
+                  'Upgrade to create up to 100 price alerts on XAUUSD M5/M15 and get notified when they trigger.'
+                )}
               </p>
               <Button
                 size="sm"
                 className="bg-blue-600 text-white hover:bg-blue-700"
                 onClick={() => router.push('/pricing')}
               >
-                Upgrade to PRO
+                {t('dashboard.upgrade_to_pro', 'Upgrade to PRO')}
               </Button>
             </div>
           ) : (
             <div className="py-12 text-center">
               <Bell className="mx-auto h-12 w-12 text-gray-300" />
-              <p className="mt-4 text-lg text-gray-500">No notifications</p>
+              <p className="mt-4 text-lg text-gray-500">
+                {t('notifications.no_notifications', 'No notifications')}
+              </p>
               <p className="text-sm text-gray-400">
                 {statusFilter === 'unread'
-                  ? 'All caught up!'
-                  : "You don't have any notifications yet"}
+                  ? t('notifications.all_caught_up', 'All caught up!')
+                  : t(
+                      'notifications.no_notifications_desc',
+                      "You don't have any notifications yet"
+                    )}
               </p>
             </div>
           )
@@ -626,7 +672,10 @@ export function NotificationList(): React.JSX.Element {
                         e.stopPropagation();
                         handleDelete(notification.id);
                       }}
-                      aria-label="Delete notification"
+                      aria-label={t(
+                        'notifications.delete_aria',
+                        'Delete notification'
+                      )}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -637,16 +686,17 @@ export function NotificationList(): React.JSX.Element {
                     <span>{formatDate(notification.createdAt)}</span>
                     <span className="h-1 w-1 rounded-full bg-gray-300" />
                     <span className="rounded bg-gray-100 px-2 py-0.5">
-                      {notification.type.charAt(0) +
-                        notification.type.slice(1).toLowerCase()}
+                      {getTypeLabel(notification.type)}
                     </span>
                     {notification.priority === 'HIGH' && (
                       <span className="rounded bg-red-100 px-2 py-0.5 font-semibold text-red-600">
-                        HIGH PRIORITY
+                        {t('notifications.high_priority', 'HIGH PRIORITY')}
                       </span>
                     )}
                     {notification.link && (
-                      <span className="text-blue-500">Click to view</span>
+                      <span className="text-blue-500">
+                        {t('notifications.click_to_view', 'Click to view')}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -659,7 +709,13 @@ export function NotificationList(): React.JSX.Element {
         {totalPages > 1 && (
           <div className="mt-6 flex items-center justify-between border-t pt-4">
             <p className="text-sm text-gray-500">
-              Page {page} of {totalPages} ({total} total)
+              {t(
+                'notifications.page_of',
+                'Page {page} of {totalPages} ({total} total)'
+              )
+                .replace('{page}', String(page))
+                .replace('{totalPages}', String(totalPages))
+                .replace('{total}', String(total))}
             </p>
             <div className="flex gap-2">
               <Button
@@ -669,7 +725,7 @@ export function NotificationList(): React.JSX.Element {
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
                 <ChevronLeft className="mr-1 h-4 w-4" />
-                Previous
+                {t('notifications.previous', 'Previous')}
               </Button>
               <Button
                 variant="outline"
@@ -677,7 +733,7 @@ export function NotificationList(): React.JSX.Element {
                 disabled={page === totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               >
-                Next
+                {t('notifications.next', 'Next')}
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             </div>
