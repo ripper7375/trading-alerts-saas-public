@@ -12,13 +12,21 @@
  * @module __tests__/pages/settings/account-deletion.test
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
 
 const mockGet = jest.fn();
 jest.mock('next/navigation', () => ({
   useSearchParams: () => ({ get: mockGet }),
+  usePathname: () => '/settings/account/delete/confirm',
 }));
 
 jest.mock('next/link', () => {
@@ -47,6 +55,17 @@ function jsonResponse(status: number, body: unknown): Response {
 describe('DeleteConfirmPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({
+        countryCode: 'US',
+        language: 'en-US',
+        timezone: 'America/New_York',
+        dateFormat: 'MDY',
+        timeFormat: '12h',
+        currency: 'USD',
+      })
+    );
   });
 
   it('renders an error card and never calls the API when the token is missing', async () => {
@@ -137,6 +156,17 @@ describe('DeleteConfirmPage', () => {
 describe('DeleteCancelPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({
+        countryCode: 'US',
+        language: 'en-US',
+        timezone: 'America/New_York',
+        dateFormat: 'MDY',
+        timeFormat: '12h',
+        currency: 'USD',
+      })
+    );
   });
 
   it('auto-fires cancel with the URL token on mount and shows the success card', async () => {

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { useLocale } from '@/lib/context/locale-context';
 
 /**
  * Profile Settings Page (Row 79)
@@ -30,6 +31,7 @@ interface ProfileFormData {
 }
 
 export default function ProfileSettingsPage(): React.ReactElement {
+  const { t } = useLocale();
   const { data: session, update: updateSession } = useSession();
 
   const [formData, setFormData] = useState<ProfileFormData>({
@@ -111,20 +113,31 @@ export default function ProfileSettingsPage(): React.ReactElement {
     const newErrors: Partial<Record<keyof ProfileFormData, string>> = {};
 
     if (!formData.name || formData.name.length < 2) {
-      newErrors.name = 'Name must be at least 2 characters';
+      newErrors.name = t(
+        'settings.profile.error_name_min_length',
+        'Name must be at least 2 characters'
+      );
     }
 
     if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = t(
+        'settings.profile.error_invalid_email',
+        'Please enter a valid email address'
+      );
     }
 
     if (formData.username && !/^[a-z0-9_]+$/.test(formData.username)) {
-      newErrors.username =
-        'Username can only contain lowercase letters, numbers, and underscores';
+      newErrors.username = t(
+        'settings.profile.error_username_format',
+        'Username can only contain lowercase letters, numbers, and underscores'
+      );
     }
 
     if (formData.bio && formData.bio.length > 500) {
-      newErrors.bio = 'Bio must be less than 500 characters';
+      newErrors.bio = t(
+        'settings.profile.error_bio_max_length',
+        'Bio must be less than 500 characters'
+      );
     }
 
     setErrors(newErrors);
@@ -153,7 +166,13 @@ export default function ProfileSettingsPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to update profile');
+        throw new Error(
+          data.error ||
+            t(
+              'settings.profile.error_update_profile',
+              'Failed to update profile'
+            )
+        );
       }
 
       await updateSession({
@@ -168,7 +187,13 @@ export default function ProfileSettingsPage(): React.ReactElement {
     } catch (error) {
       console.error('Failed to save profile:', error);
       setErrors({
-        name: error instanceof Error ? error.message : 'Failed to save profile',
+        name:
+          error instanceof Error
+            ? error.message
+            : t(
+                'settings.profile.error_save_profile',
+                'Failed to save profile'
+              ),
       });
     } finally {
       setIsSaving(false);
@@ -213,7 +238,7 @@ export default function ProfileSettingsPage(): React.ReactElement {
   return (
     <div className="animate-fade-in">
       <h2 className="mb-6 text-2xl font-bold text-foreground">
-        Profile Information
+        {t('settings.profile.page_title', 'Profile Information')}
       </h2>
 
       {(session?.user as { role?: string })?.role === 'AFFILIATE' && (
@@ -221,12 +246,16 @@ export default function ProfileSettingsPage(): React.ReactElement {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-semibold text-indigo-900 dark:text-indigo-200">
-                Affiliate Partner Profile
+                {t(
+                  'settings.profile.affiliate_partner_profile',
+                  'Affiliate Partner Profile'
+                )}
               </p>
               <p className="text-sm text-indigo-700 dark:text-indigo-300">
-                Manage your public affiliate partner details, social media
-                channels, and payout configurations in the dedicated Partner
-                Profile.
+                {t(
+                  'settings.profile.affiliate_partner_profile_desc',
+                  'Manage your public affiliate partner details, social media channels, and payout configurations in the dedicated Partner Profile.'
+                )}
               </p>
             </div>
             <Button
@@ -235,7 +264,10 @@ export default function ProfileSettingsPage(): React.ReactElement {
               className="shrink-0 bg-indigo-600 hover:bg-indigo-700"
             >
               <Link href="/affiliate/dashboard/profile">
-                Open Partner Profile →
+                {t(
+                  'settings.profile.open_partner_profile',
+                  'Open Partner Profile →'
+                )}
               </Link>
             </Button>
           </div>
@@ -246,7 +278,7 @@ export default function ProfileSettingsPage(): React.ReactElement {
         {/* Profile Photo Section */}
         <div className="mb-6">
           <Label className="mb-3 block text-sm font-semibold text-foreground">
-            Profile Photo
+            {t('settings.profile.profile_photo', 'Profile Photo')}
           </Label>
           <div className="flex items-center gap-4">
             <div className="group relative">
@@ -262,7 +294,10 @@ export default function ProfileSettingsPage(): React.ReactElement {
               <button
                 type="button"
                 onClick={handlePhotoUpload}
-                aria-label="Upload profile photo"
+                aria-label={t(
+                  'settings.profile.upload_photo_aria',
+                  'Upload profile photo'
+                )}
                 className="absolute inset-0 flex cursor-pointer items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring group-hover:opacity-100 group-focus-visible:opacity-100"
               >
                 <Camera className="h-6 w-6 text-white" />
@@ -275,7 +310,7 @@ export default function ProfileSettingsPage(): React.ReactElement {
                 size="sm"
                 onClick={handlePhotoUpload}
               >
-                Upload Photo
+                {t('settings.profile.upload_photo', 'Upload Photo')}
               </Button>
               {photoUrl && (
                 <Button
@@ -286,11 +321,14 @@ export default function ProfileSettingsPage(): React.ReactElement {
                   onClick={handleRemovePhoto}
                 >
                   <X className="mr-1 h-4 w-4" />
-                  Remove
+                  {t('settings.profile.remove', 'Remove')}
                 </Button>
               )}
               <p className="mt-1 text-xs text-muted-foreground">
-                JPG, PNG or GIF. Max 5MB.
+                {t(
+                  'settings.profile.photo_requirements',
+                  'JPG, PNG or GIF. Max 5MB.'
+                )}
               </p>
             </div>
           </div>
@@ -303,7 +341,7 @@ export default function ProfileSettingsPage(): React.ReactElement {
           <div>
             <div className="mb-1 flex items-center justify-between">
               <Label htmlFor="name" className="font-medium text-foreground">
-                Full Name
+                {t('settings.profile.full_name', 'Full Name')}
               </Label>
               <span className="text-xs text-muted-foreground">
                 {formData.name.length}/50
@@ -330,10 +368,10 @@ export default function ProfileSettingsPage(): React.ReactElement {
               htmlFor="email"
               className="mb-1 flex items-center gap-2 font-medium text-foreground"
             >
-              Email
+              {t('settings.profile.email_label', 'Email')}
               <Badge className="bg-emerald-100 text-xs text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
                 <Check className="mr-1 h-3 w-3" />
-                Verified
+                {t('settings.profile.verified', 'Verified')}
               </Badge>
             </Label>
             <Input
@@ -357,7 +395,7 @@ export default function ProfileSettingsPage(): React.ReactElement {
               htmlFor="username"
               className="mb-1 font-medium text-foreground"
             >
-              Username (optional)
+              {t('settings.profile.username_optional', 'Username (optional)')}
             </Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -370,7 +408,10 @@ export default function ProfileSettingsPage(): React.ReactElement {
                   handleInputChange('username', e.target.value.toLowerCase())
                 }
                 className={`pl-8 ${errors.username ? 'border-red-500' : ''}`}
-                placeholder="username"
+                placeholder={t(
+                  'settings.profile.username_placeholder',
+                  'username'
+                )}
               />
             </div>
             {formData.username && (
@@ -378,19 +419,28 @@ export default function ProfileSettingsPage(): React.ReactElement {
                 {usernameStatus === 'checking' && (
                   <p className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Loader2 className="h-3 w-3 animate-spin" />
-                    Checking availability...
+                    {t(
+                      'settings.profile.checking_availability',
+                      'Checking availability...'
+                    )}
                   </p>
                 )}
                 {usernameStatus === 'available' && (
                   <p className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                     <Check className="h-3 w-3" />
-                    Username available
+                    {t(
+                      'settings.profile.username_available',
+                      'Username available'
+                    )}
                   </p>
                 )}
                 {usernameStatus === 'taken' && (
                   <p className="flex items-center gap-1 text-xs text-red-600">
                     <X className="h-3 w-3" />
-                    Username is invalid or taken
+                    {t(
+                      'settings.profile.username_invalid_or_taken',
+                      'Username is invalid or taken'
+                    )}
                   </p>
                 )}
               </div>
@@ -407,7 +457,7 @@ export default function ProfileSettingsPage(): React.ReactElement {
           <div>
             <div className="mb-1 flex items-center justify-between">
               <Label htmlFor="bio" className="font-medium text-foreground">
-                Bio (optional)
+                {t('settings.profile.bio_optional', 'Bio (optional)')}
               </Label>
               <span className="text-xs text-muted-foreground">
                 {formData.bio.length}/500
@@ -420,7 +470,10 @@ export default function ProfileSettingsPage(): React.ReactElement {
               maxLength={500}
               rows={3}
               className={`flex w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${errors.bio ? 'border-red-500' : ''}`}
-              placeholder="Tell us about yourself..."
+              placeholder={t(
+                'settings.profile.bio_placeholder',
+                'Tell us about yourself...'
+              )}
             />
             {errors.bio && (
               <p className="mt-1 flex items-center gap-1 text-sm text-red-600">
@@ -436,13 +489,19 @@ export default function ProfileSettingsPage(): React.ReactElement {
               htmlFor="company"
               className="mb-1 font-medium text-foreground"
             >
-              Company/Organization (optional)
+              {t(
+                'settings.profile.company_optional',
+                'Company/Organization (optional)'
+              )}
             </Label>
             <Input
               id="company"
               value={formData.company}
               onChange={(e) => handleInputChange('company', e.target.value)}
-              placeholder="Your company name"
+              placeholder={t(
+                'settings.profile.company_placeholder',
+                'Your company name'
+              )}
             />
           </div>
         </div>
@@ -454,7 +513,7 @@ export default function ProfileSettingsPage(): React.ReactElement {
             onClick={handleCancel}
             disabled={isSaving}
           >
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button
             type="submit"
@@ -465,15 +524,15 @@ export default function ProfileSettingsPage(): React.ReactElement {
             {isSaving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                {t('Saving...')}
               </>
             ) : saveSuccess ? (
               <>
                 <Check className="mr-2 h-4 w-4" />
-                Saved!
+                {t('Saved!', 'Saved!')}
               </>
             ) : (
-              'Save Changes'
+              t('Save Changes', 'Save Changes')
             )}
           </Button>
         </div>

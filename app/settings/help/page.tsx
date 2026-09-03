@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useLocale } from '@/lib/context/locale-context';
 
 /**
  * Help Page (Row 76, Protected Page #6)
@@ -48,25 +49,33 @@ import {
 const quickLinks = [
   {
     icon: Book,
+    titleKey: 'settings.help.documentation',
     title: 'Documentation',
+    descKey: 'settings.help.documentation_desc',
     desc: 'Learn how to use DavinTrade MTF & line alert tools',
     href: '/docs',
   },
   {
     icon: MessageCircle,
+    titleKey: 'settings.help.vip_discord',
     title: 'VIP Discord Community',
+    descKey: 'settings.help.vip_discord_desc',
     desc: 'Chat with our quantitative traders in real-time',
     href: '#',
   },
   {
     icon: Mail,
+    titleKey: 'settings.help.email_support_24_7',
     title: '24/7 Email Support',
+    descKey: 'settings.help.email_support_24_7_desc',
     desc: 'Get assistance via email (sub-2 hour PRO SLA)',
     href: 'mailto:support@davintrade.app',
   },
   {
     icon: Bug,
+    titleKey: 'settings.help.report_a_bug',
     title: 'Report a Bug',
+    descKey: 'settings.help.report_a_bug_desc',
     desc: 'Help us improve by reporting interface issues',
     href: 'mailto:support@davintrade.app?subject=Bug%20Report',
   },
@@ -74,28 +83,37 @@ const quickLinks = [
 
 const faqs = [
   {
+    questionKey: 'settings.help.faq_alerts_q',
     question: 'How do server-side price & line alerts work?',
+    answerKey: 'settings.help.faq_alerts_a',
     answer:
       'Alerts evaluate 24/7 on our server-side engine. PRO subscribers get 100 active alert rules evaluated every 500ms against live XAUUSD tick data. You can set threshold rules or draw custom lines on the chart canvas that fire push & email notifications upon price breach.',
   },
   {
+    questionKey: 'settings.help.faq_tiers_q',
     question: 'What is the difference between FREE and PRO tiers?',
+    answerKey: 'settings.help.faq_tiers_a',
     answer:
       'FREE tier gives you access to the M5/M15 XAUUSD live chart and full market data & indicators. PRO tier unlocks 100 active price alerts, drawing engine line alerts, and multi-timeframe visualization.',
   },
   {
+    questionKey: 'settings.help.faq_cancel_q',
     question: 'How do I cancel or modify my subscription?',
+    answerKey: 'settings.help.faq_cancel_a',
     answer:
       'You can manage or cancel your PRO subscription anytime under Settings > Billing. Your PRO privileges will remain active until the end of your paid billing cycle with no hidden cancellation fees.',
   },
   {
+    questionKey: 'settings.help.faq_deletion_q',
     question: 'How does the account deletion grace period work?',
+    answerKey: 'settings.help.faq_deletion_a',
     answer:
       'When you request account deletion under Settings > Account, you get a 7-day window to confirm via the link in your email. Once confirmed, there is a further 24-hour grace period before deletion executes -- you can cancel any time before that.',
   },
 ];
 
 export default function HelpPage(): React.ReactElement {
+  const { t } = useLocale();
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(0);
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -121,15 +139,18 @@ export default function HelpPage(): React.ReactElement {
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div>
             <h2 className="flex items-center gap-2 text-sm font-extrabold text-foreground">
-              <HelpCircle className="h-4 w-4 text-primary" /> Help Center &amp;
-              Technical Support
+              <HelpCircle className="h-4 w-4 text-primary" />{' '}
+              {t('settings.help.page_title', 'Help Center & Technical Support')}
             </h2>
             <p className="text-[11px] text-muted-foreground">
-              Search documentation, read FAQs, or contact our support team
+              {t(
+                'settings.help.page_subtitle',
+                'Search documentation, read FAQs, or contact our support team'
+              )}
             </p>
           </div>
           <Badge className="border-primary/40 bg-primary/10 font-mono text-[9px] text-primary">
-            24/7 SUPPORT
+            {t('settings.help.support_badge', '24/7 SUPPORT')}
           </Badge>
         </div>
 
@@ -141,15 +162,23 @@ export default function HelpPage(): React.ReactElement {
             </div>
             <div>
               <h3 className="text-xs font-extrabold text-foreground">
-                Need Instant Assistance? Email Our Support Team
+                {t(
+                  'settings.help.instant_assistance_title',
+                  'Need Instant Assistance? Email Our Support Team'
+                )}
               </h3>
               <p className="text-[11px] text-muted-foreground">
-                Connect with the DavinTrade support team by email
+                {t(
+                  'settings.help.instant_assistance_desc',
+                  'Connect with the DavinTrade support team by email'
+                )}
               </p>
             </div>
           </div>
           <Button asChild className="h-9 shrink-0 text-xs font-extrabold">
-            <a href="mailto:support@davintrade.app">Email Support</a>
+            <a href="mailto:support@davintrade.app">
+              {t('settings.help.email_support_button', 'Email Support')}
+            </a>
           </Button>
         </div>
 
@@ -168,11 +197,11 @@ export default function HelpPage(): React.ReactElement {
                 </div>
                 <div>
                   <h4 className="flex items-center gap-1 text-xs font-bold text-foreground">
-                    {item.title}{' '}
+                    {t(item.titleKey, item.title)}{' '}
                     <ExternalLink className="h-3 w-3 text-muted-foreground" />
                   </h4>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {item.desc}
+                    {t(item.descKey, item.desc)}
                   </p>
                 </div>
               </a>
@@ -185,7 +214,7 @@ export default function HelpPage(): React.ReactElement {
         {/* FAQ Accordion */}
         <div className="space-y-3">
           <Label className="text-xs font-semibold text-muted-foreground">
-            Frequently Asked Questions (FAQ)
+            {t('settings.help.faq_heading', 'Frequently Asked Questions (FAQ)')}
           </Label>
           <div className="space-y-2">
             {faqs.map((faq, idx) => (
@@ -200,7 +229,7 @@ export default function HelpPage(): React.ReactElement {
                   }
                   className="flex w-full items-center justify-between px-4 py-3 text-left text-xs font-bold text-foreground transition-colors hover:bg-accent"
                 >
-                  <span>{faq.question}</span>
+                  <span>{t(faq.questionKey, faq.question)}</span>
                   {expandedFAQ === idx ? (
                     <ChevronUp className="h-4 w-4 shrink-0 text-primary" />
                   ) : (
@@ -209,7 +238,7 @@ export default function HelpPage(): React.ReactElement {
                 </button>
                 {expandedFAQ === idx && (
                   <div className="border-t border-border px-4 pb-3.5 pt-1 text-xs leading-relaxed text-muted-foreground">
-                    {faq.answer}
+                    {t(faq.answerKey, faq.answer)}
                   </div>
                 )}
               </div>
@@ -222,47 +251,60 @@ export default function HelpPage(): React.ReactElement {
         {/* Contact Support Form -- real mailto compose, not a fake API call */}
         <div className="space-y-3">
           <Label className="text-xs font-semibold text-muted-foreground">
-            Contact Support
+            {t('settings.help.contact_support', 'Contact Support')}
           </Label>
           {sent ? (
             <div className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-xs font-bold text-emerald-700 dark:text-emerald-300">
-              <Check className="h-4 w-4" /> Opening your email client to send
-              this to support@davintrade.app...
+              <Check className="h-4 w-4" />{' '}
+              {t(
+                'settings.help.opening_email_client',
+                'Opening your email client to send this to support@davintrade.app...'
+              )}
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="max-w-xl space-y-3">
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-medium text-muted-foreground">
-                  Issue Category
+                  {t('Issue Category', 'Issue Category')}
                 </Label>
                 <Select value={subject} onValueChange={setSubject}>
                   <SelectTrigger className="text-xs">
-                    <SelectValue placeholder="Select topic" />
+                    <SelectValue
+                      placeholder={t('Select topic', 'Select topic')}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Alert Engine Query">
-                      Alert Engine Trigger Issue
+                      {t(
+                        'Alert Engine Trigger Issue',
+                        'Alert Engine Trigger Issue'
+                      )}
                     </SelectItem>
                     <SelectItem value="Billing Payment Issue">
-                      Billing &amp; Invoice Query
+                      {t('Billing & Invoice Query', 'Billing & Invoice Query')}
                     </SelectItem>
                     <SelectItem value="Affiliate Payout Issue">
-                      Affiliate Payout Issue
+                      {t('Affiliate Payout Issue', 'Affiliate Payout Issue')}
                     </SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="Other">
+                      {t('settings.help.other_option', 'Other')}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-[11px] font-medium text-muted-foreground">
-                  Message Description
+                  {t('Message Description', 'Message Description')}
                 </Label>
                 <textarea
                   rows={4}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Describe your issue or question in detail..."
+                  placeholder={t(
+                    'Describe your issue or question in detail...',
+                    'Describe your issue or question in detail...'
+                  )}
                   className="focus:border-primary/60 bg-muted/40 w-full rounded-xl border border-border p-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
                 />
               </div>
@@ -272,7 +314,7 @@ export default function HelpPage(): React.ReactElement {
                 disabled={!subject || !message.trim()}
                 className="h-9 text-xs font-extrabold"
               >
-                Send via Email
+                {t('settings.help.send_via_email', 'Send via Email')}
               </Button>
             </form>
           )}

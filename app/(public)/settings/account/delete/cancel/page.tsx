@@ -8,6 +8,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useLocale } from '@/lib/context/locale-context';
 
 /**
  * Account deletion cancellation landing page — the destination for the
@@ -51,6 +52,7 @@ function BrandHeader(): JSX.Element {
 }
 
 function DeleteCancelContent(): JSX.Element {
+  const { t } = useLocale();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
@@ -76,7 +78,10 @@ function DeleteCancelContent(): JSX.Element {
           setErrorMessage(
             data.message ||
               data.error ||
-              'Failed to cancel account deletion. Please try again.'
+              t(
+                'settings.account_delete.error_cancel_generic',
+                'Failed to cancel account deletion. Please try again.'
+              )
           );
           setState('error');
           return;
@@ -85,7 +90,12 @@ function DeleteCancelContent(): JSX.Element {
         setState('success');
       } catch (err) {
         console.error('Account deletion cancel error:', err);
-        setErrorMessage('Failed to cancel account deletion. Please try again.');
+        setErrorMessage(
+          t(
+            'settings.account_delete.error_cancel_generic',
+            'Failed to cancel account deletion. Please try again.'
+          )
+        );
         setState('error');
       }
     };
@@ -109,7 +119,10 @@ function DeleteCancelContent(): JSX.Element {
           aria-hidden="true"
         />
         <p className="mt-4 text-xs text-slate-600 dark:text-slate-400">
-          Cancelling your deletion request...
+          {t(
+            'settings.account_delete.cancelling_request',
+            'Cancelling your deletion request...'
+          )}
         </p>
       </div>
     );
@@ -134,11 +147,16 @@ function DeleteCancelContent(): JSX.Element {
             </div>
             <div className="space-y-1">
               <h1 className="text-base font-bold text-emerald-700 dark:text-emerald-300">
-                Account Deletion Cancelled
+                {t(
+                  'settings.account_delete.cancelled_title',
+                  'Account Deletion Cancelled'
+                )}
               </h1>
               <p className="text-xs text-slate-600 dark:text-slate-400">
-                Your account remains active. Nothing further will happen —
-                you&apos;re free to keep using DavinTrade AI as normal.
+                {t(
+                  'settings.account_delete.cancelled_desc',
+                  "Your account remains active. Nothing further will happen — you're free to keep using DavinTrade AI as normal."
+                )}
               </p>
             </div>
             <div className="pt-2">
@@ -147,7 +165,10 @@ function DeleteCancelContent(): JSX.Element {
                   variant="outline"
                   className="w-full border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
-                  Return to Sign In
+                  {t(
+                    'settings.account_delete.return_to_sign_in',
+                    'Return to Sign In'
+                  )}
                 </Button>
               </Link>
             </div>
@@ -176,7 +197,10 @@ function DeleteCancelContent(): JSX.Element {
           </div>
           <div className="space-y-1">
             <h1 className="text-base font-bold text-rose-700 dark:text-rose-300">
-              Cancellation Failed
+              {t(
+                'settings.account_delete.cancellation_failed',
+                'Cancellation Failed'
+              )}
             </h1>
             <p className="text-xs text-slate-600 dark:text-slate-400">
               {errorMessage}
@@ -188,7 +212,7 @@ function DeleteCancelContent(): JSX.Element {
                 variant="outline"
                 className="w-full border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
               >
-                Go to Sign In
+                {t('settings.account_delete.go_to_sign_in', 'Go to Sign In')}
               </Button>
             </Link>
           </div>
@@ -198,22 +222,25 @@ function DeleteCancelContent(): JSX.Element {
   );
 }
 
+function DeleteCancelFallback(): JSX.Element {
+  const { t } = useLocale();
+  return (
+    <div className="text-center">
+      <Loader2
+        className="mx-auto h-8 w-8 animate-spin text-amber-600 dark:text-amber-400"
+        aria-hidden="true"
+      />
+      <p className="mt-4 text-slate-600 dark:text-slate-400">
+        {t('Loading...', 'Loading...')}
+      </p>
+    </div>
+  );
+}
+
 export default function DeleteCancelPage(): JSX.Element {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 dark:bg-[#050609]">
-      <Suspense
-        fallback={
-          <div className="text-center">
-            <Loader2
-              className="mx-auto h-8 w-8 animate-spin text-amber-600 dark:text-amber-400"
-              aria-hidden="true"
-            />
-            <p className="mt-4 text-slate-600 dark:text-slate-400">
-              Loading...
-            </p>
-          </div>
-        }
-      >
+      <Suspense fallback={<DeleteCancelFallback />}>
         <DeleteCancelContent />
       </Suspense>
     </div>
