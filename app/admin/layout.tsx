@@ -10,6 +10,8 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { getServerAppearance } from '@/lib/appearance/server-appearance';
 import { prisma } from '@/lib/db/prisma';
 import { cn } from '@/lib/utils';
+import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -22,7 +24,8 @@ interface AdminLayoutProps {
 interface AdminNavItem {
   id: string;
   icon: string;
-  label: string;
+  labelKey: string;
+  fallback: string;
   href: string;
 }
 
@@ -31,81 +34,123 @@ interface AdminNavItem {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 const adminNavItems: AdminNavItem[] = [
-  { id: 'dashboard', icon: '📊', label: 'Dashboard', href: '/admin' },
+  {
+    id: 'dashboard',
+    icon: '📊',
+    labelKey: 'nav.admin.dashboard',
+    fallback: 'Dashboard',
+    href: '/admin',
+  },
   {
     id: 'bi-dashboards',
     icon: '📈',
-    label: 'Business Intelligence',
+    labelKey: 'nav.admin.bi_dashboards',
+    fallback: 'Business Intelligence',
     href: '/admin/dashboards/executive',
   },
-  { id: 'users', icon: '👥', label: 'Users', href: '/admin/users' },
+  {
+    id: 'users',
+    icon: '👥',
+    labelKey: 'nav.admin.users',
+    fallback: 'Users',
+    href: '/admin/users',
+  },
   {
     id: 'fraud-alerts',
     icon: '🚩',
-    label: 'Fraud Alerts',
+    labelKey: 'nav.admin.fraud_alerts',
+    fallback: 'Fraud Alerts',
     href: '/admin/fraud-alerts',
   },
-  { id: 'api-usage', icon: '🔌', label: 'API Usage', href: '/admin/api-usage' },
-  { id: 'status', icon: '🟢', label: 'System Status', href: '/status' },
-  { id: 'errors', icon: '🚨', label: 'System Errors', href: '/admin/errors' },
+  {
+    id: 'api-usage',
+    icon: '🔌',
+    labelKey: 'nav.admin.api_usage',
+    fallback: 'API Usage',
+    href: '/admin/api-usage',
+  },
+  {
+    id: 'status',
+    icon: '🟢',
+    labelKey: 'nav.admin.system_status',
+    fallback: 'System Status',
+    href: '/status',
+  },
+  {
+    id: 'errors',
+    icon: '🚨',
+    labelKey: 'nav.admin.system_errors',
+    fallback: 'System Errors',
+    href: '/admin/errors',
+  },
   {
     id: 'affiliates',
     icon: '🤝',
-    label: 'Affiliates & Reports',
+    labelKey: 'nav.admin.affiliates',
+    fallback: 'Affiliates & Reports',
     href: '/admin/affiliates',
   },
   {
     id: 'disbursement',
     icon: '💸',
-    label: 'Disbursements',
+    labelKey: 'nav.admin.disbursements',
+    fallback: 'Disbursements',
     href: '/admin/disbursement',
   },
   {
     id: 'affiliate-settings',
     icon: '⚙️',
-    label: 'Affiliate Settings',
+    labelKey: 'nav.admin.affiliate_settings',
+    fallback: 'Affiliate Settings',
     href: '/admin/settings/affiliate',
   },
   {
     id: 'system-terminals',
     icon: '🖥️',
-    label: 'Terminals & Flask API',
+    labelKey: 'nav.admin.system_terminals',
+    fallback: 'Terminals & Flask API',
     href: '/admin/system/terminals',
   },
   {
     id: 'system-jobs',
     icon: '⏱️',
-    label: 'Scheduled Jobs',
+    labelKey: 'nav.admin.system_jobs',
+    fallback: 'Scheduled Jobs',
     href: '/admin/system/jobs',
   },
   {
     id: 'system-outbox',
     icon: '📤',
-    label: 'Outbox Queue',
+    labelKey: 'nav.admin.system_outbox',
+    fallback: 'Outbox Queue',
     href: '/admin/system/outbox',
   },
   {
     id: 'system-config-history',
     icon: '📜',
-    label: 'Config History',
+    labelKey: 'nav.admin.system_config_history',
+    fallback: 'Config History',
     href: '/admin/system/config-history',
   },
   {
     id: 'notifications-broadcast',
     icon: '📢',
-    label: 'Broadcast',
+    labelKey: 'nav.admin.notifications_broadcast',
+    fallback: 'Broadcast',
     href: '/admin/notifications/broadcast',
   },
   {
     id: 'resources',
     icon: '🎨',
-    label: 'Marketing Resources',
+    labelKey: 'nav.admin.resources',
+    fallback: 'Marketing Resources',
     href: '/admin/resources',
   },
   {
     id: 'tutorials',
     icon: '🎓',
-    label: 'Academy Tutorials',
+    labelKey: 'nav.admin.tutorials',
+    fallback: 'Academy Tutorials',
     href: '/admin/tutorials',
   },
 ];
@@ -165,6 +210,7 @@ export default async function AdminLayout({
 
   const userName = session.user.name || session.user.email || 'Admin';
   const appearance = await getServerAppearance();
+  const dict = getDictionary(await getServerLanguage());
 
   return (
     <AppearanceProvider initialSettings={appearance}>
@@ -186,9 +232,11 @@ export default async function AdminLayout({
         <header className="border-b border-border bg-card px-4 py-4 sm:px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 sm:gap-4">
-              <h1 className="text-lg font-bold sm:text-xl">Admin Panel</h1>
+              <h1 className="text-lg font-bold sm:text-xl">
+                {dict['nav.admin.panel_title'] ?? 'Admin Panel'}
+              </h1>
               <Badge className="bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-700 hover:bg-amber-500/15 dark:text-amber-300">
-                ADMIN
+                {dict['nav.admin.badge'] ?? 'ADMIN'}
               </Badge>
             </div>
             <div className="flex items-center gap-3 sm:gap-4">
@@ -199,7 +247,7 @@ export default async function AdminLayout({
                 href="/dashboard"
                 className="text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
-                ← Back to App
+                ← {dict['nav.admin.back_to_app'] ?? 'Back to App'}
               </Link>
             </div>
           </div>
@@ -223,7 +271,9 @@ export default async function AdminLayout({
                   )}
                 >
                   <span className="text-lg sm:text-xl">{item.icon}</span>
-                  <span className="hidden sm:inline">{item.label}</span>
+                  <span className="hidden sm:inline">
+                    {dict[item.labelKey] ?? item.fallback}
+                  </span>
                 </Link>
               ))}
             </nav>
@@ -237,10 +287,12 @@ export default async function AdminLayout({
               className="bg-accent/50 hidden rounded-lg px-4 py-3 transition-colors hover:bg-accent sm:block"
             >
               <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
-                System Status
+                {dict['nav.admin.system_status'] ?? 'System Status'}
               </p>
               <span className="text-sm text-amber-600 dark:text-amber-400">
-                Check terminals &amp; jobs →
+                {dict['nav.admin.check_terminals_jobs'] ??
+                  'Check terminals & jobs'}{' '}
+                →
               </span>
             </Link>
           </aside>

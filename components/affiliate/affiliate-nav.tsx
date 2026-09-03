@@ -21,22 +21,60 @@ import { signOut, useSession } from 'next-auth/react';
 import { LogOut, ChevronRight } from 'lucide-react';
 
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+import { useLocale } from '@/lib/context/locale-context';
 
 const NAV_LINKS = [
-  { href: '/affiliate/dashboard', label: 'Overview' },
-  { href: '/affiliate/dashboard/codes', label: 'My Codes' },
-  { href: '/affiliate/dashboard/code-inventory', label: 'Code Inventory' },
-  { href: '/affiliate/dashboard/commissions', label: 'Commissions' },
-  { href: '/affiliate/dashboard/payouts', label: 'Payouts' },
-  { href: '/affiliate/dashboard/statements', label: 'Statements' },
-  { href: '/affiliate/dashboard/resources', label: 'Resources' },
-  { href: '/affiliate/dashboard/profile', label: 'Profile' },
-  { href: '/affiliate/settings/payout', label: 'Payout Settings' },
+  {
+    href: '/affiliate/dashboard',
+    labelKey: 'nav.affiliate.overview',
+    fallback: 'Overview',
+  },
+  {
+    href: '/affiliate/dashboard/codes',
+    labelKey: 'nav.affiliate.my_codes',
+    fallback: 'My Codes',
+  },
+  {
+    href: '/affiliate/dashboard/code-inventory',
+    labelKey: 'nav.affiliate.code_inventory',
+    fallback: 'Code Inventory',
+  },
+  {
+    href: '/affiliate/dashboard/commissions',
+    labelKey: 'nav.affiliate.commissions',
+    fallback: 'Commissions',
+  },
+  {
+    href: '/affiliate/dashboard/payouts',
+    labelKey: 'nav.affiliate.payouts',
+    fallback: 'Payouts',
+  },
+  {
+    href: '/affiliate/dashboard/statements',
+    labelKey: 'nav.affiliate.statements',
+    fallback: 'Statements',
+  },
+  {
+    href: '/affiliate/dashboard/resources',
+    labelKey: 'nav.affiliate.resources',
+    fallback: 'Resources',
+  },
+  {
+    href: '/affiliate/dashboard/profile',
+    labelKey: 'nav.affiliate.profile',
+    fallback: 'Profile',
+  },
+  {
+    href: '/affiliate/settings/payout',
+    labelKey: 'nav.affiliate.payout_settings',
+    fallback: 'Payout Settings',
+  },
 ] as const;
 
 export default function AffiliateNav(): React.ReactElement {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { t } = useLocale();
 
   // Same bridge-aware logout as components/layout/app-header.tsx.
   const handleLogout = async (): Promise<void> => {
@@ -68,7 +106,7 @@ export default function AffiliateNav(): React.ReactElement {
           </Link>
           <ChevronRight className="hidden h-4 w-4 text-muted-foreground sm:inline" />
           <span className="text-xs font-bold text-foreground sm:text-sm">
-            Affiliate Partner Portal
+            {t('nav.affiliate.portal_title', 'Affiliate Partner Portal')}
           </span>
         </div>
 
@@ -80,14 +118,16 @@ export default function AffiliateNav(): React.ReactElement {
             href="/dashboard"
             className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
-            Back to App
+            {t('nav.affiliate.back_to_app', 'Back to App')}
           </Link>
           <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-rose-600 dark:hover:text-rose-400"
           >
             <LogOut className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Log out</span>
+            <span className="hidden sm:inline">
+              {t('nav.affiliate.log_out', 'Log out')}
+            </span>
           </button>
         </div>
       </div>
@@ -111,7 +151,7 @@ export default function AffiliateNav(): React.ReactElement {
                     : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                 }`}
               >
-                {link.label}
+                {t(link.labelKey, link.fallback)}
               </Link>
             );
           })}

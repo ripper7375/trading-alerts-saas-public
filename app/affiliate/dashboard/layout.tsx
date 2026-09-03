@@ -21,6 +21,8 @@ import { redirect } from 'next/navigation';
 import { getSession, requireAffiliate } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import AffiliateNav from '@/components/affiliate/affiliate-nav';
+import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 // Force dynamic rendering since this layout uses headers via getSession
 export const dynamic = 'force-dynamic';
@@ -67,6 +69,8 @@ export default async function AffiliateDashboardLayout({
     throw err;
   }
 
+  const dict = getDictionary(await getServerLanguage());
+
   return (
     <div className="min-h-screen bg-background">
       <AffiliateNav />
@@ -80,7 +84,8 @@ export default async function AffiliateDashboardLayout({
       <footer className="mt-auto border-t border-border bg-card">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <p className="text-center text-sm text-muted-foreground">
-            DavinTrade Affiliate Partner Program
+            {dict['nav.affiliate.footer_tagline'] ??
+              'DavinTrade Affiliate Partner Program'}
           </p>
         </div>
       </footer>
