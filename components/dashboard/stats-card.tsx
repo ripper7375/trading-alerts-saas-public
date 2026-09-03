@@ -14,6 +14,14 @@ interface StatsCardProps {
   variant?: 'default' | 'usage';
   current?: number;
   max?: number;
+  /**
+   * Translated "Approaching limit" text -- threaded from the caller (a
+   * Server Component that already resolved a dictionary) rather than
+   * resolved in here, because this component's own existing test suite
+   * renders it synchronously via `@testing-library/react` and an async
+   * Server Component can't be rendered by the client test renderer.
+   */
+  approachingLimitLabel?: string;
 }
 
 /**
@@ -47,6 +55,7 @@ export function StatsCard({
   variant = 'default',
   current,
   max,
+  approachingLimitLabel = 'Approaching limit',
 }: StatsCardProps): React.ReactElement {
   // Calculate usage percentage for usage variant
   const usagePercentage =
@@ -73,14 +82,14 @@ export function StatsCard({
 
         {/* Description or Change indicator */}
         {description && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             {description}
           </p>
         )}
 
         {/* Change indicator */}
         {change !== undefined && (
-          <div className="flex items-center gap-1 mt-1">
+          <div className="mt-1 flex items-center gap-1">
             {change >= 0 ? (
               <ArrowUpIcon className="h-3 w-3 text-green-500" />
             ) : (
@@ -104,7 +113,7 @@ export function StatsCard({
         {/* Usage Progress Bar */}
         {variant === 'usage' && current !== undefined && max !== undefined && (
           <div className="mt-3">
-            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+            <div className="mb-1 flex justify-between text-xs text-gray-500 dark:text-gray-400">
               <span>
                 {current} / {max}
               </span>
@@ -113,15 +122,15 @@ export function StatsCard({
             <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
               <div
                 className={cn(
-                  'h-full transition-all rounded-full',
+                  'h-full rounded-full transition-all',
                   isHighUsage ? 'bg-amber-500' : 'bg-blue-600'
                 )}
                 style={{ width: `${Math.min(usagePercentage, 100)}%` }}
               />
             </div>
             {isHighUsage && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
-                ⚠️ Approaching limit
+              <p className="mt-1 flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                ⚠️ {approachingLimitLabel}
               </p>
             )}
           </div>

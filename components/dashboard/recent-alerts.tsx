@@ -23,9 +23,31 @@ interface Alert {
   createdAt: string;
 }
 
+interface RecentAlertsLabels {
+  title?: string;
+  viewAll?: string;
+  watching?: string;
+  triggered?: string;
+  paused?: string;
+  target?: string;
+  current?: string;
+  distance?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  createFirstAlert?: string;
+}
+
 interface RecentAlertsProps {
   alerts: Alert[];
   maxAlerts?: number;
+  /**
+   * Translated copy -- threaded from the caller (a Server Component that
+   * already resolved a dictionary) rather than resolved in here, because
+   * this component's own existing test suite renders it synchronously via
+   * `@testing-library/react` and an async Server Component can't be
+   * rendered by the client test renderer.
+   */
+  labels?: RecentAlertsLabels;
 }
 
 // Status configuration for styling and icons
@@ -35,21 +57,18 @@ const statusConfig = {
     color: 'text-blue-600',
     bgColor: 'bg-blue-50 dark:bg-blue-900/20',
     borderColor: 'border-l-blue-500',
-    label: 'Watching',
   },
   triggered: {
     icon: CheckCircle2,
     color: 'text-green-600',
     bgColor: 'bg-green-50 dark:bg-green-900/20',
     borderColor: 'border-l-green-500',
-    label: 'Triggered',
   },
   paused: {
     icon: PauseCircle,
     color: 'text-gray-500',
     bgColor: 'bg-gray-50 dark:bg-gray-800',
     borderColor: 'border-l-gray-400',
-    label: 'Paused',
   },
 };
 
@@ -70,15 +89,24 @@ const statusConfig = {
 export function RecentAlerts({
   alerts,
   maxAlerts = 5,
+  labels,
 }: RecentAlertsProps): React.ReactElement {
   const displayAlerts = alerts.slice(0, maxAlerts);
+  const statusLabel = {
+    watching: labels?.watching ?? 'Watching',
+    triggered: labels?.triggered ?? 'Triggered',
+    paused: labels?.paused ?? 'Paused',
+  };
 
   return (
-    <Card className="bg-white dark:bg-gray-800" data-testid="recent-alerts-card">
+    <Card
+      className="bg-white dark:bg-gray-800"
+      data-testid="recent-alerts-card"
+    >
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2 text-lg font-semibold text-gray-900 dark:text-white">
           <Bell className="h-5 w-5 text-gray-400" />
-          Recent Alerts
+          {labels?.title ?? 'Recent Alerts'}
         </CardTitle>
         {alerts.length > 0 && (
           <Link href="/alerts">
@@ -88,7 +116,7 @@ export function RecentAlerts({
               className="text-blue-600 hover:text-blue-700"
               data-testid="view-all-alerts"
             >
-              View All
+              {labels?.viewAll ?? 'View All'}
               <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
           </Link>
@@ -115,23 +143,26 @@ export function RecentAlerts({
                 >
                   <div className="flex items-start gap-3">
                     <StatusIcon
-                      className={cn('h-5 w-5 mt-0.5 shrink-0', config.color)}
+                      className={cn('mt-0.5 h-5 w-5 shrink-0', config.color)}
                     />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-medium text-gray-900 dark:text-white truncate">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="truncate font-medium text-gray-900 dark:text-white">
                           {alert.title}
                         </h4>
                         <Badge variant="outline" className="text-xs">
-                          {config.label}
+                          {statusLabel[alert.status]}
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-                        {alert.symbol} • {alert.timeframe} • Target: $
+                      <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">
+                        {alert.symbol} • {alert.timeframe} •{' '}
+                        {labels?.target ?? 'Target'}: $
                         {alert.targetPrice.toFixed(2)}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                        Current: ${alert.currentPrice.toFixed(2)} | Distance:{' '}
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-500">
+                        {labels?.current ?? 'Current'}: $
+                        {alert.currentPrice.toFixed(2)} |{' '}
+                        {labels?.distance ?? 'Distance'}:{' '}
                         <span
                           className={cn(
                             distance >= 0 ? 'text-green-600' : 'text-red-600'
@@ -149,17 +180,21 @@ export function RecentAlerts({
           </div>
         ) : (
           /* Empty State */
-          <div className="text-center py-8" data-testid="recent-alerts-empty">
+          <div className="py-8 text-center" data-testid="recent-alerts-empty">
             <div className="mx-auto mb-4 text-5xl opacity-50">🔔</div>
-            <h3 className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
-              No alerts yet
+            <h3 className="mb-2 text-lg font-medium text-gray-600 dark:text-gray-400">
+              {labels?.emptyTitle ?? 'No alerts yet'}
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">
-              Set up alerts to get notified of price movements
+            <p className="mb-4 text-sm text-gray-500 dark:text-gray-500">
+              {labels?.emptyDescription ??
+                'Set up alerts to get notified of price movements'}
             </p>
             <Link href="/alerts/new">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white" data-testid="create-first-alert">
-                Create Your First Alert
+              <Button
+                className="bg-blue-600 text-white hover:bg-blue-700"
+                data-testid="create-first-alert"
+              >
+                {labels?.createFirstAlert ?? 'Create Your First Alert'}
               </Button>
             </Link>
           </div>
