@@ -26,6 +26,101 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
+> **Ad-hoc session (2026-09-03, phase/session unchanged) — CLOSED SUCCESSFUL, Stack C
+> `best_fit` centroid variant split into `best_fit_a`/`best_fit_b`:** Davin had already
+> built and dropped in two new MQL5 indicators —
+> `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/
+mq5/2EDTCentroidRegressionBestFitNonMostRecentA_v2_29.mq5` and `...B_v2_29.mq5` — running in
+> **isolated coexistence** on the same chart (separate object namespaces
+> `ClusterHull_V393_A_`/`_B_`, separate export buttons/corners) to replace the single
+> `2EDTCentroidRegressionBestFitNonMostRecent_v2_29.mq5`, and asked directly in chat to
+> propagate that replacement through every other file in the `v2_29_data_pipeline_architecture`
+> folder, then update the folder's own blueprint doc (`DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`)
+> to match. Per `EXECUTOR-PROTOCOL.md` §6 (direct, fully-specified chat instruction, outside the
+> Session-14-x playbook numbering).
+> **Scoped via `EnterPlanMode` before touching anything** — reading both new mq5 files confirmed
+> `A` ("Primary Instance") is numerically **identical** to the old `best_fit`
+> (`InpRegCentroids=5`, `InpExcludeRecentCentroids=0`) while `B` ("Secondary Instance") is a
+> **new** preset (`InpExcludeRecentCentroids=3`) — the same `0`/`3` delta `centroid_regression.py`
+> already uses for its existing `non_a`/`non_b` pair, confirmed by reading `VARIANT_PRESETS`
+> directly rather than guessed. This is a real architecture change, not a rename: 6 centroid
+> variants → 7, 12 mq5 indicators → 13, `market_data` 79 → 87 columns — ripples through the SQL
+> schema, the gateway JSON contract, the Python calc engine's variant presets, the collector's
+> source registry, the golden-certification harness/evidence, and the legacy EA's indicator
+> wiring, not just the blueprint prose.
+> **Certification handled without fabrication, per an explicit design decision recorded in the
+> plan before any edit:** `best_fit_a` is config-identical to the pre-split `best_fit`, so its
+> existing certified evidence (M15 50/50, M5 39/50 incl. the documented UOEDT/cherry-boundary
+> tolerance) **carries over by relabeling, not by re-running anything** — the raw
+> `golden_certification_report_M5.txt`/`_M15.txt` PASS/FAIL data lines were left byte-for-byte
+> untouched (a real historical run record), with only a clarifying note prepended above them and
+> a longer explanation added to `CERTIFICATION.md` and the blueprint's §6.3/§6.4. `best_fit_b` is
+> a genuinely new, **never-certified** preset — no MT5 export data has ever been captured for it
+> (confirmed: the repo-root `mock-data-from-indicators/golden_certification/` archive, left
+> untouched as out-of-scope, only has `Centriod_Best_Fit_*` — no `_B` files) — so it was
+> deliberately **not** added to `golden_certification.py`'s `variants` dict or folded into the
+> 50/50 / 39/50 pass counts anywhere; it was added to the cheap synthetic-data unit-test loop in
+> `test_phase3_centroid.py` only (that test just checks "runs and finds the collinear line", not
+> golden numbers).
+> **A real, functionally load-bearing fix, not just documentation** — the legacy EA
+> `SimpleDataCollector_v2_29_ASYNC_SOCKET.mq5` (§3.3: its only live job is keeping
+> charts/indicators alive) had its `iCustom()` call pointed at the now-deleted
+> `2EDTCentroidRegressionBestFitNonMostRecent_v2_29` name; left unfixed, `OnInit` would have
+> returned `false` on that one missing handle and killed EA startup entirely for every symbol,
+> not just this one variant. Rewired the full chain end to end: `TimeframeIndicators` struct
+> (`h_cr_bestfit` → `h_cr_bestfit_a`/`h_cr_bestfit_b`), both `iCustom()` calls +
+> `OnDeinit()` release, both `GetCentroidFields()` reads, `PublishToLocalRelay()`/
+> `WriteSQLiteBackup()` signatures + call sites, the `CentroidToJson`/`CentroidToSqlValues`
+> calls, and — kept positionally paired by hand, verified after — the `CREATE TABLE` DDL, the
+> `MigrateSymbolTable()` `ALTER TABLE` array, and the `columns`/`values` strings (all four
+> independently list the same 8-column `best_fit_*` block and had to grow into two 8-column
+> blocks in lockstep). ~10 "6 variants"/"12 indicators" doc comments in that file updated too.
+> **A second real bug found in passing, NOT introduced by this session and NOT fixed (out of
+> scope) — flagged instead:** re-running `golden_certification.py`'s centroid-variant stage
+> against the real M15 export archive reproduces byte-for-byte on a clean `git HEAD` checkout of
+> both `golden_certification.py` and `centroid_regression.py` (confirmed by copying the pristine
+> versions to a scratch dir and running them there, before any edit of this session existed) —
+> `calculate_variant(variant, ..., fractals=fractals, **overrides)` passes a `fractals=` kwarg
+> straight through into `CentroidRegressionParams(**cfg)`, which has no such parameter:
+> `TypeError: CentroidRegressionParams.__init__() got an unexpected keyword argument 'fractals'`.
+> Confirmed unrelated to this session's rename — the crash happens strictly after `best_fit_a`'s
+> file-prefix resolution against the real `Centriod_Best_Fit` mock files already succeeded (the
+> loop reached the `calculate_variant()` call, past every step that would fail on a bad
+> file/prefix lookup). This blocks a real end-to-end golden-certification run for ANY centroid
+> variant today, not just the new ones — needs its own session.
+> **Verified:** full monolith-adjacent Python checks (this stack has no monolith Jest suite —
+> it's a standalone pipeline): `test_phase3_centroid.py` **41/41** (was 40; +1 for the new
+> `best_fit_b` synthetic case), all Python files `ast.parse` clean, `gateway_contract_market_data
+.schema.json` valid JSON with exactly **87** non-meta properties, `sqlite_schema_v6_xauusd.sql`
+> applies clean to a throwaway in-memory DB with **87** `market_data` columns and
+> `raw_best_fit_a`/`raw_best_fit_b` tables (no orphaned `best_fit_*` columns). Best of all, the
+> codebase's **own** built-in drift guard — `backfill_worker_api_gateway_v5.py`'s
+> `verify_schema_contract()`, which diffs the live SQL schema against `EXPECTED_CONTRACT_FIELDS`
+> — was run directly against the freshly-applied schema and returned `True` (also caught and
+> fixed a real bug this same guard would have caught at production startup: its own
+> hardcoded `assert len(EXPECTED_CONTRACT_FIELDS) == 79` self-check, missed by the initial grep
+> since it doesn't contain the string "best*fit", would have crashed the push worker on import
+> the moment this session's field-count change shipped — updated to `87`). A whole-folder grep
+> sweep for every remaining bare `best_fit*_`/`raw_best_fit`/"12 indicator"/"6 centroid"/"79
+field" pattern came back clean except deliberate historical-context prose. Not committed —
+Davin was asked and chose to log this entry only, not commit yet.
+**Explicitly out of scope, not silently touched:** `mock-data-from-indicators/golden_certification/`(repo root, real captured MT5 export archive) and`backend-stack-c/2_python-calc-stack/`(repo
+root sibling copy of the calc modules — the collector already prefers the in-folder copy at
+runtime, so this is cosmetic drift only);`mq5/2EDTWindowedCentroidRegressionBestFit_v4_29.mq5`+
+its`\_FIX_NOTES.md`(confirmed absent from the blueprint's own §0 manifest, references neither
+the old nor new filenames); the`mql5-indicators/`mirror directories and`davintrade-stack-d-and-e/`docs visible in git status at session start (unrelated pre-existing
+work, not this session's).
+**Artifacts:**`centroid_regression.py`, `export_collector_validator_v2.py`,
+`sqlite_schema_v6_xauusd.sql`, `sqlite_schema_v6_xauusd_preview.txt`,
+`gateway_contract_market_data.schema.json`, `backfill_worker_api_gateway_v5.py`,
+`install_services.bat`, `SimpleDataCollector_v2_29_ASYNC_SOCKET.mq5`, both
+`data-split-between-mql5-and-python/_.txt`files,`mql5-to-python-transliteration/{README.md,
+> CERTIFICATION.md,golden_certification.py,golden_certification_report_M5.txt,
+> golden_certification_report_M15.txt,test_phase3_centroid.py}`,
+`DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`, this file. `git rm`on the old`2EDTCentroidRegressionBestFitNonMostRecent_v2_29.mq5`; the two new `A`/`B` mq5 files were
+> already present (Davin's own work) and remain untracked pending commit. 23 files modified + 1
+> deleted + 2 new untracked, all uncommitted per Davin's choice this session.
+
 > **Ad-hoc session (2026-09-03, phase/session unchanged) — CLOSED SUCCESSFUL, Traditional
 > Chinese (zh-TW):** Davin asked what Chinese variant the app's existing `zh` option was
 > (Simplified vs. Traditional) — verified via a 27-character-pair marker comparison rather than
