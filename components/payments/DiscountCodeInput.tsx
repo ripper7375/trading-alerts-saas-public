@@ -16,6 +16,7 @@ import { useState, useCallback } from 'react';
 import { Check, X, Loader2 } from 'lucide-react';
 import type { PlanType } from '@/types/dlocal';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -51,6 +52,7 @@ export function DiscountCodeInput({
   disabled = false,
   onValidationChange,
 }: DiscountCodeInputProps): React.ReactElement {
+  const { t } = useLocale();
   const [validating, setValidating] = useState(false);
   const [validation, setValidation] = useState<ValidationResult | null>(null);
 
@@ -83,13 +85,16 @@ export function DiscountCodeInput({
         onValidationChange?.(result.valid, result.discountPercent);
       } catch (error) {
         console.error('Failed to validate discount code:', error);
-        setValidation({ valid: false, message: 'Failed to validate code' });
+        setValidation({
+          valid: false,
+          message: t('checkout.error_validate_code', 'Failed to validate code'),
+        });
         onValidationChange?.(false);
       } finally {
         setValidating(false);
       }
     },
-    [planType, onValidationChange]
+    [planType, onValidationChange, t]
   );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -116,10 +121,13 @@ export function DiscountCodeInput({
     return (
       <div className="space-y-2">
         <label className="text-sm font-medium text-muted-foreground">
-          Discount code
+          {t('checkout.discount_code', 'Discount code')}
         </label>
         <p className="text-sm text-muted-foreground">
-          Discount codes are not available for the 3-day plan.
+          {t(
+            'checkout.discount_unavailable_three_day',
+            'Discount codes are not available for the 3-day plan.'
+          )}
         </p>
       </div>
     );
@@ -128,7 +136,7 @@ export function DiscountCodeInput({
   return (
     <div className="space-y-2">
       <label htmlFor="discount-code" className="text-sm font-medium">
-        Discount code (optional)
+        {t('checkout.discount_code_optional', 'Discount code (optional)')}
       </label>
 
       <div className="flex gap-2">
@@ -141,7 +149,7 @@ export function DiscountCodeInput({
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             disabled={disabled || validating}
-            placeholder="Enter code"
+            placeholder={t('checkout.enter_code', 'Enter code')}
             maxLength={20}
             className={cn(
               'w-full rounded-lg border bg-background p-3 pr-10 text-sm uppercase',
@@ -179,15 +187,22 @@ export function DiscountCodeInput({
           )}
         >
           {validation.valid
-            ? `${validation.discountPercent}% discount will be applied!`
-            : validation.message || 'Invalid discount code'}
+            ? t(
+                'checkout.discount_applied',
+                '{percent}% discount will be applied!'
+              ).replace('{percent}', String(validation.discountPercent))
+            : validation.message ||
+              t('checkout.invalid_discount_code', 'Invalid discount code')}
         </p>
       )}
 
       {/* Hint text */}
       {!validation && (
         <p className="text-xs text-muted-foreground">
-          Have an affiliate referral code? Enter it here for a discount.
+          {t(
+            'checkout.affiliate_hint',
+            'Have an affiliate referral code? Enter it here for a discount.'
+          )}
         </p>
       )}
     </div>

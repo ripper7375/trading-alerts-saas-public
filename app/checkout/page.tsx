@@ -41,12 +41,14 @@ import {
   PRICING,
   DLOCAL_SUPPORTED_COUNTRIES,
 } from '@/lib/dlocal/constants';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CHECKOUT CONTENT
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function CheckoutContent(): React.ReactElement {
+  const { t } = useLocale();
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -127,7 +129,12 @@ function CheckoutContent(): React.ReactElement {
   // Handle payment submission
   const handleCreatePayment = async (): Promise<void> => {
     if (!country || !paymentMethod || !session?.user?.id) {
-      setError('Please complete all required fields');
+      setError(
+        t(
+          'checkout.error_required_fields',
+          'Please complete all required fields'
+        )
+      );
       return;
     }
 
@@ -150,7 +157,10 @@ function CheckoutContent(): React.ReactElement {
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to create payment');
+        throw new Error(
+          errorData.error ||
+            t('checkout.error_create_payment', 'Failed to create payment')
+        );
       }
 
       const data = await res.json();
@@ -159,11 +169,17 @@ function CheckoutContent(): React.ReactElement {
       if (data.paymentUrl) {
         window.location.href = data.paymentUrl;
       } else {
-        throw new Error('No payment URL received');
+        throw new Error(
+          t('checkout.error_no_payment_url', 'No payment URL received')
+        );
       }
     } catch (err) {
       console.error('Payment creation error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create payment');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('checkout.error_create_payment', 'Failed to create payment')
+      );
     }
   };
 
@@ -182,7 +198,10 @@ function CheckoutContent(): React.ReactElement {
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to create checkout');
+        throw new Error(
+          errorData.error ||
+            t('checkout.error_create_checkout', 'Failed to create checkout')
+        );
       }
 
       const data = await res.json();
@@ -190,12 +209,16 @@ function CheckoutContent(): React.ReactElement {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error('No checkout URL received');
+        throw new Error(
+          t('checkout.error_no_checkout_url', 'No checkout URL received')
+        );
       }
     } catch (err) {
       console.error('Stripe checkout error:', err);
       setError(
-        err instanceof Error ? err.message : 'Failed to create checkout'
+        err instanceof Error
+          ? err.message
+          : t('checkout.error_create_checkout', 'Failed to create checkout')
       );
     }
   };
@@ -218,7 +241,9 @@ function CheckoutContent(): React.ReactElement {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">
+            {t('Loading...', 'Loading...')}
+          </p>
         </div>
       </div>
     );
@@ -229,7 +254,9 @@ function CheckoutContent(): React.ReactElement {
     router.push('/login?callbackUrl=/checkout');
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Redirecting to login...</p>
+        <p className="text-muted-foreground">
+          {t('checkout.redirecting_login', 'Redirecting to login...')}
+        </p>
       </div>
     );
   }
@@ -244,7 +271,7 @@ function CheckoutContent(): React.ReactElement {
             className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            {t('checkout.back_to_dashboard', 'Back to Dashboard')}
           </Link>
 
           <Card className="p-8 text-center shadow-lg">
@@ -252,18 +279,24 @@ function CheckoutContent(): React.ReactElement {
               <CreditCard className="h-7 w-7" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">
-              You&apos;re Already a PRO Member
+              {t('checkout.already_pro_title', "You're Already a PRO Member")}
             </h1>
             <p className="mx-auto mt-2 max-w-md text-muted-foreground">
-              Your account currently has active access to all PRO features,
-              trading strategies, and real-time alerts.
+              {t(
+                'checkout.already_pro_desc',
+                'Your account currently has active access to all PRO features, trading strategies, and real-time alerts.'
+              )}
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
               <Button asChild variant="outline">
-                <Link href="/settings/billing">Manage Subscription</Link>
+                <Link href="/settings/billing">
+                  {t('checkout.manage_subscription', 'Manage Subscription')}
+                </Link>
               </Button>
               <Button asChild>
-                <Link href="/dashboard">Go to Dashboard</Link>
+                <Link href="/dashboard">
+                  {t('checkout.go_to_dashboard', 'Go to Dashboard')}
+                </Link>
               </Button>
             </div>
           </Card>
@@ -285,16 +318,19 @@ function CheckoutContent(): React.ReactElement {
           className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Pricing
+          {t('checkout.back_to_pricing', 'Back to Pricing')}
         </Link>
 
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">
-            Complete Your Purchase
+            {t('checkout.complete_purchase', 'Complete Your Purchase')}
           </h1>
           <p className="text-muted-foreground">
-            Choose your preferred payment method
+            {t(
+              'checkout.choose_payment_method',
+              'Choose your preferred payment method'
+            )}
           </p>
         </div>
 
@@ -304,10 +340,10 @@ function CheckoutContent(): React.ReactElement {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-foreground">
                 <CreditCard className="h-5 w-5" />
-                International Payment
+                {t('checkout.international_payment', 'International Payment')}
               </CardTitle>
               <Badge variant="secondary" className="bg-primary/10 text-primary">
-                Stripe Powered
+                {t('checkout.stripe_powered', 'Stripe Powered')}
               </Badge>
             </div>
           </CardHeader>
@@ -315,28 +351,35 @@ function CheckoutContent(): React.ReactElement {
           <CardContent className="space-y-6 p-6">
             <div className="space-y-4">
               <p className="text-muted-foreground">
-                Pay with card, Apple Pay, Google Pay, or PayPal
+                {t(
+                  'checkout.pay_with_card',
+                  'Pay with card, Apple Pay, Google Pay, or PayPal'
+                )}
               </p>
 
               {/* Price display */}
               <div className="bg-muted/30 rounded-lg border border-border p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-semibold text-foreground">
-                    PRO Monthly
+                    {t('checkout.pro_monthly', 'PRO Monthly')}
                   </span>
                   <span className="text-2xl font-bold text-foreground">
-                    $29/mo
+                    $29/{t('checkout.month_abbr', 'mo')}
                   </span>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Full access to all PRO features
+                  {t(
+                    'checkout.full_pro_access',
+                    'Full access to all PRO features'
+                  )}
                 </p>
               </div>
 
               {/* Discount code for Stripe */}
               {discountCode && (
                 <p className="text-sm text-emerald-600 dark:text-emerald-400">
-                  Affiliate code: {discountCode}
+                  {t('checkout.affiliate_code', 'Affiliate code')}:{' '}
+                  {discountCode}
                 </p>
               )}
 
@@ -354,7 +397,7 @@ function CheckoutContent(): React.ReactElement {
                 size="lg"
               >
                 <CreditCard className="mr-2 h-5 w-5" />
-                Continue to Payment
+                {t('checkout.continue_to_payment', 'Continue to Payment')}
               </Button>
             </div>
           </CardContent>
@@ -366,18 +409,20 @@ function CheckoutContent(): React.ReactElement {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-foreground">
                 <Globe className="h-5 w-5" />
-                Local Payment Methods
+                {t('checkout.local_payment_methods', 'Local Payment Methods')}
               </CardTitle>
               <Badge
                 variant="secondary"
                 className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
               >
-                dLocal Powered
+                {t('checkout.dlocal_powered', 'dLocal Powered')}
               </Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Pay with UPI, bank transfer, e-wallets, and more in your local
-              currency
+              {t(
+                'checkout.pay_with_local',
+                'Pay with UPI, bank transfer, e-wallets, and more in your local currency'
+              )}
             </p>
           </CardHeader>
 
@@ -418,7 +463,7 @@ function CheckoutContent(): React.ReactElement {
                 <div className="bg-muted/30 rounded-lg border border-border p-4">
                   <div className="mb-4 flex items-center justify-between">
                     <span className="text-lg font-semibold text-foreground">
-                      Total
+                      {t('checkout.total', 'Total')}
                     </span>
                     <PriceDisplay
                       usdAmount={usdAmount}
@@ -430,7 +475,10 @@ function CheckoutContent(): React.ReactElement {
 
                   {discountPercent && planType === 'MONTHLY' && (
                     <p className="text-sm text-emerald-600 dark:text-emerald-400">
-                      {discountPercent}% discount applied!
+                      {t(
+                        'checkout.discount_applied',
+                        '{percent}% discount will be applied!'
+                      ).replace('{percent}', String(discountPercent))}
                     </p>
                   )}
                 </div>
@@ -447,7 +495,7 @@ function CheckoutContent(): React.ReactElement {
                   onClick={handleCreatePayment}
                   disabled={!isFormComplete}
                 >
-                  Pay with Local Method
+                  {t('checkout.pay_with_local_method', 'Pay with Local Method')}
                 </PaymentButton>
               </>
             )}
@@ -457,14 +505,17 @@ function CheckoutContent(): React.ReactElement {
         {/* Trust badges */}
         <div className="mt-8 text-center">
           <p className="mb-2 text-xs text-muted-foreground">
-            Secure payment processing by Stripe and dLocal
+            {t(
+              'checkout.secure_processing',
+              'Secure payment processing by Stripe and dLocal'
+            )}
           </p>
           <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
             <span>256-bit SSL</span>
             <span>•</span>
-            <span>PCI Compliant</span>
+            <span>{t('checkout.pci_compliant', 'PCI Compliant')}</span>
             <span>•</span>
-            <span>Encrypted</span>
+            <span>{t('checkout.encrypted', 'Encrypted')}</span>
           </div>
         </div>
       </div>
@@ -476,18 +527,23 @@ function CheckoutContent(): React.ReactElement {
 // MAIN EXPORT
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+function CheckoutFallback(): React.ReactElement {
+  const { t } = useLocale();
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="text-center">
+        <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
+        <p className="text-muted-foreground">
+          {t('checkout.loading_checkout', 'Loading checkout...')}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function CheckoutPage(): React.ReactElement {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="text-center">
-            <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-            <p className="text-muted-foreground">Loading checkout...</p>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<CheckoutFallback />}>
       <CheckoutContent />
     </Suspense>
   );

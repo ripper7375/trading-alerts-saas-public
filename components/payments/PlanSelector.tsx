@@ -16,6 +16,7 @@ import { Check, Clock, Star } from 'lucide-react';
 import type { PlanType } from '@/types/dlocal';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -45,6 +46,7 @@ export function PlanSelector({
   showThreeDayPlan,
   disabled = false,
 }: PlanSelectorProps): React.ReactElement {
+  const { t } = useLocale();
   // Get dynamic prices from SystemConfig
   const { regularPrice, threeDayPrice } = useAffiliateConfig();
 
@@ -56,7 +58,9 @@ export function PlanSelector({
 
   return (
     <div className="space-y-3">
-      <label className="text-sm font-medium">Choose your plan</label>
+      <label className="text-sm font-medium">
+        {t('checkout.choose_plan', 'Choose your plan')}
+      </label>
 
       <div
         className={cn(
@@ -89,14 +93,16 @@ export function PlanSelector({
             <div className="absolute -top-2 right-2">
               <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
                 <Clock className="h-3 w-3" />
-                One-time offer
+                {t('checkout.one_time_offer', 'One-time offer')}
               </span>
             </div>
 
             <div className="flex items-start justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold">3-Day Trial</span>
+                  <span className="text-lg font-bold">
+                    {t('checkout.three_day_trial', '3-Day Trial')}
+                  </span>
                 </div>
                 <div className="text-2xl font-bold text-purple-600">
                   ${threeDayPrice.toFixed(2)}
@@ -108,11 +114,15 @@ export function PlanSelector({
             </div>
 
             <p className="mt-2 text-sm text-muted-foreground">
-              {canUseThreeDayPlan ? (
-                <>3 days of PRO access to try before you buy</>
-              ) : (
-                <>You have already used this offer or are not eligible</>
-              )}
+              {canUseThreeDayPlan
+                ? t(
+                    'checkout.three_day_desc',
+                    '3 days of PRO access to try before you buy'
+                  )
+                : t(
+                    'checkout.three_day_ineligible',
+                    'You have already used this offer or are not eligible'
+                  )}
             </p>
           </button>
         )}
@@ -138,19 +148,21 @@ export function PlanSelector({
           <div className="absolute -top-2 right-2">
             <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
               <Star className="h-3 w-3" />
-              Best Value
+              {t('checkout.best_value', 'Best Value')}
             </span>
           </div>
 
           <div className="flex items-start justify-between">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold">Monthly</span>
+                <span className="text-lg font-bold">
+                  {t('checkout.monthly', 'Monthly')}
+                </span>
               </div>
               <div className="text-2xl font-bold text-blue-600">
                 ${regularPrice.toFixed(2)}
                 <span className="text-sm font-normal text-muted-foreground">
-                  /month
+                  /{t('checkout.month', 'month')}
                 </span>
               </div>
             </div>
@@ -160,7 +172,10 @@ export function PlanSelector({
           </div>
 
           <p className="mt-2 text-sm text-muted-foreground">
-            Full PRO access with discount code support
+            {t(
+              'checkout.monthly_desc',
+              'Full PRO access with discount code support'
+            )}
           </p>
         </button>
       </div>

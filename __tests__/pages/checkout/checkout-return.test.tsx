@@ -9,7 +9,19 @@
  * @module __tests__/pages/checkout/checkout-return.test
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import React from 'react';
+import {
+  render as rtlRender,
+  screen,
+  waitFor,
+  type RenderOptions,
+} from '@testing-library/react';
+
+import { LocaleProvider } from '@/lib/context/locale-context';
+import {
+  LOCALE_STORAGE_KEY,
+  defaultPreferences,
+} from '@/lib/i18n/locale-resolver';
 
 const mockGet = jest.fn();
 const mockPush = jest.fn();
@@ -23,9 +35,20 @@ const mockRouter = { push: mockPush };
 jest.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams,
   useRouter: () => mockRouter,
+  // CheckoutReturnPage's Suspense fallback and CheckoutReturnContent
+  // (batch-6 locale wiring) both call useLocale(), whose LocaleProvider
+  // calls usePathname() directly (LESSONS-LEARNED.md L40's own stub).
+  usePathname: () => '/checkout/return',
 }));
 
 import CheckoutReturnPage from '@/app/checkout/return/page';
+
+// Shadow `render` once instead of touching every one of this file's many
+// render() call sites: RTL's own rerender() reuses whatever wrapper the
+// original render() call used (L40).
+function render(ui: React.ReactElement, options?: RenderOptions) {
+  return rtlRender(ui, { wrapper: LocaleProvider, ...options });
+}
 
 function jsonResponse(status: number, body: unknown): Response {
   return {
@@ -56,6 +79,13 @@ describe('CheckoutReturnPage', () => {
     jest.clearAllMocks();
     mockGet.mockImplementation((key: string) =>
       key === 'payment_id' ? 'dlocal-123' : null
+    );
+    // Seeding skips LocaleProvider's real geo-IP fetch(), which otherwise
+    // races jsdom teardown and would collide with this file's own
+    // global.fetch mock (L40).
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify(defaultPreferences)
     );
   });
 

@@ -10,9 +10,38 @@
  * @module __tests__/components/payments/PlanSelector.test
  */
 
-import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
+import {
+  render as rtlRender,
+  screen,
+  fireEvent,
+  type RenderOptions,
+} from '@testing-library/react';
 
 import { PlanSelector } from '@/components/payments/PlanSelector';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import {
+  LOCALE_STORAGE_KEY,
+  defaultPreferences,
+} from '@/lib/i18n/locale-resolver';
+
+// PlanSelector (batch-6 locale wiring) now calls useLocale() -- needs a
+// LocaleProvider ancestor. Shadow `render` once (LESSONS-LEARNED.md L40) --
+// RTL's own rerender() reuses whatever wrapper the original render() call
+// used, so this fixes every call site in this file without touching each
+// one individually.
+function render(ui: React.ReactElement, options?: RenderOptions) {
+  return rtlRender(ui, { wrapper: LocaleProvider, ...options });
+}
+
+// LocaleProvider calls usePathname() directly (L40's own stub).
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/checkout',
+}));
+
+beforeEach(() => {
+  localStorage.setItem(LOCALE_STORAGE_KEY, JSON.stringify(defaultPreferences));
+});
 
 // Mock useAffiliateConfig to prevent SWR async state updates (act() warnings)
 jest.mock('@/lib/hooks/useAffiliateConfig', () => ({

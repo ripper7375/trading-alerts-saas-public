@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDateTime } from '@/lib/utils/formatters';
 import { COUNTRY_NAMES } from '@/lib/dlocal/constants';
 import type { DLocalCountry, PaymentStatus } from '@/types/dlocal';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -67,7 +68,9 @@ interface PaymentDetails {
 const STATUS_PRESENTATION: Record<
   PaymentStatus,
   {
+    labelKey: string;
     label: string;
+    descKey: string;
     description: string;
     icon: typeof CheckCircle2;
     badgeClassName: string;
@@ -75,7 +78,9 @@ const STATUS_PRESENTATION: Record<
   }
 > = {
   COMPLETED: {
+    labelKey: 'checkout.status_completed',
     label: 'Payment Successful',
+    descKey: 'checkout.status_completed_desc',
     description: 'Your PRO subscription is now active. Welcome aboard!',
     icon: CheckCircle2,
     badgeClassName:
@@ -83,7 +88,9 @@ const STATUS_PRESENTATION: Record<
     iconClassName: 'text-emerald-600 dark:text-emerald-400',
   },
   PENDING: {
+    labelKey: 'checkout.status_pending',
     label: 'Payment Pending',
+    descKey: 'checkout.status_pending_desc',
     description:
       "We're still waiting for confirmation from your payment method. This can take a few minutes for some local payment methods.",
     icon: Clock,
@@ -92,7 +99,9 @@ const STATUS_PRESENTATION: Record<
     iconClassName: 'text-amber-600 dark:text-amber-400',
   },
   FAILED: {
+    labelKey: 'checkout.status_failed',
     label: 'Payment Failed',
+    descKey: 'checkout.status_failed_desc',
     description:
       'Your payment could not be completed. No charge was made. You can try again with the same or a different payment method.',
     icon: XCircle,
@@ -100,7 +109,9 @@ const STATUS_PRESENTATION: Record<
     iconClassName: 'text-destructive',
   },
   CANCELLED: {
+    labelKey: 'checkout.status_cancelled',
     label: 'Payment Cancelled',
+    descKey: 'checkout.status_cancelled_desc',
     description:
       'This payment was cancelled before it completed. No charge was made.',
     icon: Ban,
@@ -108,7 +119,9 @@ const STATUS_PRESENTATION: Record<
     iconClassName: 'text-muted-foreground',
   },
   REFUNDED: {
+    labelKey: 'checkout.status_refunded',
     label: 'Payment Refunded',
+    descKey: 'checkout.status_refunded_desc',
     description: 'This payment has been refunded.',
     icon: RotateCcw,
     badgeClassName: 'bg-primary/10 text-primary',
@@ -121,6 +134,7 @@ const STATUS_PRESENTATION: Record<
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function CheckoutReturnContent(): React.ReactElement {
+  const { t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -137,7 +151,12 @@ function CheckoutReturnContent(): React.ReactElement {
 
   const fetchPayment = useCallback(async (): Promise<void> => {
     if (!paymentId) {
-      setError('No payment reference was provided in the return URL.');
+      setError(
+        t(
+          'checkout.error_no_payment_ref',
+          'No payment reference was provided in the return URL.'
+        )
+      );
       setLoading(false);
       return;
     }
@@ -158,30 +177,50 @@ function CheckoutReturnContent(): React.ReactElement {
       }
 
       if (res.status === 404) {
-        setError('We could not find a payment matching this reference.');
+        setError(
+          t(
+            'checkout.error_payment_not_found',
+            'We could not find a payment matching this reference.'
+          )
+        );
         setLoading(false);
         return;
       }
 
       if (res.status === 403) {
-        setError('This payment does not belong to your account.');
+        setError(
+          t(
+            'checkout.error_payment_forbidden',
+            'This payment does not belong to your account.'
+          )
+        );
         setLoading(false);
         return;
       }
 
       if (!res.ok) {
-        throw new Error('Failed to load payment status');
+        throw new Error(
+          t(
+            'checkout.error_load_payment_status',
+            'Failed to load payment status'
+          )
+        );
       }
 
       const data: PaymentDetails = await res.json();
       setPayment(data);
     } catch (err) {
       console.error('Failed to fetch payment status:', err);
-      setError('Failed to load your payment status. Please try again.');
+      setError(
+        t(
+          'checkout.error_load_payment_status_retry',
+          'Failed to load your payment status. Please try again.'
+        )
+      );
     } finally {
       setLoading(false);
     }
-  }, [paymentId, router]);
+  }, [paymentId, router, t]);
 
   useEffect(() => {
     fetchPayment();
@@ -193,7 +232,10 @@ function CheckoutReturnContent(): React.ReactElement {
         <div className="text-center">
           <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-muted-foreground" />
           <p className="text-muted-foreground">
-            Checking your payment status...
+            {t(
+              'checkout.checking_payment_status',
+              'Checking your payment status...'
+            )}
           </p>
         </div>
       </div>
@@ -211,16 +253,23 @@ function CheckoutReturnContent(): React.ReactElement {
             />
             <div role="alert" aria-live="assertive">
               <p className="font-medium text-foreground">
-                Unable to show payment status
+                {t(
+                  'checkout.unable_show_status',
+                  'Unable to show payment status'
+                )}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">{error}</p>
             </div>
             <div className="flex justify-center gap-3">
               <Button asChild variant="outline">
-                <Link href="/checkout">Back to Checkout</Link>
+                <Link href="/checkout">
+                  {t('checkout.back_to_checkout', 'Back to Checkout')}
+                </Link>
               </Button>
               <Button asChild>
-                <Link href="/dashboard">Go to Dashboard</Link>
+                <Link href="/dashboard">
+                  {t('checkout.go_to_dashboard', 'Go to Dashboard')}
+                </Link>
               </Button>
             </div>
           </CardContent>
@@ -248,7 +297,7 @@ function CheckoutReturnContent(): React.ReactElement {
             role="status"
             aria-live="polite"
           >
-            {presentation.label}
+            {t(presentation.labelKey, presentation.label)}
           </CardTitle>
           <Badge
             className={`mx-auto mt-2 w-fit ${presentation.badgeClassName}`}
@@ -259,23 +308,27 @@ function CheckoutReturnContent(): React.ReactElement {
 
         <CardContent className="space-y-6">
           <p className="text-center text-muted-foreground">
-            {presentation.description}
+            {t(presentation.descKey, presentation.description)}
           </p>
 
           {/* Order summary */}
           <div className="bg-muted/30 space-y-2 rounded-lg border p-4 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Plan</span>
+              <span className="text-muted-foreground">
+                {t('checkout.plan', 'Plan')}
+              </span>
               <span className="font-medium">
                 {payment.planType === 'THREE_DAY'
-                  ? '3-Day Trial'
+                  ? t('checkout.three_day_trial', '3-Day Trial')
                   : payment.planType === 'MONTHLY'
-                    ? 'Monthly PRO'
+                    ? t('checkout.monthly_pro', 'Monthly PRO')
                     : payment.planType || '—'}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Amount</span>
+              <span className="text-muted-foreground">
+                {t('checkout.amount', 'Amount')}
+              </span>
               <span className="font-medium">
                 {formatCurrency(
                   parseFloat(payment.amount.local),
@@ -288,22 +341,30 @@ function CheckoutReturnContent(): React.ReactElement {
             </div>
             {countryName && (
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Country</span>
+                <span className="text-muted-foreground">
+                  {t('checkout.country', 'Country')}
+                </span>
                 <span className="font-medium">{countryName}</span>
               </div>
             )}
             {payment.paymentMethod && (
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Payment method</span>
+                <span className="text-muted-foreground">
+                  {t('checkout.payment_method', 'Payment method')}
+                </span>
                 <span className="font-medium">{payment.paymentMethod}</span>
               </div>
             )}
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Reference</span>
+              <span className="text-muted-foreground">
+                {t('checkout.reference', 'Reference')}
+              </span>
               <span className="font-mono text-xs">{payment.paymentId}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Date</span>
+              <span className="text-muted-foreground">
+                {t('checkout.date', 'Date')}
+              </span>
               <span className="font-medium">
                 {formatDateTime(payment.createdAt)}
               </span>
@@ -313,11 +374,15 @@ function CheckoutReturnContent(): React.ReactElement {
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
             {payment.status === 'FAILED' || payment.status === 'CANCELLED' ? (
               <Button asChild variant="outline">
-                <Link href="/checkout">Try Again</Link>
+                <Link href="/checkout">
+                  {t('checkout.try_again', 'Try Again')}
+                </Link>
               </Button>
             ) : null}
             <Button asChild>
-              <Link href="/dashboard">Go to Dashboard</Link>
+              <Link href="/dashboard">
+                {t('checkout.go_to_dashboard', 'Go to Dashboard')}
+              </Link>
             </Button>
           </div>
         </CardContent>
@@ -330,18 +395,21 @@ function CheckoutReturnContent(): React.ReactElement {
 // MAIN EXPORT
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+function CheckoutReturnFallback(): React.ReactElement {
+  const { t } = useLocale();
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="text-muted-foreground">{t('Loading...', 'Loading...')}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function CheckoutReturnPage(): React.ReactElement {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-muted-foreground" />
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<CheckoutReturnFallback />}>
       <CheckoutReturnContent />
     </Suspense>
   );

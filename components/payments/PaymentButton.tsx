@@ -14,6 +14,7 @@
 import { useState } from 'react';
 import { Loader2, ArrowRight, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -43,6 +44,7 @@ export function PaymentButton({
   className,
   showSecurityIcon = true,
 }: PaymentButtonProps): React.ReactElement {
+  const { t } = useLocale();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,7 +61,7 @@ export function PaymentButton({
       setError(
         err instanceof Error
           ? err.message
-          : 'An error occurred. Please try again.'
+          : t('checkout.generic_error', 'An error occurred. Please try again.')
       );
     } finally {
       setLoading(false);
@@ -85,7 +87,7 @@ export function PaymentButton({
         {loading ? (
           <>
             <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-            <span>Processing...</span>
+            <span>{t('checkout.processing', 'Processing...')}</span>
           </>
         ) : (
           <>
@@ -108,7 +110,10 @@ export function PaymentButton({
       {/* Security notice */}
       <p className="text-center text-xs text-muted-foreground">
         <Lock className="mr-1 inline h-3 w-3" aria-hidden="true" />
-        Secured by dLocal. Your payment info is encrypted.
+        {t(
+          'checkout.secured_by_dlocal',
+          'Secured by dLocal. Your payment info is encrypted.'
+        )}
       </p>
     </div>
   );
