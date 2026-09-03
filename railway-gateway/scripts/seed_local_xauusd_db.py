@@ -50,8 +50,8 @@ def main() -> None:
         """
         INSERT INTO market_data (
             timestamp, symbol, timeframe, open, high, low, close, volume,
-            best_fit_horiz_high_map, best_fit_horiz_low_map, best_fit_ssa, best_fit_ema_ssa,
-            best_fit_crossing, best_fit_base_fl, best_fit_uoedt, best_fit_loedt,
+            best_fit_a_horiz_high_map, best_fit_a_horiz_low_map, best_fit_a_ssa, best_fit_a_ema_ssa,
+            best_fit_a_crossing, best_fit_a_base_fl, best_fit_a_uoedt, best_fit_a_loedt,
             body_direction, body_size, body_classification,
             cycle_id, collected_at, calculated_at, synced_at
         ) VALUES (

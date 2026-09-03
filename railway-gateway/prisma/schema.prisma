@@ -33,15 +33,27 @@ model MarketDataV6 {
   close       Float
   volume      Int
 
-  // Centroid-regression variant: best_fit (admin layer + calculated lines)
-  best_fit_horiz_high_map Float?
-  best_fit_horiz_low_map  Float?
-  best_fit_ssa            Float?
-  best_fit_ema_ssa        Float?
-  best_fit_crossing       Int?
-  best_fit_base_fl        Float?
-  best_fit_uoedt          Float?
-  best_fit_loedt          Float?
+  // Centroid-regression variant: best_fit_a (config-identical to the former
+  // single best_fit; 2026-09-03 isolated-coexistence split, see blueprint §3.4)
+  best_fit_a_horiz_high_map Float?
+  best_fit_a_horiz_low_map  Float?
+  best_fit_a_ssa            Float?
+  best_fit_a_ema_ssa        Float?
+  best_fit_a_crossing       Int?
+  best_fit_a_base_fl        Float?
+  best_fit_a_uoedt          Float?
+  best_fit_a_loedt          Float?
+
+  // Centroid-regression variant: best_fit_b (new preset, no historical data
+  // before 2026-09-03 — never certified, see CERTIFICATION.md)
+  best_fit_b_horiz_high_map Float?
+  best_fit_b_horiz_low_map  Float?
+  best_fit_b_ssa            Float?
+  best_fit_b_ema_ssa        Float?
+  best_fit_b_crossing       Int?
+  best_fit_b_base_fl        Float?
+  best_fit_b_uoedt          Float?
+  best_fit_b_loedt          Float?
 
   // Centroid-regression variant: cherry_a
   cherry_a_horiz_high_map Float?

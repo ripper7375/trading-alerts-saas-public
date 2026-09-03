@@ -25,14 +25,16 @@ describe('MarketDataDto contract', () => {
     Object.keys(schema.properties).filter((k) => k !== '_centroid_admin_note')
   );
 
-  it('has exactly 79 fields in the schema', () => {
-    expect(schemaFields.size).toBe(79);
+  it('has exactly 87 fields in the schema', () => {
+    expect(schemaFields.size).toBe(87);
   });
 
   it('DTO field set matches the schema field set exactly', () => {
     const dtoFields = new Set(MARKET_DATA_DTO_FIELDS);
 
-    const missingFromDto = [...schemaFields].filter((f) => !dtoFields.has(f as never));
+    const missingFromDto = [...schemaFields].filter(
+      (f) => !dtoFields.has(f as never)
+    );
     const extraInDto = [...dtoFields].filter((f) => !schemaFields.has(f));
 
     expect(missingFromDto).toEqual([]);

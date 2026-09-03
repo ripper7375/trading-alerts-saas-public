@@ -34,35 +34,67 @@ export class MarketDataDto {
 
   @IsNumber()
   @IsOptional()
-  best_fit_horiz_high_map?: number | null;
+  best_fit_a_horiz_high_map?: number | null;
 
   @IsNumber()
   @IsOptional()
-  best_fit_horiz_low_map?: number | null;
+  best_fit_a_horiz_low_map?: number | null;
 
   @IsNumber()
   @IsOptional()
-  best_fit_ssa?: number | null;
+  best_fit_a_ssa?: number | null;
 
   @IsNumber()
   @IsOptional()
-  best_fit_ema_ssa?: number | null;
+  best_fit_a_ema_ssa?: number | null;
 
   @IsInt()
   @IsOptional()
-  best_fit_crossing?: number | null;
+  best_fit_a_crossing?: number | null;
 
   @IsNumber()
   @IsOptional()
-  best_fit_base_fl?: number | null;
+  best_fit_a_base_fl?: number | null;
 
   @IsNumber()
   @IsOptional()
-  best_fit_uoedt?: number | null;
+  best_fit_a_uoedt?: number | null;
 
   @IsNumber()
   @IsOptional()
-  best_fit_loedt?: number | null;
+  best_fit_a_loedt?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  best_fit_b_horiz_high_map?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  best_fit_b_horiz_low_map?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  best_fit_b_ssa?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  best_fit_b_ema_ssa?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  best_fit_b_crossing?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  best_fit_b_base_fl?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  best_fit_b_uoedt?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  best_fit_b_loedt?: number | null;
 
   @IsNumber()
   @IsOptional()
@@ -311,7 +343,6 @@ export class MarketDataDto {
   @IsInt()
   @IsOptional()
   calculated_at?: number | null;
-
 }
 
 // Field-name list, generated alongside the class above, so
@@ -327,14 +358,22 @@ export const MARKET_DATA_DTO_FIELDS = [
   'low',
   'close',
   'volume',
-  'best_fit_horiz_high_map',
-  'best_fit_horiz_low_map',
-  'best_fit_ssa',
-  'best_fit_ema_ssa',
-  'best_fit_crossing',
-  'best_fit_base_fl',
-  'best_fit_uoedt',
-  'best_fit_loedt',
+  'best_fit_a_horiz_high_map',
+  'best_fit_a_horiz_low_map',
+  'best_fit_a_ssa',
+  'best_fit_a_ema_ssa',
+  'best_fit_a_crossing',
+  'best_fit_a_base_fl',
+  'best_fit_a_uoedt',
+  'best_fit_a_loedt',
+  'best_fit_b_horiz_high_map',
+  'best_fit_b_horiz_low_map',
+  'best_fit_b_ssa',
+  'best_fit_b_ema_ssa',
+  'best_fit_b_crossing',
+  'best_fit_b_base_fl',
+  'best_fit_b_uoedt',
+  'best_fit_b_loedt',
   'cherry_a_horiz_high_map',
   'cherry_a_horiz_low_map',
   'cherry_a_ssa',
