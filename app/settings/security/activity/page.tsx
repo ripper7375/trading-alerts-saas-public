@@ -23,6 +23,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { useLocale } from '@/lib/context/locale-context';
 
 /**
  * Security Activity Page (Row 80, `/settings/security/activity`)
@@ -65,54 +66,65 @@ const PAGE_SIZE = 20;
 const TYPE_META: Record<
   SecurityAlertType,
   {
+    labelKey: string;
     label: string;
     icon: React.ComponentType<{ className?: string }>;
     badgeClass: string;
   }
 > = {
   NEW_DEVICE_LOGIN: {
+    labelKey: 'settings.security.activity_new_device_login',
     label: 'New Device Login',
     icon: Shield,
     badgeClass:
       'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   },
   PASSWORD_CHANGED: {
+    labelKey: 'settings.security.activity_password_changed',
     label: 'Password Changed',
     icon: KeyRound,
     badgeClass:
       'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
   },
   EMAIL_CHANGED: {
+    labelKey: 'settings.security.activity_email_changed',
     label: 'Email Changed',
     icon: Mail,
     badgeClass:
       'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
   },
   TWO_FACTOR_ENABLED: {
+    labelKey: 'settings.security.activity_2fa_enabled',
     label: '2FA Enabled',
     icon: ShieldCheck,
     badgeClass:
       'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
   },
   TWO_FACTOR_DISABLED: {
+    labelKey: 'settings.security.activity_2fa_disabled',
     label: '2FA Disabled',
     icon: ShieldOff,
     badgeClass:
       'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
   },
   SUSPICIOUS_LOGIN: {
+    labelKey: 'settings.security.activity_suspicious_login',
     label: 'Suspicious Login',
     icon: AlertTriangle,
     badgeClass: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
   },
   ACCOUNT_LOCKED: {
+    labelKey: 'settings.security.activity_account_locked',
     label: 'Account Locked',
     icon: Lock,
     badgeClass: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
   },
 };
 
-function formatRelativeTime(dateString: string): string {
+function formatRelativeTime(
+  dateString: string,
+  t: (keyOrText: string, fallback?: string) => string
+): string {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -120,12 +132,19 @@ function formatRelativeTime(dateString: string): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'Just now';
+  if (diffMins < 1) return t('settings.security.just_now', 'Just now');
   if (diffMins < 60)
-    return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
+    return t('settings.security.minutes_ago', '{n} minute{plural} ago')
+      .replace('{n}', String(diffMins))
+      .replace('{plural}', diffMins === 1 ? '' : 's');
   if (diffHours < 24)
-    return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
-  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    return t('settings.security.hours_ago', '{n} hour{plural} ago')
+      .replace('{n}', String(diffHours))
+      .replace('{plural}', diffHours === 1 ? '' : 's');
+  if (diffDays < 7)
+    return t('settings.security.days_ago', '{n} day{plural} ago')
+      .replace('{n}', String(diffDays))
+      .replace('{plural}', diffDays === 1 ? '' : 's');
 
   return date.toLocaleDateString('en-US', {
     month: 'short',
@@ -136,6 +155,7 @@ function formatRelativeTime(dateString: string): string {
 
 export default function SecurityActivityPage(): React.ReactElement {
   useSession();
+  const { t } = useLocale();
   const { toasts, removeToast, error: showError } = useToast();
 
   const [alerts, setAlerts] = useState<SecurityAlertItem[]>([]);
@@ -157,7 +177,12 @@ export default function SecurityActivityPage(): React.ReactElement {
         `/api/user/security-alerts?limit=${PAGE_SIZE}&offset=${offset}`
       );
       if (!response.ok) {
-        throw new Error('Failed to load security activity');
+        throw new Error(
+          t(
+            'settings.security.error_load_activity',
+            'Failed to load security activity'
+          )
+        );
       }
       const data = await response.json();
       setAlerts((prev) =>
@@ -166,11 +191,17 @@ export default function SecurityActivityPage(): React.ReactElement {
       setPagination(data.pagination || null);
     } catch (err) {
       console.error('Error fetching security alerts:', err);
-      setLoadError('Failed to load security activity');
+      setLoadError(
+        t(
+          'settings.security.error_load_activity',
+          'Failed to load security activity'
+        )
+      );
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -189,7 +220,9 @@ export default function SecurityActivityPage(): React.ReactElement {
         method: 'POST',
       });
       if (!response.ok) {
-        throw new Error('Failed to mark as read');
+        throw new Error(
+          t('settings.security.error_mark_read', 'Failed to mark as read')
+        );
       }
       setAlerts((prev) =>
         prev.map((a) =>
@@ -200,7 +233,12 @@ export default function SecurityActivityPage(): React.ReactElement {
       );
     } catch (err) {
       console.error('Error marking security alert read:', err);
-      showError('Failed to mark alert as read');
+      showError(
+        t(
+          'settings.security.error_mark_alert_read',
+          'Failed to mark alert as read'
+        )
+      );
     } finally {
       setMarkingReadId(null);
     }
@@ -214,17 +252,22 @@ export default function SecurityActivityPage(): React.ReactElement {
           className="mb-2 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Security Settings
+          {t(
+            'settings.security.back_to_security_settings',
+            'Back to Security Settings'
+          )}
         </Link>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
               <Shield className="h-6 w-6" />
-              Security Activity
+              {t('settings.security.security_activity', 'Security Activity')}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              A full record of security events on your account: password
-              changes, two-factor changes, and device/login alerts.
+              {t(
+                'settings.security.security_activity_full_desc',
+                'A full record of security events on your account: password changes, two-factor changes, and device/login alerts.'
+              )}
             </p>
           </div>
           <Button
@@ -236,7 +279,7 @@ export default function SecurityActivityPage(): React.ReactElement {
             <RefreshCw
               className={`mr-1 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
             />
-            Refresh
+            {t('Refresh', 'Refresh')}
           </Button>
         </div>
       </div>
@@ -271,9 +314,17 @@ export default function SecurityActivityPage(): React.ReactElement {
           <Card>
             <CardContent className="p-8 text-center">
               <Shield className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="text-muted-foreground">No security activity yet</p>
+              <p className="text-muted-foreground">
+                {t(
+                  'settings.security.no_activity_yet',
+                  'No security activity yet'
+                )}
+              </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Security events for your account will appear here
+                {t(
+                  'settings.security.activity_appear_here',
+                  'Security events for your account will appear here'
+                )}
               </p>
             </CardContent>
           </Card>
@@ -302,11 +353,11 @@ export default function SecurityActivityPage(): React.ReactElement {
                           {alert.title}
                         </span>
                         <Badge className={meta?.badgeClass}>
-                          {meta?.label ?? alert.type}
+                          {meta ? t(meta.labelKey, meta.label) : alert.type}
                         </Badge>
                         {!alert.read && (
                           <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                            New
+                            {t('settings.security.new_badge', 'New')}
                           </Badge>
                         )}
                       </div>
@@ -324,7 +375,7 @@ export default function SecurityActivityPage(): React.ReactElement {
                           </span>
                         )}
                         {alert.ipAddress && <span>{alert.ipAddress}</span>}
-                        <span>{formatRelativeTime(alert.createdAt)}</span>
+                        <span>{formatRelativeTime(alert.createdAt, t)}</span>
                       </div>
                     </div>
 
@@ -340,7 +391,7 @@ export default function SecurityActivityPage(): React.ReactElement {
                         ) : (
                           <>
                             <Check className="mr-1 h-4 w-4" />
-                            Mark read
+                            {t('settings.security.mark_read', 'Mark read')}
                           </>
                         )}
                       </Button>
@@ -365,11 +416,14 @@ export default function SecurityActivityPage(): React.ReactElement {
               {isLoadingMore ? (
                 <Loader2 className="mr-1 h-4 w-4 animate-spin" />
               ) : null}
-              Load more
+              {t('settings.security.load_more', 'Load more')}
             </Button>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Showing all {pagination.total} security events
+              {t(
+                'settings.security.showing_all_events',
+                'Showing all {n} security events'
+              ).replace('{n}', String(pagination.total))}
             </p>
           )}
         </div>

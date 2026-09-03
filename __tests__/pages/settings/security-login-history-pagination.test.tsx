@@ -13,12 +13,23 @@
  * @module __tests__/pages/settings/security-login-history-pagination.test
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
+
 jest.mock('next-auth/react', () => ({
   useSession: () => ({ data: null, status: 'authenticated' }),
+}));
+
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/settings/security',
 }));
 
 jest.mock('next/link', () => {
@@ -88,6 +99,17 @@ function routeFetch(overrides: Record<string, () => Promise<Response>> = {}) {
 describe('SecuritySettingsPage -- login history pagination', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({
+        countryCode: 'US',
+        language: 'en-US',
+        timezone: 'America/New_York',
+        dateFormat: 'MDY',
+        timeFormat: '12h',
+        currency: 'USD',
+      })
+    );
   });
 
   it('renders a plain summary line, no Load more, when hasMore is false', async () => {
