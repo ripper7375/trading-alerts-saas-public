@@ -1,12 +1,12 @@
-﻿//+------------------------------------------------------------------+
-//|                                SSA_Centroid_Regression_CFL.mq5   |
+//+------------------------------------------------------------------+
+//|                                SSA_Centroid_Regression_CFL_A.mq5   |
 //|                                    Copyright 2026, Clemence Benjamin|
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2026"
 #property link      "https://www.mql5.com"
-#property version   "3.94_5L"
-#property description "DavinTrade V3.94_5L: Time-Weighted WLS CFL + Exclude N + Outermost EDTs"
+#property version   "3.94_5L_A"
+#property description "DavinTrade V3.94_5L_A: Primary Instance (Isolated Coexistence)"
 #property indicator_chart_window
 
 // Total Buffers: 10 Plots + 1 Hidden Cluster + 14 Stats + 12 Centroids = 37 Buffers
@@ -15,7 +15,7 @@
 
 #include <Math/Alglib/alglib.mqh>
 
-#define EXPORT_BUTTON_NAME "V394_5L_ExportButton"
+#define EXPORT_BUTTON_NAME "V394_5L_A_ExportButton"
 
 //--- Enums
 enum ENUM_CLUSTERING_ALGO {
@@ -71,18 +71,19 @@ input string            Sep5 = "===== CFL Base & EDT Rules =====";
 input bool              InpShowComments = false;
 input int               InpRegCentroids = 5;
 input int               InpExcludeRecentCentroids = 0; // Exclude N most recent centroids (Max 9)
-input double            InpTimeDecayLambda = 0.001;
+input double            InpTimeDecayLambda = 0.000; // Recommended = 0.001
 input int               InpCFLVisualLookback = 500;
 input bool              InpExtendLinesToCurrent = true;
 input color             InpCFLColor = clrGreenYellow;
-input int               InpEDTMinTouches = 3;
+input int               LOEDTInpEDTMinTouches = 2;
+input int               UOEDTInpEDTMinTouches = 2;
 input color             InpEDTColor = clrSpringGreen;
 input ENUM_TOLERANCE_TYPE InpToleranceType = TOLERANCE_PERCENT;
 input double            InpTolerancePercent = 0.25;
 input double            InpToleranceATRMultiplier = 1.0;
 input int               InpATRPeriod = 12;
 input string            Sep6 = "===== Export & Timer Settings =====";
-input string            InpExportFileName = "Centriod_Best_Fit";
+input string            InpExportFileName = "Centriod_Best_Fit_A";
 input bool              InpAutoExport = true;
 input int               InpExportSecond = 59;
 
@@ -254,7 +255,7 @@ int OnInit()
    
    for(int i=0; i<10; i++) PlotIndexSetDouble(i, PLOT_EMPTY_VALUE, EMPTY_VALUE);
    
-   IndicatorSetString(INDICATOR_SHORTNAME, "DavinTrade SSA CFL WLS V3.94_5L_Ex");
+   IndicatorSetString(INDICATOR_SHORTNAME, "DavinTrade SSA CFL WLS V3.94_5L_A");
    CreateExportButton();
    if(InpAutoExport) EventSetTimer(1);
    
@@ -264,8 +265,8 @@ int OnInit()
 void OnDeinit(const int reason)
 {
    if(ExtATRHandle != INVALID_HANDLE) IndicatorRelease(ExtATRHandle);
-   ObjectsDeleteAll(0, "ClusterHull_V393_");
-   ObjectsDeleteAll(0, "ClusterCentroidStar_V393_");
+   ObjectsDeleteAll(0, "ClusterHull_V393_A_");
+   ObjectsDeleteAll(0, "ClusterCentroidStar_V393_A_");
    ObjectDelete(0, EXPORT_BUTTON_NAME);
    if(InpShowComments) Comment("");
    if(InpAutoExport) EventKillTimer();
@@ -322,7 +323,7 @@ void CreateExportButton()
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_YDISTANCE, 70);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_XSIZE, 160);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_YSIZE, 30);
-   ObjectSetString(0, EXPORT_BUTTON_NAME, OBJPROP_TEXT, "Best-Fit 5L Ex");
+   ObjectSetString(0, EXPORT_BUTTON_NAME, OBJPROP_TEXT, "Best-Fit-A");
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_COLOR, clrWhite);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_BGCOLOR, clrSpringGreen);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_CORNER, CORNER_LEFT_UPPER);
@@ -502,8 +503,8 @@ int RunDBSCAN(const ClusterPoint &data[], int p_count, double eps, int min_pts, 
 //+------------------------------------------------------------------+
 void PerformClusteringAndCFL(const int rates_total, const datetime &time[], const double &close_arr[])
 {
-   ObjectsDeleteAll(0, "ClusterHull_V393_"); 
-   ObjectsDeleteAll(0, "ClusterCentroidStar_V393_");
+   ObjectsDeleteAll(0, "ClusterHull_V393_A_"); 
+   ObjectsDeleteAll(0, "ClusterCentroidStar_V393_A_");
    ArrayInitialize(ExtCrossInCluster, 0.0);
    ArrayInitialize(ExtBaseLine, EMPTY_VALUE);
    ArrayInitialize(g_cen_prices, 0.0);
@@ -521,7 +522,7 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
 
    int p_count = ArraySize(points);
    if(p_count < InpMinPts) {
-      if(InpShowComments) Comment("--- DavinTrade V3.94_5L_Ex (CFL+WLS+EDT) ---\nAwaiting more data: Points < MinPts");
+      if(InpShowComments) Comment("--- DavinTrade V3.94_5L_A (CFL+WLS+EDT) ---\nAwaiting more data: Points < MinPts");
       return;
    }
 
@@ -580,7 +581,7 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
          
          for(int h = 0; h < h_count; h++) {
             ClusterPoint p1 = hull[h], p2 = hull[(h + 1) % h_count];
-            string line_name = "ClusterHull_V393_" + IntegerToString(k) + "_" + IntegerToString(h);
+            string line_name = "ClusterHull_V393_A_" + IntegerToString(k) + "_" + IntegerToString(h);
             ObjectCreate(0, line_name, OBJ_TREND, 0, p1.time, p1.price, p2.time, p2.price);
             ObjectSetInteger(0, line_name, OBJPROP_COLOR, c_color); ObjectSetInteger(0, line_name, OBJPROP_WIDTH, 2);
             ObjectSetInteger(0, line_name, OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, line_name, OBJPROP_BACK, true); ObjectSetInteger(0, line_name, OBJPROP_SELECTABLE, false);
@@ -593,7 +594,7 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
          if(time_index < 0) time_index = 0; if(time_index >= rates_total) time_index = rates_total - 1;
          datetime centroid_time = time[time_index];
          
-         string star_name = "ClusterCentroidStar_V393_" + IntegerToString(k);
+         string star_name = "ClusterCentroidStar_V393_A_" + IntegerToString(k);
          ObjectCreate(0, star_name, OBJ_TEXT, 0, centroid_time, real_centroid_price);
          ObjectSetString(0, star_name, OBJPROP_FONT, "Wingdings");
          ObjectSetString(0, star_name, OBJPROP_TEXT, ShortToString(108));
@@ -631,7 +632,7 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
    }
 
    if (n_reg < 3) {
-      if(InpShowComments) Comment(StringFormat("--- DavinTrade V3.94_5L_Ex (CFL+WLS+EDT) ---\nAwaiting more data: Found %d / %d needed (including exclusions).", centroid_count, 3 + actual_exclude));
+      if(InpShowComments) Comment(StringFormat("--- DavinTrade V3.94_5L_A (CFL+WLS+EDT) ---\nAwaiting more data: Found %d / %d needed (including exclusions).", centroid_count, 3 + actual_exclude));
       return; 
    }
 
@@ -937,7 +938,7 @@ void PerformClusteringAndCFL(const int rates_total, const datetime &time[], cons
    
    if(InpShowComments) {
        string comment_text = StringFormat(
-           "--- DavinTrade V3.94_5L_Ex A/B Statistical Pipeline ---\n" +
+           "--- DavinTrade V3.94_5L_A A/B Statistical Pipeline ---\n" +
            "Centroids used in Top WLS CFL: %d (Excluded Box A: %d)\n" +
            "Time-Decay Lambda: %.4f\n" +
            "Math Search Window: %d Bars\n" +
@@ -1010,18 +1011,20 @@ void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &frac
       }
 
       // Instead of sorting all channels, extract ONLY the outermost intercept meeting touch criteria
-      if(touches >= InpEDTMinTouches) {
-         if(test_intercept > base_c) {
-             if(test_intercept > max_above_intercept) {
-                 max_above_intercept = test_intercept;
-                 found_above = true;
-             }
-         } else if (test_intercept < base_c) {
-             if(test_intercept < min_below_intercept) {
-                 min_below_intercept = test_intercept;
-                 found_below = true;
-             }
-         }
+      if(test_intercept > base_c) {
+          if(touches >= UOEDTInpEDTMinTouches) {
+              if(test_intercept > max_above_intercept) {
+                  max_above_intercept = test_intercept;
+                  found_above = true;
+              }
+          }
+      } else if (test_intercept < base_c) {
+          if(touches >= LOEDTInpEDTMinTouches) {
+              if(test_intercept < min_below_intercept) {
+                  min_below_intercept = test_intercept;
+                  found_below = true;
+              }
+          }
       }
    }
 
@@ -1105,7 +1108,7 @@ bool ExportData(bool silent = false)
       return false; 
    }
 
-   FileWrite(fh_data, "Best_Fit_timestamp\tBest_Fit_symbol\tBest_Fit_timeframe\tBest_Fit_close\tBest_Fit_Base_FL\tBest_Fit_UOEDT\tBest_Fit_LOEDT\tBest_Fit_horiz_high_map\tBest_Fit_horiz_low_map\tBest_Fit_ssa\tBest_Fit_ema_ssa\tBest_Fit_crossing");
+   FileWrite(fh_data, "Best_Fit_A_timestamp\tBest_Fit_A_symbol\tBest_Fit_A_timeframe\tBest_Fit_A_close\tBest_Fit_A_Base_FL\tBest_Fit_A_UOEDT\tBest_Fit_A_LOEDT\tBest_Fit_A_horiz_high_map\tBest_Fit_A_horiz_low_map\tBest_Fit_A_ssa\tBest_Fit_A_ema_ssa\tBest_Fit_A_crossing");
    
    int max_lookback = MathMax(InpSSAMathLookback, g_rates_total - g_stat_leftmost_bar);
    int start_idx = g_rates_total - max_lookback;

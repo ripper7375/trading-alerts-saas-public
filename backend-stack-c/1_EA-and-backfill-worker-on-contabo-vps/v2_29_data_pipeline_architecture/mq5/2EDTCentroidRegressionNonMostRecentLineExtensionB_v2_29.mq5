@@ -1,4 +1,4 @@
-﻿//+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
 //|                               SSA_Centroid_Regression_EDT.mq5    |
 //|                                    Copyright 2026, Clemence Benjamin|
 //|                                             https://www.mql5.com |
@@ -80,7 +80,8 @@ input int               InpRegCentroids = 6;               // Number of Centroid
 input int               InpExcludeRecentCentroids = 3;     // Exclude N most recent centroids (Max 9)
 input int               InpEDTVisualLookback = 500;        // Visual Drawing Limit
 input bool              InpExtendLinesToCurrent = true;    // Extend Baseline & EDTs to Live Bar
-input int               InpEDTMinTouches = 3;
+input int               LOEDTInpEDTMinTouches = 2;
+input int               UOEDTInpEDTMinTouches = 2;
 
 input color             InpBaseLineColor = clrPaleTurquoise;
 input color             InpEDTColor = clrDodgerBlue;
@@ -917,18 +918,20 @@ void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &frac
       }
 
       // Instead of storing all lines, we only extract the outermost intercept that meets touch criteria
-      if(touches >= InpEDTMinTouches) {
-         if(test_intercept > base_c) {
-             if(test_intercept > max_above_intercept) {
-                 max_above_intercept = test_intercept;
-                 found_above = true;
-             }
-         } else if (test_intercept < base_c) {
-             if(test_intercept < min_below_intercept) {
-                 min_below_intercept = test_intercept;
-                 found_below = true;
-             }
-         }
+      if(test_intercept > base_c) {
+          if(touches >= UOEDTInpEDTMinTouches) {
+              if(test_intercept > max_above_intercept) {
+                  max_above_intercept = test_intercept;
+                  found_above = true;
+              }
+          }
+      } else if (test_intercept < base_c) {
+          if(touches >= LOEDTInpEDTMinTouches) {
+              if(test_intercept < min_below_intercept) {
+                  min_below_intercept = test_intercept;
+                  found_below = true;
+              }
+          }
       }
    }
 

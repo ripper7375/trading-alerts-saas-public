@@ -1,8 +1,11 @@
 Export Data from MQL5 indicators (MQL5 indicators calculation and export to downstream stacks) :
 ==================================================================
 
-Best_Fit_timestamp	Best_Fit_symbol	Best_Fit_timeframe	Best_Fit_close
-Best_Fit_horiz_high_map	Best_Fit_horiz_low_map	Best_Fit_ssa	Best_Fit_ema_ssa	Best_Fit_crossing
+Best_Fit_A_timestamp	Best_Fit_A_symbol	Best_Fit_A_timeframe	Best_Fit_A_close
+Best_Fit_A_horiz_high_map	Best_Fit_A_horiz_low_map	Best_Fit_A_ssa	Best_Fit_A_ema_ssa	Best_Fit_A_crossing
+
+Best_Fit_B_timestamp	Best_Fit_B_symbol	Best_Fit_B_timeframe	Best_Fit_B_close
+Best_Fit_B_horiz_high_map	Best_Fit_B_horiz_low_map	Best_Fit_B_ssa	Best_Fit_B_ema_ssa	Best_Fit_B_crossing
 
 Cherry_A_timestamp	Cherry_A_symbol	Cherry_A_timeframe	Cherry_A_close
 Cherry_A_horiz_high_map	Cherry_A_horiz_low_map	Cherry_A_ssa	Cherry_A_ema_ssa	Cherry_A_crossing

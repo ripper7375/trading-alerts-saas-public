@@ -1,4 +1,4 @@
-﻿//+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
 //|                               SSA_Centroid_Regression_EDT.mq5    |
 //|                                    Copyright 2026, Clemence Benjamin|
 //|                                             https://www.mql5.com |
@@ -73,7 +73,8 @@ input int               InpRegCentroids = 6; // Centroids IN USE
 input string            InpExcludedCentroids = ""; // Excluded centroids (e.g. "1,3,5")
 input int               InpEDTVisualLookback = 500;
 input bool              InpExtendLinesToCurrent = true;
-input int               InpEDTMinTouches = 3;
+input int               LOEDTInpEDTMinTouches = 2;
+input int               UOEDTInpEDTMinTouches = 2;
 input color             InpBaseLineColor = clrSteelBlue;
 input color             InpEDTColor = clrDarkBlue;
 input ENUM_TOLERANCE_TYPE InpToleranceType = TOLERANCE_PERCENT;
@@ -932,18 +933,20 @@ void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &frac
          }
       }
 
-      if(touches >= InpEDTMinTouches) {
-         if(test_intercept > base_c) {
-             if(test_intercept > max_above_intercept) {
-                 max_above_intercept = test_intercept;
-                 found_above = true;
-             }
-         } else if (test_intercept < base_c) {
-             if(test_intercept < min_below_intercept) {
-                 min_below_intercept = test_intercept;
-                 found_below = true;
-             }
-         }
+      if(test_intercept > base_c) {
+          if(touches >= UOEDTInpEDTMinTouches) {
+              if(test_intercept > max_above_intercept) {
+                  max_above_intercept = test_intercept;
+                  found_above = true;
+              }
+          }
+      } else if (test_intercept < base_c) {
+          if(touches >= LOEDTInpEDTMinTouches) {
+              if(test_intercept < min_below_intercept) {
+                  min_below_intercept = test_intercept;
+                  found_below = true;
+              }
+          }
       }
    }
 

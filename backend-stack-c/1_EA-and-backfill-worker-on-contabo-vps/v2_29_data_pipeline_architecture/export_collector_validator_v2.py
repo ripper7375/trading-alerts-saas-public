@@ -10,7 +10,7 @@ v2 changes (from v1 / schema v5):
   zscore_candle.py, zigzag_metrics.py, fractal_lines.py, centroid_regression.py)
   computes all user-configurable derived values that MQL5 used to export
   (candle z-score set, zigzag segment metrics, fractal/resistance/support
-  lines, the six centroid-variant baselines + EDTs). market_data gets the
+  lines, the seven centroid-variant baselines + EDTs). market_data gets the
   default-parameter results; user-parameterized variants are served on demand
   by the same modules.
 - Staging is admin-layer only (schema v6): keys + OHLCV + centroid maps/ssa/
@@ -70,7 +70,7 @@ DEFAULT_DB_PATH = 'C:/Scripts/database/xauusd.db'
 DEFAULT_EXPORT_DIR = 'C:/MT5/MQL5/Files'
 SCHEMA_FILE = Path(__file__).with_name('sqlite_schema_v6_xauusd.sql')
 
-CENTROID_VARIANTS = ['best_fit', 'cherry_a', 'cherry_b', 'most_recent', 'non_a', 'non_b']
+CENTROID_VARIANTS = ['best_fit_a', 'best_fit_b', 'cherry_a', 'cherry_b', 'most_recent', 'non_a', 'non_b']
 
 # ============================================================
 # SOURCE REGISTRY — v6 (admin-layer columns, located by header name)
@@ -85,8 +85,10 @@ def _centroid_columns(prefix: str):
 
 
 SOURCES = {
-    'best_fit':    {'prefix': 'Centriod_Best_Fit', 'table': 'raw_best_fit',
-                    'columns': _centroid_columns('Best_Fit')},
+    'best_fit_a':  {'prefix': 'Centriod_Best_Fit_A', 'table': 'raw_best_fit_a',
+                    'columns': _centroid_columns('Best_Fit_A')},
+    'best_fit_b':  {'prefix': 'Centriod_Best_Fit_B', 'table': 'raw_best_fit_b',
+                    'columns': _centroid_columns('Best_Fit_B')},
     'cherry_a':    {'prefix': 'Cherry-Pick-A', 'table': 'raw_cherry_a',
                     'columns': _centroid_columns('Cherry_A')},
     'cherry_b':    {'prefix': 'Cherry-Pick-B', 'table': 'raw_cherry_b',
@@ -167,10 +169,11 @@ def parse_export_file(path: Path, spec: dict, timeframe: str) -> List[dict]:
                 row = {
                     'timestamp_raw': ts_raw,
                     # PLACEHOLDER grid (nearest tf). Adequate ONLY when every
-                    # source shares the same sub-bar phase (production: all 12
+                    # source shares the same sub-bar phase (production: all 13
                     # indicators export the same bar's iTime simultaneously).
                     # Across heterogeneous exports the sources carry DIFFERENT
-                    # constant phases (observed %300: ohlcv 206, best_fit 4,
+                    # constant phases (observed %300: ohlcv 206, best_fit_a 4
+                    # [best_fit_b unmeasured — new 2026-09-03 variant],
                     # cherry_a 240, cherry_b 288, …) which scrambles simple
                     # gridding — bars align by SEQUENCE, not absolute rounding.
                     # The dedicated raw->adjusted timestamp-conversion stack

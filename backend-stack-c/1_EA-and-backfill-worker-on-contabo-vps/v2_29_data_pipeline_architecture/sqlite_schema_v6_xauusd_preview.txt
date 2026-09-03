@@ -6,18 +6,24 @@ computes - with only 3 mock bars, z-score/lines stay NULL by warm-up design; bod
 
 === TABLE: collection_cycles (2 rows) ===
 cycle_id	cycle_time	timeframe	attempt	status	sources_received	rejected_reason	created_at	validated_at
-1	1781254500	M5	1	rejected	12	latest bar 1781009700 missing in: best_fit, cherry_a, cherry_b, most_recent, non_a, non_b, fractal_edt, resistance, support, zscore	1781254557	
-2	1781254500	M5	2	validated	12		1781254557	1781254557
+1	1781254500	M5	1	rejected	13	latest bar 1781009700 missing in: best_fit_a, best_fit_b, cherry_a, cherry_b, most_recent, non_a, non_b, fractal_edt, resistance, support, zscore	1781254557	
+2	1781254500	M5	2	validated	13		1781254557	1781254557
 
 === TABLE: validation_failures (1 rows) ===
 failure_id	cycle_id	field	detail	created_at
-1	1	timestamp	{"latest_bar": 1781009700, "missing_in": ["best_fit", "cherry_a", "cherry_b", "most_recent", "non_a", "non_b", "fractal_edt", "resistance", "support", "zscore"], "error": "sources exported different latest bars (stale export)"}	1781254557
+1	1	timestamp	{"latest_bar": 1781009700, "missing_in": ["best_fit_a", "best_fit_b", "cherry_a", "cherry_b", "most_recent", "non_a", "non_b", "fractal_edt", "resistance", "support", "zscore"], "error": "sources exported different latest bars (stale export)"}	1781254557
 
-=== TABLE: raw_best_fit (3 rows) ===
+=== TABLE: raw_best_fit_a (3 rows) ===
 cycle_id	timestamp_raw	timestamp_adj	symbol	timeframe	close	horiz_high_map	horiz_low_map	ssa	ema_ssa	crossing
 2	1779870003	1779870000	XAUUSD	M5	4490.74			4490.65135	4490.65135	0
 2	1779870303	1779870300	XAUUSD	M5	4489.19			4491.52051	4491.08593	1
 2	1779870603	1779870600	XAUUSD	M5	4488.55			4492.70096	4491.89344	0
+
+=== TABLE: raw_best_fit_b (3 rows) ===
+cycle_id	timestamp_raw	timestamp_adj	symbol	timeframe	close	horiz_high_map	horiz_low_map	ssa	ema_ssa	crossing
+2	1779870004	1779870000	XAUUSD	M5	4490.74			4490.65210	4490.65210	0
+2	1779870304	1779870300	XAUUSD	M5	4489.19			4491.52130	4491.08670	1
+2	1779870604	1779870600	XAUUSD	M5	4488.55			4492.70160	4491.89410	0
 
 === TABLE: raw_cherry_a (3 rows) ===
 cycle_id	timestamp_raw	timestamp_adj	symbol	timeframe	close	horiz_high_map	horiz_low_map	ssa	ema_ssa	crossing
@@ -87,8 +93,8 @@ cycle_id	timestamp_raw	timestamp_adj	symbol	timeframe	close
 2	1781001601	1781001600	XAUUSD	M5	4332.65
 
 === TABLE: market_data (3 rows) ===
-timestamp	symbol	timeframe	open	high	low	close	volume	best_fit_horiz_high_map	best_fit_horiz_low_map	best_fit_ssa	best_fit_ema_ssa	best_fit_crossing	best_fit_base_fl	best_fit_uoedt	best_fit_loedt	cherry_a_horiz_high_map	cherry_a_horiz_low_map	cherry_a_ssa	cherry_a_ema_ssa	cherry_a_crossing	cherry_a_base_fl	cherry_a_uoedt	cherry_a_loedt	cherry_b_horiz_high_map	cherry_b_horiz_low_map	cherry_b_ssa	cherry_b_ema_ssa	cherry_b_crossing	cherry_b_base_fl	cherry_b_uoedt	cherry_b_loedt	most_recent_horiz_high_map	most_recent_horiz_low_map	most_recent_ssa	most_recent_ema_ssa	most_recent_crossing	most_recent_base_fl	most_recent_uoedt	most_recent_loedt	non_a_horiz_high_map	non_a_horiz_low_map	non_a_ssa	non_a_ema_ssa	non_a_crossing	non_a_base_fl	non_a_uoedt	non_a_loedt	non_b_horiz_high_map	non_b_horiz_low_map	non_b_ssa	non_b_ema_ssa	non_b_crossing	non_b_base_fl	non_b_uoedt	non_b_loedt	fractal_best_fl	fractal_uoedt	fractal_loedt	best_resistance	best_support	body_direction	body_size	body_classification	zigzag_point_type	zigzag_current_point	zigzag_price_change	zigzag_pct_change	zigzag_pct_change_class	zigzag_bars	zigzag_bars_class	zigzag_price_per_bar	zigzag_price_per_bar_class	zigzag_slope	zigzag_category	cycle_id	collected_at	calculated_at	synced_at
-1781009100	XAUUSD	M5	4340.87	4344.37	4339.98	4341.28	550																																																						1														2	1781254557	1781254557	
-1781009400	XAUUSD	M5	4341.33	4343.76	4337.24	4337.55	550																																																						-1														2	1781254557	1781254557	
-1781009700	XAUUSD	M5	4337.39	4342.03	4336.75	4341.42	551																																																						1														2	1781254557	1781254557	
+timestamp	symbol	timeframe	open	high	low	close	volume	best_fit_a_horiz_high_map	best_fit_a_horiz_low_map	best_fit_a_ssa	best_fit_a_ema_ssa	best_fit_a_crossing	best_fit_a_base_fl	best_fit_a_uoedt	best_fit_a_loedt	best_fit_b_horiz_high_map	best_fit_b_horiz_low_map	best_fit_b_ssa	best_fit_b_ema_ssa	best_fit_b_crossing	best_fit_b_base_fl	best_fit_b_uoedt	best_fit_b_loedt	cherry_a_horiz_high_map	cherry_a_horiz_low_map	cherry_a_ssa	cherry_a_ema_ssa	cherry_a_crossing	cherry_a_base_fl	cherry_a_uoedt	cherry_a_loedt	cherry_b_horiz_high_map	cherry_b_horiz_low_map	cherry_b_ssa	cherry_b_ema_ssa	cherry_b_crossing	cherry_b_base_fl	cherry_b_uoedt	cherry_b_loedt	most_recent_horiz_high_map	most_recent_horiz_low_map	most_recent_ssa	most_recent_ema_ssa	most_recent_crossing	most_recent_base_fl	most_recent_uoedt	most_recent_loedt	non_a_horiz_high_map	non_a_horiz_low_map	non_a_ssa	non_a_ema_ssa	non_a_crossing	non_a_base_fl	non_a_uoedt	non_a_loedt	non_b_horiz_high_map	non_b_horiz_low_map	non_b_ssa	non_b_ema_ssa	non_b_crossing	non_b_base_fl	non_b_uoedt	non_b_loedt	fractal_best_fl	fractal_uoedt	fractal_loedt	best_resistance	best_support	body_direction	body_size	body_classification	zigzag_point_type	zigzag_current_point	zigzag_price_change	zigzag_pct_change	zigzag_pct_change_class	zigzag_bars	zigzag_bars_class	zigzag_price_per_bar	zigzag_price_per_bar_class	zigzag_slope	zigzag_category	cycle_id	collected_at	calculated_at	synced_at
+1781009100	XAUUSD	M5	4340.87	4344.37	4339.98	4341.28	550																																																														1														2	1781254557	1781254557	
+1781009400	XAUUSD	M5	4341.33	4343.76	4337.24	4337.55	550																																																														-1														2	1781254557	1781254557	
+1781009700	XAUUSD	M5	4337.39	4342.03	4336.75	4341.42	551																																																														1														2	1781254557	1781254557	
 

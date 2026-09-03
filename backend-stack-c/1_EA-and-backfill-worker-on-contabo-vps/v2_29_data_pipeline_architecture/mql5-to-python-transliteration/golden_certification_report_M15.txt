@@ -1,3 +1,11 @@
+# NOTE (2026-09-03): "best_fit" rows below refer to the centroid-regression
+# preset now named "best_fit_a" (isolated-coexistence split of the former
+# single best_fit indicator into best_fit_a/best_fit_b; best_fit_a is
+# config-identical to the old best_fit, so this evidence carries over
+# unchanged). The new "best_fit_b" preset (exclude_recent_centroids=3) did
+# not exist when this report was generated and has no certification
+# evidence yet. This report's data below is otherwise untouched — see
+# CERTIFICATION.md for the full account.
 
 === M15: 3000 OHLCV bars (1777477500 .. 1781337600) ===
   [PASS] zscore       body_direction               compared=500    fail=0     maxdiff=0.00e+00

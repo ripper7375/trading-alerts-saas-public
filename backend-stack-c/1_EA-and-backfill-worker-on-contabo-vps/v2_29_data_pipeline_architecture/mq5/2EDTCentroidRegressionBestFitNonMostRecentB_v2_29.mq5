@@ -1,12 +1,12 @@
 //+------------------------------------------------------------------+
-//|                               SSA_Centroid_Regression_EDT.mq5    |
+//|                                SSA_Centroid_Regression_CFL_B.mq5   |
 //|                                    Copyright 2026, Clemence Benjamin|
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2026"
 #property link      "https://www.mql5.com"
-#property version   "3.895_2"
-#property description "DavinTrade V3.895_2: Statistical Sync & Outermost EDTs Only"
+#property version   "3.94_5L_B"
+#property description "DavinTrade V3.94_5L_B: Secondary Instance (Isolated Coexistence)"
 #property indicator_chart_window
 
 // Total Buffers: 10 Plots + 1 Hidden Cluster + 14 Stats + 12 Centroids = 37 Buffers
@@ -15,7 +15,7 @@
 
 #include <Math/Alglib/alglib.mqh>
 
-#define EXPORT_BUTTON_NAME "V3895_2_ExportButton"
+#define EXPORT_BUTTON_NAME "V394_5L_B_ExportButton"
 
 //--- Enums
 enum ENUM_CLUSTERING_ALGO {
@@ -39,22 +39,18 @@ enum ENUM_TOLERANCE_TYPE {
 
 //--- INPUT PARAMETERS ---
 input string               Sep0 = "===== Main & SSA Settings =====";
-input int                  InpSSAMathLookback = 3000;      // Math Engine Lookback
+input int                  InpSSAMathLookback = 3000;
 input int                  SSAWindow         = 30;
 input int                  SSARank           = 6;
 input int                  SSASignalPeriod   = 3;
-
 input string               Sep1 = "===== Clustering Settings =====";
 input ENUM_CLUSTERING_ALGO InpAlgo             = ALGO_DBSCAN;
 input int                  InpMinPts           = 5;
-
 input string               SepKM = "--- K-Means Only ---";
 input int                  InpPointsPerCluster = 5;
 input double               InpMaxAvgDistance   = 0.015;
-
 input string               SepDB = "--- DBSCAN Only ---";
 input double               InpEpsilon          = 0.015;
-
 input string               SepColors           = "--- Polygon Colors ---";
 input color  InpClusterColor0  = clrDodgerBlue;
 input color  InpClusterColor1  = clrLimeGreen;
@@ -62,39 +58,34 @@ input color  InpClusterColor2  = clrRed;
 input color  InpClusterColor3  = clrGold;
 input color  InpClusterColor4  = clrMagenta;
 input color  InpClusterColor5  = clrAqua;
-
 input string            Sep3 = "===== Symbol 108 Settings =====";
 input ENUM_FRACTAL_BARS InpFractalBars = BARS_35;
 input ENUM_SYMBOL_SIZE  InpSymbolSize = SIZE_LARGE;
 input int               InpSymbolOffset = 0;
-
 input string            Sep4 = "===== Symbol 119 Settings =====";
 input bool              InpShowSymbol119 = true;
 input ENUM_FRACTAL_BARS_119 InpFractalBars119 = BARS_13;
 input ENUM_SYMBOL_SIZE  InpSymbolSize119 = SIZE_NORMAL;
 input int               InpSymbolOffset119 = 0;
-
-input string            Sep5 = "===== EDT Rules & Tolerance =====";
-input bool              InpShowComments = false;           // Toggle to prevent comment flickering on Multi-Chart
-input int               InpRegCentroids = 6;               // Number of Centroids for Regression (3 to 12)
-input int               InpExcludeRecentCentroids = 0;     // Exclude N most recent centroids (Max 9)
-input int               InpEDTVisualLookback = 500;        // Visual Drawing Limit
-input bool              InpExtendLinesToCurrent = true;    // Extend Baseline & EDTs to Live Bar
+input string            Sep5 = "===== CFL Base & EDT Rules =====";
+input bool              InpShowComments = false;
+input int               InpRegCentroids = 5;
+input int               InpExcludeRecentCentroids = 3; // Exclude N most recent centroids (Max 9)
+input double            InpTimeDecayLambda = 0.000; // Recommended = 0.001
+input int               InpCFLVisualLookback = 500;
+input bool              InpExtendLinesToCurrent = true;
+input color             InpCFLColor = clrPaleTurquoise;
 input int               LOEDTInpEDTMinTouches = 2;
 input int               UOEDTInpEDTMinTouches = 2;
-
-input color             InpBaseLineColor = clrViolet;
-input color             InpEDTColor = clrMagenta;
-
+input color             InpEDTColor = clrDodgerBlue;
 input ENUM_TOLERANCE_TYPE InpToleranceType = TOLERANCE_PERCENT;
 input double            InpTolerancePercent = 0.25;
 input double            InpToleranceATRMultiplier = 1.0;
 input int               InpATRPeriod = 12;
-
 input string            Sep6 = "===== Export & Timer Settings =====";
-input string            InpExportFileName = "Non-Recent-A";
+input string            InpExportFileName = "Centriod_Best_Fit_B";
 input bool              InpAutoExport = true;
-input int               InpExportSecond = 59;              // Trigger at this second (0-59)
+input int               InpExportSecond = 59;
 
 //--- INDICATOR BUFFERS ---
 double ExtSSATrend[];      // 0
@@ -156,6 +147,7 @@ int g_stat_obs_window = 0;
 int g_stat_n_crossings = 0;
 int g_stat_n_close = 0;
 int g_stat_leftmost_bar = 0;
+double g_stat_lambda = 0.0;
 double g_cen_prices[12];
 
 //--- STRUCTURES ---
@@ -174,6 +166,16 @@ struct ClusterCentroidInfo {
    int      cluster_id;
 };
 
+struct CFLCandidate {
+   int      mask;
+   double   m;
+   double   c;
+   double   r2_cross;
+   int      leftmost;
+   int      rightmost;
+   int      centroids_used;
+};
+
 struct FractalPoint {
    int      bar;
    double   price;
@@ -187,7 +189,6 @@ int OnInit()
 {
    ExtSideBars = ((int)InpFractalBars - 1) / 2;
    ExtSideBars119 = ((int)InpFractalBars119 - 1) / 2;
-   
    ExtATRHandle = iATR(_Symbol, PERIOD_CURRENT, InpATRPeriod);
    
    SetIndexBuffer(0, ExtSSATrend, INDICATOR_DATA);
@@ -197,12 +198,11 @@ int OnInit()
    SetIndexBuffer(4, ExtLower108, INDICATOR_DATA);
    SetIndexBuffer(5, ExtUpper119, INDICATOR_DATA);
    SetIndexBuffer(6, ExtLower119, INDICATOR_DATA);
-   SetIndexBuffer(7, ExtBaseLine, INDICATOR_DATA);
+   SetIndexBuffer(7, ExtBaseLine, INDICATOR_DATA); 
    SetIndexBuffer(8, ExtUOEDT, INDICATOR_DATA); 
    SetIndexBuffer(9, ExtLOEDT, INDICATOR_DATA);
    
    SetIndexBuffer(10, ExtCrossInCluster, INDICATOR_CALCULATIONS);
-   
    SetIndexBuffer(11, ExtTimeframe, INDICATOR_DATA);
    SetIndexBuffer(12, ExtSlope, INDICATOR_DATA);
    SetIndexBuffer(13, ExtIntercept, INDICATOR_DATA);
@@ -244,20 +244,19 @@ int OnInit()
    PlotIndexSetInteger(6, PLOT_DRAW_TYPE, InpShowSymbol119 ? DRAW_ARROW : DRAW_NONE); PlotIndexSetInteger(6, PLOT_ARROW, 119); PlotIndexSetInteger(6, PLOT_LINE_COLOR, clrLimeGreen);
    PlotIndexSetInteger(6, PLOT_LINE_WIDTH, (int)InpSymbolSize119); PlotIndexSetInteger(6, PLOT_ARROW_SHIFT, InpSymbolOffset119);
    
-   PlotIndexSetInteger(7, PLOT_DRAW_TYPE, DRAW_LINE); PlotIndexSetInteger(7, PLOT_LINE_STYLE, STYLE_SOLID); PlotIndexSetInteger(7, PLOT_LINE_WIDTH, 2); PlotIndexSetInteger(7, PLOT_LINE_COLOR, InpBaseLineColor);
-   PlotIndexSetString(7, PLOT_LABEL, "Regression Base Line");
+   PlotIndexSetInteger(7, PLOT_DRAW_TYPE, DRAW_LINE); PlotIndexSetInteger(7, PLOT_LINE_STYLE, STYLE_SOLID); PlotIndexSetInteger(7, PLOT_LINE_WIDTH, 2); PlotIndexSetInteger(7, PLOT_LINE_COLOR, InpCFLColor);
+   PlotIndexSetString(7, PLOT_LABEL, "Secondary CFL Base Line");
    
    PlotIndexSetInteger(8, PLOT_DRAW_TYPE, DRAW_LINE); PlotIndexSetInteger(8, PLOT_LINE_STYLE, STYLE_SOLID); PlotIndexSetInteger(8, PLOT_LINE_WIDTH, 2); PlotIndexSetInteger(8, PLOT_LINE_COLOR, InpEDTColor);
-   PlotIndexSetString(8, PLOT_LABEL, "Upper Outermost EDT");
+   PlotIndexSetString(8, PLOT_LABEL, "Secondary Upper UOEDT");
    
    PlotIndexSetInteger(9, PLOT_DRAW_TYPE, DRAW_LINE); PlotIndexSetInteger(9, PLOT_LINE_STYLE, STYLE_SOLID); PlotIndexSetInteger(9, PLOT_LINE_WIDTH, 2); PlotIndexSetInteger(9, PLOT_LINE_COLOR, InpEDTColor);
-   PlotIndexSetString(9, PLOT_LABEL, "Lower Outermost EDT");
+   PlotIndexSetString(9, PLOT_LABEL, "Secondary Lower LOEDT");
    
    for(int i=0; i<10; i++) PlotIndexSetDouble(i, PLOT_EMPTY_VALUE, EMPTY_VALUE);
    
-   IndicatorSetString(INDICATOR_SHORTNAME, "DavinTrade SSA EDT V3.895_2");
+   IndicatorSetString(INDICATOR_SHORTNAME, "DavinTrade SSA CFL WLS V3.94_5L_B");
    CreateExportButton();
-   
    if(InpAutoExport) EventSetTimer(1);
    
    return(INIT_SUCCEEDED);
@@ -266,10 +265,10 @@ int OnInit()
 void OnDeinit(const int reason)
 {
    if(ExtATRHandle != INVALID_HANDLE) IndicatorRelease(ExtATRHandle);
-   ObjectsDeleteAll(0, "ClusterHull_V895_2_");
-   ObjectsDeleteAll(0, "ClusterCentroidStar_V895_2_");
+   ObjectsDeleteAll(0, "ClusterHull_V393_B_");
+   ObjectsDeleteAll(0, "ClusterCentroidStar_V393_B_");
    ObjectDelete(0, EXPORT_BUTTON_NAME);
-   if(InpShowComments) Comment(""); 
+   if(InpShowComments) Comment("");
    if(InpAutoExport) EventKillTimer();
    ChartRedraw(0);
 }
@@ -287,7 +286,7 @@ void OnTimer()
    if(time_struct.sec == InpExportSecond && time_struct.min != last_trigger_min) {
        last_trigger_min = time_struct.min;
        if(g_rates_total > 0) {
-           PerformClusteringAndEDT(g_rates_total, g_time, g_close);
+           PerformClusteringAndCFL(g_rates_total, g_time, g_close);
            ChartRedraw(0);
            ExportData(true);
        }
@@ -300,14 +299,19 @@ void OnTimer()
 string TimeframeToString(ENUM_TIMEFRAMES timeframe)
 {
    switch(timeframe) {
-      case PERIOD_M1:  return "M1"; case PERIOD_M2:  return "M2"; case PERIOD_M3:  return "M3";
-      case PERIOD_M4:  return "M4"; case PERIOD_M5:  return "M5"; case PERIOD_M6:  return "M6";
+      case PERIOD_M1:  return "M1";
+      case PERIOD_M2:  return "M2"; case PERIOD_M3:  return "M3";
+      case PERIOD_M4:  return "M4"; case PERIOD_M5:  return "M5";
+      case PERIOD_M6:  return "M6";
       case PERIOD_M10: return "M10"; case PERIOD_M12: return "M12"; case PERIOD_M15: return "M15";
       case PERIOD_M20: return "M20"; case PERIOD_M30: return "M30"; case PERIOD_H1:  return "H1";
-      case PERIOD_H2:  return "H2"; case PERIOD_H3:  return "H3"; case PERIOD_H4:  return "H4";
-      case PERIOD_H6:  return "H6"; case PERIOD_H8:  return "H8"; case PERIOD_H12: return "H12";
+      case PERIOD_H2:  return "H2";
+      case PERIOD_H3:  return "H3"; case PERIOD_H4:  return "H4";
+      case PERIOD_H6:  return "H6"; case PERIOD_H8:  return "H8";
+      case PERIOD_H12: return "H12";
       case PERIOD_D1:  return "D1"; case PERIOD_W1:  return "W1"; case PERIOD_MN1: return "MN1";
-      default: { string s = EnumToString(timeframe); StringReplace(s, "PERIOD_", ""); return s; }
+      default: { string s = EnumToString(timeframe); StringReplace(s, "PERIOD_", ""); return s;
+      }
    }
 }
 
@@ -315,14 +319,16 @@ void CreateExportButton()
 {
    if(ObjectFind(0, EXPORT_BUTTON_NAME) >= 0) ObjectDelete(0, EXPORT_BUTTON_NAME);
    ObjectCreate(0, EXPORT_BUTTON_NAME, OBJ_BUTTON, 0, 0, 0);
+   
+   // Relocated to Lower Left Corner for isolated Secondary indicator
+   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_CORNER, CORNER_LEFT_LOWER);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_XDISTANCE, 20);
-   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_YDISTANCE, 110);
+   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_YDISTANCE, 50);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_XSIZE, 160);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_YSIZE, 30);
-   ObjectSetString(0, EXPORT_BUTTON_NAME, OBJPROP_TEXT, "Non-A");
+   ObjectSetString(0, EXPORT_BUTTON_NAME, OBJPROP_TEXT, "Best-Fit-B");
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_COLOR, clrWhite);
-   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_BGCOLOR, clrMagenta);
-   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_CORNER, CORNER_LEFT_UPPER);
+   ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_BGCOLOR, clrDodgerBlue);
    ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_SELECTABLE, false);
    ChartRedraw(0);
 }
@@ -331,7 +337,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
 {
    if(id == CHARTEVENT_OBJECT_CLICK && sparam == EXPORT_BUTTON_NAME) {
       ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_STATE, false);
-      PerformClusteringAndEDT(g_rates_total, g_time, g_close); 
+      PerformClusteringAndCFL(g_rates_total, g_time, g_close); 
       ExportData(false);
       ChartRedraw(0);
    }
@@ -366,7 +372,8 @@ double CalculateToleranceFast(double reference_price, double current_atr) {
 
 color GetClusterColor(int id) {
    switch(id % 6) {
-      case 0: return InpClusterColor0; case 1: return InpClusterColor1;
+      case 0: return InpClusterColor0;
+      case 1: return InpClusterColor1;
       case 2: return InpClusterColor2; case 3: return InpClusterColor3;
       case 4: return InpClusterColor4; case 5: return InpClusterColor5;
    }
@@ -382,7 +389,8 @@ double HullCrossProduct(const ClusterPoint &o, const ClusterPoint &a, const Clus
 
 void GetConvexHull(const ClusterPoint &points[], ClusterPoint &hull[]) {
    int n = ArraySize(points);
-   if(n < 3) { ArrayCopy(hull, points); return; }
+   if(n < 3) { ArrayCopy(hull, points); return;
+   }
    
    int hull_count = 0; int l = 0;
    for(int i = 1; i < n; i++) if(points[i].norm_x < points[l].norm_x) l = i;
@@ -418,9 +426,11 @@ void CustomKMeans(const ClusterPoint &data[], int f_count, int K, int &assignmen
          int best_k = 0;
          for(int k=0; k<K; k++) {
             double dist = MathSqrt(MathPow(data[i].norm_x - centers_x[k], 2) + MathPow(data[i].norm_y - centers_y[k], 2));
-            if(dist < min_dist) { min_dist = dist; best_k = k; }
+            if(dist < min_dist) { min_dist = dist; best_k = k;
+            }
          }
-         if(assignments[i] != best_k) { assignments[i] = best_k; changed = true; }
+         if(assignments[i] != best_k) { assignments[i] = best_k;
+         changed = true; }
       }
 
       int counts[]; ArrayResize(counts, K);
@@ -432,7 +442,8 @@ void CustomKMeans(const ClusterPoint &data[], int f_count, int K, int &assignmen
          sum_y[k] += data[i].norm_y; counts[k]++;
       }
       for(int k=0; k<K; k++) {
-         if(counts[k] > 0) { centers_x[k] = sum_x[k] / counts[k]; centers_y[k] = sum_y[k] / counts[k]; }
+         if(counts[k] > 0) { centers_x[k] = sum_x[k] / counts[k];
+         centers_y[k] = sum_y[k] / counts[k]; }
       }
    }
 }
@@ -459,8 +470,10 @@ void ExpandCluster(const ClusterPoint &data[], int p_idx, int &neighbors[], int 
             for(int k=0; k<ArraySize(n_neighbors); k++) {
                int candidate = n_neighbors[k];
                bool exists = false;
-               for(int j=0; j<ArraySize(neighbors); j++) { if(neighbors[j] == candidate) { exists = true; break; } }
-               if(!exists) { int sz = ArraySize(neighbors); ArrayResize(neighbors, sz+1); neighbors[sz] = candidate; }
+               for(int j=0; j<ArraySize(neighbors); j++) { if(neighbors[j] == candidate) { exists = true; break;
+               } }
+               if(!exists) { int sz = ArraySize(neighbors);
+               ArrayResize(neighbors, sz+1); neighbors[sz] = candidate; }
             }
          }
       }
@@ -488,12 +501,12 @@ int RunDBSCAN(const ClusterPoint &data[], int p_count, double eps, int min_pts, 
 
 
 //+------------------------------------------------------------------+
-//| Core: Clustering -> Regression -> Dual Pipeline Math -> EDT      |
+//| Core: Clustering -> Combinatorics -> Best WLS CFL -> EDTs        |
 //+------------------------------------------------------------------+
-void PerformClusteringAndEDT(const int rates_total, const datetime &time[], const double &close_arr[])
+void PerformClusteringAndCFL(const int rates_total, const datetime &time[], const double &close_arr[])
 {
-   ObjectsDeleteAll(0, "ClusterHull_V895_2_"); 
-   ObjectsDeleteAll(0, "ClusterCentroidStar_V895_2_");
+   ObjectsDeleteAll(0, "ClusterHull_V393_B_"); 
+   ObjectsDeleteAll(0, "ClusterCentroidStar_V393_B_");
    ArrayInitialize(ExtCrossInCluster, 0.0);
    ArrayInitialize(ExtBaseLine, EMPTY_VALUE);
    ArrayInitialize(g_cen_prices, 0.0);
@@ -511,7 +524,7 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
 
    int p_count = ArraySize(points);
    if(p_count < InpMinPts) {
-      if(InpShowComments) Comment("--- DavinTrade V3.895_2 ---\nAwaiting more data: Points < MinPts");
+      if(InpShowComments) Comment("--- DavinTrade V3.94_5L_B (CFL+WLS+EDT) ---\nAwaiting more data: Points < MinPts");
       return;
    }
 
@@ -533,18 +546,23 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
       CustomKMeans(points, p_count, total_clusters, assignments);
       for(int k=0; k<total_clusters; k++) {
          double sum_x=0, sum_y=0; int pt_count=0;
-         for(int i=0; i<p_count; i++) { if(assignments[i] == k) { sum_x += points[i].norm_x; sum_y += points[i].norm_y; pt_count++; } }
-         if(pt_count < InpMinPts) { for(int i=0; i<p_count; i++) if(assignments[i] == k) assignments[i] = -1; continue; }
+         for(int i=0; i<p_count; i++) { if(assignments[i] == k) { sum_x += points[i].norm_x; sum_y += points[i].norm_y; pt_count++;
+         } }
+         if(pt_count < InpMinPts) { for(int i=0; i<p_count; i++) if(assignments[i] == k) assignments[i] = -1;
+         continue; }
          
          double center_x = sum_x / pt_count, center_y = sum_y / pt_count, total_dist = 0.0;
-         for(int i=0; i<p_count; i++) { if(assignments[i] == k) total_dist += MathSqrt(MathPow(points[i].norm_x - center_x, 2) + MathPow(points[i].norm_y - center_y, 2)); }
-         if((total_dist / pt_count) > InpMaxAvgDistance) { for(int i=0; i<p_count; i++) if(assignments[i] == k) assignments[i] = -1; }
+         for(int i=0; i<p_count; i++) { if(assignments[i] == k) total_dist += MathSqrt(MathPow(points[i].norm_x - center_x, 2) + MathPow(points[i].norm_y - center_y, 2));
+         }
+         if((total_dist / pt_count) > InpMaxAvgDistance) { for(int i=0; i<p_count; i++) if(assignments[i] == k) assignments[i] = -1;
+         }
       }
    } else if (InpAlgo == ALGO_DBSCAN) {
       total_clusters = RunDBSCAN(points, p_count, InpEpsilon, InpMinPts, assignments);
    }
    
-   for(int i = 0; i < p_count; i++) { if(assignments[i] != -1) ExtCrossInCluster[points[i].bar] = 1.0; }
+   for(int i = 0; i < p_count; i++) { if(assignments[i] != -1) ExtCrossInCluster[points[i].bar] = 1.0;
+   }
    
    ClusterCentroidInfo centroids[]; int centroid_count = 0;
    for(int k = 0; k < total_clusters; k++) {
@@ -565,7 +583,7 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
          
          for(int h = 0; h < h_count; h++) {
             ClusterPoint p1 = hull[h], p2 = hull[(h + 1) % h_count];
-            string line_name = "ClusterHull_V895_2_" + IntegerToString(k) + "_" + IntegerToString(h);
+            string line_name = "ClusterHull_V393_B_" + IntegerToString(k) + "_" + IntegerToString(h);
             ObjectCreate(0, line_name, OBJ_TREND, 0, p1.time, p1.price, p2.time, p2.price);
             ObjectSetInteger(0, line_name, OBJPROP_COLOR, c_color); ObjectSetInteger(0, line_name, OBJPROP_WIDTH, 2);
             ObjectSetInteger(0, line_name, OBJPROP_RAY_RIGHT, false); ObjectSetInteger(0, line_name, OBJPROP_BACK, true); ObjectSetInteger(0, line_name, OBJPROP_SELECTABLE, false);
@@ -578,7 +596,7 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
          if(time_index < 0) time_index = 0; if(time_index >= rates_total) time_index = rates_total - 1;
          datetime centroid_time = time[time_index];
          
-         string star_name = "ClusterCentroidStar_V895_2_" + IntegerToString(k);
+         string star_name = "ClusterCentroidStar_V393_B_" + IntegerToString(k);
          ObjectCreate(0, star_name, OBJ_TEXT, 0, centroid_time, real_centroid_price);
          ObjectSetString(0, star_name, OBJPROP_FONT, "Wingdings");
          ObjectSetString(0, star_name, OBJPROP_TEXT, ShortToString(108));
@@ -603,111 +621,188 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
       }
    }
 
+   // --- NEW: Exclusion & Index Mapping Logic ---
    int user_target_reg = (int)MathMax(3, MathMin(InpRegCentroids, 12));
    int user_exclude = (int)MathMax(0, MathMin(InpExcludeRecentCentroids, 9));
    
    int actual_exclude = user_exclude;
    int n_reg = user_target_reg;
+
    if (centroid_count < user_target_reg + user_exclude) {
        actual_exclude = (int)MathMax(0, centroid_count - user_target_reg);
        n_reg = centroid_count - actual_exclude;
    }
-   
-   if (n_reg < 2) {
-       if(InpShowComments) Comment(StringFormat("--- DavinTrade V3.895_2 ---\nMath Aborted: Not enough centroids found (%d). Try raising Math Lookback or adjusting clustering Epsilon.", centroid_count));
-       return; 
+
+   if (n_reg < 3) {
+      if(InpShowComments) Comment(StringFormat("--- DavinTrade V3.94_5L_B (CFL+WLS+EDT) ---\nAwaiting more data: Found %d / %d needed (including exclusions).", centroid_count, 3 + actual_exclude));
+      return; 
    }
 
-   for(int c = 0; c < MathMin(12, n_reg); c++) {
+   for(int c = 0; c < n_reg; c++) {
        g_cen_prices[c] = centroids[c + actual_exclude].price;
    }
 
-   double meanX = 0, meanY = 0;
-   for(int i = 0; i < n_reg; i++) {
-      meanX += centroids[i + actual_exclude].bar_index;
-      meanY += centroids[i + actual_exclude].price;
-   }
-   meanX /= n_reg;
-   meanY /= n_reg;
-   double num = 0, den = 0;
-   for(int i = 0; i < n_reg; i++) {
-      double dx = centroids[i + actual_exclude].bar_index - meanX;
-      double dy = centroids[i + actual_exclude].price - meanY;
-      num += dx * dy;
-      den += dx * dx;
-   }
-
-   double base_m = 0, base_c = 0;
-   if(den != 0) {
-      base_m = num / den;
-      base_c = meanY - base_m * meanX;
-   } else {
-      base_m = 0;
-      base_c = meanY; 
-   }
-
-   int leftmost_bar = rates_total; 
-   int rightmost_bar = -1;
-   int oldest_cluster_id = centroids[actual_exclude + n_reg - 1].cluster_id;
-   int newest_cluster_id = centroids[actual_exclude].cluster_id;
-   for(int i = 0; i < p_count; i++) {
-      if(assignments[i] == oldest_cluster_id && points[i].bar < leftmost_bar) leftmost_bar = points[i].bar;
-      if(assignments[i] == newest_cluster_id && points[i].bar > rightmost_bar) rightmost_bar = points[i].bar;
+   // --- PRE-CALCULATE TIME-DECAY WEIGHTS (WLS) ---
+   double pt_weights[]; ArrayResize(pt_weights, p_count);
+   for(int p=0; p<p_count; p++) {
+       int dist_p = rates_total - 1 - points[p].bar;
+       pt_weights[p] = MathExp(-InpTimeDecayLambda * dist_p);
    }
    
+   double cen_weights[]; ArrayResize(cen_weights, n_reg);
+   for(int c=0; c<n_reg; c++) {
+       int dist_c = rates_total - 1 - centroids[c + actual_exclude].bar_index;
+       cen_weights[c] = MathExp(-InpTimeDecayLambda * dist_c);
+   }
+
+   // PRE-CALCULATE LEFTMOST & RIGHTMOST FOR EACH VALID CLUSTER
+   int cl_left[12];
+   ArrayInitialize(cl_left, rates_total);
+   int cl_right[12]; ArrayInitialize(cl_right, -1);
+   
+   for(int c=0; c<n_reg; c++) {
+      int cid = centroids[c + actual_exclude].cluster_id;
+      for(int p=0; p<p_count; p++) {
+         if(assignments[p] == cid) {
+            if(points[p].bar < cl_left[c]) cl_left[c] = points[p].bar;
+            if(points[p].bar > cl_right[c]) cl_right[c] = points[p].bar;
+         }
+      }
+   }
+
+   CFLCandidate best_cfl;
+   best_cfl.r2_cross = -9999999.0;
+   best_cfl.centroids_used = 0;
+   bool cfl_found = false;
+
+   int total_combos = 1 << n_reg;
+   for(int mask = 1; mask < total_combos; mask++) {
+       int bits = 0;
+       for(int b=0; b<n_reg; b++) { if((mask & (1<<b)) != 0) bits++;
+       }
+       if(bits < 3) continue;
+       double sumW = 0, sumWX = 0, sumWY = 0, sumWXY = 0, sumWX2 = 0;
+       int leftmost_bar = rates_total, rightmost_bar = -1;
+       
+       for(int b=0; b<n_reg; b++) {
+           if((mask & (1<<b)) != 0) {
+               double w = cen_weights[b];
+               double cx = centroids[b + actual_exclude].bar_index;
+               double cy = centroids[b + actual_exclude].price;
+               
+               sumW   += w;
+               sumWX  += w * cx;
+               sumWY  += w * cy;
+               sumWXY += w * cx * cy;
+               sumWX2 += w * cx * cx;
+               if(cl_left[b] < leftmost_bar) leftmost_bar = cl_left[b];
+               if(cl_right[b] > rightmost_bar) rightmost_bar = cl_right[b];
+           }
+       }
+
+       if(leftmost_bar >= rightmost_bar) continue;
+       // Calculate Weighted Least Squares (WLS) Regression
+       double D = sumW * sumWX2 - sumWX * sumWX;
+       double cand_m = 0, cand_c = 0;
+       if(D != 0) {
+           cand_m = (sumW * sumWXY - sumWX * sumWY) / D;
+           cand_c = (sumWY - cand_m * sumWX) / sumW;
+       } else { continue;
+       }
+
+       int start_idx_p = -1, end_idx_p = -1;
+       for(int p=0; p<p_count; p++) {
+           if(points[p].bar >= leftmost_bar && start_idx_p == -1) start_idx_p = p;
+           if(points[p].bar <= rightmost_bar) end_idx_p = p;
+       }
+       if(start_idx_p == -1 || end_idx_p == -1) continue;
+       int n_crossings = 0;
+       double sum_w_cross = 0, sum_w_price = 0;
+       for(int p = start_idx_p; p <= end_idx_p; p++) {
+           sum_w_price += points[p].price * pt_weights[p];
+           sum_w_cross += pt_weights[p];
+           n_crossings++;
+       }
+       if(n_crossings < 3 || sum_w_cross == 0) continue;
+       double w_mean_cross = sum_w_price / sum_w_cross;
+       double res_sq = 0, tot_sq = 0;
+       // Calculate Weighted R-Squared
+       for(int p = start_idx_p; p <= end_idx_p; p++) {
+           double pred_y = cand_m * points[p].bar + cand_c;
+           res_sq += pt_weights[p] * MathPow(points[p].price - pred_y, 2);
+           tot_sq += pt_weights[p] * MathPow(points[p].price - w_mean_cross, 2);
+       }
+       
+       double r2 = (tot_sq != 0) ?
+       1.0 - (res_sq / tot_sq) : 0.0;
+       
+       if(r2 > best_cfl.r2_cross) {
+           best_cfl.mask = mask;
+           best_cfl.m = cand_m;
+           best_cfl.c = cand_c;
+           best_cfl.r2_cross = r2;
+           best_cfl.leftmost = leftmost_bar;
+           best_cfl.rightmost = rightmost_bar;
+           best_cfl.centroids_used = bits;
+           cfl_found = true;
+       }
+   }
+
    double mse_cross = 0, r2_cross = 0, skew_cross = 0, kurt_cross = 0, var_cross = 1.0;
    double mse_close = 0, r2_close = 0, skew_close = 0, kurt_close = 0, var_close = 1.0;
    double current_angle = 0.0;
-   double current_intercept_anchored = base_m * (rates_total - 1) + base_c; 
-   
-   int n_crossings = 0;
-   int n_close_bars = (rightmost_bar - leftmost_bar) + 1;
-   
-   if(leftmost_bar <= rightmost_bar && leftmost_bar != rates_total) {
-      
-      double sum_crossings = 0;
-      double sum_close = 0;
-      
-      for(int i = leftmost_bar; i <= rightmost_bar; i++) {
-          if(ExtSSACross[i] != EMPTY_VALUE && ExtSSACross[i] != 0.0) {
-             sum_crossings += ExtSSACross[i];
-             n_crossings++;
-          }
+   double current_intercept_anchored = 0.0; 
+   int n_crossings_eval = 0;
+   int n_close_bars = 0;
+   int leftmost_eval = rates_total, rightmost_eval = -1;
+   double base_m = 0, base_c = 0;
+
+   if(cfl_found) {
+       base_m = best_cfl.m;
+       base_c = best_cfl.c;
+       leftmost_eval = best_cfl.leftmost;
+       rightmost_eval = best_cfl.rightmost;
+       
+       current_intercept_anchored = base_m * (rates_total - 1) + base_c;
+       n_close_bars = (rightmost_eval - leftmost_eval) + 1;
+       
+       double sum_crossings = 0, sum_close = 0;
+       for(int i = leftmost_eval; i <= rightmost_eval; i++) {
+          if(ExtSSACross[i] != EMPTY_VALUE && ExtSSACross[i] != 0.0) { sum_crossings += ExtSSACross[i];
+          n_crossings_eval++; }
           sum_close += close_arr[i];
-      }
+       }
       
-      double mean_cross = (n_crossings > 0) ? (sum_crossings / n_crossings) : 0.0;
-      double mean_close_price = (n_close_bars > 0) ? (sum_close / n_close_bars) : current_intercept_anchored;
-      double slope_pct_per_bar = (base_m / mean_close_price) * 100.0;
-      current_angle = MathArctan(slope_pct_per_bar * 100.0) * 180.0 / M_PI;
-      if(n_crossings >= 3 && n_close_bars >= 3) {
-          
-          double res_cross[]; ArrayResize(res_cross, n_crossings);
+       double mean_cross = (n_crossings_eval > 0) ?
+       (sum_crossings / n_crossings_eval) : 0.0;
+       double mean_close_price = (n_close_bars > 0) ? (sum_close / n_close_bars) : current_intercept_anchored;
+       double slope_pct_per_bar = (base_m / mean_close_price) * 100.0;
+       current_angle = MathArctan(slope_pct_per_bar * 100.0) * 180.0 / M_PI;
+       if(n_crossings_eval >= 3 && n_close_bars >= 3) {
+          double res_cross[];
+          ArrayResize(res_cross, n_crossings_eval);
           double res_close[]; ArrayResize(res_close, n_close_bars);
           
           int rx = 0; double sum_e_cross = 0;
-          int rc = 0; double sum_e_close = 0;
+          int rc = 0;
+          double sum_e_close = 0;
           
-          for(int i = leftmost_bar; i <= rightmost_bar; i++) {
+          for(int i = leftmost_eval; i <= rightmost_eval; i++) {
               double pred_y = base_m * i + base_c;
               if(ExtSSACross[i] != EMPTY_VALUE && ExtSSACross[i] != 0.0) {
                  res_cross[rx] = ExtSSACross[i] - pred_y;
-                 sum_e_cross += res_cross[rx];
-                 rx++;
+                 sum_e_cross += res_cross[rx]; rx++;
               }
               res_close[rc] = close_arr[i] - pred_y;
-              sum_e_close += res_close[rc];
-              rc++;
+              sum_e_close += res_close[rc]; rc++;
           }
           
-          double mean_e_cross = sum_e_cross / n_crossings;
-          double mean_e_close = sum_e_close / n_close_bars;
-          
+          double mean_e_cross = sum_e_cross / n_crossings_eval, mean_e_close = sum_e_close / n_close_bars;
           double m2_x = 0, var_x = 0, m3_x = 0, m4_x = 0, tot_sq_x = 0;
           double m2_c = 0, var_c = 0, m3_c = 0, m4_c = 0, tot_sq_c = 0;
           
           int rx_idx = 0;
-          for(int i = leftmost_bar; i <= rightmost_bar; i++) {
+          for(int i = leftmost_eval; i <= rightmost_eval; i++) {
               if(ExtSSACross[i] != EMPTY_VALUE && ExtSSACross[i] != 0.0) {
                   double actual_val = ExtSSACross[i];
                   double err = res_cross[rx_idx];                  
@@ -721,7 +816,7 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
               }
               
               double actual_close = close_arr[i];
-              int rc_idx = i - leftmost_bar;
+              int rc_idx = i - leftmost_eval;
               double err_c = res_close[rc_idx];
               double dev_c = err_c - mean_e_close;
               
@@ -730,40 +825,46 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
               tot_sq_c += MathPow(actual_close - mean_close_price, 2);
           }
           
-          m2_x /= n_crossings; var_x /= n_crossings; m3_x /= n_crossings; m4_x /= n_crossings;
+          m2_x /= n_crossings_eval;
+          var_x /= n_crossings_eval; m3_x /= n_crossings_eval; m4_x /= n_crossings_eval;
           mse_cross = m2_x;
-          if(tot_sq_x != 0) r2_cross = 1.0 - ((m2_x * n_crossings) / tot_sq_x);
-          if(var_x > 0) { skew_cross = m3_x / MathPow(var_x, 1.5); kurt_cross = m4_x / MathPow(var_x, 2.0); }
+          if(tot_sq_x != 0) r2_cross = 1.0 - ((m2_x * n_crossings_eval) / tot_sq_x);
+          if(var_x > 0) { skew_cross = m3_x / MathPow(var_x, 1.5); kurt_cross = m4_x / MathPow(var_x, 2.0);
+          }
           
-          m2_c /= n_close_bars; var_c /= n_close_bars; m3_c /= n_close_bars; m4_c /= n_close_bars;
+          m2_c /= n_close_bars;
+          var_c /= n_close_bars; m3_c /= n_close_bars; m4_c /= n_close_bars;
           mse_close = m2_c;
           if(tot_sq_c != 0) r2_close = 1.0 - ((m2_c * n_close_bars) / tot_sq_c);
-          if(var_c > 0) { skew_close = m3_c / MathPow(var_c, 1.5); kurt_close = m4_c / MathPow(var_c, 2.0); }
+          if(var_c > 0) { skew_close = m3_c / MathPow(var_c, 1.5); kurt_close = m4_c / MathPow(var_c, 2.0);
+          }
 
-          int half_x = n_crossings / 2;
+          int half_x = n_crossings_eval / 2;
           if(half_x > 1) {
               double mt1=0, mt2=0, vt1=0, vt2=0;
-              for(int i=0; i<half_x; i++) mt1 += res_cross[i];
-              for(int i=half_x; i<n_crossings; i++) mt2 += res_cross[i];
-              mt1 /= half_x; mt2 /= (n_crossings - half_x);
+              for(int i=0; i<half_x; i++) mt1 += res_cross[i]; for(int i=half_x; i<n_crossings_eval; i++) mt2 += res_cross[i];
+              mt1 /= half_x;
+              mt2 /= (n_crossings_eval - half_x);
               for(int i=0; i<half_x; i++) vt1 += MathPow(res_cross[i] - mt1, 2);
-              for(int i=half_x; i<n_crossings; i++) vt2 += MathPow(res_cross[i] - mt2, 2);
-              vt1 /= (half_x - 1); vt2 /= (n_crossings - half_x - 1);
+              for(int i=half_x; i<n_crossings_eval; i++) vt2 += MathPow(res_cross[i] - mt2, 2);
+              vt1 /= (half_x - 1);
+              vt2 /= (n_crossings_eval - half_x - 1);
               if(vt1 > 0) var_cross = vt2 / vt1;
           }
           
           int half_c = n_close_bars / 2;
           if(half_c > 1) {
               double mt1=0, mt2=0, vt1=0, vt2=0;
-              for(int i=0; i<half_c; i++) mt1 += res_close[i];
-              for(int i=half_c; i<n_close_bars; i++) mt2 += res_close[i];
-              mt1 /= half_c; mt2 /= (n_close_bars - half_c);
+              for(int i=0; i<half_c; i++) mt1 += res_close[i]; for(int i=half_c; i<n_close_bars; i++) mt2 += res_close[i];
+              mt1 /= half_c;
+              mt2 /= (n_close_bars - half_c);
               for(int i=0; i<half_c; i++) vt1 += MathPow(res_close[i] - mt1, 2);
               for(int i=half_c; i<n_close_bars; i++) vt2 += MathPow(res_close[i] - mt2, 2);
-              vt1 /= (half_c - 1); vt2 /= (n_close_bars - half_c - 1);
+              vt1 /= (half_c - 1);
+              vt2 /= (n_close_bars - half_c - 1);
               if(vt1 > 0) var_close = vt2 / vt1;
           }
-      }
+       }
    }
    
    int current_bar_idx = rates_total - 1;
@@ -790,97 +891,93 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
    ExtCen8[current_bar_idx] = g_cen_prices[8]; ExtCen9[current_bar_idx] = g_cen_prices[9];
    ExtCen10[current_bar_idx] = g_cen_prices[10]; ExtCen11[current_bar_idx] = g_cen_prices[11];
 
-   int distance_to_leftmost = rates_total - leftmost_bar;
-   int active_visual_lookback = InpEDTVisualLookback;
+   int distance_to_leftmost = (cfl_found) ? (rates_total - leftmost_eval) : 0;
+   int active_visual_lookback = InpCFLVisualLookback;
    string override_msg = "";
+   
    if(active_visual_lookback < distance_to_leftmost) {
        active_visual_lookback = distance_to_leftmost;
        override_msg = " (Auto-Overridden to fit Centroids)";
    }
    
-   // Sync state for Data Export text generation
-   g_stat_centroids = n_reg;
-   g_stat_excluded = actual_exclude;
+   g_stat_centroids = (cfl_found) ? best_cfl.centroids_used : 0;
+   g_stat_excluded = actual_exclude; // Synced for Data Export
    g_stat_math_window = InpSSAMathLookback;
    g_stat_visual_window = active_visual_lookback;
    g_stat_obs_window = n_close_bars;
-   g_stat_n_crossings = n_crossings;
+   g_stat_n_crossings = n_crossings_eval;
    g_stat_n_close = n_close_bars;
-   g_stat_leftmost_bar = leftmost_bar;
+   g_stat_leftmost_bar = leftmost_eval;
+   g_stat_lambda = InpTimeDecayLambda;
 
    int drawStartIdx = rates_total - active_visual_lookback;
    if(drawStartIdx < 0) drawStartIdx = 0;
-
-   int drawEndIdx = rightmost_bar;
-   if(drawEndIdx < drawStartIdx || drawEndIdx >= rates_total) drawEndIdx = rates_total - 1;
-
-   // Math Failsafe bounding
-   // Support for Line Extension to Current Bar
-   int actualDrawEndIdx = InpExtendLinesToCurrent ? (rates_total - 1) : drawEndIdx;
-
-   // Capped loop to cleanly slice line rendering at Box B bounds (or extend to live bar)
-   for(int i = drawStartIdx; i <= actualDrawEndIdx; i++) {
-      ExtBaseLine[i] = base_m * i + base_c;
+   // Extension functionality evaluation
+   int cflDrawEndIdx = InpExtendLinesToCurrent ? (rates_total - 1) : rightmost_eval;
+   if(cflDrawEndIdx < drawStartIdx || cflDrawEndIdx >= rates_total) cflDrawEndIdx = rates_total - 1;
+   if(cfl_found) {
+       double m = best_cfl.m;
+       double c = best_cfl.c;
+       for(int i = drawStartIdx; i <= cflDrawEndIdx; i++) {
+           ExtBaseLine[i] = m * i + c;
+       }
+       
+       FractalPoint fractals[];
+       for(int i = leftmost_eval; i <= rightmost_eval; i++) {
+          if(ExtUpper108[i] != EMPTY_VALUE && ExtUpper108[i] > 0) {
+             int sz = ArraySize(fractals);
+             ArrayResize(fractals, sz + 1);
+             fractals[sz].bar = i; fractals[sz].price = ExtUpper108[i]; fractals[sz].is_peak = true;
+          }
+          if(ExtLower108[i] != EMPTY_VALUE && ExtLower108[i] > 0) {
+             int sz = ArraySize(fractals);
+             ArrayResize(fractals, sz + 1);
+             fractals[sz].bar = i; fractals[sz].price = ExtLower108[i]; fractals[sz].is_peak = false;
+          }
+       }
+       BuildSymmetricalEDTs(base_m, base_c, fractals, rates_total, close_arr[rates_total-1], drawStartIdx, cflDrawEndIdx);
    }
    
    if(InpShowComments) {
-      string comment_text = StringFormat(
-          "--- DavinTrade V3.895_2 A/B Statistical Pipeline ---\n" +
-          "Regression Centroids (Box B): %d (Excluded Box A: %d)\n" +
-          "Math Search Window: %d Bars\n" +
-          "Visual EDT Window: %d Bars%s\n" +
-          "Observation Window (Box B): %d Bars (Index %d to %d)\n" +
-          "Total 171 Crossings (n): %d\n" +
-          "Timeframe (Sec): %d\n" +
-          "Raw Slope (b): %.5f\n" +
-          "Regression Angle: %.2f°  |  Anchored Y-Int (Live Bar): %.5f\n" +
-          "=================================================\n" +
-          "            [MODEL A]         [MODEL B]\n" +
-          "METRIC      (CROSSINGS)       (CLOSE PRICE)\n" +
-          "-------------------------------------------------\n" +
-          "Sample (n) : %-16d %d\n" +
-          "R-Square   : %-16.4f %.4f\n" +
-          "MSE        : %-16.4f %.4f\n" +
-          "Var Ratio  : %-16.2f %.2f\n" +
-          "Skewness   : %-16.2f %.2f\n" +
-          "Kurtosis   : %-16.2f %.2f",
-          n_reg, actual_exclude,
-          InpSSAMathLookback,
-          active_visual_lookback, override_msg,
-          n_close_bars, leftmost_bar, rightmost_bar,
-          n_crossings,
-          PeriodSeconds(_Period),
-          base_m,
-          current_angle, current_intercept_anchored,
-          n_crossings, n_close_bars,
-          r2_cross, r2_close,
-          mse_cross, mse_close,
-          var_cross, var_close,
-          skew_cross, skew_close,
-          kurt_cross, kurt_close
-      );
-      Comment(comment_text);
+       string comment_text = StringFormat(
+           "--- DavinTrade V3.94_5L_B A/B Statistical Pipeline ---\n" +
+           "Centroids used in Top WLS CFL: %d (Excluded Box B: %d)\n" +
+           "Time-Decay Lambda: %.4f\n" +
+           "Math Search Window: %d Bars\n" +
+           "Visual CFL Window: %d Bars%s\n" +
+           "Observation Window: %d Bars (Index %d to %d)\n" +
+           "Total 171 Crossings (n): %d\n" +
+           "Timeframe (Sec): %d\n" +
+           "Top CFL Raw Slope (b): %.5f\n" +
+           "Top CFL Angle: %.2f°  |  Anchored Y-Int: %.5f\n" +
+           "=================================================\n" +
+           "            [MODEL A]         [MODEL B]\n" +
+           "METRIC      (CROSSINGS)       (CLOSE PRICE)\n" +
+           "-------------------------------------------------\n" +
+           "Sample (n) : %-16d %d\n" +
+           "R-Square   : %-16.4f %.4f\n" +
+           "MSE        : %-16.4f %.4f\n" +
+           "Var Ratio  : %-16.2f %.2f\n" +
+           "Skewness   : %-16.2f %.2f\n" +
+           "Kurtosis   : %-16.2f %.2f",
+           g_stat_centroids, actual_exclude,
+           InpTimeDecayLambda,
+           InpSSAMathLookback,
+           active_visual_lookback, override_msg,
+           n_close_bars, leftmost_eval, rightmost_eval,
+           n_crossings_eval,
+           PeriodSeconds(_Period),
+           base_m,
+           current_angle, current_intercept_anchored,
+           n_crossings_eval, n_close_bars,
+           r2_cross, r2_close,
+           mse_cross, mse_close,
+           var_cross, var_close,
+           skew_cross, skew_close,
+           kurt_cross, kurt_close
+       );
+       Comment(comment_text);
    }
-
-   FractalPoint fractals[];
-   
-   // --- Strict Math Window Containment ---
-   // Uses leftmost_bar and rightmost_bar to strictly confine the EDT logic
-   // preventing the indicator from considering fractals generated during sudden breakouts
-   for(int i = leftmost_bar; i <= rightmost_bar; i++) {
-      if(ExtUpper108[i] != EMPTY_VALUE && ExtUpper108[i] > 0) {
-         int sz = ArraySize(fractals);
-         ArrayResize(fractals, sz + 1);
-         fractals[sz].bar = i; fractals[sz].price = ExtUpper108[i]; fractals[sz].is_peak = true;
-      }
-      if(ExtLower108[i] != EMPTY_VALUE && ExtLower108[i] > 0) {
-         int sz = ArraySize(fractals);
-         ArrayResize(fractals, sz + 1);
-         fractals[sz].bar = i; fractals[sz].price = ExtLower108[i]; fractals[sz].is_peak = false;
-      }
-   }
-
-   BuildSymmetricalEDTs(base_m, base_c, fractals, rates_total, close_arr[rates_total-1], drawStartIdx, actualDrawEndIdx);
 }
 
 //+------------------------------------------------------------------+
@@ -904,7 +1001,6 @@ void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &frac
    double min_below_intercept = 99999999.0;
    bool found_above = false;
    bool found_below = false;
-   
    for(int i = 0; i < f_count; i++) {
       double test_intercept = fractals[i].price - base_m * fractals[i].bar;
       int touches = 0;
@@ -916,7 +1012,7 @@ void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &frac
          }
       }
 
-      // Instead of storing all lines, we only extract the outermost intercept that meets touch criteria
+      // Instead of sorting all channels, extract ONLY the outermost intercept meeting touch criteria
       if(test_intercept > base_c) {
           if(touches >= UOEDTInpEDTMinTouches) {
               if(test_intercept > max_above_intercept) {
@@ -971,12 +1067,12 @@ bool ExportData(bool silent = false)
    
    int live_idx = g_rates_total - 1;
    datetime gmt_offset = TimeCurrent() - TimeGMT();
-   
-   FileWrite(fh_stat, "Regression Centroids (Box B): " + IntegerToString(g_stat_centroids));
-   FileWrite(fh_stat, "Excluded Recent Centroids (Box A): " + IntegerToString(g_stat_excluded));
+   FileWrite(fh_stat, "Regression Centroids (Best WLS CFL): " + IntegerToString(g_stat_centroids));
+   FileWrite(fh_stat, "Excluded Recent Centroids (Box B): " + IntegerToString(g_stat_excluded));
+   FileWrite(fh_stat, "Time-Decay Lambda: " + DoubleToString(g_stat_lambda, 4));
    FileWrite(fh_stat, "Math Search Window (Bars): " + IntegerToString(g_stat_math_window));
-   FileWrite(fh_stat, "Visual EDT Window (Bars): " + IntegerToString(g_stat_visual_window));
-   FileWrite(fh_stat, "Observation Window (Box B Bars): " + IntegerToString(g_stat_obs_window));
+   FileWrite(fh_stat, "Visual CFL/EDT Window (Bars): " + IntegerToString(g_stat_visual_window));
+   FileWrite(fh_stat, "Observation Window (Bars): " + IntegerToString(g_stat_obs_window));
    FileWrite(fh_stat, "Total 171 Crossings (n): " + IntegerToString(g_stat_n_crossings));
    FileWrite(fh_stat, "Timeframe (Sec): " + IntegerToString((int)ExtTimeframe[live_idx]));
    FileWrite(fh_stat, "Raw Slope (b): " + DoubleToString(ExtSlope[live_idx], 5));
@@ -1014,8 +1110,7 @@ bool ExportData(bool silent = false)
       return false; 
    }
 
-   // Refactored Export Header (Removed CEN columns, Renamed EDT columns to Non_A)
-   FileWrite(fh_data, "Non_A_timestamp\tNon_A_symbol\tNon_A_timeframe\tNon_A_close\tNon_A_Base_FL\tNon_A_UOEDT\tNon_A_LOEDT\tNon_A_horiz_high_map\tNon_A_horiz_low_map\tNon_A_ssa\tNon_A_ema_ssa\tNon_A_crossing");
+   FileWrite(fh_data, "Best_Fit_B_timestamp\tBest_Fit_B_symbol\tBest_Fit_B_timeframe\tBest_Fit_B_close\tBest_Fit_B_Base_FL\tBest_Fit_B_UOEDT\tBest_Fit_B_LOEDT\tBest_Fit_B_horiz_high_map\tBest_Fit_B_horiz_low_map\tBest_Fit_B_ssa\tBest_Fit_B_ema_ssa\tBest_Fit_B_crossing");
    
    int max_lookback = MathMax(InpSSAMathLookback, g_rates_total - g_stat_leftmost_bar);
    int start_idx = g_rates_total - max_lookback;
@@ -1025,14 +1120,13 @@ bool ExportData(bool silent = false)
       string line = IntegerToString((long)(g_time[i] - gmt_offset)) + "\t";
       line += symbol + "\t" + tf_str + "\t";
       line += DoubleToString(g_close[i], _Digits) + "\t";
-      
-      // Data bounds handling (Tabs print empty if out of bounds)
       line += (ExtBaseLine[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtBaseLine[i], 5) + "\t";
-      line += (ExtUOEDT[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtUOEDT[i], 5) + "\t";
+      line += (ExtUOEDT[i] == EMPTY_VALUE) ?
+      "\t" : DoubleToString(ExtUOEDT[i], 5) + "\t";
       line += (ExtLOEDT[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtLOEDT[i], 5) + "\t";
-      
       line += (ExtUpper108[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtUpper108[i], 5) + "\t";
-      line += (ExtLower108[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtLower108[i], 5) + "\t";
+      line += (ExtLower108[i] == EMPTY_VALUE) ?
+      "\t" : DoubleToString(ExtLower108[i], 5) + "\t";
       
       line += (ExtSSATrend[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtSSATrend[i], 8) + "\t";
       line += (ExtSSASignal[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtSSASignal[i], 8) + "\t";
@@ -1057,33 +1151,34 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
 
    bool new_bar = false;
    if(prev_calculated == 0) ExtLastBarTime = time[rates_total - 1];
-   else if (time[rates_total - 1] != ExtLastBarTime) { new_bar = true; ExtLastBarTime = time[rates_total - 1]; }
+   else if (time[rates_total - 1] != ExtLastBarTime) { new_bar = true; ExtLastBarTime = time[rates_total - 1];
+   }
 
    int new_bars_start = prev_calculated;
    if(prev_calculated == 0) new_bars_start = 0;
-   
    for(int j = new_bars_start; j < rates_total; j++) {
        ExtBaseLine[j] = EMPTY_VALUE;
-       ExtUOEDT[j] = EMPTY_VALUE; 
-       ExtLOEDT[j] = EMPTY_VALUE; 
+       ExtUOEDT[j]    = EMPTY_VALUE; 
+       ExtLOEDT[j]    = EMPTY_VALUE;
        
-       ExtTimeframe[j] = EMPTY_VALUE; ExtSlope[j] = EMPTY_VALUE; ExtIntercept[j] = EMPTY_VALUE;
+       ExtTimeframe[j] = EMPTY_VALUE; ExtSlope[j] = EMPTY_VALUE;
+       ExtIntercept[j] = EMPTY_VALUE;
        ExtAngle[j] = EMPTY_VALUE;
        ExtRSquare_Cross[j] = EMPTY_VALUE; ExtMSE_Cross[j] = EMPTY_VALUE; ExtVarRatio_Cross[j] = EMPTY_VALUE;
-       ExtSkewness_Cross[j] = EMPTY_VALUE; ExtKurtosis_Cross[j] = EMPTY_VALUE;
+       ExtSkewness_Cross[j] = EMPTY_VALUE;
+       ExtKurtosis_Cross[j] = EMPTY_VALUE;
        ExtRSquare_Close[j] = EMPTY_VALUE; ExtMSE_Close[j] = EMPTY_VALUE; ExtVarRatio_Close[j] = EMPTY_VALUE;
        ExtSkewness_Close[j] = EMPTY_VALUE; ExtKurtosis_Close[j] = EMPTY_VALUE;
-       
-       ExtCen0[j] = EMPTY_VALUE;
-       ExtCen1[j] = EMPTY_VALUE; ExtCen2[j] = EMPTY_VALUE; ExtCen3[j] = EMPTY_VALUE;
-       ExtCen4[j] = EMPTY_VALUE; ExtCen5[j] = EMPTY_VALUE; ExtCen6[j] = EMPTY_VALUE;
-       ExtCen7[j] = EMPTY_VALUE;
+       ExtCen0[j] = EMPTY_VALUE; ExtCen1[j] = EMPTY_VALUE; ExtCen2[j] = EMPTY_VALUE; ExtCen3[j] = EMPTY_VALUE;
+       ExtCen4[j] = EMPTY_VALUE; ExtCen5[j] = EMPTY_VALUE;
+       ExtCen6[j] = EMPTY_VALUE; ExtCen7[j] = EMPTY_VALUE;
        ExtCen8[j] = EMPTY_VALUE; ExtCen9[j] = EMPTY_VALUE; ExtCen10[j] = EMPTY_VALUE; ExtCen11[j] = EMPTY_VALUE;
    }
 
    if(ArraySize(g_time) < rates_total) {
       ArrayResize(g_time, rates_total); ArrayResize(g_close, rates_total); ArrayResize(g_high, rates_total); ArrayResize(g_low, rates_total);
    }
+   
    int copy_start = (prev_calculated > 0) ? prev_calculated - 1 : 0;
    for(int j = copy_start; j < rates_total; j++) {
       g_time[j] = time[j]; g_close[j] = close[j];
@@ -1091,9 +1186,9 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    }
    g_rates_total = rates_total;
 
-   int startIdx = (rates_total > InpSSAMathLookback) ? rates_total - InpSSAMathLookback : 0;
+   int startIdx = (rates_total > InpSSAMathLookback) ?
+   rates_total - InpSSAMathLookback : 0;
    int len = rates_total - startIdx;
-   
    if(prev_calculated == 0) {
       for(int i = 0; i < startIdx; i++) { ExtSSATrend[i] = EMPTY_VALUE;
       ExtSSASignal[i] = EMPTY_VALUE; ExtSSACross[i] = EMPTY_VALUE; }
@@ -1111,11 +1206,13 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    if(prev_calculated == 0) {
       CAlglib::SSAAnalyzeLast(ssaClose, len, trend, noise);
       if(trend.Size() == len) {
-         for(int i = 0; i < len; i++) ExtSSATrend[startIdx + i] = trend[i];
-         ExtSSASignal[startIdx] = trend[0]; ExtSSACross[startIdx] = EMPTY_VALUE;
+         vector<double> vecTrend = trend.ToVector();
+         for(int i = 0; i < len; i++) ExtSSATrend[startIdx + i] = vecTrend[i];
+         
+         ExtSSASignal[startIdx] = vecTrend[0]; ExtSSACross[startIdx] = EMPTY_VALUE;
          for(int i = 1; i < len; i++) {
             int idx = startIdx + i;
-            ExtSSASignal[idx] = alpha * trend[i] + (1.0 - alpha) * ExtSSASignal[idx - 1];
+            ExtSSASignal[idx] = alpha * vecTrend[i] + (1.0 - alpha) * ExtSSASignal[idx - 1];
             bool crossUp = (ExtSSATrend[idx] > ExtSSASignal[idx]) && (ExtSSATrend[idx - 1] <= ExtSSASignal[idx - 1]);
             bool crossDown = (ExtSSATrend[idx] < ExtSSASignal[idx]) && (ExtSSATrend[idx - 1] >= ExtSSASignal[idx - 1]);
             if(crossUp || crossDown) ExtSSACross[idx] = ExtSSATrend[idx];
@@ -1167,7 +1264,7 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    }
 
    if(math_update_due) { 
-      PerformClusteringAndEDT(rates_total, time, close); 
+      PerformClusteringAndCFL(rates_total, time, close); 
       ChartRedraw(0);
    }
 

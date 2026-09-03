@@ -8,7 +8,7 @@ REM   MT5Relay      — mt5_api_relay_for_v2_29.py      (legacy socket relay; op
 REM   MT5Collector  — export_collector_validator_v2.py (collect->validate->calculate->promote)
 REM   MT5PushWorker — backfill_worker_api_gateway_v5.py (market_data -> API gateway)
 REM
-REM The 12 MQL5 indicators + the EA are NOT services; they run inside the MT5
+REM The 13 MQL5 indicators + the EA are NOT services; they run inside the MT5
 REM terminal (attached to the XAUUSD M5 and M15 charts) and auto-export every
 REM minute. Run this script from an elevated (Administrator) cmd.
 REM

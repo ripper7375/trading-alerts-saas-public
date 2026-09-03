@@ -183,7 +183,7 @@ def test_variant_presets():
     crossings = (make_cluster(98, 100.0) + make_cluster(198, 101.0) + make_cluster(298, 102.0)
                  + make_cluster(398, 103.0) + make_cluster(498, 104.0) + make_cluster(598, 105.0)
                  + make_cluster(698, 106.0))
-    for v in ('best_fit', 'cherry_a', 'cherry_b', 'most_recent', 'non_a', 'non_b'):
+    for v in ('best_fit_a', 'best_fit_b', 'cherry_a', 'cherry_b', 'most_recent', 'non_a', 'non_b'):
         r = calculate_variant(v, crossings, closes, ramp(n, 90), ramp(n, 200))
         check(f"{v}: runs and finds the collinear line",
               r is not None and abs(r.slope - 0.01) < 1e-9,

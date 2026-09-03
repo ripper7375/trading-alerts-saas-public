@@ -3,7 +3,7 @@
 **Status:** Authoritative reference ("the bible") for the XAUUSD data-collection
 pipeline. Calc stack **CERTIFIED** (§6). Pre-production: two integration items
 remain (gateway migration, timestamp-conversion) — see §13.
-**Last Updated:** 2026-06-13
+**Last Updated:** 2026-09-03
 **Scope:** Full market-data pipeline on the Contabo VPS —
 MT5 chart indicators → auto-exported `.txt` files → collect / validate /
 **calculate** / promote (SQLite `xauusd.db`) → push to the Railway API Gateway.
@@ -30,12 +30,12 @@ not part of the deployment.
 
 | File                                       | Role                                                                   | Ref   |
 | ------------------------------------------ | ---------------------------------------------------------------------- | ----- |
-| `mq5/` (12 indicators, see §0.4)           | Data producers: compute + auto-export admin-layer `.txt` files         | §5.1  |
+| `mq5/` (13 indicators, see §0.4)           | Data producers: compute + auto-export admin-layer `.txt` files         | §5.1  |
 | `export_collector_validator_v2.py`         | Pipeline engine: COLLECT → ADJUST → VALIDATE → **CALCULATE** → PROMOTE | §5.2  |
 | `zscore_candle.py`                         | Calc module — candle body direction/size/classification                | §6    |
 | `zigzag_metrics.py`                        | Calc module — zigzag segment metrics                                   | §6    |
 | `fractal_lines.py`                         | Calc module — fractal / resistance / support lines                     | §6    |
-| `centroid_regression.py`                   | Calc module — 6 centroid variants as one parameterized engine          | §6    |
+| `centroid_regression.py`                   | Calc module — 7 centroid variants as one parameterized engine          | §6    |
 | `sqlite_schema_v6_xauusd.sql`              | `xauusd.db` schema: staging + validation + `market_data`               | §5.3  |
 | `backfill_worker_api_gateway_v5.py`        | Push worker: `market_data WHERE synced_at IS NULL` → gateway           | §5.4  |
 | `gateway_contract_market_data.schema.json` | JSON-Schema of the POST body the gateway must accept                   | §9    |
@@ -65,14 +65,25 @@ not part of the deployment.
 > These also live at `backend-stack-c/2_python-calc-stack/` (original home). The
 > collector resolves the calc modules from either location (§5.2).
 
-### 0.4 The 12 export indicators — `mq5/`
+### 0.4 The 13 export indicators — `mq5/`
 
 Filenames are hyphen-free (MQL5 indicator names); the EA's `iCustom()` and the
 collector's file-prefix map both depend on these exactly.
 
+> **2026-09-03 — `best_fit` split into `best_fit_a`/`best_fit_b`:** the former
+> single `2EDTCentroidRegressionBestFitNonMostRecent_v2_29.mq5` indicator was
+> replaced by two indicators run in **isolated coexistence** on the same
+> chart (separate object namespaces, separate export buttons/corners): `A`
+> ("Primary Instance") is numerically **identical** to the old `best_fit`
+> (`InpRegCentroids=5`, `InpExcludeRecentCentroids=0`); `B` ("Secondary
+> Instance") is a **new** preset (`InpExcludeRecentCentroids=3`, mirroring
+> the existing Non-A/Non-B pair). See §3.4 and `CERTIFICATION.md` for the
+> certification-status implications.
+
 | `mq5/` file                                                   | Export-file prefix (`InpExportFileName`) | Collector source key |
 | ------------------------------------------------------------- | ---------------------------------------- | -------------------- |
-| `2EDTCentroidRegressionBestFitNonMostRecent_v2_29.mq5`        | `Centriod_Best_Fit`                      | `best_fit`           |
+| `2EDTCentroidRegressionBestFitNonMostRecentA_v2_29.mq5`       | `Centriod_Best_Fit_A`                    | `best_fit_a`         |
+| `2EDTCentroidRegressionBestFitNonMostRecentB_v2_29.mq5`       | `Centriod_Best_Fit_B`                    | `best_fit_b`         |
 | `2EDTCentroidRegressionCherryPickA_v2_29.mq5`                 | `Cherry-Pick-A`                          | `cherry_a`           |
 | `2EDTCentroidRegressionCherryPickB_v2_29.mq5`                 | `Cherry-Pick-B`                          | `cherry_b`           |
 | `2EDTCentroidRegressionMostRecentLineExtension_v2_29.mq5`     | `Most-Recent`                            | `most_recent`        |
@@ -102,13 +113,13 @@ collector's file-prefix map both depend on these exactly.
 
 ## 1. Design Goals
 
-1. **Single source of truth = validated export files.** All 12 indicators
+1. **Single source of truth = validated export files.** All 13 indicators
    export per-bar `.txt` files; the collector cross-validates them, computes the
    derived layer in Python, and promotes one coherent `market_data` row per bar.
 2. **MQL5 computes the minimum; Python computes the configurable.** MQL5 owns
    the heavy/stable admin layer (SSA, fractal maps, OHLCV, zigzag pivots);
    Python owns every user-configurable derived value (§3). This enables the
-   on-demand / user-parameterized services and collapses the 6 centroid
+   on-demand / user-parameterized services and collapses the 7 centroid
    indicators into one engine.
 3. **Reject incoherent cycles, never half-ingest.** If the sources disagree on
    the validation keys for a 5-minute cycle, the **whole** cycle is rejected and
@@ -128,14 +139,14 @@ collector's file-prefix map both depend on these exactly.
 │                                                                                │
 │  MT5 terminal — XAUUSD M5 chart + XAUUSD M15 chart                             │
 │  ┌──────────────────────────────┐  auto-export every minute at second :59     │
-│  │ 12 export indicators  (§5.1) │ ───────────────►  MQL5/Files/                │
-│  │  6× Centroid Regression      │                   {Prefix}_XAUUSD_{TF}.txt   │
+│  │ 13 export indicators  (§5.1) │ ───────────────►  MQL5/Files/                │
+│  │  7× Centroid Regression      │                   {Prefix}_XAUUSD_{TF}.txt   │
 │  │  Fractal Best-Fit v5         │                   (admin-layer columns)      │
 │  │  Single Best Resist/Support  │                          │                   │
 │  │  ZigZag v43 / OHLCV / ZScore │                          ▼                   │
 │  └──────────────────────────────┘   ┌──────────────────────────────────────┐  │
 │                                      │ export_collector_validator_v2.py(§5.2)│ │
-│  every 5 min at :05, market-hours    │  COLLECT  → 12 raw_* staging tables   │  │
+│  every 5 min at :05, market-hours    │  COLLECT  → 13 raw_* staging tables   │  │
 │  gated; M15 on 15-min boundaries     │  ADJUST   → timestamp_adj (see §7)    │  │
 │                                      │  VALIDATE → keys agree across sources │  │
 │                                      │             (symbol/tf/close ±0.01)   │  │
@@ -189,7 +200,7 @@ Authoritative column lists:
 
 | Source              | Exported columns (after the 4 keys `timestamp,symbol,timeframe,close`) |
 | ------------------- | ---------------------------------------------------------------------- |
-| 6 centroid variants | `horiz_high_map`, `horiz_low_map`, `ssa`, `ema_ssa`, `crossing`        |
+| 7 centroid variants | `horiz_high_map`, `horiz_low_map`, `ssa`, `ema_ssa`, `crossing`        |
 | `Fractal_EDT`       | (keys only)                                                            |
 | `Resistance_Line`   | (keys only)                                                            |
 | `Support_Line`      | (keys only)                                                            |
@@ -224,11 +235,15 @@ are retained only for reference (§14).
 MQL5-computed values are effectively hard-coded (admin-configured in the
 terminal). Moving the derived layer to Python lets end users configure
 parameters (window dates, centroid inclusion/exclusion, min-EDT-touches,
-tolerances, thresholds) and removes the Non-A/Non-B/Cherry-A/Cherry-B
-redundancy — the 6 centroid indicators become 6 parameter presets of one
-engine (`centroid_regression.VARIANT_PRESETS`). The same modules serve both the
-pipeline (fixed presets, stored in `market_data`) and an on-demand
-user-parameterized service.
+tolerances, thresholds) and removes the Non-A/Non-B/Cherry-A/Cherry-B/
+Best-Fit-A/Best-Fit-B redundancy — the 7 centroid indicators become 7
+parameter presets of one engine (`centroid_regression.VARIANT_PRESETS`). The
+same modules serve both the pipeline (fixed presets, stored in `market_data`)
+and an on-demand user-parameterized service. `best_fit_a`/`best_fit_b`
+(2026-09-03) are themselves an isolated-coexistence split of the former
+single `best_fit` preset — `best_fit_a` is config-identical to it
+(`exclude_recent_centroids=0`), `best_fit_b` is new
+(`exclude_recent_centroids=3`), mirroring the existing `non_a`/`non_b` pair.
 
 ---
 
@@ -249,9 +264,10 @@ user-parameterized service.
 
 ### 4.2 `market_data` (collector → gateway)
 
-The promoted wide table (79 columns). Field-by-field contract is
-`gateway_contract_market_data.schema.json` (§9). Column families: the 4 keys,
-OHLCV, the 6 centroid families (admin: `*_horiz_high_map/_horiz_low_map/_ssa/
+The promoted wide table (87 columns — was 79 before the 2026-09-03
+`best_fit_a`/`best_fit_b` split added a 7th centroid family). Field-by-field
+contract is `gateway_contract_market_data.schema.json` (§9). Column families:
+the 4 keys, OHLCV, the 7 centroid families (admin: `*_horiz_high_map/_horiz_low_map/_ssa/
 _ema_ssa/_crossing`; calculated: `*_base_fl/_uoedt/_loedt`), fractal/resistance/
 support lines, the z-score candle set, the zigzag pivot + metrics, and
 provenance (`cycle_id`, `collected_at`, `calculated_at`, `synced_at`).
@@ -272,25 +288,25 @@ Gateway **must** upsert idempotently on `(symbol, timeframe, timestamp)`.
 
 ## 5. Component Reference (runtime)
 
-### 5.1 Export indicators — `mq5/` (12 files)
+### 5.1 Export indicators — `mq5/` (13 files)
 
 One full set on the XAUUSD M5 chart, one on the M15 chart. Each computes its
 buffers and auto-exports the admin-layer columns (§3.1).
 
-- **Auto-export inputs (all 12):** `InpAutoExport=true` (1-second `EventSetTimer`
-  loop), `InpExportSecond=59` — keep identical across all 12 so files are
+- **Auto-export inputs (all 13):** `InpAutoExport=true` (1-second `EventSetTimer`
+  loop), `InpExportSecond=59` — keep identical across all 13 so files are
   written in near-lockstep.
 - **Manual/button export retained** in every indicator for human review
   (format/correctness vs the chart); also answer the `CHARTEVENT_CUSTOM+1000` /
   `"EXPORT_ALL"` broadcast.
-- **Statistic files:** the 6 centroid variants and the 3 windowed line
+- **Statistic files:** the 7 centroid variants and the 3 windowed line
   indicators emit `_Statistic.txt` (window anchors + params + resolved line);
   OHLCV/ZigZag/ZScore do not (fully reproducible from their timeseries).
 - **OHLCV depth** `InpBars=3000` to match the centroid math lookback.
 - ⚠️ **Windowed-anchor caveat:** Fractal-Best-Fit and both Single-Best lines use
   fixed `InpStartDateTime`/`InpEndDateTime`; re-anchor per analysis window (§13).
 - ⚠️ **CPU:** each centroid variant runs an SSA engine over `InpSSAMathLookback`
-  (3000) bars; six variants × two charts is moderate — avoid extra charts.
+  (3000) bars; seven variants × two charts is moderate — avoid extra charts.
 
 ### 5.2 Collector + validator — `export_collector_validator_v2.py`
 
@@ -303,7 +319,7 @@ alongside this file or in a sibling `2_python-calc-stack/`).
 | `MAX_ATTEMPTS_PER_CYCLE` | `3`                             | Reject → re-request attempts per slot                              |
 | `RETRY_WAIT_SEC`         | `65`                            | Wait for the next per-minute auto-export before re-reading         |
 | `CYCLE_INTERVAL_SEC`     | `300`                           | Cadence; fires at :05 past each boundary                           |
-| `DEFAULT_EXPORT_DIR`     | terminal `MQL5/Files`           | Where the 12 files are read — configure per VPS                    |
+| `DEFAULT_EXPORT_DIR`     | terminal `MQL5/Files`           | Where the 13 files are read — configure per VPS                    |
 | `DEFAULT_DB_PATH`        | `C:/Scripts/database/xauusd.db` | v6 database (schema auto-applied on start)                         |
 
 - **Parsing is header-name-based**, so it accepts both full (current) and
@@ -326,7 +342,7 @@ applies it on every start, so shipping schema changes = shipping the file.
 | 12 × `raw_*`                       | per-source staging (admin-layer columns only); lead with keys `cycle_id, timestamp_raw, timestamp_adj, symbol, timeframe, close`                             |
 | `v_validation_keys` (+ `…_zigzag`) | UNION view of the 11 per-bar sources' keys for the cross-source mismatch query (zigzag exposed separately as sparse pivots)                                  |
 | `validation_failures`              | per-mismatch forensic log (field + per-source values as JSON)                                                                                                |
-| `market_data`                      | validated wide table (79 cols); PK `(timestamp, timeframe)`; `synced_at` outbox (NULL = unsynced; rows are marked, never deleted); partial index on unsynced |
+| `market_data`                      | validated wide table (87 cols); PK `(timestamp, timeframe)`; `synced_at` outbox (NULL = unsynced; rows are marked, never deleted); partial index on unsynced |
 
 CHECK constraints enforce `symbol='XAUUSD'` and `timeframe IN ('M5','M15')`.
 Empty export fields stored as `NULL`.
@@ -364,7 +380,7 @@ phase table are in `mql5-to-python-transliteration/README.md`.
 | `zscore_candle.py`       | `zscoreohlccandleexport` (rolling sample z-score, signed classification) |
 | `zigzag_metrics.py`      | `ZigZagExportv43` metric layer (pivot detection stays in MQL5)           |
 | `fractal_lines.py`       | `2EDTFractalBestFitv5`, `SingleBestResistance/Supportv3`                 |
-| `centroid_regression.py` | all six `2EDTCentroidRegression*` (one engine; `VARIANT_PRESETS`)        |
+| `centroid_regression.py` | all seven `2EDTCentroidRegression*` (one engine; `VARIANT_PRESETS`)      |
 
 ### 6.1 Unit/golden test suite (run after any calc-module change)
 
@@ -400,6 +416,15 @@ resistance & support; fractal flip line + EDTs; the full best_fit centroid chain
 (DBSCAN → WLS subset search → baseline → EDTs → stats); cherry_b; and every
 variant's baseline, slope, anchored intercept, and lower EDT.
 
+> **`best_fit_a`/`best_fit_b` (2026-09-03):** the results above predate the
+> `best_fit` → `best_fit_a`/`best_fit_b` split and still say "best_fit" —
+> they carry over **unchanged** to `best_fit_a` (config-identical: same
+> `reg_centroids`/`exclude_recent_centroids`, so the same math), not
+> re-derived. `best_fit_b` is a **new** preset with **no certification
+> evidence** — it is not part of the 50/50 or 39/50 counts above and must be
+> run through `golden_certification.py` against a real `Centriod_Best_Fit_B`
+> export batch before it can be called certified. See `CERTIFICATION.md`.
+
 ### 6.4 Accepted bounded tolerance (the 11 M5 checks) — see `CERTIFICATION.md`
 
 1. **most_recent / non_a upper EDT (UOEDT) only** — MQL5 selects an upper EDT
@@ -431,7 +456,8 @@ keys must match the OHLCV bar at the same `timestamp_adj`).
 
 **Open item — `timestamp_adj` normalization (owned separately).** Each indicator
 exports raw bar timestamps with a **different constant sub-bar phase**
-(observed `%300`: ohlcv 206, best_fit 4, cherry_a 240, cherry_b 288, …). Bars
+(observed `%300`: ohlcv 206, best_fit_a 4 [best_fit_b unmeasured — new
+2026-09-03 variant], cherry_a 240, cherry_b 288, …). Bars
 align perfectly **by sequence** (verified 2989/2989), but simple round/floor
 gridding sends the same physical bar to different slots, so cross-source close
 validation cannot pass on heterogeneous exports. The collector currently fills
@@ -456,7 +482,7 @@ C:/Scripts/
 ├── relay/       mt5_api_relay_for_v2_29.py            (legacy, optional)
 ├── database/    xauusd.db, rejected_rows.jsonl
 └── logs/        collector.log, push_worker.log, relay.log (rotating)
-MT5 terminal:    12 indicators on the XAUUSD M5 chart + 12 on the M15 chart;
+MT5 terminal:    13 indicators on the XAUUSD M5 chart + 13 on the M15 chart;
                  exports land in <terminal>/MQL5/Files/
 ```
 
@@ -470,10 +496,10 @@ requests`. Verify with `nssm status MT5Collector` / `MT5PushWorker`.
 
 ### 8.3 Indicator/terminal setup
 
-1. Compile the 12 `mq5/` indicators in MetaEditor.
+1. Compile the 13 `mq5/` indicators in MetaEditor.
 2. Tools → Options → Expert Advisors: allow `127.0.0.1` (only needed if the
    legacy EA/relay is used).
-3. Attach all 12 indicators to the XAUUSD **M5** chart and all 12 to the **M15**
+3. Attach all 13 indicators to the XAUUSD **M5** chart and all 13 to the **M15**
    chart; set each windowed indicator's anchors (§5.1) and confirm lines draw.
 4. Confirm `MQL5/Files/` fills with `{Prefix}_XAUUSD_{TF}.txt` (+ the 9
    `_Statistic.txt`) each minute.
@@ -490,7 +516,7 @@ The collector recreates the schema and idles when no exports are present.
 The gateway must provide:
 
 1. `POST /api/v1/market-data` accepting a body validated by
-   `gateway_contract_market_data.schema.json` — the 79-field `market_data`
+   `gateway_contract_market_data.schema.json` — the 87-field `market_data`
    record plus `terminal_id`. **All derived/indicator fields are nullable**
    (`null` = indicator inactive on that bar; never coerce to 0).
 2. **Idempotent upsert** on `(symbol, timeframe, timestamp)` — duplicate
@@ -513,7 +539,7 @@ absent/empty; `market_data` unsynced count trends to 0.
 
 | Alert-worthy                         | Meaning                                                                       | Action                                                    |
 | ------------------------------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------- |
-| Cycles repeatedly `rejected`         | Sources disagree (often timestamp_adj — §7) or an indicator stopped exporting | Read `validation_failures`; check the 12 files' freshness |
+| Cycles repeatedly `rejected`         | Sources disagree (often timestamp_adj — §7) or an indicator stopped exporting | Read `validation_failures`; check the 13 files' freshness |
 | `rejected_rows.jsonl` growing        | Gateway rejecting pushes                                                      | Read `gateway_error`; fix gateway/data; replay (§10.2)    |
 | `CRITICAL: Authentication failed`    | Key rotated/revoked                                                           | Rotate `BACKFILL_API_KEY`                                 |
 | Unsynced `market_data` rows climbing | Gateway unreachable                                                           | Check Railway; worker retries automatically               |
@@ -595,9 +621,11 @@ purpose is keeping charts/indicators alive so they auto-export.
 
 ### 14.1 EA — `SimpleDataCollector_v2_29_ASYNC_SOCKET.mq5`
 
-Loads 11 `iCustom` handles (the 12 indicators minus OHLCV, which it reads via
-`CopyRates`). **Its `iCustom` names must exactly match the `mq5/` filenames**
-(§0.4) — updated to the hyphen-free v2.29 names. In the legacy design it
+Loads 12 `iCustom` handles (the 13 indicators minus OHLCV, which it reads via
+`CopyRates`) — including a `best_fit_a`/`best_fit_b` pair since the
+2026-09-03 split (previously one `best_fit` handle). **Its `iCustom` names
+must exactly match the `mq5/` filenames** (§0.4) — updated to the
+hyphen-free v2.29 names. In the legacy design it
 serialized a per-bar payload to the relay over TCP `127.0.0.1:5555`
 (fire-and-forget, <1ms) with a circuit breaker (10 consecutive socket failures →
 write to a per-symbol SQLite fallback instead). That socket/SQLite/circuit-breaker
@@ -620,14 +648,15 @@ relay bounded-queue+spill+replay; worker `BACKFILL_API_KEY` via env var.
 
 ## Appendix A — Version History
 
-| Item                                          | State                                                                    |
-| --------------------------------------------- | ------------------------------------------------------------------------ |
-| EA / indicators                               | v2.29 (hyphen-free `mq5/` names; auto-export; SSA 8-decimal)             |
-| Schema                                        | v6 (`xauusd.db`: staging + validation + `market_data` outbox)            |
-| Collector                                     | v2 (CALCULATE stage; header-name parsing; market-hours gate)             |
-| Push worker                                   | v5 (`market_data` outbox; synced_at; quarantine+replay)                  |
-| Calc stack                                    | Phases 1–3 ported; 93/93 tests; CERTIFIED (M15 50/50, M5 39/50 accepted) |
-| Legacy v2.28/v2.27/v2.26 EAs, `.ex5` binaries | history only — do not deploy                                             |
+| Item                                          | State                                                                                                                                                                            |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EA / indicators                               | v2.29 (hyphen-free `mq5/` names; auto-export; SSA 8-decimal)                                                                                                                     |
+| Schema                                        | v6 (`xauusd.db`: staging + validation + `market_data` outbox)                                                                                                                    |
+| Collector                                     | v2 (CALCULATE stage; header-name parsing; market-hours gate)                                                                                                                     |
+| Push worker                                   | v5 (`market_data` outbox; synced_at; quarantine+replay)                                                                                                                          |
+| Calc stack                                    | Phases 1–3 ported; 93/93 tests; CERTIFIED (M15 50/50, M5 39/50 accepted)                                                                                                         |
+| Centroid variants (2026-09-03)                | `best_fit` split into `best_fit_a` (identical config, cert. carries over) + `best_fit_b` (new preset, uncertified) — 6→7 variants, 12→13 indicators, `market_data` 79→87 columns |
+| Legacy v2.28/v2.27/v2.26 EAs, `.ex5` binaries | history only — do not deploy                                                                                                                                                     |
 
 The files in §0 are the deployment set; everything else in the directory is
 historical.

@@ -4,8 +4,8 @@
 --
 -- Pipeline (v6 adds the CALCULATE stage backed by the Python calc stack in
 -- backend-stack-c/2_python-calc-stack/):
---   1. COLLECT   — every 5 minutes the 12 indicator export files are ingested
---                  into the 12 raw_* staging tables under one collection cycle.
+--   1. COLLECT   — every 5 minutes the 13 indicator export files are ingested
+--                  into the 13 raw_* staging tables under one collection cycle.
 --   2. ADJUST    — timestamp_adj = raw timestamp rounded to the bar grid.
 --   3. VALIDATE  — the validation keys (timestamp_adj, symbol, timeframe,
 --                  close ±0.01) must agree across sources; any mismatch
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS collection_cycles (
     attempt         INTEGER NOT NULL DEFAULT 1,       -- re-request counter
     status          TEXT    NOT NULL DEFAULT 'collecting'
                     CHECK (status IN ('collecting', 'validating', 'validated', 'rejected')),
-    sources_received INTEGER NOT NULL DEFAULT 0,      -- 0..12 export files ingested
+    sources_received INTEGER NOT NULL DEFAULT 0,      -- 0..13 export files ingested
     rejected_reason TEXT,
     created_at      INTEGER NOT NULL,
     validated_at    INTEGER,
@@ -90,7 +90,26 @@ CREATE TABLE IF NOT EXISTS validation_failures (
 --   cycle_id, timestamp_raw, timestamp_adj, symbol, timeframe, close
 
 -- ---- 2.1 Centroid-regression variants: maps + SSA + crossing --------------
-CREATE TABLE IF NOT EXISTS raw_best_fit (
+-- best_fit_a/best_fit_b: isolated-coexistence split of the former single
+-- 'best_fit' source (2026-09-03) — best_fit_a is numerically identical to
+-- the old best_fit (InpExcludeRecentCentroids=0); best_fit_b is new
+-- (InpExcludeRecentCentroids=3), mirroring the existing non_a/non_b pair.
+CREATE TABLE IF NOT EXISTS raw_best_fit_a (
+    cycle_id        INTEGER NOT NULL REFERENCES collection_cycles (cycle_id) ON DELETE CASCADE,
+    timestamp_raw   INTEGER NOT NULL,
+    timestamp_adj   INTEGER,
+    symbol          TEXT    NOT NULL CHECK (symbol = 'XAUUSD'),
+    timeframe       TEXT    NOT NULL CHECK (timeframe IN ('M5', 'M15')),
+    close           REAL    NOT NULL,
+    horiz_high_map  REAL,
+    horiz_low_map   REAL,
+    ssa             REAL,
+    ema_ssa         REAL,
+    crossing        INTEGER,
+    PRIMARY KEY (cycle_id, timeframe, timestamp_raw)
+);
+
+CREATE TABLE IF NOT EXISTS raw_best_fit_b (
     cycle_id        INTEGER NOT NULL REFERENCES collection_cycles (cycle_id) ON DELETE CASCADE,
     timestamp_raw   INTEGER NOT NULL,
     timestamp_adj   INTEGER,
@@ -253,7 +272,9 @@ CREATE TABLE IF NOT EXISTS raw_zigzag (
 -- 3. CROSS-SOURCE VALIDATION VIEW
 -- ============================================================================
 CREATE VIEW IF NOT EXISTS v_validation_keys AS
-    SELECT cycle_id, 'best_fit'    AS source, timestamp_raw, timestamp_adj, symbol, timeframe, close FROM raw_best_fit
+    SELECT cycle_id, 'best_fit_a'  AS source, timestamp_raw, timestamp_adj, symbol, timeframe, close FROM raw_best_fit_a
+    UNION ALL
+    SELECT cycle_id, 'best_fit_b'  AS source, timestamp_raw, timestamp_adj, symbol, timeframe, close FROM raw_best_fit_b
     UNION ALL
     SELECT cycle_id, 'cherry_a'    AS source, timestamp_raw, timestamp_adj, symbol, timeframe, close FROM raw_cherry_a
     UNION ALL
@@ -299,14 +320,23 @@ CREATE TABLE IF NOT EXISTS market_data (
     volume              INTEGER NOT NULL,
 
     -- Centroid variants: admin layer (staged) + calculated lines
-    best_fit_horiz_high_map REAL,
-    best_fit_horiz_low_map  REAL,
-    best_fit_ssa            REAL,
-    best_fit_ema_ssa        REAL,
-    best_fit_crossing       INTEGER,
-    best_fit_base_fl        REAL,    -- calculated (centroid_regression.py 'best_fit')
-    best_fit_uoedt          REAL,    -- calculated
-    best_fit_loedt          REAL,    -- calculated
+    best_fit_a_horiz_high_map REAL,
+    best_fit_a_horiz_low_map  REAL,
+    best_fit_a_ssa            REAL,
+    best_fit_a_ema_ssa        REAL,
+    best_fit_a_crossing       INTEGER,
+    best_fit_a_base_fl        REAL,    -- calculated (centroid_regression.py 'best_fit_a')
+    best_fit_a_uoedt          REAL,    -- calculated
+    best_fit_a_loedt          REAL,    -- calculated
+
+    best_fit_b_horiz_high_map REAL,
+    best_fit_b_horiz_low_map  REAL,
+    best_fit_b_ssa            REAL,
+    best_fit_b_ema_ssa        REAL,
+    best_fit_b_crossing       INTEGER,
+    best_fit_b_base_fl        REAL,    -- calculated (centroid_regression.py 'best_fit_b')
+    best_fit_b_uoedt          REAL,    -- calculated
+    best_fit_b_loedt          REAL,    -- calculated
 
     cherry_a_horiz_high_map REAL,
     cherry_a_horiz_low_map  REAL,

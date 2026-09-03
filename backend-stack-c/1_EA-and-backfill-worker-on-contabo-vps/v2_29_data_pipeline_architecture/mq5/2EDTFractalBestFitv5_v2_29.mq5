@@ -51,7 +51,8 @@ input double            InpMaxLineAngle = 3.0;
 input color             InpBestFLColor = clrBlue;
 
 input string            SepEDT = "===== EDT Settings =====";
-input int               InpEDTMinTouches = 3;
+input int               LOEDTInpEDTMinTouches = 2;
+input int               UOEDTInpEDTMinTouches = 2;
 input color             InpEDTColor = clrMagenta;
 
 input string            Sep4 = "===== Tolerance Settings =====";
@@ -401,18 +402,20 @@ void BuildBestFlipLine(const int rates_total)
             }
          }
 
-         if(touches >= InpEDTMinTouches) {
-            if(test_intercept > base_c) {
-                if(test_intercept > max_above_intercept) {
-                    max_above_intercept = test_intercept;
-                    found_above = true;
-                }
-            } else if (test_intercept < base_c) {
-                if(test_intercept < min_below_intercept) {
-                    min_below_intercept = test_intercept;
-                    found_below = true;
-                }
-            }
+         if(test_intercept > base_c) {
+             if(touches >= UOEDTInpEDTMinTouches) {
+                 if(test_intercept > max_above_intercept) {
+                     max_above_intercept = test_intercept;
+                     found_above = true;
+                 }
+             }
+         } else if (test_intercept < base_c) {
+             if(touches >= LOEDTInpEDTMinTouches) {
+                 if(test_intercept < min_below_intercept) {
+                     min_below_intercept = test_intercept;
+                     found_below = true;
+                 }
+             }
          }
       }
 
@@ -577,7 +580,8 @@ void WriteFractalStatFile(string clean_symbol, string tf_str)
    FileWrite(fh, "Tolerance Type: "        + (InpToleranceType == TOLERANCE_PERCENT ? "PERCENT" : "ATR"));
    FileWrite(fh, "Tolerance Percent: "     + DoubleToString(InpTolerancePercent, 4));
    FileWrite(fh, "Tolerance ATR Multiplier: " + DoubleToString(InpToleranceATRMultiplier, 4));
-   FileWrite(fh, "EDT Min Touches: "       + IntegerToString(InpEDTMinTouches));
+   FileWrite(fh, "LOEDT Min Touches: "     + IntegerToString(LOEDTInpEDTMinTouches));
+   FileWrite(fh, "UOEDT Min Touches: "     + IntegerToString(UOEDTInpEDTMinTouches));
    FileWrite(fh, "");
    FileWrite(fh, "[FRACTAL BEST-FIT — RESOLVED LINE]");
    FileWrite(fh, "Solution Found: "        + (g_stat_found ? "true" : "false"));

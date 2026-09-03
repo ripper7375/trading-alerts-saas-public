@@ -1,7 +1,9 @@
 Python stacks calculation (use data received from mql5 export and do calculation):
 ==========================================================
 
-Best_Fit_Base_FL	Best_Fit_UOEDT	Best_Fit_LOEDT
+Best_Fit_A_Base_FL	Best_Fit_A_UOEDT	Best_Fit_A_LOEDT
+
+Best_Fit_B_Base_FL	Best_Fit_B_UOEDT	Best_Fit_B_LOEDT
 
 Cherry_A_Base_FL	Cherry_A_UOEDT	Cherry_A_LOEDT
 

@@ -7,6 +7,20 @@ session, XAUUSD M5 + M15), field-by-field within 1e-5 absolute. Harness:
 `golden_certification.py`. Reports: `golden_certification_report_M5.txt`,
 `golden_certification_report_M15.txt`.
 
+> **2026-09-03 update — `best_fit` split into `best_fit_a`/`best_fit_b`:**
+> the single `best_fit` centroid-regression indicator was replaced by two
+> indicators run in isolated coexistence on the same chart —
+> `best_fit_a` (config-identical to the old `best_fit`: `reg_centroids=5`,
+> `exclude_recent_centroids=0`) and `best_fit_b` (new preset:
+> `exclude_recent_centroids=3`, mirroring the existing `non_a`/`non_b`
+> pair). Because `best_fit_a`'s math is unchanged, **every "best_fit" result
+> below and in the two report files now applies to `best_fit_a` unchanged —
+> it was relabeled, not re-run.** `best_fit_b` is a genuinely new preset
+> with **no golden-certification evidence yet** (no MT5 export data has ever
+> been captured for it); it is NOT covered by the M15 50/50 or M5 39/50
+> figures below. It must be run through `golden_certification.py` against a
+> real `Centriod_Best_Fit_B` export batch before it can be called certified.
+
 ## Result
 
 | Timeframe | Result                                         |
@@ -55,5 +69,8 @@ intercept, and lower EDT.
 ## Production note
 
 The centroid EDT stage consumes the **staged `horiz_high_map`/`horiz_low_map`
-columns** (matches MQL5 exactly for 4/6 variants). Do NOT switch it to
-self-detected fractals — that was tested and is worse (breaks best_fit).
+columns** (matches MQL5 exactly for 4 of the 6 originally-certified variants:
+`best_fit_a`, `cherry_a`, `cherry_b`, `non_b` — `most_recent`/`non_a` have the
+documented UOEDT reconstruction-fidelity gap, §6.4. `best_fit_b` is new and
+not yet run through this comparison either way). Do NOT switch it to
+self-detected fractals — that was tested and is worse (breaks best_fit_a).

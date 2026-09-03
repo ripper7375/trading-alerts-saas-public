@@ -220,7 +220,16 @@ def certify(ts_dir: Path, timeframe: str, stat_dir: Path = None):
                     for r in frows], TOL5)
 
     # ---------- 4. Centroid variants ----------
-    variants = {'best_fit': ('Centriod_Best_Fit', 'Best_Fit'),
+    # best_fit_a: 2026-09-03 isolated-coexistence split of the former single
+    # 'best_fit' indicator. Its engine preset is config-identical to the old
+    # best_fit (see centroid_regression.VARIANT_PRESETS), so the certified
+    # mock export data — captured before the split, still filed under the
+    # legacy 'Centriod_Best_Fit'/'Best_Fit' prefix — remains valid golden
+    # evidence for it; the prefix intentionally does not carry an _A suffix.
+    # best_fit_b is a NEW preset (exclude_recent_centroids=3) with no
+    # captured MT5 export data yet — deliberately NOT added here. Add it
+    # once a real 'Centriod_Best_Fit_B' export batch exists.
+    variants = {'best_fit_a': ('Centriod_Best_Fit', 'Best_Fit'),
                 'cherry_a': ('Cherry-Pick-A', 'Cherry_A'),
                 'cherry_b': ('Cherry-Pick-B', 'Cherry_B'),
                 'most_recent': ('Most-Recent', 'Most_Recent'),

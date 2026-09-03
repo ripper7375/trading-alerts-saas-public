@@ -42,8 +42,9 @@ API_GATEWAY_URL = os.environ.get('API_GATEWAY_URL', 'https://your-api.railway.ap
 API_KEY = os.environ.get('BACKFILL_API_KEY', 'your_api_key_here')
 TERMINAL_ID = 'push_worker_v5'
 
-# The 79 fields gateway_contract_market_data.schema.json requires, as posted
+# The 87 fields gateway_contract_market_data.schema.json requires, as posted
 # (i.e. after dropping market_data's own synced_at and adding terminal_id).
+# (Was 79 before the 2026-09-03 best_fit_a/best_fit_b split added 8 fields.)
 # Checked once at startup against the real market_data table so drift between
 # this SQLite schema and the JSON contract fails loudly instead of silently
 # producing 400s at the gateway.
@@ -51,7 +52,7 @@ EXPECTED_CONTRACT_FIELDS = frozenset({
     'terminal_id', 'timestamp', 'symbol', 'timeframe',
     'open', 'high', 'low', 'close', 'volume',
     *(f'{variant}_{suffix}'
-      for variant in ('best_fit', 'cherry_a', 'cherry_b', 'most_recent', 'non_a', 'non_b')
+      for variant in ('best_fit_a', 'best_fit_b', 'cherry_a', 'cherry_b', 'most_recent', 'non_a', 'non_b')
       for suffix in ('horiz_high_map', 'horiz_low_map', 'ssa', 'ema_ssa',
                      'crossing', 'base_fl', 'uoedt', 'loedt')),
     'fractal_best_fl', 'fractal_uoedt', 'fractal_loedt',
@@ -63,7 +64,7 @@ EXPECTED_CONTRACT_FIELDS = frozenset({
     'zigzag_slope', 'zigzag_category',
     'cycle_id', 'collected_at', 'calculated_at',
 })
-assert len(EXPECTED_CONTRACT_FIELDS) == 79, len(EXPECTED_CONTRACT_FIELDS)
+assert len(EXPECTED_CONTRACT_FIELDS) == 87, len(EXPECTED_CONTRACT_FIELDS)
 
 DB_PATH = Path('C:/Scripts/database/xauusd.db')      # the v6 pipeline database
 LOG_DIR = Path('C:/Scripts/logs')
@@ -148,7 +149,7 @@ def unsynced_count(conn) -> int:
 
 def verify_schema_contract(conn) -> bool:
     """Confirm market_data's columns match gateway_contract_market_data.schema.json
-    exactly (79 fields posted = table columns minus synced_at plus terminal_id).
+    exactly (87 fields posted = table columns minus synced_at plus terminal_id).
     Run once at startup so a future drift between the SQL schema and the JSON
     contract fails loudly here instead of surfacing as silent 400s at the gateway.
     """

@@ -14,7 +14,8 @@
 //   (centroid_regression.py) computes base_fl/uoedt/loedt separately. This
 //   file's SQLite schema, JSON payload, and buffer reads are now aligned with
 //   gateway_contract_market_data.schema.json / sqlite_schema_v6_xauusd.sql
-//   (79 market_data fields). Fields that require the Python calc stack
+//   (87 market_data fields, since the 2026-09-03 best_fit_a/best_fit_b
+//   split). Fields that require the Python calc stack
 //   (centroid base_fl/uoedt/loedt, fractal/resistance/support lines, zigzag
 //   segment metrics, z-score candle classification) are sent as NULL — never
 //   fabricated from the old computed buffers. See InsertCandle() and the
@@ -34,7 +35,8 @@
 //   Fractal Diagonal/Horizontal, Heiken Ashi, Keltner, Sup/Res, ZigZag v28,
 //   Dual TEMA, Pinbar) are replaced by the new export-selection set in
 //   mql5-indicators/mql5-indicator-export-selection/USE/mq5:
-//     1. 2EDT-Centroid-Regression-Best-Fit-Non-Most-Recent
+//     1a. 2EDT-Centroid-Regression-Best-Fit-Non-Most-Recent-A (Primary Instance)
+//     1b. 2EDT-Centroid-Regression-Best-Fit-Non-Most-Recent-B (Secondary Instance)
 //     2. 2EDT-Centroid-Regression-Cherry-Pick-A
 //     3. 2EDT-Centroid-Regression-Cherry-Pick-B
 //     4. 2EDT-Centroid-Regression-Most-Recent-Line-Extension
@@ -46,9 +48,12 @@
 //    10. ZigZag-Export-v43
 //    11. ohlcv-export-lightweight   (no buffers - OHLCV is collected natively via CopyRates)
 //    12. zscore-ohlc-candle-export
+//   (13 indicators total since the 2026-09-03 best_fit_a/best_fit_b split —
+//   items 1a/1b run in isolated coexistence on the same chart, each with its
+//   own object namespace/export button, per the mq5 files themselves.)
 // - SSA trend/signal/cross and fractal 108 markers are read once from the
-//   Best-Fit variant handle (all 6 centroid variants compute them identically
-//   from the same shared SSA / fractal default settings).
+//   Best-Fit-A variant handle (all 7 centroid variants compute them
+//   identically from the same shared SSA / fractal default settings).
 //
 // Version 2.28-ASYNC-SOCKET (preserved architecture):
 // - ARCHITECTURE SHIFT: Replaced synchronous blocking WebRequest with native MQL5 TCP Sockets.
@@ -82,7 +87,7 @@ input int DataCollectionIntervalSec = 300;         // Data collection interval i
 input int CircuitBreakerThreshold = 10;            // Consecutive Socket failures before circuit opens
 input int CircuitBreakerCooldownSec = 300;         // Seconds to wait before retrying Socket after circuit opens
 
-// --- Centroid Regression: shared SSA engine settings (all 6 variants) ---
+// --- Centroid Regression: shared SSA engine settings (all 7 variants) ---
 input int InpSSAMathLookback = 3000;               // SSA Math Engine Lookback (bars)
 input int InpSSAWindow       = 30;                 // SSA Window
 input int InpSSARank         = 6;                  // SSA Rank
@@ -125,8 +130,8 @@ struct SymbolInfo
    string sanitizedName;   // Sanitized for database (e.g., "eurusd")
 };
 
-// v6 admin-layer fields shared by all 6 centroid-regression variants.
-// Buffer layout (identical across all 6 *_v2_29 centroid indicators):
+// v6 admin-layer fields shared by all 7 centroid-regression variants.
+// Buffer layout (identical across all 7 *_v2_29 centroid indicators):
 //   0=SSA Trend(ssa), 1=SSA Signal(ema_ssa), 2=SSA Cross(crossing),
 //   3=Upper108(horiz_high_map), 4=Lower108(horiz_low_map),
 //   5=Upper119, 6=Lower119 (not part of the v6 admin-layer contract - unused),
@@ -142,11 +147,12 @@ struct CentroidFields
 };
 
 // Timeframe indicators structure
-// All 6 centroid-regression variants share the same buffer layout (see
+// All 7 centroid-regression variants share the same buffer layout (see
 // CentroidFields comment above).
 struct TimeframeIndicators
 {
-   int h_cr_bestfit;        // 2EDT-Centroid-Regression-Best-Fit-Non-Most-Recent
+   int h_cr_bestfit_a;      // 2EDT-Centroid-Regression-Best-Fit-Non-Most-Recent-A (Primary Instance)
+   int h_cr_bestfit_b;      // 2EDT-Centroid-Regression-Best-Fit-Non-Most-Recent-B (Secondary Instance) - new 2026-09-03
    int h_cr_cherry_a;       // 2EDT-Centroid-Regression-Cherry-Pick-A
    int h_cr_cherry_b;       // 2EDT-Centroid-Regression-Cherry-Pick-B
    int h_cr_mostrecent;     // 2EDT-Centroid-Regression-Most-Recent-Line-Extension
@@ -302,7 +308,7 @@ int OnInit()
    Print("Found ", symbolCount, " symbols to collect");
 
    // Warn about resource usage
-   // Note: the 6 centroid-regression variants run an SSA engine over
+   // Note: the 7 centroid-regression variants run an SSA engine over
    // InpSSAMathLookback bars per symbol/timeframe slot - this is CPU-heavy.
    if(symbolCount > 10)
    {
@@ -394,7 +400,8 @@ void OnDeinit(const int reason)
    // Release indicator handles
    for(int i = 0; i < ArraySize(tfIndicators); i++)
    {
-      if(tfIndicators[i].h_cr_bestfit != INVALID_HANDLE) IndicatorRelease(tfIndicators[i].h_cr_bestfit);
+      if(tfIndicators[i].h_cr_bestfit_a != INVALID_HANDLE) IndicatorRelease(tfIndicators[i].h_cr_bestfit_a);
+      if(tfIndicators[i].h_cr_bestfit_b != INVALID_HANDLE) IndicatorRelease(tfIndicators[i].h_cr_bestfit_b);
       if(tfIndicators[i].h_cr_cherry_a != INVALID_HANDLE) IndicatorRelease(tfIndicators[i].h_cr_cherry_a);
       if(tfIndicators[i].h_cr_cherry_b != INVALID_HANDLE) IndicatorRelease(tfIndicators[i].h_cr_cherry_b);
       if(tfIndicators[i].h_cr_mostrecent != INVALID_HANDLE) IndicatorRelease(tfIndicators[i].h_cr_mostrecent);
@@ -645,14 +652,24 @@ bool InitializeIndicators()
 //+------------------------------------------------------------------+
 bool InitializeIndicatorsForSlot(int slotIndex, string sym, ENUM_TIMEFRAMES tf)
 {
-   // 1. Centroid Regression — Best Fit (Non-Most-Recent)
-   //    Also supplies the shared SSA trend/signal/cross and fractal 108 markers
-   tfIndicators[slotIndex].h_cr_bestfit = iCustom(
-      sym, tf, "2EDTCentroidRegressionBestFitNonMostRecent_v2_29",
+   // 1a. Centroid Regression — Best Fit (Non-Most-Recent) — Primary Instance A
+   //     Also supplies the shared SSA trend/signal/cross and fractal 108 markers
+   tfIndicators[slotIndex].h_cr_bestfit_a = iCustom(
+      sym, tf, "2EDTCentroidRegressionBestFitNonMostRecentA_v2_29",
       "===== Main & SSA Settings =====",
       InpSSAMathLookback, InpSSAWindow, InpSSARank, InpSSASignalPeriod
    );
-   if(tfIndicators[slotIndex].h_cr_bestfit == INVALID_HANDLE) return false;
+   if(tfIndicators[slotIndex].h_cr_bestfit_a == INVALID_HANDLE) return false;
+
+   // 1b. Centroid Regression — Best Fit (Non-Most-Recent) — Secondary Instance B
+   //     New 2026-09-03 (isolated coexistence split of the former single
+   //     best_fit indicator; exclude_recent_centroids=3 vs A's 0).
+   tfIndicators[slotIndex].h_cr_bestfit_b = iCustom(
+      sym, tf, "2EDTCentroidRegressionBestFitNonMostRecentB_v2_29",
+      "===== Main & SSA Settings =====",
+      InpSSAMathLookback, InpSSAWindow, InpSSARank, InpSSASignalPeriod
+   );
+   if(tfIndicators[slotIndex].h_cr_bestfit_b == INVALID_HANDLE) return false;
 
    // 2. Centroid Regression — Cherry Pick A
    tfIndicators[slotIndex].h_cr_cherry_a = iCustom(
@@ -795,7 +812,7 @@ bool InitializeDatabases()
 //+------------------------------------------------------------------+
 //| Create table for symbol.                                         |
 //| Column set and names mirror gateway_contract_market_data.schema  |
-//| .json 1:1 (79 fields) so a row here is schema-compatible with    |
+//| .json 1:1 (87 fields) so a row here is schema-compatible with    |
 //| market_data if this push path is ever reactivated. terminal_id   |
 //| is added on top since the gateway contract requires it on POST   |
 //| but the server-side market_data table does not persist it.       |
@@ -815,9 +832,12 @@ bool CreateSymbolTable(int dbIndex)
       "low REAL NOT NULL, "
       "close REAL NOT NULL, "
       "volume INTEGER NOT NULL, "
-      "best_fit_horiz_high_map REAL, best_fit_horiz_low_map REAL, best_fit_ssa REAL, "
-      "best_fit_ema_ssa REAL, best_fit_crossing INTEGER, "
-      "best_fit_base_fl REAL, best_fit_uoedt REAL, best_fit_loedt REAL, "
+      "best_fit_a_horiz_high_map REAL, best_fit_a_horiz_low_map REAL, best_fit_a_ssa REAL, "
+      "best_fit_a_ema_ssa REAL, best_fit_a_crossing INTEGER, "
+      "best_fit_a_base_fl REAL, best_fit_a_uoedt REAL, best_fit_a_loedt REAL, "
+      "best_fit_b_horiz_high_map REAL, best_fit_b_horiz_low_map REAL, best_fit_b_ssa REAL, "
+      "best_fit_b_ema_ssa REAL, best_fit_b_crossing INTEGER, "
+      "best_fit_b_base_fl REAL, best_fit_b_uoedt REAL, best_fit_b_loedt REAL, "
       "cherry_a_horiz_high_map REAL, cherry_a_horiz_low_map REAL, cherry_a_ssa REAL, "
       "cherry_a_ema_ssa REAL, cherry_a_crossing INTEGER, "
       "cherry_a_base_fl REAL, cherry_a_uoedt REAL, cherry_a_loedt REAL, "
@@ -869,9 +889,12 @@ void MigrateSymbolTable(int dbIndex)
 
    string newColumns[] = {
       "terminal_id TEXT",
-      "best_fit_horiz_high_map REAL", "best_fit_horiz_low_map REAL", "best_fit_ssa REAL",
-      "best_fit_ema_ssa REAL", "best_fit_crossing INTEGER",
-      "best_fit_base_fl REAL", "best_fit_uoedt REAL", "best_fit_loedt REAL",
+      "best_fit_a_horiz_high_map REAL", "best_fit_a_horiz_low_map REAL", "best_fit_a_ssa REAL",
+      "best_fit_a_ema_ssa REAL", "best_fit_a_crossing INTEGER",
+      "best_fit_a_base_fl REAL", "best_fit_a_uoedt REAL", "best_fit_a_loedt REAL",
+      "best_fit_b_horiz_high_map REAL", "best_fit_b_horiz_low_map REAL", "best_fit_b_ssa REAL",
+      "best_fit_b_ema_ssa REAL", "best_fit_b_crossing INTEGER",
+      "best_fit_b_base_fl REAL", "best_fit_b_uoedt REAL", "best_fit_b_loedt REAL",
       "cherry_a_horiz_high_map REAL", "cherry_a_horiz_low_map REAL", "cherry_a_ssa REAL",
       "cherry_a_ema_ssa REAL", "cherry_a_crossing INTEGER",
       "cherry_a_base_fl REAL", "cherry_a_uoedt REAL", "cherry_a_loedt REAL",
@@ -1049,7 +1072,8 @@ bool InsertCandle(int symbolIndex, int tfIndex)
    // --- Centroid-regression admin layer (horiz_high_map/horiz_low_map/ssa/
    //     ema_ssa/crossing) per variant. base_fl/uoedt/loedt are Python-only
    //     and always sent as null (see CentroidToJson/CentroidToSqlValues). ---
-   CentroidFields best_fit    = GetCentroidFields(tfIndicators[slotIndex].h_cr_bestfit, shift);
+   CentroidFields best_fit_a  = GetCentroidFields(tfIndicators[slotIndex].h_cr_bestfit_a, shift);
+   CentroidFields best_fit_b  = GetCentroidFields(tfIndicators[slotIndex].h_cr_bestfit_b, shift);
    CentroidFields cherry_a    = GetCentroidFields(tfIndicators[slotIndex].h_cr_cherry_a, shift);
    CentroidFields cherry_b    = GetCentroidFields(tfIndicators[slotIndex].h_cr_cherry_b, shift);
    CentroidFields most_recent = GetCentroidFields(tfIndicators[slotIndex].h_cr_mostrecent, shift);
@@ -1085,7 +1109,7 @@ bool InsertCandle(int symbolIndex, int tfIndex)
       {
          bool socketSuccess = PublishToLocalRelay(
             sanitizedName, tf, rate[0],
-            best_fit, cherry_a, cherry_b, most_recent, non_a, non_b,
+            best_fit_a, best_fit_b, cherry_a, cherry_b, most_recent, non_a, non_b,
             zigzag_point_type, zigzag_current_point
          );
 
@@ -1134,7 +1158,7 @@ bool InsertCandle(int symbolIndex, int tfIndex)
 
    bool sqliteSuccess = WriteSQLiteBackup(
       dbIndex, sanitizedName, tf, rate[0],
-      best_fit, cherry_a, cherry_b, most_recent, non_a, non_b,
+      best_fit_a, best_fit_b, cherry_a, cherry_b, most_recent, non_a, non_b,
       zigzag_point_type, zigzag_current_point
    );
 
@@ -1154,11 +1178,11 @@ bool InsertCandle(int symbolIndex, int tfIndex)
 //+------------------------------------------------------------------+
 //| Publish to Async TCP Socket Relay.                                |
 //| JSON field set/names match gateway_contract_market_data.schema   |
-//| .json exactly (additionalProperties:false - 79 fields, no more,  |
+//| .json exactly (additionalProperties:false - 87 fields, no more,  |
 //| no less). Python-only fields are emitted as JSON null, never 0.  |
 //+------------------------------------------------------------------+
 bool PublishToLocalRelay(string symbol, ENUM_TIMEFRAMES tf, MqlRates &rate,
-                          CentroidFields &best_fit, CentroidFields &cherry_a, CentroidFields &cherry_b,
+                          CentroidFields &best_fit_a, CentroidFields &best_fit_b, CentroidFields &cherry_a, CentroidFields &cherry_b,
                           CentroidFields &most_recent, CentroidFields &non_a, CentroidFields &non_b,
                           string zigzag_point_type, double zigzag_current_point)
 {
@@ -1174,7 +1198,8 @@ bool PublishToLocalRelay(string symbol, ENUM_TIMEFRAMES tf, MqlRates &rate,
    payload += "\"close\":" + DoubleToString(rate.close, 5) + ",";
    payload += "\"volume\":" + IntegerToString((long)rate.tick_volume) + ",";
 
-   payload += CentroidToJson("best_fit", best_fit) + ",";
+   payload += CentroidToJson("best_fit_a", best_fit_a) + ",";
+   payload += CentroidToJson("best_fit_b", best_fit_b) + ",";
    payload += CentroidToJson("cherry_a", cherry_a) + ",";
    payload += CentroidToJson("cherry_b", cherry_b) + ",";
    payload += CentroidToJson("most_recent", most_recent) + ",";
@@ -1236,7 +1261,7 @@ bool PublishToLocalRelay(string symbol, ENUM_TIMEFRAMES tf, MqlRates &rate,
 //| "Empty export fields are stored as NULL, not 0").                |
 //+------------------------------------------------------------------+
 bool WriteSQLiteBackup(int dbIndex, string symbol, ENUM_TIMEFRAMES tf, MqlRates &rate,
-                        CentroidFields &best_fit, CentroidFields &cherry_a, CentroidFields &cherry_b,
+                        CentroidFields &best_fit_a, CentroidFields &best_fit_b, CentroidFields &cherry_a, CentroidFields &cherry_b,
                         CentroidFields &most_recent, CentroidFields &non_a, CentroidFields &non_b,
                         string zigzag_point_type, double zigzag_current_point)
 {
@@ -1244,8 +1269,10 @@ bool WriteSQLiteBackup(int dbIndex, string symbol, ENUM_TIMEFRAMES tf, MqlRates 
 
    string columns =
       "timestamp, symbol, timeframe, terminal_id, open, high, low, close, volume, "
-      "best_fit_horiz_high_map, best_fit_horiz_low_map, best_fit_ssa, best_fit_ema_ssa, best_fit_crossing, "
-      "best_fit_base_fl, best_fit_uoedt, best_fit_loedt, "
+      "best_fit_a_horiz_high_map, best_fit_a_horiz_low_map, best_fit_a_ssa, best_fit_a_ema_ssa, best_fit_a_crossing, "
+      "best_fit_a_base_fl, best_fit_a_uoedt, best_fit_a_loedt, "
+      "best_fit_b_horiz_high_map, best_fit_b_horiz_low_map, best_fit_b_ssa, best_fit_b_ema_ssa, best_fit_b_crossing, "
+      "best_fit_b_base_fl, best_fit_b_uoedt, best_fit_b_loedt, "
       "cherry_a_horiz_high_map, cherry_a_horiz_low_map, cherry_a_ssa, cherry_a_ema_ssa, cherry_a_crossing, "
       "cherry_a_base_fl, cherry_a_uoedt, cherry_a_loedt, "
       "cherry_b_horiz_high_map, cherry_b_horiz_low_map, cherry_b_ssa, cherry_b_ema_ssa, cherry_b_crossing, "
@@ -1268,7 +1295,8 @@ bool WriteSQLiteBackup(int dbIndex, string symbol, ENUM_TIMEFRAMES tf, MqlRates 
       DoubleToString(rate.open, 5) + "," + DoubleToString(rate.high, 5) + "," +
       DoubleToString(rate.low, 5) + "," + DoubleToString(rate.close, 5) + "," +
       IntegerToString((long)rate.tick_volume) + "," +
-      CentroidToSqlValues(best_fit) + "," +
+      CentroidToSqlValues(best_fit_a) + "," +
+      CentroidToSqlValues(best_fit_b) + "," +
       CentroidToSqlValues(cherry_a) + "," +
       CentroidToSqlValues(cherry_b) + "," +
       CentroidToSqlValues(most_recent) + "," +

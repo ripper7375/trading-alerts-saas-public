@@ -7,7 +7,9 @@ pivot detection. Python computes everything derived from those inputs, with
 parameters end users can configure (window dates, centroid in/exclusion, min
 EDT touches, tolerances, z-score thresholds, …). This is what enables both
 the on-demand service and the user-configurable service, and collapses the
-6 centroid-variant indicators into one parameterized engine.
+7 centroid-variant indicators into one parameterized engine (best_fit_a/
+best_fit_b are the 2026-09-03 isolated-coexistence split of the former
+single best_fit variant — see CERTIFICATION.md).
 
 **Porting rules (see blueprint §12.8):**
 

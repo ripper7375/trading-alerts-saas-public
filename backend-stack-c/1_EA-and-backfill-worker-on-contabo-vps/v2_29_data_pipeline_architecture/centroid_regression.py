@@ -88,10 +88,16 @@ class CentroidRegressionParams:
     tolerance_atr_multiplier: float = 1.0
 
 
-# The six MQL5 indicators as presets of the one engine
+# The seven MQL5 indicators as presets of the one engine.
+# best_fit_a/best_fit_b: isolated-coexistence split of the former single
+# 'best_fit' indicator (2026-09-03) — best_fit_a is config-identical to the
+# old best_fit (same reg_centroids/exclusion), best_fit_b is a new preset
+# (exclude_recent_centroids=3), mirroring the existing non_a/non_b pattern.
 VARIANT_PRESETS = {
-    'best_fit':    dict(selection='exclude_recent', regression='best_fit_wls',
+    'best_fit_a':  dict(selection='exclude_recent', regression='best_fit_wls',
                         reg_centroids=5, exclude_recent_centroids=0),
+    'best_fit_b':  dict(selection='exclude_recent', regression='best_fit_wls',
+                        reg_centroids=5, exclude_recent_centroids=3),
     'cherry_a':    dict(selection='cherry_pick', regression='ols', reg_centroids=6),
     'cherry_b':    dict(selection='cherry_pick', regression='ols', reg_centroids=6),
     'most_recent': dict(selection='most_recent', regression='ols', reg_centroids=6),
