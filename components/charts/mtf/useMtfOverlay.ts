@@ -60,7 +60,7 @@ export function useMtfOverlay(
     variant?: CentroidVariant;
   }
 ): UseMtfOverlayResult {
-  const { symbol, sourceTimeframe, variant = 'best_fit' } = options;
+  const { symbol, sourceTimeframe, variant = 'best_fit_a' } = options;
   const seriesRef = useRef<ISeriesApi<'Line'>[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,9 +99,7 @@ export function useMtfOverlay(
 
         removeSeries();
 
-        const mkSeries = (
-          key: 'upper' | 'mid' | 'lower'
-        ): ISeriesApi<'Line'> =>
+        const mkSeries = (key: 'upper' | 'mid' | 'lower'): ISeriesApi<'Line'> =>
           chart.addSeries(LineSeries, {
             color: COLORS[key],
             lineWidth: 1,

@@ -121,9 +121,9 @@ function makeRequest(url = 'http://localhost/api/market-data/channel') {
 function makeRow(overrides: Record<string, unknown> = {}) {
   return {
     timestamp: 100,
-    best_fit_uoedt: 1901.5,
-    best_fit_base_fl: 1900,
-    best_fit_loedt: 1898.5,
+    best_fit_a_uoedt: 1901.5,
+    best_fit_a_base_fl: 1900,
+    best_fit_a_loedt: 1898.5,
     ...overrides,
   };
 }
@@ -206,7 +206,7 @@ describe('GET /api/market-data/channel', () => {
     expect(data.error).toBe('Unsupported timeframe (M5, M15 only)');
   });
 
-  it('returns 400 listing all 6 variants for an invalid variant (PRO caller)', async () => {
+  it('returns 400 listing all 7 variants for an invalid variant (PRO caller)', async () => {
     mockGetServerSession.mockResolvedValue({
       user: { id: 'user-123', tier: 'PRO' },
     });
@@ -221,11 +221,11 @@ describe('GET /api/market-data/channel', () => {
 
     expect(response.status).toBe(400);
     expect(data.error).toBe(
-      'Invalid variant. Available: best_fit, cherry_a, cherry_b, most_recent, non_a, non_b'
+      'Invalid variant. Available: best_fit_a, best_fit_b, cherry_a, cherry_b, most_recent, non_a, non_b'
     );
   });
 
-  it('queries with default params (XAUUSD, M5, best_fit, limit 300) and returns mapped points', async () => {
+  it('queries with default params (XAUUSD, M5, best_fit_a, limit 300) and returns mapped points', async () => {
     mockGetServerSession.mockResolvedValue({
       user: { id: 'user-123', tier: 'PRO' },
     });
@@ -244,7 +244,7 @@ describe('GET /api/market-data/channel', () => {
     expect(data.success).toBe(true);
     expect(data.symbol).toBe('XAUUSD');
     expect(data.timeframe).toBe('M5');
-    expect(data.variant).toBe('best_fit');
+    expect(data.variant).toBe('best_fit_a');
     // Reversed to chronological order.
     expect(data.points).toEqual([
       { time: 100, upper: 1901.5, mid: 1900, lower: 1898.5 },
@@ -258,7 +258,7 @@ describe('GET /api/market-data/channel', () => {
     });
     mockFindMany.mockResolvedValue([
       makeRow({
-        best_fit_uoedt: 999,
+        best_fit_a_uoedt: 999,
         cherry_b_uoedt: 5,
         cherry_b_base_fl: 4,
         cherry_b_loedt: 3,

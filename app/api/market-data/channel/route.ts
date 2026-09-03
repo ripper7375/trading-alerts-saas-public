@@ -1,7 +1,7 @@
 /**
  * Market Data Channel API — V8 (PRO feature: multi-timeframe visualization)
  *
- * GET /api/market-data/channel?timeframe=M5&variant=best_fit&limit=300
+ * GET /api/market-data/channel?timeframe=M5&variant=best_fit_a&limit=300
  *
  * Returns the equal-distance channel lines (upper `uoedt`, mid `base_fl`,
  * lower `loedt`) of a centroid-regression variant from market_data_v6, for
@@ -89,7 +89,7 @@ export async function GET(
     const symbol = (searchParams.get('symbol') ?? 'XAUUSD').toUpperCase();
     const timeframe = (searchParams.get('timeframe') ?? 'M5').toUpperCase();
     const variant = (searchParams.get('variant') ??
-      'best_fit') as CentroidVariant;
+      'best_fit_a') as CentroidVariant;
     const limit = Math.min(
       Math.max(Number(searchParams.get('limit')) || DEFAULT_LIMIT, 1),
       MAX_LIMIT

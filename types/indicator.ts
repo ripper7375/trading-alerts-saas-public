@@ -2,7 +2,7 @@
 // MARKET DATA V6 — UNIFIED SCHEMA (V8 ARCHITECTURE)
 //
 // Both tiers have identical access to ALL columns of the
-// market_data_v6 table (79 fields). Mirrors prisma MarketDataV6,
+// market_data_v6 table (87 fields). Mirrors prisma MarketDataV6,
 // which itself mirrors gateway_contract_market_data.schema.json.
 // The old per-tier column interfaces (FreeMarketData /
 // CompleteMarketData, 63-column schema) were removed with the
@@ -11,7 +11,8 @@
 
 /**
  * One centroid-regression variant block (8 columns).
- * Six variants exist: best_fit, cherry_a, cherry_b, most_recent, non_a, non_b.
+ * Seven variants exist: best_fit_a, best_fit_b, cherry_a, cherry_b,
+ * most_recent, non_a, non_b.
  */
 export interface CentroidVariantColumns {
   horiz_high_map: number | null;
@@ -25,10 +26,11 @@ export interface CentroidVariantColumns {
 }
 
 /**
- * The six centroid-regression variant prefixes in market_data_v6
+ * The seven centroid-regression variant prefixes in market_data_v6
  */
 export const CENTROID_VARIANTS = [
-  'best_fit',
+  'best_fit_a',
+  'best_fit_b',
   'cherry_a',
   'cherry_b',
   'most_recent',
@@ -39,7 +41,7 @@ export const CENTROID_VARIANTS = [
 export type CentroidVariant = (typeof CENTROID_VARIANTS)[number];
 
 /**
- * Complete market_data_v6 row — all 79 fields, available to BOTH tiers.
+ * Complete market_data_v6 row — all 87 fields, available to BOTH tiers.
  * Field names/types are a 1:1 mirror of prisma's MarketDataV6 model.
  */
 export interface MarketDataV6 {
@@ -54,15 +56,25 @@ export interface MarketDataV6 {
   close: number;
   volume: number;
 
-  // Centroid-regression variant: best_fit
-  best_fit_horiz_high_map: number | null;
-  best_fit_horiz_low_map: number | null;
-  best_fit_ssa: number | null;
-  best_fit_ema_ssa: number | null;
-  best_fit_crossing: number | null;
-  best_fit_base_fl: number | null;
-  best_fit_uoedt: number | null;
-  best_fit_loedt: number | null;
+  // Centroid-regression variant: best_fit_a
+  best_fit_a_horiz_high_map: number | null;
+  best_fit_a_horiz_low_map: number | null;
+  best_fit_a_ssa: number | null;
+  best_fit_a_ema_ssa: number | null;
+  best_fit_a_crossing: number | null;
+  best_fit_a_base_fl: number | null;
+  best_fit_a_uoedt: number | null;
+  best_fit_a_loedt: number | null;
+
+  // Centroid-regression variant: best_fit_b
+  best_fit_b_horiz_high_map: number | null;
+  best_fit_b_horiz_low_map: number | null;
+  best_fit_b_ssa: number | null;
+  best_fit_b_ema_ssa: number | null;
+  best_fit_b_crossing: number | null;
+  best_fit_b_base_fl: number | null;
+  best_fit_b_uoedt: number | null;
+  best_fit_b_loedt: number | null;
 
   // Centroid-regression variant: cherry_a
   cherry_a_horiz_high_map: number | null;
