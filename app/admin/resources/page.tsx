@@ -63,6 +63,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -81,6 +82,14 @@ const CATEGORY_LABELS: Record<AssetCategory, string> = {
   AD_BANNERS: 'Ad Banners',
   SWIPE_COPY: 'Copywriting Swipes',
   DOCS: 'Guidelines & PDF',
+};
+
+const CATEGORY_LABEL_KEYS: Record<AssetCategory, string> = {
+  BRAND_LOGOS: 'admin.resources.category_brand_logos',
+  MASCOTS: 'admin.resources.category_mascots',
+  AD_BANNERS: 'admin.resources.category_ad_banners',
+  SWIPE_COPY: 'admin.resources.category_swipe_copy',
+  DOCS: 'admin.resources.category_docs',
 };
 
 interface MarketingAsset {
@@ -118,14 +127,6 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
 function isPreviewable(asset: MarketingAsset): boolean {
   return (
     !!asset.fileUrl &&
@@ -138,6 +139,7 @@ function isPreviewable(asset: MarketingAsset): boolean {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function AdminMarketingResourcesPage(): React.ReactElement {
+  const { t, formatDate } = useLocale();
   const [assets, setAssets] = useState<MarketingAsset[]>([]);
   const [total, setTotal] = useState(0);
   const [totalDownloads, setTotalDownloads] = useState(0);
@@ -179,7 +181,12 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
 
       const response = await fetch(`/api/admin/resources?${params}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch marketing assets');
+        throw new Error(
+          t(
+            'admin.resources.error_fetch_assets',
+            'Failed to fetch marketing assets'
+          )
+        );
       }
       const data: AdminAssetListResponse = await response.json();
       setAssets(data.assets);
@@ -187,10 +194,15 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
       setTotalDownloads(data.totalDownloads);
       setCategoryCount(data.categoryCount);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.resources.error_occurred', 'An error occurred')
+      );
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, categoryFilter]);
 
   useEffect(() => {
@@ -221,15 +233,25 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to delete asset');
+        throw new Error(
+          data.error ||
+            t('admin.resources.error_delete_asset', 'Failed to delete asset')
+        );
       }
       setDeleteTarget(null);
-      setSuccessMessage('Asset removed from Affiliate Media Kit.');
+      setSuccessMessage(
+        t(
+          'admin.resources.asset_removed_success',
+          'Asset removed from Affiliate Media Kit.'
+        )
+      );
       setTimeout(() => setSuccessMessage(''), 3000);
       await fetchAssets();
     } catch (err) {
       setDeleteError(
-        err instanceof Error ? err.message : 'Failed to delete asset'
+        err instanceof Error
+          ? err.message
+          : t('admin.resources.error_delete_asset', 'Failed to delete asset')
       );
     } finally {
       setIsDeleting(false);
@@ -252,11 +274,21 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
 
     const isSwipeCopy = category === 'SWIPE_COPY';
     if (isSwipeCopy && !copyText.trim()) {
-      setUploadError('Swipe copy content is required for this category');
+      setUploadError(
+        t(
+          'admin.resources.error_swipe_copy_required',
+          'Swipe copy content is required for this category'
+        )
+      );
       return;
     }
     if (!isSwipeCopy && !file) {
-      setUploadError('A file is required for this asset category');
+      setUploadError(
+        t(
+          'admin.resources.error_file_required',
+          'A file is required for this asset category'
+        )
+      );
       return;
     }
 
@@ -281,17 +313,33 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
 
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to publish marketing asset');
+        throw new Error(
+          data.error ||
+            t(
+              'admin.resources.error_publish_asset',
+              'Failed to publish marketing asset'
+            )
+        );
       }
 
       setIsUploadOpen(false);
       resetUploadForm();
-      setSuccessMessage('Marketing asset uploaded and published to Media Kit.');
+      setSuccessMessage(
+        t(
+          'admin.resources.asset_published_success',
+          'Marketing asset uploaded and published to Media Kit.'
+        )
+      );
       setTimeout(() => setSuccessMessage(''), 4000);
       await fetchAssets();
     } catch (err) {
       setUploadError(
-        err instanceof Error ? err.message : 'Failed to publish asset'
+        err instanceof Error
+          ? err.message
+          : t(
+              'admin.resources.error_publish_asset_short',
+              'Failed to publish asset'
+            )
       );
     } finally {
       setIsUploading(false);
@@ -304,11 +352,16 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            Affiliate Media Kit & Creative Assets
+            {t(
+              'admin.resources.title',
+              'Affiliate Media Kit & Creative Assets'
+            )}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Upload and distribute logos, mascot assets, ad banners and
-            copywriting swipe files for affiliates
+            {t(
+              'admin.resources.subtitle',
+              'Upload and distribute logos, mascot assets, ad banners and copywriting swipe files for affiliates'
+            )}
           </p>
         </div>
 
@@ -321,27 +374,39 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
         >
           <Button onClick={() => setIsUploadOpen(true)}>
             <Upload className="mr-1.5 h-4 w-4" />
-            Upload New Asset
+            {t('admin.resources.upload_new_asset', 'Upload New Asset')}
           </Button>
           <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Upload Marketing Creative to Media Kit</DialogTitle>
+              <DialogTitle>
+                {t(
+                  'admin.resources.upload_dialog_title',
+                  'Upload Marketing Creative to Media Kit'
+                )}
+              </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleUploadSubmit} className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="asset-title">Asset Title *</Label>
+                  <Label htmlFor="asset-title">
+                    {t('admin.resources.asset_title', 'Asset Title *')}
+                  </Label>
                   <Input
                     id="asset-title"
                     required
-                    placeholder="e.g. Davin AI Mascot 3D High-Res Pack"
+                    placeholder={t(
+                      'admin.resources.asset_title_placeholder',
+                      'e.g. Davin AI Mascot 3D High-Res Pack'
+                    )}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="asset-category">Category *</Label>
+                  <Label htmlFor="asset-category">
+                    {t('admin.resources.category', 'Category *')}
+                  </Label>
                   <Select
                     value={category}
                     onValueChange={(value) =>
@@ -355,7 +420,7 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                       {(Object.keys(CATEGORY_LABELS) as AssetCategory[]).map(
                         (c) => (
                           <SelectItem key={c} value={c}>
-                            {CATEGORY_LABELS[c]}
+                            {t(CATEGORY_LABEL_KEYS[c], CATEGORY_LABELS[c])}
                           </SelectItem>
                         )
                       )}
@@ -364,10 +429,15 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="asset-format">Format</Label>
+                  <Label htmlFor="asset-format">
+                    {t('admin.resources.format', 'Format')}
+                  </Label>
                   <Input
                     id="asset-format"
-                    placeholder="e.g. PNG, SVG"
+                    placeholder={t(
+                      'admin.resources.format_placeholder',
+                      'e.g. PNG, SVG'
+                    )}
                     value={format}
                     onChange={(e) => setFormat(e.target.value.toUpperCase())}
                   />
@@ -375,11 +445,17 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
 
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label htmlFor="asset-resolution">
-                    Resolution / Dimensions
+                    {t(
+                      'admin.resources.resolution_dimensions',
+                      'Resolution / Dimensions'
+                    )}
                   </Label>
                   <Input
                     id="asset-resolution"
-                    placeholder="e.g. 512x512 or 1920x1080"
+                    placeholder={t(
+                      'admin.resources.resolution_placeholder',
+                      'e.g. 512x512 or 1920x1080'
+                    )}
                     value={resolution}
                     onChange={(e) => setResolution(e.target.value)}
                   />
@@ -389,19 +465,27 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
               {category === 'SWIPE_COPY' ? (
                 <div className="space-y-1.5">
                   <Label htmlFor="asset-copy-text">
-                    Swipe File Copy Content
+                    {t(
+                      'admin.resources.swipe_file_copy_content',
+                      'Swipe File Copy Content'
+                    )}
                   </Label>
                   <Textarea
                     id="asset-copy-text"
                     rows={4}
-                    placeholder="Write the swipe copy template..."
+                    placeholder={t(
+                      'admin.resources.swipe_copy_placeholder',
+                      'Write the swipe copy template...'
+                    )}
                     value={copyText}
                     onChange={(e) => setCopyText(e.target.value)}
                   />
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  <Label htmlFor="asset-file">File *</Label>
+                  <Label htmlFor="asset-file">
+                    {t('admin.resources.file', 'File *')}
+                  </Label>
                   <Input
                     id="asset-file"
                     type="file"
@@ -409,7 +493,10 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                     onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Supports PNG, JPG, SVG, MP4, PDF up to 50MB
+                    {t(
+                      'admin.resources.file_support_note',
+                      'Supports PNG, JPG, SVG, MP4, PDF up to 50MB'
+                    )}
                   </p>
                 </div>
               )}
@@ -424,10 +511,15 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                   variant="ghost"
                   onClick={() => setIsUploadOpen(false)}
                 >
-                  Cancel
+                  {t('Cancel', 'Cancel')}
                 </Button>
                 <Button type="submit" disabled={isUploading}>
-                  {isUploading ? 'Uploading...' : 'Publish to Media Kit'}
+                  {isUploading
+                    ? t('admin.resources.uploading', 'Uploading...')
+                    : t(
+                        'admin.resources.publish_to_media_kit',
+                        'Publish to Media Kit'
+                      )}
                 </Button>
               </DialogFooter>
             </form>
@@ -454,7 +546,7 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Published Assets
+                {t('admin.resources.published_assets', 'Published Assets')}
               </p>
               <div className="mt-1 text-2xl font-bold text-foreground">
                 {total}
@@ -470,7 +562,7 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Partner Downloads
+                {t('admin.resources.partner_downloads', 'Partner Downloads')}
               </p>
               <div className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                 {totalDownloads.toLocaleString()}
@@ -486,7 +578,7 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
           <CardContent className="flex items-center justify-between p-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Asset Categories
+                {t('admin.resources.asset_categories', 'Asset Categories')}
               </p>
               <div className="mt-1 text-2xl font-bold text-primary">
                 {categoryCount}
@@ -506,7 +598,10 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search marketing assets..."
+                placeholder={t(
+                  'admin.resources.search_placeholder',
+                  'Search marketing assets...'
+                )}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-64 pl-9"
@@ -523,10 +618,12 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All Categories</SelectItem>
+                <SelectItem value="ALL">
+                  {t('admin.resources.all_categories', 'All Categories')}
+                </SelectItem>
                 {(Object.keys(CATEGORY_LABELS) as AssetCategory[]).map((c) => (
                   <SelectItem key={c} value={c}>
-                    {CATEGORY_LABELS[c]}
+                    {t(CATEGORY_LABEL_KEYS[c], CATEGORY_LABELS[c])}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -534,7 +631,12 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
           </div>
 
           <span className="text-sm text-muted-foreground">
-            Showing {assets.length} of {total} assets
+            {t(
+              'admin.resources.showing_x_of_y_assets',
+              'Showing {shown} of {total} assets'
+            )
+              .replace('{shown}', String(assets.length))
+              .replace('{total}', String(total))}
           </span>
         </CardContent>
       </Card>
@@ -552,25 +654,28 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Asset Title
+                      {t('admin.resources.asset_title_header', 'Asset Title')}
                     </th>
                     <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
-                      Category
+                      {t('admin.resources.category_header', 'Category')}
                     </th>
                     <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
-                      Format
+                      {t('admin.resources.format_header', 'Format')}
                     </th>
                     <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
-                      Resolution / Size
+                      {t(
+                        'admin.resources.resolution_size',
+                        'Resolution / Size'
+                      )}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Downloads
+                      {t('admin.resources.downloads', 'Downloads')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Status
+                      {t('admin.resources.status', 'Status')}
                     </th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                      Actions
+                      {t('admin.resources.actions', 'Actions')}
                     </th>
                   </tr>
                 </thead>
@@ -581,7 +686,10 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                         colSpan={7}
                         className="px-4 py-12 text-center text-muted-foreground"
                       >
-                        No marketing assets found
+                        {t(
+                          'admin.resources.no_assets_found',
+                          'No marketing assets found'
+                        )}
                       </td>
                     </tr>
                   ) : (
@@ -611,7 +719,11 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                                 {asset.title}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                Updated: {formatDate(asset.updatedAt)}
+                                {t(
+                                  'admin.resources.updated_prefix',
+                                  'Updated:'
+                                )}{' '}
+                                {formatDate(asset.updatedAt)}
                               </div>
                             </div>
                           </div>
@@ -621,7 +733,10 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                             variant="outline"
                             className="border-border bg-muted text-muted-foreground"
                           >
-                            {CATEGORY_LABELS[asset.category]}
+                            {t(
+                              CATEGORY_LABEL_KEYS[asset.category],
+                              CATEGORY_LABELS[asset.category]
+                            )}
                           </Badge>
                         </td>
                         <td className="hidden px-4 py-3 font-mono text-sm font-medium text-amber-600 dark:text-amber-400 lg:table-cell">
@@ -636,7 +751,10 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                         </td>
                         <td className="px-4 py-3">
                           <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/10">
-                            {asset.status}
+                            {t(
+                              `admin.resources.asset_status_${asset.status.toLowerCase()}`,
+                              asset.status
+                            )}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -645,7 +763,10 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleCopyLink(asset.id, asset)}
-                              title="Copy Asset Link"
+                              title={t(
+                                'admin.resources.copy_asset_link',
+                                'Copy Asset Link'
+                              )}
                             >
                               {copiedId === asset.id ? (
                                 <Check className="h-3.5 w-3.5 text-emerald-500" />
@@ -669,7 +790,10 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                                   size="sm"
                                   className="text-red-500 hover:bg-red-500/10 hover:text-red-500"
                                   onClick={() => setDeleteTarget(asset)}
-                                  title="Delete Asset"
+                                  title={t(
+                                    'admin.resources.delete_asset_title',
+                                    'Delete Asset'
+                                  )}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
@@ -677,12 +801,16 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>
-                                    Delete &ldquo;{asset.title}&rdquo;?
+                                    {t(
+                                      'admin.resources.delete_asset_confirm',
+                                      'Delete "{title}"?'
+                                    ).replace('{title}', asset.title)}
                                   </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This removes the asset from the affiliate
-                                    media kit and deletes its stored file. This
-                                    cannot be undone.
+                                    {t(
+                                      'admin.resources.delete_asset_warning',
+                                      'This removes the asset from the affiliate media kit and deletes its stored file. This cannot be undone.'
+                                    )}
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 {deleteError && (
@@ -692,14 +820,22 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                                 )}
                                 <AlertDialogFooter>
                                   <AlertDialogCancel disabled={isDeleting}>
-                                    Cancel
+                                    {t('Cancel', 'Cancel')}
                                   </AlertDialogCancel>
                                   <AlertDialogAction
                                     disabled={isDeleting}
                                     onClick={() => void handleDelete()}
                                     className="hover:bg-destructive/90 bg-destructive text-white"
                                   >
-                                    {isDeleting ? 'Deleting...' : 'Delete'}
+                                    {isDeleting
+                                      ? t(
+                                          'admin.resources.deleting',
+                                          'Deleting...'
+                                        )
+                                      : t(
+                                          'admin.disbursement.delete',
+                                          'Delete'
+                                        )}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>

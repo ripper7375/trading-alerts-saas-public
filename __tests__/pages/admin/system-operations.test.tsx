@@ -9,7 +9,12 @@
  * @module __tests__/pages/admin/system-operations.test
  */
 
-import { render, screen, waitFor, within } from '@testing-library/react';
+import {
+  render as rtlRender,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import AdminSystemTerminalsPage from '@/app/admin/system/terminals/page';
@@ -17,10 +22,25 @@ import AdminSystemJobsPage from '@/app/admin/system/jobs/page';
 import AdminSystemOutboxPage from '@/app/admin/system/outbox/page';
 import AdminSystemConfigHistoryPage from '@/app/admin/system/config-history/page';
 import { SYSTEM_CRON_JOBS } from '@/lib/admin/system-jobs';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
 
 const mockRouterRefresh = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: mockRouterRefresh }),
+  usePathname: () => '/admin/system/terminals',
+}));
+
+const mockCookieStore = { get: jest.fn(() => undefined) };
+const mockHeaderStore = { get: jest.fn(() => null) };
+jest.mock('next/headers', () => ({
+  __esModule: true,
+  cookies: jest.fn(() => Promise.resolve(mockCookieStore)),
+  headers: jest.fn(() => Promise.resolve(mockHeaderStore)),
 }));
 
 const mockGroupBy = jest.fn();
@@ -40,6 +60,20 @@ jest.mock('@/lib/db/prisma', () => ({
     },
   },
 }));
+
+beforeEach(() => {
+  localStorage.setItem(
+    LOCALE_STORAGE_KEY,
+    JSON.stringify({
+      countryCode: 'US',
+      language: 'en-US',
+      timezone: 'America/New_York',
+      dateFormat: 'MDY',
+      timeFormat: '12h',
+      currency: 'USD',
+    })
+  );
+});
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // /admin/system/terminals (B2-14)

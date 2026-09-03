@@ -16,55 +16,73 @@
 export interface SystemCronJob {
   id: string;
   label: string;
+  labelKey: string;
   description: string;
+  descriptionKey: string;
 }
 
 export const SYSTEM_CRON_JOBS: SystemCronJob[] = [
   {
     id: 'daily-maintenance',
     label: 'Daily Maintenance',
+    labelKey: 'admin.system.job_daily_maintenance',
     description:
       'Expires past-due affiliate codes, flags expiring dLocal subscriptions, and downgrades expired ones in one pass.',
+    descriptionKey: 'admin.system.job_daily_maintenance_desc',
   },
   {
     id: 'check-expiring-subscriptions',
     label: 'Check Expiring Subscriptions',
+    labelKey: 'admin.system.job_check_expiring_subscriptions',
     description:
       'Marks dLocal subscriptions within their reminder window for a 3-day expiry notice.',
+    descriptionKey: 'admin.system.job_check_expiring_subscriptions_desc',
   },
   {
     id: 'downgrade-expired-subscriptions',
     label: 'Downgrade Expired Subscriptions',
+    labelKey: 'admin.system.job_downgrade_expired_subscriptions',
     description:
       'Downgrades PRO accounts whose dLocal subscription has fully expired back to FREE.',
+    descriptionKey: 'admin.system.job_downgrade_expired_subscriptions_desc',
   },
   {
     id: 'expire-codes',
     label: 'Expire Affiliate Codes',
+    labelKey: 'admin.system.job_expire_codes',
     description: 'Marks affiliate codes past their expiresAt date as EXPIRED.',
+    descriptionKey: 'admin.system.job_expire_codes_desc',
   },
   {
     id: 'distribute-codes',
     label: 'Distribute Monthly Codes',
+    labelKey: 'admin.system.job_distribute_codes',
     description:
       'Issues the monthly affiliate code allotment to every active affiliate.',
+    descriptionKey: 'admin.system.job_distribute_codes_desc',
   },
   {
     id: 'process-pending-disbursements',
     label: 'Process Pending Disbursements',
+    labelKey: 'admin.system.job_process_pending_disbursements',
     description:
       'Batches and executes payable affiliate commissions through the active disbursement provider.',
+    descriptionKey: 'admin.system.job_process_pending_disbursements_desc',
   },
   {
     id: 'send-monthly-reports',
     label: 'Send Monthly Reports',
+    labelKey: 'admin.system.job_send_monthly_reports',
     description: 'Emails each affiliate their monthly code/commission summary.',
+    descriptionKey: 'admin.system.job_send_monthly_reports_desc',
   },
   {
     id: 'sync-riseworks-accounts',
     label: 'Sync RiseWorks Accounts',
+    labelKey: 'admin.system.job_sync_riseworks_accounts',
     description:
       'Reconciles RiseWorks payee records. RiseWorks is archived (F42) -- this job is dormant infrastructure, kept for parity.',
+    descriptionKey: 'admin.system.job_sync_riseworks_accounts_desc',
   },
 ];
 

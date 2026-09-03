@@ -9,6 +9,8 @@ import {
 import { RetryFailedEventsButton } from '@/components/admin/system/retry-failed-events-button';
 import { prisma } from '@/lib/db/prisma';
 import { formatDate } from '@/lib/utils';
+import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 const RECENT_FAILURES_LIMIT = 20;
 
@@ -52,17 +54,30 @@ export default async function AdminSystemOutboxPage(): Promise<React.ReactElemen
   const countsByStatus = new Map(grouped.map((g) => [g.status, g._count._all]));
   const failedCount = countsByStatus.get('FAILED') ?? 0;
 
+  const dict = getDictionary(await getServerLanguage());
+  const dt = (key: string, fallback: string): string => dict[key] ?? fallback;
+  const statusLabel = (status: string): string =>
+    dt(`admin.system.outbox_status_${status.toLowerCase()}`, status);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Outbox Event Queue
+            {dt('admin.system.outbox_title', 'Outbox Event Queue')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {totalCount} total event{totalCount === 1 ? '' : 's'} recorded.
-            Delivered by money-service&apos;s OutboxPublisherCron to
-            operation-service.
+            {totalCount}{' '}
+            {totalCount === 1
+              ? dt('admin.system.total_event_singular', 'total event recorded.')
+              : dt(
+                  'admin.system.total_event_plural',
+                  'total events recorded.'
+                )}{' '}
+            {dt(
+              'admin.system.outbox_delivered_by',
+              "Delivered by money-service's OutboxPublisherCron to operation-service."
+            )}
           </p>
         </div>
         <RetryFailedEventsButton failedCount={failedCount} />
@@ -73,10 +88,12 @@ export default async function AdminSystemOutboxPage(): Promise<React.ReactElemen
           <Card key={status} className="border-border bg-card">
             <CardHeader>
               <CardDescription className="text-muted-foreground">
-                {status}
+                {statusLabel(status)}
               </CardDescription>
               <CardTitle className="flex items-center gap-2 text-foreground">
-                <Badge className={statusBadgeClass(status)}>{status}</Badge>
+                <Badge className={statusBadgeClass(status)}>
+                  {statusLabel(status)}
+                </Badge>
                 <span>{countsByStatus.get(status) ?? 0}</span>
               </CardTitle>
             </CardHeader>
@@ -86,26 +103,44 @@ export default async function AdminSystemOutboxPage(): Promise<React.ReactElemen
 
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-foreground">Recent Failures</CardTitle>
+          <CardTitle className="text-foreground">
+            {dt('admin.system.recent_failures', 'Recent Failures')}
+          </CardTitle>
           <CardDescription className="text-muted-foreground">
-            Most recent {RECENT_FAILURES_LIMIT} FAILED events.
+            {dt(
+              'admin.system.recent_failures_count',
+              'Most recent {limit} FAILED events.'
+            ).replace('{limit}', String(RECENT_FAILURES_LIMIT))}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {failedEvents.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              No failed outbox events recorded.
+              {dt(
+                'admin.system.no_failed_outbox_events',
+                'No failed outbox events recorded.'
+              )}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-border text-muted-foreground">
-                    <th className="pb-2 pr-4">Event Type</th>
-                    <th className="pb-2 pr-4">Aggregate</th>
-                    <th className="pb-2 pr-4">Attempts</th>
-                    <th className="pb-2 pr-4">Last Error</th>
-                    <th className="pb-2">Created</th>
+                    <th className="pb-2 pr-4">
+                      {dt('admin.system.event_type', 'Event Type')}
+                    </th>
+                    <th className="pb-2 pr-4">
+                      {dt('admin.system.aggregate', 'Aggregate')}
+                    </th>
+                    <th className="pb-2 pr-4">
+                      {dt('admin.system.attempts', 'Attempts')}
+                    </th>
+                    <th className="pb-2 pr-4">
+                      {dt('admin.system.last_error', 'Last Error')}
+                    </th>
+                    <th className="pb-2">
+                      {dt('admin.system.created', 'Created')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>

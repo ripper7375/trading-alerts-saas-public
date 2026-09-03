@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -80,6 +81,7 @@ function StatusAlertCard({
   tone: 'muted' | 'warning' | 'danger';
   onRetry: () => void;
 }): React.ReactElement {
+  const { t } = useLocale();
   const toneClasses = {
     muted: 'border-border bg-card',
     warning: 'border-amber-600/40 bg-amber-500/10',
@@ -96,7 +98,7 @@ function StatusAlertCard({
       </CardHeader>
       <CardContent>
         <Button variant="outline" size="sm" onClick={onRetry}>
-          Retry now
+          {t('admin.system.retry_now', 'Retry now')}
         </Button>
       </CardContent>
     </Card>
@@ -117,6 +119,7 @@ function StatusAlertCard({
  * service unreachable, non-2xx) -- never a fabricated "operational" state.
  */
 export default function AdminSystemTerminalsPage(): React.ReactElement {
+  const { t } = useLocale();
   const [data, setData] = useState<TerminalsApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
@@ -132,12 +135,16 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
     } catch {
       setData({
         status: 'offline',
-        message: 'Unable to reach the terminals status endpoint.',
+        message: t(
+          'admin.system.unable_to_reach_terminals',
+          'Unable to reach the terminals status endpoint.'
+        ),
       });
       setLastChecked(new Date());
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -153,15 +160,19 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Terminals &amp; Flask API
+            {t('admin.system.terminals_title', 'Terminals & Flask API')}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Live reachability of the MT5 terminal fleet (flask-api).
+            {t(
+              'admin.system.terminals_subtitle',
+              'Live reachability of the MT5 terminal fleet (flask-api).'
+            )}
           </p>
         </div>
         {lastChecked && (
           <span className="text-xs text-muted-foreground">
-            Last checked {lastChecked.toLocaleTimeString()}
+            {t('admin.system.last_checked', 'Last checked')}{' '}
+            {lastChecked.toLocaleTimeString()}
           </span>
         )}
       </div>
@@ -175,7 +186,10 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
 
       {data?.status === 'not_configured' && (
         <StatusAlertCard
-          title="API Key Not Configured"
+          title={t(
+            'admin.system.api_key_not_configured',
+            'API Key Not Configured'
+          )}
           message={data.message}
           tone="muted"
           onRetry={() => void fetchStatus()}
@@ -184,7 +198,7 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
 
       {data?.status === 'restricted' && (
         <StatusAlertCard
-          title="Restricted Access"
+          title={t('admin.system.restricted_access', 'Restricted Access')}
           message={data.message}
           tone="warning"
           onRetry={() => void fetchStatus()}
@@ -193,7 +207,10 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
 
       {data?.status === 'offline' && (
         <StatusAlertCard
-          title="Service Unavailable — Attempting Reconnection"
+          title={t(
+            'admin.system.service_unavailable_reconnecting',
+            'Service Unavailable — Attempting Reconnection'
+          )}
           message={data.message}
           tone="danger"
           onRetry={() => void fetchStatus()}
@@ -202,7 +219,7 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
 
       {data?.status === 'degraded' && (
         <StatusAlertCard
-          title="Service Degraded"
+          title={t('admin.system.service_degraded', 'Service Degraded')}
           message={data.message}
           tone="warning"
           onRetry={() => void fetchStatus()}
@@ -215,7 +232,7 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardDescription className="text-muted-foreground">
-                  Overall Status
+                  {t('admin.system.overall_status', 'Overall Status')}
                 </CardDescription>
                 <CardTitle className="flex items-center gap-2 text-foreground">
                   <Badge
@@ -227,7 +244,10 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
                           : 'bg-red-600 text-white hover:bg-red-600'
                     }
                   >
-                    {data.health.status.toUpperCase()}
+                    {t(
+                      `admin.system.health_status_${data.health.status}`,
+                      data.health.status.toUpperCase()
+                    )}
                   </Badge>
                   <span className="text-sm font-normal text-muted-foreground">
                     v{data.health.version}
@@ -238,7 +258,7 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardDescription className="text-muted-foreground">
-                  Connected Terminals
+                  {t('admin.system.connected_terminals', 'Connected Terminals')}
                 </CardDescription>
                 <CardTitle className="text-foreground">
                   {data.health.connected_terminals} /{' '}
@@ -249,7 +269,7 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardDescription className="text-muted-foreground">
-                  Avg Response Time
+                  {t('admin.system.avg_response_time', 'Avg Response Time')}
                 </CardDescription>
                 <CardTitle className="text-foreground">
                   {data.stats
@@ -263,10 +283,13 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
           <Card className="border-border bg-card">
             <CardHeader>
               <CardTitle className="text-foreground">
-                Terminal Sessions
+                {t('admin.system.terminal_sessions', 'Terminal Sessions')}
               </CardTitle>
               <CardDescription className="text-muted-foreground">
-                Real-time connection status per MT5 terminal.
+                {t(
+                  'admin.system.terminal_sessions_desc',
+                  'Real-time connection status per MT5 terminal.'
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -274,12 +297,24 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-border text-muted-foreground">
-                      <th className="pb-2 pr-4">Symbol</th>
-                      <th className="pb-2 pr-4">Terminal</th>
-                      <th className="pb-2 pr-4">Status</th>
-                      <th className="pb-2 pr-4">Uptime</th>
-                      <th className="pb-2 pr-4">Reconnects</th>
-                      <th className="pb-2">Last Check</th>
+                      <th className="pb-2 pr-4">
+                        {t('admin.system.symbol', 'Symbol')}
+                      </th>
+                      <th className="pb-2 pr-4">
+                        {t('admin.system.terminal', 'Terminal')}
+                      </th>
+                      <th className="pb-2 pr-4">
+                        {t('admin.system.status', 'Status')}
+                      </th>
+                      <th className="pb-2 pr-4">
+                        {t('admin.system.uptime', 'Uptime')}
+                      </th>
+                      <th className="pb-2 pr-4">
+                        {t('admin.system.reconnects', 'Reconnects')}
+                      </th>
+                      <th className="pb-2">
+                        {t('admin.system.last_check', 'Last Check')}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -302,8 +337,11 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
                               }
                             >
                               {terminal.connected
-                                ? 'Connected'
-                                : 'Disconnected'}
+                                ? t('admin.system.connected', 'Connected')
+                                : t(
+                                    'admin.system.disconnected',
+                                    'Disconnected'
+                                  )}
                             </Badge>
                           </td>
                           <td className="py-2 pr-4">
@@ -330,22 +368,29 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-foreground">
-                  Most Problematic Terminals (24h)
+                  {t(
+                    'admin.system.most_problematic_terminals',
+                    'Most Problematic Terminals (24h)'
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm text-foreground">
-                  {data.stats.most_problematic_terminals.map((t) => (
+                  {data.stats.most_problematic_terminals.map((terminal) => (
                     <li
-                      key={t.terminal_id}
+                      key={terminal.terminal_id}
                       className="border-border/50 flex items-center justify-between border-b pb-2"
                     >
                       <span>
-                        {t.symbol} ({t.terminal_id})
+                        {terminal.symbol} ({terminal.terminal_id})
                       </span>
                       <span className="text-muted-foreground">
-                        {t.reconnect_count} reconnects · {t.uptime.toFixed(1)}%
-                        uptime
+                        {t(
+                          'admin.system.n_reconnects_n_uptime',
+                          '{count} reconnects · {uptime}% uptime'
+                        )
+                          .replace('{count}', String(terminal.reconnect_count))
+                          .replace('{uptime}', terminal.uptime.toFixed(1))}
                       </span>
                     </li>
                   ))}

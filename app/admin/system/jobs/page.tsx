@@ -23,6 +23,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { SYSTEM_CRON_JOBS } from '@/lib/admin/system-jobs';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -51,6 +52,7 @@ interface JobRunState {
  * shows the real, ephemeral result of that one call.
  */
 export default function AdminSystemJobsPage(): React.ReactElement {
+  const { t } = useLocale();
   const [runStates, setRunStates] = useState<Record<string, JobRunState>>({});
 
   const triggerJob = async (jobId: string): Promise<void> => {
@@ -67,7 +69,12 @@ export default function AdminSystemJobsPage(): React.ReactElement {
           ...prev,
           [jobId]: {
             status: 'error',
-            message: body.error ?? `Request failed (${response.status})`,
+            message:
+              body.error ??
+              t(
+                'admin.system.request_failed',
+                'Request failed ({status})'
+              ).replace('{status}', String(response.status)),
           },
         }));
         return;
@@ -84,7 +91,10 @@ export default function AdminSystemJobsPage(): React.ReactElement {
     } catch {
       setRunStates((prev) => ({
         ...prev,
-        [jobId]: { status: 'error', message: 'Network error' },
+        [jobId]: {
+          status: 'error',
+          message: t('admin.system.network_error', 'Network error'),
+        },
       }));
     }
   };
@@ -93,13 +103,18 @@ export default function AdminSystemJobsPage(): React.ReactElement {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">
-          Scheduled Jobs &amp; Cron Manager
+          {t('admin.system.jobs_title', 'Scheduled Jobs & Cron Manager')}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          These 8 jobs run on money-service&apos;s own real-time scheduler. The
-          monolith&apos;s legacy <code>/api/cron/*</code> routes are no longer
-          scheduled by anything. No run-history timeline is shown below since
-          neither service persists one yet.
+          {t(
+            'admin.system.jobs_subtitle_prefix',
+            "These 8 jobs run on money-service's own real-time scheduler. The monolith's legacy"
+          )}{' '}
+          <code>/api/cron/*</code>{' '}
+          {t(
+            'admin.system.jobs_subtitle_suffix',
+            'routes are no longer scheduled by anything. No run-history timeline is shown below since neither service persists one yet.'
+          )}
         </p>
       </div>
 
@@ -110,13 +125,18 @@ export default function AdminSystemJobsPage(): React.ReactElement {
             <Card key={job.id} className="border-border bg-card">
               <CardHeader className="flex-row items-start justify-between space-y-0">
                 <div>
-                  <CardTitle className="text-foreground">{job.label}</CardTitle>
+                  <CardTitle className="text-foreground">
+                    {t(job.labelKey, job.label)}
+                  </CardTitle>
                   <CardDescription className="mt-1 text-muted-foreground">
-                    {job.description}
+                    {t(job.descriptionKey, job.description)}
                   </CardDescription>
                 </div>
                 <Badge className="bg-primary text-primary-foreground hover:bg-primary">
-                  Managed by Money-Service Scheduler
+                  {t(
+                    'admin.system.managed_by_money_service',
+                    'Managed by Money-Service Scheduler'
+                  )}
                 </Badge>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -128,22 +148,32 @@ export default function AdminSystemJobsPage(): React.ReactElement {
                         size="sm"
                         disabled={runState.status === 'running'}
                       >
-                        {runState.status === 'running' ? 'Running…' : 'Run Now'}
+                        {runState.status === 'running'
+                          ? t('admin.system.running', 'Running…')
+                          : t('admin.system.run_now', 'Run Now')}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Run {job.label}?</AlertDialogTitle>
+                        <AlertDialogTitle>
+                          {t(
+                            'admin.system.run_job_confirm',
+                            'Run {job}?'
+                          ).replace('{job}', t(job.labelKey, job.label))}
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                          This triggers the exact same code money-service runs
-                          on its own schedule, right now, for real. Only proceed
-                          if you intend a real, immediate execution.
+                          {t(
+                            'admin.system.run_job_warning',
+                            'This triggers the exact same code money-service runs on its own schedule, right now, for real. Only proceed if you intend a real, immediate execution.'
+                          )}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>
+                          {t('Cancel', 'Cancel')}
+                        </AlertDialogCancel>
                         <AlertDialogAction onClick={() => triggerJob(job.id)}>
-                          Run now
+                          {t('admin.system.run_now_lower', 'Run now')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -151,11 +181,14 @@ export default function AdminSystemJobsPage(): React.ReactElement {
 
                   {runState.status === 'success' && (
                     <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
-                      Last triggered{' '}
+                      {t(
+                        'admin.system.last_triggered_prefix',
+                        'Last triggered'
+                      )}{' '}
                       {runState.triggeredAt
                         ? new Date(runState.triggeredAt).toLocaleTimeString()
                         : ''}{' '}
-                      this session
+                      {t('admin.system.last_triggered_suffix', 'this session')}
                     </Badge>
                   )}
                   {runState.status === 'error' && (

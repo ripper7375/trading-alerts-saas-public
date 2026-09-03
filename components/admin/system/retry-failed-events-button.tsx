@@ -15,6 +15,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { useLocale } from '@/lib/context/locale-context';
 
 /**
  * Retry Failed Events Button (Session 6-11, B2-16)
@@ -29,6 +30,7 @@ export function RetryFailedEventsButton({
 }: {
   failedCount: number;
 }): React.ReactElement | null {
+  const { t } = useLocale();
   const router = useRouter();
   const [isRetrying, setIsRetrying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,12 +46,12 @@ export function RetryFailedEventsButton({
       });
       if (!response.ok) {
         const body = await response.json();
-        setError(body.error ?? 'Retry failed');
+        setError(body.error ?? t('admin.system.retry_failed', 'Retry failed'));
         return;
       }
       router.refresh();
     } catch {
-      setError('Network error');
+      setError(t('admin.system.network_error', 'Network error'));
     } finally {
       setIsRetrying(false);
     }
@@ -60,22 +62,33 @@ export function RetryFailedEventsButton({
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button variant="outline" size="sm" disabled={isRetrying}>
-            {isRetrying ? 'Retrying…' : `Retry ${failedCount} Failed Events`}
+            {isRetrying
+              ? t('admin.system.retrying', 'Retrying…')
+              : t(
+                  'admin.system.retry_n_failed_events',
+                  'Retry {count} Failed Events'
+                ).replace('{count}', String(failedCount))}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Retry all failed events?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t(
+                'admin.system.retry_all_failed_confirm',
+                'Retry all failed events?'
+              )}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Resets all {failedCount} FAILED outbox events back to PENDING with
-              a fresh attempt budget. money-service&apos;s publisher cron picks
-              them up on its next poll.
+              {t(
+                'admin.system.retry_all_failed_desc',
+                "Resets all {count} FAILED outbox events back to PENDING with a fresh attempt budget. money-service's publisher cron picks them up on its next poll."
+              ).replace('{count}', String(failedCount))}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('Cancel', 'Cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={() => void handleRetry()}>
-              Retry
+              {t('admin.system.retry', 'Retry')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

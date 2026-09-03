@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { useLocale } from '@/lib/context/locale-context';
 
 type Audience = 'ALL' | 'PRO' | 'FREE' | 'AFFILIATES';
 
@@ -32,6 +33,7 @@ type Audience = 'ALL' | 'PRO' | 'FREE' | 'AFFILIATES';
  * /jobs/outbox's own honest empty-state disclosures).
  */
 export default function AdminNotificationsBroadcastPage(): React.ReactElement {
+  const { t } = useLocale();
   const [audience, setAudience] = useState<Audience>('ALL');
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
@@ -46,7 +48,10 @@ export default function AdminNotificationsBroadcastPage(): React.ReactElement {
     if (!title || !message) return;
 
     setPreviewNote(
-      'Preview only — dispatch is disabled in this environment. No broadcast was sent.'
+      t(
+        'admin.broadcast.preview_only_note',
+        'Preview only — dispatch is disabled in this environment. No broadcast was sent.'
+      )
     );
     setTimeout(() => setPreviewNote(''), 5000);
   };
@@ -55,19 +60,23 @@ export default function AdminNotificationsBroadcastPage(): React.ReactElement {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">
-          Broadcast Composer
+          {t('admin.broadcast.title', 'Broadcast Composer')}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Instant push announcements, sound chimes &amp; targeted audience
-          messaging.
+          {t(
+            'admin.broadcast.subtitle',
+            'Instant push announcements, sound chimes & targeted audience messaging.'
+          )}
         </p>
       </div>
 
       <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
         <Info className="h-4 w-4 shrink-0" />
         <span>
-          Preview mode — dispatch is disabled. No real notification pipeline
-          exists yet (scheduled for Phase 10/14).
+          {t(
+            'admin.broadcast.preview_mode_notice',
+            'Preview mode — dispatch is disabled. No real notification pipeline exists yet (scheduled for Phase 10/14).'
+          )}
         </span>
       </div>
 
@@ -80,13 +89,16 @@ export default function AdminNotificationsBroadcastPage(): React.ReactElement {
       <form onSubmit={handlePreview} className="space-y-6">
         <Card className="space-y-5 border-border bg-card p-6">
           <h3 className="border-b border-border pb-3 text-sm font-bold text-foreground">
-            Broadcast Parameters &amp; Content
+            {t(
+              'admin.broadcast.parameters_and_content',
+              'Broadcast Parameters & Content'
+            )}
           </h3>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">
-                Target Audience
+                {t('admin.broadcast.target_audience', 'Target Audience')}
               </Label>
               <Select
                 value={audience}
@@ -96,11 +108,20 @@ export default function AdminNotificationsBroadcastPage(): React.ReactElement {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All Registered Users</SelectItem>
-                  <SelectItem value="PRO">PRO Subscribers Only</SelectItem>
-                  <SelectItem value="FREE">Free Workspace Users</SelectItem>
+                  <SelectItem value="ALL">
+                    {t('admin.broadcast.audience_all', 'All Registered Users')}
+                  </SelectItem>
+                  <SelectItem value="PRO">
+                    {t('admin.broadcast.audience_pro', 'PRO Subscribers Only')}
+                  </SelectItem>
+                  <SelectItem value="FREE">
+                    {t('admin.broadcast.audience_free', 'Free Workspace Users')}
+                  </SelectItem>
                   <SelectItem value="AFFILIATES">
-                    Approved Affiliates Only
+                    {t(
+                      'admin.broadcast.audience_affiliates',
+                      'Approved Affiliates Only'
+                    )}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -108,7 +129,10 @@ export default function AdminNotificationsBroadcastPage(): React.ReactElement {
 
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">
-                Action Link (Optional)
+                {t(
+                  'admin.broadcast.action_link_optional',
+                  'Action Link (Optional)'
+                )}
               </Label>
               <Input
                 value={targetLink}
@@ -120,24 +144,30 @@ export default function AdminNotificationsBroadcastPage(): React.ReactElement {
 
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">
-              Broadcast Headline
+              {t('admin.broadcast.headline', 'Broadcast Headline')}
             </Label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Scheduled MT5 Maintenance Completed"
+              placeholder={t(
+                'admin.broadcast.headline_placeholder',
+                'e.g. Scheduled MT5 Maintenance Completed'
+              )}
               required
             />
           </div>
 
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">
-              Broadcast Body Text
+              {t('admin.broadcast.body_text', 'Broadcast Body Text')}
             </Label>
             <Textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Type your system announcement message here..."
+              placeholder={t(
+                'admin.broadcast.body_placeholder',
+                'Type your system announcement message here...'
+              )}
               rows={4}
               required
             />
@@ -147,14 +177,20 @@ export default function AdminNotificationsBroadcastPage(): React.ReactElement {
           <div className="space-y-3 pt-2">
             <div className="bg-accent/30 flex items-center justify-between rounded-lg border border-border p-3">
               <span className="text-xs text-foreground">
-                In-App Notification Centre Push
+                {t(
+                  'admin.broadcast.channel_in_app_push',
+                  'In-App Notification Centre Push'
+                )}
               </span>
               <Switch checked={inAppPush} onCheckedChange={setInAppPush} />
             </div>
 
             <div className="bg-accent/30 flex items-center justify-between rounded-lg border border-border p-3">
               <span className="text-xs text-foreground">
-                Trigger Audio Chime / Visual Banner on Active Terminals
+                {t(
+                  'admin.broadcast.channel_audio_chime',
+                  'Trigger Audio Chime / Visual Banner on Active Terminals'
+                )}
               </span>
               <Switch
                 checked={playAudioChime}
@@ -164,7 +200,10 @@ export default function AdminNotificationsBroadcastPage(): React.ReactElement {
 
             <div className="bg-accent/30 flex items-center justify-between rounded-lg border border-border p-3">
               <span className="text-xs text-foreground">
-                Dispatch Bulk Email Blast
+                {t(
+                  'admin.broadcast.channel_email_blast',
+                  'Dispatch Bulk Email Blast'
+                )}
               </span>
               <Switch checked={emailBlast} onCheckedChange={setEmailBlast} />
             </div>
@@ -173,11 +212,14 @@ export default function AdminNotificationsBroadcastPage(): React.ReactElement {
 
         <div className="flex items-center justify-end gap-3">
           <Badge className="bg-muted text-muted-foreground hover:bg-muted">
-            Dispatch Disabled
+            {t('admin.broadcast.dispatch_disabled', 'Dispatch Disabled')}
           </Badge>
           <Button type="submit" className="px-6 font-bold">
             <Send className="mr-2 h-4 w-4" />
-            Preview Only (Dispatch Disabled)
+            {t(
+              'admin.broadcast.preview_only_dispatch_disabled',
+              'Preview Only (Dispatch Disabled)'
+            )}
           </Button>
         </div>
       </form>
