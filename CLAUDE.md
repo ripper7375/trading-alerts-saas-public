@@ -26,6 +26,136 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
+> **Ad-hoc session (2026-09-03, phase/session unchanged) — CLOSED SUCCESSFUL, propagate the
+> `best_fit_a`/`best_fit_b` split downstream of the gateway contract (3 services):** follow-on
+> to the Stack C ad-hoc session immediately below, which split `best_fit` into `best_fit_a`/
+> `best_fit_b` at the MQL5/collector/gateway-contract layer and grew `market_data` from 79 to
+> 87 fields, but explicitly left everything downstream of `gateway_contract_market_data.schema
+.json` untouched. Davin asked directly in chat to propagate that split through the root
+> Next.js monolith, `railway-gateway/`, and `operation-service/` — the three separately-
+> deployed services that mirror this schema — per `EXECUTOR-PROTOCOL.md` §6.
+> **Read the blueprint's §0.4/§3.4 and this file + `EXECUTOR-PROTOCOL.md` first, per Davin's own
+> instruction, before touching anything.** Confirmed live (not assumed from the task's own
+> description) that `gateway_contract_market_data.schema.json` already carried the 87-field
+> shape (`best_fit_a_*`/`best_fit_b_*` blocks, positioned before `cherry_a`, matching its
+> sibling formatting) before starting.
+> **Root monolith:** `prisma/market-data/schema.prisma`'s `MarketDataV6` model — the 8
+> `best_fit_*` fields split into `best_fit_a_*`/`best_fit_b_*` (16 fields), same block style as
+> the existing `cherry_a`/`cherry_b` pair. **`market_data_v6` is a LIVE production table**, so
+> the new migration (`prisma/migrations/20260903000000_split_best_fit_variant/migration.sql`)
+> is a lossless `ALTER TABLE ... RENAME COLUMN` of the 8 existing `best_fit_*` columns to
+> `best_fit_a_*` (existing history becomes valid `best_fit_a` data, since `best_fit_a` is
+> config-identical to the old `best_fit`), followed by `ADD COLUMN` for the 8 new nullable
+> `best_fit_b_*` columns — authored, **not applied to any real database**, per this repo's
+> established boundary (see history throughout this file). `types/indicator.ts`'s
+> `CENTROID_VARIANTS`/`CentroidVariant`/`MarketDataV6` interface got the same split plus its
+> "79 fields"/"Six variants" header comments updated to 87/seven. `app/api/market-data/channel/
+route.ts` and `components/charts/mtf/useMtfOverlay.ts` had their `variant` default flipped
+> `'best_fit'` → `'best_fit_a'` (preserves existing behavior exactly, since `best_fit_a` **is**
+> the old `best_fit`) — the rest of both files is already generic/parametrized by variant name.
+> **A repo-wide grep sweep (not just the task's own named-file list) caught two more real
+> spots the targeted checklist didn't name:** `types/prisma-stubs.d.ts` — a fallback ambient
+> `@prisma/client` type-stub file ("allows TypeScript compilation when Prisma client cannot be
+> generated") that independently duplicates the same 79-field `MarketDataV6` interface and would
+> have silently drifted from the real generated client had it been left alone — split the same
+> way. `railway-gateway/scripts/seed_local_xauusd_db.py` — a local-e2e-harness seed script that
+> `INSERT`s a synthetic row using the **old** `best_fit_*` SQLite column names; since
+> `backend-stack-c`'s `sqlite_schema_v6_xauusd.sql` (out of scope, already updated by the prior
+> session) now defines `best_fit_a_*`/`best_fit_b_*` instead, this script would have thrown
+> "no such column" the next time anyone ran it — fixed to `best_fit_a_*`, a real latent bug this
+> sweep caught before it bit anyone, not a stylistic cleanup.
+> **`railway-gateway/`:** `prisma/schema.prisma`'s `MarketDataV6` model updated to be
+> **byte-for-byte identical** to the monolith's model body (diffed the two model bodies directly
+> after editing — confirmed identical, not eyeballed) — `test/schema-sync.spec.ts` enforces this
+> via structural diff. DTO regenerated via `npm run generate:dto` (mechanical, reads the already-
+> updated gateway contract schema; the file's own header says never hand-edit it) — confirmed 87
+> fields in the regenerated output, not just trusted the script's own "87 fields" console line.
+> `test/dto-contract.spec.ts`'s `toBe(79)` → `toBe(87)`; `README.md`'s "79-field" → "87-field".
+> **`operation-service/`:** its own local `CENTROID_VARIANTS` array + `channelQuerySchema`'s
+> default variant in `src/market-data/market-data.schemas.ts` got the same split/default-flip.
+> `prisma/schema.prisma`'s narrower `MarketDataV6` mirror (channel-relevant fields only — 3 per
+> variant, not the full 8) split `best_fit`'s 3 into `best_fit_a`'s 3 + `best_fit_b`'s 3 (18 → 21
+> fields), `prisma generate`-only per the file's own header comment (no migration owned here).
+> `src/market-data/market-data.service.spec.ts`'s hardcoded `'best_fit'` fixtures + the literal
+> `'Invalid variant. Available: ...'` error string updated to list all 7 variants;
+> `src/market-data/market-data.controller.spec.ts` checked and confirmed to need **no** change —
+> it only ever used `'cherry_a'`/`not_a_variant`-style literals, never a bare `'best_fit'`.
+> **Verified, not assumed:** monolith `npx tsc --noEmit` clean (before **and** after
+> regenerating `prisma:generate:market-data`, to rule out a stale-client false-clean pass); full
+> `npm run test:ci` **166/166 suites, 2390/2390 tests** — exact match to this file's own most
+> recent close baseline, zero regressions; targeted `__tests__/api/market-data-channel.test.ts`
+> **13/13**; `eslint` clean on every changed monolith file. `railway-gateway`: `tsc --noEmit`
+> clean; `npm test` **3/3 suites, 23/23** (incl. `schema-sync.spec.ts` and the now-87
+> `dto-contract.spec.ts`); `npm run test:e2e` **1/1 suite, 9/9** (real HTTP round-trips through
+> the live Express adapter — unaffected, confirming `validation.service.ts`/
+> `market-data.controller.ts` are genuinely field-name-agnostic as the task predicted, not just
+> assumed so); `eslint` 0 errors on changed files (3 pre-existing "file ignored" warnings on
+> generated/test-glob files, confirmed unrelated — same warning class on files this session never
+> touched). `operation-service`: `tsc --noEmit` clean; `npm test` **43/43 suites, 401/401
+> tests**; `eslint` 0 errors. **A final repo-wide sweep for a bare `best_fit_` (excluding
+> `best_fit_a`/`best_fit_b` themselves) across all three service trees came back clean** except
+> the two expected, correct hits: the old, already-applied `20260705000000_add_market_data_v6`
+> migration (an immutable historical record — Prisma migrations are never edited after the fact)
+> and this session's own new migration's `RENAME COLUMN ... FROM best_fit_*` lines (the FROM
+> side of a rename is necessarily the old name).
+> **Migration verified against a real disposable database, not just `prisma validate`'s syntax
+> check — Docker Desktop wasn't running at first (this environment has no persistent disposable
+> Postgres instance), so this was flagged as a likely gap; then launched Docker Desktop, polled
+> until its daemon was ready, and used it:** spun up a throwaway `postgres:16-alpine` container,
+> applied the existing `20260705000000_add_market_data_v6` migration to create the table with
+> the OLD `best_fit_*` columns, inserted a row under those old column names (simulating real
+> accumulated production history), applied this session's new migration on top, and confirmed
+> directly via `psql` that the row's `best_fit_uoedt`/`base_fl`/`loedt` values survived the
+> rename byte-identical under `best_fit_a_*`, with the new `best_fit_b_*` columns correctly
+> `NULL` — genuine lossless-rename proof, not inferred from the SQL text alone. Column count
+> post-migration: 90 (87 gateway-contract fields + Prisma's own `id`/`createdAt`/`updatedAt`),
+> confirming no orphaned or duplicated columns. Container removed immediately after.
+> **Found, correctly left untouched (flagged, not silently skipped):**
+> `docs/open-api-documents/part-{03,23,24,25}-*.yaml` still describe the old 6-variant/79-field
+> shape — not named in the task's explicit file list, not read by any test/build step (checked:
+> no `.ts`/`.py` file references `docs/open-api-documents/` at all), same class as this file's
+> own established precedent for `davintrade-stack-d-and-e/`'s stale docs — a documentation task
+> for whoever next touches the OpenAPI docs, not this session's scope.
+> `docs/migration-orders/POST-8-5-CHART-CONTROLS-AND-EDT-SPECIFICATION.md` (a `SelectItem
+value="best_fit"` chart-controls UI spec) confirmed **not yet implemented anywhere in live
+> code** (grepped `app/`/`components/` for any real `CentroidVariant`-driven `<Select>` —
+> found none outside `useMtfOverlay.ts`, which has no UI of its own) — a future-work spec doc,
+> correctly left stale until that UI actually gets built.
+> `docs/migration-orders/session-8-2-staging-market-data-v6.sql` and
+> `migration-cutover-table.md`'s Session 4B-12 evidence quote (`variant:'best_fit'` inside a
+> literal historical JSON response) are frozen point-in-time records of past sessions, not living
+> specs — correctly left untouched.
+> `docs/migration-orders/migration-stack-analysis.md`'s `market_data_v6` file-inventory entry
+> updated (79→87 fields, six→seven variants, the new migration noted) since this session created
+> a new migration file, per `EXECUTOR-PROTOCOL.md` §3's artifact-update rule.
+> **Also flagged, not fixed (a pre-existing condition this session did not cause):**
+> `CLAUDE.md` was already **121 KB** at this session's start, above `EXECUTOR-PROTOCOL.md` §0's
+> ~100 KB size gate — the gate calls for an archival pass (superseded numbered-session entries →
+> `history/sessions-archive.md`) before a session starts. Checked: the ad-hoc-session blockquotes
+> that make up most of this file's bulk are **not** the same "Current/Previous" numbered-session
+> rotation §3's archival procedure targets (that rotation is Session-14-x-only and already
+> current), so a correct archival pass here means judging which multi-paragraph ad-hoc entries are
+> safe to relocate — several are still directly referenced by open `Waiting on` items. Attempting
+> that consolidation as a side effect of this narrowly-scoped propagation task risked mangling a
+> large, carefully-written institutional record for no benefit to the task Davin actually asked
+> for; flagged here instead for a deliberate future pass (Advisor or Davin's own call on which
+> entries are truly closed).
+> **Not committed** — Davin was not asked this session whether to commit; per this repo's
+> established pattern (e.g. the same-day best_fit_a/b split entry immediately below), left
+> uncommitted pending Davin's review of this entry, matching that session's own precedent of
+> logging first and deferring the commit decision.
+> **Artifacts:** `prisma/market-data/schema.prisma`, `prisma/migrations/
+20260903000000_split_best_fit_variant/migration.sql` (new, authored but not applied),
+> `types/indicator.ts`, `types/prisma-stubs.d.ts`, `app/api/market-data/channel/route.ts`,
+> `components/charts/mtf/useMtfOverlay.ts`, `__tests__/api/market-data-channel.test.ts`,
+> `railway-gateway/prisma/schema.prisma`, `railway-gateway/src/gateway/dto/market-data.dto.ts`
+> (regenerated), `railway-gateway/test/dto-contract.spec.ts`, `railway-gateway/README.md`,
+> `railway-gateway/scripts/seed_local_xauusd_db.py`, `operation-service/prisma/schema.prisma`,
+> `operation-service/src/market-data/market-data.schemas.ts`,
+> `operation-service/src/market-data/market-data.service.spec.ts`,
+> `docs/migration-orders/migration-stack-analysis.md`, this file. 15 files modified + 1 new
+> migration file, all uncommitted per the pattern above.
+
 > **Ad-hoc session (2026-09-03, phase/session unchanged) — CLOSED SUCCESSFUL, Stack C
 > `best_fit` centroid variant split into `best_fit_a`/`best_fit_b`:** Davin had already
 > built and dropped in two new MQL5 indicators —

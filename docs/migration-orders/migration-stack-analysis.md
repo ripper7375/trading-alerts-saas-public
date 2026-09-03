@@ -159,12 +159,17 @@ after the monolith split. These axes disagree on a meaningful number of files:
 There are two logically distinct data domains in this system, and — as of 2026-07-11 — they are
 at very different points in their own separation-from-the-monolith journey.
 
-### 1. `market_data_v6` — 79-field centroid-regression/EDT schema
+### 1. `market_data_v6` — 87-field centroid-regression/EDT schema
 
-This is the trading-data table (OHLCV + the six centroid-regression variants: `best_fit`,
-`cherry_a`, `cherry_b`, `most_recent`, `non_a`, `non_b` — see
-`prisma/schema.prisma:924` `model MarketDataV6`). It exists in **two physically separate
-databases today**, not one:
+This is the trading-data table (OHLCV + the seven centroid-regression variants: `best_fit_a`,
+`best_fit_b`, `cherry_a`, `cherry_b`, `most_recent`, `non_a`, `non_b` — see
+`prisma/market-data/schema.prisma` `model MarketDataV6`). **2026-09-03:** the former single
+`best_fit` variant split into `best_fit_a`/`best_fit_b` (79 → 87 fields; new migration
+`prisma/migrations/20260903000000_split_best_fit_variant`, renames the 8 `best_fit_*` columns
+to `best_fit_a_*` losslessly, adds 8 new nullable `best_fit_b_*` columns) — see
+`backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/
+DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md` §3.4 for the rationale. It exists in **two
+physically separate databases today**, not one:
 
 | Store                 | Engine               | Location                                           | Authoritative schema file                                                                                                                                                                                                                                    |
 | --------------------- | -------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
