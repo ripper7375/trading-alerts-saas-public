@@ -18,7 +18,7 @@ import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
  * call: keep the working affiliate feature under the new look).
  */
 export function LandingPricing() {
-  const { t } = useLocale();
+  const { t, formatCurrency } = useLocale();
   const searchParams = useSearchParams();
   const affiliateCode = searchParams.get('ref');
 
@@ -86,7 +86,7 @@ export function LandingPricing() {
               </div>
               <div className="mb-6 flex items-baseline space-x-2">
                 <span className="font-mono text-4xl font-extrabold text-slate-900 dark:text-white">
-                  $0
+                  {formatCurrency(0)}
                 </span>
                 <span className="text-sm text-slate-500 dark:text-slate-400">
                   {t('/ forever free')}
@@ -146,11 +146,11 @@ export function LandingPricing() {
               <div className="mb-6 flex items-baseline space-x-2">
                 {affiliateCode && (
                   <span className="font-mono text-lg text-slate-400 line-through dark:text-slate-600">
-                    ${regularPrice.toFixed(2)}
+                    {formatCurrency(regularPrice)}
                   </span>
                 )}
                 <span className="font-mono text-4xl font-extrabold text-slate-900 dark:text-white">
-                  ${proPriceDisplay}
+                  {formatCurrency(Number(proPriceDisplay))}
                 </span>
                 <span className="text-sm text-slate-500 dark:text-slate-400">
                   {t('/ month')}

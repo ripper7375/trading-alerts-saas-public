@@ -59,6 +59,18 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
+// ---- next/headers: the status page (Server Component) now resolves
+// locale preferences via getServerLocalePreferences(), which calls
+// cookies()/headers() -- both throw "called outside a request scope"
+// when unmocked in a Jest render (LESSONS-LEARNED.md L3 recurrence). ----
+const mockCookieStore = { get: jest.fn(() => undefined) };
+const mockHeaderStore = { get: jest.fn(() => null) };
+jest.mock('next/headers', () => ({
+  __esModule: true,
+  cookies: jest.fn(() => Promise.resolve(mockCookieStore)),
+  headers: jest.fn(() => Promise.resolve(mockHeaderStore)),
+}));
+
 // ---- useAffiliateConfig: mocked, matching register-form.test.tsx's
 // established pattern -- avoids a real SWR fetch in tests. ----
 jest.mock('@/lib/hooks/useAffiliateConfig', () => ({
