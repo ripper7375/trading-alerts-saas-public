@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { SYMBOLS, TIMEFRAMES, type Tier } from '@/lib/tier-config';
+import { useLocale } from '@/lib/context/locale-context';
 
 /**
  * Condition type options
@@ -22,17 +23,23 @@ import { SYMBOLS, TIMEFRAMES, type Tier } from '@/lib/tier-config';
 const CONDITION_TYPES = [
   {
     value: 'price_above',
+    labelKey: 'alerts.condition_above',
     label: 'Price Above',
+    descKey: 'alerts.condition_above_desc',
     description: 'Triggers when price goes above target',
   },
   {
     value: 'price_below',
+    labelKey: 'alerts.condition_below',
     label: 'Price Below',
+    descKey: 'alerts.condition_below_desc',
     description: 'Triggers when price goes below target',
   },
   {
     value: 'price_equals',
+    labelKey: 'alerts.condition_equals',
     label: 'Price Equals',
+    descKey: 'alerts.condition_equals_desc',
     description: 'Triggers when price equals target (0.5% tolerance)',
   },
 ] as const;
@@ -107,6 +114,8 @@ export function AlertForm({
   onSubmit,
   onCancel,
 }: AlertFormProps): React.JSX.Element {
+  const { t } = useLocale();
+
   // Form state
   const [symbol, setSymbol] = useState<string>(initialData?.symbol || '');
   const [timeframe, setTimeframe] = useState<string>(
@@ -225,19 +234,27 @@ export function AlertForm({
 
     // Validate form
     if (!symbol) {
-      setError('Please select a symbol');
+      setError(t('alerts.error_select_symbol', 'Please select a symbol'));
       return;
     }
     if (!timeframe) {
-      setError('Please select a timeframe');
+      setError(t('alerts.error_select_timeframe', 'Please select a timeframe'));
       return;
     }
     if (!targetValue || parseFloat(targetValue) <= 0) {
-      setError('Please enter a valid target price');
+      setError(
+        t('alerts.error_invalid_price', 'Please enter a valid target price')
+      );
       return;
     }
     if (symbolDenied) {
-      setError(symbolCheck?.reason || 'This symbol is not accessible');
+      setError(
+        symbolCheck?.reason ||
+          t(
+            'alerts.error_symbol_not_accessible',
+            'This symbol is not accessible'
+          )
+      );
       return;
     }
 
@@ -252,7 +269,11 @@ export function AlertForm({
         name: alertName || `${symbol} ${timeframe} Alert`,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save alert');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('alerts.error_failed_save', 'Failed to save alert')
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -262,7 +283,9 @@ export function AlertForm({
     <Card className="border-slate-200 bg-white/90 backdrop-blur-xl dark:border-slate-800/80 dark:bg-[#090b14]/90">
       <CardHeader>
         <CardTitle className="text-slate-900 dark:text-slate-100">
-          {isEditing ? 'Edit Alert' : 'Create Alert'}
+          {isEditing
+            ? t('alerts.edit_alert', 'Edit Alert')
+            : t('alerts.create_alert', 'Create Alert')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -277,16 +300,19 @@ export function AlertForm({
           >
             <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-medium text-foreground">
-                Alert Usage: {currentCount}/{limit}
+                {t('alerts.alert_usage', 'Alert Usage')}: {currentCount}/{limit}
               </span>
               <span className="text-sm text-muted-foreground">
-                {userTier} Tier
+                {userTier} {t('alerts.tier', 'Tier')}
               </span>
             </div>
             <Progress value={progressPercent} className="h-2" />
             {!canCreate && (
               <p className="mt-2 text-sm text-rose-600 dark:text-rose-400">
-                You have reached your alert limit. Upgrade to PRO for more.
+                {t(
+                  'alerts.limit_reached_inline',
+                  'You have reached your alert limit. Upgrade to PRO for more.'
+                )}
               </p>
             )}
           </div>
@@ -294,8 +320,10 @@ export function AlertForm({
 
         {isEditing && (
           <p className="mb-6 text-sm text-muted-foreground">
-            Symbol, timeframe, and condition type can&apos;t be changed after
-            creation — delete and recreate the alert instead.
+            {t(
+              'alerts.edit_immutable_note',
+              "Symbol, timeframe, and condition type can't be changed after creation — delete and recreate the alert instead."
+            )}
           </p>
         )}
 
@@ -316,7 +344,10 @@ export function AlertForm({
               role="status"
               className="rounded-xl border border-amber-500/30 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"
             >
-              {tierDataError}
+              {t(
+                'alerts.error_tier_data',
+                'Could not load the latest symbol list — showing defaults.'
+              )}
             </div>
           )}
 
@@ -327,7 +358,10 @@ export function AlertForm({
               className="rounded-xl border border-amber-500/30 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"
             >
               {symbolCheck?.reason ||
-                'This symbol is not accessible on your tier.'}
+                t(
+                  'alerts.error_symbol_not_on_tier',
+                  'This symbol is not accessible on your tier.'
+                )}
             </div>
           )}
 
@@ -337,7 +371,7 @@ export function AlertForm({
               htmlFor="alert-symbol"
               className="mb-2 block text-sm font-medium text-foreground"
             >
-              Symbol <span className="text-rose-500">*</span>
+              {t('Symbol')} <span className="text-rose-500">*</span>
             </label>
             {tierDataLoading ? (
               <Skeleton className="h-10 w-full" />
@@ -348,7 +382,9 @@ export function AlertForm({
                 disabled={isEditing}
               >
                 <SelectTrigger id="alert-symbol" aria-label="Symbol">
-                  <SelectValue placeholder="Select a symbol" />
+                  <SelectValue
+                    placeholder={t('alerts.select_symbol', 'Select a symbol')}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {availableSymbols.map((s) => (
@@ -360,9 +396,12 @@ export function AlertForm({
               </Select>
             )}
             <p className="mt-1 text-xs text-gray-500">
-              {availableSymbols.length} symbol
-              {availableSymbols.length === 1 ? '' : 's'} available on {userTier}{' '}
-              tier
+              {t(
+                'alerts.symbols_available',
+                '{count} symbol(s) available on {tier} tier'
+              )
+                .replace('{count}', String(availableSymbols.length))
+                .replace('{tier}', userTier)}
             </p>
           </div>
 
@@ -372,7 +411,7 @@ export function AlertForm({
               htmlFor="alert-timeframe"
               className="mb-2 block text-sm font-medium text-foreground"
             >
-              Timeframe <span className="text-rose-500">*</span>
+              {t('Timeframe')} <span className="text-rose-500">*</span>
             </label>
             {tierDataLoading ? (
               <Skeleton className="h-10 w-full" />
@@ -383,7 +422,12 @@ export function AlertForm({
                 disabled={isEditing}
               >
                 <SelectTrigger id="alert-timeframe" aria-label="Timeframe">
-                  <SelectValue placeholder="Select a timeframe" />
+                  <SelectValue
+                    placeholder={t(
+                      'alerts.select_timeframe',
+                      'Select a timeframe'
+                    )}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {availableTimeframes.map((tf) => (
@@ -399,7 +443,7 @@ export function AlertForm({
           {/* Condition Type */}
           <fieldset disabled={isEditing}>
             <legend className="mb-2 block text-sm font-medium text-foreground">
-              Condition Type <span className="text-rose-500">*</span>
+              {t('Condition Type')} <span className="text-rose-500">*</span>
             </legend>
             <div className="space-y-2">
               {CONDITION_TYPES.map((type) => (
@@ -431,11 +475,11 @@ export function AlertForm({
                       htmlFor={`condition-${type.value}`}
                       className="ml-2 font-medium text-foreground"
                     >
-                      {type.label}
+                      {t(type.labelKey, type.label)}
                     </label>
                   </div>
                   <p className="ml-6 text-sm text-muted-foreground">
-                    {type.description}
+                    {t(type.descKey, type.description)}
                   </p>
                 </div>
               ))}
@@ -448,7 +492,8 @@ export function AlertForm({
               htmlFor="alert-target-value"
               className="mb-2 block text-sm font-medium text-foreground"
             >
-              Target Price <span className="text-rose-500">*</span>
+              {t('alerts.target_price_label', 'Target Price')}{' '}
+              <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -461,13 +506,19 @@ export function AlertForm({
                 min="0"
                 value={targetValue}
                 onChange={(e) => setTargetValue(e.target.value)}
-                placeholder="Enter target price"
+                placeholder={t(
+                  'alerts.enter_target_price',
+                  'Enter target price'
+                )}
                 className="pl-8"
               />
             </div>
             {conditionType === 'price_equals' && (
               <p className="mt-1 text-xs text-muted-foreground">
-                Alert will trigger when price is within 0.5% of target
+                {t(
+                  'alerts.equals_tolerance_note',
+                  'Alert will trigger when price is within 0.5% of target'
+                )}
               </p>
             )}
           </div>
@@ -478,8 +529,10 @@ export function AlertForm({
               htmlFor="alert-name"
               className="mb-2 block text-sm font-medium text-foreground"
             >
-              Alert Name{' '}
-              <span className="text-muted-foreground">(optional)</span>
+              {t('alerts.alert_name_label', 'Alert Name')}{' '}
+              <span className="text-muted-foreground">
+                ({t('alerts.optional', 'optional')})
+              </span>
             </label>
             <Input
               id="alert-name"
@@ -488,8 +541,8 @@ export function AlertForm({
               onChange={(e) => setAlertName(e.target.value)}
               placeholder={
                 symbol && timeframe
-                  ? `${symbol} ${timeframe} Alert`
-                  : 'Enter alert name'
+                  ? `${symbol} ${timeframe} ${t('alerts.alert_suffix', 'Alert')}`
+                  : t('alerts.enter_alert_name', 'Enter alert name')
               }
               maxLength={100}
             />
@@ -504,7 +557,7 @@ export function AlertForm({
               onClick={onCancel}
               disabled={isSubmitting}
             >
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button
               type="submit"
@@ -512,10 +565,10 @@ export function AlertForm({
               disabled={isSubmitting || !canCreate || tierDataLoading}
             >
               {isSubmitting
-                ? 'Saving...'
+                ? t('alerts.saving', 'Saving...')
                 : isEditing
-                  ? 'Save Changes'
-                  : 'Create Alert'}
+                  ? t('alerts.save_changes', 'Save Changes')
+                  : t('alerts.create_alert', 'Create Alert')}
             </Button>
           </div>
         </form>

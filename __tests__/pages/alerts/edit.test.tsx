@@ -13,6 +13,21 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+// EditAlertPage now resolves a dictionary via getServerLanguage() (batch-3
+// locale wiring), which calls next/headers's cookies()/headers() -- these
+// aren't available when a Server Component is invoked directly as a plain
+// function in a test (no real Next.js request scope). Mock both to no-op
+// cookie/header stores so resolvePreferences() falls back to its own
+// defaultPreferences (matches this file's existing English-text
+// assertions either way).
+const mockCookieStore = { get: jest.fn(() => undefined) };
+const mockHeaderStore = { get: jest.fn(() => undefined) };
+jest.mock('next/headers', () => ({
+  __esModule: true,
+  cookies: jest.fn(() => Promise.resolve(mockCookieStore)),
+  headers: jest.fn(() => Promise.resolve(mockHeaderStore)),
+}));
+
 import EditAlertPage from '@/app/alerts/[id]/edit/page';
 import { EditAlertClient } from '@/app/alerts/[id]/edit/edit-alert-client';
 import type { AlertFormData } from '@/components/alerts/alert-form';
@@ -192,6 +207,14 @@ describe('EditAlertClient submit flow', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Session/batch-3: EditAlertClient itself now calls useLocale() (for
+    // error-message translation) -- needs the same LocaleProvider wrapper
+    // and pre-seeded preference as the describe block above
+    // (LESSONS-LEARNED.md L40).
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify(defaultPreferences)
+    );
   });
 
   it('submits the new target value via PATCH /api/alerts/[id] and redirects on success', async () => {
@@ -213,12 +236,14 @@ describe('EditAlertClient submit flow', () => {
     );
 
     render(
-      <EditAlertClient
-        alertId="alert-1"
-        userTier="PRO"
-        limit={100}
-        initialData={initialData}
-      />
+      withLocale(
+        <EditAlertClient
+          alertId="alert-1"
+          userTier="PRO"
+          limit={100}
+          initialData={initialData}
+        />
+      )
     );
 
     const targetInput = await screen.findByDisplayValue('2500');
@@ -251,12 +276,14 @@ describe('EditAlertClient submit flow', () => {
     );
 
     render(
-      <EditAlertClient
-        alertId="alert-1"
-        userTier="PRO"
-        limit={100}
-        initialData={initialData}
-      />
+      withLocale(
+        <EditAlertClient
+          alertId="alert-1"
+          userTier="PRO"
+          limit={100}
+          initialData={initialData}
+        />
+      )
     );
 
     await screen.findByDisplayValue('2500');
@@ -272,12 +299,14 @@ describe('EditAlertClient submit flow', () => {
     mockTierFetches();
 
     render(
-      <EditAlertClient
-        alertId="alert-1"
-        userTier="PRO"
-        limit={100}
-        initialData={initialData}
-      />
+      withLocale(
+        <EditAlertClient
+          alertId="alert-1"
+          userTier="PRO"
+          limit={100}
+          initialData={initialData}
+        />
+      )
     );
 
     await screen.findByDisplayValue('2500');

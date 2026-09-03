@@ -18,6 +18,8 @@ import type { AlertFormData } from '@/components/alerts/alert-form';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { PRO_TIER_CONFIG, type Tier } from '@/lib/tier-config';
+import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 import { EditAlertClient } from './edit-alert-client';
 
@@ -63,14 +65,18 @@ export default async function EditAlertPage({
   }
 
   const tier = (session.user?.tier as Tier) || 'FREE';
+  const dict = getDictionary(await getServerLanguage());
 
   // V8: Alerts are PRO-exclusive — show upgrade landing to FREE users
   if (tier !== 'PRO') {
     return (
       <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
         <AppHeader
-          title="Edit Quantitative Alert"
-          subtitle="Configuring Trigger Parameters"
+          title={dict['alerts.edit_quant_title'] || 'Edit Quantitative Alert'}
+          subtitle={
+            dict['alerts.edit_quant_subtitle'] ||
+            'Configuring Trigger Parameters'
+          }
           tier={tier}
         />
         <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
@@ -113,8 +119,8 @@ export default async function EditAlertPage({
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
       <AppHeader
-        title="Edit Quantitative Alert"
-        subtitle={`Configuring Trigger ID: ${alert.id}`}
+        title={dict['alerts.edit_quant_title'] || 'Edit Quantitative Alert'}
+        subtitle={`${dict['alerts.configuring_trigger_id'] || 'Configuring Trigger ID'}: ${alert.id}`}
         tier={tier}
       />
       <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">

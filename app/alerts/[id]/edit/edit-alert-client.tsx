@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { AlertForm, type AlertFormData } from '@/components/alerts/alert-form';
 import type { Tier } from '@/lib/tier-config';
+import { useLocale } from '@/lib/context/locale-context';
 
 /**
  * Props for EditAlertClient component
@@ -31,6 +32,7 @@ export function EditAlertClient({
   initialData,
 }: EditAlertClientProps): React.JSX.Element {
   const router = useRouter();
+  const { t } = useLocale();
 
   const handleSubmit = async (data: AlertFormData): Promise<void> => {
     const response = await fetch(`/api/alerts/${alertId}`, {
@@ -45,7 +47,11 @@ export function EditAlertClient({
     const body = await response.json();
 
     if (!response.ok) {
-      throw new Error(body.error || body.message || 'Failed to update alert');
+      throw new Error(
+        body.error ||
+          body.message ||
+          t('alerts.error_failed_update', 'Failed to update alert')
+      );
     }
 
     router.push('/alerts');
@@ -60,23 +66,26 @@ export function EditAlertClient({
     <div className="mx-auto max-w-2xl">
       {/* Breadcrumb */}
       <div className="mb-4 text-sm text-muted-foreground">
-        Dashboard &gt;{' '}
+        {t('breadcrumb.dashboard', 'Dashboard')} &gt;{' '}
         <Link
           href="/alerts"
           className="hover:text-amber-600 dark:hover:text-amber-400"
         >
-          Alerts
+          {t('alerts.page_title', 'Alerts')}
         </Link>{' '}
-        &gt; Edit Alert
+        &gt; {t('alerts.edit_alert', 'Edit Alert')}
       </div>
 
       {/* Page Header */}
       <div className="mb-6">
         <h1 className="mb-2 text-2xl font-extrabold tracking-tight text-foreground">
-          Edit Alert
+          {t('alerts.edit_alert', 'Edit Alert')}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Update your alert&apos;s target price or name
+          {t(
+            'alerts.edit_alert_subtitle',
+            "Update your alert's target price or name"
+          )}
         </p>
       </div>
 

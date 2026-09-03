@@ -15,6 +15,8 @@ import { AlertsProUpgrade } from '@/components/alerts/alerts-pro-upgrade';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { PRO_TIER_CONFIG, type Tier } from '@/lib/tier-config';
+import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 import { AlertsClient } from './alerts-client';
 
@@ -96,14 +98,18 @@ export default async function AlertsPage(): Promise<React.JSX.Element> {
   }
 
   const tier = (session.user?.tier as Tier) || 'FREE';
+  const dict = getDictionary(await getServerLanguage());
 
   // V8: Alerts are PRO-exclusive — show upgrade landing to FREE users
   if (tier !== 'PRO') {
     return (
       <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
         <AppHeader
-          title="Real-Time Alerts Manager"
-          subtitle="Configure & Monitor Server-Side Price & Line Triggers"
+          title={dict['Real-Time Alerts Manager'] || 'Real-Time Alerts Manager'}
+          subtitle={
+            dict['alerts.manager_subtitle'] ||
+            'Configure & Monitor Server-Side Price & Line Triggers'
+          }
           tier={tier}
         />
         <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
@@ -149,8 +155,11 @@ export default async function AlertsPage(): Promise<React.JSX.Element> {
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
       <AppHeader
-        title="Real-Time Alerts Manager"
-        subtitle="Configure & Monitor Server-Side Price & Line Triggers"
+        title={dict['alerts.manager_title'] || 'Real-Time Alerts Manager'}
+        subtitle={
+          dict['alerts.manager_subtitle'] ||
+          'Configure & Monitor Server-Side Price & Line Triggers'
+        }
         tier={tier}
       />
       <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">

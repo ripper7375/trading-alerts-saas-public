@@ -19,6 +19,8 @@ import {
   TIMEFRAMES,
   type Tier,
 } from '@/lib/tier-config';
+import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 import { CreateAlertClient } from './create-alert-client';
 
@@ -52,12 +54,16 @@ export default async function CreateAlertPage(): Promise<React.JSX.Element> {
     : 0;
 
   const canCreate = activeAlertCount < limit;
+  const dict = getDictionary(await getServerLanguage());
 
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
       <AppHeader
-        title="New Alert Rule Wizard"
-        subtitle="Define Technical Channel & Line Breach Triggers"
+        title={dict['New Alert Rule Wizard'] || 'New Alert Rule Wizard'}
+        subtitle={
+          dict['alerts.new_wizard_subtitle'] ||
+          'Define Technical Channel & Line Breach Triggers'
+        }
         tier={tier}
       />
       <main className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">

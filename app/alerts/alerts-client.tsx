@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { Tier } from '@/lib/tier-config';
+import { useLocale } from '@/lib/context/locale-context';
 
 import type { AlertWithStatus } from './page';
 
@@ -59,14 +60,17 @@ function parseCondition(conditionJson: string): {
 /**
  * Get condition display text
  */
-function getConditionDisplay(conditionType: string): string {
+function getConditionDisplay(
+  conditionType: string,
+  t: (key: string, fallback?: string) => string
+): string {
   switch (conditionType) {
     case 'price_above':
-      return 'Price Above';
+      return t('alerts.condition_above', 'Price Above');
     case 'price_below':
-      return 'Price Below';
+      return t('alerts.condition_below', 'Price Below');
     case 'price_equals':
-      return 'Price Equals';
+      return t('alerts.condition_equals', 'Price Equals');
     default:
       return conditionType;
   }
@@ -84,6 +88,7 @@ export function AlertsClient({
   limit,
 }: AlertsClientProps): React.JSX.Element {
   const router = useRouter();
+  const { t } = useLocale();
   const [alerts, setAlerts] = useState(initialAlerts);
   const [activeTab, setActiveTab] = useState<string>('active');
   const [symbolFilter, setSymbolFilter] = useState<string>('all');
@@ -304,10 +309,16 @@ export function AlertsClient({
     status: 'active' | 'paused' | 'triggered'
   ): React.JSX.Element => {
     const config = {
-      active: { label: 'Active', className: 'bg-green-100 text-green-800' },
-      paused: { label: 'Paused', className: 'bg-muted text-muted-foreground' },
+      active: {
+        label: t('alerts.status_active', 'Active'),
+        className: 'bg-green-100 text-green-800',
+      },
+      paused: {
+        label: t('dashboard.status_paused', 'Paused'),
+        className: 'bg-muted text-muted-foreground',
+      },
       triggered: {
-        label: 'Triggered',
+        label: t('dashboard.status_triggered', 'Triggered'),
         className: 'bg-orange-100 text-orange-800',
       },
     };
@@ -326,8 +337,8 @@ export function AlertsClient({
   const renderAlertCard = (alert: AlertWithStatus): React.JSX.Element => {
     const condition = parseCondition(alert.condition);
     const conditionDisplay = condition
-      ? getConditionDisplay(condition.type)
-      : 'Unknown';
+      ? getConditionDisplay(condition.type, t)
+      : t('alerts.unknown', 'Unknown');
     const targetValue = condition?.targetValue || 0;
     const isTogglePending = pendingToggleId === alert.id;
 
@@ -378,7 +389,7 @@ export function AlertsClient({
           {alert.status === 'triggered' && alert.lastTriggered && (
             <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
               <p className="text-sm text-foreground">
-                Triggered:{' '}
+                {t('dashboard.status_triggered', 'Triggered')}:{' '}
                 {new Date(alert.lastTriggered).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
@@ -388,7 +399,8 @@ export function AlertsClient({
                 })}
               </p>
               <p className="text-xs text-muted-foreground">
-                Trigger count: {alert.triggerCount}
+                {t('alerts.trigger_count', 'Trigger count')}:{' '}
+                {alert.triggerCount}
               </p>
             </div>
           )}
@@ -396,7 +408,8 @@ export function AlertsClient({
           {/* Card Footer */}
           <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-4">
             <span className="text-xs text-muted-foreground">
-              Created {new Date(alert.createdAt).toLocaleDateString()}
+              {t('alerts.created', 'Created')}{' '}
+              {new Date(alert.createdAt).toLocaleDateString()}
             </span>
 
             <div className="flex flex-wrap gap-2">
@@ -405,7 +418,7 @@ export function AlertsClient({
                 className="bg-amber-500 text-slate-950 hover:bg-amber-400"
                 size="sm"
               >
-                View Chart
+                {t('alerts.view_chart', 'View Chart')}
               </Button>
 
               {alert.status === 'active' && (
@@ -414,7 +427,7 @@ export function AlertsClient({
                   variant="outline"
                   size="sm"
                 >
-                  Pause
+                  {t('alerts.pause', 'Pause')}
                 </Button>
               )}
 
@@ -424,7 +437,7 @@ export function AlertsClient({
                   className="bg-green-600 text-white hover:bg-green-700"
                   size="sm"
                 >
-                  Resume
+                  {t('alerts.resume', 'Resume')}
                 </Button>
               )}
 
@@ -434,7 +447,7 @@ export function AlertsClient({
                   size="sm"
                   aria-label={`Edit ${alert.name || `${alert.symbol} Alert`}`}
                 >
-                  Edit
+                  {t('alerts.edit', 'Edit')}
                 </Button>
               </Link>
 
@@ -445,7 +458,7 @@ export function AlertsClient({
                 className="text-red-600 hover:border-red-500 hover:text-red-700"
                 aria-label={`Delete ${alert.name || `${alert.symbol} Alert`}`}
               >
-                Delete
+                {t('alerts.delete', 'Delete')}
               </Button>
             </div>
           </div>
@@ -462,15 +475,15 @@ export function AlertsClient({
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="mb-2 text-2xl font-extrabold tracking-tight text-foreground">
-                Alerts
+                {t('alerts.page_title', 'Alerts')}
               </h1>
               <p className="text-sm text-muted-foreground">
-                Manage your price alerts
+                {t('alerts.page_subtitle', 'Manage your price alerts')}
               </p>
             </div>
             <Link href="/alerts/new">
               <Button className="rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-3 font-semibold text-slate-950 hover:from-amber-400 hover:to-amber-500">
-                + Create New Alert
+                + {t('alerts.create_new_alert', 'Create New Alert')}
               </Button>
             </Link>
           </div>
@@ -482,20 +495,20 @@ export function AlertsClient({
           <Card className="border-l-4 border-l-emerald-500 shadow-md">
             <CardContent className="p-6">
               <div className="mb-2 text-sm font-semibold uppercase text-muted-foreground">
-                Active
+                {t('alerts.status_active', 'Active')}
               </div>
               <div className="mb-1 text-4xl font-bold text-emerald-600 dark:text-emerald-400">
                 {counts.active}/{limit}
               </div>
               <div className="text-sm text-muted-foreground">
-                alerts watching
+                {t('alerts.alerts_watching', 'alerts watching')}
               </div>
               {userTier === 'FREE' && counts.active >= limit && (
                 <Link
                   href="/pricing"
                   className="mt-2 block text-sm text-amber-600 underline dark:text-amber-400"
                 >
-                  Upgrade for more alerts
+                  {t('alerts.upgrade_for_more', 'Upgrade for more alerts')}
                 </Link>
               )}
             </CardContent>
@@ -505,13 +518,13 @@ export function AlertsClient({
           <Card className="border-l-4 border-l-border shadow-md">
             <CardContent className="p-6">
               <div className="mb-2 text-sm font-semibold uppercase text-muted-foreground">
-                Paused
+                {t('dashboard.status_paused', 'Paused')}
               </div>
               <div className="mb-1 text-4xl font-bold text-foreground">
                 {counts.paused}
               </div>
               <div className="text-sm text-muted-foreground">
-                temporarily inactive
+                {t('alerts.temporarily_inactive', 'temporarily inactive')}
               </div>
             </CardContent>
           </Card>
@@ -520,13 +533,13 @@ export function AlertsClient({
           <Card className="border-l-4 border-l-amber-500 shadow-md">
             <CardContent className="p-6">
               <div className="mb-2 text-sm font-semibold uppercase text-muted-foreground">
-                Triggered
+                {t('dashboard.status_triggered', 'Triggered')}
               </div>
               <div className="mb-1 text-4xl font-bold text-amber-600 dark:text-amber-400">
                 {counts.triggered}
               </div>
               <div className="text-sm text-muted-foreground">
-                recently triggered
+                {t('alerts.recently_triggered', 'recently triggered')}
               </div>
             </CardContent>
           </Card>
@@ -537,7 +550,14 @@ export function AlertsClient({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             {/* Tabs */}
             <div className="flex gap-2">
-              {['active', 'paused', 'triggered', 'all'].map((tab) => (
+              {(
+                [
+                  ['active', t('alerts.status_active', 'Active')],
+                  ['paused', t('dashboard.status_paused', 'Paused')],
+                  ['triggered', t('dashboard.status_triggered', 'Triggered')],
+                  ['all', t('alerts.all', 'All')],
+                ] as const
+              ).map(([tab, tabLabel]) => (
                 <Button
                   key={tab}
                   variant={activeTab === tab ? 'default' : 'outline'}
@@ -548,8 +568,7 @@ export function AlertsClient({
                       : ''
                   }
                 >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)} (
-                  {statusCounts[tab as keyof typeof statusCounts]})
+                  {tabLabel} ({statusCounts[tab as keyof typeof statusCounts]})
                 </Button>
               ))}
             </div>
@@ -558,10 +577,14 @@ export function AlertsClient({
             <div className="flex flex-col gap-2 sm:flex-row">
               <Select value={symbolFilter} onValueChange={setSymbolFilter}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="All Symbols" />
+                  <SelectValue
+                    placeholder={t('alerts.all_symbols', 'All Symbols')}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Symbols</SelectItem>
+                  <SelectItem value="all">
+                    {t('alerts.all_symbols', 'All Symbols')}
+                  </SelectItem>
                   {symbols.map((symbol) => (
                     <SelectItem key={symbol} value={symbol}>
                       {symbol}
@@ -572,7 +595,7 @@ export function AlertsClient({
 
               <Input
                 type="text"
-                placeholder="Search alerts..."
+                placeholder={t('alerts.search_placeholder', 'Search alerts...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 aria-label="Search alerts"
@@ -586,8 +609,10 @@ export function AlertsClient({
         {showUndo && deletedAlert && (
           <div className="animate-in slide-in-from-top-2 mb-4 flex items-center justify-between rounded-lg bg-gray-800 px-4 py-3 text-white">
             <span className="text-sm">
-              Alert &quot;{deletedAlert.name || `${deletedAlert.symbol} Alert`}
-              &quot; deleted
+              {t('alerts.alert_quoted', 'Alert "{name}" deleted').replace(
+                '{name}',
+                deletedAlert.name || `${deletedAlert.symbol} Alert`
+              )}
             </span>
             <Button
               variant="ghost"
@@ -596,7 +621,7 @@ export function AlertsClient({
               className="text-white hover:bg-gray-700 hover:text-white"
             >
               <Undo2 className="mr-2 h-4 w-4" />
-              Undo
+              {t('alerts.undo', 'Undo')}
             </Button>
           </div>
         )}
@@ -608,18 +633,31 @@ export function AlertsClient({
               <CardContent className="p-16 text-center">
                 <h3 className="mb-2 text-2xl text-muted-foreground">
                   {activeTab === 'all'
-                    ? 'No alerts yet'
-                    : `No ${activeTab} alerts`}
+                    ? t('dashboard.no_alerts_yet', 'No alerts yet')
+                    : t(
+                        'alerts.no_status_alerts',
+                        'No {status} alerts'
+                      ).replace('{status}', activeTab)}
                 </h3>
                 <p className="mb-6 text-muted-foreground">
                   {activeTab === 'all'
-                    ? 'Create your first alert to get notified about price movements'
-                    : `You don't have any ${activeTab} alerts`}
+                    ? t(
+                        'dashboard.no_alerts_desc',
+                        'Set up alerts to get notified of price movements'
+                      )
+                    : t(
+                        'alerts.no_status_alerts_desc',
+                        "You don't have any {status} alerts"
+                      ).replace('{status}', activeTab)}
                 </p>
                 {activeTab === 'all' && (
                   <Link href="/alerts/new">
                     <Button className="bg-gradient-to-r from-amber-500 to-amber-600 px-8 py-4 text-lg text-slate-950 hover:from-amber-400 hover:to-amber-500">
-                      + Create Your First Alert
+                      +{' '}
+                      {t(
+                        'dashboard.create_first_alert',
+                        'Create Your First Alert'
+                      )}
                     </Button>
                   </Link>
                 )}
@@ -636,12 +674,16 @@ export function AlertsClient({
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-red-600">
-              Delete Alert?
+              {t('alerts.delete_alert_confirm_title', 'Delete Alert?')}
             </DialogTitle>
             <DialogDescription className="pt-4 text-gray-700">
-              Are you sure you want to delete the alert &quot;
-              {alertToDelete?.name || `${alertToDelete?.symbol} Alert`}&quot;?
-              This action cannot be undone.
+              {t(
+                'alerts.delete_alert_confirm_desc',
+                'Are you sure you want to delete the alert "{name}"? This action cannot be undone.'
+              ).replace(
+                '{name}',
+                alertToDelete?.name || `${alertToDelete?.symbol} Alert`
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -653,14 +695,16 @@ export function AlertsClient({
               variant="outline"
               disabled={isDeleting}
             >
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button
               onClick={handleDelete}
               className="bg-red-600 text-white hover:bg-red-700"
               disabled={isDeleting}
             >
-              {isDeleting ? 'Deleting...' : 'Delete Alert'}
+              {isDeleting
+                ? t('alerts.deleting', 'Deleting...')
+                : t('alerts.delete_alert', 'Delete Alert')}
             </Button>
           </DialogFooter>
         </DialogContent>
