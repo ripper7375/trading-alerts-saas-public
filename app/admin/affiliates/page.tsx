@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -65,31 +66,41 @@ const REPORT_LINKS = [
   {
     href: '/admin/affiliates/reports/profit-loss',
     icon: '📈',
+    titleKey: 'admin.affiliates.report_pnl_title',
     title: 'P&L Report',
+    descKey: 'admin.affiliates.report_pnl_desc',
     description: 'Revenue & margins',
   },
   {
     href: '/admin/affiliates/reports/sales-performance',
     icon: '🏆',
+    titleKey: 'admin.affiliates.report_sales_title',
     title: 'Sales Performance',
+    descKey: 'admin.affiliates.report_sales_desc',
     description: 'Top affiliates',
   },
   {
     href: '/admin/affiliates/reports/commission-owings',
     icon: '💰',
+    titleKey: 'admin.affiliates.report_owings_title',
     title: 'Commission Owings',
+    descKey: 'admin.affiliates.report_owings_desc',
     description: 'Pending payouts',
   },
   {
     href: '/admin/affiliates/reports/code-inventory',
     icon: '🎟️',
+    titleKey: 'admin.affiliates.report_inventory_title',
     title: 'Code Inventory',
+    descKey: 'admin.affiliates.report_inventory_desc',
     description: 'Distribution stats',
   },
   {
     href: '/admin/affiliates/reports/code-flows',
     icon: '🔄',
+    titleKey: 'admin.affiliates.report_flows_title',
     title: 'Code Flows',
+    descKey: 'admin.affiliates.report_flows_desc',
     description: 'Lifecycle & audit',
   },
 ] as const;
@@ -99,6 +110,7 @@ const REPORT_LINKS = [
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function AdminAffiliatesPage(): React.ReactElement {
+  const { t } = useLocale();
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -127,7 +139,12 @@ export default function AdminAffiliatesPage(): React.ReactElement {
       const response = await fetch(`/api/admin/affiliates?${params}`);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch affiliates');
+        throw new Error(
+          t(
+            'admin.affiliates.error_fetch_affiliates',
+            'Failed to fetch affiliates'
+          )
+        );
       }
 
       const data: AffiliatesResponse = await response.json();
@@ -138,10 +155,15 @@ export default function AdminAffiliatesPage(): React.ReactElement {
         totalPages: data.totalPages,
       }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.affiliates.error_occurred', 'An error occurred')
+      );
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, pagination.page, pagination.limit]);
 
   useEffect(() => {
@@ -176,19 +198,27 @@ export default function AdminAffiliatesPage(): React.ReactElement {
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-          Affiliate Management
+          {t('admin.affiliates.page_title', 'Affiliate Management')}
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Manage affiliates, distribute codes, and view performance
+          {t(
+            'admin.affiliates.page_subtitle',
+            'Manage affiliates, distribute codes, and view performance'
+          )}
         </p>
       </div>
 
       {/* Quick Links to Reports */}
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-foreground">Affiliate Reports</CardTitle>
+          <CardTitle className="text-foreground">
+            {t('admin.affiliates.affiliate_reports', 'Affiliate Reports')}
+          </CardTitle>
           <CardDescription className="text-muted-foreground">
-            Program-wide reconciliation, performance and financial reports
+            {t(
+              'admin.affiliates.affiliate_reports_desc',
+              'Program-wide reconciliation, performance and financial reports'
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -201,10 +231,10 @@ export default function AdminAffiliatesPage(): React.ReactElement {
               >
                 <div className="mb-1 text-xl">{link.icon}</div>
                 <div className="font-semibold text-foreground">
-                  {link.title}
+                  {t(link.titleKey, link.title)}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {link.description}
+                  {t(link.descKey, link.description)}
                 </p>
               </Link>
             ))}
@@ -218,7 +248,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
             <div className="flex-1">
               <label className="mb-2 block text-sm font-medium text-foreground">
-                Status
+                {t('admin.users.status', 'Status')}
               </label>
               <Select
                 value={filters.status}
@@ -227,31 +257,50 @@ export default function AdminAffiliatesPage(): React.ReactElement {
                 }
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Status" />
+                  <SelectValue
+                    placeholder={t('admin.users.status', 'Status')}
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All Statuses</SelectItem>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="PENDING_VERIFICATION">
-                    Pending Verification
+                  <SelectItem value="ALL">
+                    {t('admin.affiliates.all_statuses', 'All Statuses')}
                   </SelectItem>
-                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                  <SelectItem value="INACTIVE">Inactive</SelectItem>
+                  <SelectItem value="ACTIVE">
+                    {t('admin.users.active', 'Active')}
+                  </SelectItem>
+                  <SelectItem value="PENDING_VERIFICATION">
+                    {t(
+                      'admin.affiliates.pending_verification',
+                      'Pending Verification'
+                    )}
+                  </SelectItem>
+                  <SelectItem value="SUSPENDED">
+                    {t('admin.affiliates.suspended', 'Suspended')}
+                  </SelectItem>
+                  <SelectItem value="INACTIVE">
+                    {t('admin.users.inactive', 'Inactive')}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="flex-1">
               <label className="mb-2 block text-sm font-medium text-foreground">
-                Country
+                {t('admin.affiliates.country', 'Country')}
               </label>
               <Input
                 value={filters.country}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setFilters({ ...filters, country: e.target.value })
                 }
-                placeholder="US, UK, etc."
-                aria-label="Filter by country"
+                placeholder={t(
+                  'admin.affiliates.country_placeholder',
+                  'US, UK, etc.'
+                )}
+                aria-label={t(
+                  'admin.affiliates.filter_by_country',
+                  'Filter by country'
+                )}
               />
             </div>
 
@@ -259,7 +308,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
               variant="outline"
               onClick={() => setFilters({ status: 'ALL', country: '' })}
             >
-              Clear Filters
+              {t('admin.affiliates.clear_filters', 'Clear Filters')}
             </Button>
           </div>
         </CardContent>
@@ -268,10 +317,17 @@ export default function AdminAffiliatesPage(): React.ReactElement {
       {/* Summary */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          Showing {affiliates.length} of {pagination.total} affiliates
+          {t(
+            'admin.affiliates.showing_of_total',
+            'Showing {shown} of {total} affiliates'
+          )
+            .replace('{shown}', String(affiliates.length))
+            .replace('{total}', String(pagination.total))}
         </span>
         <span>
-          Page {pagination.page} of {pagination.totalPages || 1}
+          {t('admin.users.page_of_total', 'Page {page} of {totalPages}')
+            .replace('{page}', String(pagination.page))
+            .replace('{totalPages}', String(pagination.totalPages || 1))}
         </span>
       </div>
 
@@ -285,7 +341,9 @@ export default function AdminAffiliatesPage(): React.ReactElement {
           ) : error ? (
             <div className="py-8 text-center">
               <p className="mb-4 text-red-500">{error}</p>
-              <Button onClick={() => void fetchAffiliates()}>Retry</Button>
+              <Button onClick={() => void fetchAffiliates()}>
+                {t('admin.dashboard.retry', 'Retry')}
+              </Button>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -293,22 +351,22 @@ export default function AdminAffiliatesPage(): React.ReactElement {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Name / Email
+                      {t('admin.affiliates.name_email', 'Name / Email')}
                     </th>
                     <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
-                      Country
+                      {t('admin.affiliates.country', 'Country')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Status
+                      {t('admin.users.status', 'Status')}
                     </th>
                     <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
-                      Codes
+                      {t('admin.affiliates.codes', 'Codes')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Earnings
+                      {t('admin.affiliates.earnings', 'Earnings')}
                     </th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                      Actions
+                      {t('admin.users.actions', 'Actions')}
                     </th>
                   </tr>
                 </thead>
@@ -319,7 +377,10 @@ export default function AdminAffiliatesPage(): React.ReactElement {
                         colSpan={6}
                         className="px-4 py-12 text-center text-muted-foreground"
                       >
-                        No affiliates found
+                        {t(
+                          'admin.affiliates.no_affiliates_found',
+                          'No affiliates found'
+                        )}
                       </td>
                     </tr>
                   ) : (
@@ -353,7 +414,13 @@ export default function AdminAffiliatesPage(): React.ReactElement {
                           {affiliate.totalCodesUsed} /{' '}
                           {affiliate.totalCodesDistributed}
                           <span className="text-muted-foreground/70 ml-1">
-                            ({affiliate.affiliateCodes.length} active)
+                            {t(
+                              'admin.affiliates.active_count',
+                              '({n} active)'
+                            ).replace(
+                              '{n}',
+                              String(affiliate.affiliateCodes.length)
+                            )}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -361,14 +428,22 @@ export default function AdminAffiliatesPage(): React.ReactElement {
                             {formatCurrency(affiliate.totalEarnings)}
                           </div>
                           <div className="text-sm text-amber-600 dark:text-amber-400">
-                            {formatCurrency(affiliate.pendingCommissions)}{' '}
-                            pending
+                            {t(
+                              'admin.affiliates.amount_pending',
+                              '{amount} pending'
+                            ).replace(
+                              '{amount}',
+                              formatCurrency(affiliate.pendingCommissions)
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right">
                           <Button asChild variant="outline" size="sm">
                             <Link href={`/admin/affiliates/${affiliate.id}`}>
-                              View Details →
+                              {t(
+                                'admin.affiliates.view_details',
+                                'View Details →'
+                              )}
                             </Link>
                           </Button>
                         </td>
@@ -395,11 +470,16 @@ export default function AdminAffiliatesPage(): React.ReactElement {
             }
             disabled={pagination.page === 1}
           >
-            Previous
+            {t('admin.users.previous', 'Previous')}
           </Button>
           <span className="text-sm text-muted-foreground">
-            Page {pagination.page} of {pagination.totalPages} (
-            {pagination.total} total)
+            {t(
+              'admin.affiliates.page_of_total_with_count',
+              'Page {page} of {totalPages} ({total} total)'
+            )
+              .replace('{page}', String(pagination.page))
+              .replace('{totalPages}', String(pagination.totalPages))
+              .replace('{total}', String(pagination.total))}
           </span>
           <Button
             variant="outline"
@@ -411,7 +491,7 @@ export default function AdminAffiliatesPage(): React.ReactElement {
             }
             disabled={pagination.page === pagination.totalPages}
           >
-            Next
+            {t('admin.users.next', 'Next')}
           </Button>
         </div>
       )}

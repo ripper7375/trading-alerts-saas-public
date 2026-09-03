@@ -14,11 +14,27 @@
  * @module __tests__/pages/admin/code-cancel.test
  */
 
-import { render, screen, waitFor, within } from '@testing-library/react';
+import {
+  render as rtlRender,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
 
 import CodeInventoryReportPage from '@/app/admin/affiliates/reports/code-inventory/page';
 import ConfigurationPage from '@/app/admin/disbursement/config/page';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
+
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/admin/affiliates/reports/code-inventory',
+}));
 
 const realReport = {
   period: { start: '2026-05-01', end: '2026-08-01', name: '3 Months' },
@@ -40,6 +56,17 @@ const realReport = {
 describe('Code Inventory — Cancel a Code widget', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({
+        countryCode: 'US',
+        language: 'en-US',
+        timezone: 'America/New_York',
+        dateFormat: 'MDY',
+        timeFormat: '12h',
+        currency: 'USD',
+      })
+    );
     global.fetch = jest.fn((input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input.toString();
       if (url.startsWith('/api/admin/affiliates/reports/code-inventory')) {

@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -70,6 +71,7 @@ interface CommissionOwingsReport {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function CommissionOwingsReportPage(): React.ReactElement {
+  const { t } = useLocale();
   const [report, setReport] = useState<CommissionOwingsReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,16 +92,26 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch commission owings report');
+        throw new Error(
+          t(
+            'admin.affiliates.error_fetch_owings',
+            'Failed to fetch commission owings report'
+          )
+        );
       }
 
       const data = await response.json();
       setReport(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.affiliates.error_occurred', 'An error occurred')
+      );
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   useEffect(() => {
@@ -108,7 +120,12 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
 
   const handlePayCommissions = async (): Promise<void> => {
     if (!payTarget || !payMethod.trim() || !payReference.trim()) {
-      setPayError('Payment method and reference are both required');
+      setPayError(
+        t(
+          'admin.affiliates.error_method_reference_required',
+          'Payment method and reference are both required'
+        )
+      );
       return;
     }
 
@@ -127,7 +144,13 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to process payment');
+        throw new Error(
+          data.error ||
+            t(
+              'admin.affiliates.error_process_payment',
+              'Failed to process payment'
+            )
+        );
       }
 
       setPayTarget(null);
@@ -136,7 +159,12 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
       await fetchReport();
     } catch (err) {
       setPayError(
-        err instanceof Error ? err.message : 'Failed to process payment'
+        err instanceof Error
+          ? err.message
+          : t(
+              'admin.affiliates.error_process_payment',
+              'Failed to process payment'
+            )
       );
     } finally {
       setActionLoading(null);
@@ -164,13 +192,17 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
           href="/admin/affiliates"
           className="text-sm text-muted-foreground transition-colors hover:text-primary"
         >
-          &larr; Back to Affiliates
+          &larr;{' '}
+          {t('admin.affiliates.back_to_affiliates_short', 'Back to Affiliates')}
         </Link>
         <h1 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
-          Commission Owings Report
+          {t('admin.affiliates.owings_title', 'Commission Owings Report')}
         </h1>
         <p className="text-muted-foreground">
-          Affiliates with pending commissions ready for payout
+          {t(
+            'admin.affiliates.owings_subtitle',
+            'Affiliates with pending commissions ready for payout'
+          )}
         </p>
       </div>
 
@@ -193,7 +225,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Owed
+                  {t('admin.affiliates.total_owed', 'Total Owed')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -205,7 +237,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Affiliates Owed
+                  {t('admin.affiliates.affiliates_owed', 'Affiliates Owed')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -217,7 +249,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Ready for Payout
+                  {t('admin.affiliates.ready_for_payout', 'Ready for Payout')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -232,7 +264,10 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Min Payout Threshold
+                  {t(
+                    'admin.affiliates.min_payout_threshold',
+                    'Min Payout Threshold'
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -247,7 +282,10 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
           <Card className="border-border bg-card">
             <CardHeader>
               <CardTitle className="text-foreground">
-                Affiliates with Pending Commissions
+                {t(
+                  'admin.affiliates.affiliates_with_pending',
+                  'Affiliates with Pending Commissions'
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
@@ -256,25 +294,28 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                   <thead>
                     <tr className="border-b border-border">
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                        Affiliate
+                        {t('admin.affiliates.affiliate', 'Affiliate')}
                       </th>
                       <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
-                        Country
+                        {t('admin.affiliates.country', 'Country')}
                       </th>
                       <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
-                        Payment Method
+                        {t('billing.payment_method', 'Payment Method')}
                       </th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                        Pending Balance
+                        {t(
+                          'admin.affiliates.pending_balance',
+                          'Pending Balance'
+                        )}
                       </th>
                       <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
-                        Oldest Pending
+                        {t('admin.affiliates.oldest_pending', 'Oldest Pending')}
                       </th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                        Status
+                        {t('admin.users.status', 'Status')}
                       </th>
                       <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                        Actions
+                        {t('admin.users.actions', 'Actions')}
                       </th>
                     </tr>
                   </thead>
@@ -285,7 +326,10 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                           colSpan={7}
                           className="px-4 py-12 text-center text-muted-foreground"
                         >
-                          No affiliates with pending commissions above threshold
+                          {t(
+                            'admin.affiliates.no_pending_above_threshold',
+                            'No affiliates with pending commissions above threshold'
+                          )}
                         </td>
                       </tr>
                     ) : (
@@ -319,11 +363,11 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                           <td className="px-4 py-3">
                             {affiliate.readyForPayout ? (
                               <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/10">
-                                Ready
+                                {t('admin.affiliates.ready', 'Ready')}
                               </Badge>
                             ) : (
                               <Badge className="bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/10">
-                                Below Min
+                                {t('admin.affiliates.below_min', 'Below Min')}
                               </Badge>
                             )}
                           </td>
@@ -333,7 +377,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                                 href={`/admin/affiliates/${affiliate.id}`}
                                 className="text-sm text-primary hover:underline"
                               >
-                                View
+                                {t('admin.affiliates.view', 'View')}
                               </Link>
                               {affiliate.readyForPayout && (
                                 <AlertDialog
@@ -357,29 +401,40 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                                       }}
                                     >
                                       {actionLoading === affiliate.id
-                                        ? 'Processing...'
-                                        : 'Pay'}
+                                        ? t(
+                                            'admin.affiliates.processing',
+                                            'Processing...'
+                                          )
+                                        : t('admin.affiliates.pay', 'Pay')}
                                     </Button>
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
                                       <AlertDialogTitle>
-                                        Record Payment to {affiliate.fullName}?
+                                        {t(
+                                          'admin.affiliates.record_payment_q',
+                                          'Record Payment to {name}?'
+                                        ).replace('{name}', affiliate.fullName)}
                                       </AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        Marks{' '}
-                                        {formatCurrency(
-                                          affiliate.balance.pending
-                                        )}{' '}
-                                        in pending commissions as paid. Record
-                                        the method and reference for the payment
-                                        already sent outside this system.
+                                        {t(
+                                          'admin.affiliates.record_payment_desc',
+                                          'Marks {amount} in pending commissions as paid. Record the method and reference for the payment already sent outside this system.'
+                                        ).replace(
+                                          '{amount}',
+                                          formatCurrency(
+                                            affiliate.balance.pending
+                                          )
+                                        )}
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <div className="space-y-4">
                                       <div className="space-y-2">
                                         <Label htmlFor="pay-method">
-                                          Payment Method
+                                          {t(
+                                            'billing.payment_method',
+                                            'Payment Method'
+                                          )}
                                         </Label>
                                         <Input
                                           id="pay-method"
@@ -387,12 +442,18 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                                           onChange={(e) =>
                                             setPayMethod(e.target.value)
                                           }
-                                          placeholder="e.g., PayPal, Wise, Bank Transfer"
+                                          placeholder={t(
+                                            'admin.affiliates.pay_method_placeholder',
+                                            'e.g., PayPal, Wise, Bank Transfer'
+                                          )}
                                         />
                                       </div>
                                       <div className="space-y-2">
                                         <Label htmlFor="pay-reference">
-                                          Payment Reference
+                                          {t(
+                                            'admin.affiliates.payment_reference',
+                                            'Payment Reference'
+                                          )}
                                         </Label>
                                         <Input
                                           id="pay-reference"
@@ -400,7 +461,10 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                                           onChange={(e) =>
                                             setPayReference(e.target.value)
                                           }
-                                          placeholder="Transaction ID"
+                                          placeholder={t(
+                                            'admin.affiliates.transaction_id',
+                                            'Transaction ID'
+                                          )}
                                         />
                                       </div>
                                       {payError && (
@@ -411,7 +475,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                                     </div>
                                     <AlertDialogFooter>
                                       <AlertDialogCancel>
-                                        Cancel
+                                        {t('Cancel')}
                                       </AlertDialogCancel>
                                       <AlertDialogAction
                                         disabled={
@@ -424,8 +488,14 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                                         }
                                       >
                                         {actionLoading === affiliate.id
-                                          ? 'Processing...'
-                                          : 'Confirm Payment'}
+                                          ? t(
+                                              'admin.affiliates.processing',
+                                              'Processing...'
+                                            )
+                                          : t(
+                                              'admin.affiliates.confirm_payment',
+                                              'Confirm Payment'
+                                            )}
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
@@ -444,9 +514,16 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
               {report.pagination.totalPages > 1 && (
                 <div className="flex items-center justify-between border-t border-border px-4 py-3">
                   <div className="text-sm text-muted-foreground">
-                    Page {report.pagination.page} of{' '}
-                    {report.pagination.totalPages} ({report.pagination.total}{' '}
-                    total)
+                    {t(
+                      'admin.affiliates.page_of_total_with_count',
+                      'Page {page} of {totalPages} ({total} total)'
+                    )
+                      .replace('{page}', String(report.pagination.page))
+                      .replace(
+                        '{totalPages}',
+                        String(report.pagination.totalPages)
+                      )
+                      .replace('{total}', String(report.pagination.total))}
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -455,7 +532,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                       onClick={() => setPage(Math.max(1, page - 1))}
                       disabled={page === 1}
                     >
-                      Previous
+                      {t('admin.users.previous', 'Previous')}
                     </Button>
                     <Button
                       variant="outline"
@@ -467,7 +544,7 @@ export default function CommissionOwingsReportPage(): React.ReactElement {
                       }
                       disabled={page === report.pagination.totalPages}
                     >
-                      Next
+                      {t('admin.users.next', 'Next')}
                     </Button>
                   </div>
                 </div>

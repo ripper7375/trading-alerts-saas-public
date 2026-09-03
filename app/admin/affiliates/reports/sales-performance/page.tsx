@@ -12,6 +12,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -51,6 +52,7 @@ interface SalesPerformanceReport {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function SalesPerformanceReportPage(): React.ReactElement {
+  const { t } = useLocale();
   const [report, setReport] = useState<SalesPerformanceReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,16 +70,26 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch sales performance report');
+        throw new Error(
+          t(
+            'admin.affiliates.error_fetch_sales_performance',
+            'Failed to fetch sales performance report'
+          )
+        );
       }
 
       const data = await response.json();
       setReport(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.affiliates.error_occurred', 'An error occurred')
+      );
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period]);
 
   useEffect(() => {
@@ -111,13 +123,20 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
           href="/admin/affiliates"
           className="text-sm text-muted-foreground transition-colors hover:text-primary"
         >
-          &larr; Back to Affiliates
+          &larr;{' '}
+          {t('admin.affiliates.back_to_affiliates_short', 'Back to Affiliates')}
         </Link>
         <h1 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
-          Sales Performance Report
+          {t(
+            'admin.affiliates.sales_performance_title',
+            'Sales Performance Report'
+          )}
         </h1>
         <p className="text-muted-foreground">
-          Top performing affiliates by conversions
+          {t(
+            'admin.affiliates.sales_performance_subtitle',
+            'Top performing affiliates by conversions'
+          )}
         </p>
       </div>
 
@@ -134,10 +153,10 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
             }`}
           >
             {p === '3months'
-              ? '3 Months'
+              ? t('admin.affiliates.period_3months', '3 Months')
               : p === '6months'
-                ? '6 Months'
-                : '1 Year'}
+                ? t('admin.affiliates.period_6months', '6 Months')
+                : t('admin.affiliates.period_1year', '1 Year')}
           </button>
         ))}
       </div>
@@ -158,8 +177,12 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
         <>
           {/* Period Info */}
           <div className="bg-accent/50 rounded-lg px-4 py-3 text-sm text-muted-foreground">
-            Report period: {formatDate(report.period.start)} -{' '}
-            {formatDate(report.period.end)}
+            {t(
+              'admin.affiliates.report_period',
+              'Report period: {start} - {end}'
+            )
+              .replace('{start}', formatDate(report.period.start))
+              .replace('{end}', formatDate(report.period.end))}
           </div>
 
           {/* Summary Cards */}
@@ -167,7 +190,7 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Active Affiliates
+                  {t('admin.affiliates.active_affiliates', 'Active Affiliates')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -179,7 +202,7 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Conversions
+                  {t('admin.affiliates.total_conversions', 'Total Conversions')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -191,7 +214,7 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Commissions
+                  {t('admin.affiliates.total_commissions', 'Total Commissions')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -203,14 +226,16 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Avg per Affiliate
+                  {t('admin.affiliates.avg_per_affiliate', 'Avg per Affiliate')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold text-primary">
                   {report.summary.averageConversionsPerAffiliate}
                 </p>
-                <p className="text-sm text-muted-foreground">conversions</p>
+                <p className="text-sm text-muted-foreground">
+                  {t('admin.affiliates.conversions', 'conversions')}
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -218,7 +243,9 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
           {/* Top Performers Table */}
           <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle className="text-foreground">Top Performers</CardTitle>
+              <CardTitle className="text-foreground">
+                {t('admin.affiliates.top_performers', 'Top Performers')}
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -226,28 +253,34 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
                   <thead>
                     <tr className="border-b border-border">
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                        Rank
+                        {t('admin.affiliates.rank', 'Rank')}
                       </th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                        Affiliate
+                        {t('admin.affiliates.affiliate', 'Affiliate')}
                       </th>
                       <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
-                        Country
+                        {t('admin.affiliates.country', 'Country')}
                       </th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                        Conversions
+                        {t('admin.affiliates.total_conversions', 'Conversions')}
                       </th>
                       <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
-                        Codes Used / Distributed
+                        {t(
+                          'admin.affiliates.codes_used_distributed',
+                          'Codes Used / Distributed'
+                        )}
                       </th>
                       <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
-                        Conversion Rate
+                        {t(
+                          'admin.affiliates.conversion_rate_col',
+                          'Conversion Rate'
+                        )}
                       </th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                        Commissions
+                        {t('admin.affiliates.commissions', 'Commissions')}
                       </th>
                       <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                        Actions
+                        {t('admin.users.actions', 'Actions')}
                       </th>
                     </tr>
                   </thead>
@@ -258,7 +291,10 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
                           colSpan={8}
                           className="px-4 py-12 text-center text-muted-foreground"
                         >
-                          No affiliates with conversions in this period
+                          {t(
+                            'admin.affiliates.no_conversions_this_period',
+                            'No affiliates with conversions in this period'
+                          )}
                         </td>
                       </tr>
                     ) : (
@@ -317,7 +353,7 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
                               href={`/admin/affiliates/${performer.id}`}
                               className="text-sm text-primary hover:underline"
                             >
-                              View
+                              {t('admin.affiliates.view', 'View')}
                             </Link>
                           </td>
                         </tr>

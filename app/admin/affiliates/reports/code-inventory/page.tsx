@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -68,6 +69,7 @@ interface CodeInventoryReport {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function CodeInventoryReportPage(): React.ReactElement {
+  const { t } = useLocale();
   const [report, setReport] = useState<CodeInventoryReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,16 +100,26 @@ export default function CodeInventoryReportPage(): React.ReactElement {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch code inventory report');
+        throw new Error(
+          t(
+            'admin.affiliates.error_fetch_inventory',
+            'Failed to fetch code inventory report'
+          )
+        );
       }
 
       const data = await response.json();
       setReport(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.affiliates.error_occurred', 'An error occurred')
+      );
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period]);
 
   useEffect(() => {
@@ -137,16 +149,28 @@ export default function CodeInventoryReportPage(): React.ReactElement {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to cancel code');
+        throw new Error(
+          data.error ||
+            t('admin.affiliates.error_cancel_code', 'Failed to cancel code')
+        );
       }
 
-      setCancelSuccess(`Code ${data.code.code} cancelled successfully.`);
+      setCancelSuccess(
+        t(
+          'admin.affiliates.code_cancelled_success',
+          'Code {code} cancelled successfully.'
+        ).replace('{code}', data.code.code)
+      );
       setCancelCodeInput('');
       setCancelReason('');
       setShowCancelConfirm(false);
       void fetchReport();
     } catch (err) {
-      setCancelError(err instanceof Error ? err.message : 'Failed to cancel');
+      setCancelError(
+        err instanceof Error
+          ? err.message
+          : t('admin.affiliates.error_cancel', 'Failed to cancel')
+      );
     } finally {
       setIsCancelling(false);
     }
@@ -168,13 +192,17 @@ export default function CodeInventoryReportPage(): React.ReactElement {
           href="/admin/affiliates"
           className="text-sm text-muted-foreground transition-colors hover:text-primary"
         >
-          &larr; Back to Affiliates
+          &larr;{' '}
+          {t('admin.affiliates.back_to_affiliates_short', 'Back to Affiliates')}
         </Link>
         <h1 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
-          Code Inventory Report
+          {t('admin.affiliates.inventory_title', 'Code Inventory Report')}
         </h1>
         <p className="text-muted-foreground">
-          Affiliate code distribution and usage statistics
+          {t(
+            'admin.affiliates.inventory_subtitle',
+            'Affiliate code distribution and usage statistics'
+          )}
         </p>
       </div>
 
@@ -191,10 +219,10 @@ export default function CodeInventoryReportPage(): React.ReactElement {
             }`}
           >
             {p === '3months'
-              ? '3 Months'
+              ? t('admin.affiliates.period_3months', '3 Months')
               : p === '6months'
-                ? '6 Months'
-                : '1 Year'}
+                ? t('admin.affiliates.period_6months', '6 Months')
+                : t('admin.affiliates.period_1year', '1 Year')}
           </button>
         ))}
       </div>
@@ -203,18 +231,23 @@ export default function CodeInventoryReportPage(): React.ReactElement {
       <Card className="border-border bg-card">
         <CardContent className="p-4">
           <h2 className="mb-2 text-sm font-semibold text-foreground">
-            Cancel a Code
+            {t('admin.affiliates.cancel_a_code', 'Cancel a Code')}
           </h2>
           <p className="mb-3 text-xs text-muted-foreground">
-            Enter an active affiliate code to cancel it. Already-used or
-            already-cancelled codes cannot be cancelled.
+            {t(
+              'admin.affiliates.cancel_a_code_desc',
+              'Enter an active affiliate code to cancel it. Already-used or already-cancelled codes cannot be cancelled.'
+            )}
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               value={cancelCodeInput}
               onChange={(e) => setCancelCodeInput(e.target.value.toUpperCase())}
               placeholder="CODE123"
-              aria-label="Code to cancel"
+              aria-label={t(
+                'admin.affiliates.code_to_cancel',
+                'Code to cancel'
+              )}
               className="flex-1 font-mono uppercase"
             />
             <AlertDialog
@@ -226,37 +259,49 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                 onClick={() => setShowCancelConfirm(true)}
                 disabled={!cancelCodeInput.trim()}
               >
-                Cancel Code
+                {t('admin.affiliates.cancel_code', 'Cancel Code')}
               </Button>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>
-                    Cancel code {cancelCodeInput}?
+                    {t(
+                      'admin.affiliates.cancel_code_q',
+                      'Cancel code {code}?'
+                    ).replace('{code}', cancelCodeInput)}
                   </AlertDialogTitle>
                   <AlertDialogDescription>
-                    This immediately marks the code as CANCELLED and it can no
-                    longer be redeemed. This cannot be undone from this page.
+                    {t(
+                      'admin.affiliates.cancel_code_desc',
+                      'This immediately marks the code as CANCELLED and it can no longer be redeemed. This cannot be undone from this page.'
+                    )}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="space-y-2">
-                  <Label htmlFor="cancel-reason">Reason (optional)</Label>
+                  <Label htmlFor="cancel-reason">
+                    {t('admin.affiliates.reason_optional', 'Reason (optional)')}
+                  </Label>
                   <Input
                     id="cancel-reason"
                     value={cancelReason}
                     onChange={(e) => setCancelReason(e.target.value)}
-                    placeholder="e.g. Duplicate distribution"
+                    placeholder={t(
+                      'admin.affiliates.reason_placeholder_duplicate',
+                      'e.g. Duplicate distribution'
+                    )}
                   />
                 </div>
                 <AlertDialogFooter>
                   <AlertDialogCancel disabled={isCancelling}>
-                    Keep Code
+                    {t('admin.affiliates.keep_code', 'Keep Code')}
                   </AlertDialogCancel>
                   <AlertDialogAction
                     disabled={isCancelling}
                     onClick={() => void handleConfirmCancel()}
                     className="hover:bg-destructive/90 bg-destructive text-white"
                   >
-                    {isCancelling ? 'Cancelling...' : 'Confirm Cancel'}
+                    {isCancelling
+                      ? t('admin.affiliates.cancelling', 'Cancelling...')
+                      : t('admin.affiliates.confirm_cancel', 'Confirm Cancel')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -305,8 +350,11 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                     />
                   </svg>
                   <span>
-                    <strong>{report.alerts.expiringIn7Days}</strong> codes
-                    expiring in the next 7 days
+                    <strong>{report.alerts.expiringIn7Days}</strong>{' '}
+                    {t(
+                      'admin.affiliates.codes_expiring_7days',
+                      'codes expiring in the next 7 days'
+                    )}
                   </span>
                 </div>
               )}
@@ -324,8 +372,10 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                     />
                   </svg>
                   <span>
-                    Low active codes! Consider distributing more codes to
-                    affiliates.
+                    {t(
+                      'admin.affiliates.low_active_codes_warning',
+                      'Low active codes! Consider distributing more codes to affiliates.'
+                    )}
                   </span>
                 </div>
               )}
@@ -334,20 +384,24 @@ export default function CodeInventoryReportPage(): React.ReactElement {
 
           {/* Period Info */}
           <div className="bg-accent/50 rounded-lg px-4 py-3 text-sm text-muted-foreground">
-            Report period: {formatDate(report.period.start)} -{' '}
-            {formatDate(report.period.end)}
+            {t(
+              'admin.affiliates.report_period',
+              'Report period: {start} - {end}'
+            )
+              .replace('{start}', formatDate(report.period.start))
+              .replace('{end}', formatDate(report.period.end))}
           </div>
 
           {/* All Time Stats */}
           <div>
             <h2 className="mb-4 text-lg font-semibold text-foreground">
-              All Time Statistics
+              {t('admin.affiliates.all_time_statistics', 'All Time Statistics')}
             </h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-5">
               <Card className="border-border bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Codes
+                    {t('admin.affiliates.total_codes', 'Total Codes')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -359,7 +413,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
               <Card className="border-border bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Active
+                    {t('admin.affiliates.status_active', 'Active')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -371,7 +425,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
               <Card className="border-border bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Used
+                    {t('admin.affiliates.status_used', 'Used')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -383,7 +437,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
               <Card className="border-border bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Expired
+                    {t('admin.affiliates.status_expired', 'Expired')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -395,7 +449,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
               <Card className="border-border bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Conversion Rate
+                    {t('admin.dashboard.conversion_rate', 'Conversion Rate')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -410,19 +464,23 @@ export default function CodeInventoryReportPage(): React.ReactElement {
           {/* Period Metrics */}
           <div>
             <h2 className="mb-4 text-lg font-semibold text-foreground">
-              Period Metrics (
-              {period === '3months'
-                ? '3 Months'
-                : period === '6months'
-                  ? '6 Months'
-                  : '1 Year'}
-              )
+              {t(
+                'admin.affiliates.period_metrics',
+                'Period Metrics ({period})'
+              ).replace(
+                '{period}',
+                period === '3months'
+                  ? t('admin.affiliates.period_3months', '3 Months')
+                  : period === '6months'
+                    ? t('admin.affiliates.period_6months', '6 Months')
+                    : t('admin.affiliates.period_1year', '1 Year')
+              )}
             </h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 sm:gap-6">
               <Card className="border-border bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Distributed
+                    {t('admin.affiliates.distributed_col', 'Distributed')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -434,7 +492,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
               <Card className="border-border bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Used
+                    {t('admin.affiliates.status_used', 'Used')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -446,7 +504,7 @@ export default function CodeInventoryReportPage(): React.ReactElement {
               <Card className="border-border bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Expired
+                    {t('admin.affiliates.status_expired', 'Expired')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -458,7 +516,10 @@ export default function CodeInventoryReportPage(): React.ReactElement {
               <Card className="border-border bg-card">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Period Conversion
+                    {t(
+                      'admin.affiliates.period_conversion',
+                      'Period Conversion'
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -476,13 +537,15 @@ export default function CodeInventoryReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-foreground">
-                  Codes by Status
+                  {t('admin.affiliates.codes_by_status', 'Codes by Status')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="mb-1 flex justify-between text-sm">
-                    <span className="text-muted-foreground">Active</span>
+                    <span className="text-muted-foreground">
+                      {t('admin.affiliates.status_active', 'Active')}
+                    </span>
                     <span className="font-medium text-foreground">
                       {report.allTime.byStatus.active.toLocaleString()}
                     </span>
@@ -498,7 +561,9 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                 </div>
                 <div>
                   <div className="mb-1 flex justify-between text-sm">
-                    <span className="text-muted-foreground">Used</span>
+                    <span className="text-muted-foreground">
+                      {t('admin.affiliates.status_used', 'Used')}
+                    </span>
                     <span className="font-medium text-foreground">
                       {report.allTime.byStatus.used.toLocaleString()}
                     </span>
@@ -514,7 +579,9 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                 </div>
                 <div>
                   <div className="mb-1 flex justify-between text-sm">
-                    <span className="text-muted-foreground">Expired</span>
+                    <span className="text-muted-foreground">
+                      {t('admin.affiliates.status_expired', 'Expired')}
+                    </span>
                     <span className="font-medium text-foreground">
                       {report.allTime.byStatus.expired.toLocaleString()}
                     </span>
@@ -530,7 +597,9 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                 </div>
                 <div>
                   <div className="mb-1 flex justify-between text-sm">
-                    <span className="text-muted-foreground">Cancelled</span>
+                    <span className="text-muted-foreground">
+                      {t('admin.affiliates.status_cancelled', 'Cancelled')}
+                    </span>
                     <span className="font-medium text-foreground">
                       {report.allTime.byStatus.cancelled.toLocaleString()}
                     </span>
@@ -551,14 +620,20 @@ export default function CodeInventoryReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-foreground">
-                  Codes by Distribution Reason
+                  {t(
+                    'admin.affiliates.codes_by_distribution_reason',
+                    'Codes by Distribution Reason'
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <div className="mb-1 flex justify-between text-sm">
                     <span className="text-muted-foreground">
-                      Initial Distribution
+                      {t(
+                        'admin.affiliates.initial_distribution',
+                        'Initial Distribution'
+                      )}
                     </span>
                     <span className="font-medium text-foreground">
                       {report.allTime.byReason.initial.toLocaleString()}
@@ -576,7 +651,10 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                 <div>
                   <div className="mb-1 flex justify-between text-sm">
                     <span className="text-muted-foreground">
-                      Monthly Distribution
+                      {t(
+                        'admin.affiliates.monthly_distribution',
+                        'Monthly Distribution'
+                      )}
                     </span>
                     <span className="font-medium text-foreground">
                       {report.allTime.byReason.monthly.toLocaleString()}
@@ -593,7 +671,9 @@ export default function CodeInventoryReportPage(): React.ReactElement {
                 </div>
                 <div>
                   <div className="mb-1 flex justify-between text-sm">
-                    <span className="text-muted-foreground">Admin Bonus</span>
+                    <span className="text-muted-foreground">
+                      {t('admin.affiliates.admin_bonus', 'Admin Bonus')}
+                    </span>
                     <span className="font-medium text-foreground">
                       {report.allTime.byReason.adminBonus.toLocaleString()}
                     </span>

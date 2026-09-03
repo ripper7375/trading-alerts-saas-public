@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -72,6 +73,7 @@ function formatDate(date: string): string {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function CodeFlowsReportPage(): React.ReactElement {
+  const { t } = useLocale();
   const defaultRange = currentMonthRange();
   const [start, setStart] = useState(defaultRange.start);
   const [end, setEnd] = useState(defaultRange.end);
@@ -94,16 +96,27 @@ export default function CodeFlowsReportPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to fetch code flows report');
+        throw new Error(
+          data.error ||
+            t(
+              'admin.affiliates.error_fetch_flows',
+              'Failed to fetch code flows report'
+            )
+        );
       }
 
       const data = await response.json();
       setReport(data.report);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.affiliates.error_occurred', 'An error occurred')
+      );
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [start, end]);
 
   useEffect(() => {
@@ -118,14 +131,17 @@ export default function CodeFlowsReportPage(): React.ReactElement {
           href="/admin/affiliates"
           className="text-sm text-muted-foreground transition-colors hover:text-primary"
         >
-          &larr; Back to Affiliates
+          &larr;{' '}
+          {t('admin.affiliates.back_to_affiliates_short', 'Back to Affiliates')}
         </Link>
         <h1 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
-          Code Flows Report
+          {t('admin.affiliates.flows_title', 'Code Flows Report')}
         </h1>
         <p className="text-muted-foreground">
-          Period reconciliation of affiliate code distribution — opening +
-          additions - reductions = closing
+          {t(
+            'admin.affiliates.flows_subtitle',
+            'Period reconciliation of affiliate code distribution — opening + additions - reductions = closing'
+          )}
         </p>
       </div>
 
@@ -134,7 +150,7 @@ export default function CodeFlowsReportPage(): React.ReactElement {
         <CardContent className="flex flex-wrap items-end gap-4 p-4 sm:p-6">
           <div>
             <Label htmlFor="flows-start" className="mb-1 block">
-              Start
+              {t('admin.affiliates.start', 'Start')}
             </Label>
             <Input
               id="flows-start"
@@ -146,7 +162,7 @@ export default function CodeFlowsReportPage(): React.ReactElement {
           </div>
           <div>
             <Label htmlFor="flows-end" className="mb-1 block">
-              End
+              {t('admin.affiliates.end', 'End')}
             </Label>
             <Input
               id="flows-end"
@@ -156,7 +172,9 @@ export default function CodeFlowsReportPage(): React.ReactElement {
               className="w-auto"
             />
           </div>
-          <Button onClick={() => void fetchReport()}>Refresh</Button>
+          <Button onClick={() => void fetchReport()}>
+            {t('Refresh', 'Refresh')}
+          </Button>
         </CardContent>
       </Card>
 
@@ -175,12 +193,19 @@ export default function CodeFlowsReportPage(): React.ReactElement {
       ) : report ? (
         <>
           <div className="bg-accent/50 rounded-lg px-4 py-3 text-sm text-muted-foreground">
-            Period: {formatDate(report.period.start)} -{' '}
-            {formatDate(report.period.end)} ·{' '}
+            {t(
+              'admin.affiliates.flows_period_prefix',
+              'Period: {start} - {end} ·'
+            )
+              .replace('{start}', formatDate(report.period.start))
+              .replace('{end}', formatDate(report.period.end))}{' '}
             <strong className="text-foreground">
               {report.affiliatesWithActivity}
             </strong>{' '}
-            affiliates with activity
+            {t(
+              'admin.affiliates.affiliates_with_activity',
+              'affiliates with activity'
+            )}
           </div>
 
           {/* Reconciliation Summary */}
@@ -188,7 +213,7 @@ export default function CodeFlowsReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Opening Balance
+                  {t('admin.affiliates.opening_balance', 'Opening Balance')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -200,7 +225,7 @@ export default function CodeFlowsReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Additions
+                  {t('admin.affiliates.additions', 'Additions')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -212,7 +237,7 @@ export default function CodeFlowsReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Reductions
+                  {t('admin.affiliates.reductions', 'Reductions')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -224,7 +249,7 @@ export default function CodeFlowsReportPage(): React.ReactElement {
             <Card className="border-primary/30 bg-primary/5 border-2">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-primary">
-                  Closing Balance
+                  {t('admin.affiliates.closing_balance', 'Closing Balance')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -241,13 +266,19 @@ export default function CodeFlowsReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-foreground">
-                  Additions by Reason
+                  {t(
+                    'admin.affiliates.additions_by_reason',
+                    'Additions by Reason'
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">
-                    Initial Distribution
+                    {t(
+                      'admin.affiliates.initial_distribution',
+                      'Initial Distribution'
+                    )}
                   </span>
                   <span className="font-medium text-foreground">
                     {report.additions.initialDistribution.toLocaleString()}
@@ -255,20 +286,25 @@ export default function CodeFlowsReportPage(): React.ReactElement {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">
-                    Monthly Distribution
+                    {t(
+                      'admin.affiliates.monthly_distribution',
+                      'Monthly Distribution'
+                    )}
                   </span>
                   <span className="font-medium text-foreground">
                     {report.additions.monthlyDistribution.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Admin Bonus</span>
+                  <span className="text-muted-foreground">
+                    {t('admin.affiliates.admin_bonus', 'Admin Bonus')}
+                  </span>
                   <span className="font-medium text-foreground">
                     {report.additions.bonusDistribution.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between border-t border-border pt-3 text-sm font-semibold text-foreground">
-                  <span>Total</span>
+                  <span>{t('admin.fraud.total', 'Total')}</span>
                   <span>{report.additions.total.toLocaleString()}</span>
                 </div>
               </CardContent>
@@ -277,29 +313,37 @@ export default function CodeFlowsReportPage(): React.ReactElement {
             {/* Reductions Breakdown */}
             <Card className="border-border bg-card">
               <CardHeader>
-                <CardTitle className="text-foreground">Reductions</CardTitle>
+                <CardTitle className="text-foreground">
+                  {t('admin.affiliates.reductions', 'Reductions')}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Used</span>
+                  <span className="text-muted-foreground">
+                    {t('admin.affiliates.status_used', 'Used')}
+                  </span>
                   <span className="font-medium text-foreground">
                     {report.reductions.used.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Expired</span>
+                  <span className="text-muted-foreground">
+                    {t('admin.affiliates.status_expired', 'Expired')}
+                  </span>
                   <span className="font-medium text-foreground">
                     {report.reductions.expired.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Cancelled</span>
+                  <span className="text-muted-foreground">
+                    {t('admin.affiliates.status_cancelled', 'Cancelled')}
+                  </span>
                   <span className="font-medium text-foreground">
                     {report.reductions.cancelled.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between border-t border-border pt-3 text-sm font-semibold text-foreground">
-                  <span>Total</span>
+                  <span>{t('admin.fraud.total', 'Total')}</span>
                   <span>{report.reductions.total.toLocaleString()}</span>
                 </div>
               </CardContent>

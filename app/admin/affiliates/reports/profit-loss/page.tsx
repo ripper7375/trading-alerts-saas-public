@@ -12,6 +12,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -53,6 +54,7 @@ interface PnLReport {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function ProfitLossReportPage(): React.ReactElement {
+  const { t } = useLocale();
   const [report, setReport] = useState<PnLReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,16 +72,23 @@ export default function ProfitLossReportPage(): React.ReactElement {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch P&L report');
+        throw new Error(
+          t('admin.affiliates.error_fetch_pnl', 'Failed to fetch P&L report')
+        );
       }
 
       const data = await response.json();
       setReport(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.affiliates.error_occurred', 'An error occurred')
+      );
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period]);
 
   useEffect(() => {
@@ -106,13 +115,17 @@ export default function ProfitLossReportPage(): React.ReactElement {
           href="/admin/affiliates"
           className="text-sm text-muted-foreground transition-colors hover:text-primary"
         >
-          &larr; Back to Affiliates
+          &larr;{' '}
+          {t('admin.affiliates.back_to_affiliates_short', 'Back to Affiliates')}
         </Link>
         <h1 className="mt-4 text-2xl font-bold text-foreground sm:text-3xl">
-          Profit & Loss Report
+          {t('admin.affiliates.pnl_title', 'Profit & Loss Report')}
         </h1>
         <p className="text-muted-foreground">
-          Affiliate program financial overview
+          {t(
+            'admin.affiliates.pnl_subtitle',
+            'Affiliate program financial overview'
+          )}
         </p>
       </div>
 
@@ -129,10 +142,10 @@ export default function ProfitLossReportPage(): React.ReactElement {
             }`}
           >
             {p === '3months'
-              ? '3 Months'
+              ? t('admin.affiliates.period_3months', '3 Months')
               : p === '6months'
-                ? '6 Months'
-                : '1 Year'}
+                ? t('admin.affiliates.period_6months', '6 Months')
+                : t('admin.affiliates.period_1year', '1 Year')}
           </button>
         ))}
       </div>
@@ -153,8 +166,12 @@ export default function ProfitLossReportPage(): React.ReactElement {
         <>
           {/* Period Info */}
           <div className="bg-accent/50 rounded-lg px-4 py-3 text-sm text-muted-foreground">
-            Report period: {formatDate(report.period.start)} -{' '}
-            {formatDate(report.period.end)}
+            {t(
+              'admin.affiliates.report_period',
+              'Report period: {start} - {end}'
+            )
+              .replace('{start}', formatDate(report.period.start))
+              .replace('{end}', formatDate(report.period.end))}
           </div>
 
           {/* Summary Cards */}
@@ -162,7 +179,7 @@ export default function ProfitLossReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Gross Revenue
+                  {t('admin.affiliates.gross_revenue', 'Gross Revenue')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -170,14 +187,17 @@ export default function ProfitLossReportPage(): React.ReactElement {
                   {formatCurrency(report.revenue.grossRevenue)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {report.volume.totalSales} sales
+                  {t('admin.affiliates.n_sales', '{n} sales').replace(
+                    '{n}',
+                    String(report.volume.totalSales)
+                  )}
                 </p>
               </CardContent>
             </Card>
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Net Revenue
+                  {t('admin.affiliates.net_revenue', 'Net Revenue')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -185,14 +205,17 @@ export default function ProfitLossReportPage(): React.ReactElement {
                   {formatCurrency(report.revenue.netRevenue)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  After {report.revenue.discountPercent}% discounts
+                  {t(
+                    'admin.affiliates.after_n_percent_discounts',
+                    'After {n}% discounts'
+                  ).replace('{n}', String(report.revenue.discountPercent))}
                 </p>
               </CardContent>
             </Card>
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Commissions
+                  {t('admin.affiliates.total_commissions', 'Total Commissions')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -200,14 +223,17 @@ export default function ProfitLossReportPage(): React.ReactElement {
                   {formatCurrency(report.costs.totalCommissions)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {report.costs.commissionPercent}% commission rate
+                  {t(
+                    'admin.affiliates.n_percent_commission_rate',
+                    '{n}% commission rate'
+                  ).replace('{n}', String(report.costs.commissionPercent))}
                 </p>
               </CardContent>
             </Card>
             <Card className="border-border bg-card">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Net Profit
+                  {t('admin.affiliates.net_profit', 'Net Profit')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -215,7 +241,10 @@ export default function ProfitLossReportPage(): React.ReactElement {
                   {formatCurrency(report.profit.netProfit)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {report.profit.margin}% margin
+                  {t(
+                    'admin.affiliates.n_percent_margin',
+                    '{n}% margin'
+                  ).replace('{n}', String(report.profit.margin))}
                 </p>
               </CardContent>
             </Card>
@@ -227,36 +256,47 @@ export default function ProfitLossReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-foreground">
-                  Revenue Breakdown
+                  {t('admin.affiliates.revenue_breakdown', 'Revenue Breakdown')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="space-y-4">
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">
-                      Gross Revenue ({report.volume.totalSales} x $
-                      {report.volume.regularPrice})
+                      {t(
+                        'admin.affiliates.gross_revenue_calc',
+                        'Gross Revenue ({sales} x ${price})'
+                      )
+                        .replace('{sales}', String(report.volume.totalSales))
+                        .replace('{price}', String(report.volume.regularPrice))}
                     </dt>
                     <dd className="font-medium text-foreground">
                       {formatCurrency(report.revenue.grossRevenue)}
                     </dd>
                   </div>
                   <div className="flex justify-between text-red-500">
-                    <dt>Less: Discounts ({report.revenue.discountPercent}%)</dt>
+                    <dt>
+                      {t(
+                        'admin.affiliates.less_discounts',
+                        'Less: Discounts ({n}%)'
+                      ).replace('{n}', String(report.revenue.discountPercent))}
+                    </dt>
                     <dd className="font-medium">
                       -{formatCurrency(report.revenue.discounts)}
                     </dd>
                   </div>
                   <div className="flex justify-between border-t border-border pt-4">
                     <dt className="font-semibold text-foreground">
-                      Net Revenue
+                      {t('admin.affiliates.net_revenue', 'Net Revenue')}
                     </dt>
                     <dd className="text-lg font-bold text-foreground">
                       {formatCurrency(report.revenue.netRevenue)}
                     </dd>
                   </div>
                   <div className="flex justify-between text-muted-foreground">
-                    <dt>Average Ticket</dt>
+                    <dt>
+                      {t('admin.affiliates.average_ticket', 'Average Ticket')}
+                    </dt>
                     <dd>{formatCurrency(report.revenue.averageTicket)}</dd>
                   </div>
                 </dl>
@@ -267,41 +307,65 @@ export default function ProfitLossReportPage(): React.ReactElement {
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="text-foreground">
-                  Commission Breakdown
+                  {t(
+                    'admin.affiliates.commission_breakdown',
+                    'Commission Breakdown'
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <dl className="space-y-4">
                   <div className="flex justify-between">
-                    <dt className="text-muted-foreground">Paid Commissions</dt>
+                    <dt className="text-muted-foreground">
+                      {t(
+                        'admin.affiliates.paid_commissions',
+                        'Paid Commissions'
+                      )}
+                    </dt>
                     <dd className="font-medium text-emerald-600 dark:text-emerald-400">
                       {formatCurrency(report.costs.paidCommissions)}
                     </dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">
-                      Approved (Awaiting Payment)
+                      {t(
+                        'admin.affiliates.approved_awaiting_payment',
+                        'Approved (Awaiting Payment)'
+                      )}
                     </dt>
                     <dd className="font-medium text-blue-500">
                       {formatCurrency(report.costs.approvedCommissions)}
                     </dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-muted-foreground">Pending Approval</dt>
+                    <dt className="text-muted-foreground">
+                      {t(
+                        'admin.affiliates.pending_approval',
+                        'Pending Approval'
+                      )}
+                    </dt>
                     <dd className="font-medium text-yellow-500">
                       {formatCurrency(report.costs.pendingCommissions)}
                     </dd>
                   </div>
                   <div className="flex justify-between border-t border-border pt-4">
                     <dt className="font-semibold text-foreground">
-                      Total Commissions
+                      {t(
+                        'admin.affiliates.total_commissions',
+                        'Total Commissions'
+                      )}
                     </dt>
                     <dd className="text-lg font-bold text-foreground">
                       {formatCurrency(report.costs.totalCommissions)}
                     </dd>
                   </div>
                   <div className="flex justify-between text-muted-foreground">
-                    <dt>Average Commission</dt>
+                    <dt>
+                      {t(
+                        'admin.affiliates.average_commission',
+                        'Average Commission'
+                      )}
+                    </dt>
                     <dd>{formatCurrency(report.costs.averageCommission)}</dd>
                   </div>
                 </dl>
@@ -313,14 +377,14 @@ export default function ProfitLossReportPage(): React.ReactElement {
           <Card className="border-2 border-emerald-500/30 bg-emerald-500/5">
             <CardHeader>
               <CardTitle className="text-emerald-700 dark:text-emerald-300">
-                Profit Summary
+                {t('admin.affiliates.profit_summary', 'Profit Summary')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                 <div>
                   <p className="text-sm text-emerald-700 dark:text-emerald-400">
-                    Net Revenue
+                    {t('admin.affiliates.net_revenue', 'Net Revenue')}
                   </p>
                   <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-200">
                     {formatCurrency(report.revenue.netRevenue)}
@@ -328,7 +392,10 @@ export default function ProfitLossReportPage(): React.ReactElement {
                 </div>
                 <div>
                   <p className="text-sm text-emerald-700 dark:text-emerald-400">
-                    Less: Commissions
+                    {t(
+                      'admin.affiliates.less_commissions',
+                      'Less: Commissions'
+                    )}
                   </p>
                   <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-200">
                     -{formatCurrency(report.costs.totalCommissions)}
@@ -336,7 +403,10 @@ export default function ProfitLossReportPage(): React.ReactElement {
                 </div>
                 <div>
                   <p className="text-sm text-emerald-700 dark:text-emerald-400">
-                    Net Profit ({report.profit.margin}% margin)
+                    {t(
+                      'admin.affiliates.net_profit_margin',
+                      'Net Profit ({n}% margin)'
+                    ).replace('{n}', String(report.profit.margin))}
                   </p>
                   <p className="text-2xl font-bold text-emerald-800 dark:text-emerald-200">
                     {formatCurrency(report.profit.netProfit)}

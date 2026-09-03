@@ -112,18 +112,25 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
 
       if (!response.ok) {
         if (response.status === 404) {
-          throw new Error('Affiliate not found');
+          throw new Error(t('affiliate.not_found', 'Affiliate not found'));
         }
-        throw new Error('Failed to fetch affiliate');
+        throw new Error(
+          t('affiliate.error_fetch', 'Failed to fetch affiliate')
+        );
       }
 
       const data = await response.json();
       setAffiliate(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('affiliate.error_occurred', 'An error occurred')
+      );
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [affiliateId]);
 
   useEffect(() => {
@@ -146,13 +153,19 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to suspend affiliate');
+        throw new Error(
+          t('affiliate.error_suspend_affiliate', 'Failed to suspend affiliate')
+        );
       }
 
       setSuspendReason('');
       await fetchAffiliate();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Failed to suspend');
+      setActionError(
+        err instanceof Error
+          ? err.message
+          : t('affiliate.error_suspend', 'Failed to suspend')
+      );
     } finally {
       setActionLoading(false);
     }
@@ -170,13 +183,20 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to reactivate affiliate');
+        throw new Error(
+          t(
+            'affiliate.error_reactivate_affiliate',
+            'Failed to reactivate affiliate'
+          )
+        );
       }
 
       await fetchAffiliate();
     } catch (err) {
       setActionError(
-        err instanceof Error ? err.message : 'Failed to reactivate'
+        err instanceof Error
+          ? err.message
+          : t('affiliate.error_reactivate', 'Failed to reactivate')
       );
     } finally {
       setActionLoading(false);
@@ -185,7 +205,9 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
 
   const handleDistributeCodes = async (): Promise<void> => {
     if (!distributeReason) {
-      setActionError('Please enter a reason');
+      setActionError(
+        t('affiliate.error_enter_reason', 'Please enter a reason')
+      );
       return;
     }
 
@@ -205,7 +227,9 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to distribute codes');
+        throw new Error(
+          t('affiliate.error_distribute_codes', 'Failed to distribute codes')
+        );
       }
 
       setDistributeCount(10);
@@ -213,7 +237,9 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
       await fetchAffiliate();
     } catch (err) {
       setActionError(
-        err instanceof Error ? err.message : 'Failed to distribute codes'
+        err instanceof Error
+          ? err.message
+          : t('affiliate.error_distribute_codes', 'Failed to distribute codes')
       );
     } finally {
       setActionLoading(false);
@@ -251,7 +277,7 @@ export default function AdminAffiliateDetailPage(): React.ReactElement {
     return (
       <div className="space-y-4">
         <div className="rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-500">
-          {error || 'Affiliate not found'}
+          {error || t('affiliate.not_found', 'Affiliate not found')}
         </div>
         <Link
           href="/admin/affiliates"
