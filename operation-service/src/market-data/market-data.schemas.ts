@@ -16,7 +16,8 @@ export const SYMBOLS = ['XAUUSD'] as const;
 export const TIMEFRAMES = ['M5', 'M15'] as const;
 
 export const CENTROID_VARIANTS = [
-  'best_fit',
+  'best_fit_a',
+  'best_fit_b',
   'cherry_a',
   'cherry_b',
   'most_recent',
@@ -52,7 +53,7 @@ export const channelQuerySchema = z.object({
     .optional()
     .default('M5')
     .transform((s) => s.toUpperCase()),
-  variant: z.string().optional().default('best_fit'),
+  variant: z.string().optional().default('best_fit_a'),
   limit: z
     .preprocess((val) => {
       const n = Number(val);

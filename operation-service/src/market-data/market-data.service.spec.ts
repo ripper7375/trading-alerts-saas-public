@@ -24,7 +24,7 @@ describe('MarketDataService', () => {
       const service = makeService();
 
       await expect(
-        service.getChannelData('FREE', 'XAUUSD', 'M5', 'best_fit', 300)
+        service.getChannelData('FREE', 'XAUUSD', 'M5', 'best_fit_a', 300)
       ).rejects.toMatchObject({
         status: 403,
         response: {
@@ -35,7 +35,7 @@ describe('MarketDataService', () => {
         },
       });
       await expect(
-        service.getChannelData('FREE', 'XAUUSD', 'M5', 'best_fit', 300)
+        service.getChannelData('FREE', 'XAUUSD', 'M5', 'best_fit_a', 300)
       ).rejects.toBeInstanceOf(ForbiddenException);
       expect(mockPrisma.marketDataV6.findMany).not.toHaveBeenCalled();
     });
@@ -46,7 +46,7 @@ describe('MarketDataService', () => {
       const service = makeService();
 
       await expect(
-        service.getChannelData('PRO', 'EURUSD', 'M5', 'best_fit', 300)
+        service.getChannelData('PRO', 'EURUSD', 'M5', 'best_fit_a', 300)
       ).rejects.toMatchObject({
         status: 400,
         response: {
@@ -55,7 +55,7 @@ describe('MarketDataService', () => {
         },
       });
       await expect(
-        service.getChannelData('PRO', 'EURUSD', 'M5', 'best_fit', 300)
+        service.getChannelData('PRO', 'EURUSD', 'M5', 'best_fit_a', 300)
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
@@ -63,7 +63,7 @@ describe('MarketDataService', () => {
       const service = makeService();
 
       await expect(
-        service.getChannelData('PRO', 'XAUUSD', 'H1', 'best_fit', 300)
+        service.getChannelData('PRO', 'XAUUSD', 'H1', 'best_fit_a', 300)
       ).rejects.toMatchObject({
         status: 400,
         response: {
@@ -73,7 +73,7 @@ describe('MarketDataService', () => {
       });
     });
 
-    it('rejects an unsupported variant, listing all 6 available variants', async () => {
+    it('rejects an unsupported variant, listing all 7 available variants', async () => {
       const service = makeService();
 
       await expect(
@@ -83,7 +83,7 @@ describe('MarketDataService', () => {
         response: {
           success: false,
           error:
-            'Invalid variant. Available: best_fit, cherry_a, cherry_b, most_recent, non_a, non_b',
+            'Invalid variant. Available: best_fit_a, best_fit_b, cherry_a, cherry_b, most_recent, non_a, non_b',
         },
       });
     });
@@ -105,15 +105,15 @@ describe('MarketDataService', () => {
       mockPrisma.marketDataV6.findMany.mockResolvedValue([
         {
           timestamp: 200,
-          best_fit_uoedt: 1901.5,
-          best_fit_base_fl: 1900,
-          best_fit_loedt: 1898.5,
+          best_fit_a_uoedt: 1901.5,
+          best_fit_a_base_fl: 1900,
+          best_fit_a_loedt: 1898.5,
         },
         {
           timestamp: 100,
-          best_fit_uoedt: 1899.5,
-          best_fit_base_fl: 1898,
-          best_fit_loedt: 1896.5,
+          best_fit_a_uoedt: 1899.5,
+          best_fit_a_base_fl: 1898,
+          best_fit_a_loedt: 1896.5,
         },
       ]);
       const service = makeService();
@@ -125,7 +125,7 @@ describe('MarketDataService', () => {
         'PRO',
         'XAUUSD',
         'M5',
-        'best_fit',
+        'best_fit_a',
         300
       );
 
@@ -140,7 +140,7 @@ describe('MarketDataService', () => {
         success: true,
         symbol: 'XAUUSD',
         timeframe: 'M5',
-        variant: 'best_fit',
+        variant: 'best_fit_a',
         points: [
           { time: 100, upper: 1899.5, mid: 1898, lower: 1896.5 },
           { time: 200, upper: 1901.5, mid: 1900, lower: 1898.5 },
@@ -172,7 +172,7 @@ describe('MarketDataService', () => {
           non_b_uoedt: 5,
           non_b_base_fl: 4,
           non_b_loedt: 3,
-          best_fit_uoedt: 999,
+          best_fit_a_uoedt: 999,
         },
       ]);
       const service = makeService();
