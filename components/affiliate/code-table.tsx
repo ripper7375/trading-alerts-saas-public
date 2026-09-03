@@ -7,9 +7,11 @@
  * @module components/affiliate/code-table
  */
 
+'use client';
+
 import React from 'react';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPE DEFINITIONS
@@ -58,14 +60,23 @@ const statusStyles: Record<CodeStatus, string> = {
  * <CodeTable codes={affiliateCodes} />
  * ```
  */
+const statusLabelKeys: Record<CodeStatus, string> = {
+  ACTIVE: 'affiliate.codes.status_active',
+  USED: 'affiliate.codes.status_used',
+  EXPIRED: 'affiliate.codes.status_expired',
+  CANCELLED: 'affiliate.codes.status_cancelled',
+};
+
 export function CodeTable({
   codes,
   className,
 }: CodeTableProps): React.ReactElement {
+  const { t, formatDate } = useLocale();
+
   if (codes.length === 0) {
     return (
       <div className="py-8 text-center text-muted-foreground">
-        No codes available
+        {t('affiliate.codes.no_codes_available', 'No codes available')}
       </div>
     );
   }
@@ -79,31 +90,31 @@ export function CodeTable({
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
-              Code
+              {t('affiliate.codes.code', 'Code')}
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
-              Status
+              {t('affiliate.codes.status', 'Status')}
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
-              Distributed
+              {t('affiliate.codes.distributed', 'Distributed')}
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
-              Expires
+              {t('affiliate.codes.expires', 'Expires')}
             </th>
             <th
               scope="col"
               className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
-              Used
+              {t('affiliate.codes.used', 'Used')}
             </th>
           </tr>
         </thead>
@@ -120,19 +131,17 @@ export function CodeTable({
                     statusStyles[code.status]
                   )}
                 >
-                  {code.status}
+                  {t(statusLabelKeys[code.status], code.status)}
                 </span>
               </td>
               <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
-                {format(new Date(code.distributedAt), 'MMM d, yyyy')}
+                {formatDate(code.distributedAt)}
               </td>
               <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
-                {format(new Date(code.expiresAt), 'MMM d, yyyy')}
+                {formatDate(code.expiresAt)}
               </td>
               <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
-                {code.usedAt
-                  ? format(new Date(code.usedAt), 'MMM d, yyyy')
-                  : '-'}
+                {code.usedAt ? formatDate(code.usedAt) : '-'}
               </td>
             </tr>
           ))}

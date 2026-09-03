@@ -18,6 +18,7 @@
 
 import { useState } from 'react';
 
+import { useLocale } from '@/lib/context/locale-context';
 import type {
   WiseAccountRequirementFieldGroup,
   WiseAccountRequirementGroup,
@@ -50,6 +51,7 @@ interface Props {
 export default function WiseRecipientForm({
   onSubmitted,
 }: Props): React.ReactElement {
+  const { t } = useLocale();
   const [step, setStep] = useState<FormStep>('select-currency');
   const [targetCurrency, setTargetCurrency] = useState('THB');
   const [recipientCountry, setRecipientCountry] = useState('');
@@ -77,7 +79,12 @@ export default function WiseRecipientForm({
 
   async function handleFetchRequirements(): Promise<void> {
     if (!recipientCountry || recipientCountry.length !== 2) {
-      setError('Enter a valid 2-letter recipient country code (e.g. TH, US)');
+      setError(
+        t(
+          'affiliate.payouts.error_invalid_country_code',
+          'Enter a valid 2-letter recipient country code (e.g. TH, US)'
+        )
+      );
       return;
     }
     setLoading(true);
@@ -94,7 +101,12 @@ export default function WiseRecipientForm({
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(
-          body.message ?? body.error ?? 'Could not load bank detail fields'
+          body.message ??
+            body.error ??
+            t(
+              'affiliate.payouts.error_load_bank_fields',
+              'Could not load bank detail fields'
+            )
         );
       }
 
@@ -106,7 +118,12 @@ export default function WiseRecipientForm({
       setStep('fill-details');
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Could not load bank detail fields'
+        err instanceof Error
+          ? err.message
+          : t(
+              'affiliate.payouts.error_load_bank_fields',
+              'Could not load bank detail fields'
+            )
       );
     } finally {
       setLoading(false);
@@ -149,22 +166,31 @@ export default function WiseRecipientForm({
       const value = details[field.key] ?? '';
 
       if (field.required && !value) {
-        errors[field.key] = 'Required';
+        errors[field.key] = t('affiliate.payouts.field_required', 'Required');
         continue;
       }
       if (!value) continue;
 
       if (field.minLength && value.length < field.minLength) {
-        errors[field.key] = `Must be at least ${field.minLength} characters`;
+        errors[field.key] = t(
+          'affiliate.payouts.min_length_error',
+          'Must be at least {n} characters'
+        ).replace('{n}', String(field.minLength));
       }
       if (field.maxLength && value.length > field.maxLength) {
-        errors[field.key] = `Must be at most ${field.maxLength} characters`;
+        errors[field.key] = t(
+          'affiliate.payouts.max_length_error',
+          'Must be at most {n} characters'
+        ).replace('{n}', String(field.maxLength));
       }
       if (field.validationRegexp) {
         try {
           const re = new RegExp(field.validationRegexp);
           if (!re.test(value)) {
-            errors[field.key] = `Invalid format for ${field.name}`;
+            errors[field.key] = t(
+              'affiliate.payouts.invalid_format_for',
+              'Invalid format for {field}'
+            ).replace('{field}', field.name);
           }
         } catch {
           // Malformed regex from the provider — skip client-side pattern
@@ -174,7 +200,10 @@ export default function WiseRecipientForm({
     }
 
     if (!accountHolderName.trim()) {
-      errors['__accountHolderName'] = 'Account holder name is required';
+      errors['__accountHolderName'] = t(
+        'affiliate.payouts.account_holder_name_required',
+        'Account holder name is required'
+      );
     }
 
     setFieldErrors(errors);
@@ -211,12 +240,18 @@ export default function WiseRecipientForm({
       // Graceful handling of the confirmed live 403/500 (read-only token
       // scope, 4A-W3a) — surface a calm message, not a raw provider error.
       setError(
-        'Bank details verification is in progress with our payment provider. Please try again shortly.'
+        t(
+          'affiliate.payouts.verification_in_progress',
+          'Bank details verification is in progress with our payment provider. Please try again shortly.'
+        )
       );
       setStep('fill-details');
     } catch {
       setError(
-        'Bank details verification is in progress with our payment provider. Please try again shortly.'
+        t(
+          'affiliate.payouts.verification_in_progress',
+          'Bank details verification is in progress with our payment provider. Please try again shortly.'
+        )
       );
       setStep('fill-details');
     }
@@ -256,7 +291,9 @@ export default function WiseRecipientForm({
         </label>
         {field.valuesAllowed ? (
           <select {...commonProps}>
-            <option value="">Select…</option>
+            <option value="">
+              {t('affiliate.payouts.select_ellipsis', 'Select…')}
+            </option>
             {field.valuesAllowed.map((opt) => (
               <option key={opt.key} value={opt.key}>
                 {opt.name}
@@ -288,7 +325,10 @@ export default function WiseRecipientForm({
     return (
       <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-6 text-center">
         <p className="font-medium text-green-700 dark:text-green-400">
-          Payout details submitted successfully.
+          {t(
+            'affiliate.payouts.submitted_successfully',
+            'Payout details submitted successfully.'
+          )}
         </p>
       </div>
     );
@@ -306,7 +346,7 @@ export default function WiseRecipientForm({
         <div className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground">
-              Payout currency
+              {t('affiliate.payouts.payout_currency', 'Payout currency')}
             </label>
             <select
               value={targetCurrency}
@@ -322,7 +362,10 @@ export default function WiseRecipientForm({
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground">
-              Recipient country (2-letter code)
+              {t(
+                'affiliate.payouts.recipient_country_code',
+                'Recipient country (2-letter code)'
+              )}
             </label>
             <input
               type="text"
@@ -337,7 +380,7 @@ export default function WiseRecipientForm({
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-foreground">
-              Account type
+              {t('affiliate.payouts.account_type', 'Account type')}
             </label>
             <div className="flex gap-4">
               {(['PRIVATE', 'BUSINESS'] as const).map((lt) => (
@@ -351,7 +394,9 @@ export default function WiseRecipientForm({
                     onChange={() => setLegalType(lt)}
                     className="text-amber-500 focus:ring-amber-500"
                   />
-                  {lt === 'PRIVATE' ? 'Individual' : 'Business'}
+                  {lt === 'PRIVATE'
+                    ? t('affiliate.payouts.individual', 'Individual')
+                    : t('affiliate.payouts.business', 'Business')}
                 </label>
               ))}
             </div>
@@ -361,7 +406,9 @@ export default function WiseRecipientForm({
             disabled={loading}
             className="w-full rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 font-bold text-slate-950 shadow-md shadow-amber-500/20 transition-colors hover:from-amber-400 hover:to-amber-500 disabled:opacity-50"
           >
-            {loading ? 'Loading…' : 'Continue'}
+            {loading
+              ? t('affiliate.payouts.loading_ellipsis', 'Loading…')
+              : t('admin.disbursement.continue', 'Continue')}
           </button>
         </div>
       )}
@@ -371,7 +418,7 @@ export default function WiseRecipientForm({
           {groups.length > 1 && (
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">
-                Payment method
+                {t('affiliate.payouts.payment_method', 'Payment method')}
               </label>
               <div className="flex flex-wrap gap-2">
                 {groups.map((g) => (
@@ -401,7 +448,11 @@ export default function WiseRecipientForm({
               htmlFor="accountHolderName"
               className="mb-1 block text-sm font-medium text-foreground"
             >
-              Account holder name<span className="text-red-500"> *</span>
+              {t(
+                'affiliate.payouts.account_holder_name',
+                'Account holder name'
+              )}
+              <span className="text-red-500"> *</span>
             </label>
             <input
               id="accountHolderName"
@@ -429,7 +480,7 @@ export default function WiseRecipientForm({
               onClick={() => setStep('select-currency')}
               className="rounded-md border border-border px-4 py-2 text-foreground transition-colors hover:bg-accent"
             >
-              Back
+              {t('affiliate.payouts.back', 'Back')}
             </button>
             <button
               type="button"
@@ -437,7 +488,12 @@ export default function WiseRecipientForm({
               disabled={step === 'submitting'}
               className="flex-1 rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 font-bold text-slate-950 shadow-md shadow-amber-500/20 transition-colors hover:from-amber-400 hover:to-amber-500 disabled:opacity-50"
             >
-              {step === 'submitting' ? 'Submitting…' : 'Submit payout details'}
+              {step === 'submitting'
+                ? t('affiliate.payouts.submitting_ellipsis', 'Submitting…')
+                : t(
+                    'affiliate.payouts.submit_payout_details',
+                    'Submit payout details'
+                  )}
             </button>
           </div>
         </div>

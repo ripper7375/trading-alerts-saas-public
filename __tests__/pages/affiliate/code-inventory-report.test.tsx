@@ -8,10 +8,20 @@
  * @module __tests__/pages/affiliate/code-inventory-report.test
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import AffiliateCodeInventoryPage from '@/app/affiliate/dashboard/code-inventory/page';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/affiliate/dashboard/code-inventory',
+}));
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
 
 const mockReport = {
   period: {
@@ -31,6 +41,17 @@ const mockReport = {
 
 describe('AffiliateCodeInventoryPage', () => {
   beforeEach(() => {
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({
+        countryCode: 'US',
+        language: 'en-US',
+        timezone: 'America/New_York',
+        dateFormat: 'MDY',
+        timeFormat: '12h',
+        currency: 'USD',
+      })
+    );
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => mockReport,

@@ -12,6 +12,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { CodeTable } from '@/components/affiliate/code-table';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPE DEFINITIONS
@@ -44,6 +45,7 @@ interface CodesResponse {
  * Lists all affiliate codes with filtering
  */
 export default function AffiliateCodesPage(): React.ReactElement {
+  const { t } = useLocale();
   const [codes, setCodes] = useState<AffiliateCode[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -73,20 +75,27 @@ export default function AffiliateCodesPage(): React.ReactElement {
         );
 
         if (!response.ok) {
-          throw new Error('Failed to load codes');
+          throw new Error(
+            t('affiliate.codes.error_load_codes', 'Failed to load codes')
+          );
         }
 
         const data: CodesResponse = await response.json();
         setCodes(data.codes);
         setTotal(data.total);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load codes');
+        setError(
+          err instanceof Error
+            ? err.message
+            : t('affiliate.codes.error_load_codes', 'Failed to load codes')
+        );
       } finally {
         setLoading(false);
       }
     };
 
     fetchCodes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, statusFilter]);
 
   const totalPages = Math.ceil(total / limit);
@@ -96,8 +105,15 @@ export default function AffiliateCodesPage(): React.ReactElement {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">My Codes</h1>
-          <p className="text-muted-foreground">Manage your affiliate codes</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t('affiliate.codes.my_codes', 'My Codes')}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              'affiliate.codes.manage_codes_subtitle',
+              'Manage your affiliate codes'
+            )}
+          </p>
         </div>
       </div>
 
@@ -109,7 +125,7 @@ export default function AffiliateCodesPage(): React.ReactElement {
               htmlFor="statusFilter"
               className="mb-1 block text-sm font-medium text-foreground"
             >
-              Status
+              {t('affiliate.codes.status', 'Status')}
             </label>
             <select
               id="statusFilter"
@@ -120,16 +136,31 @@ export default function AffiliateCodesPage(): React.ReactElement {
               }}
               className="rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
             >
-              <option value="ALL">All Codes</option>
-              <option value="ACTIVE">Active</option>
-              <option value="USED">Used</option>
-              <option value="EXPIRED">Expired</option>
-              <option value="CANCELLED">Cancelled</option>
+              <option value="ALL">
+                {t('affiliate.codes.all_codes', 'All Codes')}
+              </option>
+              <option value="ACTIVE">
+                {t('affiliate.codes.status_active', 'Active')}
+              </option>
+              <option value="USED">
+                {t('affiliate.codes.status_used', 'Used')}
+              </option>
+              <option value="EXPIRED">
+                {t('affiliate.codes.status_expired', 'Expired')}
+              </option>
+              <option value="CANCELLED">
+                {t('affiliate.codes.status_cancelled', 'Cancelled')}
+              </option>
             </select>
           </div>
 
           <div className="ml-auto text-sm text-muted-foreground">
-            Showing {codes.length} of {total} codes
+            {t(
+              'affiliate.codes.showing_x_of_y_codes',
+              'Showing {shown} of {total} codes'
+            )
+              .replace('{shown}', String(codes.length))
+              .replace('{total}', String(total))}
           </div>
         </div>
       </div>
@@ -160,11 +191,13 @@ export default function AffiliateCodesPage(): React.ReactElement {
             disabled={page === 1}
             className="rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Previous
+            {t('admin.users.previous', 'Previous')}
           </button>
 
           <span className="text-sm text-muted-foreground">
-            Page {page} of {totalPages}
+            {t('affiliate.codes.page_x_of_y', 'Page {page} of {totalPages}')
+              .replace('{page}', String(page))
+              .replace('{totalPages}', String(totalPages))}
           </span>
 
           <button
@@ -172,7 +205,7 @@ export default function AffiliateCodesPage(): React.ReactElement {
             disabled={page === totalPages}
             className="rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Next
+            {t('admin.users.next', 'Next')}
           </button>
         </div>
       )}
@@ -180,32 +213,40 @@ export default function AffiliateCodesPage(): React.ReactElement {
       {/* Info Section */}
       <div className="bg-muted/40 rounded-lg border border-border p-6">
         <h3 className="mb-3 font-semibold text-foreground">
-          Code Status Guide
+          {t('affiliate.codes.status_guide', 'Code Status Guide')}
         </h3>
         <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2 lg:grid-cols-4">
           <div className="flex items-center gap-2">
             <span className="rounded border border-green-500/30 bg-green-500/15 px-2 py-1 text-xs font-medium text-green-700 dark:text-green-400">
-              ACTIVE
+              {t('affiliate.codes.status_active', 'Active').toUpperCase()}
             </span>
-            <span className="text-muted-foreground">Ready to share</span>
+            <span className="text-muted-foreground">
+              {t('affiliate.codes.guide_active', 'Ready to share')}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded border border-amber-500/30 bg-amber-500/15 px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
-              USED
+              {t('affiliate.codes.status_used', 'Used').toUpperCase()}
             </span>
-            <span className="text-muted-foreground">Successfully redeemed</span>
+            <span className="text-muted-foreground">
+              {t('affiliate.codes.guide_used', 'Successfully redeemed')}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded border border-border bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
-              EXPIRED
+              {t('affiliate.codes.status_expired', 'Expired').toUpperCase()}
             </span>
-            <span className="text-muted-foreground">Past expiration date</span>
+            <span className="text-muted-foreground">
+              {t('affiliate.codes.guide_expired', 'Past expiration date')}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded border border-red-500/30 bg-red-500/15 px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400">
-              CANCELLED
+              {t('affiliate.codes.status_cancelled', 'Cancelled').toUpperCase()}
             </span>
-            <span className="text-muted-foreground">Manually cancelled</span>
+            <span className="text-muted-foreground">
+              {t('affiliate.codes.guide_cancelled', 'Manually cancelled')}
+            </span>
           </div>
         </div>
       </div>

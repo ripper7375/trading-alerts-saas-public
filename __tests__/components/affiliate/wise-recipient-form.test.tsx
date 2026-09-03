@@ -4,9 +4,38 @@
  * @module __tests__/components/affiliate/wise-recipient-form.test
  */
 
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import {
+  render as rtlRender,
+  screen,
+  waitFor,
+  fireEvent,
+} from '@testing-library/react';
 
 import WiseRecipientForm from '@/components/affiliate/wise-recipient-form';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/affiliate/settings/payout',
+}));
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
+
+beforeEach(() => {
+  localStorage.setItem(
+    LOCALE_STORAGE_KEY,
+    JSON.stringify({
+      countryCode: 'US',
+      language: 'en-US',
+      timezone: 'America/New_York',
+      dateFormat: 'MDY',
+      timeFormat: '12h',
+      currency: 'USD',
+    })
+  );
+});
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch;

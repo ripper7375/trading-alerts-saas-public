@@ -14,6 +14,7 @@ import Link from 'next/link';
 
 import { StatsCard } from '@/components/affiliate/stats-card';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPE DEFINITIONS
@@ -38,6 +39,7 @@ interface DashboardStats {
  * Shows overview statistics and quick actions
  */
 export default function AffiliateDashboardPage(): React.ReactElement {
+  const { t, formatCurrency } = useLocale();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -56,19 +58,32 @@ export default function AffiliateDashboardPage(): React.ReactElement {
         const response = await fetch('/api/affiliate/dashboard/stats');
 
         if (!response.ok) {
-          throw new Error('Failed to load dashboard stats');
+          throw new Error(
+            t(
+              'affiliate.dashboard.error_load_stats',
+              'Failed to load dashboard stats'
+            )
+          );
         }
 
         const data = await response.json();
         setStats(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load stats');
+        setError(
+          err instanceof Error
+            ? err.message
+            : t(
+                'affiliate.dashboard.error_load_stats_short',
+                'Failed to load stats'
+              )
+        );
       } finally {
         setLoading(false);
       }
     };
 
     fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
@@ -87,7 +102,7 @@ export default function AffiliateDashboardPage(): React.ReactElement {
           onClick={() => window.location.reload()}
           className="mt-2 text-sm underline"
         >
-          Try again
+          {t('affiliate.dashboard.try_again', 'Try again')}
         </button>
       </div>
     );
@@ -98,9 +113,14 @@ export default function AffiliateDashboardPage(): React.ReactElement {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t('affiliate.dashboard.title', 'Dashboard')}
+          </h1>
           <p className="text-muted-foreground">
-            Welcome to your affiliate dashboard
+            {t(
+              'affiliate.dashboard.welcome_subtitle',
+              'Welcome to your affiliate dashboard'
+            )}
           </p>
         </div>
       </div>
@@ -108,7 +128,7 @@ export default function AffiliateDashboardPage(): React.ReactElement {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
-          title="Active Codes"
+          title={t('affiliate.dashboard.active_codes', 'Active Codes')}
           value={String(stats?.activeCodes || 0)}
           icon={
             <svg
@@ -128,7 +148,7 @@ export default function AffiliateDashboardPage(): React.ReactElement {
         />
 
         <StatsCard
-          title="Used Codes"
+          title={t('affiliate.dashboard.used_codes', 'Used Codes')}
           value={String(stats?.usedCodes || 0)}
           icon={
             <svg
@@ -148,8 +168,8 @@ export default function AffiliateDashboardPage(): React.ReactElement {
         />
 
         <StatsCard
-          title="Total Earnings"
-          value={`$${(stats?.totalEarnings || 0).toFixed(2)}`}
+          title={t('affiliate.dashboard.total_earnings', 'Total Earnings')}
+          value={formatCurrency(stats?.totalEarnings || 0)}
           icon={
             <svg
               className="h-8 w-8"
@@ -168,8 +188,8 @@ export default function AffiliateDashboardPage(): React.ReactElement {
         />
 
         <StatsCard
-          title="Pending Balance"
-          value={`$${(stats?.pendingBalance || 0).toFixed(2)}`}
+          title={t('affiliate.dashboard.pending_balance', 'Pending Balance')}
+          value={formatCurrency(stats?.pendingBalance || 0)}
           icon={
             <svg
               className="h-8 w-8"
@@ -191,15 +211,15 @@ export default function AffiliateDashboardPage(): React.ReactElement {
       {/* Secondary Stats */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <StatsCard
-          title="Conversion Rate"
+          title={t('affiliate.dashboard.conversion_rate', 'Conversion Rate')}
           value={`${(stats?.conversionRate || 0).toFixed(1)}%`}
         />
         <StatsCard
-          title="Paid Balance"
-          value={`$${(stats?.paidBalance || 0).toFixed(2)}`}
+          title={t('affiliate.dashboard.paid_balance', 'Paid Balance')}
+          value={formatCurrency(stats?.paidBalance || 0)}
         />
         <StatsCard
-          title="Expired Codes"
+          title={t('affiliate.dashboard.expired_codes', 'Expired Codes')}
           value={String(stats?.expiredCodes || 0)}
         />
       </div>
@@ -207,7 +227,7 @@ export default function AffiliateDashboardPage(): React.ReactElement {
       {/* Quick Actions */}
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold text-foreground">
-          Quick Actions
+          {t('affiliate.dashboard.quick_actions', 'Quick Actions')}
         </h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <Link
@@ -230,9 +250,14 @@ export default function AffiliateDashboardPage(): React.ReactElement {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-foreground">View My Codes</p>
+              <p className="font-medium text-foreground">
+                {t('affiliate.dashboard.view_my_codes', 'View My Codes')}
+              </p>
               <p className="text-sm text-muted-foreground">
-                Manage your affiliate codes
+                {t(
+                  'affiliate.dashboard.manage_your_codes',
+                  'Manage your affiliate codes'
+                )}
               </p>
             </div>
           </Link>
@@ -257,9 +282,14 @@ export default function AffiliateDashboardPage(): React.ReactElement {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-foreground">View Commissions</p>
+              <p className="font-medium text-foreground">
+                {t('affiliate.dashboard.view_commissions', 'View Commissions')}
+              </p>
               <p className="text-sm text-muted-foreground">
-                Track your earnings history
+                {t(
+                  'affiliate.dashboard.track_earnings_history',
+                  'Track your earnings history'
+                )}
               </p>
             </div>
           </Link>
@@ -284,9 +314,14 @@ export default function AffiliateDashboardPage(): React.ReactElement {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-foreground">Edit Profile</p>
+              <p className="font-medium text-foreground">
+                {t('affiliate.dashboard.edit_profile', 'Edit Profile')}
+              </p>
               <p className="text-sm text-muted-foreground">
-                Update your affiliate profile
+                {t(
+                  'affiliate.dashboard.update_your_profile',
+                  'Update your affiliate profile'
+                )}
               </p>
             </div>
           </Link>
@@ -296,16 +331,45 @@ export default function AffiliateDashboardPage(): React.ReactElement {
       {/* Info Box */}
       <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-6">
         <h3 className="mb-2 font-semibold text-amber-800 dark:text-amber-300">
-          How the Affiliate Program Works
+          {t(
+            'affiliate.dashboard.how_program_works',
+            'How the Affiliate Program Works'
+          )}
         </h3>
         <ul className="space-y-1 text-sm text-amber-800/90 dark:text-amber-200/90">
-          <li>- Share your unique codes with potential customers</li>
-          <li>- They get {discountPercent}% off their subscription</li>
           <li>
-            - You earn {commissionPercent}% commission on each successful
-            referral (${calculateCommissionAmount(regularPrice).toFixed(2)})
+            -{' '}
+            {t(
+              'affiliate.dashboard.info_share_codes',
+              'Share your unique codes with potential customers'
+            )}
           </li>
-          <li>- Payouts are processed monthly for balances over $50</li>
+          <li>
+            -{' '}
+            {t(
+              'affiliate.dashboard.info_discount_off',
+              'They get {percent}% off their subscription'
+            ).replace('{percent}', String(discountPercent))}
+          </li>
+          <li>
+            -{' '}
+            {t(
+              'affiliate.dashboard.info_commission_earned',
+              'You earn {percent}% commission on each successful referral ({amount})'
+            )
+              .replace('{percent}', String(commissionPercent))
+              .replace(
+                '{amount}',
+                formatCurrency(calculateCommissionAmount(regularPrice))
+              )}
+          </li>
+          <li>
+            -{' '}
+            {t(
+              'affiliate.dashboard.info_monthly_payouts',
+              'Payouts are processed monthly for balances over {amount}'
+            ).replace('{amount}', formatCurrency(50))}
+          </li>
         </ul>
       </div>
     </div>

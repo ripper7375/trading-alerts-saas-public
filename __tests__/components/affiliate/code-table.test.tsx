@@ -6,31 +6,33 @@
  */
 
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
-import { describe, it, expect } from '@jest/globals';
+import { render as rtlRender, screen, within } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 import { CodeTable } from '@/components/affiliate/code-table';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
 
-// Mock date-fns format
-jest.mock('date-fns', () => ({
-  format: (date: Date, _formatStr: string) => {
-    const d = new Date(date);
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-  },
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/affiliate/dashboard/codes',
 }));
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
+
+beforeEach(() => {
+  localStorage.setItem(
+    LOCALE_STORAGE_KEY,
+    JSON.stringify({
+      countryCode: 'US',
+      language: 'en-US',
+      timezone: 'America/New_York',
+      dateFormat: 'MDY',
+      timeFormat: '12h',
+      currency: 'USD',
+    })
+  );
+});
 
 describe('CodeTable Component', () => {
   const mockCodes = [
@@ -76,7 +78,9 @@ describe('CodeTable Component', () => {
       expect(screen.getByText('Status')).toBeInTheDocument();
       expect(screen.getByText('Distributed')).toBeInTheDocument();
       expect(screen.getByText('Expires')).toBeInTheDocument();
-      expect(screen.getByText('Used')).toBeInTheDocument();
+      expect(
+        screen.getByRole('columnheader', { name: 'Used' })
+      ).toBeInTheDocument();
     });
 
     it('should render as a table element', () => {
@@ -90,7 +94,7 @@ describe('CodeTable Component', () => {
     it('should show ACTIVE status badge', () => {
       render(<CodeTable codes={[mockCodes[0]]} />);
 
-      const statusBadge = screen.getByText('ACTIVE');
+      const statusBadge = screen.getByText('Active');
       expect(statusBadge).toBeInTheDocument();
       expect(statusBadge.className).toMatch(/green/i);
     });
@@ -98,7 +102,7 @@ describe('CodeTable Component', () => {
     it('should show USED status badge', () => {
       render(<CodeTable codes={[mockCodes[1]]} />);
 
-      const statusBadge = screen.getByText('USED');
+      const statusBadge = screen.getByText('Used', { selector: 'span' });
       expect(statusBadge).toBeInTheDocument();
       expect(statusBadge.className).toMatch(/amber/i);
     });
@@ -106,7 +110,7 @@ describe('CodeTable Component', () => {
     it('should show EXPIRED status badge', () => {
       render(<CodeTable codes={[mockCodes[2]]} />);
 
-      const statusBadge = screen.getByText('EXPIRED');
+      const statusBadge = screen.getByText('Expired', { selector: 'span' });
       expect(statusBadge).toBeInTheDocument();
       expect(statusBadge.className).toMatch(/muted/i);
     });
@@ -118,7 +122,7 @@ describe('CodeTable Component', () => {
       };
       render(<CodeTable codes={[cancelledCode]} />);
 
-      expect(screen.getByText('CANCELLED')).toBeInTheDocument();
+      expect(screen.getByText('Cancelled')).toBeInTheDocument();
     });
   });
 
@@ -126,13 +130,13 @@ describe('CodeTable Component', () => {
     it('should format distributed date correctly', () => {
       render(<CodeTable codes={mockCodes} />);
 
-      expect(screen.getAllByText(/Jan 1, 2024/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText('01/01/2024').length).toBeGreaterThan(0);
     });
 
     it('should format expires date correctly', () => {
       render(<CodeTable codes={mockCodes} />);
 
-      expect(screen.getAllByText(/Jan 31, 2024/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText('01/31/2024').length).toBeGreaterThan(0);
     });
 
     it('should show dash for unused codes in Used column', () => {
@@ -146,7 +150,7 @@ describe('CodeTable Component', () => {
     it('should show used date when code was used', () => {
       render(<CodeTable codes={[mockCodes[1]]} />);
 
-      expect(screen.getByText(/Jan 15, 2024/)).toBeInTheDocument();
+      expect(screen.getByText('01/15/2024')).toBeInTheDocument();
     });
   });
 
