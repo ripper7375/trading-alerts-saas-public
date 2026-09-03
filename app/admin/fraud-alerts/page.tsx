@@ -26,6 +26,7 @@ import {
 import { FraudAlertCard } from '@/components/admin/FraudAlertCard';
 import { useToast } from '@/hooks/use-toast';
 import { ToastContainer } from '@/components/ui/toast-container';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -74,6 +75,7 @@ interface FraudAlertsResponse {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function FraudAlertsPage(): React.ReactElement {
+  const { t } = useLocale();
   const [alerts, setAlerts] = useState<FraudAlert[]>([]);
   const [stats, setStats] = useState<FraudStats>({
     total: 0,
@@ -110,17 +112,28 @@ export default function FraudAlertsPage(): React.ReactElement {
 
       if (!res.ok) {
         if (res.status === 401) {
-          showError('Unauthorized', 'Please log in to view fraud alerts.');
+          showError(
+            t('admin.fraud.unauthorized', 'Unauthorized'),
+            t(
+              'admin.fraud.error_login_required',
+              'Please log in to view fraud alerts.'
+            )
+          );
           return;
         }
         if (res.status === 403) {
           showError(
-            'Access Denied',
-            'You do not have permission to view fraud alerts.'
+            t('admin.fraud.access_denied', 'Access Denied'),
+            t(
+              'admin.fraud.error_no_permission',
+              'You do not have permission to view fraud alerts.'
+            )
           );
           return;
         }
-        throw new Error('Failed to fetch fraud alerts');
+        throw new Error(
+          t('admin.fraud.error_fetch_alerts', 'Failed to fetch fraud alerts')
+        );
       }
 
       const data: FraudAlertsResponse = await res.json();
@@ -128,10 +141,14 @@ export default function FraudAlertsPage(): React.ReactElement {
       setStats(data.stats);
     } catch (err) {
       console.error('Failed to fetch fraud alerts:', err);
-      showError('Failed to load fraud alerts', 'Please try again later.');
+      showError(
+        t('admin.fraud.error_load_alerts', 'Failed to load fraud alerts'),
+        t('admin.fraud.error_try_again_later', 'Please try again later.')
+      );
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter.severity, filter.status, showError]);
 
   // Fetch on mount and when filters change
@@ -150,17 +167,20 @@ export default function FraudAlertsPage(): React.ReactElement {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            Fraud Alerts
+            {t('admin.fraud.page_title', 'Fraud Alerts')}
           </h1>
           <p className="text-muted-foreground">
-            Monitor and manage suspicious payment activities
+            {t(
+              'admin.fraud.page_subtitle',
+              'Monitor and manage suspicious payment activities'
+            )}
           </p>
         </div>
         <Button variant="outline" onClick={handleRefresh} disabled={loading}>
           <RefreshCw
             className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`}
           />
-          Refresh
+          {t('Refresh', 'Refresh')}
         </Button>
       </div>
 
@@ -171,7 +191,9 @@ export default function FraudAlertsPage(): React.ReactElement {
             <div className="text-2xl font-bold text-foreground">
               {stats.total}
             </div>
-            <div className="text-sm text-muted-foreground">Total</div>
+            <div className="text-sm text-muted-foreground">
+              {t('admin.fraud.total', 'Total')}
+            </div>
           </CardContent>
         </Card>
         <Card className="border-red-500/30 bg-card">
@@ -179,7 +201,9 @@ export default function FraudAlertsPage(): React.ReactElement {
             <div className="text-2xl font-bold text-red-500">
               {stats.critical}
             </div>
-            <div className="text-sm text-muted-foreground">Critical</div>
+            <div className="text-sm text-muted-foreground">
+              {t('admin.fraud.critical', 'Critical')}
+            </div>
           </CardContent>
         </Card>
         <Card className="border-orange-500/30 bg-card">
@@ -187,7 +211,9 @@ export default function FraudAlertsPage(): React.ReactElement {
             <div className="text-2xl font-bold text-orange-500">
               {stats.high}
             </div>
-            <div className="text-sm text-muted-foreground">High</div>
+            <div className="text-sm text-muted-foreground">
+              {t('admin.fraud.high', 'High')}
+            </div>
           </CardContent>
         </Card>
         <Card className="border-yellow-500/30 bg-card">
@@ -195,13 +221,17 @@ export default function FraudAlertsPage(): React.ReactElement {
             <div className="text-2xl font-bold text-yellow-500">
               {stats.medium}
             </div>
-            <div className="text-sm text-muted-foreground">Medium</div>
+            <div className="text-sm text-muted-foreground">
+              {t('admin.fraud.medium', 'Medium')}
+            </div>
           </CardContent>
         </Card>
         <Card className="border-blue-500/30 bg-card">
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-blue-500">{stats.low}</div>
-            <div className="text-sm text-muted-foreground">Low</div>
+            <div className="text-sm text-muted-foreground">
+              {t('admin.fraud.low', 'Low')}
+            </div>
           </CardContent>
         </Card>
         <Card className="border-orange-500/30 bg-card">
@@ -209,7 +239,9 @@ export default function FraudAlertsPage(): React.ReactElement {
             <div className="text-2xl font-bold text-orange-500">
               {stats.pending}
             </div>
-            <div className="text-sm text-muted-foreground">Pending</div>
+            <div className="text-sm text-muted-foreground">
+              {t('admin.fraud.pending', 'Pending')}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -220,7 +252,7 @@ export default function FraudAlertsPage(): React.ReactElement {
           <Filter className="h-4 w-4 text-muted-foreground" />
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-foreground">
-              Severity:
+              {t('admin.fraud.severity_label', 'Severity:')}
             </span>
             <Select
               value={filter.severity}
@@ -235,16 +267,28 @@ export default function FraudAlertsPage(): React.ReactElement {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All</SelectItem>
-                <SelectItem value="CRITICAL">Critical</SelectItem>
-                <SelectItem value="HIGH">High</SelectItem>
-                <SelectItem value="MEDIUM">Medium</SelectItem>
-                <SelectItem value="LOW">Low</SelectItem>
+                <SelectItem value="ALL">
+                  {t('admin.fraud.all', 'All')}
+                </SelectItem>
+                <SelectItem value="CRITICAL">
+                  {t('admin.fraud.critical', 'Critical')}
+                </SelectItem>
+                <SelectItem value="HIGH">
+                  {t('admin.fraud.high', 'High')}
+                </SelectItem>
+                <SelectItem value="MEDIUM">
+                  {t('admin.fraud.medium', 'Medium')}
+                </SelectItem>
+                <SelectItem value="LOW">
+                  {t('admin.fraud.low', 'Low')}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-foreground">Status:</span>
+            <span className="text-sm font-medium text-foreground">
+              {t('admin.fraud.status_label', 'Status:')}
+            </span>
             <Select
               value={filter.status}
               onValueChange={(value) =>
@@ -258,11 +302,21 @@ export default function FraudAlertsPage(): React.ReactElement {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="REVIEWED">Reviewed</SelectItem>
-                <SelectItem value="DISMISSED">Dismissed</SelectItem>
-                <SelectItem value="BLOCKED">Blocked</SelectItem>
+                <SelectItem value="ALL">
+                  {t('admin.fraud.all', 'All')}
+                </SelectItem>
+                <SelectItem value="PENDING">
+                  {t('admin.fraud.status_pending', 'Pending')}
+                </SelectItem>
+                <SelectItem value="REVIEWED">
+                  {t('admin.fraud.status_reviewed', 'Reviewed')}
+                </SelectItem>
+                <SelectItem value="DISMISSED">
+                  {t('admin.fraud.status_dismissed', 'Dismissed')}
+                </SelectItem>
+                <SelectItem value="BLOCKED">
+                  {t('admin.fraud.status_blocked', 'Blocked')}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -279,12 +333,18 @@ export default function FraudAlertsPage(): React.ReactElement {
           <CardContent className="py-12 text-center">
             <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
             <h3 className="text-lg font-medium text-foreground">
-              No alerts found
+              {t('admin.fraud.no_alerts_found', 'No alerts found')}
             </h3>
             <p className="text-muted-foreground">
               {filter.severity !== 'ALL' || filter.status !== 'ALL'
-                ? 'Try adjusting your filters'
-                : 'No fraud alerts to review'}
+                ? t(
+                    'admin.fraud.try_adjusting_filters',
+                    'Try adjusting your filters'
+                  )
+                : t(
+                    'admin.fraud.no_alerts_to_review',
+                    'No fraud alerts to review'
+                  )}
             </p>
           </CardContent>
         </Card>

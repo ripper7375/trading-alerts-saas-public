@@ -8,13 +8,21 @@
  * @module __tests__/pages/admin/fraud-alerts-detail.test
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React from 'react';
 
 import FraudAlertDetailPage from '@/app/admin/fraud-alerts/[id]/page';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
 
 jest.mock('next/navigation', () => ({
   useParams: () => ({ id: 'fa-1' }),
+  usePathname: () => '/admin/fraud-alerts/fa-1',
 }));
 
 const realAlert = {
@@ -46,6 +54,17 @@ describe('FraudAlertDetailPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     global.fetch = jest.fn();
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({
+        countryCode: 'US',
+        language: 'en-US',
+        timezone: 'America/New_York',
+        dateFormat: 'MDY',
+        timeFormat: '12h',
+        currency: 'USD',
+      })
+    );
   });
 
   it('renders the real fraud alert, not the removed MOCK_ALERT', async () => {

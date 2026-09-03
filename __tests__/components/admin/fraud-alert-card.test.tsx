@@ -6,10 +6,34 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from '@jest/globals';
+import { render as rtlRender, screen } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 
 import { FraudAlertCard } from '@/components/admin/FraudAlertCard';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
+
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/admin/fraud-alerts',
+}));
+
+beforeEach(() => {
+  localStorage.setItem(
+    LOCALE_STORAGE_KEY,
+    JSON.stringify({
+      countryCode: 'US',
+      language: 'en-US',
+      timezone: 'America/New_York',
+      dateFormat: 'MDY',
+      timeFormat: '12h',
+      currency: 'USD',
+    })
+  );
+});
 
 const mockAlert = {
   id: 'alert-123',

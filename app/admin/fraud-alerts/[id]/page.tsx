@@ -10,7 +10,7 @@
  * @module app/(dashboard)/admin/fraud-alerts/[id]/page
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -38,6 +38,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FraudPatternBadge } from '@/components/admin/FraudPatternBadge';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -82,6 +83,7 @@ interface FraudAlertDetail {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function FraudAlertDetailPage(): React.ReactElement {
+  const { t } = useLocale();
   const params = useParams();
   const alertId = params['id'] as string;
 
@@ -103,22 +105,33 @@ export default function FraudAlertDetailPage(): React.ReactElement {
         return;
       }
       if (response.status === 403) {
-        setLoadError('You do not have permission to view this alert.');
+        setLoadError(
+          t(
+            'admin.fraud.error_no_permission_alert',
+            'You do not have permission to view this alert.'
+          )
+        );
         return;
       }
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to fetch fraud alert');
+        throw new Error(
+          data.error ||
+            t('admin.fraud.error_fetch_alert', 'Failed to fetch fraud alert')
+        );
       }
       const data = await response.json();
       setAlert(data.alert);
     } catch (error) {
       setLoadError(
-        error instanceof Error ? error.message : 'Failed to fetch fraud alert'
+        error instanceof Error
+          ? error.message
+          : t('admin.fraud.error_fetch_alert', 'Failed to fetch fraud alert')
       );
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alertId]);
 
   useEffect(() => {
@@ -138,14 +151,25 @@ export default function FraudAlertDetailPage(): React.ReactElement {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to update alert status');
+        throw new Error(
+          data.error ||
+            t(
+              'admin.fraud.error_update_status',
+              'Failed to update alert status'
+            )
+        );
       }
       // Only reflect the transition once the server has confirmed it —
       // no optimistic update (order's own Invariant for this file).
       setAlert(data.alert);
     } catch (error) {
       setActionError(
-        error instanceof Error ? error.message : 'Failed to update alert status'
+        error instanceof Error
+          ? error.message
+          : t(
+              'admin.fraud.error_update_status',
+              'Failed to update alert status'
+            )
       );
     } finally {
       setActionLoading(false);
@@ -164,12 +188,19 @@ export default function FraudAlertDetailPage(): React.ReactElement {
     return (
       <Card className="border-border bg-card">
         <CardContent className="py-12 text-center">
-          <h2 className="text-xl font-bold text-foreground">Alert not found</h2>
+          <h2 className="text-xl font-bold text-foreground">
+            {t('admin.fraud.alert_not_found', 'Alert not found')}
+          </h2>
           <p className="text-muted-foreground">
-            The fraud alert you&apos;re looking for doesn&apos;t exist.
+            {t(
+              'admin.fraud.alert_not_found_desc',
+              "The fraud alert you're looking for doesn't exist."
+            )}
           </p>
           <Button asChild className="mt-4">
-            <Link href="/admin/fraud-alerts">Back to Alerts</Link>
+            <Link href="/admin/fraud-alerts">
+              {t('admin.fraud.back_to_alerts', 'Back to Alerts')}
+            </Link>
           </Button>
         </CardContent>
       </Card>
@@ -181,11 +212,11 @@ export default function FraudAlertDetailPage(): React.ReactElement {
       <Card className="border-border bg-card">
         <CardContent className="py-12 text-center">
           <h2 className="text-xl font-bold text-foreground">
-            Failed to load alert
+            {t('admin.fraud.failed_to_load_alert', 'Failed to load alert')}
           </h2>
           <p className="text-muted-foreground">{loadError}</p>
           <Button className="mt-4" onClick={() => void fetchAlert()}>
-            Try Again
+            {t('admin.fraud.try_again', 'Try Again')}
           </Button>
         </CardContent>
       </Card>
@@ -205,7 +236,7 @@ export default function FraudAlertDetailPage(): React.ReactElement {
         className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Fraud Alerts
+        {t('admin.fraud.back_to_fraud_alerts', 'Back to Fraud Alerts')}
       </Link>
 
       {/* Header */}
@@ -213,7 +244,7 @@ export default function FraudAlertDetailPage(): React.ReactElement {
         <div>
           <div className="mb-2 flex items-center gap-3">
             <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-              Fraud Alert
+              {t('admin.fraud.fraud_alert_title', 'Fraud Alert')}
             </h1>
             <FraudPatternBadge severity={alert.severity} />
           </div>
@@ -229,7 +260,7 @@ export default function FraudAlertDetailPage(): React.ReactElement {
               disabled={actionLoading}
             >
               <XCircle className="mr-2 h-4 w-4" />
-              Dismiss
+              {t('admin.fraud.dismiss', 'Dismiss')}
             </Button>
             <Button
               variant="outline"
@@ -237,37 +268,53 @@ export default function FraudAlertDetailPage(): React.ReactElement {
               disabled={actionLoading}
             >
               <CheckCircle className="mr-2 h-4 w-4" />
-              Mark Reviewed
+              {t('admin.fraud.mark_reviewed', 'Mark Reviewed')}
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" disabled={actionLoading}>
                   <Ban className="mr-2 h-4 w-4" />
-                  Block User
+                  {t('admin.fraud.block_user', 'Block User')}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Block this user?</AlertDialogTitle>
+                  <AlertDialogTitle>
+                    {t('admin.fraud.block_this_user', 'Block this user?')}
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
-                    {alert.user?.email ?? 'This user'} will be immediately
-                    deactivated (
-                    <code className="font-mono">isActive: false</code>) and
-                    unable to log in. This is a real account action, not just an
-                    alert status change.
+                    {t(
+                      'admin.fraud.block_user_desc',
+                      '{email} will be immediately deactivated ({code}) and unable to log in. This is a real account action, not just an alert status change.'
+                    )
+                      .split('{code}')
+                      .map((part, i) => (
+                        <Fragment key={i}>
+                          {part.replace(
+                            '{email}',
+                            alert.user?.email ??
+                              t('admin.fraud.this_user', 'This user')
+                          )}
+                          {i === 0 && (
+                            <code className="font-mono">isActive: false</code>
+                          )}
+                        </Fragment>
+                      ))}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 {actionError && (
                   <p className="text-sm text-red-500">{actionError}</p>
                 )}
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
                   <AlertDialogAction
                     disabled={actionLoading}
                     onClick={() => void handleAction('BLOCKED')}
                     className="hover:bg-destructive/90 bg-destructive text-white"
                   >
-                    {actionLoading ? 'Blocking...' : 'Block User'}
+                    {actionLoading
+                      ? t('admin.fraud.blocking', 'Blocking...')
+                      : t('admin.fraud.block_user', 'Block User')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -288,7 +335,9 @@ export default function FraudAlertDetailPage(): React.ReactElement {
           {/* Description */}
           <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle className="text-foreground">Description</CardTitle>
+              <CardTitle className="text-foreground">
+                {t('admin.fraud.description', 'Description')}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-foreground">{alert.description}</p>
@@ -298,12 +347,16 @@ export default function FraudAlertDetailPage(): React.ReactElement {
           {/* Admin notes / resolution */}
           <Card className="border-border bg-card">
             <CardHeader>
-              <CardTitle className="text-foreground">Admin Notes</CardTitle>
+              <CardTitle className="text-foreground">
+                {t('admin.fraud.admin_notes', 'Admin Notes')}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               {alert.resolution && (
                 <div>
-                  <span className="text-muted-foreground">Resolution:</span>
+                  <span className="text-muted-foreground">
+                    {t('admin.fraud.resolution', 'Resolution:')}
+                  </span>
                   <p className="font-medium text-foreground">
                     {alert.resolution}
                   </p>
@@ -312,15 +365,19 @@ export default function FraudAlertDetailPage(): React.ReactElement {
               {alert.notes ? (
                 <p className="text-muted-foreground">{alert.notes}</p>
               ) : (
-                <p className="text-muted-foreground">No notes recorded.</p>
+                <p className="text-muted-foreground">
+                  {t('admin.fraud.no_notes_recorded', 'No notes recorded.')}
+                </p>
               )}
               {alert.reviewedAt && (
                 <p className="text-xs text-muted-foreground">
-                  Reviewed{' '}
-                  {new Date(alert.reviewedAt).toLocaleString('en-US', {
-                    dateStyle: 'medium',
-                    timeStyle: 'short',
-                  })}
+                  {t('admin.fraud.reviewed_at', 'Reviewed {date}').replace(
+                    '{date}',
+                    new Date(alert.reviewedAt).toLocaleString('en-US', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })
+                  )}
                 </p>
               )}
             </CardContent>
@@ -334,26 +391,32 @@ export default function FraudAlertDetailPage(): React.ReactElement {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-foreground">
                 <User className="h-5 w-5" />
-                User Details
+                {t('admin.fraud.user_details', 'User Details')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div>
-                <span className="text-muted-foreground">Email:</span>
+                <span className="text-muted-foreground">
+                  {t('admin.fraud.email_label', 'Email:')}
+                </span>
                 <p className="font-medium text-foreground">
-                  {alert.user?.email ?? 'Unknown'}
+                  {alert.user?.email ?? t('admin.fraud.unknown', 'Unknown')}
                 </p>
               </div>
               <div>
-                <span className="text-muted-foreground">Name:</span>
+                <span className="text-muted-foreground">
+                  {t('admin.fraud.name_label', 'Name:')}
+                </span>
                 <p className="font-medium text-foreground">
-                  {alert.user?.name ?? 'Unknown'}
+                  {alert.user?.name ?? t('admin.fraud.unknown', 'Unknown')}
                 </p>
               </div>
               <div>
-                <span className="text-muted-foreground">Tier:</span>
+                <span className="text-muted-foreground">
+                  {t('admin.fraud.tier_label', 'Tier:')}
+                </span>
                 <p className="font-medium text-foreground">
-                  {alert.user?.tier ?? 'Unknown'}
+                  {alert.user?.tier ?? t('admin.fraud.unknown', 'Unknown')}
                 </p>
               </div>
             </CardContent>
@@ -365,13 +428,15 @@ export default function FraudAlertDetailPage(): React.ReactElement {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-foreground">
                   <CreditCard className="h-5 w-5" />
-                  Payment Details
+                  {t('admin.fraud.payment_details', 'Payment Details')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 {alert.amount && (
                   <div>
-                    <span className="text-muted-foreground">Amount:</span>
+                    <span className="text-muted-foreground">
+                      {t('admin.fraud.amount_label', 'Amount:')}
+                    </span>
                     <p className="font-medium text-foreground">
                       {alert.currency ?? ''} {alert.amount}
                     </p>
@@ -379,7 +444,9 @@ export default function FraudAlertDetailPage(): React.ReactElement {
                 )}
                 {alert.paymentMethod && (
                   <div>
-                    <span className="text-muted-foreground">Method:</span>
+                    <span className="text-muted-foreground">
+                      {t('admin.fraud.method_label', 'Method:')}
+                    </span>
                     <p className="font-medium text-foreground">
                       {alert.paymentMethod}
                     </p>
@@ -388,7 +455,9 @@ export default function FraudAlertDetailPage(): React.ReactElement {
                 {alert.country && (
                   <div className="flex items-center gap-1">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Country:</span>
+                    <span className="text-muted-foreground">
+                      {t('admin.fraud.country_label', 'Country:')}
+                    </span>
                     <p className="font-medium text-foreground">
                       {alert.country}
                     </p>
@@ -403,17 +472,21 @@ export default function FraudAlertDetailPage(): React.ReactElement {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-foreground">
                 <Clock className="h-5 w-5" />
-                Technical Details
+                {t('admin.fraud.technical_details', 'Technical Details')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div>
-                <span className="text-muted-foreground">Timestamp:</span>
+                <span className="text-muted-foreground">
+                  {t('admin.fraud.timestamp_label', 'Timestamp:')}
+                </span>
                 <p className="font-medium text-foreground">{formattedDate}</p>
               </div>
               {alert.ipAddress && (
                 <div>
-                  <span className="text-muted-foreground">IP Address:</span>
+                  <span className="text-muted-foreground">
+                    {t('admin.fraud.ip_address_label', 'IP Address:')}
+                  </span>
                   <p className="font-mono text-xs text-foreground">
                     {alert.ipAddress}
                   </p>

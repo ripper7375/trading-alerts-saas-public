@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { formatDate } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -65,6 +66,7 @@ type SortOrder = 'asc' | 'desc';
  * - Pagination (50 per page)
  */
 export default function UsersPage(): React.ReactElement {
+  const { t } = useLocale();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -110,7 +112,10 @@ export default function UsersPage(): React.ReactElement {
       const response = await fetch(`/api/admin/users?${params.toString()}`);
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to fetch users');
+        throw new Error(
+          data.error ||
+            t('admin.users.error_fetch_users', 'Failed to fetch users')
+        );
       }
 
       const data: UsersResponse = await response.json();
@@ -118,10 +123,15 @@ export default function UsersPage(): React.ReactElement {
       setTotal(data.total);
       setTotalPages(data.totalPages);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.dashboard.unknown_error', 'Unknown error')
+      );
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, tierFilter, sortBy, sortOrder, debouncedSearch]);
 
   useEffect(() => {
@@ -148,10 +158,10 @@ export default function UsersPage(): React.ReactElement {
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-          User Management
+          {t('admin.users.title', 'User Management')}
         </h1>
         <p className="mt-1 text-muted-foreground">
-          View and manage all registered users
+          {t('admin.users.subtitle', 'View and manage all registered users')}
         </p>
       </div>
 
@@ -162,22 +172,32 @@ export default function UsersPage(): React.ReactElement {
             {/* Search */}
             <div className="flex-1">
               <Input
-                placeholder="Search by name or email..."
+                placeholder={t(
+                  'admin.users.search_placeholder',
+                  'Search by name or email...'
+                )}
                 value={search}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setSearch(e.target.value)
                 }
-                aria-label="Search users by name or email"
+                aria-label={t(
+                  'admin.users.search_aria',
+                  'Search users by name or email'
+                )}
               />
             </div>
 
             {/* Tier Filter */}
             <Select value={tierFilter} onValueChange={handleTierChange}>
               <SelectTrigger className="w-full sm:w-[140px]">
-                <SelectValue placeholder="Tier" />
+                <SelectValue
+                  placeholder={t('admin.users.tier_placeholder', 'Tier')}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All Tiers</SelectItem>
+                <SelectItem value="ALL">
+                  {t('admin.users.all_tiers', 'All Tiers')}
+                </SelectItem>
                 <SelectItem value="FREE">FREE</SelectItem>
                 <SelectItem value="PRO">PRO</SelectItem>
               </SelectContent>
@@ -186,18 +206,28 @@ export default function UsersPage(): React.ReactElement {
             {/* Sort By */}
             <Select value={sortBy} onValueChange={handleSortChange}>
               <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue placeholder="Sort by" />
+                <SelectValue
+                  placeholder={t('admin.users.sort_by_placeholder', 'Sort by')}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="createdAt">Created Date</SelectItem>
-                <SelectItem value="name">Name</SelectItem>
-                <SelectItem value="tier">Tier</SelectItem>
+                <SelectItem value="createdAt">
+                  {t('admin.users.created_date', 'Created Date')}
+                </SelectItem>
+                <SelectItem value="name">
+                  {t('admin.users.name', 'Name')}
+                </SelectItem>
+                <SelectItem value="tier">
+                  {t('admin.users.tier', 'Tier')}
+                </SelectItem>
               </SelectContent>
             </Select>
 
             {/* Sort Order Toggle */}
             <Button variant="outline" onClick={handleSortOrderToggle}>
-              {sortOrder === 'desc' ? '↓ Desc' : '↑ Asc'}
+              {sortOrder === 'desc'
+                ? t('admin.users.sort_desc', '↓ Desc')
+                : t('admin.users.sort_asc', '↑ Asc')}
             </Button>
           </div>
         </CardContent>
@@ -206,19 +236,28 @@ export default function UsersPage(): React.ReactElement {
       {/* Summary */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          Showing {users.length} of {total} users
+          {t('admin.users.showing_of_total', 'Showing {shown} of {total} users')
+            .replace('{shown}', String(users.length))
+            .replace('{total}', String(total))}
         </span>
         <span>
-          Page {page} of {totalPages}
+          {t('admin.users.page_of_total', 'Page {page} of {totalPages}')
+            .replace('{page}', String(page))
+            .replace('{totalPages}', String(totalPages))}
         </span>
       </div>
 
       {/* Users Table */}
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-foreground">Users</CardTitle>
+          <CardTitle className="text-foreground">
+            {t('admin.users.card_title', 'Users')}
+          </CardTitle>
           <CardDescription className="text-muted-foreground">
-            All registered users with their tier information
+            {t(
+              'admin.users.card_desc',
+              'All registered users with their tier information'
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -229,11 +268,13 @@ export default function UsersPage(): React.ReactElement {
           ) : error ? (
             <div className="py-8 text-center">
               <p className="mb-4 text-red-500">{error}</p>
-              <Button onClick={() => void fetchUsers()}>Retry</Button>
+              <Button onClick={() => void fetchUsers()}>
+                {t('admin.dashboard.retry', 'Retry')}
+              </Button>
             </div>
           ) : users.length === 0 ? (
             <p className="py-8 text-center text-muted-foreground">
-              No users found
+              {t('admin.users.no_users_found', 'No users found')}
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -241,25 +282,25 @@ export default function UsersPage(): React.ReactElement {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Name
+                      {t('admin.users.name', 'Name')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Email
+                      {t('admin.users.email', 'Email')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Tier
+                      {t('admin.users.tier', 'Tier')}
                     </th>
                     <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground md:table-cell">
-                      Created
+                      {t('admin.users.created', 'Created')}
                     </th>
                     <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
-                      Alerts
+                      {t('admin.users.alerts', 'Alerts')}
                     </th>
                     <th className="hidden px-4 py-3 text-left font-medium text-muted-foreground lg:table-cell">
-                      Status
+                      {t('admin.users.status', 'Status')}
                     </th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                      Actions
+                      {t('admin.users.actions', 'Actions')}
                     </th>
                   </tr>
                 </thead>
@@ -274,7 +315,7 @@ export default function UsersPage(): React.ReactElement {
                           href={`/admin/users/${user.id}`}
                           className="font-medium text-foreground transition-colors hover:text-primary"
                         >
-                          {user.name || 'No name'}
+                          {user.name || t('admin.users.no_name', 'No name')}
                         </Link>
                       </td>
                       <td className="px-4 py-3">
@@ -323,7 +364,7 @@ export default function UsersPage(): React.ReactElement {
                       <td className="px-4 py-3 text-right">
                         <Button asChild variant="outline" size="sm">
                           <Link href={`/admin/users/${user.id}`}>
-                            Inspect User →
+                            {t('admin.users.inspect_user', 'Inspect User →')}
                           </Link>
                         </Button>
                       </td>
@@ -344,7 +385,7 @@ export default function UsersPage(): React.ReactElement {
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
           >
-            Previous
+            {t('admin.users.previous', 'Previous')}
           </Button>
 
           <div className="flex items-center gap-1">
@@ -377,7 +418,7 @@ export default function UsersPage(): React.ReactElement {
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
           >
-            Next
+            {t('admin.users.next', 'Next')}
           </Button>
         </div>
       )}

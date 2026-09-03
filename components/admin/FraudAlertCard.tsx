@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { FraudPatternBadge } from './FraudPatternBadge';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -50,6 +51,7 @@ interface FraudAlertCardProps {
 export function FraudAlertCard({
   alert,
 }: FraudAlertCardProps): React.ReactElement {
+  const { t } = useLocale();
   const formattedDate = new Date(alert.createdAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -89,7 +91,11 @@ export function FraudAlertCard({
               )}
               {(alert.currency || alert.amount || alert.paymentMethod) && (
                 <span>
-                  {`${alert.currency ? `${alert.currency} ` : ''}${alert.amount || ''}${alert.paymentMethod ? ` via ${alert.paymentMethod}` : ''}`.trim()}
+                  {`${alert.currency ? `${alert.currency} ` : ''}${alert.amount || ''}${
+                    alert.paymentMethod
+                      ? ` ${t('admin.fraud.via', 'via')} ${alert.paymentMethod}`
+                      : ''
+                  }`.trim()}
                 </span>
               )}
             </div>
@@ -111,7 +117,14 @@ export function FraudAlertCard({
                         : 'text-green-500'
                 }`}
               >
-                {alert.status}
+                {alert.status === 'PENDING' &&
+                  t('admin.fraud.status_pending', 'Pending').toUpperCase()}
+                {alert.status === 'BLOCKED' &&
+                  t('admin.fraud.status_blocked', 'Blocked').toUpperCase()}
+                {alert.status === 'DISMISSED' &&
+                  t('admin.fraud.status_dismissed', 'Dismissed').toUpperCase()}
+                {alert.status === 'REVIEWED' &&
+                  t('admin.fraud.status_reviewed', 'Reviewed').toUpperCase()}
               </span>
             </div>
           </div>
@@ -128,7 +141,7 @@ export function FraudAlertCard({
                 href={`/admin/fraud-alerts/${alert.id}`}
                 className="flex items-center gap-1"
               >
-                View &amp; Investigate
+                {t('admin.fraud.view_investigate', 'View & Investigate')}
                 <ChevronRight className="h-4 w-4" />
               </Link>
             </Button>

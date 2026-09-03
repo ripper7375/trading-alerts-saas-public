@@ -10,6 +10,19 @@
 
 import { render, screen } from '@testing-library/react';
 
+// AdminUserDetailPage now resolves a dictionary via getServerLanguage()
+// (batch-11 locale wiring), which calls next/headers's cookies()/headers()
+// -- mock both to no-op stores so resolvePreferences() falls back to its
+// own defaultPreferences (matches this file's existing English-text
+// assertions either way).
+const mockCookieStore = { get: jest.fn(() => undefined) };
+const mockHeaderStore = { get: jest.fn(() => undefined) };
+jest.mock('next/headers', () => ({
+  __esModule: true,
+  cookies: jest.fn(() => Promise.resolve(mockCookieStore)),
+  headers: jest.fn(() => Promise.resolve(mockHeaderStore)),
+}));
+
 import AdminUserDetailPage from '@/app/admin/users/[id]/page';
 
 jest.mock('next/navigation', () => ({

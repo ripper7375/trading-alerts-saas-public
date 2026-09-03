@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/card';
 import { prisma } from '@/lib/db/prisma';
 import { formatDate } from '@/lib/utils';
+import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -87,6 +89,8 @@ export default async function AdminUserDetailPage({
   params,
 }: AdminUserDetailPageProps): Promise<React.ReactElement> {
   const { id } = await params;
+  const dict = getDictionary(await getServerLanguage());
+  const dt = (key: string, fallback: string): string => dict[key] ?? fallback;
 
   const user = await prisma.user.findUnique({
     where: { id },
@@ -141,10 +145,10 @@ export default async function AdminUserDetailPage({
           href="/admin/users"
           className="hover:text-primary/80 text-sm text-primary transition-colors"
         >
-          ← Back to Users
+          {dt('admin.users.back_to_users', '← Back to Users')}
         </Link>
         <h1 className="mt-2 text-2xl font-bold text-foreground sm:text-3xl">
-          {user.name || 'No name'}
+          {user.name || dt('admin.users.no_name', 'No name')}
         </h1>
         <p className="mt-1 text-muted-foreground">{user.email}</p>
       </div>
@@ -154,46 +158,72 @@ export default async function AdminUserDetailPage({
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-foreground">
-              Profile &amp; Account Status
+              {dt(
+                'admin.users.profile_account_status',
+                'Profile & Account Status'
+              )}
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Registration and role information
+              {dt(
+                'admin.users.registration_role_info',
+                'Registration and role information'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Email</span>
+              <span className="text-muted-foreground">
+                {dt('admin.users.email', 'Email')}
+              </span>
               <span className="text-foreground">{user.email}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Name</span>
+              <span className="text-muted-foreground">
+                {dt('admin.users.name', 'Name')}
+              </span>
               <span className="text-foreground">{user.name || '—'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Role</span>
+              <span className="text-muted-foreground">
+                {dt('admin.users.role', 'Role')}
+              </span>
               <span className="text-foreground">{user.role}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Tier</span>
+              <span className="text-muted-foreground">
+                {dt('admin.users.tier', 'Tier')}
+              </span>
               {badge(
                 user.tier,
                 user.tier === 'PRO' ? 'bg-primary' : 'bg-muted'
               )}
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Email Verified</span>
+              <span className="text-muted-foreground">
+                {dt('admin.users.email_verified', 'Email Verified')}
+              </span>
               {user.emailVerified
-                ? badge('Verified', 'bg-emerald-600')
-                : badge('Unverified', 'bg-red-600')}
+                ? badge(
+                    dt('admin.users.verified', 'Verified'),
+                    'bg-emerald-600'
+                  )
+                : badge(
+                    dt('admin.users.unverified', 'Unverified'),
+                    'bg-red-600'
+                  )}
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Account Status</span>
+              <span className="text-muted-foreground">
+                {dt('admin.users.account_status', 'Account Status')}
+              </span>
               {user.isActive
-                ? badge('Active', 'bg-emerald-600')
-                : badge('Inactive', 'bg-red-600')}
+                ? badge(dt('admin.users.active', 'Active'), 'bg-emerald-600')
+                : badge(dt('admin.users.inactive', 'Inactive'), 'bg-red-600')}
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Registered</span>
+              <span className="text-muted-foreground">
+                {dt('admin.users.registered', 'Registered')}
+              </span>
               <span className="text-foreground">
                 {formatDate(user.createdAt)}
               </span>
@@ -205,24 +235,31 @@ export default async function AdminUserDetailPage({
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-foreground">
-              Subscription &amp; Billing
+              {dt('admin.users.subscription_billing', 'Subscription & Billing')}
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Tier, provider, and trial status
+              {dt(
+                'admin.users.subscription_billing_desc',
+                'Tier, provider, and trial status'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {subscription ? (
               <>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Status</span>
+                  <span className="text-muted-foreground">
+                    {dt('admin.users.status', 'Status')}
+                  </span>
                   {badge(
                     subscription.status,
                     SUBSCRIPTION_STATUS_CLASS[subscription.status] ?? 'bg-muted'
                   )}
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Provider</span>
+                  <span className="text-muted-foreground">
+                    {dt('admin.users.provider', 'Provider')}
+                  </span>
                   <span className="text-foreground">
                     {subscription.stripeSubscriptionId
                       ? 'Stripe'
@@ -232,7 +269,9 @@ export default async function AdminUserDetailPage({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Subscription ID</span>
+                  <span className="text-muted-foreground">
+                    {dt('admin.users.subscription_id', 'Subscription ID')}
+                  </span>
                   <span className="font-mono text-xs text-muted-foreground">
                     {subscription.stripeSubscriptionId ||
                       subscription.dLocalPaymentId ||
@@ -240,13 +279,17 @@ export default async function AdminUserDetailPage({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Plan</span>
+                  <span className="text-muted-foreground">
+                    {dt('admin.users.plan', 'Plan')}
+                  </span>
                   <span className="text-foreground">
                     {subscription.planType || 'MONTHLY'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Period End</span>
+                  <span className="text-muted-foreground">
+                    {dt('admin.users.period_end', 'Period End')}
+                  </span>
                   <span className="text-foreground">
                     {subscription.expiresAt
                       ? formatDate(subscription.expiresAt)
@@ -258,11 +301,16 @@ export default async function AdminUserDetailPage({
               </>
             ) : (
               <p className="text-muted-foreground">
-                No subscription on record.
+                {dt(
+                  'admin.users.no_subscription',
+                  'No subscription on record.'
+                )}
               </p>
             )}
             <div className="flex justify-between border-t border-border pt-3">
-              <span className="text-muted-foreground">Trial Status</span>
+              <span className="text-muted-foreground">
+                {dt('admin.users.trial_status', 'Trial Status')}
+              </span>
               {badge(
                 user.trialStatus,
                 TRIAL_STATUS_CLASS[user.trialStatus] ?? 'bg-muted'
@@ -270,7 +318,9 @@ export default async function AdminUserDetailPage({
             </div>
             {user.trialEndDate && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Trial Ends</span>
+                <span className="text-muted-foreground">
+                  {dt('admin.users.trial_ends', 'Trial Ends')}
+                </span>
                 <span className="text-foreground">
                   {formatDate(user.trialEndDate)}
                 </span>
@@ -283,35 +333,48 @@ export default async function AdminUserDetailPage({
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-foreground">
-              Security &amp; 2FA
+              {dt('admin.users.security_2fa', 'Security & 2FA')}
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Two-factor status and session activity
+              {dt(
+                'admin.users.security_2fa_desc',
+                'Two-factor status and session activity'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">2FA Status</span>
+              <span className="text-muted-foreground">
+                {dt('admin.users.2fa_status', '2FA Status')}
+              </span>
               {user.twoFactorEnabled
-                ? badge('Enabled', 'bg-emerald-600')
-                : badge('Disabled', 'bg-muted')}
+                ? badge(dt('admin.users.enabled', 'Enabled'), 'bg-emerald-600')
+                : badge(dt('admin.users.disabled', 'Disabled'), 'bg-muted')}
             </div>
             {user.twoFactorVerifiedAt && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">2FA Enabled On</span>
+                <span className="text-muted-foreground">
+                  {dt('admin.users.2fa_enabled_on', '2FA Enabled On')}
+                </span>
                 <span className="text-foreground">
                   {formatDate(user.twoFactorVerifiedAt)}
                 </span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Active Sessions</span>
+              <span className="text-muted-foreground">
+                {dt('admin.users.active_sessions', 'Active Sessions')}
+              </span>
               <span className="text-foreground">{activeSessionCount}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Last Login (est.)</span>
+              <span className="text-muted-foreground">
+                {dt('admin.users.last_login_est', 'Last Login (est.)')}
+              </span>
               <span className="text-foreground">
-                {lastLoginAt ? formatDate(lastLoginAt) : 'Never'}
+                {lastLoginAt
+                  ? formatDate(lastLoginAt)
+                  : dt('admin.users.never', 'Never')}
               </span>
             </div>
           </CardContent>
@@ -321,7 +384,7 @@ export default async function AdminUserDetailPage({
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
-              Fraud Alerts
+              {dt('admin.users.fraud_alerts_title', 'Fraud Alerts')}
               {fraudAlerts.length > 0 && (
                 <Badge className="bg-red-600 text-xs text-white hover:bg-red-600">
                   {fraudAlerts.length}
@@ -329,13 +392,19 @@ export default async function AdminUserDetailPage({
               )}
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Most recent 10 fraud detection flags for this user
+              {dt(
+                'admin.users.fraud_alerts_desc',
+                'Most recent 10 fraud detection flags for this user'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {fraudAlerts.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No fraud alerts on record.
+                {dt(
+                  'admin.users.no_fraud_alerts',
+                  'No fraud alerts on record.'
+                )}
               </p>
             ) : (
               <ul className="space-y-3">
@@ -376,23 +445,31 @@ export default async function AdminUserDetailPage({
         <Card className="border-border bg-card lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-foreground">
-              Affiliate &amp; Code Info
+              {dt('admin.users.affiliate_code_info', 'Affiliate & Code Info')}
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Affiliate standing and referral code activity
+              {dt(
+                'admin.users.affiliate_code_info_desc',
+                'Affiliate standing and referral code activity'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {!user.isAffiliate || !affiliateProfile ? (
               <p className="text-sm text-muted-foreground">
                 {user.isAffiliate
-                  ? 'Marked as an affiliate but no affiliate profile exists.'
-                  : 'Not an affiliate.'}
+                  ? dt(
+                      'admin.users.marked_affiliate_no_profile',
+                      'Marked as an affiliate but no affiliate profile exists.'
+                    )
+                  : dt('admin.users.not_an_affiliate', 'Not an affiliate.')}
               </p>
             ) : (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 <div>
-                  <p className="text-xs text-muted-foreground">Status</p>
+                  <p className="text-xs text-muted-foreground">
+                    {dt('admin.users.status', 'Status')}
+                  </p>
                   <div className="mt-1">
                     {badge(
                       affiliateProfile.status,
@@ -403,7 +480,7 @@ export default async function AdminUserDetailPage({
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">
-                    Codes Distributed
+                    {dt('admin.users.codes_distributed', 'Codes Distributed')}
                   </p>
                   <p className="mt-1 text-lg font-bold text-foreground">
                     {affiliateProfile._count.affiliateCodes}
@@ -411,7 +488,7 @@ export default async function AdminUserDetailPage({
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">
-                    Total Earnings
+                    {dt('admin.users.total_earnings', 'Total Earnings')}
                   </p>
                   <p className="mt-1 text-lg font-bold text-foreground">
                     ${affiliateProfile.totalEarnings.toString()}
@@ -419,7 +496,10 @@ export default async function AdminUserDetailPage({
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">
-                    Pending Commissions
+                    {dt(
+                      'admin.users.pending_commissions',
+                      'Pending Commissions'
+                    )}
                   </p>
                   <p className="mt-1 text-lg font-bold text-yellow-600 dark:text-yellow-400">
                     ${affiliateProfile.pendingCommissions.toString()}

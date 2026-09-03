@@ -11,6 +11,7 @@
  */
 
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -66,7 +67,14 @@ export function FraudPatternBadge({
   pattern,
   size = 'md',
 }: FraudPatternBadgeProps): React.ReactElement {
+  const { t } = useLocale();
   const config = SEVERITY_CONFIG[severity];
+  const severityLabel = {
+    CRITICAL: t('admin.fraud.critical', 'Critical').toUpperCase(),
+    HIGH: t('admin.fraud.high', 'High').toUpperCase(),
+    MEDIUM: t('admin.fraud.medium', 'Medium').toUpperCase(),
+    LOW: t('admin.fraud.low', 'Low').toUpperCase(),
+  }[severity];
 
   return (
     <span
@@ -78,7 +86,7 @@ export function FraudPatternBadge({
         size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm'
       )}
     >
-      {severity}
+      {severityLabel}
       {pattern && <span className="opacity-75">• {pattern}</span>}
     </span>
   );

@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -75,6 +76,7 @@ interface ErrorLogsResponse {
  * below surfaces it in the UI rather than presenting it as live.
  */
 export default function ErrorLogsPage(): React.ReactElement {
+  const { t } = useLocale();
   const [logs, setLogs] = useState<ErrorLog[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -117,7 +119,10 @@ export default function ErrorLogsPage(): React.ReactElement {
       );
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to fetch error logs');
+        throw new Error(
+          data.error ||
+            t('admin.errors.error_fetch_logs', 'Failed to fetch error logs')
+        );
       }
 
       setIsSampleData(response.headers.get('X-Data-Source') === 'mock');
@@ -126,10 +131,15 @@ export default function ErrorLogsPage(): React.ReactElement {
       setTotal(data.total);
       setTotalPages(data.totalPages);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.dashboard.unknown_error', 'Unknown error')
+      );
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, errorType, tierFilter, startDate, endDate]);
 
   // Initial fetch and auto-refresh
@@ -153,12 +163,12 @@ export default function ErrorLogsPage(): React.ReactElement {
     if (logs.length === 0) return;
 
     const headers = [
-      'Timestamp',
-      'Type',
-      'Message',
-      'User ID',
-      'Tier',
-      'Endpoint',
+      t('admin.errors.csv_timestamp', 'Timestamp'),
+      t('admin.errors.csv_type', 'Type'),
+      t('admin.errors.csv_message', 'Message'),
+      t('admin.errors.csv_user_id', 'User ID'),
+      t('admin.errors.csv_tier', 'Tier'),
+      t('admin.errors.csv_endpoint', 'Endpoint'),
     ];
     const rows = logs.map((log) => [
       new Date(log.timestamp).toISOString(),
@@ -200,10 +210,10 @@ export default function ErrorLogsPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            Error Logs
+            {t('admin.errors.page_title', 'Error Logs')}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Monitor and track system errors
+            {t('admin.errors.page_subtitle', 'Monitor and track system errors')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -216,10 +226,12 @@ export default function ErrorLogsPage(): React.ReactElement {
                 : ''
             }
           >
-            {autoRefresh ? '🔄 Auto-refresh ON' : '⏸️ Auto-refresh OFF'}
+            {autoRefresh
+              ? t('admin.errors.auto_refresh_on', '🔄 Auto-refresh ON')
+              : t('admin.errors.auto_refresh_off', '⏸️ Auto-refresh OFF')}
           </Button>
           <Button onClick={handleExportCSV} disabled={logs.length === 0}>
-            📥 Export CSV
+            {t('admin.errors.export_csv', '📥 Export CSV')}
           </Button>
         </div>
       </div>
@@ -231,8 +243,10 @@ export default function ErrorLogsPage(): React.ReactElement {
           <CardContent className="flex items-center gap-3 p-4">
             <span className="text-xl">ℹ️</span>
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              Showing generated sample data. Real persistent error logging is
-              scheduled for a future phase, not yet implemented.
+              {t(
+                'admin.errors.sample_data_notice',
+                'Showing generated sample data. Real persistent error logging is scheduled for a future phase, not yet implemented.'
+              )}
             </p>
           </CardContent>
         </Card>
@@ -251,15 +265,29 @@ export default function ErrorLogsPage(): React.ReactElement {
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Error Type" />
+                <SelectValue
+                  placeholder={t('admin.errors.error_type', 'Error Type')}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All Types</SelectItem>
-                <SelectItem value="API_ERROR">API Error</SelectItem>
-                <SelectItem value="DATABASE_ERROR">Database Error</SelectItem>
-                <SelectItem value="AUTH_ERROR">Auth Error</SelectItem>
-                <SelectItem value="PAYMENT_ERROR">Payment Error</SelectItem>
-                <SelectItem value="MT5_ERROR">MT5 Error</SelectItem>
+                <SelectItem value="ALL">
+                  {t('admin.errors.all_types', 'All Types')}
+                </SelectItem>
+                <SelectItem value="API_ERROR">
+                  {t('admin.errors.api_error', 'API Error')}
+                </SelectItem>
+                <SelectItem value="DATABASE_ERROR">
+                  {t('admin.errors.database_error', 'Database Error')}
+                </SelectItem>
+                <SelectItem value="AUTH_ERROR">
+                  {t('admin.errors.auth_error', 'Auth Error')}
+                </SelectItem>
+                <SelectItem value="PAYMENT_ERROR">
+                  {t('admin.errors.payment_error', 'Payment Error')}
+                </SelectItem>
+                <SelectItem value="MT5_ERROR">
+                  {t('admin.errors.mt5_error', 'MT5 Error')}
+                </SelectItem>
               </SelectContent>
             </Select>
 
@@ -272,10 +300,14 @@ export default function ErrorLogsPage(): React.ReactElement {
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Tier" />
+                <SelectValue
+                  placeholder={t('admin.users.tier_placeholder', 'Tier')}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">All Tiers</SelectItem>
+                <SelectItem value="ALL">
+                  {t('admin.users.all_tiers', 'All Tiers')}
+                </SelectItem>
                 <SelectItem value="FREE">FREE</SelectItem>
                 <SelectItem value="PRO">PRO</SelectItem>
               </SelectContent>
@@ -290,7 +322,10 @@ export default function ErrorLogsPage(): React.ReactElement {
                   setStartDate(e.target.value);
                   setPage(1);
                 }}
-                aria-label="Filter start date"
+                aria-label={t(
+                  'admin.errors.filter_start_date',
+                  'Filter start date'
+                )}
               />
             </div>
 
@@ -303,12 +338,17 @@ export default function ErrorLogsPage(): React.ReactElement {
                   setEndDate(e.target.value);
                   setPage(1);
                 }}
-                aria-label="Filter end date"
+                aria-label={t(
+                  'admin.errors.filter_end_date',
+                  'Filter end date'
+                )}
               />
             </div>
 
             {/* Apply Filter Button */}
-            <Button onClick={() => void fetchLogs()}>Apply Filters</Button>
+            <Button onClick={() => void fetchLogs()}>
+              {t('admin.errors.apply_filters', 'Apply Filters')}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -316,19 +356,25 @@ export default function ErrorLogsPage(): React.ReactElement {
       {/* Summary */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          {total} error{total !== 1 ? 's' : ''} found
+          {t('admin.errors.errors_found', '{n} error{plural} found')
+            .replace('{n}', String(total))
+            .replace('{plural}', total !== 1 ? 's' : '')}
         </span>
         <span>
-          Page {page} of {totalPages}
+          {t('admin.users.page_of_total', 'Page {page} of {totalPages}')
+            .replace('{page}', String(page))
+            .replace('{totalPages}', String(totalPages))}
         </span>
       </div>
 
       {/* Error Logs Table */}
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-foreground">Error Logs</CardTitle>
+          <CardTitle className="text-foreground">
+            {t('admin.errors.card_title', 'Error Logs')}
+          </CardTitle>
           <CardDescription className="text-muted-foreground">
-            Recent system errors with details
+            {t('admin.errors.card_desc', 'Recent system errors with details')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -339,11 +385,16 @@ export default function ErrorLogsPage(): React.ReactElement {
           ) : error ? (
             <div className="py-8 text-center">
               <p className="mb-4 text-red-500">{error}</p>
-              <Button onClick={() => void fetchLogs()}>Retry</Button>
+              <Button onClick={() => void fetchLogs()}>
+                {t('admin.dashboard.retry', 'Retry')}
+              </Button>
             </div>
           ) : logs.length === 0 ? (
             <p className="py-8 text-center text-muted-foreground">
-              No errors found for the selected filters
+              {t(
+                'admin.errors.no_errors_found',
+                'No errors found for the selected filters'
+              )}
             </p>
           ) : (
             <div className="space-y-4">
@@ -391,18 +442,20 @@ export default function ErrorLogsPage(): React.ReactElement {
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                           <p className="mb-1 text-xs uppercase text-muted-foreground">
-                            User ID
+                            {t('admin.errors.user_id', 'User ID')}
                           </p>
                           <p className="text-sm text-foreground">
-                            {log.userId || 'N/A'}
+                            {log.userId ||
+                              t('admin.errors.not_available', 'N/A')}
                           </p>
                         </div>
                         <div>
                           <p className="mb-1 text-xs uppercase text-muted-foreground">
-                            Endpoint
+                            {t('admin.errors.endpoint', 'Endpoint')}
                           </p>
                           <p className="text-sm text-foreground">
-                            {log.endpoint || 'N/A'}
+                            {log.endpoint ||
+                              t('admin.errors.not_available', 'N/A')}
                           </p>
                         </div>
                       </div>
@@ -410,7 +463,7 @@ export default function ErrorLogsPage(): React.ReactElement {
                       {log.stackTrace && (
                         <div>
                           <p className="mb-1 text-xs uppercase text-muted-foreground">
-                            Stack Trace
+                            {t('admin.errors.stack_trace', 'Stack Trace')}
                           </p>
                           <pre className="max-h-48 overflow-x-auto rounded bg-accent p-3 text-xs text-muted-foreground">
                             {log.stackTrace}
@@ -421,7 +474,7 @@ export default function ErrorLogsPage(): React.ReactElement {
                       {log.metadata && Object.keys(log.metadata).length > 0 && (
                         <div>
                           <p className="mb-1 text-xs uppercase text-muted-foreground">
-                            Metadata
+                            {t('admin.errors.metadata', 'Metadata')}
                           </p>
                           <pre className="overflow-x-auto rounded bg-accent p-3 text-xs text-muted-foreground">
                             {JSON.stringify(log.metadata, null, 2)}
@@ -445,11 +498,13 @@ export default function ErrorLogsPage(): React.ReactElement {
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
           >
-            Previous
+            {t('admin.users.previous', 'Previous')}
           </Button>
 
           <span className="px-4 text-muted-foreground">
-            Page {page} of {totalPages}
+            {t('admin.users.page_of_total', 'Page {page} of {totalPages}')
+              .replace('{page}', String(page))
+              .replace('{totalPages}', String(totalPages))}
           </span>
 
           <Button
@@ -457,7 +512,7 @@ export default function ErrorLogsPage(): React.ReactElement {
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
           >
-            Next
+            {t('admin.users.next', 'Next')}
           </Button>
         </div>
       )}

@@ -9,9 +9,20 @@
  * @module __tests__/pages/admin/dashboard.test
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
+import React from 'react';
 
 import AdminDashboardPage from '@/app/admin/page';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
+
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/admin',
+}));
 
 const mockMetrics = {
   overview: {
@@ -58,6 +69,17 @@ function mockFetchImplementation(
 describe('AdminDashboardPage recent activity panel', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({
+        countryCode: 'US',
+        language: 'en-US',
+        timezone: 'America/New_York',
+        dateFormat: 'MDY',
+        timeFormat: '12h',
+        currency: 'USD',
+      })
+    );
   });
 
   it('renders real fraud alerts, not the removed mock generator', async () => {
