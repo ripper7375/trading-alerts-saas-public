@@ -18,6 +18,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -52,6 +53,7 @@ interface ResourcesResponse {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function AffiliateResourcesPage(): React.ReactElement {
+  const { t, formatCurrency } = useLocale();
   const [codes, setCodes] = useState<AffiliateCode[]>([]);
   const [assets, setAssets] = useState<MarketingAsset[]>([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,12 @@ export default function AffiliateResourcesPage(): React.ReactElement {
         const response = await fetch('/api/affiliate/dashboard/resources');
 
         if (!response.ok) {
-          throw new Error('Failed to load your media kit');
+          throw new Error(
+            t(
+              'affiliate.resources.error_load_media_kit',
+              'Failed to load your media kit'
+            )
+          );
         }
 
         const data: ResourcesResponse = await response.json();
@@ -78,7 +85,12 @@ export default function AffiliateResourcesPage(): React.ReactElement {
         setAssets(data.assets);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : 'Failed to load your media kit'
+          err instanceof Error
+            ? err.message
+            : t(
+                'affiliate.resources.error_load_media_kit',
+                'Failed to load your media kit'
+              )
         );
       } finally {
         setLoading(false);
@@ -86,6 +98,7 @@ export default function AffiliateResourcesPage(): React.ReactElement {
     };
 
     fetchResources();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function copyToClipboard(key: string, value: string): Promise<void> {
@@ -122,10 +135,13 @@ export default function AffiliateResourcesPage(): React.ReactElement {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">
-          Affiliate Resource Center
+          {t('affiliate.resources.title', 'Affiliate Resource Center')}
         </h1>
         <p className="text-muted-foreground">
-          Everything you need to share your referral link and promote your codes
+          {t(
+            'affiliate.resources.subtitle',
+            'Everything you need to share your referral link and promote your codes'
+          )}
         </p>
       </div>
 
@@ -138,7 +154,7 @@ export default function AffiliateResourcesPage(): React.ReactElement {
       {/* Referral Link & Code Generator */}
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold text-foreground">
-          Your Referral Links
+          {t('affiliate.resources.your_referral_links', 'Your Referral Links')}
         </h2>
 
         {loading ? (
@@ -147,15 +163,20 @@ export default function AffiliateResourcesPage(): React.ReactElement {
           </div>
         ) : codes.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            You don&apos;t have any active codes right now. New codes are
-            distributed monthly — check{' '}
+            {t(
+              'affiliate.resources.no_active_codes_prefix',
+              "You don't have any active codes right now. New codes are distributed monthly — check"
+            )}{' '}
             <a
               href="/affiliate/dashboard/codes"
               className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
             >
-              My Codes
+              {t('affiliate.codes.my_codes', 'My Codes')}
             </a>{' '}
-            for your full history.
+            {t(
+              'affiliate.resources.no_active_codes_suffix',
+              'for your full history.'
+            )}
           </p>
         ) : (
           <div className="space-y-3">
@@ -170,20 +191,28 @@ export default function AffiliateResourcesPage(): React.ReactElement {
                     {code.code}
                   </span>
                   <span className="rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
-                    {code.discountPercent}% OFF
+                    {t(
+                      'affiliate.resources.percent_off',
+                      '{percent}% OFF'
+                    ).replace('{percent}', String(code.discountPercent))}
                   </span>
                   <input
                     readOnly
                     value={link}
                     className="min-w-[240px] flex-1 rounded border border-border bg-background px-2 py-1 font-mono text-sm text-foreground"
                     onFocus={(e) => e.target.select()}
-                    aria-label={`Referral link for code ${code.code}`}
+                    aria-label={t(
+                      'affiliate.resources.referral_link_for_code_aria',
+                      'Referral link for code {code}'
+                    ).replace('{code}', code.code)}
                   />
                   <button
                     onClick={() => copyToClipboard(`link-${code.id}`, link)}
                     className="rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-3 py-1.5 text-sm font-bold text-slate-950 hover:from-amber-400 hover:to-amber-500"
                   >
-                    {copiedKey === `link-${code.id}` ? 'Copied!' : 'Copy Link'}
+                    {copiedKey === `link-${code.id}`
+                      ? t('affiliate.resources.copied', 'Copied!')
+                      : t('affiliate.resources.copy_link', 'Copy Link')}
                   </button>
                   <button
                     onClick={() =>
@@ -191,7 +220,9 @@ export default function AffiliateResourcesPage(): React.ReactElement {
                     }
                     className="rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
                   >
-                    {copiedKey === `code-${code.id}` ? 'Copied!' : 'Copy Code'}
+                    {copiedKey === `code-${code.id}`
+                      ? t('affiliate.resources.copied', 'Copied!')
+                      : t('affiliate.resources.copy_code', 'Copy Code')}
                   </button>
                 </div>
               );
@@ -203,7 +234,7 @@ export default function AffiliateResourcesPage(): React.ReactElement {
       {/* Brand Assets */}
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold text-foreground">
-          Brand Assets
+          {t('affiliate.resources.brand_assets', 'Brand Assets')}
         </h2>
 
         {loading ? (
@@ -212,7 +243,10 @@ export default function AffiliateResourcesPage(): React.ReactElement {
           </div>
         ) : downloadableAssets.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No brand assets have been published yet — check back soon.
+            {t(
+              'affiliate.resources.no_brand_assets',
+              'No brand assets have been published yet — check back soon.'
+            )}
           </p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-3">
@@ -241,7 +275,10 @@ export default function AffiliateResourcesPage(): React.ReactElement {
                   href={`/api/affiliate/dashboard/resources/${asset.id}/download`}
                   className="inline-block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
                 >
-                  Download {asset.format}
+                  {t(
+                    'affiliate.resources.download_format',
+                    'Download {format}'
+                  ).replace('{format}', asset.format)}
                 </a>
               </div>
             ))}
@@ -253,7 +290,10 @@ export default function AffiliateResourcesPage(): React.ReactElement {
       {swipeAssets.length > 0 && (
         <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
           <h2 className="mb-4 text-lg font-semibold text-foreground">
-            High-Converting Copywriting Swipes
+            {t(
+              'affiliate.resources.copywriting_swipes',
+              'High-Converting Copywriting Swipes'
+            )}
           </h2>
           <div className="space-y-3">
             {swipeAssets.map((asset) => (
@@ -270,8 +310,8 @@ export default function AffiliateResourcesPage(): React.ReactElement {
                     className="rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-3 py-1.5 text-sm font-bold text-slate-950 hover:from-amber-400 hover:to-amber-500"
                   >
                     {copiedKey === `swipe-${asset.id}`
-                      ? 'Copied!'
-                      : 'Copy Text'}
+                      ? t('affiliate.resources.copied', 'Copied!')
+                      : t('affiliate.resources.copy_text', 'Copy Text')}
                   </button>
                 </div>
                 <p className="bg-muted/40 select-all rounded p-3 font-mono text-xs text-foreground">
@@ -286,57 +326,87 @@ export default function AffiliateResourcesPage(): React.ReactElement {
       {/* FAQ */}
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold text-foreground">
-          Frequently Asked Questions
+          {t('affiliate.resources.faq_title', 'Frequently Asked Questions')}
         </h2>
         <dl className="space-y-4 text-sm">
           <div>
             <dt className="font-medium text-foreground">
-              How much do I earn per referral?
+              {t(
+                'affiliate.resources.faq_earn_question',
+                'How much do I earn per referral?'
+              )}
             </dt>
             <dd className="mt-1 text-muted-foreground">
-              You earn {AFFILIATE_CONFIG.COMMISSION_PERCENT}% of net revenue on
-              each referral&apos;s subscription — your dashboard&apos;s
-              displayed rate always reflects the current program configuration.
+              {t(
+                'affiliate.resources.faq_earn_answer',
+                "You earn {percent}% of net revenue on each referral's subscription — your dashboard's displayed rate always reflects the current program configuration."
+              ).replace(
+                '{percent}',
+                String(AFFILIATE_CONFIG.COMMISSION_PERCENT)
+              )}
             </dd>
           </div>
           <div>
             <dt className="font-medium text-foreground">
-              How often do I get new codes?
+              {t(
+                'affiliate.resources.faq_codes_question',
+                'How often do I get new codes?'
+              )}
             </dt>
             <dd className="mt-1 text-muted-foreground">
-              Up to {AFFILIATE_CONFIG.CODES_PER_MONTH} new codes are distributed
-              monthly, each valid for {AFFILIATE_CONFIG.CODE_EXPIRY_DAYS} days
-              from distribution.
+              {t(
+                'affiliate.resources.faq_codes_answer',
+                'Up to {count} new codes are distributed monthly, each valid for {days} days from distribution.'
+              )
+                .replace('{count}', String(AFFILIATE_CONFIG.CODES_PER_MONTH))
+                .replace('{days}', String(AFFILIATE_CONFIG.CODE_EXPIRY_DAYS))}
             </dd>
           </div>
           <div>
             <dt className="font-medium text-foreground">
-              What&apos;s the minimum payout?
+              {t(
+                'affiliate.resources.faq_minimum_payout_question',
+                "What's the minimum payout?"
+              )}
             </dt>
             <dd className="mt-1 text-muted-foreground">
-              Balances need to reach ${AFFILIATE_CONFIG.MINIMUM_PAYOUT} before a
-              payout is scheduled. See{' '}
+              {t(
+                'affiliate.resources.faq_minimum_payout_answer_prefix',
+                'Balances need to reach {amount} before a payout is scheduled. See'
+              ).replace(
+                '{amount}',
+                formatCurrency(AFFILIATE_CONFIG.MINIMUM_PAYOUT)
+              )}{' '}
               <a
                 href="/affiliate/dashboard/payouts"
                 className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
               >
-                Payouts
+                {t('affiliate.payouts.payouts_link', 'Payouts')}
               </a>{' '}
-              for the real status of each batch.
+              {t(
+                'affiliate.resources.faq_minimum_payout_answer_suffix',
+                'for the real status of each batch.'
+              )}
             </dd>
           </div>
           <div>
             <dt className="font-medium text-foreground">
-              Where do I set up how I get paid?
+              {t(
+                'affiliate.resources.faq_setup_payment_question',
+                'Where do I set up how I get paid?'
+              )}
             </dt>
             <dd className="mt-1 text-muted-foreground">
               <a
                 href="/affiliate/settings/payout"
                 className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
               >
-                Payout Settings
+                {t('affiliate.payouts.payout_settings', 'Payout Settings')}
               </a>{' '}
-              is the single place to configure your bank details.
+              {t(
+                'affiliate.resources.faq_setup_payment_answer',
+                'is the single place to configure your bank details.'
+              )}
             </dd>
           </div>
         </dl>

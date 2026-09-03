@@ -24,6 +24,9 @@ import { redirect } from 'next/navigation';
 
 import { getAffiliateProfile } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
+import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
+import { getCountryByCode, formatCurrencyAmount } from '@/lib/country-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +58,27 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
   if (!profile) {
     redirect('/affiliate/register');
   }
+
+  const prefs = await getServerLocalePreferences();
+  const dict = getDictionary(prefs.language);
+  const dt = (key: string, fallback: string): string => dict[key] ?? fallback;
+  const exchangeRate = getCountryByCode(prefs.countryCode).exchangeRate;
+  const usd = (amount: number): string =>
+    formatCurrencyAmount(amount, {
+      currency: prefs.currency,
+      exchangeRate,
+      language: prefs.language,
+    });
+  const batchStatusLabelKeys: Record<string, string> = {
+    PENDING: 'admin.disbursement.tx_status_pending',
+    QUEUED: 'admin.disbursement.batch_status_queued',
+    PROCESSING: 'admin.disbursement.tx_status_processing',
+    COMPLETED: 'admin.disbursement.tx_status_completed',
+    FAILED: 'admin.disbursement.tx_status_failed',
+    CANCELLED: 'admin.disbursement.tx_status_cancelled',
+  };
+  const batchStatusLabel = (status: string): string =>
+    dt(batchStatusLabelKeys[status] ?? '', status);
 
   const transactions = await prisma.disbursementTransaction.findMany({
     where: { commission: { affiliateProfileId: profile.id } },
@@ -96,15 +120,19 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Payout History</h1>
+        <h1 className="text-2xl font-bold text-foreground">
+          {dt('affiliate.payouts.payout_history', 'Payout History')}
+        </h1>
         <p className="text-muted-foreground">
-          Real payment-batch status for every commission that has entered a
-          payout run. To configure where payouts are sent, visit{' '}
+          {dt(
+            'affiliate.payouts.payout_history_desc_prefix',
+            'Real payment-batch status for every commission that has entered a payout run. To configure where payouts are sent, visit'
+          )}{' '}
           <a
             href="/affiliate/settings/payout"
             className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
           >
-            Payout Settings
+            {dt('affiliate.payouts.payout_settings', 'Payout Settings')}
           </a>
           .
         </p>
@@ -112,8 +140,10 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
 
       {transactions.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-8 text-center text-muted-foreground shadow-sm">
-          No payout batches yet. Commissions enter a batch once approved and
-          scheduled for payout.
+          {dt(
+            'affiliate.payouts.no_payout_batches',
+            'No payout batches yet. Commissions enter a batch once approved and scheduled for payout.'
+          )}
         </div>
       ) : (
         <div className="overflow-hidden overflow-x-auto rounded-lg border border-border bg-card shadow-sm">
@@ -124,43 +154,43 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
-                  Batch
+                  {dt('admin.disbursement.batch', 'Batch')}
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
-                  Code
+                  {dt('affiliate.codes.code', 'Code')}
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
-                  Amount
+                  {dt('admin.disbursement.amount', 'Amount')}
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
-                  Batch Status
+                  {dt('affiliate.payouts.batch_status', 'Batch Status')}
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
-                  Wise Transfer
+                  {dt('affiliate.payouts.wise_transfer', 'Wise Transfer')}
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
-                  Scheduled
+                  {dt('affiliate.payouts.scheduled', 'Scheduled')}
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
-                  Completed
+                  {dt('admin.disbursement.completed', 'Completed')}
                 </th>
               </tr>
             </thead>
@@ -174,7 +204,7 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
                     {tx.commission.affiliateCode.code}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-foreground">
-                    ${Number(tx.commission.commissionAmount).toFixed(2)}
+                    {usd(Number(tx.commission.commissionAmount))}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4">
                     <span
@@ -183,7 +213,7 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
                         'border border-border bg-muted text-muted-foreground'
                       }`}
                     >
-                      {tx.batch.status}
+                      {batchStatusLabel(tx.batch.status)}
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
@@ -211,7 +241,10 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
       {/* Status Guide */}
       <div className="bg-muted/40 rounded-lg border border-border p-6">
         <h3 className="mb-3 font-semibold text-foreground">
-          Payout Batch Status Guide
+          {dt(
+            'affiliate.payouts.batch_status_guide',
+            'Payout Batch Status Guide'
+          )}
         </h3>
         <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-3 lg:grid-cols-6">
           {Object.entries(BATCH_STATUS_STYLES).map(([status, className]) => (
@@ -219,7 +252,7 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
               <span
                 className={`rounded px-2 py-1 text-xs font-medium ${className}`}
               >
-                {status}
+                {batchStatusLabel(status)}
               </span>
             </div>
           ))}

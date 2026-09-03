@@ -114,6 +114,9 @@ describe('AffiliatePayoutsPage', () => {
   const mockGetAffiliateProfile = jest.fn();
   const mockFindMany = jest.fn();
 
+  const mockCookieStore = { get: jest.fn(() => undefined) };
+  const mockHeaderStore = { get: jest.fn(() => null) };
+
   beforeEach(() => {
     jest.resetModules();
     jest.doMock('@/lib/auth/session', () => ({
@@ -130,6 +133,11 @@ describe('AffiliatePayoutsPage', () => {
       redirect: jest.fn((url: string) => {
         throw new Error(`NEXT_REDIRECT:${url}`);
       }),
+    }));
+    jest.doMock('next/headers', () => ({
+      __esModule: true,
+      cookies: jest.fn(() => Promise.resolve(mockCookieStore)),
+      headers: jest.fn(() => Promise.resolve(mockHeaderStore)),
     }));
   });
 
@@ -174,10 +182,14 @@ describe('AffiliatePayoutsPage', () => {
     const element = await AffiliatePayoutsPage();
     render(element);
 
-    // COMPLETED appears both in the table row and the status-guide legend
-    expect(screen.getAllByText('COMPLETED').length).toBeGreaterThanOrEqual(1);
+    // Completed appears both in the table row and the status-guide legend
     expect(
-      within(screen.getByRole('table')).getByText('COMPLETED')
+      screen.getAllByText('Completed', { selector: 'span' }).length
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      within(screen.getByRole('table')).getByText('Completed', {
+        selector: 'span',
+      })
     ).toBeInTheDocument();
     expect(
       screen.getByText('outgoing_payment_sent (164.32 THB)')

@@ -9,14 +9,22 @@
  * @module __tests__/pages/affiliate/payout-consolidation.test
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
 
 jest.mock('next/navigation', () => ({
   redirect: jest.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);
   }),
+  usePathname: () => '/affiliate/settings/payout',
 }));
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
 
 jest.mock('@/components/affiliate/wise-recipient-form', () => ({
   __esModule: true,
@@ -49,6 +57,17 @@ describe('AffiliatePayoutSettingsPage', () => {
   };
 
   beforeEach(() => {
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({
+        countryCode: 'US',
+        language: 'en-US',
+        timezone: 'America/New_York',
+        dateFormat: 'MDY',
+        timeFormat: '12h',
+        currency: 'USD',
+      })
+    );
     global.fetch = jest.fn();
   });
 
@@ -70,7 +89,7 @@ describe('AffiliatePayoutSettingsPage', () => {
     );
     expect(screen.getByText('THB')).toBeInTheDocument();
     expect(screen.getByText('•••• 4321')).toBeInTheDocument();
-    expect(screen.getByText('ACTIVE')).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
   });
 
   it('shows the onboarding form when no recipient exists (204)', async () => {

@@ -15,6 +15,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 
+import { useLocale } from '@/lib/context/locale-context';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES — mirrors the real commission-report response shape
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -94,6 +96,7 @@ function downloadCsv(filename: string, rows: CommissionRow[]): void {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function AffiliateStatementsPage(): React.ReactElement {
+  const { t, formatCurrency } = useLocale();
   const [commissions, setCommissions] = useState<CommissionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -125,7 +128,12 @@ export default function AffiliateStatementsPage(): React.ReactElement {
           );
 
           if (!response.ok) {
-            throw new Error('Failed to load statement data');
+            throw new Error(
+              t(
+                'affiliate.statements.error_load_statement',
+                'Failed to load statement data'
+              )
+            );
           }
 
           const data: CommissionReportResponse = await response.json();
@@ -137,7 +145,12 @@ export default function AffiliateStatementsPage(): React.ReactElement {
         setCommissions(all);
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : 'Failed to load statement data'
+          err instanceof Error
+            ? err.message
+            : t(
+                'affiliate.statements.error_load_statement',
+                'Failed to load statement data'
+              )
         );
       } finally {
         setLoading(false);
@@ -145,6 +158,7 @@ export default function AffiliateStatementsPage(): React.ReactElement {
     };
 
     fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const statements = useMemo<MonthlyStatement[]>(() => {
@@ -182,11 +196,13 @@ export default function AffiliateStatementsPage(): React.ReactElement {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">
-          Monthly Statements
+          {t('affiliate.statements.title', 'Monthly Statements')}
         </h1>
         <p className="text-muted-foreground">
-          A month-by-month summary of your commission activity, built from your
-          real commission history
+          {t(
+            'affiliate.statements.subtitle',
+            'A month-by-month summary of your commission activity, built from your real commission history'
+          )}
         </p>
       </div>
 
@@ -202,7 +218,10 @@ export default function AffiliateStatementsPage(): React.ReactElement {
         </div>
       ) : statements.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-8 text-center text-muted-foreground shadow-sm">
-          No commission activity in the last 12 months yet.
+          {t(
+            'affiliate.statements.no_activity',
+            'No commission activity in the last 12 months yet.'
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -217,27 +236,41 @@ export default function AffiliateStatementsPage(): React.ReactElement {
                     {statement.monthLabel}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {statement.rows.length} commission
-                    {statement.rows.length === 1 ? '' : 's'}
+                    {statement.rows.length}{' '}
+                    {statement.rows.length === 1
+                      ? t(
+                          'admin.disbursement.commission_singular',
+                          'commission'
+                        )
+                      : t(
+                          'admin.disbursement.commission_plural',
+                          'commissions'
+                        )}
                   </p>
                 </div>
                 <div className="flex gap-6 text-sm">
                   <div>
-                    <p className="text-muted-foreground">Earned</p>
+                    <p className="text-muted-foreground">
+                      {t('affiliate.statements.earned', 'Earned')}
+                    </p>
                     <p className="font-semibold text-foreground">
-                      ${statement.totalEarned.toFixed(2)}
+                      {formatCurrency(statement.totalEarned)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Paid</p>
+                    <p className="text-muted-foreground">
+                      {t('admin.disbursement.paid', 'Paid')}
+                    </p>
                     <p className="font-semibold text-green-600 dark:text-green-400">
-                      ${statement.totalPaid.toFixed(2)}
+                      {formatCurrency(statement.totalPaid)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground">Pending</p>
+                    <p className="text-muted-foreground">
+                      {t('admin.disbursement.pending', 'Pending')}
+                    </p>
                     <p className="font-semibold text-amber-600 dark:text-amber-400">
-                      ${statement.totalPending.toFixed(2)}
+                      {formatCurrency(statement.totalPending)}
                     </p>
                   </div>
                 </div>
@@ -250,7 +283,7 @@ export default function AffiliateStatementsPage(): React.ReactElement {
                   }
                   className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
                 >
-                  Download CSV
+                  {t('affiliate.statements.download_csv', 'Download CSV')}
                 </button>
               </div>
             </div>
@@ -260,12 +293,14 @@ export default function AffiliateStatementsPage(): React.ReactElement {
 
       {/* Tax Summary Note */}
       <div className="bg-muted/40 rounded-lg border border-border p-6">
-        <h3 className="mb-2 font-semibold text-foreground">Tax Summary Note</h3>
+        <h3 className="mb-2 font-semibold text-foreground">
+          {t('affiliate.statements.tax_summary_note', 'Tax Summary Note')}
+        </h3>
         <p className="text-sm text-muted-foreground">
-          These statements summarize commission activity and are not tax
-          documents. Amounts shown are in USD before any local withholding or
-          currency-conversion fees applied by our payout provider. Consult a tax
-          advisor in your jurisdiction to determine your reporting obligations.
+          {t(
+            'affiliate.statements.tax_note_body',
+            'These statements summarize commission activity and are not tax documents. Amounts shown are in USD before any local withholding or currency-conversion fees applied by our payout provider. Consult a tax advisor in your jurisdiction to determine your reporting obligations.'
+          )}
         </p>
       </div>
     </div>

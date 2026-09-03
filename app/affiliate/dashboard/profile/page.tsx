@@ -13,6 +13,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
+import { useLocale } from '@/lib/context/locale-context';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPE DEFINITIONS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -36,11 +38,6 @@ interface AffiliateProfile {
   tiktokUrl?: string;
 }
 
-const formatCurrency = (val: number | string | undefined | null): string => {
-  const num = typeof val === 'number' ? val : Number(val || 0);
-  return (isNaN(num) ? 0 : num).toFixed(2);
-};
-
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COMPONENT
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -50,6 +47,7 @@ const formatCurrency = (val: number | string | undefined | null): string => {
  * View and edit affiliate profile
  */
 export default function AffiliateProfilePage(): React.ReactElement {
+  const { t, formatCurrency, formatDate } = useLocale();
   const { data: session } = useSession();
   const [profile, setProfile] = useState<AffiliateProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,7 +78,10 @@ export default function AffiliateProfilePage(): React.ReactElement {
         throw new Error(
           errData?.message ||
             errData?.error ||
-            `Failed to load profile (${response.status})`
+            t(
+              'affiliate.profile.error_load_profile_status',
+              'Failed to load profile ({status})'
+            ).replace('{status}', String(response.status))
         );
       }
 
@@ -101,7 +102,9 @@ export default function AffiliateProfilePage(): React.ReactElement {
       if (session?.user) {
         const fallbackProfile: AffiliateProfile = {
           id: `profile-${session.user.id}`,
-          fullName: session.user.name || 'Affiliate Partner',
+          fullName:
+            session.user.name ||
+            t('affiliate.profile.affiliate_partner', 'Affiliate Partner'),
           country: 'US',
           status: 'ACTIVE',
           paymentMethod: 'PAYPAL',
@@ -123,11 +126,19 @@ export default function AffiliateProfilePage(): React.ReactElement {
           tiktokUrl: '',
         });
       } else {
-        setError(err instanceof Error ? err.message : 'Failed to load profile');
+        setError(
+          err instanceof Error
+            ? err.message
+            : t(
+                'affiliate.profile.error_load_profile',
+                'Failed to load profile'
+              )
+        );
       }
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
   useEffect(() => {
@@ -148,7 +159,12 @@ export default function AffiliateProfilePage(): React.ReactElement {
       if (!response.ok) {
         const errData = await response.json().catch(() => null);
         throw new Error(
-          errData?.message || errData?.error || 'Failed to update profile'
+          errData?.message ||
+            errData?.error ||
+            t(
+              'affiliate.profile.error_update_profile',
+              'Failed to update profile'
+            )
         );
       }
 
@@ -156,7 +172,14 @@ export default function AffiliateProfilePage(): React.ReactElement {
       setProfile(updatedProfile);
       setEditing(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update profile');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t(
+              'affiliate.profile.error_update_profile',
+              'Failed to update profile'
+            )
+      );
     } finally {
       setSaving(false);
     }
@@ -180,7 +203,7 @@ export default function AffiliateProfilePage(): React.ReactElement {
           onClick={() => void fetchProfile()}
           className="rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
         >
-          Try Again
+          {t('affiliate.profile.try_again', 'Try Again')}
         </button>
       </div>
     );
@@ -191,15 +214,22 @@ export default function AffiliateProfilePage(): React.ReactElement {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Profile</h1>
-          <p className="text-muted-foreground">Manage your affiliate profile</p>
+          <h1 className="text-2xl font-bold text-foreground">
+            {t('affiliate.profile.title', 'Profile')}
+          </h1>
+          <p className="text-muted-foreground">
+            {t(
+              'affiliate.profile.manage_profile_subtitle',
+              'Manage your affiliate profile'
+            )}
+          </p>
         </div>
         {!editing && (
           <button
             onClick={() => setEditing(true)}
             className="rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
           >
-            Edit Profile
+            {t('affiliate.dashboard.edit_profile', 'Edit Profile')}
           </button>
         )}
       </div>
@@ -216,13 +246,16 @@ export default function AffiliateProfilePage(): React.ReactElement {
           {/* Personal Information */}
           <div>
             <h2 className="mb-4 text-lg font-semibold text-foreground">
-              Personal Information
+              {t(
+                'affiliate.profile.personal_information',
+                'Personal Information'
+              )}
             </h2>
             {editing ? (
               <div className="space-y-4">
                 <div>
                   <label className="mb-1 block text-sm font-medium text-foreground">
-                    Full Name
+                    {t('affiliate.profile.full_name', 'Full Name')}
                   </label>
                   <input
                     type="text"
@@ -235,7 +268,7 @@ export default function AffiliateProfilePage(): React.ReactElement {
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-foreground">
-                    Country
+                    {t('affiliate.profile.country', 'Country')}
                   </label>
                   <input
                     type="text"
@@ -251,19 +284,25 @@ export default function AffiliateProfilePage(): React.ReactElement {
             ) : (
               <dl className="space-y-3">
                 <div>
-                  <dt className="text-sm text-muted-foreground">Full Name</dt>
+                  <dt className="text-sm text-muted-foreground">
+                    {t('affiliate.profile.full_name', 'Full Name')}
+                  </dt>
                   <dd className="font-medium text-foreground">
                     {profile?.fullName}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-muted-foreground">Country</dt>
+                  <dt className="text-sm text-muted-foreground">
+                    {t('affiliate.profile.country', 'Country')}
+                  </dt>
                   <dd className="font-medium text-foreground">
                     {profile?.country}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-muted-foreground">Status</dt>
+                  <dt className="text-sm text-muted-foreground">
+                    {t('admin.disbursement.status', 'Status')}
+                  </dt>
                   <dd>
                     <span
                       className={`rounded px-2 py-1 text-xs font-medium ${
@@ -274,18 +313,23 @@ export default function AffiliateProfilePage(): React.ReactElement {
                             : 'border border-border bg-muted text-muted-foreground'
                       }`}
                     >
-                      {profile?.status}
+                      {profile?.status
+                        ? t(
+                            `admin.affiliates.status_${profile.status.toLowerCase()}`,
+                            profile.status
+                          )
+                        : ''}
                     </span>
                   </dd>
                 </div>
                 <div>
                   <dt className="text-sm text-muted-foreground">
-                    Member Since
+                    {t('affiliate.profile.member_since', 'Member Since')}
                   </dt>
                   <dd className="font-medium text-foreground">
                     {profile?.createdAt
-                      ? new Date(profile.createdAt).toLocaleDateString()
-                      : 'N/A'}
+                      ? formatDate(profile.createdAt)
+                      : t('affiliate.profile.not_available', 'N/A')}
                   </dd>
                 </div>
               </dl>
@@ -295,41 +339,50 @@ export default function AffiliateProfilePage(): React.ReactElement {
           {/* Account Statistics */}
           <div>
             <h2 className="mb-4 text-lg font-semibold text-foreground">
-              Account Statistics
+              {t('affiliate.profile.account_statistics', 'Account Statistics')}
             </h2>
             <dl className="space-y-3">
               <div>
                 <dt className="text-sm text-muted-foreground">
-                  Codes Distributed
+                  {t(
+                    'admin.disbursement.codes_distributed',
+                    'Codes Distributed'
+                  )}
                 </dt>
                 <dd className="font-medium text-foreground">
                   {profile?.totalCodesDistributed || 0}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm text-muted-foreground">Codes Used</dt>
+                <dt className="text-sm text-muted-foreground">
+                  {t('admin.disbursement.codes_used', 'Codes Used')}
+                </dt>
                 <dd className="font-medium text-foreground">
                   {profile?.totalCodesUsed || 0}
                 </dd>
               </div>
               <div>
                 <dt className="text-sm text-muted-foreground">
-                  Total Earnings
+                  {t('admin.disbursement.total_earnings', 'Total Earnings')}
                 </dt>
                 <dd className="font-medium text-green-600 dark:text-green-400">
-                  ${formatCurrency(profile?.totalEarnings)}
+                  {formatCurrency(Number(profile?.totalEarnings) || 0)}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm text-muted-foreground">Pending</dt>
+                <dt className="text-sm text-muted-foreground">
+                  {t('admin.disbursement.pending', 'Pending')}
+                </dt>
                 <dd className="font-medium text-amber-600 dark:text-amber-400">
-                  ${formatCurrency(profile?.pendingCommissions)}
+                  {formatCurrency(Number(profile?.pendingCommissions) || 0)}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm text-muted-foreground">Paid</dt>
+                <dt className="text-sm text-muted-foreground">
+                  {t('admin.disbursement.paid', 'Paid')}
+                </dt>
                 <dd className="font-medium text-foreground">
-                  ${formatCurrency(profile?.paidCommissions)}
+                  {formatCurrency(Number(profile?.paidCommissions) || 0)}
                 </dd>
               </div>
             </dl>
@@ -340,7 +393,7 @@ export default function AffiliateProfilePage(): React.ReactElement {
       {/* Social Media Links */}
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold text-foreground">
-          Social Media Links
+          {t('affiliate.profile.social_media_links', 'Social Media Links')}
         </h2>
         {editing ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -392,7 +445,9 @@ export default function AffiliateProfilePage(): React.ReactElement {
                       {profile[key as keyof AffiliateProfile] as string}
                     </a>
                   ) : (
-                    <span className="text-muted-foreground">Not set</span>
+                    <span className="text-muted-foreground">
+                      {t('affiliate.profile.not_set', 'Not set')}
+                    </span>
                   )}
                 </dd>
               </div>
@@ -406,17 +461,23 @@ export default function AffiliateProfilePage(): React.ReactElement {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              Payout Settings
+              {t('affiliate.payouts.payout_settings', 'Payout Settings')}
             </h2>
             <p className="text-muted-foreground">
-              Manage the bank details your commissions are paid out to
+              {t(
+                'affiliate.profile.payout_settings_desc',
+                'Manage the bank details your commissions are paid out to'
+              )}
             </p>
           </div>
           <Link
             href="/affiliate/settings/payout"
             className="rounded-md border border-border bg-background px-4 py-2 text-foreground hover:bg-accent"
           >
-            Manage Payout Settings
+            {t(
+              'affiliate.profile.manage_payout_settings',
+              'Manage Payout Settings'
+            )}
           </Link>
         </div>
       </div>
@@ -428,14 +489,16 @@ export default function AffiliateProfilePage(): React.ReactElement {
             onClick={() => setEditing(false)}
             className="rounded-md border border-border px-4 py-2 text-foreground hover:bg-accent"
           >
-            Cancel
+            {t('Cancel', 'Cancel')}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
             className="rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50"
           >
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving
+              ? t('affiliate.profile.saving_ellipsis', 'Saving...')
+              : t('affiliate.profile.save_changes', 'Save Changes')}
           </button>
         </div>
       )}

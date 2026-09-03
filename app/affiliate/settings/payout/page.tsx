@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import WiseRecipientForm from '@/components/affiliate/wise-recipient-form';
+import { useLocale } from '@/lib/context/locale-context';
 import type { WiseRecipientSummary } from '@/lib/money-service/wise-types';
 
 const STATUS_STYLES: Record<string, string> = {
@@ -31,7 +32,16 @@ const STATUS_STYLES: Record<string, string> = {
   ARCHIVED: 'bg-muted text-muted-foreground border border-border',
 };
 
+const STATUS_LABEL_KEYS: Record<string, string> = {
+  ACTIVE: 'affiliate.payouts.recipient_status_active',
+  PENDING_DETAILS: 'affiliate.payouts.recipient_status_pending_details',
+  DRAFT: 'affiliate.payouts.recipient_status_draft',
+  INVALID: 'affiliate.payouts.recipient_status_invalid',
+  ARCHIVED: 'affiliate.payouts.recipient_status_archived',
+};
+
 export default function AffiliatePayoutSettingsPage(): React.ReactElement {
+  const { t } = useLocale();
   const [recipient, setRecipient] = useState<WiseRecipientSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -73,12 +83,18 @@ export default function AffiliatePayoutSettingsPage(): React.ReactElement {
         setRecipient(data);
       } else {
         setRevalidateError(
-          'Could not re-verify these details with our payment provider right now. Please try again shortly.'
+          t(
+            'affiliate.payouts.revalidate_error',
+            'Could not re-verify these details with our payment provider right now. Please try again shortly.'
+          )
         );
       }
     } catch {
       setRevalidateError(
-        'Could not re-verify these details with our payment provider right now. Please try again shortly.'
+        t(
+          'affiliate.payouts.revalidate_error',
+          'Could not re-verify these details with our payment provider right now. Please try again shortly.'
+        )
       );
     } finally {
       setRevalidating(false);
@@ -96,17 +112,21 @@ export default function AffiliatePayoutSettingsPage(): React.ReactElement {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Payout Settings</h1>
+        <h1 className="text-2xl font-bold text-foreground">
+          {t('affiliate.payouts.payout_settings', 'Payout Settings')}
+        </h1>
         <p className="text-muted-foreground">
-          Manage the bank details your commissions are paid out to. This is the
-          single place to configure how you get paid — see your{' '}
+          {t(
+            'affiliate.payouts.settings_desc_prefix',
+            'Manage the bank details your commissions are paid out to. This is the single place to configure how you get paid — see your'
+          )}{' '}
           <a
             href="/affiliate/dashboard/payouts"
             className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
           >
-            payout history
+            {t('affiliate.payouts.payout_history_link', 'payout history')}
           </a>{' '}
-          for past transfers.
+          {t('affiliate.payouts.settings_desc_suffix', 'for past transfers.')}
         </p>
       </div>
 
@@ -115,37 +135,50 @@ export default function AffiliatePayoutSettingsPage(): React.ReactElement {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h2 className="mb-3 text-lg font-semibold text-foreground">
-                Current Payout Details
+                {t(
+                  'affiliate.payouts.current_payout_details',
+                  'Current Payout Details'
+                )}
               </h2>
               <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                 <div>
-                  <dt className="text-muted-foreground">Account holder</dt>
+                  <dt className="text-muted-foreground">
+                    {t('affiliate.payouts.account_holder', 'Account holder')}
+                  </dt>
                   <dd className="font-medium text-foreground">
                     {recipient.accountHolderName}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Currency</dt>
+                  <dt className="text-muted-foreground">
+                    {t('admin.disbursement.currency', 'Currency')}
+                  </dt>
                   <dd className="font-medium text-foreground">
                     {recipient.targetCurrency}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Country</dt>
+                  <dt className="text-muted-foreground">
+                    {t('affiliate.profile.country', 'Country')}
+                  </dt>
                   <dd className="font-medium text-foreground">
                     {recipient.recipientCountry}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Account</dt>
+                  <dt className="text-muted-foreground">
+                    {t('affiliate.payouts.account', 'Account')}
+                  </dt>
                   <dd className="font-medium text-foreground">
                     {recipient.accountTail
                       ? `•••• ${recipient.accountTail}`
-                      : 'N/A'}
+                      : t('affiliate.profile.not_available', 'N/A')}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-muted-foreground">Status</dt>
+                  <dt className="text-muted-foreground">
+                    {t('admin.disbursement.status', 'Status')}
+                  </dt>
                   <dd>
                     <span
                       className={`rounded px-2 py-0.5 text-xs font-medium ${
@@ -153,7 +186,10 @@ export default function AffiliatePayoutSettingsPage(): React.ReactElement {
                         'border border-border bg-muted text-muted-foreground'
                       }`}
                     >
-                      {recipient.status}
+                      {t(
+                        STATUS_LABEL_KEYS[recipient.status] ?? '',
+                        recipient.status
+                      )}
                     </span>
                   </dd>
                 </div>
@@ -165,13 +201,23 @@ export default function AffiliatePayoutSettingsPage(): React.ReactElement {
                 disabled={revalidating}
                 className="rounded-md border border-border px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent disabled:opacity-50"
               >
-                {revalidating ? 'Re-verifying…' : 'Re-verify with provider'}
+                {revalidating
+                  ? t('affiliate.payouts.reverifying_ellipsis', 'Re-verifying…')
+                  : t(
+                      'affiliate.payouts.reverify_with_provider',
+                      'Re-verify with provider'
+                    )}
               </button>
               <button
                 onClick={() => setShowForm((v) => !v)}
                 className="rounded-md border border-border bg-background px-4 py-2 text-sm text-foreground transition-colors hover:bg-accent"
               >
-                {showForm ? 'Cancel' : 'Change payout details'}
+                {showForm
+                  ? t('Cancel', 'Cancel')
+                  : t(
+                      'affiliate.payouts.change_payout_details',
+                      'Change payout details'
+                    )}
               </button>
             </div>
           </div>
@@ -185,8 +231,10 @@ export default function AffiliatePayoutSettingsPage(): React.ReactElement {
 
       {!recipient && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-300">
-          You haven&apos;t set up payout details yet. Fill in the form below to
-          get paid.
+          {t(
+            'affiliate.payouts.no_payout_details_yet',
+            "You haven't set up payout details yet. Fill in the form below to get paid."
+          )}
         </div>
       )}
 

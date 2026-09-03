@@ -8,10 +8,20 @@
  * @module __tests__/pages/affiliate/statements.test
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import AffiliateStatementsPage from '@/app/affiliate/dashboard/statements/page';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/affiliate/dashboard/statements',
+}));
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
 
 function page(commissions: unknown[]) {
   return {
@@ -37,6 +47,17 @@ describe('AffiliateStatementsPage', () => {
   let clickSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({
+        countryCode: 'US',
+        language: 'en-US',
+        timezone: 'America/New_York',
+        dateFormat: 'MDY',
+        timeFormat: '12h',
+        currency: 'USD',
+      })
+    );
     createObjectURLSpy = jest.fn().mockReturnValue('blob:mock-url');
     revokeObjectURLSpy = jest.fn();
     (URL as unknown as { createObjectURL: jest.Mock }).createObjectURL =
