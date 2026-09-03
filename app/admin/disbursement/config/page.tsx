@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import type { DisbursementProvider } from '@/types/disbursement';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -52,6 +53,12 @@ const PROVIDER_LABEL: Record<DisbursementProvider, string> = {
   MOCK: 'MOCK (Testing)',
   RISE: 'RISE (RiseWorks — archived)',
   WISE: 'WISE (Wise)',
+};
+
+const PROVIDER_LABEL_KEY: Record<DisbursementProvider, string> = {
+  MOCK: 'admin.disbursement.provider_label_mock',
+  RISE: 'admin.disbursement.provider_label_rise',
+  WISE: 'admin.disbursement.provider_label_wise',
 };
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -84,6 +91,7 @@ const PROVIDER_LABEL: Record<DisbursementProvider, string> = {
  * and redeploy.
  */
 export default function ConfigurationPage(): React.ReactElement {
+  const { t } = useLocale();
   const [config, setConfig] = useState<DisbursementConfig | null>(null);
   const [editConfig, setEditConfig] = useState<DisbursementConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,17 +107,28 @@ export default function ConfigurationPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to fetch configuration');
+        throw new Error(
+          data.error ||
+            t(
+              'admin.disbursement.error_fetch_config',
+              'Failed to fetch configuration'
+            )
+        );
       }
 
       const data = await response.json();
       setConfig(data.config);
       setEditConfig(data.config);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.dashboard.unknown_error', 'Unknown error')
+      );
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -136,16 +155,29 @@ export default function ConfigurationPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to update configuration');
+        throw new Error(
+          data.error ||
+            t(
+              'admin.disbursement.error_update_config',
+              'Failed to update configuration'
+            )
+        );
       }
 
       setSuccessMessage(
-        'Request noted, nothing persisted — this form is a placeholder. All settings (including provider) are env-var-driven; see the notice below.'
+        t(
+          'admin.disbursement.save_placeholder_notice',
+          'Request noted, nothing persisted — this form is a placeholder. All settings (including provider) are env-var-driven; see the notice below.'
+        )
       );
       setIsEditing(false);
       await fetchConfig();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.disbursement.error_save', 'Failed to save')
+      );
     } finally {
       setIsSaving(false);
     }
@@ -171,16 +203,19 @@ export default function ConfigurationPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            Configuration
+            {t('admin.disbursement.nav_configuration', 'Configuration')}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Disbursement system settings
+            {t(
+              'admin.disbursement.config_subtitle',
+              'Disbursement system settings'
+            )}
           </p>
         </div>
         <div className="flex gap-2">
           {!isEditing ? (
             <Button onClick={() => setIsEditing(true)}>
-              Edit Configuration
+              {t('admin.disbursement.edit_configuration', 'Edit Configuration')}
             </Button>
           ) : (
             <>
@@ -189,31 +224,45 @@ export default function ConfigurationPage(): React.ReactElement {
                 variant="outline"
                 disabled={isSaving}
               >
-                Cancel
+                {t('Cancel')}
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button disabled={isSaving}>
-                    {isSaving ? 'Saving...' : 'Save Changes'}
+                    {isSaving
+                      ? t('Saving...')
+                      : t('Save Changes', 'Save Changes')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      Confirm configuration update
+                      {t(
+                        'admin.disbursement.confirm_config_update',
+                        'Confirm configuration update'
+                      )}
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      This form is a placeholder —{' '}
-                      <strong>nothing will be persisted to a database.</strong>{' '}
-                      The request is validated and logged only. All disbursement
-                      settings, including the payment provider, are controlled
-                      by environment variables and only take effect on redeploy.
+                      {t(
+                        'admin.disbursement.confirm_config_update_prefix',
+                        'This form is a placeholder —'
+                      )}{' '}
+                      <strong>
+                        {t(
+                          'admin.disbursement.confirm_config_update_bold',
+                          'nothing will be persisted to a database.'
+                        )}
+                      </strong>{' '}
+                      {t(
+                        'admin.disbursement.confirm_config_update_suffix',
+                        'The request is validated and logged only. All disbursement settings, including the payment provider, are controlled by environment variables and only take effect on redeploy.'
+                      )}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>{t('Cancel')}</AlertDialogCancel>
                     <AlertDialogAction onClick={() => void handleSave()}>
-                      Continue
+                      {t('admin.disbursement.continue', 'Continue')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -246,7 +295,7 @@ export default function ConfigurationPage(): React.ReactElement {
           <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardDescription className="text-muted-foreground">
-                Provider
+                {t('admin.disbursement.provider', 'Provider')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -254,7 +303,12 @@ export default function ConfigurationPage(): React.ReactElement {
                 {config.provider.default}
               </Badge>
               <p className="text-xs text-muted-foreground">
-                Configured via <code>DISBURSEMENT_PROVIDER</code> env var
+                {t(
+                  'admin.disbursement.configured_via_env_var',
+                  'Configured via'
+                )}{' '}
+                <code>DISBURSEMENT_PROVIDER</code>{' '}
+                {t('admin.disbursement.env_var_suffix', 'env var')}
               </p>
             </CardContent>
           </Card>
@@ -262,7 +316,7 @@ export default function ConfigurationPage(): React.ReactElement {
           <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardDescription className="text-muted-foreground">
-                Status
+                {t('admin.users.status', 'Status')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -273,7 +327,9 @@ export default function ConfigurationPage(): React.ReactElement {
                     : 'bg-red-500/10 text-red-600 dark:text-red-400'
                 }
               >
-                {config.enabled ? 'Enabled' : 'Disabled'}
+                {config.enabled
+                  ? t('admin.users.enabled', 'Enabled')
+                  : t('admin.users.disabled', 'Disabled')}
               </Badge>
             </CardContent>
           </Card>
@@ -281,7 +337,7 @@ export default function ConfigurationPage(): React.ReactElement {
           <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardDescription className="text-muted-foreground">
-                Minimum Payout
+                {t('admin.disbursement.minimum_payout', 'Minimum Payout')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -294,7 +350,7 @@ export default function ConfigurationPage(): React.ReactElement {
           <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardDescription className="text-muted-foreground">
-                Batch Size
+                {t('admin.disbursement.batch_size', 'Batch Size')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -311,17 +367,20 @@ export default function ConfigurationPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-foreground">
-              Edit Configuration
+              {t('admin.disbursement.edit_configuration', 'Edit Configuration')}
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Update disbursement system settings
+              {t(
+                'admin.disbursement.edit_configuration_desc',
+                'Update disbursement system settings'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Provider Selection */}
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">
-                Payment Provider
+                {t('admin.disbursement.payment_provider', 'Payment Provider')}
               </label>
               <div className="flex flex-wrap gap-4">
                 {(['MOCK', 'RISE', 'WISE'] as const).map((provider) => {
@@ -354,7 +413,10 @@ export default function ConfigurationPage(): React.ReactElement {
                         className="text-primary"
                       />
                       <span className="text-foreground">
-                        {PROVIDER_LABEL[provider]}
+                        {t(
+                          PROVIDER_LABEL_KEY[provider],
+                          PROVIDER_LABEL[provider]
+                        )}
                       </span>
                     </label>
                   );
@@ -363,12 +425,17 @@ export default function ConfigurationPage(): React.ReactElement {
               <div className="mt-2 rounded-lg border border-blue-500/50 bg-blue-500/10 p-3">
                 <p className="text-xs text-blue-600 dark:text-blue-400">
                   <strong>
-                    Configured via <code>DISBURSEMENT_PROVIDER</code> env var.
+                    {t(
+                      'admin.disbursement.configured_via_env_var',
+                      'Configured via'
+                    )}{' '}
+                    <code>DISBURSEMENT_PROVIDER</code>{' '}
+                    {t('admin.disbursement.env_var_period', 'env var.')}
                   </strong>{' '}
-                  This selection is informational — Save does not change the
-                  live provider. The active provider is set by the environment
-                  variable on the service that executes batches (money-service
-                  for WISE) and takes effect on redeploy.
+                  {t(
+                    'admin.disbursement.provider_selection_note',
+                    'This selection is informational — Save does not change the live provider. The active provider is set by the environment variable on the service that executes batches (money-service for WISE) and takes effect on redeploy.'
+                  )}
                 </p>
               </div>
             </div>
@@ -376,7 +443,10 @@ export default function ConfigurationPage(): React.ReactElement {
             {/* Enabled Toggle */}
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">
-                Disbursement Status
+                {t(
+                  'admin.disbursement.disbursement_status',
+                  'Disbursement Status'
+                )}
               </label>
               <label className="flex cursor-pointer items-center gap-2">
                 <input
@@ -387,17 +457,28 @@ export default function ConfigurationPage(): React.ReactElement {
                   }
                   className="rounded text-green-600"
                 />
-                <span className="text-foreground">Enable disbursements</span>
+                <span className="text-foreground">
+                  {t(
+                    'admin.disbursement.enable_disbursements',
+                    'Enable disbursements'
+                  )}
+                </span>
               </label>
               <p className="mt-1 text-xs text-muted-foreground">
-                When disabled, no new batches can be created or executed.
+                {t(
+                  'admin.disbursement.enable_disbursements_desc',
+                  'When disabled, no new batches can be created or executed.'
+                )}
               </p>
             </div>
 
             {/* Minimum Payout */}
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">
-                Minimum Payout (USD)
+                {t(
+                  'admin.disbursement.minimum_payout_usd',
+                  'Minimum Payout (USD)'
+                )}
               </label>
               <input
                 type="number"
@@ -413,14 +494,20 @@ export default function ConfigurationPage(): React.ReactElement {
                 className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                Affiliates must have at least this amount to receive a payout.
+                {t(
+                  'admin.disbursement.minimum_payout_desc',
+                  'Affiliates must have at least this amount to receive a payout.'
+                )}
               </p>
             </div>
 
             {/* Batch Size */}
             <div>
               <label className="mb-2 block text-sm font-medium text-foreground">
-                Maximum Batch Size
+                {t(
+                  'admin.disbursement.maximum_batch_size',
+                  'Maximum Batch Size'
+                )}
               </label>
               <input
                 type="number"
@@ -436,7 +523,10 @@ export default function ConfigurationPage(): React.ReactElement {
                 className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                Maximum number of payments per batch (1-500).
+                {t(
+                  'admin.disbursement.batch_size_desc',
+                  'Maximum number of payments per batch (1-500).'
+                )}
               </p>
             </div>
           </CardContent>
@@ -446,55 +536,76 @@ export default function ConfigurationPage(): React.ReactElement {
       {/* Configuration Info */}
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-foreground">Configuration Guide</CardTitle>
+          <CardTitle className="text-foreground">
+            {t('admin.disbursement.configuration_guide', 'Configuration Guide')}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-foreground">
           <div>
             <h4 className="mb-1 font-medium text-foreground">
-              Payment Provider
+              {t('admin.disbursement.payment_provider', 'Payment Provider')}
             </h4>
             <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
               <li>
-                <strong>MOCK:</strong> Simulates payments instantly. Use for
-                development and testing.
+                <strong>MOCK:</strong>{' '}
+                {t(
+                  'admin.disbursement.guide_mock',
+                  'Simulates payments instantly. Use for development and testing.'
+                )}
               </li>
               <li>
-                <strong>RISE:</strong> RiseWorks blockchain provider. Archived
-                (Session 4A-W1) — no longer live.
+                <strong>RISE:</strong>{' '}
+                {t(
+                  'admin.disbursement.guide_rise',
+                  'RiseWorks blockchain provider. Archived (Session 4A-W1) — no longer live.'
+                )}
               </li>
               <li>
-                <strong>WISE:</strong> Wise payout provider. Live in production
-                since Session 4A-W7; batches execute through money-service.
+                <strong>WISE:</strong>{' '}
+                {t(
+                  'admin.disbursement.guide_wise',
+                  'Wise payout provider. Live in production since Session 4A-W7; batches execute through money-service.'
+                )}
               </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="mb-1 font-medium text-foreground">Minimum Payout</h4>
+            <h4 className="mb-1 font-medium text-foreground">
+              {t('admin.disbursement.minimum_payout', 'Minimum Payout')}
+            </h4>
             <p className="text-sm text-muted-foreground">
-              The minimum commission balance required before an affiliate
-              becomes eligible for payout. This helps reduce transaction fees
-              for small amounts.
+              {t(
+                'admin.disbursement.guide_minimum_payout',
+                'The minimum commission balance required before an affiliate becomes eligible for payout. This helps reduce transaction fees for small amounts.'
+              )}
             </p>
           </div>
 
           <div>
-            <h4 className="mb-1 font-medium text-foreground">Batch Size</h4>
+            <h4 className="mb-1 font-medium text-foreground">
+              {t('admin.disbursement.batch_size', 'Batch Size')}
+            </h4>
             <p className="text-sm text-muted-foreground">
-              Maximum number of payments to include in a single batch. Larger
-              batches are more efficient but take longer to process.
+              {t(
+                'admin.disbursement.guide_batch_size',
+                'Maximum number of payments to include in a single batch. Larger batches are more efficient but take longer to process.'
+              )}
             </p>
           </div>
 
           <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3">
             <p className="text-sm text-amber-600 dark:text-amber-400">
-              <strong>Note:</strong> This entire page is a placeholder over
-              environment-variable configuration — the <code>Save</code> action
-              here validates and logs your input but writes nothing to a
-              database. The provider field cannot be changed from this page at
-              all. Real WISE payouts move real money — any configuration change
-              must go through a deliberate environment-variable update and
-              redeploy, never this form.
+              <strong>{t('admin.disbursement.note_label', 'Note:')}</strong>{' '}
+              {t(
+                'admin.disbursement.placeholder_note_prefix',
+                'This entire page is a placeholder over environment-variable configuration — the'
+              )}{' '}
+              <code>Save</code>{' '}
+              {t(
+                'admin.disbursement.placeholder_note_suffix',
+                'action here validates and logs your input but writes nothing to a database. The provider field cannot be changed from this page at all. Real WISE payouts move real money — any configuration change must go through a deliberate environment-variable update and redeploy, never this form.'
+              )}
             </p>
           </div>
         </CardContent>

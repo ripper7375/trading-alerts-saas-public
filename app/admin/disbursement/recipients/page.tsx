@@ -17,6 +17,7 @@ import type {
   WiseRecipientsAdminList,
 } from '@/lib/money-service/wise-types';
 import type { RiseWorksKycStatus } from '@/types/disbursement';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONSTANTS
@@ -84,6 +85,7 @@ function getKycStatusBadge(status: RiseWorksKycStatus): React.ReactElement {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function WiseRecipientsTab(): React.ReactElement {
+  const { t } = useLocale();
   const [data, setData] = useState<WiseRecipientsAdminList | null>(null);
   const [status, setStatus] = useState<WiseRecipientStatus | 'ALL'>('ALL');
   const [page, setPage] = useState(1);
@@ -102,17 +104,28 @@ function WiseRecipientsTab(): React.ReactElement {
 
       const res = await fetch(`/api/wise/recipients?${params}`);
       if (!res.ok) {
-        throw new Error('Failed to load recipients');
+        throw new Error(
+          t(
+            'admin.disbursement.error_load_recipients',
+            'Failed to load recipients'
+          )
+        );
       }
       const body: WiseRecipientsAdminList = await res.json();
       setData(body);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Failed to load recipients'
+        err instanceof Error
+          ? err.message
+          : t(
+              'admin.disbursement.error_load_recipients',
+              'Failed to load recipients'
+            )
       );
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, status]);
 
   useEffect(() => {
@@ -126,10 +139,21 @@ function WiseRecipientsTab(): React.ReactElement {
       <CardHeader>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="text-foreground">Wise Recipients</CardTitle>
+            <CardTitle className="text-foreground">
+              {t('admin.disbursement.wise_recipients', 'Wise Recipients')}
+            </CardTitle>
             <CardDescription className="text-muted-foreground">
-              {data ? `${data.total} total` : '—'} — view only, never raw bank
-              details
+              {data
+                ? t('admin.disbursement.n_total', '{n} total').replace(
+                    '{n}',
+                    String(data.total)
+                  )
+                : '—'}{' '}
+              —{' '}
+              {t(
+                'admin.disbursement.view_only_never_raw',
+                'view only, never raw bank details'
+              )}
             </CardDescription>
           </div>
           <select
@@ -142,7 +166,9 @@ function WiseRecipientsTab(): React.ReactElement {
           >
             {STATUS_FILTERS.map((s) => (
               <option key={s} value={s}>
-                {s === 'ALL' ? 'All statuses' : s}
+                {s === 'ALL'
+                  ? t('admin.disbursement.all_statuses_lower', 'All statuses')
+                  : s}
               </option>
             ))}
           </select>
@@ -159,7 +185,10 @@ function WiseRecipientsTab(): React.ReactElement {
 
         {!loading && !error && data && data.items.length === 0 && (
           <p className="py-8 text-center text-muted-foreground">
-            No Wise recipients yet.
+            {t(
+              'admin.disbursement.no_wise_recipients',
+              'No Wise recipients yet.'
+            )}
           </p>
         )}
 
@@ -168,13 +197,27 @@ function WiseRecipientsTab(): React.ReactElement {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-muted-foreground">
-                  <th className="pb-2 pr-4 font-medium">Affiliate ID</th>
-                  <th className="pb-2 pr-4 font-medium">Account Holder</th>
-                  <th className="pb-2 pr-4 font-medium">Country</th>
-                  <th className="pb-2 pr-4 font-medium">Currency</th>
-                  <th className="pb-2 pr-4 font-medium">Account</th>
-                  <th className="pb-2 pr-4 font-medium">Status</th>
-                  <th className="pb-2 font-medium">Created</th>
+                  <th className="pb-2 pr-4 font-medium">
+                    {t('admin.disbursement.affiliate_id', 'Affiliate ID')}
+                  </th>
+                  <th className="pb-2 pr-4 font-medium">
+                    {t('admin.disbursement.account_holder', 'Account Holder')}
+                  </th>
+                  <th className="pb-2 pr-4 font-medium">
+                    {t('admin.affiliates.country', 'Country')}
+                  </th>
+                  <th className="pb-2 pr-4 font-medium">
+                    {t('admin.disbursement.currency', 'Currency')}
+                  </th>
+                  <th className="pb-2 pr-4 font-medium">
+                    {t('admin.disbursement.account', 'Account')}
+                  </th>
+                  <th className="pb-2 pr-4 font-medium">
+                    {t('admin.users.status', 'Status')}
+                  </th>
+                  <th className="pb-2 font-medium">
+                    {t('admin.users.created', 'Created')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -190,7 +233,9 @@ function WiseRecipientsTab(): React.ReactElement {
                     <td className="py-3 pr-4">{r.recipientCountry}</td>
                     <td className="py-3 pr-4">{r.targetCurrency}</td>
                     <td className="py-3 pr-4 font-mono text-xs">
-                      {r.accountTail ? `•••• ${r.accountTail}` : 'N/A'}
+                      {r.accountTail
+                        ? `•••• ${r.accountTail}`
+                        : t('admin.errors.not_available', 'N/A')}
                     </td>
                     <td className="py-3 pr-4">{getStatusBadge(r.status)}</td>
                     <td className="py-3 text-muted-foreground">
@@ -211,10 +256,12 @@ function WiseRecipientsTab(): React.ReactElement {
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               className="border-border text-foreground hover:bg-accent"
             >
-              Previous
+              {t('admin.users.previous', 'Previous')}
             </Button>
             <span className="text-sm text-muted-foreground">
-              Page {page} of {totalPages}
+              {t('admin.users.page_of_total', 'Page {page} of {totalPages}')
+                .replace('{page}', String(page))
+                .replace('{totalPages}', String(totalPages))}
             </span>
             <Button
               variant="outline"
@@ -222,7 +269,7 @@ function WiseRecipientsTab(): React.ReactElement {
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               className="border-border text-foreground hover:bg-accent"
             >
-              Next
+              {t('admin.users.next', 'Next')}
             </Button>
           </div>
         )}
@@ -236,6 +283,7 @@ function WiseRecipientsTab(): React.ReactElement {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function RiseWorksHistoricalTab(): React.ReactElement {
+  const { t } = useLocale();
   const [accounts, setAccounts] = useState<RiseWorksAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -249,14 +297,25 @@ function RiseWorksHistoricalTab(): React.ReactElement {
         const res = await fetch('/api/disbursement/riseworks/accounts');
         if (!res.ok) {
           const body = await res.json();
-          throw new Error(body.error || 'Failed to load RiseWorks accounts');
+          throw new Error(
+            body.error ||
+              t(
+                'admin.disbursement.error_load_riseworks',
+                'Failed to load RiseWorks accounts'
+              )
+          );
         }
         const body = await res.json();
         if (!cancelled) setAccounts(body.accounts || []);
       } catch (err) {
         if (!cancelled) {
           setError(
-            err instanceof Error ? err.message : 'Failed to load accounts'
+            err instanceof Error
+              ? err.message
+              : t(
+                  'admin.disbursement.error_load_accounts',
+                  'Failed to load accounts'
+                )
           );
         }
       } finally {
@@ -267,21 +326,23 @@ function RiseWorksHistoricalTab(): React.ReactElement {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <Card className="border-border bg-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-foreground">
-          RiseWorks Accounts
+          {t('admin.disbursement.riseworks_accounts', 'RiseWorks Accounts')}
           <Badge className="bg-muted text-xs text-muted-foreground">
-            Historical
+            {t('admin.disbursement.historical', 'Historical')}
           </Badge>
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          RiseWorks is archived (F42) — this tab is a read-only historical
-          record. No sync or create actions are available; the RiseWorks backend
-          routes stay archived.
+          {t(
+            'admin.disbursement.riseworks_archived_notice',
+            'RiseWorks is archived (F42) — this tab is a read-only historical record. No sync or create actions are available; the RiseWorks backend routes stay archived.'
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
@@ -295,7 +356,10 @@ function RiseWorksHistoricalTab(): React.ReactElement {
 
         {!loading && !error && accounts.length === 0 && (
           <p className="px-6 py-8 text-center text-muted-foreground">
-            No historical RiseWorks accounts found.
+            {t(
+              'admin.disbursement.no_historical_riseworks',
+              'No historical RiseWorks accounts found.'
+            )}
           </p>
         )}
 
@@ -305,22 +369,22 @@ function RiseWorksHistoricalTab(): React.ReactElement {
               <thead>
                 <tr className="border-b border-border">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Email
+                    {t('admin.disbursement.email', 'Email')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Rise ID
+                    {t('admin.disbursement.rise_id', 'Rise ID')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    KYC Status
+                    {t('admin.disbursement.kyc_status', 'KYC Status')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Invitation
+                    {t('admin.disbursement.invitation', 'Invitation')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Last Sync
+                    {t('admin.disbursement.last_sync', 'Last Sync')}
                   </th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                    Created
+                    {t('admin.users.created', 'Created')}
                   </th>
                 </tr>
               </thead>
@@ -345,22 +409,22 @@ function RiseWorksHistoricalTab(): React.ReactElement {
                     <td className="px-4 py-3">
                       {account.invitationAcceptedAt ? (
                         <Badge className="bg-emerald-500/10 text-xs text-emerald-600 dark:text-emerald-400">
-                          Accepted
+                          {t('admin.disbursement.accepted', 'Accepted')}
                         </Badge>
                       ) : account.invitationSentAt ? (
                         <Badge className="bg-amber-500/10 text-xs text-amber-600 dark:text-amber-400">
-                          Sent
+                          {t('admin.disbursement.sent', 'Sent')}
                         </Badge>
                       ) : (
                         <Badge className="bg-muted text-xs text-muted-foreground">
-                          Not Sent
+                          {t('admin.disbursement.not_sent', 'Not Sent')}
                         </Badge>
                       )}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {account.lastSyncAt
                         ? formatDate(account.lastSyncAt)
-                        : 'Never'}
+                        : t('admin.users.never', 'Never')}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {formatDate(account.createdAt)}
@@ -392,17 +456,20 @@ function RiseWorksHistoricalTab(): React.ReactElement {
  * `/admin/disbursement/accounts` now redirects here.
  */
 export default function AdminDisbursementAccountsPage(): React.ReactElement {
+  const { t } = useLocale();
   const [tab, setTab] = useState<ActiveTab>('wise');
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-          Disbursement Accounts
+          {t('admin.disbursement.accounts_title', 'Disbursement Accounts')}
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Affiliate payout accounts — active Wise recipients and historical
-          RiseWorks records
+          {t(
+            'admin.disbursement.accounts_subtitle',
+            'Affiliate payout accounts — active Wise recipients and historical RiseWorks records'
+          )}
         </p>
       </div>
 
@@ -416,7 +483,7 @@ export default function AdminDisbursementAccountsPage(): React.ReactElement {
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          🏦 Wise Recipients
+          {t('admin.disbursement.tab_wise_recipients', '🏦 Wise Recipients')}
         </button>
         <button
           type="button"
@@ -427,7 +494,10 @@ export default function AdminDisbursementAccountsPage(): React.ReactElement {
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          🔗 RiseWorks (Historical)
+          {t(
+            'admin.disbursement.tab_riseworks_historical',
+            '🔗 RiseWorks (Historical)'
+          )}
         </button>
       </div>
 

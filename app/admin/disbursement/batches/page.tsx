@@ -23,7 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 import type {
   PaymentBatchStatus,
   DisbursementProvider,
@@ -68,33 +68,42 @@ interface BatchPreviewSummary {
 // HELPER FUNCTIONS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function getStatusBadge(status: PaymentBatchStatus): React.ReactElement {
+function getStatusBadge(
+  status: PaymentBatchStatus,
+  t: (keyOrText: string, fallback?: string) => string
+): React.ReactElement {
   const statusConfig: Record<
     PaymentBatchStatus,
-    { className: string; label: string }
+    { className: string; labelKey: string; label: string }
   > = {
     PENDING: {
       className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      labelKey: 'admin.disbursement.tx_status_pending',
       label: 'Pending',
     },
     QUEUED: {
       className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+      labelKey: 'admin.disbursement.batch_status_queued',
       label: 'Queued',
     },
     PROCESSING: {
       className: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
+      labelKey: 'admin.disbursement.tx_status_processing',
       label: 'Processing',
     },
     COMPLETED: {
       className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      labelKey: 'admin.disbursement.tx_status_completed',
       label: 'Completed',
     },
     FAILED: {
       className: 'bg-red-500/10 text-red-600 dark:text-red-400',
+      labelKey: 'admin.disbursement.tx_status_failed',
       label: 'Failed',
     },
     CANCELLED: {
       className: 'bg-muted text-muted-foreground',
+      labelKey: 'admin.disbursement.tx_status_cancelled',
       label: 'Cancelled',
     },
   };
@@ -102,7 +111,9 @@ function getStatusBadge(status: PaymentBatchStatus): React.ReactElement {
   const config = statusConfig[status];
 
   return (
-    <Badge className={`${config.className} text-xs`}>{config.label}</Badge>
+    <Badge className={`${config.className} text-xs`}>
+      {t(config.labelKey, config.label)}
+    </Badge>
   );
 }
 
@@ -125,6 +136,7 @@ function getStatusBadge(status: PaymentBatchStatus): React.ReactElement {
  * - Fetches from /api/disbursement/batches
  */
 export default function PaymentBatchesPage(): React.ReactElement {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [batches, setBatches] = useState<PaymentBatch[]>([]);
   const [statusFilter, setStatusFilter] = useState<PaymentBatchStatus | 'ALL'>(
     'ALL'
@@ -151,16 +163,27 @@ export default function PaymentBatchesPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to fetch batches');
+        throw new Error(
+          data.error ||
+            t(
+              'admin.disbursement.error_fetch_batches',
+              'Failed to fetch batches'
+            )
+        );
       }
 
       const data = await response.json();
       setBatches(data.batches || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.dashboard.unknown_error', 'Unknown error')
+      );
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   useEffect(() => {
@@ -180,7 +203,13 @@ export default function PaymentBatchesPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to preview batch');
+        throw new Error(
+          data.error ||
+            t(
+              'admin.disbursement.error_preview_batch',
+              'Failed to preview batch'
+            )
+        );
       }
 
       const data = await response.json();
@@ -194,7 +223,14 @@ export default function PaymentBatchesPage(): React.ReactElement {
       });
       setShowCreateModal(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to preview batch');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t(
+              'admin.disbursement.error_preview_batch',
+              'Failed to preview batch'
+            )
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -214,16 +250,28 @@ export default function PaymentBatchesPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to create batch');
+        throw new Error(
+          data.error ||
+            t('admin.disbursement.error_create_batch', 'Failed to create batch')
+        );
       }
 
       const data = await response.json();
-      setSuccessMessage(`Batch created: ${data.batch.batchNumber}`);
+      setSuccessMessage(
+        t(
+          'admin.disbursement.batch_created_number',
+          'Batch created: {number}'
+        ).replace('{number}', data.batch.batchNumber)
+      );
       setShowCreateModal(false);
       setPreview(null);
       void fetchBatches();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create batch');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.disbursement.error_create_batch', 'Failed to create batch')
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -244,16 +292,34 @@ export default function PaymentBatchesPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to execute batch');
+        throw new Error(
+          data.error ||
+            t(
+              'admin.disbursement.error_execute_batch',
+              'Failed to execute batch'
+            )
+        );
       }
 
       const data = await response.json();
       setSuccessMessage(
-        `Batch executed: ${data.result.successCount} succeeded, ${data.result.failedCount} failed`
+        t(
+          'admin.disbursement.batch_executed_result',
+          'Batch executed: {success} succeeded, {failed} failed'
+        )
+          .replace('{success}', String(data.result.successCount))
+          .replace('{failed}', String(data.result.failedCount))
       );
       void fetchBatches();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to execute batch');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t(
+              'admin.disbursement.error_execute_batch',
+              'Failed to execute batch'
+            )
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -271,13 +337,25 @@ export default function PaymentBatchesPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to delete batch');
+        throw new Error(
+          data.error ||
+            t('admin.disbursement.error_delete_batch', 'Failed to delete batch')
+        );
       }
 
-      setSuccessMessage('Batch deleted successfully');
+      setSuccessMessage(
+        t(
+          'admin.disbursement.batch_deleted_success',
+          'Batch deleted successfully'
+        )
+      );
       void fetchBatches();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete batch');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.disbursement.error_delete_batch', 'Failed to delete batch')
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -299,10 +377,13 @@ export default function PaymentBatchesPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            Payment Batches
+            {t('admin.disbursement.payment_batches', 'Payment Batches')}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Manage and execute payment batches
+            {t(
+              'admin.disbursement.payment_batches_subtitle',
+              'Manage and execute payment batches'
+            )}
           </p>
         </div>
         <div className="flex gap-2">
@@ -311,13 +392,15 @@ export default function PaymentBatchesPage(): React.ReactElement {
             variant="outline"
             disabled={isLoading}
           >
-            Refresh
+            {t('Refresh', 'Refresh')}
           </Button>
           <Button
             onClick={() => void handlePreviewBatch()}
             disabled={isProcessing}
           >
-            {isProcessing ? 'Loading...' : 'Create Batch'}
+            {isProcessing
+              ? t('admin.disbursement.loading', 'Loading...')
+              : t('admin.disbursement.create_batch', 'Create Batch')}
           </Button>
         </div>
       </div>
@@ -350,7 +433,14 @@ export default function PaymentBatchesPage(): React.ReactElement {
                 size="sm"
                 onClick={() => setStatusFilter(status)}
               >
-                {status === 'ALL' ? 'All Batches' : status}
+                {status === 'ALL'
+                  ? t('admin.disbursement.all_batches', 'All Batches')
+                  : status === 'QUEUED'
+                    ? t('admin.disbursement.batch_status_queued', 'Queued')
+                    : t(
+                        `admin.disbursement.tx_status_${status.toLowerCase()}`,
+                        status
+                      )}
               </Button>
             ))}
           </div>
@@ -370,25 +460,25 @@ export default function PaymentBatchesPage(): React.ReactElement {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Batch #
+                      {t('admin.disbursement.batch_number', 'Batch #')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Status
+                      {t('admin.disbursement.status', 'Status')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Payments
+                      {t('admin.disbursement.payments', 'Payments')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Amount
+                      {t('admin.disbursement.amount', 'Amount')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Provider
+                      {t('admin.disbursement.provider', 'Provider')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Created
+                      {t('admin.disbursement.created', 'Created')}
                     </th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                      Actions
+                      {t('admin.disbursement.actions', 'Actions')}
                     </th>
                   </tr>
                 </thead>
@@ -407,7 +497,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
                         </Link>
                       </td>
                       <td className="px-4 py-3">
-                        {getStatusBadge(batch.status)}
+                        {getStatusBadge(batch.status, t)}
                       </td>
                       <td className="px-4 py-3 text-foreground">
                         {batch.paymentCount}
@@ -430,35 +520,58 @@ export default function PaymentBatchesPage(): React.ReactElement {
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button size="sm" disabled={isProcessing}>
-                                Execute
+                                {t('admin.disbursement.execute', 'Execute')}
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>
-                                  Confirm batch execution
+                                  {t(
+                                    'admin.disbursement.confirm_batch_execution',
+                                    'Confirm batch execution'
+                                  )}
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Execute batch{' '}
+                                  {t(
+                                    'admin.disbursement.execute_batch_prefix',
+                                    'Execute batch'
+                                  )}{' '}
                                   <strong>{batch.batchNumber}</strong> —{' '}
-                                  {batch.paymentCount} payment
-                                  {batch.paymentCount === 1 ? '' : 's'},{' '}
+                                  {batch.paymentCount}{' '}
+                                  {batch.paymentCount === 1
+                                    ? t(
+                                        'admin.disbursement.payment_singular',
+                                        'payment'
+                                      )
+                                    : t(
+                                        'admin.disbursement.payment_plural',
+                                        'payments'
+                                      )}
+                                  ,{' '}
                                   <strong>
                                     {formatCurrency(batch.totalAmount)}
                                   </strong>{' '}
-                                  via <strong>{batch.provider}</strong>? This
-                                  triggers real transfers through that provider
-                                  and cannot be undone.
+                                  {t(
+                                    'admin.disbursement.execute_batch_via',
+                                    'via'
+                                  )}{' '}
+                                  <strong>{batch.provider}</strong>?{' '}
+                                  {t(
+                                    'admin.disbursement.execute_batch_warning',
+                                    'This triggers real transfers through that provider and cannot be undone.'
+                                  )}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel>
+                                  {t('Cancel', 'Cancel')}
+                                </AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() =>
                                     void handleExecuteBatch(batch.id)
                                   }
                                 >
-                                  Execute
+                                  {t('admin.disbursement.execute', 'Execute')}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -474,31 +587,50 @@ export default function PaymentBatchesPage(): React.ReactElement {
                                 variant="destructive"
                                 disabled={isProcessing}
                               >
-                                Delete
+                                {t('admin.disbursement.delete', 'Delete')}
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>
-                                  Delete batch {batch.batchNumber}?
+                                  {t(
+                                    'admin.disbursement.delete_batch_confirm',
+                                    'Delete batch {number}?'
+                                  ).replace('{number}', batch.batchNumber)}
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This permanently deletes batch{' '}
+                                  {t(
+                                    'admin.disbursement.delete_batch_permanent_prefix',
+                                    'This permanently deletes batch'
+                                  )}{' '}
                                   <strong>{batch.batchNumber}</strong> (
-                                  {batch.paymentCount} payment
-                                  {batch.paymentCount === 1 ? '' : 's'},{' '}
-                                  {formatCurrency(batch.totalAmount)}). This
-                                  cannot be undone.
+                                  {batch.paymentCount}{' '}
+                                  {batch.paymentCount === 1
+                                    ? t(
+                                        'admin.disbursement.payment_singular',
+                                        'payment'
+                                      )
+                                    : t(
+                                        'admin.disbursement.payment_plural',
+                                        'payments'
+                                      )}
+                                  , {formatCurrency(batch.totalAmount)}).{' '}
+                                  {t(
+                                    'admin.disbursement.cannot_be_undone',
+                                    'This cannot be undone.'
+                                  )}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel>
+                                  {t('Cancel', 'Cancel')}
+                                </AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() =>
                                     void handleDeleteBatch(batch.id)
                                   }
                                 >
-                                  Delete
+                                  {t('admin.disbursement.delete', 'Delete')}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -506,7 +638,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
                         )}
                         <Link href={`/admin/disbursement/batches/${batch.id}`}>
                           <Button size="sm" variant="outline">
-                            Details
+                            {t('admin.disbursement.details', 'Details')}
                           </Button>
                         </Link>
                       </td>
@@ -520,7 +652,9 @@ export default function PaymentBatchesPage(): React.ReactElement {
       ) : (
         <Card className="border-border bg-card">
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">No batches found.</p>
+            <p className="text-muted-foreground">
+              {t('admin.disbursement.no_batches_found', 'No batches found.')}
+            </p>
           </CardContent>
         </Card>
       )}
@@ -531,10 +665,16 @@ export default function PaymentBatchesPage(): React.ReactElement {
           <Card className="max-h-[80vh] w-full max-w-2xl overflow-auto border-border bg-card">
             <CardHeader>
               <CardTitle className="text-foreground">
-                Create Payment Batch
+                {t(
+                  'admin.disbursement.create_payment_batch',
+                  'Create Payment Batch'
+                )}
               </CardTitle>
               <CardDescription className="text-muted-foreground">
-                Review the batch preview before creating
+                {t(
+                  'admin.disbursement.review_batch_preview',
+                  'Review the batch preview before creating'
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -542,20 +682,27 @@ export default function PaymentBatchesPage(): React.ReactElement {
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="bg-accent/50 rounded-lg p-3">
                   <p className="text-sm text-muted-foreground">
-                    Total Affiliates
+                    {t(
+                      'admin.disbursement.total_affiliates',
+                      'Total Affiliates'
+                    )}
                   </p>
                   <p className="text-2xl font-bold text-foreground">
                     {preview.summary.totalAffiliates}
                   </p>
                 </div>
                 <div className="bg-accent/50 rounded-lg p-3">
-                  <p className="text-sm text-muted-foreground">Eligible</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('admin.disbursement.eligible', 'Eligible')}
+                  </p>
                   <p className="text-2xl font-bold text-green-400">
                     {preview.summary.eligibleAffiliates}
                   </p>
                 </div>
                 <div className="bg-accent/50 rounded-lg p-3">
-                  <p className="text-sm text-muted-foreground">Total Amount</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t('admin.disbursement.total_amount', 'Total Amount')}
+                  </p>
                   <p className="text-2xl font-bold text-green-400">
                     {formatCurrency(preview.summary.totalAmount)}
                   </p>
@@ -569,16 +716,16 @@ export default function PaymentBatchesPage(): React.ReactElement {
                     <thead className="sticky top-0 bg-card">
                       <tr className="border-b border-border">
                         <th className="px-3 py-2 text-left text-muted-foreground">
-                          Affiliate
+                          {t('admin.disbursement.affiliate', 'Affiliate')}
                         </th>
                         <th className="px-3 py-2 text-left text-muted-foreground">
-                          Commissions
+                          {t('admin.disbursement.commissions', 'Commissions')}
                         </th>
                         <th className="px-3 py-2 text-left text-muted-foreground">
-                          Amount
+                          {t('admin.disbursement.amount', 'Amount')}
                         </th>
                         <th className="px-3 py-2 text-left text-muted-foreground">
-                          Eligible
+                          {t('admin.disbursement.eligible', 'Eligible')}
                         </th>
                       </tr>
                     </thead>
@@ -600,11 +747,12 @@ export default function PaymentBatchesPage(): React.ReactElement {
                           <td className="px-3 py-2">
                             {item.eligible ? (
                               <Badge className="bg-emerald-500/10 text-xs text-emerald-600 dark:text-emerald-400">
-                                Yes
+                                {t('admin.disbursement.yes', 'Yes')}
                               </Badge>
                             ) : (
                               <Badge className="bg-red-500/10 text-xs text-red-600 dark:text-red-400">
-                                {item.reason || 'No'}
+                                {item.reason ||
+                                  t('admin.disbursement.no', 'No')}
                               </Badge>
                             )}
                           </td>
@@ -617,7 +765,10 @@ export default function PaymentBatchesPage(): React.ReactElement {
 
               {preview.summary.eligibleAffiliates === 0 && (
                 <p className="text-center text-yellow-400">
-                  No eligible affiliates for payout.
+                  {t(
+                    'admin.disbursement.no_eligible_affiliates',
+                    'No eligible affiliates for payout.'
+                  )}
                 </p>
               )}
 
@@ -630,7 +781,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
                     setPreview(null);
                   }}
                 >
-                  Cancel
+                  {t('Cancel', 'Cancel')}
                 </Button>
                 <Button
                   onClick={() => void handleCreateBatch()}
@@ -638,7 +789,9 @@ export default function PaymentBatchesPage(): React.ReactElement {
                     isProcessing || preview.summary.eligibleAffiliates === 0
                   }
                 >
-                  {isProcessing ? 'Creating...' : 'Create Batch'}
+                  {isProcessing
+                    ? t('admin.disbursement.creating', 'Creating...')
+                    : t('admin.disbursement.create_batch', 'Create Batch')}
                 </Button>
               </div>
             </CardContent>

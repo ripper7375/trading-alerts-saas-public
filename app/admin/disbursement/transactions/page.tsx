@@ -17,6 +17,7 @@ import type {
   DisbursementTransactionStatus,
   DisbursementProvider,
 } from '@/types/disbursement';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -55,30 +56,36 @@ interface Pagination {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function getStatusBadge(
-  status: DisbursementTransactionStatus
+  status: DisbursementTransactionStatus,
+  t: (keyOrText: string, fallback?: string) => string
 ): React.ReactElement {
   const statusConfig: Record<
     DisbursementTransactionStatus,
-    { className: string; label: string }
+    { className: string; labelKey: string; label: string }
   > = {
     PENDING: {
       className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      labelKey: 'admin.disbursement.tx_status_pending',
       label: 'Pending',
     },
     PROCESSING: {
       className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+      labelKey: 'admin.disbursement.tx_status_processing',
       label: 'Processing',
     },
     COMPLETED: {
       className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      labelKey: 'admin.disbursement.tx_status_completed',
       label: 'Completed',
     },
     FAILED: {
       className: 'bg-red-500/10 text-red-600 dark:text-red-400',
+      labelKey: 'admin.disbursement.tx_status_failed',
       label: 'Failed',
     },
     CANCELLED: {
       className: 'bg-muted text-muted-foreground',
+      labelKey: 'admin.disbursement.tx_status_cancelled',
       label: 'Cancelled',
     },
   };
@@ -86,7 +93,9 @@ function getStatusBadge(
   const config = statusConfig[status];
 
   return (
-    <Badge className={`${config.className} text-xs`}>{config.label}</Badge>
+    <Badge className={`${config.className} text-xs`}>
+      {t(config.labelKey, config.label)}
+    </Badge>
   );
 }
 
@@ -95,6 +104,7 @@ function getStatusBadge(
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function TransactionsPageContent(): React.ReactElement {
+  const { t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -123,17 +133,28 @@ function TransactionsPageContent(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to fetch transactions');
+        throw new Error(
+          data.error ||
+            t(
+              'admin.disbursement.error_fetch_transactions',
+              'Failed to fetch transactions'
+            )
+        );
       }
 
       const data = await response.json();
       setTransactions(data.transactions || []);
       setPagination(data.pagination || null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.dashboard.unknown_error', 'Unknown error')
+      );
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, currentOffset]);
 
   useEffect(() => {
@@ -171,10 +192,13 @@ function TransactionsPageContent(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            Transactions
+            {t('admin.disbursement.nav_transactions', 'Transactions')}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            All disbursement transactions
+            {t(
+              'admin.disbursement.all_transactions_subtitle',
+              'All disbursement transactions'
+            )}
           </p>
         </div>
         <div className="flex gap-2">
@@ -183,7 +207,7 @@ function TransactionsPageContent(): React.ReactElement {
             variant="outline"
             disabled={isLoading}
           >
-            Refresh
+            {t('Refresh', 'Refresh')}
           </Button>
         </div>
       </div>
@@ -212,7 +236,12 @@ function TransactionsPageContent(): React.ReactElement {
                 size="sm"
                 onClick={() => handleStatusFilter(status)}
               >
-                {status === 'ALL' ? 'All Transactions' : status}
+                {status === 'ALL'
+                  ? t('admin.disbursement.all_transactions', 'All Transactions')
+                  : t(
+                      `admin.disbursement.tx_status_${status.toLowerCase()}`,
+                      status.charAt(0) + status.slice(1).toLowerCase()
+                    )}
               </Button>
             ))}
           </div>
@@ -232,28 +261,28 @@ function TransactionsPageContent(): React.ReactElement {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Transaction ID
+                      {t('admin.disbursement.transaction_id', 'Transaction ID')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Status
+                      {t('admin.users.status', 'Status')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Amount
+                      {t('Amount')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Provider
+                      {t('admin.disbursement.provider', 'Provider')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Provider TX
+                      {t('admin.disbursement.provider_tx', 'Provider TX')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Payee
+                      {t('admin.disbursement.payee', 'Payee')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Retries
+                      {t('admin.disbursement.retries', 'Retries')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Created
+                      {t('admin.users.created', 'Created')}
                     </th>
                   </tr>
                 </thead>
@@ -268,7 +297,9 @@ function TransactionsPageContent(): React.ReactElement {
                           {tx.transactionId}
                         </span>
                       </td>
-                      <td className="px-4 py-3">{getStatusBadge(tx.status)}</td>
+                      <td className="px-4 py-3">
+                        {getStatusBadge(tx.status, t)}
+                      </td>
                       <td className="px-4 py-3">
                         <span className="font-medium text-green-400">
                           {formatCurrency(tx.amount)}
@@ -322,9 +353,16 @@ function TransactionsPageContent(): React.ReactElement {
             <CardContent className="border-t border-border">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  Showing {currentOffset + 1} -{' '}
-                  {Math.min(currentOffset + limit, pagination.total)} of{' '}
-                  {pagination.total}
+                  {t(
+                    'admin.disbursement.showing_x_of_y',
+                    'Showing {from} - {to} of {total}'
+                  )
+                    .replace('{from}', String(currentOffset + 1))
+                    .replace(
+                      '{to}',
+                      String(Math.min(currentOffset + limit, pagination.total))
+                    )
+                    .replace('{total}', String(pagination.total))}
                 </p>
                 <div className="flex gap-2">
                   <Button
@@ -335,7 +373,7 @@ function TransactionsPageContent(): React.ReactElement {
                       handlePageChange(Math.max(0, currentOffset - limit))
                     }
                   >
-                    Previous
+                    {t('admin.users.previous', 'Previous')}
                   </Button>
                   <Button
                     variant="outline"
@@ -343,7 +381,7 @@ function TransactionsPageContent(): React.ReactElement {
                     disabled={!pagination.hasMore}
                     onClick={() => handlePageChange(currentOffset + limit)}
                   >
-                    Next
+                    {t('admin.users.next', 'Next')}
                   </Button>
                 </div>
               </div>
@@ -353,7 +391,12 @@ function TransactionsPageContent(): React.ReactElement {
       ) : (
         <Card className="border-border bg-card">
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">No transactions found.</p>
+            <p className="text-muted-foreground">
+              {t(
+                'admin.disbursement.no_transactions_found',
+                'No transactions found.'
+              )}
+            </p>
           </CardContent>
         </Card>
       )}
@@ -363,10 +406,16 @@ function TransactionsPageContent(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-foreground">
-              Failed Transaction Details
+              {t(
+                'admin.disbursement.failed_tx_details',
+                'Failed Transaction Details'
+              )}
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Error information for failed transactions
+              {t(
+                'admin.disbursement.failed_tx_details_desc',
+                'Error information for failed transactions'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -389,7 +438,10 @@ function TransactionsPageContent(): React.ReactElement {
                     <p className="text-sm text-red-400">{tx.errorMessage}</p>
                     {tx.retryCount > 0 && (
                       <p className="mt-1 text-xs text-yellow-400">
-                        Retried {tx.retryCount} times
+                        {t(
+                          'admin.disbursement.retried_n_times',
+                          'Retried {n} times'
+                        ).replace('{n}', String(tx.retryCount))}
                       </p>
                     )}
                   </div>

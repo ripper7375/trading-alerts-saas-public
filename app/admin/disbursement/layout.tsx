@@ -7,6 +7,8 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { getDefaultProvider } from '@/lib/disbursement/constants';
 import { cn } from '@/lib/utils';
+import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -19,6 +21,7 @@ interface DisbursementLayoutProps {
 interface NavItem {
   id: string;
   icon: string;
+  labelKey: string;
   label: string;
   href: string;
 }
@@ -31,42 +34,49 @@ const disbursementNavItems: NavItem[] = [
   {
     id: 'overview',
     icon: '📊',
+    labelKey: 'admin.disbursement.nav_overview',
     label: 'Overview',
     href: '/admin/disbursement',
   },
   {
     id: 'affiliates',
     icon: '👥',
+    labelKey: 'admin.disbursement.nav_payable_affiliates',
     label: 'Payable Affiliates',
     href: '/admin/disbursement/affiliates',
   },
   {
     id: 'batches',
     icon: '📦',
+    labelKey: 'admin.disbursement.nav_payment_batches',
     label: 'Payment Batches',
     href: '/admin/disbursement/batches',
   },
   {
     id: 'transactions',
     icon: '💸',
+    labelKey: 'admin.disbursement.nav_transactions',
     label: 'Transactions',
     href: '/admin/disbursement/transactions',
   },
   {
     id: 'recipients',
     icon: '🏦',
+    labelKey: 'admin.disbursement.nav_payout_accounts',
     label: 'Payout Accounts',
     href: '/admin/disbursement/recipients',
   },
   {
     id: 'audit',
     icon: '📋',
+    labelKey: 'admin.disbursement.nav_audit_logs',
     label: 'Audit Logs',
     href: '/admin/disbursement/audit',
   },
   {
     id: 'config',
     icon: '⚙️',
+    labelKey: 'admin.disbursement.nav_configuration',
     label: 'Configuration',
     href: '/admin/disbursement/config',
   },
@@ -117,6 +127,8 @@ export default async function DisbursementLayout({
 
   const userName = session.user.name || session.user.email || 'Admin';
   const activeProvider = getDefaultProvider();
+  const dict = getDictionary(await getServerLanguage());
+  const dt = (key: string, fallback: string): string => dict[key] ?? fallback;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -124,7 +136,9 @@ export default async function DisbursementLayout({
       <header className="border-b border-border bg-card px-4 py-4 sm:px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-4">
-            <h1 className="text-lg font-bold sm:text-xl">Disbursement Admin</h1>
+            <h1 className="text-lg font-bold sm:text-xl">
+              {dt('admin.disbursement.title', 'Disbursement Admin')}
+            </h1>
             <Badge className="bg-emerald-500/10 px-2 py-0.5 text-xs font-bold text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400">
               {activeProvider}
             </Badge>
@@ -137,7 +151,7 @@ export default async function DisbursementLayout({
               href="/admin"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
-              ← Admin Panel
+              ← {dt('admin.disbursement.admin_panel', 'Admin Panel')}
             </Link>
           </div>
         </div>
@@ -158,7 +172,9 @@ export default async function DisbursementLayout({
                 )}
               >
                 <span className="text-lg sm:text-xl">{item.icon}</span>
-                <span className="hidden sm:inline">{item.label}</span>
+                <span className="hidden sm:inline">
+                  {dt(item.labelKey, item.label)}
+                </span>
               </Link>
             ))}
           </nav>
@@ -169,16 +185,19 @@ export default async function DisbursementLayout({
           {/* System Info */}
           <div className="bg-accent/50 hidden rounded-lg px-4 py-3 sm:block">
             <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
-              Payment Provider
+              {dt('admin.disbursement.payment_provider', 'Payment Provider')}
             </p>
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
               <span className="text-sm text-foreground">
                 {activeProvider === 'WISE'
-                  ? 'Wise'
+                  ? dt('admin.disbursement.provider_wise', 'Wise')
                   : activeProvider === 'RISE'
-                    ? 'RiseWorks (archived)'
-                    : 'MOCK (testing)'}
+                    ? dt(
+                        'admin.disbursement.provider_rise_archived',
+                        'RiseWorks (archived)'
+                      )
+                    : dt('admin.disbursement.provider_mock', 'MOCK (testing)')}
               </span>
             </div>
           </div>
@@ -189,7 +208,7 @@ export default async function DisbursementLayout({
               href="/dashboard"
               className="block px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
-              ← Back to App
+              ← {dt('admin.disbursement.back_to_app', 'Back to App')}
             </Link>
           </div>
         </aside>

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDate } from '@/lib/utils';
 import type { AuditLogStatus } from '@/types/disbursement';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -30,25 +31,32 @@ interface AuditLog {
 // HELPER FUNCTIONS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function getStatusBadge(status: AuditLogStatus): React.ReactElement {
+function getStatusBadge(
+  status: AuditLogStatus,
+  t: (keyOrText: string, fallback?: string) => string
+): React.ReactElement {
   const statusConfig: Record<
     AuditLogStatus,
-    { className: string; label: string }
+    { className: string; labelKey: string; label: string }
   > = {
     SUCCESS: {
       className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      labelKey: 'admin.disbursement.audit_status_success',
       label: 'Success',
     },
     FAILURE: {
       className: 'bg-red-500/10 text-red-600 dark:text-red-400',
+      labelKey: 'admin.disbursement.audit_status_failure',
       label: 'Failure',
     },
     WARNING: {
       className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      labelKey: 'admin.disbursement.audit_status_warning',
       label: 'Warning',
     },
     INFO: {
       className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+      labelKey: 'admin.disbursement.audit_status_info',
       label: 'Info',
     },
   };
@@ -56,7 +64,9 @@ function getStatusBadge(status: AuditLogStatus): React.ReactElement {
   const config = statusConfig[status];
 
   return (
-    <Badge className={`${config.className} text-xs`}>{config.label}</Badge>
+    <Badge className={`${config.className} text-xs`}>
+      {t(config.labelKey, config.label)}
+    </Badge>
   );
 }
 
@@ -77,6 +87,7 @@ function getActionIcon(action: string): string {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function AuditLogsPageContent(): React.ReactElement {
+  const { t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -100,16 +111,27 @@ function AuditLogsPageContent(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to fetch audit logs');
+        throw new Error(
+          data.error ||
+            t(
+              'admin.disbursement.error_fetch_audit_logs',
+              'Failed to fetch audit logs'
+            )
+        );
       }
 
       const data = await response.json();
       setLogs(data.logs || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.dashboard.unknown_error', 'Unknown error')
+      );
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionFilter]);
 
   useEffect(() => {
@@ -141,10 +163,13 @@ function AuditLogsPageContent(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            Audit Logs
+            {t('admin.disbursement.nav_audit_logs', 'Audit Logs')}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Disbursement activity history
+            {t(
+              'admin.disbursement.audit_logs_subtitle',
+              'Disbursement activity history'
+            )}
           </p>
         </div>
         <div className="flex gap-2">
@@ -153,7 +178,7 @@ function AuditLogsPageContent(): React.ReactElement {
             variant="outline"
             disabled={isLoading}
           >
-            Refresh
+            {t('Refresh', 'Refresh')}
           </Button>
         </div>
       </div>
@@ -176,7 +201,7 @@ function AuditLogsPageContent(): React.ReactElement {
               size="sm"
               onClick={() => handleActionFilter(null)}
             >
-              All Actions
+              {t('admin.disbursement.all_actions', 'All Actions')}
             </Button>
             {uniqueActions.map((action) => (
               <Button
@@ -217,16 +242,23 @@ function AuditLogsPageContent(): React.ReactElement {
                       <span className="font-medium text-foreground">
                         {log.action}
                       </span>
-                      {getStatusBadge(log.status)}
+                      {getStatusBadge(log.status, t)}
                     </div>
 
                     {/* Metadata */}
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <span>{formatDate(log.createdAt)}</span>
-                      {log.actor && <span>by {log.actor}</span>}
+                      {log.actor && (
+                        <span>
+                          {t(
+                            'admin.disbursement.by_actor',
+                            'by {actor}'
+                          ).replace('{actor}', log.actor)}
+                        </span>
+                      )}
                       {log.batchId && (
                         <span>
-                          Batch:{' '}
+                          {t('admin.disbursement.batch_label', 'Batch:')}{' '}
                           <span className="text-foreground">
                             {log.batchId.slice(0, 8)}...
                           </span>
@@ -234,7 +266,7 @@ function AuditLogsPageContent(): React.ReactElement {
                       )}
                       {log.transactionId && (
                         <span>
-                          TX:{' '}
+                          {t('admin.disbursement.tx_label', 'TX:')}{' '}
                           <span className="text-foreground">
                             {log.transactionId.slice(0, 8)}...
                           </span>
@@ -250,8 +282,14 @@ function AuditLogsPageContent(): React.ReactElement {
                           className="hover:text-primary/80 text-xs text-primary"
                         >
                           {expandedLogs.has(log.id)
-                            ? 'Hide details ▲'
-                            : 'Show details ▼'}
+                            ? t(
+                                'admin.disbursement.hide_details',
+                                'Hide details ▲'
+                              )
+                            : t(
+                                'admin.disbursement.show_details',
+                                'Show details ▼'
+                              )}
                         </button>
                         {expandedLogs.has(log.id) && (
                           <pre className="mt-2 max-h-40 overflow-auto rounded bg-background p-2 text-xs text-foreground">
@@ -265,9 +303,17 @@ function AuditLogsPageContent(): React.ReactElement {
                     {expandedLogs.has(log.id) &&
                       (log.ipAddress || log.userAgent) && (
                         <div className="mt-2 text-xs text-muted-foreground">
-                          {log.ipAddress && <p>IP: {log.ipAddress}</p>}
+                          {log.ipAddress && (
+                            <p>
+                              {t('admin.disbursement.ip_label', 'IP:')}{' '}
+                              {log.ipAddress}
+                            </p>
+                          )}
                           {log.userAgent && (
-                            <p className="truncate">UA: {log.userAgent}</p>
+                            <p className="truncate">
+                              {t('admin.disbursement.ua_label', 'UA:')}{' '}
+                              {log.userAgent}
+                            </p>
                           )}
                         </div>
                       )}

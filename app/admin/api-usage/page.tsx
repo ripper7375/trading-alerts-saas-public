@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -63,6 +64,7 @@ interface ApiUsageResponse {
  * banner below surfaces it in the UI rather than presenting it as live.
  */
 export default function ApiUsagePage(): React.ReactElement {
+  const { t } = useLocale();
   const [data, setData] = useState<ApiUsageResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,17 +92,25 @@ export default function ApiUsagePage(): React.ReactElement {
       const response = await fetch(`/api/admin/api-usage?${params.toString()}`);
       if (!response.ok) {
         const responseData = await response.json();
-        throw new Error(responseData.error || 'Failed to fetch API usage');
+        throw new Error(
+          responseData.error ||
+            t('admin.api_usage.error_fetch', 'Failed to fetch API usage')
+        );
       }
 
       setIsSampleData(response.headers.get('X-Data-Source') === 'mock');
       const responseData: ApiUsageResponse = await response.json();
       setData(responseData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.dashboard.unknown_error', 'Unknown error')
+      );
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate]);
 
   useEffect(() => {
@@ -111,15 +121,21 @@ export default function ApiUsagePage(): React.ReactElement {
     errorRate: number
   ): { className: string; text: string } => {
     if (errorRate > 5) {
-      return { className: 'bg-red-600 hover:bg-red-600', text: 'High' };
+      return {
+        className: 'bg-red-600 hover:bg-red-600',
+        text: t('admin.api_usage.error_rate_high', 'High'),
+      };
     }
     if (errorRate > 2) {
       return {
         className: 'bg-yellow-600 hover:bg-yellow-600',
-        text: 'Medium',
+        text: t('admin.api_usage.error_rate_medium', 'Medium'),
       };
     }
-    return { className: 'bg-emerald-600 hover:bg-emerald-600', text: 'Low' };
+    return {
+      className: 'bg-emerald-600 hover:bg-emerald-600',
+      text: t('admin.api_usage.error_rate_low', 'Low'),
+    };
   };
 
   const getMethodBadgeClass = (method: string): string => {
@@ -138,10 +154,13 @@ export default function ApiUsagePage(): React.ReactElement {
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-          API Usage
+          {t('admin.api_usage.title', 'API Usage')}
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Monitor API endpoint usage and performance by tier
+          {t(
+            'admin.api_usage.subtitle',
+            'Monitor API endpoint usage and performance by tier'
+          )}
         </p>
       </div>
 
@@ -152,9 +171,15 @@ export default function ApiUsagePage(): React.ReactElement {
           <CardContent className="flex items-center gap-3 p-4">
             <span className="text-xl">ℹ️</span>
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              Showing generated sample data. Real per-request telemetry (
-              <code className="font-mono text-xs">ApiUsageLog</code>) is
-              scheduled for a future phase, not yet implemented.
+              {t(
+                'admin.api_usage.sample_data_prefix',
+                'Showing generated sample data. Real per-request telemetry ('
+              )}
+              <code className="font-mono text-xs">ApiUsageLog</code>
+              {t(
+                'admin.api_usage.sample_data_suffix',
+                ') is scheduled for a future phase, not yet implemented.'
+              )}
             </p>
           </CardContent>
         </Card>
@@ -165,7 +190,7 @@ export default function ApiUsagePage(): React.ReactElement {
         <CardContent className="flex flex-col items-end gap-4 p-4 sm:flex-row sm:p-6">
           <div className="flex-1">
             <label className="mb-1 block text-sm text-muted-foreground">
-              Start Date
+              {t('admin.api_usage.start_date', 'Start Date')}
             </label>
             <Input
               type="date"
@@ -177,7 +202,7 @@ export default function ApiUsagePage(): React.ReactElement {
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-sm text-muted-foreground">
-              End Date
+              {t('admin.api_usage.end_date', 'End Date')}
             </label>
             <Input
               type="date"
@@ -187,7 +212,9 @@ export default function ApiUsagePage(): React.ReactElement {
               }
             />
           </div>
-          <Button onClick={() => void fetchUsage()}>Apply Filter</Button>
+          <Button onClick={() => void fetchUsage()}>
+            {t('admin.api_usage.apply_filter', 'Apply Filter')}
+          </Button>
         </CardContent>
       </Card>
 
@@ -196,7 +223,9 @@ export default function ApiUsagePage(): React.ReactElement {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Card className="border-border bg-card">
             <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Total Calls</p>
+              <p className="text-sm text-muted-foreground">
+                {t('admin.api_usage.total_calls', 'Total Calls')}
+              </p>
               <p className="text-2xl font-bold text-foreground">
                 {data.summary.totalCalls.toLocaleString()}
               </p>
@@ -204,7 +233,9 @@ export default function ApiUsagePage(): React.ReactElement {
           </Card>
           <Card className="border-border bg-card">
             <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">FREE Tier Calls</p>
+              <p className="text-sm text-muted-foreground">
+                {t('admin.api_usage.free_tier_calls', 'FREE Tier Calls')}
+              </p>
               <p className="text-2xl font-bold text-foreground">
                 {data.summary.totalCallsFree.toLocaleString()}
               </p>
@@ -212,7 +243,9 @@ export default function ApiUsagePage(): React.ReactElement {
           </Card>
           <Card className="border-border bg-card">
             <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">PRO Tier Calls</p>
+              <p className="text-sm text-muted-foreground">
+                {t('admin.api_usage.pro_tier_calls', 'PRO Tier Calls')}
+              </p>
               <p className="text-2xl font-bold text-primary">
                 {data.summary.totalCallsPro.toLocaleString()}
               </p>
@@ -220,7 +253,9 @@ export default function ApiUsagePage(): React.ReactElement {
           </Card>
           <Card className="border-border bg-card">
             <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Avg Response Time</p>
+              <p className="text-sm text-muted-foreground">
+                {t('admin.api_usage.avg_response_time', 'Avg Response Time')}
+              </p>
               <p className="text-2xl font-bold text-foreground">
                 {data.summary.avgResponseTime.toFixed(0)}ms
               </p>
@@ -228,7 +263,9 @@ export default function ApiUsagePage(): React.ReactElement {
           </Card>
           <Card className="border-border bg-card">
             <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Error Rate</p>
+              <p className="text-sm text-muted-foreground">
+                {t('admin.api_usage.error_rate', 'Error Rate')}
+              </p>
               <p
                 className={`text-2xl font-bold ${
                   data.summary.overallErrorRate > 5
@@ -251,11 +288,19 @@ export default function ApiUsagePage(): React.ReactElement {
               <span className="text-2xl">🚨</span>
               <div>
                 <p className="font-medium text-foreground">
-                  High Error Rate Detected
+                  {t(
+                    'admin.api_usage.high_error_rate_detected',
+                    'High Error Rate Detected'
+                  )}
                 </p>
                 <p className="text-sm text-red-600 dark:text-red-400">
-                  {data.endpoints.filter((e) => e.errorRate > 5).length}{' '}
-                  endpoint(s) have error rates above 5%
+                  {t(
+                    'admin.api_usage.endpoints_above_threshold',
+                    '{count} endpoint(s) have error rates above 5%'
+                  ).replace(
+                    '{count}',
+                    String(data.endpoints.filter((e) => e.errorRate > 5).length)
+                  )}
                 </p>
               </div>
             </div>
@@ -266,9 +311,14 @@ export default function ApiUsagePage(): React.ReactElement {
       {/* Endpoints Table */}
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-foreground">Endpoint Statistics</CardTitle>
+          <CardTitle className="text-foreground">
+            {t('admin.api_usage.endpoint_statistics', 'Endpoint Statistics')}
+          </CardTitle>
           <CardDescription className="text-muted-foreground">
-            API endpoint usage breakdown by tier
+            {t(
+              'admin.api_usage.endpoint_statistics_desc',
+              'API endpoint usage breakdown by tier'
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -279,11 +329,16 @@ export default function ApiUsagePage(): React.ReactElement {
           ) : error ? (
             <div className="py-8 text-center">
               <p className="mb-4 text-red-500">{error}</p>
-              <Button onClick={() => void fetchUsage()}>Retry</Button>
+              <Button onClick={() => void fetchUsage()}>
+                {t('admin.dashboard.retry', 'Retry')}
+              </Button>
             </div>
           ) : !data || data.endpoints.length === 0 ? (
             <p className="py-8 text-center text-muted-foreground">
-              No API usage data found for the selected date range
+              {t(
+                'admin.api_usage.no_data_found',
+                'No API usage data found for the selected date range'
+              )}
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -291,22 +346,22 @@ export default function ApiUsagePage(): React.ReactElement {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Endpoint
+                      {t('admin.api_usage.endpoint', 'Endpoint')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Method
+                      {t('admin.api_usage.method', 'Method')}
                     </th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                      FREE Calls
+                      {t('admin.api_usage.free_calls', 'FREE Calls')}
                     </th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                      PRO Calls
+                      {t('admin.api_usage.pro_calls', 'PRO Calls')}
                     </th>
                     <th className="hidden px-4 py-3 text-right font-medium text-muted-foreground md:table-cell">
-                      Avg Time
+                      {t('admin.api_usage.avg_time', 'Avg Time')}
                     </th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                      Error Rate
+                      {t('admin.api_usage.error_rate', 'Error Rate')}
                     </th>
                   </tr>
                 </thead>

@@ -24,7 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 import type {
   PaymentBatchStatus,
   DisbursementTransactionStatus,
@@ -97,60 +97,135 @@ const STATUS_BADGE_CLASS = {
   muted: 'bg-muted text-muted-foreground',
 } as const;
 
-function getBatchStatusBadge(status: PaymentBatchStatus): React.ReactElement {
-  const statusConfig: Record<
-    PaymentBatchStatus,
-    { className: string; label: string }
-  > = {
-    PENDING: { className: STATUS_BADGE_CLASS.amber, label: 'Pending' },
-    QUEUED: { className: STATUS_BADGE_CLASS.blue, label: 'Queued' },
-    PROCESSING: { className: STATUS_BADGE_CLASS.purple, label: 'Processing' },
-    COMPLETED: { className: STATUS_BADGE_CLASS.emerald, label: 'Completed' },
-    FAILED: { className: STATUS_BADGE_CLASS.red, label: 'Failed' },
-    CANCELLED: { className: STATUS_BADGE_CLASS.muted, label: 'Cancelled' },
-  };
-
-  const config = statusConfig[status];
-
-  return <Badge className={config.className}>{config.label}</Badge>;
-}
-
-function getTransactionStatusBadge(
-  status: DisbursementTransactionStatus
+function getBatchStatusBadge(
+  status: PaymentBatchStatus,
+  t: (keyOrText: string, fallback?: string) => string
 ): React.ReactElement {
   const statusConfig: Record<
-    DisbursementTransactionStatus,
-    { className: string; label: string }
+    PaymentBatchStatus,
+    { className: string; labelKey: string; label: string }
   > = {
-    PENDING: { className: STATUS_BADGE_CLASS.amber, label: 'Pending' },
-    PROCESSING: { className: STATUS_BADGE_CLASS.blue, label: 'Processing' },
-    COMPLETED: { className: STATUS_BADGE_CLASS.emerald, label: 'Completed' },
-    FAILED: { className: STATUS_BADGE_CLASS.red, label: 'Failed' },
-    CANCELLED: { className: STATUS_BADGE_CLASS.muted, label: 'Cancelled' },
+    PENDING: {
+      className: STATUS_BADGE_CLASS.amber,
+      labelKey: 'admin.disbursement.tx_status_pending',
+      label: 'Pending',
+    },
+    QUEUED: {
+      className: STATUS_BADGE_CLASS.blue,
+      labelKey: 'admin.disbursement.batch_status_queued',
+      label: 'Queued',
+    },
+    PROCESSING: {
+      className: STATUS_BADGE_CLASS.purple,
+      labelKey: 'admin.disbursement.tx_status_processing',
+      label: 'Processing',
+    },
+    COMPLETED: {
+      className: STATUS_BADGE_CLASS.emerald,
+      labelKey: 'admin.disbursement.tx_status_completed',
+      label: 'Completed',
+    },
+    FAILED: {
+      className: STATUS_BADGE_CLASS.red,
+      labelKey: 'admin.disbursement.tx_status_failed',
+      label: 'Failed',
+    },
+    CANCELLED: {
+      className: STATUS_BADGE_CLASS.muted,
+      labelKey: 'admin.disbursement.tx_status_cancelled',
+      label: 'Cancelled',
+    },
   };
 
   const config = statusConfig[status];
 
   return (
-    <Badge className={`${config.className} text-xs`}>{config.label}</Badge>
+    <Badge className={config.className}>
+      {t(config.labelKey, config.label)}
+    </Badge>
   );
 }
 
-function getAuditStatusBadge(status: AuditLogStatus): React.ReactElement {
+function getTransactionStatusBadge(
+  status: DisbursementTransactionStatus,
+  t: (keyOrText: string, fallback?: string) => string
+): React.ReactElement {
   const statusConfig: Record<
-    AuditLogStatus,
-    { className: string; label: string }
+    DisbursementTransactionStatus,
+    { className: string; labelKey: string; label: string }
   > = {
-    SUCCESS: { className: STATUS_BADGE_CLASS.emerald, label: 'Success' },
-    FAILURE: { className: STATUS_BADGE_CLASS.red, label: 'Failure' },
-    WARNING: { className: STATUS_BADGE_CLASS.amber, label: 'Warning' },
-    INFO: { className: STATUS_BADGE_CLASS.blue, label: 'Info' },
+    PENDING: {
+      className: STATUS_BADGE_CLASS.amber,
+      labelKey: 'admin.disbursement.tx_status_pending',
+      label: 'Pending',
+    },
+    PROCESSING: {
+      className: STATUS_BADGE_CLASS.blue,
+      labelKey: 'admin.disbursement.tx_status_processing',
+      label: 'Processing',
+    },
+    COMPLETED: {
+      className: STATUS_BADGE_CLASS.emerald,
+      labelKey: 'admin.disbursement.tx_status_completed',
+      label: 'Completed',
+    },
+    FAILED: {
+      className: STATUS_BADGE_CLASS.red,
+      labelKey: 'admin.disbursement.tx_status_failed',
+      label: 'Failed',
+    },
+    CANCELLED: {
+      className: STATUS_BADGE_CLASS.muted,
+      labelKey: 'admin.disbursement.tx_status_cancelled',
+      label: 'Cancelled',
+    },
   };
 
   const config = statusConfig[status];
 
   return (
-    <Badge className={`${config.className} text-xs`}>{config.label}</Badge>
+    <Badge className={`${config.className} text-xs`}>
+      {t(config.labelKey, config.label)}
+    </Badge>
+  );
+}
+
+function getAuditStatusBadge(
+  status: AuditLogStatus,
+  t: (keyOrText: string, fallback?: string) => string
+): React.ReactElement {
+  const statusConfig: Record<
+    AuditLogStatus,
+    { className: string; labelKey: string; label: string }
+  > = {
+    SUCCESS: {
+      className: STATUS_BADGE_CLASS.emerald,
+      labelKey: 'admin.disbursement.audit_status_success',
+      label: 'Success',
+    },
+    FAILURE: {
+      className: STATUS_BADGE_CLASS.red,
+      labelKey: 'admin.disbursement.audit_status_failure',
+      label: 'Failure',
+    },
+    WARNING: {
+      className: STATUS_BADGE_CLASS.amber,
+      labelKey: 'admin.disbursement.audit_status_warning',
+      label: 'Warning',
+    },
+    INFO: {
+      className: STATUS_BADGE_CLASS.blue,
+      labelKey: 'admin.disbursement.audit_status_info',
+      label: 'Info',
+    },
+  };
+
+  const config = statusConfig[status];
+
+  return (
+    <Badge className={`${config.className} text-xs`}>
+      {t(config.labelKey, config.label)}
+    </Badge>
   );
 }
 
@@ -171,6 +246,7 @@ function getAuditStatusBadge(status: AuditLogStatus): React.ReactElement {
  * - Fetches from /api/disbursement/batches/[batchId]
  */
 export default function BatchDetailsPage(): React.ReactElement {
+  const { t, formatCurrency, formatDate } = useLocale();
   const params = useParams<{ batchId: string }>();
   const router = useRouter();
   const batchId = params.batchId;
@@ -188,7 +264,10 @@ export default function BatchDetailsPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to fetch batch');
+        throw new Error(
+          data.error ||
+            t('admin.disbursement.error_fetch_batch', 'Failed to fetch batch')
+        );
       }
 
       const data = await response.json();
@@ -203,10 +282,15 @@ export default function BatchDetailsPage(): React.ReactElement {
         auditLogs: data.auditLogs ?? [],
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.dashboard.unknown_error', 'Unknown error')
+      );
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batchId]);
 
   useEffect(() => {
@@ -228,16 +312,34 @@ export default function BatchDetailsPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to execute batch');
+        throw new Error(
+          data.error ||
+            t(
+              'admin.disbursement.error_execute_batch',
+              'Failed to execute batch'
+            )
+        );
       }
 
       const data = await response.json();
       setSuccessMessage(
-        `Batch executed: ${data.result.successCount} succeeded, ${data.result.failedCount} failed`
+        t(
+          'admin.disbursement.batch_executed_result',
+          'Batch executed: {success} succeeded, {failed} failed'
+        )
+          .replace('{success}', String(data.result.successCount))
+          .replace('{failed}', String(data.result.failedCount))
       );
       void fetchBatch();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to execute batch');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t(
+              'admin.disbursement.error_execute_batch',
+              'Failed to execute batch'
+            )
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -252,12 +354,19 @@ export default function BatchDetailsPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to delete batch');
+        throw new Error(
+          data.error ||
+            t('admin.disbursement.error_delete_batch', 'Failed to delete batch')
+        );
       }
 
       router.push('/admin/disbursement/batches');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete batch');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.disbursement.error_delete_batch', 'Failed to delete batch')
+      );
       setIsProcessing(false);
     }
   };
@@ -273,19 +382,23 @@ export default function BatchDetailsPage(): React.ReactElement {
   if (error || !batch) {
     return (
       <div className="py-8 text-center">
-        <p className="mb-4 text-red-500">{error || 'Batch not found'}</p>
+        <p className="mb-4 text-red-500">
+          {error || t('admin.disbursement.batch_not_found', 'Batch not found')}
+        </p>
         <Link href="/admin/disbursement/batches">
-          <Button variant="outline">Back to Batches</Button>
+          <Button variant="outline">
+            {t('admin.disbursement.back_to_batches', 'Back to Batches')}
+          </Button>
         </Link>
       </div>
     );
   }
 
   const completedTransactions = batch.transactions.filter(
-    (t) => t.status === 'COMPLETED'
+    (tx) => tx.status === 'COMPLETED'
   );
   const failedTransactions = batch.transactions.filter(
-    (t) => t.status === 'FAILED'
+    (tx) => tx.status === 'FAILED'
   );
 
   return (
@@ -298,15 +411,16 @@ export default function BatchDetailsPage(): React.ReactElement {
               href="/admin/disbursement/batches"
               className="text-sm text-muted-foreground hover:text-foreground"
             >
-              ← Batches
+              ← {t('admin.disbursement.batches_nav', 'Batches')}
             </Link>
           </div>
           <h1 className="flex items-center gap-3 text-2xl font-bold text-foreground sm:text-3xl">
             {batch.batchNumber}
-            {getBatchStatusBadge(batch.status)}
+            {getBatchStatusBadge(batch.status, t)}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Created {formatDate(batch.createdAt)}
+            {t('admin.disbursement.created_prefix', 'Created')}{' '}
+            {formatDate(batch.createdAt)}
           </p>
         </div>
         <div className="flex gap-2">
@@ -315,34 +429,53 @@ export default function BatchDetailsPage(): React.ReactElement {
             variant="outline"
             disabled={isLoading}
           >
-            Refresh
+            {t('Refresh', 'Refresh')}
           </Button>
           {batch.status === 'PENDING' && (
             <>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button disabled={isProcessing}>
-                    {isProcessing ? 'Executing...' : 'Execute Batch'}
+                    {isProcessing
+                      ? t('admin.disbursement.executing', 'Executing...')
+                      : t('admin.disbursement.execute_batch', 'Execute Batch')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Confirm batch execution</AlertDialogTitle>
+                    <AlertDialogTitle>
+                      {t(
+                        'admin.disbursement.confirm_batch_execution',
+                        'Confirm batch execution'
+                      )}
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
-                      Execute batch <strong>{batch.batchNumber}</strong> —{' '}
-                      {batch.paymentCount} payment
-                      {batch.paymentCount === 1 ? '' : 's'},{' '}
-                      <strong>{formatCurrency(batch.totalAmount)}</strong> via{' '}
-                      <strong>{batch.provider}</strong>? This triggers real
-                      transfers through that provider and cannot be undone.
+                      {t(
+                        'admin.disbursement.execute_batch_prefix',
+                        'Execute batch'
+                      )}{' '}
+                      <strong>{batch.batchNumber}</strong> —{' '}
+                      {batch.paymentCount}{' '}
+                      {batch.paymentCount === 1
+                        ? t('admin.disbursement.payment_singular', 'payment')
+                        : t('admin.disbursement.payment_plural', 'payments')}
+                      , <strong>{formatCurrency(batch.totalAmount)}</strong>{' '}
+                      {t('admin.disbursement.execute_batch_via', 'via')}{' '}
+                      <strong>{batch.provider}</strong>?{' '}
+                      {t(
+                        'admin.disbursement.execute_batch_warning',
+                        'This triggers real transfers through that provider and cannot be undone.'
+                      )}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>
+                      {t('Cancel', 'Cancel')}
+                    </AlertDialogCancel>
                     <AlertDialogAction
                       onClick={() => void handleExecuteBatch()}
                     >
-                      Execute
+                      {t('admin.disbursement.execute', 'Execute')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -350,27 +483,39 @@ export default function BatchDetailsPage(): React.ReactElement {
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" disabled={isProcessing}>
-                    Delete
+                    {t('admin.disbursement.delete', 'Delete')}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>
-                      Delete batch {batch.batchNumber}?
+                      {t(
+                        'admin.disbursement.delete_batch_confirm',
+                        'Delete batch {number}?'
+                      ).replace('{number}', batch.batchNumber)}
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      This permanently deletes batch{' '}
+                      {t(
+                        'admin.disbursement.delete_batch_permanent_prefix',
+                        'This permanently deletes batch'
+                      )}{' '}
                       <strong>{batch.batchNumber}</strong> ({batch.paymentCount}{' '}
-                      payment
-                      {batch.paymentCount === 1 ? '' : 's'},{' '}
-                      {formatCurrency(batch.totalAmount)}). This cannot be
-                      undone.
+                      {batch.paymentCount === 1
+                        ? t('admin.disbursement.payment_singular', 'payment')
+                        : t('admin.disbursement.payment_plural', 'payments')}
+                      , {formatCurrency(batch.totalAmount)}).{' '}
+                      {t(
+                        'admin.disbursement.cannot_be_undone',
+                        'This cannot be undone.'
+                      )}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel>
+                      {t('Cancel', 'Cancel')}
+                    </AlertDialogCancel>
                     <AlertDialogAction onClick={() => void handleDeleteBatch()}>
-                      Delete
+                      {t('admin.disbursement.delete', 'Delete')}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -402,7 +547,7 @@ export default function BatchDetailsPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardDescription className="text-muted-foreground">
-              Total Amount
+              {t('admin.disbursement.total_amount', 'Total Amount')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -415,7 +560,7 @@ export default function BatchDetailsPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardDescription className="text-muted-foreground">
-              Payments
+              {t('admin.disbursement.payments', 'Payments')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -428,7 +573,7 @@ export default function BatchDetailsPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardDescription className="text-muted-foreground">
-              Completed
+              {t('admin.disbursement.tx_status_completed', 'Completed')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -441,7 +586,7 @@ export default function BatchDetailsPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardDescription className="text-muted-foreground">
-              Failed
+              {t('admin.disbursement.tx_status_failed', 'Failed')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -455,21 +600,29 @@ export default function BatchDetailsPage(): React.ReactElement {
       {/* Batch Details Card */}
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-foreground">Batch Details</CardTitle>
+          <CardTitle className="text-foreground">
+            {t('admin.disbursement.batch_details', 'Batch Details')}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
             <div>
-              <p className="text-muted-foreground">Provider</p>
+              <p className="text-muted-foreground">
+                {t('admin.disbursement.provider', 'Provider')}
+              </p>
               <p className="text-foreground">{batch.provider}</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Currency</p>
+              <p className="text-muted-foreground">
+                {t('admin.disbursement.currency', 'Currency')}
+              </p>
               <p className="text-foreground">{batch.currency}</p>
             </div>
             {batch.executedAt && (
               <div>
-                <p className="text-muted-foreground">Executed At</p>
+                <p className="text-muted-foreground">
+                  {t('admin.disbursement.executed_at', 'Executed At')}
+                </p>
                 <p className="text-foreground">
                   {formatDate(batch.executedAt)}
                 </p>
@@ -477,7 +630,9 @@ export default function BatchDetailsPage(): React.ReactElement {
             )}
             {batch.completedAt && (
               <div>
-                <p className="text-muted-foreground">Completed At</p>
+                <p className="text-muted-foreground">
+                  {t('admin.disbursement.completed_at', 'Completed At')}
+                </p>
                 <p className="text-foreground">
                   {formatDate(batch.completedAt)}
                 </p>
@@ -485,13 +640,17 @@ export default function BatchDetailsPage(): React.ReactElement {
             )}
             {batch.failedAt && (
               <div>
-                <p className="text-muted-foreground">Failed At</p>
+                <p className="text-muted-foreground">
+                  {t('admin.disbursement.failed_at', 'Failed At')}
+                </p>
                 <p className="text-foreground">{formatDate(batch.failedAt)}</p>
               </div>
             )}
             {batch.errorMessage && (
               <div className="sm:col-span-2">
-                <p className="text-muted-foreground">Error Message</p>
+                <p className="text-muted-foreground">
+                  {t('admin.disbursement.error_message', 'Error Message')}
+                </p>
                 <p className="text-red-400">{batch.errorMessage}</p>
               </div>
             )}
@@ -503,13 +662,16 @@ export default function BatchDetailsPage(): React.ReactElement {
       <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-foreground">
-            Transactions
+            {t('admin.disbursement.transactions', 'Transactions')}
             <Badge className="bg-muted text-muted-foreground">
               {batch.transactions.length}
             </Badge>
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            Individual payment transactions in this batch
+            {t(
+              'admin.disbursement.transactions_in_batch_desc',
+              'Individual payment transactions in this batch'
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -519,22 +681,22 @@ export default function BatchDetailsPage(): React.ReactElement {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Transaction ID
+                      {t('admin.disbursement.transaction_id', 'Transaction ID')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Status
+                      {t('admin.disbursement.status', 'Status')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Amount
+                      {t('admin.disbursement.amount', 'Amount')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Payee
+                      {t('admin.disbursement.payee', 'Payee')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Provider TX
+                      {t('admin.disbursement.provider_tx', 'Provider TX')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Retries
+                      {t('admin.disbursement.retries', 'Retries')}
                     </th>
                   </tr>
                 </thead>
@@ -550,7 +712,7 @@ export default function BatchDetailsPage(): React.ReactElement {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {getTransactionStatusBadge(tx.status)}
+                        {getTransactionStatusBadge(tx.status, t)}
                       </td>
                       <td className="px-4 py-3">
                         <span className="font-medium text-green-400">
@@ -579,7 +741,10 @@ export default function BatchDetailsPage(): React.ReactElement {
             </div>
           ) : (
             <p className="py-4 text-center text-muted-foreground">
-              No transactions yet.
+              {t(
+                'admin.disbursement.no_transactions_yet',
+                'No transactions yet.'
+              )}
             </p>
           )}
         </CardContent>
@@ -590,13 +755,16 @@ export default function BatchDetailsPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
-              Audit Logs
+              {t('admin.disbursement.nav_audit_logs', 'Audit Logs')}
               <Badge className="bg-muted text-muted-foreground">
                 {batch.auditLogs.length}
               </Badge>
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Activity history for this batch
+              {t(
+                'admin.disbursement.activity_history_for_batch',
+                'Activity history for this batch'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -606,14 +774,19 @@ export default function BatchDetailsPage(): React.ReactElement {
                   key={log.id}
                   className="bg-accent/50 flex items-start gap-3 rounded-lg p-3"
                 >
-                  <div className="mt-1">{getAuditStatusBadge(log.status)}</div>
+                  <div className="mt-1">
+                    {getAuditStatusBadge(log.status, t)}
+                  </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground">
                       {log.action}
                     </p>
                     {log.actor && (
                       <p className="text-xs text-muted-foreground">
-                        by {log.actor}
+                        {t('admin.disbursement.by_actor', 'by {actor}').replace(
+                          '{actor}',
+                          log.actor
+                        )}
                       </p>
                     )}
                     {log.details && Object.keys(log.details).length > 0 && (

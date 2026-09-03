@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -75,6 +76,7 @@ interface PayableSummary {
  * - Fetches from /api/disbursement/affiliates/payable
  */
 export default function DisbursementDashboardPage(): React.ReactElement {
+  const { t } = useLocale();
   const [summary, setSummary] = useState<DisbursementSummary | null>(null);
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [payableSummary, setPayableSummary] = useState<PayableSummary | null>(
@@ -111,13 +113,18 @@ export default function DisbursementDashboardPage(): React.ReactElement {
           setPayableSummary(payableData.summary);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch data');
+        setError(
+          err instanceof Error
+            ? err.message
+            : t('admin.disbursement.error_fetch_data', 'Failed to fetch data')
+        );
       } finally {
         setIsLoading(false);
       }
     }
 
     void fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (isLoading) {
@@ -136,7 +143,7 @@ export default function DisbursementDashboardPage(): React.ReactElement {
           onClick={() => window.location.reload()}
           className="bg-green-600 hover:bg-green-700"
         >
-          Retry
+          {t('admin.dashboard.retry', 'Retry')}
         </Button>
       </div>
     );
@@ -148,15 +155,20 @@ export default function DisbursementDashboardPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            Disbursement Overview
+            {t('admin.disbursement.overview_title', 'Disbursement Overview')}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Affiliate payout system dashboard — Wise (live)
+            {t(
+              'admin.disbursement.overview_subtitle',
+              'Affiliate payout system dashboard — Wise (live)'
+            )}
           </p>
         </div>
         <div className="flex gap-2">
           <Link href="/admin/disbursement/batches">
-            <Button>Create Batch</Button>
+            <Button>
+              {t('admin.disbursement.create_batch', 'Create Batch')}
+            </Button>
           </Link>
         </div>
       </div>
@@ -169,14 +181,14 @@ export default function DisbursementDashboardPage(): React.ReactElement {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2 text-foreground">
-                System Health
+                {t('admin.disbursement.system_health', 'System Health')}
                 {health.healthy ? (
                   <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                    Healthy
+                    {t('admin.disbursement.healthy', 'Healthy')}
                   </Badge>
                 ) : (
                   <Badge className="bg-red-500/10 text-red-600 dark:text-red-400">
-                    Unhealthy
+                    {t('admin.disbursement.unhealthy', 'Unhealthy')}
                   </Badge>
                 )}
               </CardTitle>
@@ -191,25 +203,35 @@ export default function DisbursementDashboardPage(): React.ReactElement {
                 <span
                   className={`h-2 w-2 rounded-full ${health.checks.database ? 'bg-green-500' : 'bg-red-500'}`}
                 />
-                <span className="text-foreground">Database</span>
+                <span className="text-foreground">
+                  {t('admin.disbursement.database', 'Database')}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span
                   className={`h-2 w-2 rounded-full ${health.checks.provider ? 'bg-green-500' : 'bg-red-500'}`}
                 />
-                <span className="text-foreground">Provider</span>
+                <span className="text-foreground">
+                  {t('admin.disbursement.provider', 'Provider')}
+                </span>
               </div>
               {health.checks.pendingBatches > 0 && (
                 <div className="flex items-center gap-2">
                   <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                    {health.checks.pendingBatches} Pending
+                    {t('admin.disbursement.n_pending', '{n} Pending').replace(
+                      '{n}',
+                      String(health.checks.pendingBatches)
+                    )}
                   </Badge>
                 </div>
               )}
               {health.checks.failedTransactions > 0 && (
                 <div className="flex items-center gap-2">
                   <Badge className="bg-red-500/10 text-red-600 dark:text-red-400">
-                    {health.checks.failedTransactions} Failed
+                    {t('admin.disbursement.n_failed', '{n} Failed').replace(
+                      '{n}',
+                      String(health.checks.failedTransactions)
+                    )}
                   </Badge>
                 </div>
               )}
@@ -233,7 +255,10 @@ export default function DisbursementDashboardPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardDescription className="text-muted-foreground">
-              Total Paid (All Time)
+              {t(
+                'admin.disbursement.total_paid_all_time',
+                'Total Paid (All Time)'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -241,7 +266,10 @@ export default function DisbursementDashboardPage(): React.ReactElement {
               {formatCurrency(summary?.amounts.totalPaid ?? 0)}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              {summary?.transactions.completed ?? 0} transactions
+              {t(
+                'admin.disbursement.n_transactions',
+                '{n} transactions'
+              ).replace('{n}', String(summary?.transactions.completed ?? 0))}
             </p>
           </CardContent>
         </Card>
@@ -250,7 +278,7 @@ export default function DisbursementDashboardPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardDescription className="text-muted-foreground">
-              Pending Payout
+              {t('admin.disbursement.pending_payout', 'Pending Payout')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -262,7 +290,10 @@ export default function DisbursementDashboardPage(): React.ReactElement {
               )}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              {payableSummary?.readyForPayout ?? 0} affiliates ready
+              {t(
+                'admin.disbursement.n_affiliates_ready',
+                '{n} affiliates ready'
+              ).replace('{n}', String(payableSummary?.readyForPayout ?? 0))}
             </p>
           </CardContent>
         </Card>
@@ -271,10 +302,13 @@ export default function DisbursementDashboardPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-muted-foreground">
-              Payment Batches
+              {t('admin.disbursement.payment_batches', 'Payment Batches')}
               {summary && (
                 <Badge className="bg-blue-500/10 text-xs text-blue-600 dark:text-blue-400">
-                  {summary.batches.successRate.toFixed(1)}% success
+                  {t(
+                    'admin.disbursement.n_percent_success',
+                    '{n}% success'
+                  ).replace('{n}', summary.batches.successRate.toFixed(1))}
                 </Badge>
               )}
             </CardDescription>
@@ -284,8 +318,12 @@ export default function DisbursementDashboardPage(): React.ReactElement {
               {summary?.batches.total ?? 0}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              {summary?.batches.completed ?? 0} completed,{' '}
-              {summary?.batches.pending ?? 0} pending
+              {t(
+                'admin.disbursement.n_completed_n_pending',
+                '{completed} completed, {pending} pending'
+              )
+                .replace('{completed}', String(summary?.batches.completed ?? 0))
+                .replace('{pending}', String(summary?.batches.pending ?? 0))}
             </p>
           </CardContent>
         </Card>
@@ -294,10 +332,13 @@ export default function DisbursementDashboardPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2 text-muted-foreground">
-              Transactions
+              {t('admin.disbursement.transactions', 'Transactions')}
               {summary && summary.transactions.failed > 0 && (
                 <Badge className="bg-red-500/10 text-xs text-red-600 dark:text-red-400">
-                  {summary.transactions.failed} failed
+                  {t('admin.disbursement.n_failed_lower', '{n} failed').replace(
+                    '{n}',
+                    String(summary.transactions.failed)
+                  )}
                 </Badge>
               )}
             </CardDescription>
@@ -307,7 +348,13 @@ export default function DisbursementDashboardPage(): React.ReactElement {
               {summary?.transactions.total ?? 0}
             </div>
             <p className="mt-1 text-sm text-green-400">
-              {summary?.transactions.successRate.toFixed(1) ?? 0}% success rate
+              {t(
+                'admin.disbursement.n_percent_success_rate',
+                '{n}% success rate'
+              ).replace(
+                '{n}',
+                summary?.transactions.successRate.toFixed(1) ?? '0'
+              )}
             </p>
           </CardContent>
         </Card>
@@ -318,9 +365,14 @@ export default function DisbursementDashboardPage(): React.ReactElement {
         {/* Quick Actions */}
         <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-foreground">Quick Actions</CardTitle>
+            <CardTitle className="text-foreground">
+              {t('admin.dashboard.quick_actions', 'Quick Actions')}
+            </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Common disbursement tasks
+              {t(
+                'admin.disbursement.common_tasks',
+                'Common disbursement tasks'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -328,25 +380,37 @@ export default function DisbursementDashboardPage(): React.ReactElement {
               href="/admin/disbursement/affiliates"
               className="block w-full rounded-lg bg-muted px-4 py-3 text-left text-foreground transition-colors hover:bg-accent"
             >
-              👥 View Payable Affiliates
+              {t(
+                'admin.disbursement.view_payable_affiliates',
+                '👥 View Payable Affiliates'
+              )}
             </Link>
             <Link
               href="/admin/disbursement/batches"
               className="block w-full rounded-lg bg-muted px-4 py-3 text-left text-foreground transition-colors hover:bg-accent"
             >
-              📦 Manage Payment Batches
+              {t(
+                'admin.disbursement.manage_payment_batches',
+                '📦 Manage Payment Batches'
+              )}
             </Link>
             <Link
               href="/admin/disbursement/transactions?status=FAILED"
               className="block w-full rounded-lg bg-muted px-4 py-3 text-left text-foreground transition-colors hover:bg-accent"
             >
-              🚨 View Failed Transactions
+              {t(
+                'admin.disbursement.view_failed_transactions',
+                '🚨 View Failed Transactions'
+              )}
             </Link>
             <Link
               href="/admin/disbursement/recipients"
               className="block w-full rounded-lg bg-muted px-4 py-3 text-left text-foreground transition-colors hover:bg-accent"
             >
-              🏦 Manage Payout Accounts
+              {t(
+                'admin.disbursement.manage_payout_accounts',
+                '🏦 Manage Payout Accounts'
+              )}
             </Link>
           </CardContent>
         </Card>
@@ -354,9 +418,14 @@ export default function DisbursementDashboardPage(): React.ReactElement {
         {/* Batch Success Rate */}
         <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-foreground">Batch Performance</CardTitle>
+            <CardTitle className="text-foreground">
+              {t('admin.disbursement.batch_performance', 'Batch Performance')}
+            </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Payment batch success metrics
+              {t(
+                'admin.disbursement.batch_performance_desc',
+                'Payment batch success metrics'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -366,7 +435,9 @@ export default function DisbursementDashboardPage(): React.ReactElement {
             <div className="space-y-3">
               <div>
                 <div className="mb-1 flex justify-between text-sm">
-                  <span className="text-muted-foreground">Completed</span>
+                  <span className="text-muted-foreground">
+                    {t('admin.disbursement.completed', 'Completed')}
+                  </span>
                   <span className="text-foreground">
                     {summary?.batches.completed ?? 0}
                   </span>
@@ -384,7 +455,9 @@ export default function DisbursementDashboardPage(): React.ReactElement {
               </div>
               <div>
                 <div className="mb-1 flex justify-between text-sm">
-                  <span className="text-muted-foreground">Pending</span>
+                  <span className="text-muted-foreground">
+                    {t('admin.fraud.pending', 'Pending')}
+                  </span>
                   <span className="text-foreground">
                     {summary?.batches.pending ?? 0}
                   </span>
@@ -407,9 +480,14 @@ export default function DisbursementDashboardPage(): React.ReactElement {
         {/* Affiliates Ready */}
         <Card className="border-border bg-card">
           <CardHeader>
-            <CardTitle className="text-foreground">Affiliates Ready</CardTitle>
+            <CardTitle className="text-foreground">
+              {t('admin.disbursement.affiliates_ready', 'Affiliates Ready')}
+            </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Affiliates with pending payouts
+              {t(
+                'admin.disbursement.affiliates_ready_desc',
+                'Affiliates with pending payouts'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -417,11 +495,19 @@ export default function DisbursementDashboardPage(): React.ReactElement {
               {payableSummary?.readyForPayout ?? 0}
             </div>
             <p className="mb-4 text-muted-foreground">
-              Total affiliates: {payableSummary?.totalAffiliates ?? 0}
+              {t(
+                'admin.disbursement.total_affiliates_count',
+                'Total affiliates: {n}'
+              ).replace('{n}', String(payableSummary?.totalAffiliates ?? 0))}
             </p>
             {payableSummary && payableSummary.readyForPayout > 0 && (
               <Link href="/admin/disbursement/affiliates">
-                <Button className="w-full">View &amp; Process Payouts</Button>
+                <Button className="w-full">
+                  {t(
+                    'admin.disbursement.view_process_payouts',
+                    'View & Process Payouts'
+                  )}
+                </Button>
               </Link>
             )}
           </CardContent>
@@ -432,28 +518,54 @@ export default function DisbursementDashboardPage(): React.ReactElement {
       <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-foreground">
-            About Affiliate Disbursement
+            {t(
+              'admin.disbursement.about_title',
+              'About Affiliate Disbursement'
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-foreground">
           <p>
-            This system handles affiliate commission payouts via Wise (live).
-            RiseWorks (blockchain/USDC) is archived — see the{' '}
+            {t(
+              'admin.disbursement.about_desc_prefix',
+              'This system handles affiliate commission payouts via Wise (live). RiseWorks (blockchain/USDC) is archived — see the'
+            )}{' '}
             <Link
               href="/admin/disbursement/recipients"
               className="text-primary hover:underline"
             >
-              Payout Accounts
+              {t('admin.disbursement.nav_payout_accounts', 'Payout Accounts')}
             </Link>{' '}
-            page for its read-only historical record.
+            {t(
+              'admin.disbursement.about_desc_suffix',
+              'page for its read-only historical record.'
+            )}
           </p>
           <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
-            <li>Commissions are aggregated from approved affiliate sales</li>
             <li>
-              Payment batches group multiple payouts for efficient processing
+              {t(
+                'admin.disbursement.about_bullet_1',
+                'Commissions are aggregated from approved affiliate sales'
+              )}
             </li>
-            <li>All transactions are logged for audit compliance</li>
-            <li>Webhook events update transaction status in real-time</li>
+            <li>
+              {t(
+                'admin.disbursement.about_bullet_2',
+                'Payment batches group multiple payouts for efficient processing'
+              )}
+            </li>
+            <li>
+              {t(
+                'admin.disbursement.about_bullet_3',
+                'All transactions are logged for audit compliance'
+              )}
+            </li>
+            <li>
+              {t(
+                'admin.disbursement.about_bullet_4',
+                'Webhook events update transaction status in real-time'
+              )}
+            </li>
           </ul>
         </CardContent>
       </Card>

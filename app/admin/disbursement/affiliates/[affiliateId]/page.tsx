@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 import type {
   DisbursementTransactionStatus,
   PaymentBatchStatus,
@@ -103,18 +103,33 @@ const BATCH_STATUS_CLASS: Record<PaymentBatchStatus, string> = {
 };
 
 function transactionStatusBadge(
-  status: DisbursementTransactionStatus
+  status: DisbursementTransactionStatus,
+  t: (keyOrText: string, fallback?: string) => string
 ): React.ReactElement {
   return (
     <Badge className={`${TRANSACTION_STATUS_CLASS[status]} text-xs`}>
-      {status}
+      {t(`admin.disbursement.tx_status_${status.toLowerCase()}`, status)}
     </Badge>
   );
 }
 
-function batchStatusBadge(status: PaymentBatchStatus): React.ReactElement {
+const BATCH_STATUS_LABEL_KEY: Record<PaymentBatchStatus, string> = {
+  PENDING: 'admin.disbursement.tx_status_pending',
+  QUEUED: 'admin.disbursement.batch_status_queued',
+  PROCESSING: 'admin.disbursement.tx_status_processing',
+  COMPLETED: 'admin.disbursement.tx_status_completed',
+  FAILED: 'admin.disbursement.tx_status_failed',
+  CANCELLED: 'admin.disbursement.tx_status_cancelled',
+};
+
+function batchStatusBadge(
+  status: PaymentBatchStatus,
+  t: (keyOrText: string, fallback?: string) => string
+): React.ReactElement {
   return (
-    <Badge className={`${BATCH_STATUS_CLASS[status]} text-xs`}>{status}</Badge>
+    <Badge className={`${BATCH_STATUS_CLASS[status]} text-xs`}>
+      {t(BATCH_STATUS_LABEL_KEY[status], status)}
+    </Badge>
   );
 }
 
@@ -138,6 +153,7 @@ function batchStatusBadge(status: PaymentBatchStatus): React.ReactElement {
  * since that's out of A2-7's own stated "align vocabulary" scope.
  */
 export default function AffiliateDisbursementDetailPage(): React.ReactElement {
+  const { t, formatCurrency, formatDate } = useLocale();
   const params = useParams();
   const affiliateId = params['affiliateId'] as string;
 
@@ -162,17 +178,29 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
       }
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to fetch affiliate details');
+        throw new Error(
+          data.error ||
+            t(
+              'admin.disbursement.error_fetch_affiliate_details',
+              'Failed to fetch affiliate details'
+            )
+        );
       }
       const data: AffiliateDisbursementDetail = await response.json();
       setDetail(data);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Failed to fetch affiliate'
+        err instanceof Error
+          ? err.message
+          : t(
+              'admin.disbursement.error_fetch_affiliate',
+              'Failed to fetch affiliate'
+            )
       );
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [affiliateId]);
 
   useEffect(() => {
@@ -192,14 +220,20 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
       <Card className="border-border bg-card">
         <CardContent className="py-12 text-center">
           <h2 className="text-xl font-bold text-foreground">
-            Affiliate not found
+            {t('admin.disbursement.affiliate_not_found', 'Affiliate not found')}
           </h2>
           <p className="mt-2 text-muted-foreground">
-            No affiliate exists with this ID.
+            {t(
+              'admin.disbursement.no_affiliate_with_id',
+              'No affiliate exists with this ID.'
+            )}
           </p>
           <Button asChild className="mt-4">
             <Link href="/admin/disbursement/affiliates">
-              Back to Payable Affiliates
+              {t(
+                'admin.disbursement.back_to_payable_affiliates',
+                'Back to Payable Affiliates'
+              )}
             </Link>
           </Button>
         </CardContent>
@@ -212,7 +246,9 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
       <Card className="border-border bg-card">
         <CardContent className="py-12 text-center">
           <p className="mb-4 text-red-500">{error}</p>
-          <Button onClick={() => void fetchDetail()}>Retry</Button>
+          <Button onClick={() => void fetchDetail()}>
+            {t('admin.dashboard.retry', 'Retry')}
+          </Button>
         </CardContent>
       </Card>
     );
@@ -227,7 +263,11 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
           href="/admin/disbursement/affiliates"
           className="hover:text-primary/80 text-sm text-primary transition-colors"
         >
-          ← Back to Payable Affiliates
+          ←{' '}
+          {t(
+            'admin.disbursement.back_to_payable_affiliates',
+            'Back to Payable Affiliates'
+          )}
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
@@ -242,11 +282,14 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
                   : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
             }
           >
-            {affiliate.status}
+            {t(
+              `admin.affiliates.status_${affiliate.status.toLowerCase()}`,
+              affiliate.status
+            )}
           </Badge>
           {detail.readyForPayout && (
             <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              Ready for Payout
+              {t('admin.disbursement.ready_for_payout', 'Ready for Payout')}
             </Badge>
           )}
         </div>
@@ -260,7 +303,7 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardDescription className="text-muted-foreground">
-              Total Earnings
+              {t('admin.disbursement.total_earnings', 'Total Earnings')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -272,7 +315,7 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardDescription className="text-muted-foreground">
-              Pending
+              {t('admin.disbursement.pending', 'Pending')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -284,7 +327,7 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardDescription className="text-muted-foreground">
-              Paid
+              {t('admin.disbursement.paid', 'Paid')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -296,7 +339,7 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardDescription className="text-muted-foreground">
-              Codes Distributed
+              {t('admin.disbursement.codes_distributed', 'Codes Distributed')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -308,7 +351,7 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader className="pb-2">
             <CardDescription className="text-muted-foreground">
-              Codes Used
+              {t('admin.disbursement.codes_used', 'Codes Used')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -324,22 +367,32 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="text-foreground">
-              Pending Commissions
+              {t(
+                'admin.disbursement.pending_commissions',
+                'Pending Commissions'
+              )}
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              {detail.pendingCommissions.count} commission
-              {detail.pendingCommissions.count === 1 ? '' : 's'} awaiting payout
+              {detail.pendingCommissions.count}{' '}
+              {detail.pendingCommissions.count === 1
+                ? t('admin.disbursement.commission_singular', 'commission')
+                : t('admin.disbursement.commission_plural', 'commissions')}{' '}
+              {t('admin.disbursement.awaiting_payout', 'awaiting payout')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Total Amount</span>
+              <span className="text-muted-foreground">
+                {t('admin.disbursement.total_amount', 'Total Amount')}
+              </span>
               <span className="text-foreground">
                 {formatCurrency(detail.pendingCommissions.totalAmount)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Oldest</span>
+              <span className="text-muted-foreground">
+                {t('admin.disbursement.oldest', 'Oldest')}
+              </span>
               <span className="text-foreground">
                 {detail.pendingCommissions.oldestDate
                   ? formatDate(detail.pendingCommissions.oldestDate)
@@ -348,15 +401,18 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">
-                Meets Payout Threshold
+                {t(
+                  'admin.disbursement.meets_payout_threshold',
+                  'Meets Payout Threshold'
+                )}
               </span>
               {detail.pendingCommissions.meetsThreshold ? (
                 <Badge className="bg-emerald-500/10 text-xs text-emerald-600 dark:text-emerald-400">
-                  Yes
+                  {t('admin.disbursement.yes', 'Yes')}
                 </Badge>
               ) : (
                 <Badge className="bg-muted text-xs text-muted-foreground">
-                  No
+                  {t('admin.disbursement.no', 'No')}
                 </Badge>
               )}
             </div>
@@ -367,26 +423,33 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
-              RiseWorks Account
+              {t('admin.disbursement.riseworks_account', 'RiseWorks Account')}
               <Badge className="bg-muted text-xs text-muted-foreground">
-                Historical
+                {t('admin.disbursement.historical', 'Historical')}
               </Badge>
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Archived per F42 — live payouts run through Wise
+              {t(
+                'admin.disbursement.archived_f42_notice',
+                'Archived per F42 — live payouts run through Wise'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {detail.riseAccount ? (
               <>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">KYC Status</span>
+                  <span className="text-muted-foreground">
+                    {t('admin.disbursement.kyc_status', 'KYC Status')}
+                  </span>
                   <span className="text-foreground">
                     {detail.riseAccount.kycStatus}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Rise ID</span>
+                  <span className="text-muted-foreground">
+                    {t('admin.disbursement.rise_id', 'Rise ID')}
+                  </span>
                   <span className="font-mono text-xs text-foreground">
                     {detail.riseAccount.riseId.slice(0, 10)}...
                   </span>
@@ -394,7 +457,10 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
               </>
             ) : (
               <p className="text-muted-foreground">
-                No RiseWorks account on record.
+                {t(
+                  'admin.disbursement.no_riseworks_account_record',
+                  'No RiseWorks account on record.'
+                )}
               </p>
             )}
           </CardContent>
@@ -404,15 +470,23 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
       {/* Recent Transactions */}
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-foreground">Recent Transactions</CardTitle>
+          <CardTitle className="text-foreground">
+            {t('admin.disbursement.recent_transactions', 'Recent Transactions')}
+          </CardTitle>
           <CardDescription className="text-muted-foreground">
-            Most recent 10 disbursement transactions
+            {t(
+              'admin.disbursement.recent_transactions_desc',
+              'Most recent 10 disbursement transactions'
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {detail.recentTransactions.length === 0 ? (
             <p className="px-6 py-8 text-center text-muted-foreground">
-              No transactions yet.
+              {t(
+                'admin.disbursement.no_transactions_yet',
+                'No transactions yet.'
+              )}
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -420,19 +494,19 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Transaction
+                      {t('admin.disbursement.transaction', 'Transaction')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Amount
+                      {t('admin.disbursement.amount', 'Amount')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Status
+                      {t('admin.disbursement.status', 'Status')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Batch
+                      {t('admin.disbursement.batch', 'Batch')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Created
+                      {t('admin.disbursement.created', 'Created')}
                     </th>
                   </tr>
                 </thead>
@@ -449,7 +523,7 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
                         {formatCurrency(txn.amount)}
                       </td>
                       <td className="px-4 py-3">
-                        {transactionStatusBadge(txn.status)}
+                        {transactionStatusBadge(txn.status, t)}
                       </td>
                       <td className="px-4 py-3">
                         {txn.batchNumber ? (
@@ -458,7 +532,7 @@ export default function AffiliateDisbursementDetailPage(): React.ReactElement {
                               {txn.batchNumber}
                             </span>
                             {txn.batchStatus &&
-                              batchStatusBadge(txn.batchStatus)}
+                              batchStatusBadge(txn.batchStatus, t)}
                           </div>
                         ) : (
                           <span className="text-muted-foreground">—</span>

@@ -23,7 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 import type {
   PayableAffiliate,
   RiseWorksKycStatus,
@@ -44,31 +44,41 @@ interface PayableSummary {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function getKycStatusBadge(
-  status: RiseWorksKycStatus | 'none'
+  status: RiseWorksKycStatus | 'none',
+  t: (keyOrText: string, fallback?: string) => string
 ): React.ReactElement {
   const defaultConfig = {
     className: 'bg-muted text-muted-foreground',
+    labelKey: 'admin.disbursement.kyc_no_account',
     label: 'No Account',
   };
-  const statusConfig: Record<string, { className: string; label: string }> = {
+  const statusConfig: Record<
+    string,
+    { className: string; labelKey: string; label: string }
+  > = {
     APPROVED: {
       className: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      labelKey: 'admin.disbursement.kyc_approved',
       label: 'Approved',
     },
     PENDING: {
       className: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      labelKey: 'admin.disbursement.kyc_pending',
       label: 'Pending',
     },
     SUBMITTED: {
       className: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+      labelKey: 'admin.disbursement.kyc_submitted',
       label: 'Submitted',
     },
     REJECTED: {
       className: 'bg-red-500/10 text-red-600 dark:text-red-400',
+      labelKey: 'admin.disbursement.kyc_rejected',
       label: 'Rejected',
     },
     EXPIRED: {
       className: 'bg-muted text-muted-foreground',
+      labelKey: 'admin.disbursement.kyc_expired',
       label: 'Expired',
     },
     none: defaultConfig,
@@ -77,7 +87,9 @@ function getKycStatusBadge(
   const config = statusConfig[status] ?? defaultConfig;
 
   return (
-    <Badge className={`${config.className} text-xs`}>{config.label}</Badge>
+    <Badge className={`${config.className} text-xs`}>
+      {t(config.labelKey, config.label)}
+    </Badge>
   );
 }
 
@@ -99,6 +111,7 @@ function getKycStatusBadge(
  * - Fetches from /api/disbursement/affiliates/payable
  */
 export default function PayableAffiliatesPage(): React.ReactElement {
+  const { t, formatCurrency, formatDate } = useLocale();
   const [affiliates, setAffiliates] = useState<PayableAffiliate[]>([]);
   const [summary, setSummary] = useState<PayableSummary | null>(null);
   const [selectedAffiliates, setSelectedAffiliates] = useState<Set<string>>(
@@ -116,17 +129,28 @@ export default function PayableAffiliatesPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to fetch affiliates');
+        throw new Error(
+          data.error ||
+            t(
+              'admin.disbursement.error_fetch_affiliates',
+              'Failed to fetch affiliates'
+            )
+        );
       }
 
       const data = await response.json();
       setAffiliates(data.affiliates || []);
       setSummary(data.summary || null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.dashboard.unknown_error', 'Unknown error')
+      );
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -171,14 +195,26 @@ export default function PayableAffiliatesPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Payment failed');
+        throw new Error(
+          data.error ||
+            t('admin.disbursement.error_payment_failed', 'Payment failed')
+        );
       }
 
       const data = await response.json();
-      setSuccessMessage(`Payment successful! Batch ID: ${data.result.batchId}`);
+      setSuccessMessage(
+        t(
+          'admin.disbursement.payment_successful',
+          'Payment successful! Batch ID: {id}'
+        ).replace('{id}', data.result.batchId)
+      );
       void fetchAffiliates();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Payment failed');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.disbursement.error_payment_failed', 'Payment failed')
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -202,15 +238,27 @@ export default function PayableAffiliatesPage(): React.ReactElement {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to create batch');
+        throw new Error(
+          data.error ||
+            t('admin.disbursement.error_create_batch', 'Failed to create batch')
+        );
       }
 
       const data = await response.json();
-      setSuccessMessage(`Batch created! ID: ${data.batch.id}`);
+      setSuccessMessage(
+        t(
+          'admin.disbursement.batch_created',
+          'Batch created! ID: {id}'
+        ).replace('{id}', data.batch.id)
+      );
       setSelectedAffiliates(new Set());
       void fetchAffiliates();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create batch');
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('admin.disbursement.error_create_batch', 'Failed to create batch')
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -233,10 +281,13 @@ export default function PayableAffiliatesPage(): React.ReactElement {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            Payable Affiliates
+            {t('admin.disbursement.payable_affiliates', 'Payable Affiliates')}
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Affiliates with pending commission payouts
+            {t(
+              'admin.disbursement.payable_affiliates_subtitle',
+              'Affiliates with pending commission payouts'
+            )}
           </p>
         </div>
         <div className="flex gap-2">
@@ -245,7 +296,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
             variant="outline"
             disabled={isLoading}
           >
-            Refresh
+            {t('Refresh', 'Refresh')}
           </Button>
           {selectedAffiliates.size > 0 && (
             <Button
@@ -253,8 +304,11 @@ export default function PayableAffiliatesPage(): React.ReactElement {
               disabled={isProcessing}
             >
               {isProcessing
-                ? 'Creating...'
-                : `Create Batch (${selectedAffiliates.size})`}
+                ? t('admin.disbursement.creating', 'Creating...')
+                : t(
+                    'admin.disbursement.create_batch_count',
+                    'Create Batch ({count})'
+                  ).replace('{count}', String(selectedAffiliates.size))}
             </Button>
           )}
         </div>
@@ -283,7 +337,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
           <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardDescription className="text-muted-foreground">
-                Total Affiliates
+                {t('admin.disbursement.total_affiliates', 'Total Affiliates')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -296,7 +350,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
           <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardDescription className="text-muted-foreground">
-                Ready for Payout
+                {t('admin.disbursement.ready_for_payout', 'Ready for Payout')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -309,7 +363,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
           <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardDescription className="text-muted-foreground">
-                Total Pending
+                {t('admin.disbursement.total_pending', 'Total Pending')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -328,20 +382,22 @@ export default function PayableAffiliatesPage(): React.ReactElement {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2 text-foreground">
-                  Ready for Payout
+                  {t('admin.disbursement.ready_for_payout', 'Ready for Payout')}
                   <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     {readyAffiliates.length}
                   </Badge>
                 </CardTitle>
                 <CardDescription className="text-muted-foreground">
-                  Affiliates with approved RiseWorks accounts (historical KYC
-                  record — payouts run through Wise)
+                  {t(
+                    'admin.disbursement.ready_for_payout_desc',
+                    'Affiliates with approved RiseWorks accounts (historical KYC record — payouts run through Wise)'
+                  )}
                 </CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={handleSelectAll}>
                 {selectedAffiliates.size === readyAffiliates.length
-                  ? 'Deselect All'
-                  : 'Select All'}
+                  ? t('admin.disbursement.deselect_all', 'Deselect All')
+                  : t('admin.disbursement.select_all', 'Select All')}
               </Button>
             </div>
           </CardHeader>
@@ -358,29 +414,32 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                         }
                         onChange={handleSelectAll}
                         className="rounded"
-                        aria-label="Select all affiliates"
+                        aria-label={t(
+                          'admin.disbursement.select_all_affiliates_aria',
+                          'Select all affiliates'
+                        )}
                       />
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Affiliate
+                      {t('admin.disbursement.affiliate', 'Affiliate')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Country
+                      {t('admin.affiliates.country', 'Country')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Pending
+                      {t('admin.disbursement.pending', 'Pending')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Commissions
+                      {t('admin.disbursement.commissions', 'Commissions')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Oldest
+                      {t('admin.disbursement.oldest', 'Oldest')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      KYC Status
+                      {t('admin.disbursement.kyc_status', 'KYC Status')}
                     </th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                      Actions
+                      {t('admin.disbursement.actions', 'Actions')}
                     </th>
                   </tr>
                 </thead>
@@ -396,7 +455,10 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                           checked={selectedAffiliates.has(affiliate.id)}
                           onChange={() => handleSelectAffiliate(affiliate.id)}
                           className="rounded"
-                          aria-label={`Select ${affiliate.fullName}`}
+                          aria-label={t(
+                            'admin.disbursement.select_affiliate_aria',
+                            'Select {name}'
+                          ).replace('{name}', affiliate.fullName)}
                         />
                       </td>
                       <td className="px-4 py-3">
@@ -426,7 +488,7 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                           : '-'}
                       </td>
                       <td className="px-4 py-3">
-                        {getKycStatusBadge(affiliate.riseAccount.kycStatus)}
+                        {getKycStatusBadge(affiliate.riseAccount.kycStatus, t)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
@@ -434,42 +496,56 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                             href={`/admin/disbursement/affiliates/${affiliate.id}`}
                             className="hover:text-primary/80 text-sm text-primary transition-colors"
                           >
-                            View
+                            {t('View', 'View')}
                           </Link>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button size="sm" disabled={isProcessing}>
-                                Pay Now
+                                {t('admin.disbursement.pay_now', 'Pay Now')}
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>
-                                  Confirm quick payment
+                                  {t(
+                                    'admin.disbursement.confirm_quick_payment',
+                                    'Confirm quick payment'
+                                  )}
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Pay{' '}
+                                  {t('admin.disbursement.pay_prefix', 'Pay')}{' '}
                                   <strong>
                                     {formatCurrency(affiliate.pendingAmount)}
                                   </strong>{' '}
-                                  to <strong>{affiliate.fullName}</strong> (
-                                  {affiliate.pendingCommissionCount} commission
+                                  {t('admin.disbursement.pay_to', 'to')}{' '}
+                                  <strong>{affiliate.fullName}</strong> (
+                                  {affiliate.pendingCommissionCount}{' '}
                                   {affiliate.pendingCommissionCount === 1
-                                    ? ''
-                                    : 's'}
-                                  ) now? This creates a single-affiliate batch
-                                  and executes it immediately — it cannot be
-                                  undone.
+                                    ? t(
+                                        'admin.disbursement.commission_singular',
+                                        'commission'
+                                      )
+                                    : t(
+                                        'admin.disbursement.commission_plural',
+                                        'commissions'
+                                      )}
+                                  ){' '}
+                                  {t(
+                                    'admin.disbursement.quick_pay_warning',
+                                    'now? This creates a single-affiliate batch and executes it immediately — it cannot be undone.'
+                                  )}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel>
+                                  {t('Cancel', 'Cancel')}
+                                </AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() =>
                                     void handleQuickPay(affiliate.id)
                                   }
                                 >
-                                  Pay Now
+                                  {t('admin.disbursement.pay_now', 'Pay Now')}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -490,13 +566,19 @@ export default function PayableAffiliatesPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
-              Not Ready for Payout
+              {t(
+                'admin.disbursement.not_ready_for_payout',
+                'Not Ready for Payout'
+              )}
               <Badge className="bg-muted text-muted-foreground">
                 {notReadyAffiliates.length}
               </Badge>
             </CardTitle>
             <CardDescription className="text-muted-foreground">
-              Affiliates pending KYC approval or missing RiseWorks account
+              {t(
+                'admin.disbursement.not_ready_for_payout_desc',
+                'Affiliates pending KYC approval or missing RiseWorks account'
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -505,25 +587,28 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Affiliate
+                      {t('admin.disbursement.affiliate', 'Affiliate')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Country
+                      {t('admin.affiliates.country', 'Country')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Pending
+                      {t('admin.disbursement.pending', 'Pending')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Commissions
+                      {t('admin.disbursement.commissions', 'Commissions')}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      RiseWorks Status
+                      {t(
+                        'admin.disbursement.riseworks_status',
+                        'RiseWorks Status'
+                      )}
                     </th>
                     <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                      Reason
+                      {t('admin.disbursement.reason', 'Reason')}
                     </th>
                     <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                      Actions
+                      {t('admin.disbursement.actions', 'Actions')}
                     </th>
                   </tr>
                 </thead>
@@ -555,21 +640,27 @@ export default function PayableAffiliatesPage(): React.ReactElement {
                         {affiliate.pendingCommissionCount}
                       </td>
                       <td className="px-4 py-3">
-                        {getKycStatusBadge(affiliate.riseAccount.kycStatus)}
+                        {getKycStatusBadge(affiliate.riseAccount.kycStatus, t)}
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
                         {!affiliate.riseAccount.hasAccount
-                          ? 'No RiseWorks account'
+                          ? t(
+                              'admin.disbursement.no_riseworks_account',
+                              'No RiseWorks account'
+                            )
                           : affiliate.riseAccount.kycStatus !== 'APPROVED'
-                            ? 'KYC not approved'
-                            : 'Unknown'}
+                            ? t(
+                                'admin.disbursement.kyc_not_approved',
+                                'KYC not approved'
+                              )
+                            : t('admin.disbursement.unknown', 'Unknown')}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Link
                           href={`/admin/disbursement/affiliates/${affiliate.id}`}
                           className="hover:text-primary/80 text-sm text-primary transition-colors"
                         >
-                          View
+                          {t('View', 'View')}
                         </Link>
                       </td>
                     </tr>
@@ -586,7 +677,10 @@ export default function PayableAffiliatesPage(): React.ReactElement {
         <Card className="border-border bg-card">
           <CardContent className="py-12 text-center">
             <p className="text-muted-foreground">
-              No affiliates with pending payouts found.
+              {t(
+                'admin.disbursement.no_pending_payouts',
+                'No affiliates with pending payouts found.'
+              )}
             </p>
           </CardContent>
         </Card>
