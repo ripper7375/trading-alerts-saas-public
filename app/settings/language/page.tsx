@@ -57,7 +57,8 @@ const languages = [
   { code: 'ar', name: 'Arabic (العربية)', flag: '🇦🇪' },
   { code: 'fr', name: 'French (Français)', flag: '🇫🇷' },
   { code: 'ko', name: 'Korean (한국어)', flag: '🇰🇷' },
-  { code: 'zh', name: 'Chinese (中文)', flag: '🇨🇳' },
+  { code: 'zh', name: 'Chinese (Simplified) (简体中文)', flag: '🇨🇳' },
+  { code: 'zh-TW', name: 'Chinese (Traditional) (繁體中文)', flag: '🇹🇼' },
 ];
 
 const currencies = [

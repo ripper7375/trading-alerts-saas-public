@@ -14,6 +14,7 @@ import arDict from '@/lib/i18n/dictionaries/ar.json';
 import frDict from '@/lib/i18n/dictionaries/fr.json';
 import koDict from '@/lib/i18n/dictionaries/ko.json';
 import zhDict from '@/lib/i18n/dictionaries/zh.json';
+import zhTWDict from '@/lib/i18n/dictionaries/zh-TW.json';
 
 /**
  * Server-safe mirror of `lib/context/locale-context.tsx`'s dictionary map, for
@@ -44,6 +45,7 @@ const dictionaries: Record<string, Record<string, string>> = {
   fr: frDict,
   ko: koDict,
   zh: zhDict,
+  'zh-TW': zhTWDict,
 };
 
 /** Same fallback convention as `dictionaryFor()` in locale-context.tsx: en-GB is the base. */

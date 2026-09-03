@@ -138,6 +138,9 @@ importers:
       openapi-fetch:
         specifier: ^0.17.0
         version: 0.17.0
+      opencc-js:
+        specifier: ^1.4.2
+        version: 1.4.2
       otplib:
         specifier: ^12.0.1
         version: 12.0.1
@@ -5921,6 +5924,9 @@ packages:
     hasBin: true
     peerDependencies:
       typescript: ^5.x
+
+  opencc-js@1.4.2:
+    resolution: {integrity: sha512-EdcspgdROiCCZDM+jZR6Pa670xW+EW2QhctPBQ8gRjg6lrx4IHEl+2s+kt5izk/TkxVRgdWuFgaGkaEdIUfdaw==}
 
   opener@1.5.2:
     resolution: {integrity: sha512-ur5UIdyw5Y7yEj9wLzhqXiy6GZ3Mwx0yGI+5sMn2r0N0v3cKJvUmFH5yPP+WXh9e0xfyzyJX95D8l088DNFj7A==}
@@ -13402,6 +13408,8 @@ snapshots:
       supports-color: 10.2.2
       typescript: 5.9.3
       yargs-parser: 21.1.1
+
+  opencc-js@1.4.2: {}
 
   opener@1.5.2: {}
 
