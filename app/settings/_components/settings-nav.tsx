@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 
 /**
  * Settings sub-navigation -- desktop sticky sidebar / mobile horizontal
@@ -24,46 +25,76 @@ import { cn } from '@/lib/utils';
  * was ported from.
  */
 
-interface SettingsTab {
+interface SettingsTabDef {
   id: string;
   icon: React.ComponentType<{ className?: string }>;
+  labelKey: string;
   label: string;
   href: string;
 }
 
-const settingsTabs: SettingsTab[] = [
-  { id: 'profile', icon: User, label: 'Profile', href: '/settings/profile' },
+const settingsTabs: SettingsTabDef[] = [
+  {
+    id: 'profile',
+    icon: User,
+    labelKey: 'settings.nav.profile',
+    label: 'Profile',
+    href: '/settings/profile',
+  },
   {
     id: 'appearance',
     icon: Palette,
+    labelKey: 'settings.nav.appearance',
     label: 'Appearance',
     href: '/settings/appearance',
   },
-  { id: 'account', icon: Lock, label: 'Account', href: '/settings/account' },
+  {
+    id: 'account',
+    icon: Lock,
+    labelKey: 'settings.nav.account',
+    label: 'Account',
+    href: '/settings/account',
+  },
   {
     id: 'security',
     icon: Shield,
+    labelKey: 'nav.security',
     label: 'Security',
     href: '/settings/security',
   },
-  { id: 'privacy', icon: Eye, label: 'Privacy', href: '/settings/privacy' },
+  {
+    id: 'privacy',
+    icon: Eye,
+    labelKey: 'settings.nav.privacy',
+    label: 'Privacy',
+    href: '/settings/privacy',
+  },
   {
     id: 'billing',
     icon: CreditCard,
+    labelKey: 'nav.billing',
     label: 'Billing',
     href: '/settings/billing',
   },
   {
     id: 'language',
     icon: Globe,
+    labelKey: 'nav.language',
     label: 'Language',
     href: '/settings/language',
   },
-  { id: 'help', icon: HelpCircle, label: 'Help', href: '/settings/help' },
+  {
+    id: 'help',
+    icon: HelpCircle,
+    labelKey: 'nav.help',
+    label: 'Help',
+    href: '/settings/help',
+  },
 ];
 
 export function SettingsNav(): React.ReactElement {
   const pathname = usePathname();
+  const { t } = useLocale();
 
   const activeTabId = settingsTabs.find(
     (tab) => pathname === tab.href || pathname.startsWith(`${tab.href}/`)
@@ -91,7 +122,7 @@ export function SettingsNav(): React.ReactElement {
                   )}
                 >
                   <Icon className="h-4 w-4" />
-                  <span>{tab.label}</span>
+                  <span>{t(tab.labelKey, tab.label)}</span>
                 </Link>
               );
             })}
@@ -118,7 +149,7 @@ export function SettingsNav(): React.ReactElement {
                 )}
               >
                 <Icon className="h-4 w-4" />
-                <span>{tab.label}</span>
+                <span>{t(tab.labelKey, tab.label)}</span>
               </Link>
             );
           })}

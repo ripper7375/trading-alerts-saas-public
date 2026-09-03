@@ -22,6 +22,7 @@ import {
   ThemeMode,
 } from '@/lib/appearance/types';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/context/locale-context';
 
 /**
  * Appearance Settings Page (Row 74, Protected Page #5)
@@ -36,13 +37,16 @@ import { cn } from '@/lib/utils';
 
 interface ThemeOption {
   value: ThemeMode;
+  labelKey: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  descKey: string;
   description: string;
 }
 
 interface AccentOption {
   name: AccentScheme;
+  labelKey: string;
   label: string;
   swatchClass: string;
   activeClass: string;
@@ -51,20 +55,26 @@ interface AccentOption {
 const themeOptions: ThemeOption[] = [
   {
     value: 'dark',
+    labelKey: 'settings.theme_dark',
     label: 'Dark Trading Terminal',
     icon: Moon,
+    descKey: 'settings.theme_dark_desc',
     description: 'High-contrast dark theme optimized for long trading sessions',
   },
   {
     value: 'light',
+    labelKey: 'settings.theme_light',
     label: 'Light Clean Mode',
     icon: Sun,
+    descKey: 'settings.theme_light_desc',
     description: 'Bright high-visibility interface for daylight analysis',
   },
   {
     value: 'system',
+    labelKey: 'settings.theme_system',
     label: 'System Sync',
     icon: Monitor,
+    descKey: 'settings.theme_system_desc',
     description: 'Automatically match your operating system theme settings',
   },
 ];
@@ -72,6 +82,7 @@ const themeOptions: ThemeOption[] = [
 const accentOptions: AccentOption[] = [
   {
     name: 'amber',
+    labelKey: 'settings.accent_amber',
     label: 'Gold Amber',
     swatchClass: 'bg-amber-500',
     activeClass:
@@ -79,6 +90,7 @@ const accentOptions: AccentOption[] = [
   },
   {
     name: 'emerald',
+    labelKey: 'settings.accent_emerald',
     label: 'Emerald Green',
     swatchClass: 'bg-emerald-500',
     activeClass:
@@ -86,6 +98,7 @@ const accentOptions: AccentOption[] = [
   },
   {
     name: 'blue',
+    labelKey: 'settings.accent_blue',
     label: 'Sapphire Blue',
     swatchClass: 'bg-blue-500',
     activeClass:
@@ -93,6 +106,7 @@ const accentOptions: AccentOption[] = [
   },
   {
     name: 'purple',
+    labelKey: 'settings.accent_purple',
     label: 'Amethyst Purple',
     swatchClass: 'bg-purple-500',
     activeClass:
@@ -101,6 +115,7 @@ const accentOptions: AccentOption[] = [
 ];
 
 export default function AppearanceSettingsPage(): React.ReactElement {
+  const { t } = useLocale();
   const { settings, updateSettings, saveSettings, isSaving } = useAppearance();
   const [isSaved, setIsSaved] = useState(false);
 
@@ -132,22 +147,27 @@ export default function AppearanceSettingsPage(): React.ReactElement {
           <div>
             <h2 className="flex items-center gap-2 text-lg font-bold text-foreground">
               <Palette className="h-4 w-4 text-primary" />
-              Terminal Appearance &amp; Chart Color Scheme
+              {t(
+                'settings.terminal_appearance_title',
+                'Terminal Appearance & Chart Color Scheme'
+              )}
             </h2>
             <p className="text-sm text-muted-foreground">
-              Customize theme mode, accent highlights, and candlestick styles.
-              Changes apply instantly across the app.
+              {t(
+                'settings.terminal_appearance_desc',
+                'Customize theme mode, accent highlights, and candlestick styles. Changes apply instantly across the app.'
+              )}
             </p>
           </div>
           <Badge className="border-primary/40 bg-primary/10 hover:bg-primary/10 border font-mono text-[10px] text-primary">
-            LIVE PREVIEW
+            {t('settings.live_preview', 'LIVE PREVIEW')}
           </Badge>
         </div>
 
         {/* Theme Selection */}
         <div className="space-y-3">
           <Label className="text-xs font-semibold text-muted-foreground">
-            Theme Mode
+            {t('settings.theme_mode', 'Theme Mode')}
           </Label>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {themeOptions.map((option) => {
@@ -168,12 +188,12 @@ export default function AppearanceSettingsPage(): React.ReactElement {
                   <div className="flex w-full items-center justify-between text-sm font-bold">
                     <span className="flex items-center gap-2">
                       <Icon className="h-4 w-4" />
-                      {option.label}
+                      {t(option.labelKey, option.label)}
                     </span>
                     {isSelected && <Check className="h-4 w-4" />}
                   </div>
                   <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                    {option.description}
+                    {t(option.descKey, option.description)}
                   </p>
                 </button>
               );
@@ -186,7 +206,7 @@ export default function AppearanceSettingsPage(): React.ReactElement {
         {/* Accent Color Scheme */}
         <div className="space-y-3">
           <Label className="text-xs font-semibold text-muted-foreground">
-            Accent Color Scheme
+            {t('settings.accent_color_scheme', 'Accent Color Scheme')}
           </Label>
           <div className="flex flex-wrap items-center gap-3">
             {accentOptions.map((opt) => {
@@ -206,7 +226,7 @@ export default function AppearanceSettingsPage(): React.ReactElement {
                   <span
                     className={cn('h-3.5 w-3.5 rounded-full', opt.swatchClass)}
                   />
-                  <span>{opt.label}</span>
+                  <span>{t(opt.labelKey, opt.label)}</span>
                   {isSelected && <Check className="h-3.5 w-3.5" />}
                 </button>
               );
@@ -220,7 +240,10 @@ export default function AppearanceSettingsPage(): React.ReactElement {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-semibold text-muted-foreground">
-              Chart Candlestick &amp; Grid Customization
+              {t(
+                'settings.chart_candlestick_title',
+                'Chart Candlestick & Grid Customization'
+              )}
             </Label>
             <Button
               type="button"
@@ -228,17 +251,20 @@ export default function AppearanceSettingsPage(): React.ReactElement {
               size="sm"
               onClick={handleResetChartDefaults}
               className="h-7 gap-1.5 px-2.5 text-[11px] font-bold"
-              title="Reset chart candlestick colors and grid opacity to defaults"
+              title={t(
+                'settings.reset_defaults_tooltip',
+                'Reset chart candlestick colors and grid opacity to defaults'
+              )}
             >
               <RotateCcw className="h-3 w-3" />
-              Reset Defaults
+              {t('settings.reset_defaults', 'Reset Defaults')}
             </Button>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="bg-muted/40 flex items-center justify-between rounded-xl border border-border p-3">
               <span className="text-xs font-medium text-foreground">
-                Bullish Up Candle
+                {t('settings.bullish_candle', 'Bullish Up Candle')}
               </span>
               <div className="flex items-center gap-2">
                 <input
@@ -248,7 +274,10 @@ export default function AppearanceSettingsPage(): React.ReactElement {
                     updateSettings({ chartUpColor: e.target.value })
                   }
                   className="h-7 w-7 cursor-pointer rounded border-0 bg-transparent"
-                  aria-label="Bullish up candle color"
+                  aria-label={t(
+                    'settings.bullish_candle_aria',
+                    'Bullish up candle color'
+                  )}
                 />
                 <span
                   className="font-mono text-xs font-bold"
@@ -261,7 +290,7 @@ export default function AppearanceSettingsPage(): React.ReactElement {
 
             <div className="bg-muted/40 flex items-center justify-between rounded-xl border border-border p-3">
               <span className="text-xs font-medium text-foreground">
-                Bearish Down Candle
+                {t('settings.bearish_candle', 'Bearish Down Candle')}
               </span>
               <div className="flex items-center gap-2">
                 <input
@@ -271,7 +300,10 @@ export default function AppearanceSettingsPage(): React.ReactElement {
                     updateSettings({ chartDownColor: e.target.value })
                   }
                   className="h-7 w-7 cursor-pointer rounded border-0 bg-transparent"
-                  aria-label="Bearish down candle color"
+                  aria-label={t(
+                    'settings.bearish_candle_aria',
+                    'Bearish down candle color'
+                  )}
                 />
                 <span
                   className="font-mono text-xs font-bold"
@@ -285,7 +317,9 @@ export default function AppearanceSettingsPage(): React.ReactElement {
 
           <div className="bg-muted/40 space-y-2 rounded-xl border border-border p-3">
             <div className="flex justify-between text-xs font-semibold">
-              <span className="text-foreground">Chart Grid Opacity</span>
+              <span className="text-foreground">
+                {t('settings.chart_grid_opacity', 'Chart Grid Opacity')}
+              </span>
               <span className="font-mono text-primary">
                 {settings.gridOpacity}%
               </span>
@@ -299,7 +333,10 @@ export default function AppearanceSettingsPage(): React.ReactElement {
                 updateSettings({ gridOpacity: parseInt(e.target.value, 10) })
               }
               className="h-1.5 w-full cursor-pointer rounded-lg bg-border accent-primary"
-              aria-label="Chart grid opacity"
+              aria-label={t(
+                'settings.chart_grid_opacity',
+                'Chart Grid Opacity'
+              )}
             />
           </div>
 
@@ -360,12 +397,12 @@ export default function AppearanceSettingsPage(): React.ReactElement {
             {isSaving ? (
               <span className="flex items-center gap-1.5">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Saving...
+                {t('Saving...')}
               </span>
             ) : isSaved ? (
-              'Preferences Saved!'
+              t('Preferences Saved!')
             ) : (
-              'Apply Appearance Settings'
+              t('settings.apply_appearance', 'Apply Appearance Settings')
             )}
           </Button>
         </div>
@@ -374,8 +411,10 @@ export default function AppearanceSettingsPage(): React.ReactElement {
       {/* Info Note */}
       <div className="border-primary/20 bg-primary/5 rounded-lg border p-4">
         <p className="text-sm text-muted-foreground">
-          Signed-in preferences sync across every browser and device. Signed
-          out, your choices are still remembered on this browser via a cookie.
+          {t(
+            'settings.appearance_sync_note',
+            'Signed-in preferences sync across every browser and device. Signed out, your choices are still remembered on this browser via a cookie.'
+          )}
         </p>
       </div>
     </div>

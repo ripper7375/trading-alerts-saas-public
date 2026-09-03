@@ -7,9 +7,19 @@
  * @module __tests__/pages/settings/overview.test
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 
 import SettingsPage from '@/app/settings/page';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
+
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/settings',
+}));
 
 jest.mock('@/lib/hooks/useAffiliateConfig', () => ({
   useAffiliateConfig: () => ({
@@ -36,6 +46,17 @@ describe('SettingsPage overview', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     global.fetch = jest.fn();
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({
+        countryCode: 'US',
+        language: 'en-US',
+        timezone: 'America/New_York',
+        dateFormat: 'MDY',
+        timeFormat: '12h',
+        currency: 'USD',
+      })
+    );
   });
 
   it('shows the real alert count from GET /api/alerts for a PRO user', async () => {
