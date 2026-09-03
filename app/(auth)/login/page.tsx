@@ -7,6 +7,7 @@ import { useSession, signOut } from 'next-auth/react';
 import LoginForm from '@/components/auth/login-form';
 import { Button } from '@/components/ui/button';
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+import { useLocale } from '@/lib/context/locale-context';
 
 // Same bridge-aware logout as components/layout/app-header.tsx — calling
 // next-auth/react's signOut() alone leaves the operation-service refresh-
@@ -24,6 +25,7 @@ async function handleSignOut(): Promise<void> {
 }
 
 export default function LoginPage(): JSX.Element {
+  const { t } = useLocale();
   const { data: session, status } = useSession();
 
   if (status === 'authenticated' && session?.user) {
@@ -37,10 +39,13 @@ export default function LoginPage(): JSX.Element {
             <UserCheck className="h-7 w-7" />
           </div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-            Already Signed In
+            {t('auth.login.already_signed_in', 'Already Signed In')}
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            You are currently signed in as{' '}
+            {t(
+              'auth.login.signed_in_as_prefix',
+              'You are currently signed in as'
+            )}{' '}
             <span className="font-semibold text-slate-800 dark:text-slate-200">
               {session.user.name || session.user.email}
             </span>
@@ -54,7 +59,7 @@ export default function LoginPage(): JSX.Element {
               className="flex items-center justify-center gap-2"
             >
               <LayoutDashboard className="h-4 w-4" />
-              Go to Dashboard
+              {t('auth.login.go_to_dashboard', 'Go to Dashboard')}
             </Link>
           </Button>
           <Button
@@ -63,7 +68,7 @@ export default function LoginPage(): JSX.Element {
             onClick={() => void handleSignOut()}
           >
             <LogOut className="h-4 w-4" />
-            Sign Out
+            {t('auth.login.sign_out', 'Sign Out')}
           </Button>
         </div>
       </div>

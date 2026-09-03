@@ -129,7 +129,7 @@ export default function RegisterForm(): JSX.Element {
     } else {
       setIsCodeValid(false);
       setVerifiedCode(null);
-      setCodeError('Invalid or expired referral code');
+      setCodeError(t('Invalid or expired referral code'));
     }
 
     setIsVerifying(false);
@@ -175,18 +175,18 @@ export default function RegisterForm(): JSX.Element {
         router.push(`/verify-email/pending?email=${encodedEmail}`);
         return;
       } else if (response.status === 409) {
-        setError('An account with this email already exists.');
+        setError(t('An account with this email already exists.'));
       } else if (response.status === 503) {
-        setError('Database connection error. Please try again later.');
+        setError(t('Database connection error. Please try again later.'));
       } else {
         // Display the actual error message from the API if available
         setError(
-          responseData?.error || 'Registration failed. Please try again.'
+          responseData?.error || t('Registration failed. Please try again.')
         );
       }
     } catch (err) {
       console.error('Registration error:', err);
-      setError('An error occurred. Please try again.');
+      setError(t('An error occurred. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
