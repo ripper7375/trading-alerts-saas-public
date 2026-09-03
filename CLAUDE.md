@@ -26,6 +26,130 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
+> **Ad-hoc session (2026-09-03, phase/session unchanged) — CLOSED SUCCESSFUL, full 18-batch
+> site-wide locale audit:** Davin reported that the France/South Korea country selection and
+> French/Korean/Chinese language selection shipped earlier the same day "failed to propagate
+> their effect of change throughout web app (all pages, all components, and all elements)."
+> Diagnosed via a throwaway diagnostic route before touching anything: the locale mechanism itself
+> worked correctly (switching country instantly re-localized header chrome, currency, and date
+> format, and survived a hard reload) — the real problem was that only **31 of 100** `page.tsx`
+> files under `app/` and roughly **28 of 48** shared/feature components ever called into the
+> locale system at all, including `app/dashboard/page.tsx` and `app/alerts/page.tsx` — the two
+> pages a trader spends the most time in. This was a large, pre-existing, systemic wiring gap
+> across the whole app, not a defect in the country/language feature that had just shipped.
+> Davin was asked directly (`AskUserQuestion`) whether to scope a narrow fix or a full site-wide
+> pass; **he explicitly chose the full site-wide audit and wiring.** Planned via `EnterPlanMode`
+> into an 18-batch sequence and approved before any code was written.
+> **Executed all 18 batches to completion, one commit per batch** (never batching the whole effort
+> per `EXECUTOR-PROTOCOL.md` §2), covering: (1) Admin Nav + Affiliate Nav chrome; (2) Dashboard
+> core; (3) Alerts core; (4) Notifications; (5) Charts cluster; (6) Checkout; (7) Settings chrome +
+> appearance; (8) Settings account; (9) Settings security (the largest file in the repo, 1175
+> lines); (10) Settings privacy/profile/help + public account-delete pages; (11) Admin
+> users/fraud-alerts/errors; (12) Admin affiliates + reports; (13) Admin disbursement (7 pages) +
+> api-usage; (14) Admin system ops (config-history/jobs/outbox/terminals) + broadcast + resources;
+> (15) Affiliate shared components (`code-table`, `wise-recipient-form`) + dashboard/codes; (16)
+> Affiliate payouts/profile/resources/statements + the public affiliate resources page + payout
+> settings; (17) Auth (login/register); (18) Marketing (landing hero/features/pricing, tier
+> comparison, public status page). Every batch individually gated on clean `tsc --noEmit`, clean
+> `npx eslint` (never `npm run lint`, still broken per `LESSONS-LEARNED.md` L38), the batch's own
+> named test files, and a full `npm run test:ci` run — **166/166 suites · 2390/2390 tests held
+> constant, zero regressions, across all 18 batch checkpoints.**
+> **Dictionary growth:** `en-US.json`/`en-GB.json` grew from 2,281 to **4,040** keys (+1,759 new
+> curated keys added across the effort); `fr.json`/`ko.json`/`zh.json` each grew from ~94 to
+> **1,964** keys (+~1,870 each) — every new key translated by hand per batch, not machine-bulk-
+> generated, with a Node.js regex-extraction script used each batch to compile the exact `t()`/
+> `dt()` key-fallback pairs actually added to source before writing translations, then a
+> coverage-verification script confirming the translated set matched the extracted set exactly
+> before applying to all 5 dictionaries. `ar.json`/`th.json` were **not** extended for batches
+> 2–18 (only batch 1's chrome got the deeper ar/th treatment, per the plan's own scoping decision
+> — batches 2–18 added fr/ko/zh only, consistent with this effort's stated starting scope).
+> **Two established patterns reused throughout, not invented per-batch:** Client Components call
+> `useLocale()` (`t()`, `formatCurrency()`, `formatDate()`); Server Components call
+> `getServerLanguage()`/`getDictionary()` for text and, where they show a confirmed-USD money
+> figure, additionally `getServerLocalePreferences()` + `getCountryByCode()` +
+> `formatCurrencyAmount()` from `lib/country-config.ts` (the `admin/dashboards/revenue/page.tsx`
+> precedent) since `useLocale()` isn't reachable server-side — applied fresh in Batch 16's
+> `affiliate/dashboard/payouts/page.tsx` and Batch 18's `(marketing)/status/page.tsx`.
+> **A second, distinct "locale debt" sub-class was found and fixed repeatedly, not just the
+> original "zero wiring" gap:** several files — `admin/affiliates/[id]/page.tsx` (Batch 12),
+> `components/auth/{login-form,register-form}.tsx` and `app/(auth)/login/page.tsx`'s
+> already-signed-in screen (Batch 17), and all of `components/landing/{landing-hero,
+landing-features}.tsx`, `components/pricing/tier-comparison.tsx`, and
+> `components/marketing/status-refresh-button.tsx` (Batch 18) — were **already** calling
+> `useLocale()`/`t()` from earlier, unrelated work, using this codebase's literal-English-text-
+> as-key convention (`t('Welcome Back')` with no fallback arg) — but the dictionary had **zero**
+> rows for any of those literal keys, so every one of those strings silently rendered in English
+> regardless of locale. Confirmed by direct dictionary lookup before assuming, not guessed. Fixed
+> the same way as a genuine wiring gap: extracted every literal key actually in use, translated
+> and added all of them. This is now a confirmed recurring pattern (at least 3 independent
+> instances found this session alone) worth flagging to the Advisor as its own named failure
+> class alongside the original "new UI ships with zero locale wiring" one documented in
+> `docs/policies/08-locale-i18n-compliance.md`.
+> **Real, non-locale bugs found and fixed along the way, not just translation gaps:** (1) Batch
+> 12/13, two more self-caught instances of the `t(key, 'X').replace('X','Y')` nonsensical-reuse
+> hack (same class first caught in Batch 7) — fixed with dedicated keys before commit. (2) Batch
+> 15, `components/affiliate/code-table.tsx` switched from a hardcoded `date-fns` `'MMM d, yyyy'`
+> format to `useLocale()`'s own `formatDate()` — a real, intentional format change (dates now
+> follow the viewer's saved date-format preference, e.g. `01/15/2024` instead of `Jan 15, 2024`
+> for the seeded MDY fixture), with the pre-existing test's own date assertions updated to match,
+> per the established `LESSONS-LEARNED.md` L40 precedent that this is a finding to fix, not a
+> regression to avoid. (3) Batch 16, `affiliate/dashboard/{profile,statements}/page.tsx` each had
+> their own local ad-hoc `formatCurrency` helper (`.toFixed(2)` with a hardcoded `$` prefix in
+> JSX) doing no real currency conversion at all — replaced with `useLocale()`'s real
+> per-viewer-currency `formatCurrency()`. (4) Batch 17, `register-form.tsx` had 5 genuinely
+> un-wired hardcoded error strings (`setError('An account with this email already exists.')` and
+> similar) that bypassed `t()` entirely, unlike the rest of the file — a real gap, not a missing
+> dictionary row, fixed by wrapping each in `t()`. (5) Batch 18, `landing-pricing.tsx` had a real
+> formatting bug: its FREE/PRO price figures used raw `$0`/`${price.toFixed(2)}` string
+> interpolation despite the component already importing `formatCurrency` from `useLocale()` — the
+> pricing card's own advertised "Multi-Currency Local Checkout (£, ₹, ₫, ฿, ₦, Rs)" line never
+> actually applied to the price shown two lines above it. Fixed to call `formatCurrency()`.
+> **Test infrastructure fixed as a side effect, following the two established precedents from the
+> original 2026-09-01 locale-i18n-compliance session:** `LESSONS-LEARNED.md` L40 (any component
+> newly reaching `useLocale()` breaks pre-existing tests with "useLocale must be used within a
+> LocaleProvider" unless wrapped) recurred in roughly 20 pre-existing test files across the 18
+> batches, each fixed with the same shadow-render-wrapper pattern (`localStorage`-seeded
+> `LOCALE_STORAGE_KEY` + `LocaleProvider` wrapper + `next/navigation` `usePathname` mock). The
+> `next/headers`-outside-request-scope failure class (Server Components newly reaching
+> `cookies()`/`headers()` via `getServerLanguage()`/`getServerLocalePreferences()`) recurred in
+> `__tests__/pages/admin/system-operations.test.tsx` (Batch 14),
+> `__tests__/pages/affiliate/commissions-payouts.test.tsx` (Batch 16), and
+> `__tests__/pages/marketing/public-pages.test.tsx` (Batch 18), each fixed with the established
+> `jest.mock('next/headers', ...)` promise-wrapped mock-store pattern. Several status-badge
+> assertions also needed real updates, not just re-wrapping, once translated title-case text
+> (`"Completed"`) started colliding with an identical-text column header in the same table —
+> disambiguated with `{ selector: 'span' }` / `within(table)` rather than loosened.
+> **Verified, not assumed, at every checkpoint:** `npx tsc --noEmit` clean and `npx eslint
+<changed files> --max-warnings 5` clean after every single batch (36 checks total, 18 batches ×
+> 2); full `npm run test:ci` run after every batch, always **166/166 suites · 2390/2390 tests**,
+> zero drift from the baseline this effort inherited at Batch 1's own start. Translation coverage
+> cross-checked programmatically each batch (extracted-key-set vs. translated-key-set diffed to
+> an empty symmetric difference) before any dictionary file was touched, not eyeballed.
+> **Deliberately deferred, flagged rather than silently skipped:** `components/auth/
+social-auth-buttons.tsx` (rendered by both `login-form.tsx` and `register-form.tsx`, but not
+> named in the approved 18-batch plan's explicit file list) was left unwired — a real remaining
+> gap, out of this effort's approved scope, not forgotten. **Live authenticated click-through
+> verification was not performed for any of the newly-wired pages** — the Executor never enters
+> credentials, per this file's own standing rule, and the large majority of the 18 batches' pages
+> sit behind an auth gate (settings, all of admin, the affiliate dashboard). The genuinely public
+> surfaces among the 18 batches — the account-delete pages (Batch 10), the public affiliate
+> resources page (Batch 16), the auth pages' pre-login state (Batch 17), and all of Batch 18's
+> marketing/status pages — were reachable without credentials but still not click-through-verified
+> in a real browser this session (structural verification only: `tsc`/`eslint`/tests/dev-server
+> boot). This needs Davin's own pass, the same boundary as every prior session's authenticated
+> surfaces (see Waiting on). **Translation quality caveat, unchanged from every dictionary this
+> repo has ever shipped:** all ~1,870-per-language fr/ko/zh translations added this session are
+> good-faith AI translations, not professionally reviewed.
+> **Artifacts:** 18 commits (one per batch, `d86a45b8`..`a94b3e7a`), each independently gated as
+> described above. Touches the large majority of `app/`'s page tree and `components/`'s shared
+> feature components (~130 files across pages, components, and test files); `lib/i18n/
+dictionaries/{en-US,en-GB,fr,ko,zh}.json`; `lib/admin/system-jobs.ts` (labelKey/descriptionKey
+> fields added to the cron-job registry); `lib/country-config.ts`/`lib/i18n/server-locale.ts`
+> (reused, not modified — the Batch-16/18 Server Component money pattern already existed from the
+> 2026-08-31 BI-dashboard session); this file. No new migration order — this ran as a direct,
+> fully-specified chat instruction per `EXECUTOR-PROTOCOL.md` §6, matching every other ad-hoc
+> session in this file's history.
+
 > **Ad-hoc session (2026-09-01, phase/session unchanged):** Executed
 > `docs/migration-orders/adhoc-locale-i18n-compliance.migration-order.md` end to end — CONFIRMED,
 > executed across 5 sequenced batches, **CLOSED SUCCESSFUL**, per `EXECUTOR-PROTOCOL.md` §6.
@@ -903,6 +1027,20 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 
 ## Waiting on
 
+- **18-batch site-wide locale audit — authenticated click-through not yet confirmed**
+  (2026-09-03 ad-hoc session, CLOSED SUCCESSFUL) — `tsc`/`eslint`/full `test:ci` (166/166 ·
+  2390/2390) held clean and constant across all 18 batches, and translation coverage was
+  cross-checked programmatically each batch, but the large majority of the ~130 touched files sit
+  behind an auth gate (settings, all of admin, the affiliate dashboard) — the Executor never
+  enters credentials. Needs Davin's own pass, switched to French/Korean/Chinese, spot-checking at
+  minimum: `/dashboard`, `/alerts` (the two highest-traffic pages this session started from),
+  `/settings/security` (the largest file in the repo), the 7 `/admin/disbursement/*` pages, and
+  the affiliate dashboard's payouts/profile/resources/statements pages. The genuinely public
+  surfaces this effort touched (account-delete pages, the public affiliate resources page, the
+  auth pages' pre-login state, and Batch 18's marketing/status pages) were structurally verified
+  (clean build, zero server errors) but not click-through-verified in a real browser either.
+  Separately flagged, not fixed: `components/auth/social-auth-buttons.tsx` (shared by login and
+  register) was out of the approved plan's explicit scope and remains unwired.
 - **All Round Clock timezone dropdown — authenticated click-through not yet confirmed**
   (2026-09-03 ad-hoc session) — `tsc`/`eslint`/new-test (8/8)/full `test:ci` (166/166 · 2390/2390)
   all clean, and the real search/select interaction was live-verified in a browser via a temporary
