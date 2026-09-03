@@ -26,6 +26,64 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
+> **Ad-hoc session (2026-09-03, phase/session unchanged) — CLOSED SUCCESSFUL, Traditional
+> Chinese (zh-TW):** Davin asked what Chinese variant the app's existing `zh` option was
+> (Simplified vs. Traditional) — verified via a 27-character-pair marker comparison rather than
+> assumption, confirmed 100% Simplified — then asked directly in chat to **"Add Traditional
+> Chinese (zh-TW) as a separate locale option."**
+> **Scoped correctly on the first pass by reading live code, not by analogy:** grepped
+> `lib/country-config.ts`'s `SUPPORTED_COUNTRIES` and confirmed no China/Taiwan country entry
+> exists at all — the existing `zh` option was already a language-only selector with no backing
+> country (added in the earlier France/South Korea session without a China entry). Read
+> `app/settings/language/page.tsx`'s `handleSave()` and confirmed the Language page's
+> `language`/`timezone`/`dateFormat`/`timeFormat`/`currency` fields are fully independent —
+> `setLocalePreferences()` is called with the whole explicit object, never derived from a
+> country. Read `lib/context/locale-context.tsx` and confirmed non-static dictionaries (only
+> `th`/`en-GB`/`en-US` are bundled synchronously) already lazy-load via a generic
+> `import(\`@/lib/i18n/dictionaries/${language}.json\`)`, and `lib/i18n/locale-resolver.ts`/`middleware.ts`are both purely country-URL-prefix-driven, never language-code-driven. Net
+result: zh-TW needed zero changes to`locale-resolver.ts`, `middleware.ts`, or
+`country-config.ts`— confirmed correct, not assumed, before writing any code.
+**Dictionary generation — deliberately not hand-translated at this scale:**`zh.json`has
+1,968 keys; typing 1,968 Traditional-Chinese values by hand would be slow and error-prone at
+that volume. Added`opencc-js` (`pnpm add -w`, since this is a pnpm workspace — plain `npm
+> install`fails on the`workspace:\*`protocol, same finding as the earlier BI-dashboard
+session's`recharts`addition) and generated`lib/i18n/dictionaries/zh-TW.json`by converting
+every`zh.json`value with its`Converter({ from: 'cn', to: 'twp' })`profile. **Verified the
+profile choice, not just used the first one that ran:** spot-checked`to: 'tw'`first — it
+only swaps character forms (软件→軟件, 服务器→服務器, 登录→登錄), still reading as Mainland
+vocabulary in Traditional characters. Switched to`to: 'twp'`(Taiwan Phrases), confirmed via
+the same spot-check it correctly substitutes Taiwan vocabulary (软件→軟體, 服务器→伺服器,
+数据→資料, 登录→登入, 项目→專案, 默认→預設, etc.), not just the character set.
+**Two remaining phrase-dictionary gaps found by a full-dictionary scan (not assumed clean
+after one spot check) and corrected with a targeted regex pass on top of OpenCC's output:**`賬`→`帳`(97 occurrences — Taiwan standard is 帳戶/帳號, OpenCC's`twp`dictionary treats 賬
+as a valid identity character rather than converting it) and`伙伴`→`夥伴`(14 occurrences, all
+in "合作伙伴" business-partner contexts — OpenCC's phrase dictionary has an identity override
+for the 4-character compound that suppresses the otherwise-correct 伙伴→夥伴 rule it applies
+to the bare 2-character phrase). Re-scanned after the fix — zero remaining instances of either.
+Key set verified byte-identical to`zh.json`(1,968/1,968) before and after.
+Registered in`lib/i18n/get-dictionary.ts`(server-side); relabeled the existing`zh`entry to
+"Chinese (Simplified) (简体中文)" in`app/settings/language/page.tsx`for clarity now that both
+exist side by side, with a new`zh-TW`/ "Chinese (Traditional) (繁體中文)" / 🇹🇼 entry added.
+**Verified:**`npx tsc --noEmit`clean;`npx eslint`clean on both changed source files; full
+monolith`npm run test:ci`**166/166 suites, 2390/2390 tests** — exact match to the 18-batch
+session's own close baseline, zero regressions. **Live-verified in a real browser** (same
+unauthenticated-public-page technique as the`social-auth-buttons.tsx`follow-up): seeded`davin_locale_preferences`in`localStorage`to a`zh-TW`preference object and loaded`/login`
+and the marketing landing page — both render correct Taiwan-standard Traditional Chinese
+("登入您的 DavinTrade 帳戶", "使用 Google 登入", "免費開始"/"檢視定價" on the landing hero) with
+zero locale-related console errors (only the pre-existing, unrelated local-dev HMR WebSocket
+noise already documented elsewhere in this file).
+**Not built, deliberately out of scope:** no Taiwan (`TW`) country was added to
+`lib/country-config.ts`— Davin's instruction was specifically a language option, and adding a
+country would additionally require a currency/timezone/exchange-rate decision and touch the
+header's "Select Country & Region" dropdown, neither of which was asked for; mirrors the
+existing`zh`precedent exactly. Translation quality caveat, same standard as every dictionary
+in this repo: OpenCC's conversion plus the two spot-checked polish passes is good-faith and
+substantially more accurate than a naive character-map would be, but not professionally
+reviewed — the same bar already stated for the hand-translated fr/ko/zh dictionaries.
+**Artifacts:**`lib/i18n/dictionaries/zh-TW.json`(new),`lib/i18n/get-dictionary.ts`,
+`app/settings/language/page.tsx`, `package.json`/`pnpm-lock.yaml` (`opencc-js` dependency),
+this file. 1 commit (`af3816c5`).
+
 > **Ad-hoc session (2026-09-03, phase/session unchanged) — CLOSED SUCCESSFUL, full 18-batch
 > site-wide locale audit:** Davin reported that the France/South Korea country selection and
 > French/Korean/Chinese language selection shipped earlier the same day "failed to propagate
@@ -1027,6 +1085,13 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 
 ## Waiting on
 
+- **Traditional Chinese (zh-TW) — Settings page selection not yet click-through-confirmed**
+  (2026-09-03 ad-hoc session) — the dictionary and dropdown entry are live-verified via a public
+  unauthenticated page (`/login`, seeded via `localStorage`), but the actual `/settings/language`
+  page (where a real user picks it from the dropdown, saves, and sees it persist) is auth-gated —
+  same "Executor never enters credentials" boundary as everything else on this list. Needs
+  Davin's own pass: select "Chinese (Traditional) (繁體中文)" from the Language dropdown, Save,
+  and confirm the app re-locales correctly and the choice survives a reload.
 - **18-batch site-wide locale audit — authenticated click-through not yet confirmed**
   (2026-09-03 ad-hoc session, CLOSED SUCCESSFUL) — `tsc`/`eslint`/full `test:ci` (166/166 ·
   2390/2390) held clean and constant across all 18 batches, and translation coverage was
