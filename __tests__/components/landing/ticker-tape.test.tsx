@@ -72,10 +72,16 @@ describe('TickerTape', () => {
     expect(config.displayMode).toBe('adaptive');
     expect(config.symbols).toHaveLength(15);
     expect(config.symbols).toEqual(DEFAULT_TICKER_SYMBOLS);
-    expect(config.symbols[0].proName).toBe('ICMARKETS:XAUUSD');
+    expect(config.symbols[0].proName).toBe('ICMARKETS:AUDUSD');
     expect(config.symbols[1].proName).toBe('ICMARKETS:BTCUSD');
-    expect(config.symbols[10].proName).toBe('ICMARKETS:USTEC');
-    expect(config.symbols[10].title).toBe('NAS100');
+    expect(config.symbols[6].proName).toBe('ICMARKETS:USTEC');
+    expect(config.symbols[6].title).toBe('NAS100');
+  });
+
+  it('keeps DEFAULT_TICKER_SYMBOLS alphabetized by display title', () => {
+    const titles = DEFAULT_TICKER_SYMBOLS.map((s) => s.title);
+    const sorted = [...titles].sort((a, b) => a.localeCompare(b));
+    expect(titles).toEqual(sorted);
   });
 
   it('resolves colorTheme and locale from the app appearance/locale providers', () => {

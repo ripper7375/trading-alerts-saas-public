@@ -18,21 +18,24 @@ export interface TickerTapeProps {
   className?: string;
 }
 
+// Alphabetized by display `title` (not `proName`) -- matches this repo's own
+// convention of sorting locale-facing lists by their display label, not the
+// internal code (see LanguageSelectorModal's localeCompare-on-name sort).
 export const DEFAULT_TICKER_SYMBOLS: TickerTapeSymbol[] = [
-  { proName: 'ICMARKETS:XAUUSD', title: 'XAU/USD' },
-  { proName: 'ICMARKETS:BTCUSD', title: 'BTC/USD' },
-  { proName: 'ICMARKETS:EURUSD', title: 'EUR/USD' },
-  { proName: 'ICMARKETS:USDJPY', title: 'USD/JPY' },
-  { proName: 'ICMARKETS:GBPUSD', title: 'GBP/USD' },
   { proName: 'ICMARKETS:AUDUSD', title: 'AUD/USD' },
+  { proName: 'ICMARKETS:BTCUSD', title: 'BTC/USD' },
   { proName: 'ICMARKETS:ETHUSD', title: 'ETH/USD' },
-  { proName: 'ICMARKETS:XAGUSD', title: 'XAG/USD' },
+  { proName: 'ICMARKETS:EURUSD', title: 'EUR/USD' },
   { proName: 'ICMARKETS:GBPJPY', title: 'GBP/JPY' },
-  { proName: 'ICMARKETS:US30', title: 'US30' },
+  { proName: 'ICMARKETS:GBPUSD', title: 'GBP/USD' },
   { proName: 'ICMARKETS:USTEC', title: 'NAS100' },
+  { proName: 'ICMARKETS:NZDUSD', title: 'NZD/USD' },
+  { proName: 'ICMARKETS:US30', title: 'US30' },
   { proName: 'ICMARKETS:USDCAD', title: 'USD/CAD' },
   { proName: 'ICMARKETS:USDCHF', title: 'USD/CHF' },
-  { proName: 'ICMARKETS:NZDUSD', title: 'NZD/USD' },
+  { proName: 'ICMARKETS:USDJPY', title: 'USD/JPY' },
+  { proName: 'ICMARKETS:XAGUSD', title: 'XAG/USD' },
+  { proName: 'ICMARKETS:XAUUSD', title: 'XAU/USD' },
   { proName: 'ICMARKETS:XTIUSD', title: 'XTI/USD' },
 ];
 
