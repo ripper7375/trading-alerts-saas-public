@@ -26,6 +26,125 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
+> **Ad-hoc session (2026-09-04, phase/session unchanged) — CLOSED SUCCESSFUL, Light Clean Mode
+> (Theme Mode) never visually applying, plus the trading chart never following it either:** Davin
+> reported live, with a screenshot of `davintrade.app/settings/appearance`, that selecting "Light
+> Clean Mode" moved the checkmark but every page/component/element stayed rendered dark; after the
+> first fix below shipped, reported "still not working at all," and separately, once the underlying
+> mechanism was genuinely fixed, flagged with a screenshot of `/terminal` that the trading chart's
+> canvas background and the drawing-tool overlay stayed dark regardless of Theme Mode. Three
+> distinct root causes found and fixed across the session, documented in the order they were
+> actually found (a straight-line summary would understate how much reproduction work each one
+> took) — full detail in `davintrade-appearance-stack/theme-mode-fix-manifest-work-completion.md`.
+> **Root cause 1 — duplicate `AppearanceProvider`, found via live reproduction, not guessed from
+> reading code alone:** `app/settings/layout.tsx` and 6 more top-level route layouts
+> (`dashboard`/`admin`/`notifications`/`alerts`/`free`/`terminal`) each independently wrapped their
+> children in their **own** `<AppearanceProvider initialSettings={appearance}>`, nested inside the
+> single global one `app/providers.tsx` → `client-providers.tsx` already mounts at the root.
+> `useAppearance()` under one of these 7 layouts resolved to the nearest (inner, duplicate)
+> provider, so picking "Light" correctly flipped the INNER provider's `settings.theme` and called
+> next-themes' `setTheme('light')` — but the OUTER (root) provider, still holding its own stale
+> value, re-rendered on every `next-themes` context change (both providers call `useTheme()`) and
+> its `useEffect(() => setTheme(settings.theme), [settings.theme, setTheme])` re-fired whenever
+> `setTheme`'s identity changed, immediately calling `setTheme('dark')` again — confirmed live via
+> a temporary throwaway route (`app/dev-theme-preview/page.tsx`, deleted after use, never
+> committed) showing `settings.theme` reading `'light'` while next-themes' own `theme` stayed stuck
+> on `'dark'`. This is why the bug was site-wide — all 7 duplicated layouts cover essentially every
+> authenticated route. **Fix (`2daacc59`):** removed the redundant nested `<AppearanceProvider>`
+> from all 7 layouts, leaving each layout's own `getServerAppearance()`/`data-accent`/chart-CSS-var
+> SSR untouched.
+> **Root cause 2 — next-themes' own cross-tab `storage` listener overriding a correct value, found
+> only because Davin's "still not working at all" refused to accept the first fix as sufficient:**
+> re-reproduced live on `davintrade.app` post-deploy and traced it with a `MutationObserver` +
+> patched `Storage.prototype.setItem` — the class was flipping dark→light→dark→light several times
+> within milliseconds of a single click before settling on the wrong value. `next-themes`
+> (`node_modules/.pnpm/next-themes@0.4.6/.../dist/index.mjs`, read directly rather than guessed
+> from memory) keeps a `window` `'storage'` event listener that unconditionally trusts ANY external
+> write to its storage key and immediately re-applies it (`r.newValue ? n(r.newValue) : ...`) — a
+> real multi-tab trading-terminal session (dashboard/alerts/settings each in their own tab), or any
+> other agent writing the same `localStorage` key, can silently override the DB-backed, per-user
+> choice moments after it's set. **Confirmed the mechanism directly, not just inferred it:**
+> dispatched a synthetic `StorageEvent` (single, then a 20x rapid burst) at a page holding the
+> correct theme — before the fix this reliably flipped the class; after the fix (below) it held
+> rock solid through the full burst. **Fix (`95c51af4`):** `AppearanceProvider` now applies the
+> `.dark`/`.light` class to `<html>` directly (`applyThemeToDOM()`, a `useLayoutEffect` keyed only
+> on `settings.theme`, no longer routed through next-themes' `setTheme()`) and registers its own
+> `'storage'` listener that re-asserts the correct value if anything external changes the key
+> afterward — next-themes' `<ThemeProvider>` stays mounted (harmless, no other code in this app
+> reads its `theme`/`resolvedTheme`) but no longer owns the DOM class for this app's own
+> AppearanceProvider-driven pages. Two throwaway diagnostic commits (`802ec582`, `f92793c1`, adding
+> `window.__themeDebug`/`window.__earlyTrace` instrumentation) were pushed and deployed to gather
+> hard evidence before landing this fix, then cleanly reverted (`dc177afd`, `f2daed0b`) once
+> diagnosed — net diff on `app/layout.tsx` across the session is zero.
+> **A genuine investigative dead end, recorded so a future session doesn't re-walk it:** the
+> storage-event oscillation was first reproduced via the Claude-in-Chrome browser-automation
+> extension and, for a while, suspected to be an artifact of that extension rather than a real app
+> bug — a clean, non-instrumented sandboxed browser showed zero oscillation on the same page. That
+> theory was WRONG (or at best incomplete): a genuine multi-tab session hitting the same
+> `next-themes` cross-tab listener would reproduce the identical failure with no extension
+> involved at all, which is exactly what the fix now guards against regardless of source.
+> **Root cause 3 — the trading chart and its drawing-tool overlays never read appearance state at
+> all:** `components/charts/trading-chart.tsx`'s `createChart()` call hardcoded a fixed dark
+> TradingView-style palette (`background:'#1e222d'`, `textColor:'#d1d4dc'`, etc.) and hardcoded
+> candle colors (`upColor:'#26a69a'`) — `useChartAppearance()` already existed in
+> `appearance-provider.tsx` for exactly this purpose (and is used correctly by the SEED codebase's
+> own `trading-chart.tsx`) but was never imported here. Also found via a repo-wide grep once the
+> canvas fix was underway: `components/charts/drawing/{Toolbar,AlertsPanel,StyleEditor}.tsx` — the
+> tool-palette/alerts-panel/color-picker overlays that sit directly on top of the chart — used the
+> same hardcoded dark palette with zero light-mode pairing. **Fix (`b0dcd1d6`):** added
+> `resolvedTheme` to `AppearanceProvider`'s context/`useChartAppearance()` (computed the same way
+> `applyThemeToDOM` resolves `'system'`, since the chart needs an actual light/dark value, and
+> next-themes' own `useTheme()` is no longer kept in sync per root cause 2's fix); `trading-chart.
+tsx` now reads `chartUpColor`/`chartDownColor`/`gridOpacityDecimal`/`resolvedTheme` and reactively
+> re-applies them via `chart.applyOptions()`/`series.applyOptions()` (no full chart teardown) in a
+> new effect separate from the mount-once chart-creation effect; the three drawing-overlay files
+> got the standard light-default/`dark:`-pairing already used elsewhere in this codebase, dark mode
+> kept pixel-for-pixel via `dark:` preserving every original hex value. `StyleEditor.tsx`'s one
+> instance used the app's own `border-border` token instead of a bespoke pairing, since it renders
+> inside a `Dialog` (already theme-aware) rather than floating directly on the chart canvas.
+> **A real, pre-existing test breakage found and fixed as a direct consequence, not a new bug
+> introduced carelessly:** `__tests__/components/charts/trading-chart.test.tsx` broke immediately
+> (`useAppearance must be used within an AppearanceProvider`) the moment `TradingChart` started
+> calling `useChartAppearance()` — fixed the same way `LocaleProvider` was already added to this
+> exact file's shadow `render()` wrapper for the identical reason (`LESSONS-LEARNED.md` L40
+> pattern, recurring). A second, distinct breakage followed once the wrapper was fixed: the file's
+> own `lightweight-charts` mock's series object had `setData`/`setMarkers` but no `applyOptions`,
+> which the new reactive-update effect calls — added `mockSeriesApplyOptions` to the mock. Fix +
+> both test corrections landed as `c5d752bc`, run standalone first (**19/19** passed) before the
+> full suite.
+> **Verified, not assumed, for all three fixes:** `npx tsc --noEmit` and `npx eslint` clean at every
+> step; full monolith `npm run test:ci` **166/166 suites, 2390/2390 tests** after the final commit
+> — zero regressions across the whole session. **Live production verification on the real
+> authenticated PRO account (`davintrade.app`, not a throwaway route), after each deploy actually
+> confirmed live via `vercel inspect`/the Vercel dashboard (not assumed from a `git push` alone —
+> this repo's own L3-adjacent lesson):** clicked Dark ⇄ Light repeatedly on the real `/settings/
+appearance` page — instant, correct, no revert; dispatched the synthetic-`StorageEvent`
+> single-and-20x-burst test directly against the live production page and confirmed self-heal;
+> navigated to the real `/terminal` page and confirmed the chart canvas, candle colors, and drawing
+> toolbar all correctly render dark, then correctly switch to light after Settings → Appearance →
+> Apply and a fresh navigation (confirming DB persistence too, not just the in-session client
+> state). One genuine self-inflicted false alarm during this verification, recorded so it isn't
+> mistaken for a real bug later: "Apply Appearance Settings" appeared not to persist across a few
+> attempts — traced to the on-screen button having scrolled to a different position than the
+> screenshot-derived click coordinates being used (a browser-automation targeting issue, confirmed
+> by comparing the click coordinate against the button's live `getBoundingClientRect()`, then
+> confirmed fixed via a direct DOM `.click()` producing a real `POST /settings/appearance` 200 and
+> the theme correctly surviving a fresh reload) — not a persistence bug in `saveAppearanceAction`/
+> `getServerAppearance` at all.
+> **Committed and pushed, all 6 net commits live on `origin/main`:** `2daacc59` (duplicate-provider
+> fix), `95c51af4` (AppearanceProvider owns the DOM class + self-heal), `b0dcd1d6` (chart +
+> drawing-overlay theme-awareness), `c5d752bc` (test fixes) — plus `802ec582`/`f92793c1` and their
+> reverts `dc177afd`/`f2daed0b` (throwaway diagnostics, net zero, left in history rather than
+> squashed since this repo's convention is never to rewrite pushed history).
+> **Artifacts:** `app/settings/layout.tsx`, `app/dashboard/layout.tsx`, `app/admin/layout.tsx`,
+> `app/notifications/layout.tsx`, `app/alerts/layout.tsx`, `app/free/layout.tsx`, `app/terminal/
+layout.tsx`, `app/layout.tsx` (net zero, diagnostic add+revert), `components/providers/
+appearance-provider.tsx`, `components/charts/trading-chart.tsx`, `components/charts/drawing/
+{Toolbar,AlertsPanel,StyleEditor}.tsx`, `__tests__/components/charts/trading-chart.test.tsx`,
+> `davintrade-appearance-stack/theme-mode-fix-manifest-work-completion.md` (new), this file. 13
+> net-changed source/test files (per `git diff --stat` across the session), all committed and
+> pushed.
+
 > **Ad-hoc session (2026-09-03, phase/session unchanged) — CLOSED SUCCESSFUL, propagate the
 > `best_fit_a`/`best_fit_b` split downstream of the gateway contract (3 services):** follow-on
 > to the Stack C ad-hoc session immediately below, which split `best_fit` into `best_fit_a`/
@@ -1310,6 +1429,18 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 
 ## Waiting on
 
+- **Trading chart candle up/down colors — never actually seen rendered against live data**
+  (2026-09-04 ad-hoc session) — `trading-chart.tsx` now correctly passes `chartUpColor`/
+  `chartDownColor` from Settings → Appearance to `CandlestickSeries`, confirmed by reading the
+  code and by the chart canvas background/toolbar/gridlines switching correctly in both local dev
+  and live production. But every environment this session had available (local dev, a throwaway
+  preview route, and the real `/terminal` page on production) showed `Disconnected` — no live
+  Socket.IO/MT5 feed — so no actual candle was ever drawn to visually confirm the configured
+  colors render correctly on a real bar. Needs Davin's own pass with the backend feed live: open
+  `/terminal`, confirm bullish/bearish candles show the colors set in Settings → Appearance →
+  Chart Candlestick Customization (default cyan `#00fbff`/magenta `#fb00ff`), and that changing
+  those colors updates already-rendered candles live (the new reactive-update effect) without
+  needing a page reload.
 - **Traditional Chinese (zh-TW) — Settings page selection not yet click-through-confirmed**
   (2026-09-03 ad-hoc session) — the dictionary and dropdown entry are live-verified via a public
   unauthenticated page (`/login`, seeded via `localStorage`), but the actual `/settings/language`
