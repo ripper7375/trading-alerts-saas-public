@@ -73,11 +73,36 @@ public-pages.test.tsx` (13/13, unaffected) both green; full monolith `npm run te
 > session's server to work around it, same restraint that session applied. Fell back to the
 > production build as the strongest available non-interactive check instead. Flagged below, not
 > silently skipped — needs Davin's own click-through.
-> **Not committed** — Davin was not asked this session whether to commit; left for his review
-> of this entry first, per this file's own established log-first-defer-commit pattern.
-> **Artifacts:** `lib/i18n/languages.ts` (new), `components/marketing/language-selector-modal.tsx`
-> (new), `__tests__/components/marketing/language-selector-modal.test.tsx` (new),
-> `app/settings/language/page.tsx`, `components/marketing/marketing-navbar.tsx`, this file.
+> **Committed and pushed same day** on Davin's explicit request — `5e241e7c`, `main` ->
+> `origin/main` (pre-push hook re-ran type-check + full `test:ci` clean before pushing).
+> **Same-day follow-up (still 2026-09-04, phase/session unchanged):** Davin asked to add the
+> languages already reachable via the header's "Select Country & Region" dropdown but missing
+> from the language list — named 7 country codes (NG, PK, VN, ID, TH, ZA, TR) — and, now that
+> the list is growing, to alphabetize the modal. **Checked `lib/country-config.ts` before adding
+> anything, rather than assuming 7 new languages were needed:** NG and ZA both already map to
+> `language: 'en-US'` (already in the list) — only PK(`ur`)/VN(`vi`)/ID(`id`)/TH(`th`)/TR(`tr`)
+> were genuinely missing. Confirmed real, non-empty dictionaries already exist on disk for all 5
+> (`ur.json`/`vi.json`/`id.json`/`tr.json` at 2268 keys each, `th.json` at 2636 — the same
+> "legacy" dictionary tier `es`/`de`/`pt`/`ja` already sit in) before wiring them in — added to
+> `SUPPORTED_LANGUAGES` with native-script names matching the `fr`/`ko`/`zh`/`ar` entries'
+> existing convention (e.g. `Urdu (اردو)`), flags taken directly from each language's matching
+> `country-config.ts` entry. `locale-context.tsx` needed no change — its dictionary loader
+> already lazy-imports any `lib/i18n/dictionaries/${language}.json` generically. 16 languages
+> total now. **Alphabetizing scoped to the modal only, not the shared list or Settings' own
+> dropdown** — Davin's ask named "the modal" specifically, and Settings' `<Select>` isn't long
+> enough yet to need it; sorted a `useMemo`'d copy (`localeCompare` on `name`) inside
+> `LanguageSelectorModal`, leaving `SUPPORTED_LANGUAGES`' own insertion order (English variants
+> first) intact as the shared source of truth's canonical order.
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean; `language-selector-modal.test.tsx`
+> (4/4 — its "renders every language" loop already covers the 5 new entries with no test change
+> needed) + `public-pages.test.tsx` (13/13) green; full monolith `npm run test:ci` **168/168
+> suites, 2397/2397 tests**, zero regressions; `npm run build` clean, exit 0. **Live browser
+> verification blocked by the same environment constraint as the first round** — another
+> session's `next dev` still held port 3000/the shared `.next/` directory at the time this
+> follow-up ran; not forced around, same restraint as before. Needs Davin's own click-through
+> once a dev server is free (already tracked in Waiting on).
+> **Artifacts:** `lib/i18n/languages.ts`, `components/marketing/language-selector-modal.tsx`,
+> this file.
 
 > **Ad-hoc session (2026-09-04, phase/session unchanged) — CLOSED SUCCESSFUL, public
 > "EconNews" Economic Calendar page via TradingView widget:** Davin gave a fully-specified

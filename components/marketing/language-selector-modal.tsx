@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Check, Globe } from 'lucide-react';
 
 import {
@@ -32,6 +33,14 @@ export function LanguageSelectorModal({
 }: LanguageSelectorModalProps): React.ReactElement {
   const { t, language, setLocalePreferences } = useLocale();
 
+  // Sorted for display only -- `SUPPORTED_LANGUAGES`' own insertion order
+  // (English variants first) stays intact for Settings -> Language & Region,
+  // which isn't long enough yet to need alphabetizing.
+  const sortedLanguages = useMemo(
+    () => [...SUPPORTED_LANGUAGES].sort((a, b) => a.name.localeCompare(b.name)),
+    []
+  );
+
   const handleSelect = (code: string): void => {
     setLocalePreferences({ language: code });
     onOpenChange(false);
@@ -47,7 +56,7 @@ export function LanguageSelectorModal({
           </DialogTitle>
         </DialogHeader>
         <div className="grid max-h-[60vh] grid-cols-1 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-2">
-          {SUPPORTED_LANGUAGES.map((lang) => {
+          {sortedLanguages.map((lang) => {
             const isActive = language === lang.code;
             return (
               <button

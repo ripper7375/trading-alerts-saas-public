@@ -23,4 +23,9 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'ko', name: 'Korean (한국어)', flag: '🇰🇷' },
   { code: 'zh', name: 'Chinese (Simplified) (简体中文)', flag: '🇨🇳' },
   { code: 'zh-TW', name: 'Chinese (Traditional) (繁體中文)', flag: '🇹🇼' },
+  { code: 'ur', name: 'Urdu (اردو)', flag: '🇵🇰' },
+  { code: 'vi', name: 'Vietnamese (Tiếng Việt)', flag: '🇻🇳' },
+  { code: 'id', name: 'Indonesian (Bahasa Indonesia)', flag: '🇮🇩' },
+  { code: 'th', name: 'Thai (ภาษาไทย)', flag: '🇹🇭' },
+  { code: 'tr', name: 'Turkish (Türkçe)', flag: '🇹🇷' },
 ];
