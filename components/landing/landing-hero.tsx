@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { useLocale } from '@/lib/context/locale-context';
 import { Sparkles, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
@@ -15,6 +16,12 @@ import { Sparkles, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
  */
 export function LandingHero() {
   const { t } = useLocale();
+  const { data: session, status } = useSession();
+
+  const userTier = (session?.user as { tier?: string } | undefined)?.tier;
+  const workbenchHref = userTier === 'PRO' ? '/terminal' : '/free';
+  const getStartedHref =
+    status === 'authenticated' && session?.user ? workbenchHref : '/login';
 
   return (
     <section className="relative overflow-hidden pb-20 pt-12 md:pb-28 md:pt-20">
@@ -51,7 +58,7 @@ export function LandingHero() {
             </div>
 
             <div className="flex flex-wrap items-center gap-4">
-              <Link href="/register">
+              <Link href={getStartedHref}>
                 <button className="inline-flex h-11 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 px-6 font-bold text-slate-950 shadow-lg shadow-amber-500/20 transition-colors hover:from-amber-400 hover:to-amber-500">
                   {t('Get Started Free')}
                   <ArrowRight className="h-4 w-4" />
@@ -141,7 +148,7 @@ export function LandingHero() {
                     <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                     <span>{t('Multi-Market Forex, Commodities & Crypto')}</span>
                   </div>
-                  <Link href="/terminal">
+                  <Link href={workbenchHref}>
                     <span className="flex cursor-pointer items-center gap-1 font-bold text-amber-600 hover:underline dark:text-amber-400">
                       {t('Enter Workbench')} <ArrowRight className="h-3 w-3" />
                     </span>

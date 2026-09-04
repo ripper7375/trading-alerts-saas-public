@@ -170,7 +170,7 @@ export function MarketingNavbar() {
               {t('Log In')}
             </Button>
           </Link>
-          <Link href="/register">
+          <Link href="/login">
             <Button className="bg-gradient-to-r from-amber-500 to-amber-600 font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500">
               <Sparkles className="mr-1.5 h-4 w-4" />
               {t('Get Started')}
@@ -246,7 +246,7 @@ export function MarketingNavbar() {
                   {t('Log In')}
                 </Button>
               </Link>
-              <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full bg-amber-500 font-bold text-slate-950 hover:bg-amber-400">
                   {t('Get Started Free')}
                 </Button>

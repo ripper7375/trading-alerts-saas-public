@@ -1,6 +1,6 @@
 'use client';
 
-import { LogOut, LayoutDashboard, UserCheck } from 'lucide-react';
+import { LogOut, LineChart, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 
@@ -29,8 +29,8 @@ export default function LoginPage(): JSX.Element {
   const { data: session, status } = useSession();
 
   if (status === 'authenticated' && session?.user) {
-    const userRole = (session.user as { role?: string }).role;
-    const dashboardHref = userRole === 'ADMIN' ? '/admin' : '/dashboard';
+    const userTier = (session.user as { tier?: string } | undefined)?.tier;
+    const workbenchHref = userTier === 'PRO' ? '/terminal' : '/free';
 
     return (
       <div className="w-full max-w-md space-y-6 rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-2xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
@@ -55,11 +55,11 @@ export default function LoginPage(): JSX.Element {
         <div className="space-y-3 pt-2">
           <Button asChild className="w-full" size="lg">
             <Link
-              href={dashboardHref}
+              href={workbenchHref}
               className="flex items-center justify-center gap-2"
             >
-              <LayoutDashboard className="h-4 w-4" />
-              {t('auth.login.go_to_dashboard', 'Go to Dashboard')}
+              <LineChart className="h-4 w-4" />
+              {t('auth.login.go_to_workbench', 'Go to Workbench')}
             </Link>
           </Button>
           <Button

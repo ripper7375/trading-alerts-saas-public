@@ -1,4 +1,6 @@
 {
+  "auth.login.go_to_workbench": "ไปยังเวิร์กเบนช์",
+  "Go to Workbench": "ไปยังเวิร์กเบนช์",
   "breadcrumb.dashboard": "แดชบอร์ด",
   "breadcrumb.settings": "การตั้งค่า",
   "nav.dashboard": "แดชบอร์ดหลัก",
