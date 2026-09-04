@@ -71,22 +71,22 @@ export function AlertsPanel({
   const du = drawingUsage(tier, drawingCount);
 
   return (
-    <div className="absolute right-2 top-2 z-10 flex max-h-[90%] w-72 flex-col rounded-lg border border-[#2a2e39] bg-[#1e222d]/95 text-[#d1d4dc] shadow-lg">
-      <div className="flex items-center justify-between border-b border-[#2a2e39] px-3 py-2">
+    <div className="absolute right-2 top-2 z-10 flex max-h-[90%] w-72 flex-col rounded-lg border border-slate-200 bg-white/95 text-slate-700 shadow-lg dark:border-[#2a2e39] dark:bg-[#1e222d]/95 dark:text-[#d1d4dc]">
+      <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2 dark:border-[#2a2e39]">
         <span className="text-sm font-semibold">
           {t('alerts.page_title', 'Alerts')}
         </span>
         <button
           type="button"
           aria-label="Close alerts panel"
-          className="rounded p-1 hover:bg-[#2a2e39]"
+          className="rounded p-1 hover:bg-slate-100 dark:hover:bg-[#2a2e39]"
           onClick={onClose}
         >
           <X className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="flex gap-3 border-b border-[#2a2e39] px-3 py-2 text-xs text-[#9aa0aa]">
+      <div className="flex gap-3 border-b border-slate-200 px-3 py-2 text-xs text-slate-500 dark:border-[#2a2e39] dark:text-[#9aa0aa]">
         <span className={au.atLimit ? 'text-[#ef5350]' : ''}>
           {t('alerts.page_title', 'Alerts')} {au.label}
         </span>
@@ -97,22 +97,22 @@ export function AlertsPanel({
 
       <div className="flex-1 overflow-y-auto">
         {loading ? (
-          <p className="px-3 py-4 text-sm text-[#9aa0aa]">
+          <p className="px-3 py-4 text-sm text-slate-500 dark:text-[#9aa0aa]">
             {t('charts.loading_ellipsis', 'Loading…')}
           </p>
         ) : alerts.length === 0 ? (
-          <p className="px-3 py-4 text-sm text-[#9aa0aa]">
+          <p className="px-3 py-4 text-sm text-slate-500 dark:text-[#9aa0aa]">
             {t('charts.no_alerts_on_chart', 'No alerts on this chart yet.')}
           </p>
         ) : (
-          <ul className="divide-y divide-[#2a2e39]">
+          <ul className="divide-y divide-slate-200 dark:divide-[#2a2e39]">
             {alerts.map((a) => (
               <li key={a.id} className="flex items-center gap-2 px-3 py-2">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm">
                     {a.alert.name || a.targetLevel}
                   </p>
-                  <p className="text-xs text-[#9aa0aa]">
+                  <p className="text-xs text-slate-500 dark:text-[#9aa0aa]">
                     {a.drawing.type} · {a.direction}
                     {a.alert.triggerCount > 0
                       ? ` · fired ${a.alert.triggerCount}×`
@@ -127,7 +127,7 @@ export function AlertsPanel({
                 <button
                   type="button"
                   aria-label="Delete alert"
-                  className="rounded p-1 text-[#ef5350] hover:bg-[#2a2e39]"
+                  className="rounded p-1 text-[#ef5350] hover:bg-slate-100 dark:hover:bg-[#2a2e39]"
                   onClick={() => void remove(a)}
                 >
                   <Trash2 className="h-4 w-4" />

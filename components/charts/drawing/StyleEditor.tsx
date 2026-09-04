@@ -84,7 +84,7 @@ export function StyleEditor({
               type="color"
               value={color}
               onChange={(e) => onChange({ color: e.target.value })}
-              className="h-8 w-12 cursor-pointer rounded border border-[#2a2e39] bg-transparent"
+              className="h-8 w-12 cursor-pointer rounded border border-border bg-transparent"
             />
           </div>
 

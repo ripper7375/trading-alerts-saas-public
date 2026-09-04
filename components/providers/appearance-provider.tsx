@@ -23,6 +23,8 @@ interface AppearanceContextValue {
   updateSettings: (newSettings: Partial<AppearanceSettings>) => void;
   saveSettings: () => Promise<boolean>;
   isSaving: boolean;
+  /** settings.theme resolved to an actual light/dark value ('system' resolved via OS preference) -- for canvas-based UI (chart libraries) that can't read CSS custom properties/.dark class and must be told the active theme directly. */
+  resolvedTheme: 'light' | 'dark';
 }
 
 const AppearanceContext = createContext<AppearanceContextValue | undefined>(
@@ -95,6 +97,9 @@ export function AppearanceProvider({
 }): React.ReactElement {
   const [settings, setSettings] = useState<AppearanceSettings>(initialSettings);
   const [isPending, startTransition] = useTransition();
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(() =>
+    resolveThemeClass(initialSettings.theme)
+  );
 
   // Apply CSS variables/data-accent whenever settings change.
   useEffect(() => {
@@ -109,6 +114,7 @@ export function AppearanceProvider({
   // own internal churn.
   useLayoutEffect(() => {
     applyThemeToDOM(settings.theme);
+    setResolvedTheme(resolveThemeClass(settings.theme));
   }, [settings.theme]);
 
   // Re-assert our theme if something external changes the storage key
@@ -134,7 +140,10 @@ export function AppearanceProvider({
   useEffect(() => {
     if (settings.theme !== 'system') return;
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (): void => applyThemeToDOM('system');
+    const handleChange = (): void => {
+      applyThemeToDOM('system');
+      setResolvedTheme(resolveThemeClass('system'));
+    };
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [settings.theme]);
@@ -163,6 +172,7 @@ export function AppearanceProvider({
         updateSettings,
         saveSettings,
         isSaving: isPending,
+        resolvedTheme,
       }}
     >
       {children}
@@ -188,12 +198,14 @@ export function useChartAppearance(): {
   chartDownColor: string;
   gridOpacity: number;
   gridOpacityDecimal: number;
+  resolvedTheme: 'light' | 'dark';
 } {
-  const { settings } = useAppearance();
+  const { settings, resolvedTheme } = useAppearance();
   return {
     chartUpColor: settings.chartUpColor,
     chartDownColor: settings.chartDownColor,
     gridOpacity: settings.gridOpacity,
     gridOpacityDecimal: settings.gridOpacity / 100,
+    resolvedTheme,
   };
 }

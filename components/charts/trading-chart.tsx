@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useOhlcvSocket } from '@/hooks/use-ohlcv-socket';
 import { useLocale } from '@/lib/context/locale-context';
+import { useChartAppearance } from '@/components/providers/appearance-provider';
 
 import { DrawingLayer } from './drawing/DrawingLayer';
 import { useFiredAlertMarkers } from './drawing/useFiredAlertMarkers';
@@ -25,6 +26,33 @@ import { useMtfOverlay } from './mtf/useMtfOverlay';
 interface TradingChartProps {
   symbol: string;
   timeframe: string;
+}
+
+/** lightweight-charts renders to a <canvas> -- it can't read CSS custom
+ * properties or the .dark class, so its chrome (background/text/grid/
+ * borders/crosshair) has to be told the resolved theme directly and kept
+ * in sync via applyOptions() whenever it changes. */
+function chartChromeColors(
+  theme: 'light' | 'dark',
+  gridOpacityDecimal: number
+) {
+  return theme === 'dark'
+    ? {
+        background: '#0a0e17',
+        text: '#94a3b8',
+        grid: `rgba(148, 163, 184, ${gridOpacityDecimal})`,
+        border: '#1e293b',
+        crosshair: '#758696',
+        crosshairLabelBg: '#1e293b',
+      }
+    : {
+        background: '#ffffff',
+        text: '#334155',
+        grid: `rgba(203, 213, 225, ${gridOpacityDecimal})`,
+        border: '#cbd5e1',
+        crosshair: '#94a3b8',
+        crosshairLabelBg: '#e2e8f0',
+      };
 }
 
 /**
@@ -57,6 +85,9 @@ export function TradingChart({
     timeframe
   );
 
+  const { chartUpColor, chartDownColor, gridOpacityDecimal, resolvedTheme } =
+    useChartAppearance();
+
   // Render "alert fired here" markers when a line-touch alert fires.
   useFiredAlertMarkers(seriesApi, symbol, timeframe);
 
@@ -85,49 +116,51 @@ export function TradingChart({
       chartContainerRef.current.parentElement?.clientWidth ||
       800;
 
+    const chrome = chartChromeColors(resolvedTheme, gridOpacityDecimal);
+
     const chart = createChart(chartContainerRef.current, {
       width: containerWidth,
       height: 600,
       layout: {
-        background: { type: ColorType.Solid, color: '#1e222d' },
-        textColor: '#d1d4dc',
+        background: { type: ColorType.Solid, color: chrome.background },
+        textColor: chrome.text,
       },
       grid: {
-        vertLines: { color: '#2a2e39' },
-        horzLines: { color: '#2a2e39' },
+        vertLines: { color: chrome.grid },
+        horzLines: { color: chrome.grid },
       },
       crosshair: {
         mode: 1,
         vertLine: {
           width: 1,
-          color: '#758696',
+          color: chrome.crosshair,
           style: 3,
-          labelBackgroundColor: '#2a2e39',
+          labelBackgroundColor: chrome.crosshairLabelBg,
         },
         horzLine: {
           width: 1,
-          color: '#758696',
+          color: chrome.crosshair,
           style: 3,
-          labelBackgroundColor: '#2a2e39',
+          labelBackgroundColor: chrome.crosshairLabelBg,
         },
       },
       rightPriceScale: {
-        borderColor: '#2a2e39',
+        borderColor: chrome.border,
         scaleMargins: { top: 0.1, bottom: 0.1 },
       },
       timeScale: {
-        borderColor: '#2a2e39',
+        borderColor: chrome.border,
         timeVisible: true,
         secondsVisible: false,
       },
     });
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#26a69a',
-      downColor: '#ef5350',
+      upColor: chartUpColor,
+      downColor: chartDownColor,
       borderVisible: false,
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
+      wickUpColor: chartUpColor,
+      wickDownColor: chartDownColor,
     });
 
     chartRef.current = chart;
@@ -157,7 +190,51 @@ export function TradingChart({
         setSeriesApi(null);
       }
     };
+    // Only the initial mount value is used here -- this effect creates the
+    // chart exactly once (guarded above by `if (chartRef.current) return`).
+    // Live appearance changes are applied via the reactive effect below
+    // instead of tearing down and recreating the whole chart.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /**
+   * Reactively apply theme/candle-color/grid-opacity changes to the
+   * already-created chart -- lightweight-charts renders to a <canvas>, so
+   * picking a new Theme Mode or candle color in Settings has no effect on
+   * it unless we explicitly push the new colors via applyOptions().
+   */
+  useEffect(() => {
+    if (!chartRef.current || !candleSeriesRef.current) return;
+    const chrome = chartChromeColors(resolvedTheme, gridOpacityDecimal);
+    chartRef.current.applyOptions({
+      layout: {
+        background: { type: ColorType.Solid, color: chrome.background },
+        textColor: chrome.text,
+      },
+      grid: {
+        vertLines: { color: chrome.grid },
+        horzLines: { color: chrome.grid },
+      },
+      crosshair: {
+        vertLine: {
+          color: chrome.crosshair,
+          labelBackgroundColor: chrome.crosshairLabelBg,
+        },
+        horzLine: {
+          color: chrome.crosshair,
+          labelBackgroundColor: chrome.crosshairLabelBg,
+        },
+      },
+      rightPriceScale: { borderColor: chrome.border },
+      timeScale: { borderColor: chrome.border },
+    });
+    candleSeriesRef.current.applyOptions({
+      upColor: chartUpColor,
+      downColor: chartDownColor,
+      wickUpColor: chartUpColor,
+      wickDownColor: chartDownColor,
+    });
+  }, [resolvedTheme, gridOpacityDecimal, chartUpColor, chartDownColor]);
 
   /**
    * Update chart data whenever Socket.IO delivers new OHLCV data

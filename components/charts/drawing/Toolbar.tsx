@@ -62,11 +62,13 @@ export function Toolbar({
 }: ToolbarProps): JSX.Element {
   const buttonBase =
     'flex h-9 w-9 items-center justify-center rounded-md border transition-colors';
-  const idle = 'border-transparent text-[#d1d4dc] hover:bg-[#2a2e39]';
-  const active = 'border-[#2962FF] bg-[#2962FF]/20 text-white';
+  const idle =
+    'border-transparent text-slate-600 hover:bg-slate-100 dark:text-[#d1d4dc] dark:hover:bg-[#2a2e39]';
+  const active =
+    'border-[#2962FF] bg-[#2962FF]/20 text-blue-700 dark:text-white';
 
   return (
-    <div className="absolute left-2 top-2 z-10 flex flex-col gap-1 rounded-lg border border-[#2a2e39] bg-[#1e222d]/95 p-1 shadow-lg">
+    <div className="absolute left-2 top-2 z-10 flex flex-col gap-1 rounded-lg border border-slate-200 bg-white/95 p-1 shadow-lg dark:border-[#2a2e39] dark:bg-[#1e222d]/95">
       <button
         type="button"
         aria-label="Select / cursor"
@@ -94,7 +96,7 @@ export function Toolbar({
         );
       })}
 
-      <div className="my-1 h-px bg-[#2a2e39]" />
+      <div className="my-1 h-px bg-slate-200 dark:bg-[#2a2e39]" />
 
       <button
         type="button"
@@ -103,8 +105,8 @@ export function Toolbar({
         disabled={!hasSelection}
         className={`${buttonBase} ${
           hasSelection
-            ? 'border-transparent text-[#d1d4dc] hover:bg-[#2a2e39]'
-            : 'cursor-not-allowed border-transparent text-[#4a4e59]'
+            ? 'border-transparent text-slate-600 hover:bg-slate-100 dark:text-[#d1d4dc] dark:hover:bg-[#2a2e39]'
+            : 'cursor-not-allowed border-transparent text-slate-300 dark:text-[#4a4e59]'
         }`}
         onClick={onEditStyle}
       >
@@ -132,8 +134,8 @@ export function Toolbar({
         disabled={!canAddAlert || !isPro}
         className={`${buttonBase} relative ${
           canAddAlert && isPro
-            ? 'border-transparent text-[#26a69a] hover:bg-[#2a2e39]'
-            : 'cursor-not-allowed border-transparent text-[#4a4e59]'
+            ? 'border-transparent text-[#26a69a] hover:bg-slate-100 dark:hover:bg-[#2a2e39]'
+            : 'cursor-not-allowed border-transparent text-slate-300 dark:text-[#4a4e59]'
         }`}
         onClick={onAddAlert}
       >
@@ -152,8 +154,8 @@ export function Toolbar({
         disabled={!hasSelection}
         className={`${buttonBase} ${
           hasSelection
-            ? 'border-transparent text-[#ef5350] hover:bg-[#2a2e39]'
-            : 'cursor-not-allowed border-transparent text-[#4a4e59]'
+            ? 'border-transparent text-[#ef5350] hover:bg-slate-100 dark:hover:bg-[#2a2e39]'
+            : 'cursor-not-allowed border-transparent text-slate-300 dark:text-[#4a4e59]'
         }`}
         onClick={onDelete}
       >
