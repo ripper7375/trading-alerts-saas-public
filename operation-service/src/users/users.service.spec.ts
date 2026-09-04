@@ -165,7 +165,7 @@ describe('UsersService', () => {
 
       const result = await makeService().getPreferences('user-1');
       expect(result.preferences.theme).toBe('dark');
-      expect(result.preferences.language).toBe('en-US');
+      expect(result.preferences.language).toBe('en-GB');
     });
 
     it('returns bare defaults on a lookup error, not a throw', async () => {

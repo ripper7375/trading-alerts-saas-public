@@ -93,12 +93,12 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   colorScheme: 'blue',
 
   // Language & Region
-  countryCode: 'US',
-  language: 'en-US',
-  timezone: 'America/New_York',
-  dateFormat: 'MDY',
-  timeFormat: '12h',
-  currency: 'USD',
+  countryCode: 'GB',
+  language: 'en-GB',
+  timezone: 'Europe/London',
+  dateFormat: 'DMY',
+  timeFormat: '24h',
+  currency: 'GBP',
 
   // Privacy
   profileVisibility: 'private',
