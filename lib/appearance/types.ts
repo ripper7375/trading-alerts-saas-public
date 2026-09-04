@@ -20,7 +20,7 @@ export interface AppearanceSettings {
 }
 
 export const DEFAULT_APPEARANCE_SETTINGS: AppearanceSettings = {
-  theme: 'dark',
+  theme: 'light',
   accent: 'amber',
   chartUpColor: '#00fbff', // Bullish Up Candle (Cyan)
   chartDownColor: '#fb00ff', // Bearish Down Candle (Magenta)
