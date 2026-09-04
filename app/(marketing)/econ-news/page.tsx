@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Zap, Flame } from 'lucide-react';
 import { EconomicCalendarWidget } from '@/components/calendar/economic-calendar-widget';
 import { useLocale } from '@/lib/context/locale-context';
+import { resolveTradingViewLocale } from '@/lib/utils/tradingview-locale';
 import { Badge } from '@/components/ui/badge';
 
 const REGION_PRESETS = {
@@ -29,35 +30,13 @@ const REGION_PRESETS = {
   },
 } as const;
 
-// TradingView's widget uses its own locale codes, distinct from this app's
-// language codes in a few places (Korean is "kr" not "ko", Chinese is
-// "zh_CN"/"zh_TW" not "zh"/"zh-TW") -- unmapped languages fall back to 'en'.
-const TRADINGVIEW_LOCALE_MAP: Record<string, string> = {
-  'en-US': 'en',
-  'en-GB': 'en',
-  ar: 'ar',
-  th: 'th',
-  de: 'de',
-  es: 'es',
-  ja: 'ja',
-  vi: 'vi',
-  id: 'id',
-  tr: 'tr',
-  ur: 'ar',
-  pt: 'pt',
-  fr: 'fr',
-  ko: 'kr',
-  zh: 'zh_CN',
-  'zh-TW': 'zh_TW',
-};
-
 export default function EconNewsPage() {
   const { t, language } = useLocale();
   const [importance, setImportance] = useState<string>('-1,0,1');
   const [region, setRegion] = useState<keyof typeof REGION_PRESETS>('all');
 
   const tvLocale = useMemo(
-    () => TRADINGVIEW_LOCALE_MAP[language] ?? 'en',
+    () => resolveTradingViewLocale(language),
     [language]
   );
 
