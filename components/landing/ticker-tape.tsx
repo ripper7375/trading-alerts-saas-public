@@ -50,7 +50,14 @@ export function TickerTape({
   symbols = DEFAULT_TICKER_SYMBOLS,
   showSymbolLogo = true,
   isTransparent = true,
-  displayMode = 'adaptive',
+  // 'adaptive' silently swaps between two visually distinct renderers based
+  // on container width: a continuously-scrolling single-line strip on wide
+  // (desktop) viewports vs a static, larger-font, periodically-rotating card
+  // grid on narrow (mobile) ones -- confirmed live by loading the same
+  // TradingView widget config at both widths. 'compact' forces the card
+  // format at every width, so the ticker looks the same on every visit
+  // regardless of device.
+  displayMode = 'compact',
   className = '',
 }: TickerTapeProps): React.ReactElement {
   const containerRef = useRef<HTMLDivElement>(null);

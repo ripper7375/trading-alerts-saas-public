@@ -69,7 +69,9 @@ describe('TickerTape', () => {
     const config = JSON.parse(script?.innerHTML ?? '{}');
     expect(config.showSymbolLogo).toBe(true);
     expect(config.isTransparent).toBe(true);
-    expect(config.displayMode).toBe('adaptive');
+    // 'compact' (not 'adaptive') so the widget renders the same static card
+    // format on every visit regardless of viewport width -- see ticker-tape.tsx.
+    expect(config.displayMode).toBe('compact');
     expect(config.symbols).toHaveLength(15);
     expect(config.symbols).toEqual(DEFAULT_TICKER_SYMBOLS);
     expect(config.symbols[0].proName).toBe('ICMARKETS:AUDUSD');
