@@ -58,6 +58,14 @@ export function MarketingFooter() {
               </li>
               <li>
                 <Link
+                  href="/econ-news"
+                  className="transition-colors hover:text-amber-600 dark:hover:text-amber-400"
+                >
+                  {t('Economic Calendar')}
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/pricing"
                   className="transition-colors hover:text-amber-600 dark:hover:text-amber-400"
                 >

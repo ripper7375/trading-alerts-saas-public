@@ -37,6 +37,7 @@ export function MarketingNavbar() {
     { href: '/blog', label: t('Blog') },
     { href: '/academy', label: t('Academy') },
     { href: '/affiliate', label: t('Affiliates') },
+    { href: '/econ-news', label: t('EconNews') },
   ];
 
   return (

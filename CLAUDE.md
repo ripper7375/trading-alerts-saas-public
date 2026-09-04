@@ -26,6 +26,85 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
+> **Ad-hoc session (2026-09-04, phase/session unchanged) — CLOSED SUCCESSFUL, public
+> "EconNews" Economic Calendar page via TradingView widget:** Davin gave a fully-specified
+> chat task order (with a screenshot of the live landing-page nav) to add a public,
+> unauthenticated `/econ-news` route embedding TradingView's `embed-widget-events.js`
+> Economic Calendar, plus a new "EconNews" nav-tab between Affiliates and More
+> (desktop + mobile drawer) and a footer link. Per `EXECUTOR-PROTOCOL.md` §6.
+> **One real correction to the task order's own reference code, found by checking live code
+> before writing anything (§0's "live code wins"):** the order's widget-theme-sync sample used
+> `next-themes`' `useTheme()` — but per this same file's 2026-09-04 Theme Mode session
+> immediately below, `AppearanceProvider` now owns the app's actual `.dark`/`.light` DOM class
+> directly and next-themes' own `theme`/`resolvedTheme` is no longer kept in sync with it. Using
+> `useTheme()` here would have silently never matched the real app theme. Built
+> `components/calendar/economic-calendar-widget.tsx` to read `resolvedTheme` from
+> `useChartAppearance()` instead — the same source `trading-chart.tsx` already uses,
+> confirmed working live.
+> **Built:** `app/(marketing)/econ-news/page.tsx` (client component: hero, impact/region
+> filter toolbar, calendar card), `components/calendar/economic-calendar-widget.tsx` (script
+> injection + cleanup + TradingView attribution, all wired through `useLocale()`'s `t()`),
+> CSP additions in `next.config.js` (`s3.tradingview.com` script-src,
+> `www.tradingview-widget.com`/`*.tradingview.com` frame-src, `*.tradingview.com` img-src/
+> connect-src), nav + footer + mobile-drawer links, ~15 new `en-US.json` keys (identity
+> mapping, degrades safely per the locale-compliance doc's partial-coverage precedent — not
+> translated into the other 12 dictionaries this session, matching that precedent), and
+> `__tests__/components/economic-calendar-widget.test.tsx` (3 tests: container+attribution
+> render, filter config passthrough, clean unmount — wraps `LocaleProvider`+`AppearanceProvider`
+> per `LESSONS-LEARNED.md` L40, same shadow-render pattern as `trading-chart.test.tsx`).
+> **A genuine, reproducible dev-only console error found and root-caused, not dismissed:**
+> `next dev` (Turbopack, this repo's `reactStrictMode: true`) reliably threw `Uncaught
+TypeError: Cannot read properties of null (reading 'querySelector')` after the widget
+> rendered correctly — traced to Strict Mode's dev-only mount→cleanup→mount double-invoke
+> racing the async `embed-widget-events.js`'s own internal DOM lookup (a vanilla external
+> script injecting into a container React's cleanup can tear down mid-flight). **Confirmed,
+> not assumed, that this is dev-only and does not reach production:** built (`npm run build`,
+> clean, `/econ-news` present in the route list) and ran a real `next start` on an isolated
+> port, loaded `/econ-news` in a fresh tab — zero console errors, widget rendered correctly
+> with live event data, and the "High Impact Only" filter toggle (which tears down and
+> re-creates the script/iframe) also re-rendered cleanly with zero errors. Not logged as a new
+> `LESSONS-LEARNED.md` entry (file is at its 40-entry cap, same constraint every recent session
+> has hit) — flagged here as a candidate for the Advisor's next consolidation pass: "an external
+> vanilla-script-embed widget (TradingView, or any similar iframe-injecting SDK) can throw a
+> real but harmless console error under React Strict Mode's dev-only double-invoke; verify
+> against a real production build before treating it as a functional bug."
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean (0 errors/warnings) on all 5
+> changed/new source files; targeted `economic-calendar-widget.test.tsx` +
+> `public-pages.test.tsx` **16/16**; full monolith `npm run test:ci` **167/167 suites,
+> 2393/2393 tests** (166/2390 baseline +1 suite/+3 tests, zero regressions); `npm run build`
+> clean, exit 0, `/econ-news` in the static route manifest. **Live-verified in a real browser
+> against both `next dev` and a real `next start` production server:** desktop nav shows
+> "EconNews" between Affiliates and More exactly per Davin's screenshot; mobile drawer (375px
+> viewport) shows it directly under Affiliates; footer "Product" column shows "Economic
+> Calendar"; the widget itself renders real TradingView event data, correctly dark-themed
+> (matching this app's `DEFAULT_APPEARANCE_SETTINGS.theme = 'dark'` default for anonymous
+> visitors), with the impact/region filters correctly re-rendering it. Route confirmed reachable
+> with zero auth prompt or redirect (not in `middleware.ts`'s `PROTECTED_PREFIXES`, and
+> `(marketing)/layout.tsx` has no server-side auth gate — matches `LESSONS-LEARNED.md` L17's
+> two-independent-gates warning, both checked, neither applies here).
+> **Not verified, flagged rather than assumed:** actual light-mode rendering of the widget —
+> anonymous visitors always get `resolvedTheme: 'dark'` (no public toggle on this page; Theme
+> Mode lives behind Settings → Appearance, an authenticated-only surface the Executor cannot
+> click through per this file's own standing rule). The mechanism itself is proven sound
+> (identical `useChartAppearance()` source already confirmed working for `/terminal`'s chart in
+> the 2026-09-04 session immediately below), but the actual light-mode pixels on `/econ-news`
+> specifically have not been eyeballed. Needs Davin's own pass once he's logged in and switches
+> Theme Mode to Light, on the widget's own live re-render.
+> **Flagged, not fixed (pre-existing, not caused by this session):** this file
+> (`CLAUDE.md`) is **144.7 KB**, above `EXECUTOR-PROTOCOL.md` §0's ~100 KB size gate and larger
+> than when the 2026-09-03 session flagged it at 121 KB — same reasoning as that session applies
+> again: the bulk is ad-hoc-session blockquotes, not the numbered Session-14-x Current/Previous
+> rotation §3's archival procedure actually targets, and several entries are still directly
+> referenced by open `Waiting on` items. Attempting a consolidation pass as a side effect of this
+> narrowly-scoped feature session risked mangling a large, carefully-written record for no
+> benefit to the task actually asked for; flagged again for a deliberate future pass.
+> **Artifacts:** `app/(marketing)/econ-news/page.tsx` (new), `components/calendar/
+economic-calendar-widget.tsx` (new), `__tests__/components/economic-calendar-widget.test.tsx`
+> (new), `next.config.js`, `components/marketing/marketing-navbar.tsx`, `components/marketing/
+marketing-footer.tsx`, `lib/i18n/dictionaries/en-US.json`, this file. Not committed — Davin
+> was not asked this session whether to commit; left for his review of this entry first, per
+> this file's own established log-first-defer-commit pattern.
+
 > **Ad-hoc session (2026-09-04, phase/session unchanged) — CLOSED SUCCESSFUL, Light Clean Mode
 > (Theme Mode) never visually applying, plus the trading chart never following it either:** Davin
 > reported live, with a screenshot of `davintrade.app/settings/appearance`, that selecting "Light
