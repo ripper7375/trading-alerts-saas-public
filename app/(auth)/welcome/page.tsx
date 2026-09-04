@@ -40,7 +40,12 @@ export default function WelcomePage(): JSX.Element {
 
   const handleSelectAccent = (accent: AccentScheme): void => {
     updateSettings({ accent });
-    void saveSettings();
+    // Pass the override directly rather than relying on `settings` having
+    // already picked up the update above -- updateSettings() schedules a
+    // state update but doesn't apply it synchronously, so calling
+    // saveSettings() with no args here would persist the PRE-selection
+    // accent (see appearance-provider.tsx's saveSettings() doc comment).
+    void saveSettings({ accent });
   };
 
   if (status === 'loading' || status === 'unauthenticated') {

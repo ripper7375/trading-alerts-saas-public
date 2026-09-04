@@ -21,7 +21,16 @@ const THEME_STORAGE_KEY = 'davintrade-theme';
 interface AppearanceContextValue {
   settings: AppearanceSettings;
   updateSettings: (newSettings: Partial<AppearanceSettings>) => void;
-  saveSettings: () => Promise<boolean>;
+  /**
+   * Persists the current settings, optionally merging `overrides` in first.
+   * Passing `overrides` (rather than relying on a prior `updateSettings()`
+   * call having already landed in `settings`) sidesteps a stale-closure
+   * race: `updateSettings()` schedules a state update but doesn't apply it
+   * synchronously, so a caller that does `updateSettings(x); saveSettings()`
+   * in the same handler would otherwise persist the settings from BEFORE
+   * that update -- exactly the value the caller just asked to change.
+   */
+  saveSettings: (overrides?: Partial<AppearanceSettings>) => Promise<boolean>;
   isSaving: boolean;
   /** settings.theme resolved to an actual light/dark value ('system' resolved via OS preference) -- for canvas-based UI (chart libraries) that can't read CSS custom properties/.dark class and must be told the active theme directly. */
   resolvedTheme: 'light' | 'dark';
@@ -156,10 +165,12 @@ export function AppearanceProvider({
     });
   };
 
-  const saveSettings = async (): Promise<boolean> => {
+  const saveSettings = async (
+    overrides?: Partial<AppearanceSettings>
+  ): Promise<boolean> => {
     return new Promise((resolve) => {
       startTransition(async () => {
-        const res = await saveAppearanceAction(settings);
+        const res = await saveAppearanceAction({ ...settings, ...overrides });
         resolve(res.success);
       });
     });

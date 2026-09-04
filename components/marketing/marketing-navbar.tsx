@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useLocale } from '@/lib/context/locale-context';
 import { LanguageSelectorModal } from '@/components/marketing/language-selector-modal';
+import { ThemeToggleButton } from '@/components/marketing/theme-toggle-button';
 
 export function MarketingNavbar() {
   const pathname = usePathname();
@@ -165,6 +166,7 @@ export function MarketingNavbar() {
 
         {/* Right CTA / Auth */}
         <div className="hidden items-center space-x-3 md:flex">
+          <ThemeToggleButton />
           <Link href="/login">
             <Button variant="ghost" className="text-foreground hover:bg-accent">
               {t('Log In')}
@@ -178,17 +180,20 @@ export function MarketingNavbar() {
           </Link>
         </div>
 
-        {/* Mobile Menu Button */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground md:hidden"
-        >
-          {mobileMenuOpen ? (
-            <X className="h-5 w-5" />
-          ) : (
-            <Menu className="h-5 w-5" />
-          )}
-        </button>
+        {/* Mobile Theme Toggle + Menu Button */}
+        <div className="flex items-center gap-2 md:hidden">
+          <ThemeToggleButton />
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground"
+          >
+            {mobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Drawer */}

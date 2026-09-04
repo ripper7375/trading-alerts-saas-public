@@ -29,13 +29,21 @@ import { LandingHero } from '@/components/landing/landing-hero';
 import { MarketingNavbar } from '@/components/marketing/marketing-navbar';
 import LoginPage from '@/app/(auth)/login/page';
 import { LocaleProvider } from '@/lib/context/locale-context';
+import { AppearanceProvider } from '@/components/providers/appearance-provider';
 import {
   LOCALE_STORAGE_KEY,
   defaultPreferences,
 } from '@/lib/i18n/locale-resolver';
 
+// MarketingNavbar now also calls useAppearance() (its new ThemeToggleButton)
+// -- needs an AppearanceProvider ancestor alongside LocaleProvider, same
+// shadow-render pattern as trading-chart.test.tsx (LESSONS-LEARNED.md L40).
 function renderWithLocale(ui: React.ReactElement) {
-  return rtlRender(<LocaleProvider>{ui}</LocaleProvider>);
+  return rtlRender(
+    <LocaleProvider>
+      <AppearanceProvider>{ui}</AppearanceProvider>
+    </LocaleProvider>
+  );
 }
 
 describe('Landing and Auth Navigation (Items 1 & 2)', () => {

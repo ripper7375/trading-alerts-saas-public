@@ -20,6 +20,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { LocaleProvider } from '@/lib/context/locale-context';
+import { AppearanceProvider } from '@/components/providers/appearance-provider';
 
 // ---- next/navigation: redirect() throws, matching the established
 // Session 6-3/6-6 convention for testing server-component redirects.
@@ -110,8 +111,15 @@ afterAll(() => {
   global.fetch = originalFetch;
 });
 
+// MarketingNavbar (mounted by every page below) now also calls
+// useAppearance() (its new ThemeToggleButton) -- needs an AppearanceProvider
+// ancestor alongside LocaleProvider (LESSONS-LEARNED.md L40).
 function withLocale(ui: React.ReactElement) {
-  return <LocaleProvider>{ui}</LocaleProvider>;
+  return (
+    <LocaleProvider>
+      <AppearanceProvider>{ui}</AppearanceProvider>
+    </LocaleProvider>
+  );
 }
 
 import TermsPage from '@/app/(marketing)/terms/page';

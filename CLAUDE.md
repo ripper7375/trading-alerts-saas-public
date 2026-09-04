@@ -26,6 +26,81 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
+> **Ad-hoc session (2026-09-04, phase/session unchanged) — CLOSED SUCCESSFUL, public
+> dark/light theme toggle on the marketing navbar:** Davin asked directly in chat (with a
+> screenshot of the live landing page annotating the exact spot, next to the "เข้าสู่ระบบ"/Log In
+> button) for a "theme switching (dark/light) toggle" as a shortcut to Settings → Appearance, so
+> a visitor doesn't have to log in and find that page just to flip the theme. Per
+> `EXECUTOR-PROTOCOL.md` §6 (fully-specified chat instruction with an annotated screenshot).
+> **Checked live code before building anything, per §0:** `AppearanceProvider`
+> (`components/providers/appearance-provider.tsx`) is already mounted once at the true root
+> (`app/providers.tsx` → `client-providers.tsx`), so `useAppearance()`/`useChartAppearance()`
+> already reach every marketing page (confirmed by the EconNews session's own prior use). More
+> importantly, `saveAppearanceAction` (`app/actions/appearance.ts`) was read directly and
+> confirmed **guest-safe by design** — unlike `PUT /api/user/preferences` (401 for anonymous,
+> the reason the earlier Language modal stayed session-local-only), it always writes the
+> `davintrade-appearance` cookie first and only additionally upserts the DB row when a session
+> exists. So unlike the Language/Country quick-switchers, this toggle can call the real save
+> action and get **genuine persistence across a reload for anonymous visitors too**, not just a
+> same-tab-session convenience — confirmed live, not assumed.
+> **New `components/marketing/theme-toggle-button.tsx`:** a Moon/Sun icon button (mirrors the
+> Settings → Appearance page's own icon convention) reading `resolvedTheme` from
+> `useAppearance()`, calling `updateSettings({ theme: next })` for the instant reactive DOM flip
+> plus `saveSettings({ theme: next })` for persistence, one click, no separate Save step (same
+> "shortcut" spirit as the Language modal). Wired into `MarketingNavbar` exactly where Davin's
+> screenshot pointed — the right-side CTA cluster before the Log In button on desktop, and beside
+> the hamburger button on mobile (always visible, not buried inside the drawer).
+> **A real, load-bearing bug found and fixed, not routed around:** writing the toggle's
+> single-click "update, then immediately save" handler reproduced a genuine stale-closure race in
+> `AppearanceProvider.saveSettings()` — it closes over the `settings` state from the render in
+> which it was created, but `updateSettings()` only _schedules_ a state update, it doesn't apply
+> it synchronously. Calling both in the same handler (`updateSettings(x); await saveSettings()`)
+> therefore persisted the value from **before** the change, not after — caught by this session's
+> own new test (`toHaveBeenCalledWith(..., '"theme":"dark"')` received `"theme":"light"`
+> instead), not eyeballed. **Fixed at the source, not papered over in the caller:**
+> `saveSettings()` now takes an optional `overrides?: Partial<AppearanceSettings>` and merges it
+> in before persisting, so a caller can hand it the intended value directly instead of trusting a
+> same-tick state read. A **repo-wide grep for other `saveSettings()` call sites** (this file's
+> own established sweep habit) turned up a second, pre-existing, real victim of the identical
+> pattern: `app/(auth)/welcome/page.tsx`'s onboarding accent-color picker
+> (`handleSelectAccent`) — `updateSettings({ accent }); void saveSettings();` — meaning a new
+> user's chosen onboarding accent color has been silently persisting the PREVIOUS accent to the
+> database, not the one they just clicked, since that flow was built. Fixed the same way
+> (`saveSettings({ accent })`). `app/settings/appearance/page.tsx`'s own `handleSave` was checked
+> and does NOT have this bug — its update and save are two separate user actions across a render
+> boundary (pick a theme, THEN click "Apply" later), so `saveSettings()`'s no-args default (now
+> unchanged in behavior) always sees the already-committed state there.
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean (0 errors/warnings) on all 6
+> changed/new source files; new `__tests__/components/marketing/theme-toggle-button.test.tsx`
+> (3/3, including the test that caught the stale-closure bug above) + the two pre-existing test
+> files that render `MarketingNavbar` directly (`landing-and-auth-navigation.test.tsx`,
+> `public-pages.test.tsx`) updated to wrap `AppearanceProvider` alongside `LocaleProvider`
+> (`LESSONS-LEARNED.md` L40 — a component newly reaching a provider's hook breaks any pre-existing
+> test that renders it without that provider) — both green, plus every other test file touching
+> `AppearanceProvider`/`saveAppearanceAction` (`appearance.test.ts`, `trading-chart.test.tsx`,
+> `economic-calendar-widget.test.tsx`, the Settings → Appearance page test) re-run clean, 53/53
+> across all 7 files; full monolith `npm run test:ci` **170/170 suites, 2407/2407 tests**, zero
+> regressions; `npm run build` clean, exit 0.
+> **Live-verified in a real browser, not left as a "needs Davin's pass" item** — unlike almost
+> every other entry in this file's history, this feature needed no authentication to reach, so it
+> was fully click-through-verified end to end: desktop toggle click instantly re-themed the
+> entire landing page (background, nav, cards, chart mock) with zero console errors; a full page
+> reload afterward confirmed the dark choice survived for the anonymous session (the guest cookie
+> path proven live, not just read in source); mobile viewport (375px) showed the toggle
+> correctly positioned beside the hamburger button, and a direct-dispatch click (the
+> `computer`-tool's coordinate/ref clicks were unreliable while the Browser pane was backgrounded
+> in this environment — an automation-harness quirk, confirmed unrelated to the app by the
+> successful desktop test and by DOM state before/after) confirmed the mobile instance of the
+> same shared component toggles correctly too.
+> **Not committed** — Davin was not asked this session whether to commit; left for his review of
+> this entry first, per this file's own established log-first-defer-commit pattern.
+> **Artifacts:** `components/marketing/theme-toggle-button.tsx` (new),
+> `components/providers/appearance-provider.tsx` (`saveSettings()` override-param fix),
+> `components/marketing/marketing-navbar.tsx`, `app/(auth)/welcome/page.tsx` (second stale-closure
+> instance fixed), `__tests__/components/marketing/theme-toggle-button.test.tsx` (new),
+> `__tests__/components/landing/landing-and-auth-navigation.test.tsx`,
+> `__tests__/pages/marketing/public-pages.test.tsx`, this file.
+
 > **Ad-hoc session (2026-09-04, phase/session unchanged) — CLOSED SUCCESSFUL, landing-page
 > "Language" modal:** Davin asked directly in chat (with a screenshot of the live landing
 > page annotating where to add it) for a public, unauthenticated language switcher on the
