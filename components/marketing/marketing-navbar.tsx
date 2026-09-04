@@ -13,6 +13,7 @@ import {
   Activity,
   Layers,
   ChevronDown,
+  Globe,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,11 +25,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useLocale } from '@/lib/context/locale-context';
+import { LanguageSelectorModal } from '@/components/marketing/language-selector-modal';
 
 export function MarketingNavbar() {
   const pathname = usePathname();
   const { t } = useLocale();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [languageModalOpen, setLanguageModalOpen] = useState(false);
 
   const navLinks = [
     { href: '/#features', label: t('Features') },
@@ -75,6 +78,15 @@ export function MarketingNavbar() {
 
         {/* Desktop Navigation */}
         <nav className="hidden items-center space-x-6 text-sm font-medium md:flex">
+          <button
+            type="button"
+            onClick={() => setLanguageModalOpen(true)}
+            className="flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-amber-600 focus:outline-none dark:hover:text-amber-400"
+          >
+            <Globe className="h-3.5 w-3.5" />
+            <span>{t('Language')}</span>
+          </button>
+
           {navLinks.map((item) => (
             <Link
               key={item.href}
@@ -183,6 +195,18 @@ export function MarketingNavbar() {
       {mobileMenuOpen && (
         <div className="bg-background/98 border-b border-border px-4 py-6 md:hidden">
           <div className="flex flex-col space-y-4">
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setLanguageModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 text-base font-medium text-foreground hover:text-amber-600 dark:hover:text-amber-400"
+            >
+              <Globe className="h-4 w-4" />
+              <span>{t('Language')}</span>
+            </button>
+
             {navLinks.map((item) => (
               <Link
                 key={item.href}
@@ -231,6 +255,11 @@ export function MarketingNavbar() {
           </div>
         </div>
       )}
+
+      <LanguageSelectorModal
+        open={languageModalOpen}
+        onOpenChange={setLanguageModalOpen}
+      />
     </header>
   );
 }

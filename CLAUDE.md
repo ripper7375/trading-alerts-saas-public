@@ -26,6 +26,59 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
+> **Ad-hoc session (2026-09-04, phase/session unchanged) — CLOSED SUCCESSFUL, landing-page
+> "Language" modal:** Davin asked directly in chat (with a screenshot of the live landing
+> page annotating where to add it) for a public, unauthenticated language switcher on the
+> marketing site — a "Language" nav item that opens a modal offering the exact same language
+> list as Settings → Language & Region, so a first-time visitor never has to find their way
+> into an authenticated settings page just to read the site in their own language. Per
+> `EXECUTOR-PROTOCOL.md` §6 (fully-specified chat instruction).
+> **Refactored the language list to a single source of truth rather than duplicating it:**
+> new `lib/i18n/languages.ts` exports `SUPPORTED_LANGUAGES` (the same 11-entry code/name/flag
+> list `app/settings/language/page.tsx` already had inline); the Settings page now imports it
+> instead of declaring its own copy, so the two surfaces can never drift apart.
+> **New `components/marketing/language-selector-modal.tsx`:** a shadcn `Dialog` listing every
+> `SUPPORTED_LANGUAGES` entry; clicking one calls `setLocalePreferences({ language: code })`
+> from `useLocale()` and closes immediately — no separate "Save" step. Deliberately mirrors
+> `app-header.tsx`'s existing "Quick Country Switcher" pattern (client-side-only, via
+> `LocaleProvider`'s own localStorage+cookie persistence) rather than `settings/language`'s
+> `PUT /api/user/preferences` round trip — that endpoint requires auth (401 for anonymous
+> visitors, confirmed by reading `app/api/user/preferences/route.ts` directly), and the header's
+> country switcher already established that an ambient locale-quick-toggle on this codebase is
+> expected to be session-local-only, not a profile write. `MarketingNavbar` gained a "Language"
+> button (Globe icon) positioned first in both the desktop nav and the mobile drawer, per
+> Davin's screenshot, opening the modal.
+> **Checked, not assumed, before adding any translation keys:** grepped `fr.json`/`ko.json`/
+> `zh.json`/`zh-TW.json` for the navbar's own existing labels (`Features`/`Pricing`/`Docs`/
+> `Affiliates`) and confirmed none of them are translated in those four dictionaries either —
+> `MarketingNavbar` was never in scope for the 18-batch locale audit's public-marketing-chrome
+> batch. Left the new "Language" button key untranslated in those four to match its siblings
+> exactly (adding just one translated label next to five untranslated ones would have been a
+> worse, inconsistent state) — it falls back to the English word "Language", same graceful
+> degradation as every other nav label there today. `es`/`de`/`pt`/`ja`/`hi`/`id`/`tr`/`ur`/`vi`
+> (the older 2268-key dictionaries, never touched by any documented locale session) were
+> correctly left alone entirely, consistent with that same precedent.
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean on all 5 changed/new files; new
+> `__tests__/components/marketing/language-selector-modal.test.tsx` (4/4, `LocaleProvider`
+> shadow-render wrapper per `LESSONS-LEARNED.md` L40) + `__tests__/pages/marketing/
+public-pages.test.tsx` (13/13, unaffected) both green; full monolith `npm run test:ci`
+> **168/168 suites, 2397/2397 tests** (167/2393 baseline +1 suite/+4 tests, zero regressions);
+> `npm run build` clean, exit 0, `/econ-news`/`/settings/language`/`/` all present in the route
+> manifest.
+> **Live browser verification blocked by environment, not attempted around:** another chat
+> session already had `next dev` running against this same repo's shared `.next/` directory —
+> the exact Windows file-lock contention this file's 2026-08-31 Academy ad-hoc session already
+> documented (`netstat` confirmed only port 3000 had a real listening socket; this session's own
+> `autoPort`-assigned attempts never bound). Did not force a `next build`/kill the other
+> session's server to work around it, same restraint that session applied. Fell back to the
+> production build as the strongest available non-interactive check instead. Flagged below, not
+> silently skipped — needs Davin's own click-through.
+> **Not committed** — Davin was not asked this session whether to commit; left for his review
+> of this entry first, per this file's own established log-first-defer-commit pattern.
+> **Artifacts:** `lib/i18n/languages.ts` (new), `components/marketing/language-selector-modal.tsx`
+> (new), `__tests__/components/marketing/language-selector-modal.test.tsx` (new),
+> `app/settings/language/page.tsx`, `components/marketing/marketing-navbar.tsx`, this file.
+
 > **Ad-hoc session (2026-09-04, phase/session unchanged) — CLOSED SUCCESSFUL, public
 > "EconNews" Economic Calendar page via TradingView widget:** Davin gave a fully-specified
 > chat task order (with a screenshot of the live landing-page nav) to add a public,
@@ -1508,6 +1561,15 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 
 ## Waiting on
 
+- **Landing-page Language modal — live click-through not yet confirmed** (2026-09-04 ad-hoc
+  session) — `tsc`/`eslint`/new-test (4/4)/full `test:ci` (168/168 · 2397/2397)/`npm run build`
+  all clean, but live browser verification was blocked by another session's `next dev` holding
+  the shared `.next/` directory (same Windows contention `2026-08-31`'s Academy session
+  documented) — not an auth boundary this time, just port/process contention. Needs a pass once
+  a dev server is free: open the public landing page, confirm the new "Language" nav item
+  (desktop, between the logo and Features) and mobile-drawer equivalent both open the modal,
+  that selecting a language re-locales the page immediately with no reload, and that the
+  currently-active language shows the check-mark/highlighted state on reopen.
 - **Trading chart candle up/down colors — never actually seen rendered against live data**
   (2026-09-04 ad-hoc session) — `trading-chart.tsx` now correctly passes `chartUpColor`/
   `chartDownColor` from Settings → Appearance to `CandlestickSeries`, confirmed by reading the

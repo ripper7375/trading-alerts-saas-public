@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useLocale } from '@/lib/context/locale-context';
+import { SUPPORTED_LANGUAGES } from '@/lib/i18n/languages';
 import {
   getAllTimezones,
   getTimezoneLabel,
@@ -46,20 +47,6 @@ interface LanguageSettings {
   timeFormat: '12h' | '24h';
   currency: string;
 }
-
-const languages = [
-  { code: 'en-US', name: 'English (US)', flag: '🇺🇸' },
-  { code: 'en-GB', name: 'English (UK)', flag: '🇬🇧' },
-  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-  { code: 'de', name: 'German', flag: '🇩🇪' },
-  { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
-  { code: 'ar', name: 'Arabic (العربية)', flag: '🇦🇪' },
-  { code: 'fr', name: 'French (Français)', flag: '🇫🇷' },
-  { code: 'ko', name: 'Korean (한국어)', flag: '🇰🇷' },
-  { code: 'zh', name: 'Chinese (Simplified) (简体中文)', flag: '🇨🇳' },
-  { code: 'zh-TW', name: 'Chinese (Traditional) (繁體中文)', flag: '🇹🇼' },
-];
 
 const currencies = [
   { code: 'USD', symbol: '$', name: 'US Dollar' },
@@ -205,7 +192,7 @@ export default function LanguageSettingsPage(): React.ReactElement {
               <SelectValue placeholder={t('Select language')} />
             </SelectTrigger>
             <SelectContent>
-              {languages.map((lang) => (
+              {SUPPORTED_LANGUAGES.map((lang) => (
                 <SelectItem key={lang.code} value={lang.code}>
                   {lang.flag} {lang.name}
                 </SelectItem>
