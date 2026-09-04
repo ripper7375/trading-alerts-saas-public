@@ -53,7 +53,7 @@ export function AppearanceProvider({
 }): React.ReactElement {
   const [settings, setSettings] = useState<AppearanceSettings>(initialSettings);
   const [isPending, startTransition] = useTransition();
-  const { setTheme } = useTheme();
+  const { setTheme, theme: nextThemesTheme } = useTheme();
 
   // Apply CSS variables/data-accent whenever settings change.
   useEffect(() => {
@@ -67,6 +67,16 @@ export function AppearanceProvider({
   // form actually flips the class too — updateSettings() alone only touches
   // our own React state/CSS vars, not next-themes' state.
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as unknown as { __themeDebug: unknown[] }).__themeDebug =
+        (window as unknown as { __themeDebug: unknown[] }).__themeDebug || [];
+      (window as unknown as { __themeDebug: unknown[] }).__themeDebug.push({
+        t: Date.now(),
+        settingsTheme: settings.theme,
+        nextThemesThemeBefore: nextThemesTheme,
+        setThemeRefId: setTheme.toString().slice(0, 20),
+      });
+    }
     setTheme(settings.theme);
   }, [settings.theme, setTheme]);
 
