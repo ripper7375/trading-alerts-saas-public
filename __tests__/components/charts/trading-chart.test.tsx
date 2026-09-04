@@ -19,6 +19,7 @@ import {
 import { describe, it, expect, beforeEach } from '@jest/globals';
 
 import { LocaleProvider } from '@/lib/context/locale-context';
+import { AppearanceProvider } from '@/components/providers/appearance-provider';
 import {
   LOCALE_STORAGE_KEY,
   defaultPreferences,
@@ -29,9 +30,17 @@ import {
 // every one of this file's many render()/rerender() call sites: RTL's own
 // `rerender()` re-uses whatever wrapper was passed to the original render(),
 // so wrapping only the import fixes every call site in one place
-// (LESSONS-LEARNED.md L40).
+// (LESSONS-LEARNED.md L40). AppearanceProvider added the same way now that
+// TradingChart also calls useChartAppearance() (theme-aware chart colors).
 function render(ui: React.ReactElement, options?: RenderOptions) {
-  return rtlRender(ui, { wrapper: LocaleProvider, ...options });
+  return rtlRender(ui, {
+    wrapper: ({ children }: { children: React.ReactNode }) => (
+      <LocaleProvider>
+        <AppearanceProvider>{children}</AppearanceProvider>
+      </LocaleProvider>
+    ),
+    ...options,
+  });
 }
 
 // LocaleProvider calls usePathname() directly (L40's own stub).
@@ -58,6 +67,7 @@ const mockChartRemove = jest.fn();
 const mockSetData = jest.fn();
 const mockFitContent = jest.fn();
 const mockApplyOptions = jest.fn();
+const mockSeriesApplyOptions = jest.fn();
 
 jest.mock('lightweight-charts', () => ({
   createChart: jest.fn(() => ({
@@ -65,6 +75,7 @@ jest.mock('lightweight-charts', () => ({
     addSeries: () => ({
       setData: (...args: unknown[]) => mockSetData(...args),
       setMarkers: jest.fn(),
+      applyOptions: (...args: unknown[]) => mockSeriesApplyOptions(...args),
     }),
     remove: () => mockChartRemove(),
     timeScale: () => ({ fitContent: () => mockFitContent() }),
