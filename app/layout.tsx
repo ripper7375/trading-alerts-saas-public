@@ -134,29 +134,6 @@ export default async function RootLayout({
             __html: `
               (function() {
                 try {
-                  window.__earlyTrace = [];
-                  var __origSetItem = Storage.prototype.setItem;
-                  Storage.prototype.setItem = function(k, v) {
-                    if (k === 'davintrade-theme') {
-                      window.__earlyTrace.push({op: 'setItem', v: v, t: performance.now()});
-                    }
-                    return __origSetItem.apply(this, arguments);
-                  };
-                  window.addEventListener('storage', function(e) {
-                    if (e.key === 'davintrade-theme') {
-                      window.__earlyTrace.push({op: 'storageEvent', v: e.newValue, oldV: e.oldValue, t: performance.now()});
-                    }
-                  });
-                  var __mo = new MutationObserver(function(records) {
-                    records.forEach(function(r) {
-                      if (r.attributeName === 'class') {
-                        window.__earlyTrace.push({op: 'classMutation', v: document.documentElement.className, t: performance.now()});
-                      }
-                    });
-                  });
-                  __mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-                } catch (e) {}
-                try {
                   var u = new URLSearchParams(window.location.search);
                   var c = document.cookie.match(/davintrade-theme=([^;]+)/);
                   // localStorage before the cookie: next-themes' setTheme()
