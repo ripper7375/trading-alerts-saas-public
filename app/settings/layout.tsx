@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth';
 
 import { LoginTracker } from '@/components/auth/login-tracker';
 import { TokenRefreshProvider } from '@/components/auth/token-refresh-provider';
-import { AppearanceProvider } from '@/components/providers/appearance-provider';
 import { authOptions } from '@/lib/auth/auth-options';
 import { getServerAppearance } from '@/lib/appearance/server-appearance';
 
@@ -40,34 +39,32 @@ export default async function SettingsLayout({
   const appearance = await getServerAppearance();
 
   return (
-    <AppearanceProvider initialSettings={appearance}>
-      <div
-        data-accent={appearance.accent}
-        style={
-          {
-            '--chart-candle-up': appearance.chartUpColor,
-            '--chart-candle-down': appearance.chartDownColor,
-            '--chart-grid-opacity': (appearance.gridOpacity / 100).toString(),
-          } as React.CSSProperties
-        }
-        className="min-h-screen bg-background"
-      >
-        <LoginTracker />
-        <TokenRefreshProvider />
-        <AppHeader title="Settings" subtitle="Account & preferences" />
+    <div
+      data-accent={appearance.accent}
+      style={
+        {
+          '--chart-candle-up': appearance.chartUpColor,
+          '--chart-candle-down': appearance.chartDownColor,
+          '--chart-grid-opacity': (appearance.gridOpacity / 100).toString(),
+        } as React.CSSProperties
+      }
+      className="min-h-screen bg-background"
+    >
+      <LoginTracker />
+      <TokenRefreshProvider />
+      <AppHeader title="Settings" subtitle="Account & preferences" />
 
-        <div className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row">
-            <SettingsNav />
+      <div className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row">
+          <SettingsNav />
 
-            <div className="flex-1">
-              <div className="min-h-[600px] rounded-xl border border-border bg-card p-6 shadow-sm md:p-8">
-                {children}
-              </div>
+          <div className="flex-1">
+            <div className="min-h-[600px] rounded-xl border border-border bg-card p-6 shadow-sm md:p-8">
+              {children}
             </div>
           </div>
         </div>
       </div>
-    </AppearanceProvider>
+    </div>
   );
 }
