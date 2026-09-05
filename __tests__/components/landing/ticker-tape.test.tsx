@@ -136,7 +136,12 @@ describe('TickerTape', () => {
 
     const config = getConfig(container, 'light');
     expect(config.showSymbolLogo).toBe(true);
-    expect(config.isTransparent).toBe(true);
+    // Opaque on purpose: with isTransparent:true the widget paints no
+    // background and depends on showing through, which rendered the dark
+    // widget's light text over a white canvas in a real browser. Each widget
+    // painting its own theme-matched background is what keeps the strip
+    // readable in both modes -- see ticker-tape.tsx.
+    expect(config.isTransparent).toBe(false);
     // 'compact' (not 'adaptive') so the widget renders the same static card
     // format on every visit regardless of viewport width -- see ticker-tape.tsx.
     expect(config.displayMode).toBe('compact');

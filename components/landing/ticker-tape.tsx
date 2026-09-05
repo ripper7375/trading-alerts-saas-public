@@ -95,7 +95,14 @@ function buildEmbedSrc(
 export function TickerTape({
   symbols = DEFAULT_TICKER_SYMBOLS,
   showSymbolLogo = true,
-  isTransparent = true,
+  // Deliberately opaque. With isTransparent:true the widget paints no
+  // background of its own and depends on showing through to whatever is
+  // behind it -- which does not land consistently across browsers: the dark
+  // widget rendered its light text over a white canvas (reported live, and
+  // reproduced by loading the same config standalone). Letting each widget
+  // paint its own theme-matched background makes the strip self-contained,
+  // so it can't be washed out by anything in front of or behind it.
+  isTransparent = false,
   // 'adaptive' silently swaps between two visually distinct renderers based
   // on container width: a continuously-scrolling single-line strip on wide
   // (desktop) viewports vs a static, larger-font, periodically-rotating card
@@ -157,9 +164,14 @@ export function TickerTape({
     },
   };
 
+  // `bg-background` carries no opacity modifier on purpose: `bg-background/95`
+  // computed to fully transparent here (rgba(0,0,0,0)) rather than a 95%-alpha
+  // background, so it painted nothing at all. The iframes are opaque now
+  // anyway, but this keeps the strip the right colour in the gap before they
+  // finish loading.
   return (
     <div
-      className={`tradingview-widget-container border-border/40 bg-background/95 supports-[backdrop-filter]:bg-background/60 relative w-full border-y backdrop-blur ${className}`}
+      className={`tradingview-widget-container border-border/40 relative w-full border-y bg-background ${className}`}
       style={{ width: '100%', height: TICKER_TAPE_HEIGHT }}
     >
       <iframe
