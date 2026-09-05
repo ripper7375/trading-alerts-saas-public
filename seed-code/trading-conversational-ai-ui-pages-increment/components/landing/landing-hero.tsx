@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { useSupportChat } from '@/components/chat-widget/chat-context';
 import { useLocale } from '@/lib/context/locale-context';
@@ -14,6 +15,11 @@ export function LandingHero() {
   const [prompt, setPrompt] = useState(t('How can I help you today ?'));
   const router = useRouter();
   const { openChatWithMessage } = useSupportChat();
+  const { resolvedTheme } = useTheme();
+  const heroImageSrc =
+    resolvedTheme === 'dark'
+      ? '/mathematic-trading1-invert.png'
+      : '/mathematic-trading1.png';
 
   const handleLaunchSupport = () => {
     if (prompt.trim()) {
@@ -163,7 +169,7 @@ export function LandingHero() {
               <div className="relative rounded-3xl border border-slate-700/80 bg-white p-3 shadow-2xl shadow-black dark:bg-[#0b0e17]">
                 <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
                   <Image
-                    src="/mathematic-trading1.png"
+                    src={heroImageSrc}
                     alt={t(
                       'DavinTrade Gold Trade Analyst Mascot with XAUUSD Chart Analysis'
                     )}

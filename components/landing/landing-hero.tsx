@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { useChartAppearance } from '@/components/providers/appearance-provider';
 import { useLocale } from '@/lib/context/locale-context';
 import { ArrowRight } from 'lucide-react';
 
@@ -17,6 +18,11 @@ import { ArrowRight } from 'lucide-react';
 export function LandingHero() {
   const { t } = useLocale();
   const { data: session, status } = useSession();
+  const { resolvedTheme } = useChartAppearance();
+  const heroImageSrc =
+    resolvedTheme === 'dark'
+      ? '/mathematic-trading1-invert.png'
+      : '/mathematic-trading1.png';
 
   const userTier = (session?.user as { tier?: string } | undefined)?.tier;
   const workbenchHref = userTier === 'PRO' ? '/terminal' : '/free';
@@ -101,7 +107,7 @@ export function LandingHero() {
               <div className="relative rounded-3xl border border-slate-700/80 bg-white p-3 shadow-2xl shadow-black dark:bg-[#0b0e17]">
                 <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
                   <Image
-                    src="/mathematic-trading1.png"
+                    src={heroImageSrc}
                     alt={t(
                       'DavinTrade Gold Trade Analyst Mascot with XAUUSD Chart Analysis'
                     )}
