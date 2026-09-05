@@ -64,6 +64,19 @@ const TICKER_TAPE_HEIGHT = 72;
  * already-mounted <iframe> is a normal browser navigation with no
  * involvement from any third-party script's own internal state -- the same
  * mechanism the theme-aware hero <Image> swap already relies on.
+ *
+ * That alone still wasn't enough, though: it kept going blank on a runtime
+ * theme toggle even as a plain iframe. Root cause, found by inspecting the
+ * live iframe `src` before/after a toggle: `colorTheme` lives inside the URL
+ * HASH fragment (TradingView's own embed format), and the query string
+ * (`?locale=...`) doesn't change when only the theme changes. A browser
+ * treats an iframe `src` update where only the fragment differs as an
+ * in-page hash navigation -- the same mechanism `<a href="#section">` uses
+ * -- NOT a full document reload, so the iframe's own document never
+ * actually re-fetches or re-renders with the new config. `colorTheme` is
+ * therefore mirrored into the query string too (redundant with the hash,
+ * which TradingView's own script still reads), purely so the query string
+ * itself differs on every theme change and forces a genuine reload.
  */
 export function TickerTape({
   symbols = DEFAULT_TICKER_SYMBOLS,
@@ -106,7 +119,7 @@ export function TickerTape({
     width: '100%',
     height: TICKER_TAPE_HEIGHT,
   };
-  const iframeSrc = `https://www.tradingview-widget.com/embed-widget/ticker-tape/?locale=${encodeURIComponent(locale)}#${encodeURIComponent(JSON.stringify(config))}`;
+  const iframeSrc = `https://www.tradingview-widget.com/embed-widget/ticker-tape/?locale=${encodeURIComponent(locale)}&colorTheme=${encodeURIComponent(resolvedTheme)}#${encodeURIComponent(JSON.stringify(config))}`;
 
   return (
     <div

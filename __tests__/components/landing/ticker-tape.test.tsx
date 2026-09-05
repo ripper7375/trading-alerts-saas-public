@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach } from '@jest/globals';
 
 import { LocaleProvider } from '@/lib/context/locale-context';
 import { AppearanceProvider } from '@/components/providers/appearance-provider';
+import { DEFAULT_APPEARANCE_SETTINGS } from '@/lib/appearance/types';
 import {
   LOCALE_STORAGE_KEY,
   defaultPreferences,
@@ -19,14 +20,25 @@ import {
 // TickerTape calls useChartAppearance() (needs AppearanceProvider) and
 // useLocale() (needs LocaleProvider) -- same shadow-render pattern as
 // __tests__/components/economic-calendar-widget.test.tsx (LESSONS-LEARNED.md L40).
-function render(ui: React.ReactElement, options?: RenderOptions) {
+function render(
+  ui: React.ReactElement,
+  options?: RenderOptions & { theme?: 'light' | 'dark' }
+) {
+  const { theme, ...renderOptions } = options ?? {};
   return rtlRender(ui, {
     wrapper: ({ children }: { children: React.ReactNode }) => (
       <LocaleProvider>
-        <AppearanceProvider>{children}</AppearanceProvider>
+        <AppearanceProvider
+          initialSettings={{
+            ...DEFAULT_APPEARANCE_SETTINGS,
+            theme: theme ?? DEFAULT_APPEARANCE_SETTINGS.theme,
+          }}
+        >
+          {children}
+        </AppearanceProvider>
       </LocaleProvider>
     ),
-    ...options,
+    ...renderOptions,
   });
 }
 
@@ -108,6 +120,41 @@ describe('TickerTape', () => {
     const localeParam = new URL(src).searchParams.get('locale');
     expect(typeof localeParam).toBe('string');
     expect((localeParam ?? '').length).toBeGreaterThan(0);
+  });
+
+  /**
+   * The actual bug Davin hit on production: `colorTheme` used to live only
+   * inside the iframe's URL hash fragment. Toggling theme with `locale`
+   * unchanged meant the query string (`?locale=...`) was byte-identical
+   * before and after, so the browser treated the src update as an in-page
+   * hash navigation (same mechanism as `<a href="#x">`) instead of a real
+   * document reload -- the iframe never actually re-fetched, so it silently
+   * kept showing nothing/the old theme. Mirroring colorTheme into the query
+   * string too is what forces a genuine reload on every toggle.
+   */
+  it('mirrors colorTheme into the query string, not just the hash, so a theme change always forces a real iframe reload', () => {
+    const { container: lightContainer } = render(<TickerTape />, {
+      theme: 'light',
+    });
+    const { container: darkContainer } = render(<TickerTape />, {
+      theme: 'dark',
+    });
+
+    const lightSrc =
+      lightContainer.querySelector('iframe')?.getAttribute('src') ?? '';
+    const darkSrc =
+      darkContainer.querySelector('iframe')?.getAttribute('src') ?? '';
+
+    const lightQuery = lightSrc.split('#')[0];
+    const darkQuery = darkSrc.split('#')[0];
+
+    // The query string portion (before the hash) must itself differ --
+    // asserting only that the full src strings differ would pass even with
+    // the old hash-only bug, since the hash always did carry the right
+    // value.
+    expect(lightQuery).not.toBe(darkQuery);
+    expect(new URL(lightSrc).searchParams.get('colorTheme')).toBe('light');
+    expect(new URL(darkSrc).searchParams.get('colorTheme')).toBe('dark');
   });
 
   it('accepts custom symbol overrides', () => {
