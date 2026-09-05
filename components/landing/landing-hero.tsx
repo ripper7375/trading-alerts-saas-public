@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useLocale } from '@/lib/context/locale-context';
-import { Sparkles, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 /**
  * Session 9-1 deferred the seed-code support-chat widget
@@ -34,18 +34,9 @@ export function LandingHero() {
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12">
           {/* Left Column: Headline & Trust Indicators */}
           <div className="space-y-8 lg:col-span-6">
-            {/* Top Pill */}
-            <div className="inline-flex items-center space-x-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 backdrop-blur-md">
-              <Sparkles className="h-4 w-4 animate-pulse text-amber-600 dark:text-amber-400" />
-              <span className="text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">
-                {t('Next-Gen AI Trading Intelligence')}
-              </span>
-            </div>
-
             {/* Main Headline */}
             <div className="space-y-4">
-              <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight text-slate-900 dark:text-white sm:text-5xl lg:text-6xl">
-                {t('Trade Smarter with')}{' '}
+              <h1 className="text-6xl font-extrabold leading-[1.1] tracking-tight sm:text-7xl lg:text-8xl">
                 <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 bg-clip-text text-transparent">
                   {t('Gold Trade')}
                 </span>

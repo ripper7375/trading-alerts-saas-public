@@ -7,13 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useSupportChat } from '@/components/chat-widget/chat-context';
 import { useLocale } from '@/lib/context/locale-context';
-import {
-  Sparkles,
-  ArrowRight,
-  ShieldCheck,
-  Headphones,
-  CheckCircle2,
-} from 'lucide-react';
+import { ArrowRight, Headphones } from 'lucide-react';
 
 export function LandingHero() {
   const { t } = useLocale();
@@ -48,25 +42,16 @@ export function LandingHero() {
         <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12">
           {/* Left Column: Headline & Customer Support Centre */}
           <div className="space-y-8 lg:col-span-6">
-            {/* Top Pill */}
-            <div className="inline-flex items-center space-x-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 backdrop-blur-md">
-              <Sparkles className="h-4 w-4 animate-pulse text-amber-600 dark:text-amber-400" />
-              <span className="text-xs font-bold tracking-wide text-amber-700 uppercase dark:text-amber-300">
-                {t('Next-Gen AI Trading Intelligence')}
-              </span>
-            </div>
-
             {/* Main Headline */}
             <div className="space-y-4">
-              <h1 className="text-4xl leading-[1.1] font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl dark:text-white">
-                {t('Trade Smarter with')}{' '}
+              <h1 className="text-6xl leading-[1.1] font-extrabold tracking-tight sm:text-7xl lg:text-8xl">
                 <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 bg-clip-text text-transparent">
-                  {t('Davin AI')}
+                  {t('Gold Trade')}
                 </span>
               </h1>
               <p className="text-lg leading-relaxed font-normal text-slate-700 dark:text-slate-300">
                 {t(
-                  'Your 24/7 Quantitative Analyst. Real-time chart pattern recognition, multi-model signal verification, sub-500ms alerts, and institutional order management for Forex, Commodities & Crypto.'
+                  'Your highly sophisticated Maths & AI Models for more accurate entry and exit XAUUSD trading'
                 )}
               </p>
             </div>
@@ -178,44 +163,19 @@ export function LandingHero() {
               <div className="relative rounded-3xl border border-slate-700/80 bg-white p-3 shadow-2xl shadow-black dark:bg-[#0b0e17]">
                 <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
                   <Image
-                    src="/davintrade-landing-page_home.png"
+                    src="/mathematic-trading1.png"
                     alt={t(
-                      'DavinTrade AI Wall Street Analyst Mascot and Majors Ticker'
+                      'DavinTrade Gold Trade Analyst Mascot with XAUUSD Chart Analysis'
                     )}
-                    width={1200}
-                    height={750}
+                    width={1950}
+                    height={1430}
                     priority
                     className="w-full rounded-2xl object-cover transition-transform duration-500 hover:scale-[1.02]"
                   />
-
-                  {/* Overlaid Live AI Signal Pills */}
-                  <div className="absolute top-4 left-4 rounded-xl border border-amber-500/40 bg-white/90 px-3.5 py-2 shadow-lg backdrop-blur-md dark:bg-[#0c0f17]/90">
-                    <div className="flex items-center space-x-2 text-xs font-bold text-amber-700 dark:text-amber-300">
-                      <span className="h-2 w-2 animate-ping rounded-full bg-emerald-400" />
-                      <span>{t('LIVE SIGNAL VERIFIED')}</span>
-                    </div>
-                    <div className="mt-0.5 font-mono text-[11px] text-slate-700 dark:text-slate-300">
-                      {t('XAUUSD M5 • Confluence Score 94%')}
-                    </div>
-                  </div>
-
-                  <div className="absolute right-4 bottom-4 rounded-xl border border-emerald-500/40 bg-white/90 px-3.5 py-2 shadow-lg backdrop-blur-md dark:bg-[#0c0f17]/90">
-                    <div className="flex items-center space-x-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      <span>{t('ORDER BLOCK BREACH')}</span>
-                    </div>
-                    <div className="mt-0.5 font-mono text-[11px] text-slate-700 dark:text-slate-300">
-                      {t('EURUSD Target 1.08850 Reached')}
-                    </div>
-                  </div>
                 </div>
 
                 {/* Floating Bottom Quick Bar */}
-                <div className="mt-3 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-800 dark:bg-[#070910]">
-                  <div className="flex items-center space-x-2 text-slate-700 dark:text-slate-300">
-                    <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>{t('Multi-Market Forex, Commodities & Crypto')}</span>
-                  </div>
+                <div className="mt-3 flex items-center justify-end rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs dark:border-slate-800 dark:bg-[#070910]">
                   <Link href="/terminal">
                     <span className="flex cursor-pointer items-center gap-1 font-bold text-amber-600 hover:underline dark:text-amber-400">
                       {t('Enter Workbench')} <ArrowRight className="h-3 w-3" />
