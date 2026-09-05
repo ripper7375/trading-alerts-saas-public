@@ -42,41 +42,68 @@ export const DEFAULT_TICKER_SYMBOLS: TickerTapeSymbol[] = [
 const TICKER_TAPE_HEIGHT = 72;
 
 /**
+ * Module-scoped, client-only cache for the computed iframe `src` -- plain JS
+ * scope, not React state, so it survives this component being unmounted and
+ * remounted within the same browser tab (see the module doc comment below
+ * for why that happens and why a component-local useState lazy initializer
+ * isn't enough on its own). Guarded to the client only: on the server this
+ * module is evaluated once per Node.js process, not once per request, so a
+ * server-side cache here would leak one visitor's resolved theme into
+ * another's SSR output.
+ */
+let cachedTickerIframeSrc: string | null = null;
+
+/**
+ * Test-only: clears the module-level cache so each test can render a fresh
+ * "first ever page load" instead of inheriting whatever an earlier test in
+ * the same file already cached. Never called outside tests -- production
+ * relies on this cache never being cleared for the lifetime of the tab.
+ */
+export function __resetTickerTapeCacheForTests(): void {
+  cachedTickerIframeSrc = null;
+}
+
+/**
  * Renders TradingView's ticker-tape widget as a plain <iframe> pointed
  * directly at the URL its own embed-widget-ticker-tape.js loader script
- * generates, instead of injecting that loader script into the page.
+ * generates (locale in the query string, the rest of the config in the URL
+ * hash), rather than injecting that loader script into the page.
  *
- * A prior version injected the loader script (a <script> whose innerHTML is
- * the JSON config; the script builds its own iframe). That reliably
- * rendered on a fresh page load but silently went blank on every SPA
- * runtime re-init -- reproduced repeatedly on production, in both theme
- * directions, even after switching from an in-place innerHTML clear to a
- * full React-driven DOM node replacement (a brand new container/script/
- * iframe each time, confirmed via a direct node-identity check). The
- * replacement iframe always carried the correct colorTheme in its own src
- * and had correct non-zero dimensions, yet never painted -- pointing at
- * internal state the loader script keeps across its own re-executions
- * (window-level listener/singleton bookkeeping is a known failure class for
- * "insert a script, it builds its own iframe" embeds reused across an SPA
- * session), not at anything in this component's own DOM lifecycle.
+ * The `src` is computed ONCE, from whatever theme/locale resolve on this
+ * component's first render, and deliberately never recomputed afterward --
+ * this widget does not live-follow a later theme or locale change. That's a
+ * real, evidence-based decision, not an oversight: every attempt at forcing
+ * a runtime re-init (in-place innerHTML clearing, a full React-driven DOM
+ * node replacement confirmed via node-identity checks, mirroring the theme
+ * into the query string to force a real reload rather than an in-page hash
+ * navigation) reliably worked in isolated testing but proved unreliable
+ * against the live embed under real, repeated use -- reported live on
+ * production as slow to update and, at times, stuck showing the old theme.
+ * Isolated the underlying cause to TradingView's own embed rather than
+ * anything left to fix on our end: a fresh embed under a given parent site
+ * always renders correctly, but the SAME (parent site, tradingview-widget
+ * .com) pairing degrades on repeated re-embeds within a session (reload or
+ * runtime alike) -- confirmed by loading the identical config directly as
+ * its own page (always fine, unlimited retries) and by loading it under a
+ * different top-level site in the same browser profile (also always fine),
+ * which rules out both our code and any general/global rate limiting.
  *
- * A plain iframe sidesteps that whole class of bug: updating `src` on an
- * already-mounted <iframe> is a normal browser navigation with no
- * involvement from any third-party script's own internal state -- the same
- * mechanism the theme-aware hero <Image> swap already relies on.
+ * A plain `useState(() => ...)` lazy initializer was tried first for
+ * "compute once" and looked correct in isolated re-render tests, but this
+ * page wraps TickerTape in a <Suspense> boundary, and saving an appearance
+ * setting calls `cookies().set()` inside a Server Action -- which Next.js
+ * treats as cause to refresh the route. That refresh re-suspends the
+ * boundary, which remounts everything inside it (a fresh component
+ * instance, fresh useState) -- confirmed live: the iframe's own `src`
+ * carried the *new* theme immediately after a toggle, which a lazy
+ * initializer can only do by re-running, i.e. by actually remounting. The
+ * module-level cache above survives that remount since it isn't tied to any
+ * particular component instance.
  *
- * That alone still wasn't enough, though: it kept going blank on a runtime
- * theme toggle even as a plain iframe. Root cause, found by inspecting the
- * live iframe `src` before/after a toggle: `colorTheme` lives inside the URL
- * HASH fragment (TradingView's own embed format), and the query string
- * (`?locale=...`) doesn't change when only the theme changes. A browser
- * treats an iframe `src` update where only the fragment differs as an
- * in-page hash navigation -- the same mechanism `<a href="#section">` uses
- * -- NOT a full document reload, so the iframe's own document never
- * actually re-fetches or re-renders with the new config. `colorTheme` is
- * therefore mirrored into the query string too (redundant with the hash,
- * which TradingView's own script still reads), purely so the query string
- * itself differs on every theme change and forces a genuine reload.
+ * Net effect: the ticker matches whichever theme was active when the page
+ * loaded, and simply keeps that theme for the rest of the tab's session --
+ * a real trade-off, chosen deliberately over a widget that unreliably
+ * reflects a live toggle at all.
  */
 export function TickerTape({
   symbols = DEFAULT_TICKER_SYMBOLS,
@@ -96,6 +123,30 @@ export function TickerTape({
   const { language } = useLocale();
   const [mounted, setMounted] = useState(false);
 
+  function computeIframeSrc(): string {
+    const locale = resolveTradingViewLocale(language);
+    const config = {
+      symbols,
+      showSymbolLogo,
+      isTransparent,
+      displayMode,
+      colorTheme: resolvedTheme,
+      width: '100%',
+      height: TICKER_TAPE_HEIGHT,
+    };
+    return `https://www.tradingview-widget.com/embed-widget/ticker-tape/?locale=${encodeURIComponent(locale)}#${encodeURIComponent(JSON.stringify(config))}`;
+  }
+
+  let iframeSrc: string;
+  if (typeof window === 'undefined') {
+    iframeSrc = computeIframeSrc();
+  } else {
+    if (cachedTickerIframeSrc === null) {
+      cachedTickerIframeSrc = computeIframeSrc();
+    }
+    iframeSrc = cachedTickerIframeSrc;
+  }
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -108,18 +159,6 @@ export function TickerTape({
       />
     );
   }
-
-  const locale = resolveTradingViewLocale(language);
-  const config = {
-    symbols,
-    showSymbolLogo,
-    isTransparent,
-    displayMode,
-    colorTheme: resolvedTheme,
-    width: '100%',
-    height: TICKER_TAPE_HEIGHT,
-  };
-  const iframeSrc = `https://www.tradingview-widget.com/embed-widget/ticker-tape/?locale=${encodeURIComponent(locale)}&colorTheme=${encodeURIComponent(resolvedTheme)}#${encodeURIComponent(JSON.stringify(config))}`;
 
   return (
     <div
