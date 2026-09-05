@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useChartAppearance } from '@/components/providers/appearance-provider';
 import { useLocale } from '@/lib/context/locale-context';
 import { resolveTradingViewLocale } from '@/lib/utils/tradingview-locale';
 
@@ -42,68 +41,56 @@ export const DEFAULT_TICKER_SYMBOLS: TickerTapeSymbol[] = [
 const TICKER_TAPE_HEIGHT = 72;
 
 /**
- * Module-scoped, client-only cache for the computed iframe `src` -- plain JS
- * scope, not React state, so it survives this component being unmounted and
- * remounted within the same browser tab (see the module doc comment below
- * for why that happens and why a component-local useState lazy initializer
- * isn't enough on its own). Guarded to the client only: on the server this
- * module is evaluated once per Node.js process, not once per request, so a
- * server-side cache here would leak one visitor's resolved theme into
+ * Module-scoped, client-only cache for the resolved TradingView locale --
+ * plain JS scope, not React state, so both iframe URLs stay byte-identical
+ * for the life of the tab even if this component is remounted. Guarded to
+ * the client: this module is evaluated once per Node.js process, not once
+ * per request, so caching on the server would leak one visitor's locale into
  * another's SSR output.
  */
-let cachedTickerIframeSrc: string | null = null;
+let cachedTickerLocale: string | null = null;
 
 /**
  * Test-only: clears the module-level cache so each test can render a fresh
- * "first ever page load" instead of inheriting whatever an earlier test in
- * the same file already cached. Never called outside tests -- production
- * relies on this cache never being cleared for the lifetime of the tab.
+ * "first ever page load" instead of inheriting an earlier test's locale.
  */
 export function __resetTickerTapeCacheForTests(): void {
-  cachedTickerIframeSrc = null;
+  cachedTickerLocale = null;
+}
+
+function buildEmbedSrc(
+  locale: string,
+  config: Record<string, unknown>
+): string {
+  return `https://www.tradingview-widget.com/embed-widget/ticker-tape/?locale=${encodeURIComponent(locale)}#${encodeURIComponent(JSON.stringify(config))}`;
 }
 
 /**
- * Renders TradingView's ticker-tape widget as a plain <iframe> pointed
+ * Renders TradingView's ticker-tape widget as plain <iframe>s pointed
  * directly at the URL its own embed-widget-ticker-tape.js loader script
- * generates (locale in the query string, the rest of the config in the URL
- * hash), rather than injecting that loader script into the page.
+ * generates, rather than injecting that loader script into the page.
  *
- * The `src` is computed ONCE, from whatever theme/locale resolve on this
- * component's first render, and deliberately never recomputed afterward --
- * this widget does not live-follow a later theme or locale change. That's a
- * real, evidence-based decision, not an oversight: every attempt at forcing
- * a runtime re-init (in-place innerHTML clearing, a full React-driven DOM
- * node replacement confirmed via node-identity checks, mirroring the theme
- * into the query string to force a real reload rather than an in-page hash
- * navigation) reliably worked in isolated testing but proved unreliable
- * against the live embed under real, repeated use -- reported live on
- * production as slow to update and, at times, stuck showing the old theme.
- * Isolated the underlying cause to TradingView's own embed rather than
- * anything left to fix on our end: a fresh embed under a given parent site
- * always renders correctly, but the SAME (parent site, tradingview-widget
- * .com) pairing degrades on repeated re-embeds within a session (reload or
- * runtime alike) -- confirmed by loading the identical config directly as
- * its own page (always fine, unlimited retries) and by loading it under a
- * different top-level site in the same browser profile (also always fine),
- * which rules out both our code and any general/global rate limiting.
+ * BOTH themes are mounted at once -- a light-configured iframe and a
+ * dark-configured one, stacked on top of each other -- and the active one is
+ * chosen purely in CSS off the `.dark` class AppearanceProvider already puts
+ * on <html>. Nothing re-navigates, re-initializes, or even re-renders when
+ * the user flips the theme; only two opacity values change.
  *
- * A plain `useState(() => ...)` lazy initializer was tried first for
- * "compute once" and looked correct in isolated re-render tests, but this
- * page wraps TickerTape in a <Suspense> boundary, and saving an appearance
- * setting calls `cookies().set()` inside a Server Action -- which Next.js
- * treats as cause to refresh the route. That refresh re-suspends the
- * boundary, which remounts everything inside it (a fresh component
- * instance, fresh useState) -- confirmed live: the iframe's own `src`
- * carried the *new* theme immediately after a toggle, which a lazy
- * initializer can only do by re-running, i.e. by actually remounting. The
- * module-level cache above survives that remount since it isn't tied to any
- * particular component instance.
+ * That indirection exists because re-theming a single iframe at runtime does
+ * not work reliably with this widget, which was established the hard way.
+ * The loader-script approach went blank on every SPA re-init. Switching to a
+ * plain iframe and swapping its `src` did too. Forcing a genuine document
+ * reload (rather than an in-page hash navigation) by mirroring colorTheme
+ * into the query string made it reload, but real use showed it slow and at
+ * times stuck on the old theme. Locking the src at mount avoided the
+ * breakage but, by definition, stopped following the theme at all. Every one
+ * of those worked in isolated testing and failed in real use, because they
+ * all shared the same assumption: that this embed can be re-initialized
+ * mid-session. It cannot -- a fresh embed on a fresh page load is reliable,
+ * and anything after that is not.
  *
- * Net effect: the ticker matches whichever theme was active when the page
- * loaded, and simply keeps that theme for the rest of the tab's session --
- * a real trade-off, chosen deliberately over a widget that unreliably
- * reflects a live toggle at all.
+ * So this version never re-initializes anything. Both iframes load once, on
+ * the reliable path, and stay put.
  */
 export function TickerTape({
   symbols = DEFAULT_TICKER_SYMBOLS,
@@ -119,33 +106,8 @@ export function TickerTape({
   displayMode = 'compact',
   className = '',
 }: TickerTapeProps): React.ReactElement {
-  const { resolvedTheme } = useChartAppearance();
   const { language } = useLocale();
   const [mounted, setMounted] = useState(false);
-
-  function computeIframeSrc(): string {
-    const locale = resolveTradingViewLocale(language);
-    const config = {
-      symbols,
-      showSymbolLogo,
-      isTransparent,
-      displayMode,
-      colorTheme: resolvedTheme,
-      width: '100%',
-      height: TICKER_TAPE_HEIGHT,
-    };
-    return `https://www.tradingview-widget.com/embed-widget/ticker-tape/?locale=${encodeURIComponent(locale)}#${encodeURIComponent(JSON.stringify(config))}`;
-  }
-
-  let iframeSrc: string;
-  if (typeof window === 'undefined') {
-    iframeSrc = computeIframeSrc();
-  } else {
-    if (cachedTickerIframeSrc === null) {
-      cachedTickerIframeSrc = computeIframeSrc();
-    }
-    iframeSrc = cachedTickerIframeSrc;
-  }
 
   useEffect(() => {
     setMounted(true);
@@ -160,24 +122,57 @@ export function TickerTape({
     );
   }
 
+  let locale: string;
+  if (typeof window === 'undefined') {
+    locale = resolveTradingViewLocale(language);
+  } else {
+    if (cachedTickerLocale === null) {
+      cachedTickerLocale = resolveTradingViewLocale(language);
+    }
+    locale = cachedTickerLocale;
+  }
+
+  const sharedConfig = {
+    symbols,
+    showSymbolLogo,
+    isTransparent,
+    displayMode,
+    width: '100%',
+    height: TICKER_TAPE_HEIGHT,
+  };
+
+  // Both iframes stay at full size at all times (never display:none), so
+  // neither can measure itself at zero width -- a classic way to get a
+  // permanently broken third-party widget. Only opacity differs.
+  const sharedIframeProps = {
+    title: 'ticker tape TradingView widget',
+    scrolling: 'no',
+    allowTransparency: true,
+    frameBorder: 0,
+    className: 'absolute inset-0 h-full w-full transition-opacity duration-200',
+    style: {
+      userSelect: 'none' as const,
+      boxSizing: 'border-box' as const,
+      display: 'block' as const,
+    },
+  };
+
   return (
     <div
-      className={`tradingview-widget-container border-border/40 bg-background/95 supports-[backdrop-filter]:bg-background/60 w-full border-y backdrop-blur ${className}`}
+      className={`tradingview-widget-container border-border/40 bg-background/95 supports-[backdrop-filter]:bg-background/60 relative w-full border-y backdrop-blur ${className}`}
       style={{ width: '100%', height: TICKER_TAPE_HEIGHT }}
     >
       <iframe
-        src={iframeSrc}
-        title="ticker tape TradingView widget"
-        scrolling="no"
-        allowTransparency={true}
-        frameBorder={0}
-        style={{
-          userSelect: 'none',
-          boxSizing: 'border-box',
-          display: 'block',
-          height: TICKER_TAPE_HEIGHT,
-          width: '100%',
-        }}
+        {...sharedIframeProps}
+        data-ticker-theme="light"
+        src={buildEmbedSrc(locale, { ...sharedConfig, colorTheme: 'light' })}
+        className={`${sharedIframeProps.className} opacity-100 dark:opacity-0`}
+      />
+      <iframe
+        {...sharedIframeProps}
+        data-ticker-theme="dark"
+        src={buildEmbedSrc(locale, { ...sharedConfig, colorTheme: 'dark' })}
+        className={`${sharedIframeProps.className} opacity-0 dark:opacity-100`}
       />
     </div>
   );

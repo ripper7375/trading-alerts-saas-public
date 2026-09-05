@@ -11,17 +11,29 @@ export const dynamic = 'force-dynamic';
 
 export default function LandingPage(): React.ReactElement {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
-        </div>
-      }
-    >
+    <>
+      {/*
+       * Deliberately OUTSIDE the Suspense boundary below. Only LandingPricing
+       * actually needs it (it reads useSearchParams() for ?ref=). Saving a
+       * theme change calls cookies().set() inside a Server Action, which
+       * Next.js treats as cause to refresh the route -- that re-suspends the
+       * boundary and remounts everything inside it. TickerTape embeds a
+       * third-party TradingView iframe that is unreliable when re-embedded
+       * mid-session (see its own doc comment), so it must not be remounted by
+       * an unrelated component's suspension.
+       */}
       <TickerTape />
-      <LandingHero />
-      <LandingFeatures />
-      <LandingPricing />
-    </Suspense>
+      <Suspense
+        fallback={
+          <div className="flex min-h-screen items-center justify-center">
+            <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
+          </div>
+        }
+      >
+        <LandingHero />
+        <LandingFeatures />
+        <LandingPricing />
+      </Suspense>
+    </>
   );
 }

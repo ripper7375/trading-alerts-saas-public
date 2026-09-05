@@ -18,9 +18,10 @@ import {
   __resetTickerTapeCacheForTests,
 } from '@/components/landing/ticker-tape';
 
-// TickerTape calls useChartAppearance() (needs AppearanceProvider) and
-// useLocale() (needs LocaleProvider) -- same shadow-render pattern as
-// __tests__/components/economic-calendar-widget.test.tsx (LESSONS-LEARNED.md L40).
+// TickerTape calls useLocale() (needs LocaleProvider). AppearanceProvider is
+// wrapped too because the surrounding landing page mounts under it -- same
+// shadow-render pattern as __tests__/components/economic-calendar-widget
+// .test.tsx (LESSONS-LEARNED.md L40).
 function render(
   ui: React.ReactElement,
   options?: RenderOptions & { theme?: 'light' | 'dark' }
@@ -49,17 +50,21 @@ jest.mock('next/navigation', () => ({
 }));
 
 /**
- * TickerTape renders a plain <iframe> pointed directly at TradingView's
- * embed URL (see ticker-tape.tsx's own doc comment for why this replaced
- * injecting embed-widget-ticker-tape.js: the loader-script approach
- * reliably rendered on a fresh page load but silently went blank on every
- * SPA runtime re-init on production). The config now lives in the iframe's
- * `src` hash fragment instead of a script tag's innerHTML.
+ * TickerTape mounts BOTH themes as stacked iframes and picks between them in
+ * CSS (see ticker-tape.tsx's own doc comment for why re-theming a single
+ * iframe at runtime does not work with this widget). Config for each lives
+ * in that iframe's `src` hash fragment.
  */
-function getConfigFromIframeSrc(container: HTMLElement) {
-  const iframe = container.querySelector('iframe');
+function getIframe(container: HTMLElement, theme: 'light' | 'dark') {
+  const iframe = container.querySelector(
+    `iframe[data-ticker-theme="${theme}"]`
+  );
   expect(iframe).not.toBeNull();
-  const src = iframe?.getAttribute('src') ?? '';
+  return iframe as HTMLIFrameElement;
+}
+
+function getConfig(container: HTMLElement, theme: 'light' | 'dark') {
+  const src = getIframe(container, theme).getAttribute('src') ?? '';
   const hash = src.split('#')[1] ?? '';
   return JSON.parse(decodeURIComponent(hash));
 }
@@ -72,30 +77,64 @@ describe('TickerTape', () => {
       LOCALE_STORAGE_KEY,
       JSON.stringify(defaultPreferences)
     );
-    // TickerTape's iframe src is cached at module scope, not component
-    // state (see ticker-tape.tsx's doc comment for why) -- reset it so each
-    // test starts from a clean "first ever page load" instead of inheriting
-    // whatever an earlier test already cached.
+    // The resolved locale is cached at module scope, not in component state
+    // (see ticker-tape.tsx) -- reset so each test starts from a clean "first
+    // ever page load".
     __resetTickerTapeCacheForTests();
   });
 
-  it('renders the container and an iframe pointed at the TradingView embed URL', () => {
+  it('renders both a light and a dark iframe, each pointed at the TradingView embed URL', () => {
     const { container } = render(<TickerTape />);
 
     expect(
       container.querySelector('.tradingview-widget-container')
     ).toBeInTheDocument();
-    const iframe = container.querySelector('iframe');
-    expect(iframe).toBeInTheDocument();
-    expect(iframe?.getAttribute('src')).toMatch(
-      /^https:\/\/www\.tradingview-widget\.com\/embed-widget\/ticker-tape\/\?locale=/
-    );
+    expect(container.querySelectorAll('iframe')).toHaveLength(2);
+
+    for (const theme of ['light', 'dark'] as const) {
+      expect(getIframe(container, theme).getAttribute('src')).toMatch(
+        /^https:\/\/www\.tradingview-widget\.com\/embed-widget\/ticker-tape\/\?locale=/
+      );
+    }
+  });
+
+  /**
+   * The whole fix: the theme is chosen in CSS off the `.dark` class on
+   * <html>, so flipping it never touches either iframe. If these two ever
+   * stop being complementary, a theme toggle would show both or neither.
+   */
+  it('drives theme selection purely through complementary dark: opacity classes', () => {
+    const { container } = render(<TickerTape />);
+
+    const light = getIframe(container, 'light');
+    const dark = getIframe(container, 'dark');
+
+    expect(light.className).toContain('opacity-100');
+    expect(light.className).toContain('dark:opacity-0');
+    expect(dark.className).toContain('opacity-0');
+    expect(dark.className).toContain('dark:opacity-100');
+  });
+
+  it('configures each iframe with its own colorTheme and nothing else differing', () => {
+    const { container } = render(<TickerTape />);
+
+    const lightConfig = getConfig(container, 'light');
+    const darkConfig = getConfig(container, 'dark');
+
+    expect(lightConfig.colorTheme).toBe('light');
+    expect(darkConfig.colorTheme).toBe('dark');
+
+    // Everything except colorTheme must match, so the two stacked iframes are
+    // pixel-for-pixel interchangeable.
+    const { colorTheme: _l, ...lightRest } = lightConfig;
+    const { colorTheme: _d, ...darkRest } = darkConfig;
+    expect(lightRest).toEqual(darkRest);
   });
 
   it('configures all 15 IC Markets symbols and enables showSymbolLogo', () => {
     const { container } = render(<TickerTape />);
 
-    const config = getConfigFromIframeSrc(container);
+    const config = getConfig(container, 'light');
     expect(config.showSymbolLogo).toBe(true);
     expect(config.isTransparent).toBe(true);
     // 'compact' (not 'adaptive') so the widget renders the same static card
@@ -115,37 +154,16 @@ describe('TickerTape', () => {
     expect(titles).toEqual(sorted);
   });
 
-  it('resolves colorTheme from the appearance provider and locale from the query string', () => {
+  it('resolves locale into the query string', () => {
     const { container } = render(<TickerTape />);
 
-    const config = getConfigFromIframeSrc(container);
-    expect(['light', 'dark']).toContain(config.colorTheme);
-
-    const iframe = container.querySelector('iframe');
-    const src = iframe?.getAttribute('src') ?? '';
+    const src = getIframe(container, 'light').getAttribute('src') ?? '';
     const localeParam = new URL(src).searchParams.get('locale');
     expect(typeof localeParam).toBe('string');
     expect((localeParam ?? '').length).toBeGreaterThan(0);
   });
 
-  it('captures whichever theme is active on the very first render', () => {
-    const { container: lightContainer } = render(<TickerTape />, {
-      theme: 'light',
-    });
-    expect(getConfigFromIframeSrc(lightContainer).colorTheme).toBe('light');
-
-    // A real "first ever load" only happens once per tab -- reset the cache
-    // to simulate a second, independent tab rather than a remount within
-    // the same one (see the next test for that case).
-    __resetTickerTapeCacheForTests();
-
-    const { container: darkContainer } = render(<TickerTape />, {
-      theme: 'dark',
-    });
-    expect(getConfigFromIframeSrc(darkContainer).colorTheme).toBe('dark');
-  });
-
-  it('accepts custom symbol overrides', () => {
+  it('accepts custom symbol overrides on both iframes', () => {
     const customSymbols = [
       { proName: 'ICMARKETS:XAUUSD', title: 'Gold' },
       { proName: 'ICMARKETS:BTCUSD', title: 'Bitcoin' },
@@ -153,57 +171,39 @@ describe('TickerTape', () => {
 
     const { container } = render(<TickerTape symbols={customSymbols} />);
 
-    const config = getConfigFromIframeSrc(container);
-    expect(config.symbols).toHaveLength(2);
-    expect(config.symbols[0].title).toBe('Gold');
+    for (const theme of ['light', 'dark'] as const) {
+      const config = getConfig(container, theme);
+      expect(config.symbols).toHaveLength(2);
+      expect(config.symbols[0].title).toBe('Gold');
+    }
   });
 
   /**
-   * Deliberate design, not a gap: live-following a later theme/locale/prop
-   * change was tried and reliably reproduced as unreliable against the real
-   * embed (see ticker-tape.tsx's module doc comment for the full
-   * investigation) -- slow to update, and at times stuck on the old theme,
-   * even though every individual mechanism tested correctly in isolation.
-   * The `src` is locked at mount and must stay that way regardless of what
-   * changes afterward, so the widget never has to survive a runtime re-init
-   * at all.
+   * Both srcs must be byte-stable for the tab's lifetime. Saving a theme
+   * change calls cookies().set() in a Server Action, which refreshes the
+   * route; this widget is deliberately mounted outside the landing page's
+   * Suspense boundary so that refresh shouldn't remount it, but even if
+   * something does, re-navigating these iframes is exactly the unreliable
+   * path this design exists to avoid.
    */
-  it('keeps the iframe src locked after a plain rerender, even when props change', () => {
-    const { container, rerender } = render(<TickerTape />, {
+  it('keeps both iframe srcs identical across a rerender and a full remount', () => {
+    const { container, rerender, unmount } = render(<TickerTape />, {
       theme: 'light',
     });
-    const firstSrc = container.querySelector('iframe')?.getAttribute('src');
+    const firstLight = getIframe(container, 'light').getAttribute('src');
+    const firstDark = getIframe(container, 'dark').getAttribute('src');
 
-    rerender(<TickerTape displayMode="regular" />);
-    const secondSrc = container.querySelector('iframe')?.getAttribute('src');
+    rerender(<TickerTape />);
+    expect(getIframe(container, 'light').getAttribute('src')).toBe(firstLight);
+    expect(getIframe(container, 'dark').getAttribute('src')).toBe(firstDark);
 
-    expect(secondSrc).toBe(firstSrc);
-  });
-
-  /**
-   * The actual failure mode Davin hit: saving a theme change calls
-   * cookies().set() inside a Server Action, which Next.js treats as cause to
-   * refresh the route -- re-suspending the <Suspense> boundary this widget
-   * lives in and remounting it as a genuinely new component instance, not
-   * just a rerender of the existing one. A component-local useState lazy
-   * initializer re-runs on that remount (proven live: the iframe's new src
-   * carried the new theme); the module-level cache must not.
-   */
-  it('keeps the iframe src locked across a real unmount + remount within the same session', () => {
-    const { container, unmount } = render(<TickerTape />, { theme: 'light' });
-    const firstSrc = container.querySelector('iframe')?.getAttribute('src');
     unmount();
 
-    // No __resetTickerTapeCacheForTests() here -- this is the whole point:
-    // a fresh component instance, same tab/module session, dark theme now
-    // active, must still resolve to the value cached before the remount.
-    const { container: remounted } = render(<TickerTape />, {
-      theme: 'dark',
-    });
-    const secondSrc = remounted.querySelector('iframe')?.getAttribute('src');
-
-    expect(secondSrc).toBe(firstSrc);
-    expect(getConfigFromIframeSrc(remounted).colorTheme).toBe('light');
+    // Fresh component instance, dark theme now active -- srcs must not move,
+    // since theme is a CSS concern here, not a URL concern.
+    const { container: remounted } = render(<TickerTape />, { theme: 'dark' });
+    expect(getIframe(remounted, 'light').getAttribute('src')).toBe(firstLight);
+    expect(getIframe(remounted, 'dark').getAttribute('src')).toBe(firstDark);
   });
 
   it('unmounts cleanly without throwing exceptions', () => {
