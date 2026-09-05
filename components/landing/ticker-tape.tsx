@@ -39,6 +39,80 @@ export const DEFAULT_TICKER_SYMBOLS: TickerTapeSymbol[] = [
   { proName: 'ICMARKETS:XTIUSD', title: 'XTI/USD' },
 ];
 
+interface TickerTapeWidgetProps {
+  symbols: TickerTapeSymbol[];
+  showSymbolLogo: boolean;
+  isTransparent: boolean;
+  displayMode: 'adaptive' | 'regular' | 'compact';
+  colorTheme: 'light' | 'dark';
+  locale: string;
+  className: string;
+}
+
+/**
+ * Renders one fixed TradingView ticker-tape config. Mounted fresh (via a
+ * `key` on the config in the parent) whenever theme/locale/etc change,
+ * rather than clearing and re-populating a persistent container in place.
+ * Manually clearing innerHTML on a live node and inserting a new
+ * cross-origin iframe into it is what used to happen here, and it silently
+ * broke on a real runtime theme toggle in production: the freshly-inserted
+ * iframe carried the correct colorTheme in its own src (confirmed by
+ * inspecting it directly) and had correct non-zero dimensions, but never
+ * painted anything -- reproducible every time, on every toggle direction,
+ * while a full page reload with the same dark/light cookie always rendered
+ * correctly. A `key` change makes React itself unmount the old DOM node and
+ * mount a brand new one, which avoids whatever state the just-removed
+ * TradingView iframe was leaving behind for its replacement.
+ */
+function TickerTapeWidget({
+  symbols,
+  showSymbolLogo,
+  isTransparent,
+  displayMode,
+  colorTheme,
+  locale,
+  className,
+}: TickerTapeWidgetProps): React.ReactElement {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const widgetDiv = document.createElement('div');
+    widgetDiv.className = 'tradingview-widget-container__widget';
+    container.appendChild(widgetDiv);
+
+    const config = {
+      symbols,
+      showSymbolLogo,
+      isTransparent,
+      displayMode,
+      colorTheme,
+      locale,
+    };
+
+    const script = document.createElement('script');
+    script.src =
+      'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+    script.type = 'text/javascript';
+    script.async = true;
+    script.innerHTML = JSON.stringify(config);
+
+    container.appendChild(script);
+    // A fresh instance (new `key` in the parent) is mounted for every config
+    // change, so this only ever needs to run once per mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div
+      className={`tradingview-widget-container border-border/40 bg-background/95 supports-[backdrop-filter]:bg-background/60 w-full border-y backdrop-blur ${className}`}
+      ref={containerRef}
+    />
+  );
+}
+
 /**
  * Reads resolvedTheme from AppearanceProvider (useChartAppearance), not
  * next-themes' useTheme() -- AppearanceProvider owns the app's actual
@@ -60,7 +134,6 @@ export function TickerTape({
   displayMode = 'compact',
   className = '',
 }: TickerTapeProps): React.ReactElement {
-  const containerRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useChartAppearance();
   const { language } = useLocale();
   const [mounted, setMounted] = useState(false);
@@ -68,48 +141,6 @@ export function TickerTape({
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!mounted || !container) return;
-
-    // Reset container to avoid duplicate widgets on re-render / theme change / React Strict Mode
-    container.innerHTML = '';
-
-    const widgetDiv = document.createElement('div');
-    widgetDiv.className = 'tradingview-widget-container__widget';
-    container.appendChild(widgetDiv);
-
-    const config = {
-      symbols,
-      showSymbolLogo,
-      isTransparent,
-      displayMode,
-      colorTheme: resolvedTheme,
-      locale: resolveTradingViewLocale(language),
-    };
-
-    const script = document.createElement('script');
-    script.src =
-      'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
-    script.type = 'text/javascript';
-    script.async = true;
-    script.innerHTML = JSON.stringify(config);
-
-    container.appendChild(script);
-
-    return () => {
-      container.innerHTML = '';
-    };
-  }, [
-    mounted,
-    resolvedTheme,
-    language,
-    symbols,
-    showSymbolLogo,
-    isTransparent,
-    displayMode,
-  ]);
 
   if (!mounted) {
     return (
@@ -120,10 +151,26 @@ export function TickerTape({
     );
   }
 
+  const locale = resolveTradingViewLocale(language);
+  const widgetKey = JSON.stringify({
+    symbols,
+    showSymbolLogo,
+    isTransparent,
+    displayMode,
+    resolvedTheme,
+    locale,
+  });
+
   return (
-    <div
-      className={`tradingview-widget-container border-border/40 bg-background/95 supports-[backdrop-filter]:bg-background/60 w-full border-y backdrop-blur ${className}`}
-      ref={containerRef}
+    <TickerTapeWidget
+      key={widgetKey}
+      symbols={symbols}
+      showSymbolLogo={showSymbolLogo}
+      isTransparent={isTransparent}
+      displayMode={displayMode}
+      colorTheme={resolvedTheme}
+      locale={locale}
+      className={className}
     />
   );
 }
