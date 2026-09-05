@@ -35,6 +35,22 @@ jest.mock('next/navigation', () => ({
   usePathname: () => '/',
 }));
 
+/**
+ * TickerTape renders a plain <iframe> pointed directly at TradingView's
+ * embed URL (see ticker-tape.tsx's own doc comment for why this replaced
+ * injecting embed-widget-ticker-tape.js: the loader-script approach
+ * reliably rendered on a fresh page load but silently went blank on every
+ * SPA runtime re-init on production). The config now lives in the iframe's
+ * `src` hash fragment instead of a script tag's innerHTML.
+ */
+function getConfigFromIframeSrc(container: HTMLElement) {
+  const iframe = container.querySelector('iframe');
+  expect(iframe).not.toBeNull();
+  const src = iframe?.getAttribute('src') ?? '';
+  const hash = src.split('#')[1] ?? '';
+  return JSON.parse(decodeURIComponent(hash));
+}
+
 describe('TickerTape', () => {
   beforeEach(() => {
     // Seeding skips LocaleProvider's real geo-IP fetch(), which otherwise
@@ -45,28 +61,23 @@ describe('TickerTape', () => {
     );
   });
 
-  it('renders the container and mounts the TradingView ticker-tape script', () => {
+  it('renders the container and an iframe pointed at the TradingView embed URL', () => {
     const { container } = render(<TickerTape />);
 
     expect(
       container.querySelector('.tradingview-widget-container')
     ).toBeInTheDocument();
-    expect(
-      container.querySelector(
-        'script[src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js"]'
-      )
-    ).toBeInTheDocument();
+    const iframe = container.querySelector('iframe');
+    expect(iframe).toBeInTheDocument();
+    expect(iframe?.getAttribute('src')).toMatch(
+      /^https:\/\/www\.tradingview-widget\.com\/embed-widget\/ticker-tape\/\?locale=/
+    );
   });
 
   it('configures all 15 IC Markets symbols and enables showSymbolLogo', () => {
     const { container } = render(<TickerTape />);
 
-    const script = container.querySelector(
-      'script[src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js"]'
-    );
-    expect(script).not.toBeNull();
-
-    const config = JSON.parse(script?.innerHTML ?? '{}');
+    const config = getConfigFromIframeSrc(container);
     expect(config.showSymbolLogo).toBe(true);
     expect(config.isTransparent).toBe(true);
     // 'compact' (not 'adaptive') so the widget renders the same static card
@@ -86,16 +97,17 @@ describe('TickerTape', () => {
     expect(titles).toEqual(sorted);
   });
 
-  it('resolves colorTheme and locale from the app appearance/locale providers', () => {
+  it('resolves colorTheme from the appearance provider and locale from the query string', () => {
     const { container } = render(<TickerTape />);
 
-    const script = container.querySelector(
-      'script[src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js"]'
-    );
-    const config = JSON.parse(script?.innerHTML ?? '{}');
+    const config = getConfigFromIframeSrc(container);
     expect(['light', 'dark']).toContain(config.colorTheme);
-    expect(typeof config.locale).toBe('string');
-    expect(config.locale.length).toBeGreaterThan(0);
+
+    const iframe = container.querySelector('iframe');
+    const src = iframe?.getAttribute('src') ?? '';
+    const localeParam = new URL(src).searchParams.get('locale');
+    expect(typeof localeParam).toBe('string');
+    expect((localeParam ?? '').length).toBeGreaterThan(0);
   });
 
   it('accepts custom symbol overrides', () => {
@@ -106,12 +118,22 @@ describe('TickerTape', () => {
 
     const { container } = render(<TickerTape symbols={customSymbols} />);
 
-    const script = container.querySelector(
-      'script[src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js"]'
-    );
-    const config = JSON.parse(script?.innerHTML ?? '{}');
+    const config = getConfigFromIframeSrc(container);
     expect(config.symbols).toHaveLength(2);
     expect(config.symbols[0].title).toBe('Gold');
+  });
+
+  it('updates the iframe src (not just internal state) when the resolved theme changes', () => {
+    const { container, rerender } = render(<TickerTape />);
+    const firstSrc = container.querySelector('iframe')?.getAttribute('src');
+
+    rerender(<TickerTape displayMode="regular" />);
+    const secondSrc = container.querySelector('iframe')?.getAttribute('src');
+
+    // Changing a config-affecting prop must change the iframe's `src` so the
+    // browser actually re-navigates it -- this is the mechanism the whole
+    // theme-toggle fix depends on.
+    expect(secondSrc).not.toBe(firstSrc);
   });
 
   it('unmounts cleanly without throwing exceptions', () => {
