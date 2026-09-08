@@ -113,6 +113,17 @@ SOURCES = {
 
 PER_BAR_SOURCES = [s for s in SOURCES if s != 'zigzag']
 
+# Price-level columns where 0.0 or <= 0.0 represents inactive/empty data, never a valid
+# market price (XAUUSD trades in the $2,000-$3,000+ range) — schema v6 mandates these be
+# stored as NULL, not 0 (sqlite_schema_v6_xauusd.sql). The endswith() suffixes catch the
+# derived `{variant}_base_fl` / `_uoedt` / `_loedt` centroid columns too.
+PRICE_LEVEL_COLUMNS = {
+    'horiz_high_map', 'horiz_low_map', 'ssa', 'ema_ssa', 'current_point',
+    'best_resistance', 'best_support', 'fractal_best_fl', 'fractal_uoedt',
+    'fractal_loedt', 'base_fl', 'uoedt', 'loedt'
+}
+PRICE_LEVEL_SUFFIXES = ('_map', '_point', '_fl', '_edt', '_ssa', '_resistance', '_support')
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('export_collector')
 
@@ -192,7 +203,12 @@ def parse_export_file(path: Path, spec: dict, timeframe: str) -> List[dict]:
                 if v == '':
                     row[col] = None
                 elif typ == 'real':
-                    row[col] = float(v)
+                    val = float(v)
+                    # Ingestion guard: an inactive/uninitialized price level exports as
+                    # 0.0, not EMPTY_VALUE — coerce it to None (NULL) rather than let a
+                    # $0.00 "price" reach the regression engine or alert bots.
+                    is_price_col = (col in PRICE_LEVEL_COLUMNS or col.endswith(PRICE_LEVEL_SUFFIXES))
+                    row[col] = None if (is_price_col and val <= 0.0) else val
                 elif typ == 'int':
                     row[col] = int(float(v))
                 else:
@@ -362,7 +378,8 @@ def calculate_stage(conn, cycle_id: int, timeframe: str) -> Dict[int, dict]:
     # --- 2. ZigZag segment metrics (zigzag_metrics.py) ---
     pivots_rows = conn.execute(
         f"SELECT timestamp_adj, point_type, current_point FROM raw_zigzag "
-        f"WHERE cycle_id = ? AND current_point IS NOT NULL ORDER BY timestamp_adj DESC",
+        f"WHERE cycle_id = ? AND current_point IS NOT NULL AND current_point > 0.0 "
+        f"ORDER BY timestamp_adj DESC",
         (cycle_id,)).fetchall()
     pivots = [ZigZagPivot(bar=ts // tf_sec, price=pt, is_peak=(typ == 'Peak'), timestamp=ts)
               for ts, typ, pt in pivots_rows]     # newest-first
@@ -402,7 +419,7 @@ def calculate_stage(conn, cycle_id: int, timeframe: str) -> Dict[int, dict]:
         # Crossing price = the SSA value on the crossing bar (the MQL5 cross
         # buffer holds the SSA price at the cross; confirm at golden cutover).
         crossings = [(ts_to_idx[ts], ssa) for ts, ssa, crossing in rows
-                     if crossing == 1 and ssa is not None and ts in ts_to_idx]
+                     if crossing == 1 and ssa is not None and ssa > 0.0 and ts in ts_to_idx]
         if not crossings:
             continue
         r = calculate_variant(variant, crossings, closes, highs, lows)
