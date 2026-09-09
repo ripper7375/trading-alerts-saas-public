@@ -2161,6 +2161,49 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   Also mapped and recorded: three separate DB passwords exist (`postgres`, `core_app`,
   `money_svc`); the pgbouncer userlist contains only the latter two, so rotating `postgres` does
   **not** touch pgbouncer and does **not** affect `money-service`.
+- **⚠ OPEN — which gateway does the VPS push worker target? Blocks the rest of the staging
+  cleanup.** `backfill_worker_api_gateway_v5.py` reads
+  `API_GATEWAY_URL = os.environ.get('API_GATEWAY_URL', ...)` — set on the Contabo VPS (NSSM
+  service config / env), not in the repo, so it cannot be determined from here. It matters
+  because **there are two `railway-gateway` services**: the production one in `trading-alerts`,
+  and a second one still running in the staging project since 2026-08-24.
+  - If the VPS points at **production**, the staging `railway-gateway` and `Redis` are dead weight
+    and can be removed (further saving).
+  - If it points at **staging**, that is a much more interesting finding — it would explain why
+    production's queue has shown `completed 0` for days, and the pipeline has been pushing into a
+    parallel stack all along.
+    **Do not remove the staging `railway-gateway` or `Redis` until this is answered.** Check the
+    push worker's `API_GATEWAY_URL` on the VPS.
+- **RESOLVED 2026-09-09 — staging project audited and the dead monolith service deleted.** The
+  project **named** "postgre for staging" (`ce1d2134-…`) turned out to hold a **full duplicate
+  stack**, not just a database: `Postgres` (= `turntable`, the local-dev DB both `.env` and
+  `.env.local` point at), a second `railway-gateway`, `Redis`, and
+  `trading-alerts-saas-public` — a deployment of this repo.
+  **`trading-alerts-saas-public` deleted** after a full examination, every check pointing the same
+  way: **20 deployments, all FAILED, never once succeeded** (created 2026-09-04); its URL served
+  404; `volumes: []` so no state; source was this GitHub repo so nothing unique lived on it; no
+  custom domain; no tracked file referenced its hostname; and the only Railway references to it
+  were the auto-injected `RAILWAY_SERVICE_TRADING_ALERTS_SAAS_PUBLIC_URL` sibling variables. Its
+  sole effect on the world was **a failed build on every push to `main`** — it was GitHub-connected
+  to this repo with no watch paths, so several of today's own pushes triggered failures there. Four
+  hand-configured variables were lost with it (`NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `POSTGRESQL_URI`,
+  `REDIS_URL`), all trivially reconstructable; the secret signs sessions for an app that never
+  started.
+  **Deletion confirmed by two independent probes**, not by a success message: the service vanished
+  from the listing, **and** `RAILWAY_SERVICE_TRADING_ALERTS_SAAS_PUBLIC_URL` disappeared from all
+  three siblings (Railway strips it only on a real delete). Production verified unaffected
+  afterwards — gateway `healthy`, `/affiliate/leaderboard` 200.
+  **Two process lessons, both of which produced a false "done" today:**
+  1. **`railway service delete` via CLI reported an ambiguous decode error while actually
+     failing.** Probably 2FA in non-interactive mode (the CLI here is 5.27.0, several versions
+     behind). Never treat a CLI mutation as done without re-probing the object.
+  2. **The Railway UI stages destructive changes and requires the "Apply N changes → Deploy"
+     button.** Clicking "Remove" only marks the service `Removed — Service will be deleted`. This
+     is the _same_ pattern as the 2026-08-31 Root Directory incident already in this file.
+     **The database itself was deliberately kept** — it is the local dev DB and the only migration
+     rehearsal target, which today proved worth having. Recommended follow-up: **rename** the project
+     to something honest (`davintrade-dev-db`), since the misleading name is what caused three
+     sessions to misread the topology, and deleting it would break local development.
 - **⚠ `railway-gateway` Watch Paths still unset** — every push anywhere in this monorepo rebuilds
   it. On 2026-09-09 that churn exposed a latent build failure (below) and produced three failed
   deployments from commits that changed nothing in `railway-gateway/`. Scope it to
