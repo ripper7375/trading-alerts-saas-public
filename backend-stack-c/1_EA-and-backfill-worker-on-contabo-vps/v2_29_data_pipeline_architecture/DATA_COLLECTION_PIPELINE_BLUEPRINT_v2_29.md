@@ -19,16 +19,16 @@ calc stack was removed from the pipeline and parked; see §6.
 > **2. The `timestamp_adj` gating item is resolved at source.** It was never a
 > missing "conversion stack" — it was a one-line bug present in all 13
 > indicators: `gmt_offset = TimeCurrent() - TimeGMT()`. `TimeCurrent()` returns
-> the *last tick's* time, so the offset absorbed "seconds since the last tick"
+> the _last tick's_ time, so the offset absorbed "seconds since the last tick"
 > and stamped it on every exported row as a constant sub-bar phase. Fixed in all
 > 16 sites to a `TimeTradeServer()` offset rounded to the hour. See §7.
 >
 > ⚠ **The MQL5 fix is inert until all 13 indicators are recompiled in
 > MetaEditor and the `.ex5` files redeployed to the VPS terminal.**
-**Scope:** Full market-data pipeline on the Contabo VPS —
-MT5 chart indicators → auto-exported `.txt` files → collect / validate /
-**calculate** / promote (SQLite `xauusd.db`) → push to the Railway API Gateway.
-**Symbol/timeframes in scope:** XAUUSD, M5 and M15 only.
+> **Scope:** Full market-data pipeline on the Contabo VPS —
+> MT5 chart indicators → auto-exported `.txt` files → collect / validate /
+> **calculate** / promote (SQLite `xauusd.db`) → push to the Railway API Gateway.
+> **Symbol/timeframes in scope:** XAUUSD, M5 and M15 only.
 
 > **How to read this document.** §0 is the complete file manifest — start there.
 > §1–§3 are the architecture and the MQL5↔Python data split (the core idea).
@@ -49,15 +49,15 @@ not part of the deployment.
 
 ### 0.1 Runtime — the pipeline that runs in production
 
-| File                                       | Role                                                                   | Ref   |
-| ------------------------------------------ | ---------------------------------------------------------------------- | ----- |
-| `mq5/` (13 indicators, see §0.4)           | Data producers: compute + auto-export **every** value as `.txt`        | §5.1  |
-| `export_collector_validator_v2.py`         | Pipeline engine: COLLECT → ADJUST → VALIDATE → PROMOTE                 | §5.2  |
-| `sqlite_schema_v6_xauusd.sql`              | `xauusd.db` schema: staging + validation + `market_data`               | §5.3  |
-| `backfill_worker_api_gateway_v5.py`        | Push worker: `market_data WHERE synced_at IS NULL` → gateway           | §5.4  |
-| `gateway_contract_market_data.schema.json` | JSON-Schema of the POST body the gateway must accept                   | §9    |
-| `install_services.bat`                     | Windows/NSSM installer for the VPS services                            | §8.2  |
-| `replay_quarantine.py`                     | Re-POST gateway-rejected rows after a fix                              | §10.2 |
+| File                                       | Role                                                            | Ref   |
+| ------------------------------------------ | --------------------------------------------------------------- | ----- |
+| `mq5/` (13 indicators, see §0.4)           | Data producers: compute + auto-export **every** value as `.txt` | §5.1  |
+| `export_collector_validator_v2.py`         | Pipeline engine: COLLECT → ADJUST → VALIDATE → PROMOTE          | §5.2  |
+| `sqlite_schema_v6_xauusd.sql`              | `xauusd.db` schema: staging + validation + `market_data`        | §5.3  |
+| `backfill_worker_api_gateway_v5.py`        | Push worker: `market_data WHERE synced_at IS NULL` → gateway    | §5.4  |
+| `gateway_contract_market_data.schema.json` | JSON-Schema of the POST body the gateway must accept            | §9    |
+| `install_services.bat`                     | Windows/NSSM installer for the VPS services                     | §8.2  |
+| `replay_quarantine.py`                     | Re-POST gateway-rejected rows after a fix                       | §10.2 |
 
 ### 0.2 Legacy (retained for reference; NOT in the v6 data flow — §14)
 
@@ -209,15 +209,15 @@ Authoritative column list:
 
 ### 3.1 Every source's exported columns
 
-| Source              | Exported columns (after the 4 keys `timestamp,symbol,timeframe,close`)                                                                                          |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 7 centroid variants | `Base_FL`, `UOEDT`, `LOEDT`, `horiz_high_map`, `horiz_low_map`, `ssa`, `ema_ssa`, `crossing`                                                                     |
-| `Fractal_EDT`       | `Fractal_Best_FL`, `Fractal_UOEDT`, `Fractal_LOEDT`                                                                                                             |
-| `Resistance_Line`   | `Best_Resistance`                                                                                                                                               |
-| `Support_Line`      | `Best_Support`                                                                                                                                                  |
-| `OHLCV`             | `open`, `high`, `low`, `volume` — the per-bar spine                                                                                                             |
+| Source              | Exported columns (after the 4 keys `timestamp,symbol,timeframe,close`)                                                                                                                                                 |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 7 centroid variants | `Base_FL`, `UOEDT`, `LOEDT`, `horiz_high_map`, `horiz_low_map`, `ssa`, `ema_ssa`, `crossing`                                                                                                                           |
+| `Fractal_EDT`       | `Fractal_Best_FL`, `Fractal_UOEDT`, `Fractal_LOEDT`                                                                                                                                                                    |
+| `Resistance_Line`   | `Best_Resistance`                                                                                                                                                                                                      |
+| `Support_Line`      | `Best_Support`                                                                                                                                                                                                         |
+| `OHLCV`             | `open`, `high`, `low`, `volume` — the per-bar spine                                                                                                                                                                    |
 | `ZigZag`            | `Type`, `CurrentPoint`, `CurrentPrChg`, `Current%Chg`, `Current%ChgClass`, `CurrentBars`, `CurrentBarsClass`, `CurrentPrPerBar`, `CurrentPrPerBarClass`, `CurrentSlope`, `CurrentCategory` (pivot events, not per-bar) |
-| `ZScore`            | `body_direction`, `body_size` (=\|z\|), `body_classification` (+ a redundant `open`/`high`/`low` copy that is deliberately not staged)                           |
+| `ZScore`            | `body_direction`, `body_size` (=\|z\|), `body_classification` (+ a redundant `open`/`high`/`low` copy that is deliberately not staged)                                                                                 |
 
 That is all 83 `market_data` data fields. The 4 keys appear on **every** source
 and are the validation contract. SSA is exported at **8 decimals** (raised from
@@ -225,8 +225,8 @@ and are the validation contract. SSA is exported at **8 decimals** (raised from
 
 Header naming is **not uniform** and must not be "tidied": centroid line values
 are `Title_Case` while their admin columns are `lower_snake`; the zigzag metrics
-carry no source prefix at all; and every source's export *filename* prefix
-differs from its *column* prefix (file `Centriod_Best_Fit_A_XAUUSD_M5.txt`
+carry no source prefix at all; and every source's export _filename_ prefix
+differs from its _column_ prefix (file `Centriod_Best_Fit_A_XAUUSD_M5.txt`
 contains `Best_Fit_A_*` columns). The collector's `SOURCES` registry is the
 single mapping from header name → staging column.
 
@@ -327,19 +327,19 @@ buffers and auto-exports the admin-layer columns (§3.1).
   **2026-09-09 — EDT Quality Metrics Suite additions**, so all 10 files carry a
   comparable field set:
   - 7 centroids gained an `[EDT CHANNEL]` block — baseline-relative `UOEDT
-    Offset`/`LOEDT Offset` (matching the Fractal indicator's existing
+Offset`/`LOEDT Offset` (matching the Fractal indicator's existing
     convention) plus `Containment Sample (n)`/`Count`/`Rate`.
   - `2EDTFractalBestFitv5` gained the `[MODEL B; CLOSE PRICE]` block it was
     missing (R², MSE, Var Ratio, Skewness, Kurtosis) plus the same
     `[EDT CHANNEL]` block.
   - `SingleBestResistance/Supportv3` gained `[MODEL B; CLOSE PRICE]`. They are
     single lines, not channels, so they get no containment or symmetry fields.
-  > These statistics are **residual** properties, so they are valid for any
-  > resolved line — it need not have come from least squares. R² in particular
-  > scores a fractal-touch line against close prices it was never fitted to, so
-  > a low or negative value is expected and is not by itself a fault.
-  > `Containment Rate` is the more direct measure of whether a channel is doing
-  > its job.
+    > These statistics are **residual** properties, so they are valid for any
+    > resolved line — it need not have come from least squares. R² in particular
+    > scores a fractal-touch line against close prices it was never fitted to, so
+    > a low or negative value is expected and is not by itself a fault.
+    > `Containment Rate` is the more direct measure of whether a channel is doing
+    > its job.
 - ⚠ **`_Statistic.txt` files are still not consumed by anything.** The collector
   reads only the timeseries exports; every statistic file is overwritten each
   minute and read by nobody. Capturing them is an open design decision — see
@@ -661,7 +661,7 @@ fully cleared.
    verified, magnitude never measured. Because the centroid/SSA window
    re-anchors to the live bar each pass (§7 above notwithstanding — different
    issue), a bar's row is refitted for ~3000 bars before it freezes, so the
-   stored value for bar T was computed using data up to ~2 weeks *after* T.
+   stored value for bar T was computed using data up to ~2 weeks _after_ T.
    Harmless for live alerting and charts (they want the newest fit); **invalid
    for backtesting, walk-forward or fitness scoring**, which is a second,
    independent blocker on the decision layer. ~56 of the 83 data fields drift;
@@ -699,7 +699,7 @@ fully cleared.
    **The binaries on disk are one build behind, in a way that hides itself.** All
    13 `.ex5` were compiled 2026-09-09 ~13:45, which **does** include the timestamp
    fixes (§7.1, sources edited 12:03) — that part is built. But the EDT Quality
-   Metrics blocks were added at 14:52–14:54, *after* that compile, to the 10
+   Metrics blocks were added at 14:52–14:54, _after_ that compile, to the 10
    statistic-emitting files (7 centroids + fractal + resistance + support). Those
    10 binaries therefore carry the timestamp fix but **not** the statistic blocks.
    The other 3 (ZigZag, OHLCV, Z-Score) emit no statistics and are correctly
@@ -783,16 +783,16 @@ relay bounded-queue+spill+replay; worker `BACKFILL_API_KEY` via env var.
 
 ## Appendix A — Version History
 
-| Item                                          | State                                                                                                                                                                            |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EA / indicators                               | v2.29 (hyphen-free `mq5/` names; auto-export; SSA 8-decimal). **2026-09-09: GMT-offset fix in all 13 — needs recompile (§7.1)**                                                  |
-| Schema                                        | v6 (`xauusd.db`: staging + validation + `market_data` outbox). **2026-09-09: staging widened to every exported column**                                                          |
-| Collector                                     | v2 (header-name parsing; market-hours gate). **2026-09-09: CALCULATE stage removed; `migrate_raw_tables()` added**                                                               |
-| Push worker                                   | v5 (`market_data` outbox; synced_at; quarantine+replay)                                                                                                                          |
-| Calc stack                                    | **PARKED 2026-09-09** — `calculation-split-between-mt5-and-python-PENDING-PROJECT/`. Not deployed, not running (§6)                                                              |
-| Centroid variants (2026-09-03)                | `best_fit` split into `best_fit_a` (config-identical to the old `best_fit`) + `best_fit_b` (new preset) — 6→7 variants, 12→13 indicators, `market_data` 79→87 columns            |
-| `market_data` shape                           | 87 columns, unchanged by the 2026-09-09 work — the gateway contract, both Prisma schemas and the DTO were untouched                                                              |
-| Legacy v2.28/v2.27/v2.26 EAs, `.ex5` binaries | history only — do not deploy                                                                                                                                                     |
+| Item                                          | State                                                                                                                                                                 |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EA / indicators                               | v2.29 (hyphen-free `mq5/` names; auto-export; SSA 8-decimal). **2026-09-09: GMT-offset fix in all 13 — needs recompile (§7.1)**                                       |
+| Schema                                        | v6 (`xauusd.db`: staging + validation + `market_data` outbox). **2026-09-09: staging widened to every exported column**                                               |
+| Collector                                     | v2 (header-name parsing; market-hours gate). **2026-09-09: CALCULATE stage removed; `migrate_raw_tables()` added**                                                    |
+| Push worker                                   | v5 (`market_data` outbox; synced_at; quarantine+replay)                                                                                                               |
+| Calc stack                                    | **PARKED 2026-09-09** — `calculation-split-between-mt5-and-python-PENDING-PROJECT/`. Not deployed, not running (§6)                                                   |
+| Centroid variants (2026-09-03)                | `best_fit` split into `best_fit_a` (config-identical to the old `best_fit`) + `best_fit_b` (new preset) — 6→7 variants, 12→13 indicators, `market_data` 79→87 columns |
+| `market_data` shape                           | 87 columns, unchanged by the 2026-09-09 work — the gateway contract, both Prisma schemas and the DTO were untouched                                                   |
+| Legacy v2.28/v2.27/v2.26 EAs, `.ex5` binaries | history only — do not deploy                                                                                                                                          |
 
 The files in §0 are the deployment set; everything else in the directory is
 historical.

@@ -37,7 +37,7 @@
 > honest.** Stored historical values are not point-in-time: the centroid/SSA
 > fitting window re-anchors to the live bar on every pass, so a bar's row is
 > refitted for ~3000 bars (~2 weeks of M5) before it freezes — meaning the
-> stored value for bar T embeds price action from up to two weeks *after* T.
+> stored value for bar T embeds price action from up to two weeks _after_ T.
 > Scoring against it is look-ahead-biased and will flatter results.
 >
 > ~56 of the 83 data fields are affected; OHLCV and the `body_*` z-score triple

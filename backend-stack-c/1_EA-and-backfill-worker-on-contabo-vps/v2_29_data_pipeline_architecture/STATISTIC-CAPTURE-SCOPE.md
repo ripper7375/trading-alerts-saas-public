@@ -23,7 +23,7 @@ fit-quality snapshot it already writes every minute and that nothing currently r
 the generated DTO and the existing push path are **untouched**. The two paths share nothing but the
 collector process and the API key.
 
-**Why it matters:** these files are the *only* source of the fit-quality substrate — R², MSE,
+**Why it matters:** these files are the _only_ source of the fit-quality substrate — R², MSE,
 variance ratio, skewness, kurtosis, containment rate, window size, touch counts. **None of it
 exists in `market_data` and none of it can be honestly reconstructed later** (see
 `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md`). It is what
@@ -32,11 +32,11 @@ substrate, and its §8 build order starts with the component that consumes it.
 
 ## 2. The one design decision that defines everything else
 
-`market_data` is keyed by **`(symbol, timeframe, timestamp)`** — *which bar*. Re-pushing the same
+`market_data` is keyed by **`(symbol, timeframe, timestamp)`** — _which bar_. Re-pushing the same
 bar collides and overwrites. Mutable by design, and correct for live charting.
 
-The statistics table is keyed by **`(symbol, timeframe, source, captured_at)`** — *which fit, and
-when it was observed*. `captured_at` is new on every cycle, so a new row never collides with an old
+The statistics table is keyed by **`(symbol, timeframe, source, captured_at)`** — _which fit, and
+when it was observed_. `captured_at` is new on every cycle, so a new row never collides with an old
 one. **Nothing is ever overwritten.**
 
 That single choice is what makes it point-in-time honest: it records what the model believed at a
@@ -51,11 +51,11 @@ moment, permanently, rather than only what it believes now.
 All 10 statistic-emitting indicators now write a complete, comparable field set. No further MQL5
 work is required for this feature.
 
-| Source | Blocks emitted |
-| --- | --- |
-| 7 × centroid | params · `[MODEL A; CROSSINGS]` · `[MODEL B; CLOSE PRICE]` · `[EDT CHANNEL]` |
-| `2EDTFractalBestFitv5` | params · resolved line · `[MODEL B; CLOSE PRICE]` · `[EDT CHANNEL]` |
-| `SingleBestResistance/Supportv3` | params · resolved line · `[MODEL B; CLOSE PRICE]` |
+| Source                           | Blocks emitted                                                               |
+| -------------------------------- | ---------------------------------------------------------------------------- |
+| 7 × centroid                     | params · `[MODEL A; CROSSINGS]` · `[MODEL B; CLOSE PRICE]` · `[EDT CHANNEL]` |
+| `2EDTFractalBestFitv5`           | params · resolved line · `[MODEL B; CLOSE PRICE]` · `[EDT CHANNEL]`          |
+| `SingleBestResistance/Supportv3` | params · resolved line · `[MODEL B; CLOSE PRICE]`                            |
 
 ⚠ Still pending from the earlier session: **these are uncompiled.** They take effect only once
 Davin rebuilds all 13 in MetaEditor and redeploys the `.ex5`.
@@ -72,7 +72,7 @@ the timeseries exports, named `{prefix}_{SYMBOL}_{TF}_Statistic.txt`.
 blank-line separators. Four real parsing hazards, all seen in actual files:
 
 1. **The files are written `FILE_ANSI`, so the em-dash in section headers is mangled** — real
-   captured files contain `[FRACTAL BEST-FIT ? PARAMETERS]`. Match on a section *prefix*
+   captured files contain `[FRACTAL BEST-FIT ? PARAMETERS]`. Match on a section _prefix_
    (`[FRACTAL BEST-FIT`), never the full literal.
 2. Keys contain digits and punctuation — `Total 171 Crossings (n)`, `Raw Slope (b)`,
    `Sample (n)`. Split on the **first** `:` only.
@@ -88,7 +88,7 @@ VALIDATE**. Rejected cycles produce no statistics row, which conveniently guaran
 **`captured_at`:** use the collector's own `cycle_time` (the 5-minute slot). Deterministic, joins
 cleanly to `market_data.timestamp`, and identical across all 10 sources in a cycle so they can be
 compared as one observation. Also record `live_bar_ts` — the newest timestamp in that source's
-*timeseries* file — which ties the fit to the exact bar it was anchored at. Both are cheap; record
+_timeseries_ file — which ties the fit to the exact bar it was anchored at. Both are cheap; record
 both.
 
 **Failure isolation (important):** a statistics parse/stage failure must **never** reject the cycle
@@ -257,13 +257,13 @@ goes in JSON where its shape can vary.
 
 ## 5. Volume, and why config is separated
 
-| | |
-| --- | --- |
-| Sources emitting statistics | 10 |
-| M5 cycles | every 5 min → 12/hour |
-| M15 cycles | every 15 min → 4/hour |
-| **Rows per hour** | (12 + 4) × 10 = **160** |
-| **Rows per year** (~115 market-hours/week) | **≈ 960,000** |
+|                                            |                         |
+| ------------------------------------------ | ----------------------- |
+| Sources emitting statistics                | 10                      |
+| M5 cycles                                  | every 5 min → 12/hour   |
+| M15 cycles                                 | every 15 min → 4/hour   |
+| **Rows per hour**                          | (12 + 4) × 10 = **160** |
+| **Rows per year** (~115 market-hours/week) | **≈ 960,000**           |
 
 Trivial row count for PostgreSQL. But storing the params JSON inline on every row would repeat an
 identical ~300-byte blob a million times a year for **no information gain** — the configuration is
@@ -298,14 +298,14 @@ information worth having on the timeline.
 
 ## 7. Effort and sequencing
 
-| Phase | Work | Depends on |
-| --- | --- | --- |
-| 0 | MetaEditor rebuild of all 13 indicators | — (already required for the timestamp fix) |
-| 1 | Contract JSON + generated DTO + Prisma models (both) + authored migration | 0 |
-| 2 | Gateway controller + queue + processor + tests | 1 |
-| 3 | SQLite table + collector parser/staging | 1 |
-| 4 | Push-worker second drain loop | 2, 3 |
-| 5 | Deploy VPS + gateway; verify a real green cycle | 4 |
+| Phase | Work                                                                      | Depends on                                 |
+| ----- | ------------------------------------------------------------------------- | ------------------------------------------ |
+| 0     | MetaEditor rebuild of all 13 indicators                                   | — (already required for the timestamp fix) |
+| 1     | Contract JSON + generated DTO + Prisma models (both) + authored migration | 0                                          |
+| 2     | Gateway controller + queue + processor + tests                            | 1                                          |
+| 3     | SQLite table + collector parser/staging                                   | 1                                          |
+| 4     | Push-worker second drain loop                                             | 2, 3                                       |
+| 5     | Deploy VPS + gateway; verify a real green cycle                           | 4                                          |
 
 Phases 2 and 3 are independent and can be done in either order. Each is a contained,
 independently testable unit — no phase leaves the pipeline broken.
@@ -323,7 +323,7 @@ independently testable unit — no phase leaves the pipeline broken.
 - **SQLite must stay bounded.** Append-only belongs in PostgreSQL only; the VPS keeps a short
   replay buffer and prunes synced rows.
 - **Append-only means append-only.** The only permitted write to an existing row is an idempotent
-  re-push of byte-identical content. If a future requirement wants to *correct* a row, that is a
+  re-push of byte-identical content. If a future requirement wants to _correct_ a row, that is a
   new row with a later `captured_at`, not an update.
 - **`schema-sync.spec.ts` must be extended** to cover the new model, or the gateway's Prisma mirror
   will silently drift from the monolith's.
@@ -345,11 +345,11 @@ Every item below was executed, not planned. ✅ = passed as written.
 - ✅ **Append-only proof:** two consecutive cycles (`captured_at` 1000, then 1300) with one
   source's R² deliberately changed in between. Result: 20 rows, not 10. The first cycle's value
   is **unchanged**, and the second recorded the new value as a separate row — the property the
-  whole design exists for. Re-staging the *same* `captured_at` is idempotent (still 20 rows),
+  whole design exists for. Re-staging the _same_ `captured_at` is idempotent (still 20 rows),
   so a retry cannot duplicate.
 - ✅ **Config deduplication:** an unchanged indicator configuration yields a stable
   `config_hash` across cycles, and the distinct-hash count stays far below the row count — so a
-  *new* hash appearing is a genuine "someone reconfigured this indicator" signal rather than noise.
+  _new_ hash appearing is a genuine "someone reconfigured this indicator" signal rather than noise.
 - ✅ **Payload shape:** every field the push worker sends is present in
   `gateway_contract_indicator_statistics.schema.json`, with all `required` fields populated —
   verified against real staged rows, not a hand-written fixture.
@@ -408,7 +408,7 @@ true, production is unmigrated and will still reject statistics POSTs.
    nothing to capture. ⚠ **The binaries on disk are already one build behind:** all 13 were
    compiled 2026-09-09 ~13:45, but the statistic blocks were added at 14:52–14:54, after that
    build. Deploying them would silently produce statistics rows with every new field NULL — the
-   parser correctly reads *missing* as NULL rather than 0, so nothing would error and nothing
+   parser correctly reads _missing_ as NULL rather than 0, so nothing would error and nothing
    would look wrong. Check that a fresh `_Statistic.txt` actually contains an `[EDT CHANNEL]`
    section before trusting a green cycle.
 2. Deploy the updated `export_collector_validator_v2.py` + `sqlite_schema_v6_xauusd.sql` and

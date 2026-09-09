@@ -1530,9 +1530,9 @@ geo-locale.ts`, `lib/i18n/locale-resolver.ts`, `operation-service/src/users/user
 > scope with "proceed with implementation." Directly closes blueprint §12 item 9, flagged as
 > not-built by the entry immediately below. Scope doc written first and now serves as the design
 > record: `STATISTIC-CAPTURE-SCOPE.md`.
-> **The one design decision everything else follows from:** `market_data` is keyed by *which bar*,
+> **The one design decision everything else follows from:** `market_data` is keyed by _which bar_,
 > so re-pushing a bar overwrites — mutable by design, correct for charting. `indicator_statistics`
-> is keyed by `(symbol, timeframe, source, captured_at)` — *which fit, and when it was observed* —
+> is keyed by `(symbol, timeframe, source, captured_at)` — _which fit, and when it was observed_ —
 > so a new observation can never collide with an old one. **Append-only is enforced by the key, not
 > by a trigger.** A correction is a new row with a later `captured_at`, never an update. That is
 > what makes the series point-in-time honest, and it is why capture had to start now rather than
@@ -1555,7 +1555,7 @@ geo-locale.ts`, `lib/i18n/locale-resolver.ts`, `operation-service/src/users/user
 > **Configuration is deduplicated rather than repeated:** indicator parameters are compiled into
 > the `.mq5` and change only on redeploy, so storing them on every row would repeat an identical
 > blob ~1M times a year. They are SHA-256 hashed into `indicator_configs` instead — which turns the
-> storage saving into a **feature**: a new `config_hash` appearing *is* the "someone reconfigured
+> storage saving into a **feature**: a new `config_hash` appearing _is_ the "someone reconfigured
 > this indicator" signal. Verified that an unchanged config yields a stable hash across cycles, so
 > the signal is real rather than noise.
 > **Three genuine bugs found by the verification, not after it:** (1) **a security-relevant
@@ -1583,7 +1583,7 @@ geo-locale.ts`, `lib/i18n/locale-resolver.ts`, `operation-service/src/users/user
 > captured files in `mock-data-from-indicators/golden_certification/m5_statistic/` — those pre-date
 > the new blocks, so those fields correctly parse to `None` rather than `0` (the distinction that
 > matters: a `0.0` R² is a real value, a missing one is not) — plus a synthetic new-format file
-> carrying the FILE_ANSI-mangled em-dash header. **Payload shape** checked against the contract
+> carrying the FILE*ANSI-mangled em-dash header. **Payload shape** checked against the contract
 > from real staged rows. **Schema:** `indicator_statistics` 37 columns, `market_data` still exactly
 > **87**, and every column the collector writes exists in the table (diffed against
 > `PRAGMA table_info`, so it cannot drift). **Regression, all at baseline, zero drift:** monolith
@@ -1599,7 +1599,7 @@ geo-locale.ts`, `lib/i18n/locale-resolver.ts`, `operation-service/src/users/user
 > would have caught is close to nil. Also unverified: a live MT5 → Postgres round trip, which is
 > gated on Davin's MetaEditor rebuild (already required for the timestamp fix).
 > **Migration applied by Davin, same day**, via `npx prisma migrate deploy` — `indicator_statistics`
-> and `indicator_configs` now exist. Because `migrate deploy` applies *every* pending migration in
+> and `indicator_configs` now exist. Because `migrate deploy` applies \_every* pending migration in
 > history order rather than a chosen one, two others went in with it:
 > `20260909000000_market_data_v6_provenance_not_null` (the one carrying a pre-flight caution — no
 > harm, its clean apply proves there were no NULL rows, since `SET NOT NULL` fails loudly
@@ -1629,7 +1629,7 @@ geo-locale.ts`, `lib/i18n/locale-resolver.ts`, `operation-service/src/users/user
 > `_Statistic.txt` companion files have never been consumed downstream and asked whether to pipe
 > them through or recompute the statistics in Python at the destination. **Recommended capturing
 > them**, on the grounds that recomputing later inherits the look-ahead contamination documented
-> the same day (stored per-bar values are refitted with future data) *and* would require reviving
+> the same day (stored per-bar values are refitted with future data) _and_ would require reviving
 > the just-parked Python calc stack, whereas a statistic file captured at export time is a
 > truthful point-in-time record. Davin then asked to close the indicator-side gaps.
 > **Checked the real files before agreeing to his plan, which changed it substantially.** Davin's
@@ -1638,13 +1638,13 @@ geo-locale.ts`, `lib/i18n/locale-resolver.ts`, `operation-service/src/users/user
 > approach." Reading the actual statistic files showed both halves were wrong: **slope was already
 > there** (`Raw Slope (b)`, plus window timestamps for coverage and `UOEDT`/`LOEDT Offset` for
 > symmetry), and **R²/MSE/skew/kurtosis/var-ratio are residual statistics** — properties of
-> `close − line(bar)` — so they are computable for *any* resolved line regardless of how it was
+> `close − line(bar)` — so they are computable for _any_ resolved line regardless of how it was
 > derived. Only `[MODEL A; CROSSINGS]` has no Fractal analogue. Conversely a **mirror-image gap**
 > was found that Davin's plan missed: the 7 centroid statistic files have MODEL A/B but **no EDT
 > channel geometry at all**, and `SingleBestResistance/Supportv3` have **no MODEL B either**. So
 > the job was 10 files, not 1.
 > **Implemented:** 7 centroids gained an `[EDT CHANNEL]` block (baseline-relative `UOEDT`/`LOEDT
-> Offset` matching Fractal's existing convention, plus `Containment Sample (n)`/`Count`/`Rate`);
+Offset` matching Fractal's existing convention, plus `Containment Sample (n)`/`Count`/`Rate`);
 > `2EDTFractalBestFitv5` gained `[MODEL B; CLOSE PRICE]` + the same `[EDT CHANNEL]`;
 > `SingleBestResistance/Supportv3` gained `[MODEL B; CLOSE PRICE]` only (single lines, not
 > channels — no containment or symmetry possible). Every statistic file now carries a comparable
@@ -1663,7 +1663,7 @@ geo-locale.ts`, `lib/i18n/locale-resolver.ts`, `operation-service/src/users/user
 > Coverage formula contradicts its own bands (`(60−30)/150 = 20%`, table says 50%); its EDT Fitness
 > bands are off by 5 points (1.8 and 2.6 give 80%, table says 85%); **R² is negative in the real
 > data** (−0.0936 crossings / −0.1221 close in an actual export), which `max(0, …)` clamps to 0%,
-> and it may be *structurally* negative since these lines are fitted to centroids/touches and then
+> and it may be _structurally_ negative since these lines are fitted to centroids/touches and then
 > scored against closes they never tried to fit — so the distribution needs checking before it
 > carries 40–60% of a quality score; and penalising channel asymmetry may be wrong, since EDT is
 > constructed from outermost qualifying touches and asymmetry can be a true reading. **Suggested
@@ -1715,14 +1715,14 @@ geo-locale.ts`, `lib/i18n/locale-resolver.ts`, `operation-service/src/users/user
 > exports were never slimmed). (2) **nothing downstream changes** — `market_data` stays at 87
 > columns with identical names/types, so `gateway_contract_market_data.schema.json`, both Prisma
 > schemas, the generated DTO, `operation-service` and Postgres were all left untouched, and no
-> migration was needed. Only the *source* of the values changed.
+> migration was needed. Only the _source_ of the values changed.
 > **THE TIMESTAMP FINDING — a one-line MQL5 bug, not the missing "conversion stack" the blueprint
 > had listed as its #1 production gate for two years.** All 13 indicators computed
 > `gmt_offset = TimeCurrent() - TimeGMT()`. `TimeCurrent()` returns the **last tick's** time, not
 > the clock, so the offset silently absorbs "seconds since the last tick"; computed once per
 > export and subtracted from every bar time, it stamps that lag on **every row** as a constant
 > sub-bar phase. Proven with real data, not reasoned: measured phases in the golden archive
-> (`%300`) are ohlcv 206, cherry_a 240, cherry_b 288, fractal 189, non_a 43, non_b 81, best_fit 4,
+> (`%300`) are ohlcv 206, cherry*a 240, cherry_b 288, fractal 189, non_a 43, non_b 81, best_fit 4,
 > most_recent 7, resistance 9, support 51, zscore 94, zigzag 76 — one constant per file, differing
 > exactly as "how quiet was the market when I clicked export" predicts; the newer `engine-1-5`
 > captures taken during an active session show only 2–3s. And the data is provably coherent
@@ -1778,33 +1778,26 @@ geo-locale.ts`, `lib/i18n/locale-resolver.ts`, `operation-service/src/users/user
 > `UOEDT=4194.70235`, `body_size=0.35770`, zigzag `slope=47.1695`/`category=LH` — all exact.
 > **Filename matching (Davin's explicit ask) — all 13 verified programmatically, all match.**
 > Recorded as a table in the audit doc. Two harmless quirks confirmed rather than assumed:
-> `Centriod_` is a genuine typo in the two best-fit prefixes but it is the typo MetaTrader
-> actually writes, so the collector must match it; and ZigZag's `InpExportFileName = "ZigZag.txt"`
-> is dead config — the real filename is built directly at line 385 and matches the collector's
-> `ZigZag` prefix.
-> **Verified:** `python -m py_compile` clean on all 4 pipeline scripts; schema applies clean with
-> `market_data` still exactly **87 columns** and 13 `raw_*` tables; every staged column proven to
-> map to a real `market_data` column; the push worker's own `verify_schema_contract()` returns
-> True against the freshly-promoted database and a real POST payload built from a promoted row has
-> exactly the 87 contract fields (no missing, no extra); `railway-gateway` `tsc` clean, `npm test`
-> **3/3 suites 23/23** (incl. `schema-sync`/`dto-contract`), `test:e2e` **1/1 suite 9/9**; full
-> monolith `npm run test:ci` **171/171 suites, 2416/2416 tests** — unchanged baseline, zero
-> regressions, as expected since no downstream file was touched.
-> **⚠ NEEDS DAVIN — the MQL5 fixes are inert until acted on:** all 13 indicators must be
-> **recompiled in MetaEditor and the `.ex5` redeployed to the VPS terminal**; this Executor can
-> edit `.mq5` but cannot produce `.ex5`. Until then the exports still carry the phase bug. The
-> collector + schema also need deploying to the VPS, after which `migrate_raw_tables()` widens the
-> existing `xauusd.db` on first start. Tracked below under Waiting on.
-> **Not committed** — per this file's established log-first-defer-commit pattern.
-> **Artifacts:** `export_collector_validator_v2.py` (CALCULATE removed, SOURCES extended,
-> `migrate_raw_tables()`/`market_data_column()` added), `sqlite_schema_v6_xauusd.sql` (38 staging
-> columns + comment rewrite), all 13 `mq5/*.mq5` (16 gmt_offset sites + the ZigZag pivot fix),
-> `calculation-split-between-mt5-and-python-PENDING-PROJECT/` (new — 4 calc modules + the
-> transliteration folder moved in via `git mv`, plus the new architecture doc),
-> `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md` (§0/§1/§2/§3/§5/§6/§7/§12/§13/Appendix A),
-> `DAVINTRADE_DECISION_LAYER_BLUEPRINT.md` (BLOCKED banner), `install_services.bat`,
-> `backfill_worker_api_gateway_v5.py` (docstring), `data-split-between-mql5-and-python/Export Data
-from MQL5 indicators.txt` (now the full contract), `FIELD-CONSISTENCY-AUDIT-v2_29.md`
+> `Centriod*`is a genuine typo in the two best-fit prefixes but it is the typo MetaTrader
+actually writes, so the collector must match it; and ZigZag's`InpExportFileName = "ZigZag.txt"`is dead config — the real filename is built directly at line 385 and matches the collector's`ZigZag`prefix.
+**Verified:**`python -m py*compile`clean on all 4 pipeline scripts; schema applies clean with`market_data`still exactly **87 columns** and 13`raw*_`tables; every staged column proven to
+map to a real`market_data`column; the push worker's own`verify_schema_contract()`returns
+True against the freshly-promoted database and a real POST payload built from a promoted row has
+exactly the 87 contract fields (no missing, no extra);`railway-gateway` `tsc`clean,`npm test`**3/3 suites 23/23** (incl.`schema-sync`/`dto-contract`), `test:e2e`**1/1 suite 9/9**; full
+monolith`npm run test:ci`**171/171 suites, 2416/2416 tests** — unchanged baseline, zero
+regressions, as expected since no downstream file was touched.
+**⚠ NEEDS DAVIN — the MQL5 fixes are inert until acted on:** all 13 indicators must be
+**recompiled in MetaEditor and the`.ex5`redeployed to the VPS terminal**; this Executor can
+edit`.mq5`but cannot produce`.ex5`. Until then the exports still carry the phase bug. The
+collector + schema also need deploying to the VPS, after which `migrate_raw_tables()`widens the
+existing`xauusd.db`on first start. Tracked below under Waiting on.
+**Not committed** — per this file's established log-first-defer-commit pattern.
+**Artifacts:**`export_collector_validator_v2.py`(CALCULATE removed, SOURCES extended,`migrate_raw_tables()`/`market_data_column()`added),`sqlite_schema_v6_xauusd.sql`(38 staging
+columns + comment rewrite), all 13`mq5/_.mq5`(16 gmt_offset sites + the ZigZag pivot fix),`calculation-split-between-mt5-and-python-PENDING-PROJECT/`(new — 4 calc modules + the
+transliteration folder moved in via`git mv`, plus the new architecture doc),
+`DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`(§0/§1/§2/§3/§5/§6/§7/§12/§13/Appendix A),`DAVINTRADE_DECISION_LAYER_BLUEPRINT.md`(BLOCKED banner),`install_services.bat`,
+`backfill_worker_api_gateway_v5.py`(docstring),`data-split-between-mql5-and-python/Export Data
+> from MQL5 indicators.txt`(now the full contract),`FIELD-CONSISTENCY-AUDIT-v2_29.md`
 > (superseded-in-part banner + the new §10 filename table), this file.
 
 > **Ad-hoc session (2026-09-09, phase/session unchanged) — CLOSED SUCCESSFUL (with one major
@@ -1834,8 +1827,8 @@ indicator.ts`/`types/prisma-stubs.d.ts`) plus an **authored-but-unapplied** migr
 > (`prisma/migrations/20260909000000_market_data_v6_provenance_not_null/migration.sql`) setting
 > both `NOT NULL` on the live Postgres table — its own header comment tells Davin to confirm zero
 > existing NULL rows before applying, since unlike the 2026-09-03 rename a `SET NOT NULL` isn't
-> unconditionally lossless. (2) The 2026-09-08 null-guard only reaches MQL5-*parsed* price-level
-> columns; it never reached the 26 columns Python itself *computes* in `calculate_stage()`
+> unconditionally lossless. (2) The 2026-09-08 null-guard only reaches MQL5-_parsed_ price-level
+> columns; it never reached the 26 columns Python itself _computes_ in `calculate_stage()`
 > (`best_resistance`/`best_support`/`fractal_best_fl`/`_uoedt`/`_loedt` + all 21
 > `{variant}_base_fl`/`_uoedt`/`_loedt`), which were written unconditionally with no sentinel
 > coercion — added a `_price_or_none(v)` helper and applied it at all 8 assignment sites in
@@ -1859,7 +1852,7 @@ CentroidRegressionParams.__init__() got an unexpected keyword argument 'fractals
 > `{variant}_horiz_high_map`/`_horiz_low_map` columns and passes `fractals=fractals` into
 > `calculate_variant()` — matching `CERTIFICATION.md`'s own documented "Production rule" that the
 > centroid EDT stage must use the staged horiz-map fractals, not self-detected ones ("self-detected
-> fractals were tested and are worse — they break best_fit"). But `centroid_regression.py`'s
+> fractals were tested and are worse — they break best*fit"). But `centroid_regression.py`'s
 > `calculate()`/`calculate_variant()` has **never** (full `git log`, both files, since their first
 > commit 2026-06-13) had a `fractals` parameter — `calculate()` unconditionally self-detects
 > fractals from raw OHLCV `highs`/`lows`. **Production is wired the identical self-detecting way**:
@@ -1897,19 +1890,17 @@ crossings, closes, highs, lows)` with `highs`/`lows` = raw `raw_ohlcv` arrays an
 > clean on `export_collector_validator_v2.py`; `test_phase1_golden.py` **23/23** (post path-fix),
 > `test_phase2_lines.py` **30/30**, `test_phase3_centroid.py` **41/41** (40 blueprint baseline +1
 > for the already-existing `best_fit_b` synthetic case); `sqlite_schema_v6_xauusd.sql` applied
-> clean to a throwaway in-memory DB — confirmed 87 `market_data` columns, 13 `raw_*` tables.
-> `golden_certification.py` re-run for both M5 and M15 with the fix in place — identical crash
-> point/evidence as documented above (the fix doesn't touch this path; `golden_certification.py`
-> calls `centroid_regression.py` directly, never through `calculate_stage()`/`promote_cycle()`).
-> **Not committed** — per this task's own explicit instruction and this file's established
-> log-first-defer-commit pattern; left for Davin's review of this entry first.
-> **Artifacts:** `gateway_contract_market_data.schema.json`, `railway-gateway/src/gateway/dto/
-market-data.dto.ts` (regenerated), `prisma/market-data/schema.prisma`, `railway-gateway/prisma/
-schema.prisma`, `prisma/migrations/20260909000000_market_data_v6_provenance_not_null/
-migration.sql` (new, authored/unapplied), `types/indicator.ts`, `types/prisma-stubs.d.ts`,
-> `export_collector_validator_v2.py`, `mql5-to-python-transliteration/test_phase1_golden.py`,
-> `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/
-FIELD-CONSISTENCY-AUDIT-v2_29.md` (new), this file.
+> clean to a throwaway in-memory DB — confirmed 87 `market_data` columns, 13 `raw*\*`tables.`golden_certification.py`re-run for both M5 and M15 with the fix in place — identical crash
+point/evidence as documented above (the fix doesn't touch this path;`golden_certification.py`calls`centroid_regression.py`directly, never through`calculate_stage()`/`promote_cycle()`).
+**Not committed** — per this task's own explicit instruction and this file's established
+log-first-defer-commit pattern; left for Davin's review of this entry first.
+**Artifacts:** `gateway_contract_market_data.schema.json`, `railway-gateway/src/gateway/dto/
+> market-data.dto.ts`(regenerated),`prisma/market-data/schema.prisma`, `railway-gateway/prisma/
+> schema.prisma`, `prisma/migrations/20260909000000_market_data_v6_provenance_not_null/
+> migration.sql`(new, authored/unapplied),`types/indicator.ts`, `types/prisma-stubs.d.ts`,
+`export_collector_validator_v2.py`, `mql5-to-python-transliteration/test_phase1_golden.py`,
+`backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/
+> FIELD-CONSISTENCY-AUDIT-v2_29.md` (new), this file.
 
 > **Ad-hoc session (2026-09-08, phase/session unchanged) — CLOSED SUCCESSFUL, ingestion safety
 > guard coercing inactive 0.0 price levels to NULL in Stack C's export collector:** Davin gave a
@@ -1924,7 +1915,7 @@ worker-on-contabo-vps/v2_29_data_pipeline_architecture/export_collector_validato
 > `uoedt`/`loedt` toward zero; a `0.0` `horiz_high_map`/`horiz_low_map` renders as a phantom
 > support/resistance line at $0.00; a `0.0` ZigZag `current_point` reads as a real swing pivot.
 > Per this repo's established pattern of direct, fully-specified ad-hoc chat instructions on
-> this SEPARATE_STACK code (`EXECUTOR-PROTOCOL.md` §5/§6 — `backend-stack-c/` is out of scope
+> this SEPARATE*STACK code (`EXECUTOR-PROTOCOL.md` §5/§6 — `backend-stack-c/` is out of scope
 > for the microservices migration itself, not off-limits to direct chat-ordered fixes, matching
 > the 2026-09-03 best_fit_a/b split sessions' own precedent) — no money/auth/secrets involved,
 > so no escalation needed.
@@ -1937,32 +1928,24 @@ worker-on-contabo-vps/v2_29_data_pipeline_architecture/export_collector_validato
 > comprehension (`ssa > 0.0`), guarding staged/historical rows that might still carry a `0.0`
 > from before this fix shipped.
 > **A real bug found in the task's own verification script, not routed around:** the given
-> inline test's sample export header used the `Centriod_Best_Fit_A_` filename-prefix convention
-> for the `horiz_high_map`/`ssa`/`crossing`/etc. columns, but `SOURCES['best_fit_a']['columns']`
-> (confirmed live by printing the real registry) actually expects the `Best_Fit_A_` prefix for
-> those specific columns — the two differ only for that source's per-column headers, not its
-> filename. With the original header text every one of those columns resolved to `idx=None` in
-> `col_idx`, so `v` was always `''` and every assertion passed or failed for the wrong reason
-> (trivially `None` regardless of the fix, and `crossing` failed outright since `int`+empty also
-> maps to `None`, not `0`). Fixed the test's header line to the real `Best_Fit_A_*` convention
-> before re-running — no source file was touched to make this pass, only the throwaway
-> verification script.
-> **Verified:** `python -m py_compile` clean; the corrected inline property test passed all 6
-> assertions (empty-tab → `None`, `0.00000` price map/`ssa` → `None`, `crossing=0` stays integer
-> `0` not `None`, valid `2355.50` parses as float, `crossing=1` stays integer `1`); `git diff`
-> reviewed and confirmed as exactly the four intended changes, nothing else touched. No dev
-> server/browser verification applicable — this is a headless Python ingestion script with no
-> UI surface.
-> **Committed and pushed same session, on Davin's explicit request:** `e50d126c`, `main` ->
-> `origin/main`; pre-push hook re-ran the full monolith `test:ci` clean (**171/171 suites,
-> 2416/2416 tests**) before pushing — confirms this Stack C change carries zero blast radius
-> into the Next.js monolith's own test surface, as expected for a SEPARATE_STACK file.
-> **Deliberately out of scope, not touched:** the rest of `git status`'s pre-existing dirty tree
-> at session start (several other `backend-stack-c/mq5/*.mq5` files, deleted `mql5-indicators/`
-> mirrors, and untracked `davintrade-stack-d-and-e/`/`davintrade-fr-sk-chinese-support-stack/`
-> material) — unrelated prior in-progress work, not this session's; only
-> `export_collector_validator_v2.py` was staged and committed.
-> **Artifacts:** `export_collector_validator_v2.py`, this file. 1 commit.
+> inline test's sample export header used the `Centriod_Best_Fit_A*`filename-prefix convention
+for the`horiz*high_map`/`ssa`/`crossing`/etc. columns, but `SOURCES['best_fit_a']['columns']`(confirmed live by printing the real registry) actually expects the`Best_Fit_A*`prefix for
+those specific columns — the two differ only for that source's per-column headers, not its
+filename. With the original header text every one of those columns resolved to`idx=None`in`col*idx`, so `v`was always`''`and every assertion passed or failed for the wrong reason
+(trivially`None`regardless of the fix, and`crossing`failed outright since`int`+empty also
+maps to `None`, not `0`). Fixed the test's header line to the real `Best_Fit_A*_`convention
+before re-running — no source file was touched to make this pass, only the throwaway
+verification script.
+**Verified:**`python -m py_compile`clean; the corrected inline property test passed all 6
+assertions (empty-tab →`None`, `0.00000` price map/`ssa`→`None`, `crossing=0`stays integer`0`not`None`, valid `2355.50`parses as float,`crossing=1`stays integer`1`); `git diff`reviewed and confirmed as exactly the four intended changes, nothing else touched. No dev
+server/browser verification applicable — this is a headless Python ingestion script with no
+UI surface.
+**Committed and pushed same session, on Davin's explicit request:**`e50d126c`, `main`->`origin/main`; pre-push hook re-ran the full monolith `test:ci`clean (**171/171 suites,
+2416/2416 tests**) before pushing — confirms this Stack C change carries zero blast radius
+into the Next.js monolith's own test surface, as expected for a SEPARATE_STACK file.
+**Deliberately out of scope, not touched:** the rest of`git status`'s pre-existing dirty tree
+at session start (several other `backend-stack-c/mq5/_.mq5`files, deleted`mql5-indicators/`mirrors, and untracked`davintrade-stack-d-and-e/`/`davintrade-fr-sk-chinese-support-stack/`material) — unrelated prior in-progress work, not this session's; only`export_collector_validator_v2.py`was staged and committed.
+**Artifacts:**`export_collector_validator_v2.py`, this file. 1 commit.
 
 - **Current:** Session 14-3 (Cutover + Runbook, Phase 14 — fourth and last of 4 sessions,
   VERIFY-RETIRE), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. **Phase 14
@@ -2113,7 +2096,7 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   binaries would look entirely successful — timestamps correct, cycles validating, and
   `indicator_statistics` rows genuinely being written — with every new statistic field NULL,
   because the old-format `_Statistic.txt` files don't contain those sections and the parser
-  correctly reads *missing* as NULL rather than 0. Nothing errors; nothing looks wrong. Confirm a
+  correctly reads _missing_ as NULL rather than 0. Nothing errors; nothing looks wrong. Confirm a
   fresh `_Statistic.txt` contains an `[EDT CHANNEL]` section before trusting a green cycle. Also deploy the updated
   `export_collector_validator_v2.py` + `sqlite_schema_v6_xauusd.sql` and restart `MT5Collector`;
   `migrate_raw_tables()` widens the existing `xauusd.db` staging tables on first start (38
@@ -2127,7 +2110,7 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   (a) **the provenance one carried a pre-flight caution** (it tightens `cycle_id`/`collected_at`
   to `NOT NULL` on live data) and went in as a side effect of `migrate deploy` applying every
   pending migration rather than a chosen one — no harm done, since `SET NOT NULL` fails loudly on
-  any violating row, so the clean apply *is* the proof there were none. Its own `Waiting on` entry
+  any violating row, so the clean apply _is_ the proof there were none. Its own `Waiting on` entry
   below is therefore resolved.
   (b) **the target database is unconfirmed.** The run resolved `DATABASE_URL` from `.env.local` to
   `turntable.proxy.rlwy.net:55082`. Per the 2026-09-01 entry above, the Postgres reachable through
@@ -2158,7 +2141,7 @@ on-contabo-vps/v2_29_data_pipeline_architecture/STATISTIC-CAPTURE-SCOPE.md` §9�
   be **the newest bars — the ones alerts need — arriving late or never**, not a crash or data
   loss (the outbox is bounded by the ~6000 rows that exist). Note oldest-first is not arbitrary:
   it drains stragglers that scrolled out of MT5's window while unsynced, which is what stops
-  SQLite growing — so a fix must satisfy freshness *and* that guarantee. **Never observed in
+  SQLite growing — so a fix must satisfy freshness _and_ that guarantee. **Never observed in
   production** — the live gateway queue showed 0 completed jobs across ~5 days uptime with
   `removeOnComplete: 100`, so this has likely never run at sustained volume. Full write-up,
   the exact measurements to take first, ranked fixes and the invariants not to break:
@@ -2170,12 +2153,12 @@ PUSH-WORKER-THROUGHPUT-OPEN-ISSUE.md`. Also listed as blueprint §12 item 7.
   window re-anchors to the live bar every pass (`startIdx = rates_total - InpSSAMathLookback`),
   so a bar's row is refitted for ~3000 bars (~2.2 weeks M5, ~6.5 weeks M15) before MT5 stops
   exporting it and the row **freezes forever**. Net effect: the stored value for bar T was
-  computed using price action from up to ~2 weeks *after* T. **Harmless for live alerting and
+  computed using price action from up to ~2 weeks _after_ T. **Harmless for live alerting and
   charts** (they want the newest fit — this is the feature), **invalid for backtesting /
   walk-forward / fitness scoring**. ~56 of the 83 data fields drift (the 7 centroid families);
   OHLCV and the `body_*` z-score triple are genuinely causal (`InpZScoreLength=432` is a trailing
   window) and safe; `fractal_*`/`best_resistance`/`best_support` are stable but rewrite wholesale
-  whenever their fixed anchors are re-set. **Sharp detail:** the honest point-in-time value *is*
+  whenever their fixed anchors are re-set. **Sharp detail:** the honest point-in-time value _is_
   computed — it's the first write after the bar closes — and then ~3000 UPSERTs destroy it. Also
   documents a related nuance found the same way: the export includes shift 0, so **the newest row
   in `market_data_v6` is always a still-forming partial bar** until the next cycle. This is a

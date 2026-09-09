@@ -46,21 +46,21 @@ IDLE_SLEEP_SEC     = 300    # outbox empty
 
 **Demand** — the rate at which rows become unsynced:
 
-| Source | Cadence | Rows re-queued |
-| --- | --- | --- |
-| M5 cycle | every 5 min | 3000 |
-| M15 cycle | every 15 min | 3000 |
-| **Per 15 min** | | 3×3000 + 3000 = **12,000** |
-| **Sustained rate needed** | | **~800 rows/min** |
+| Source                    | Cadence      | Rows re-queued             |
+| ------------------------- | ------------ | -------------------------- |
+| M5 cycle                  | every 5 min  | 3000                       |
+| M15 cycle                 | every 15 min | 3000                       |
+| **Per 15 min**            |              | 3×3000 + 3000 = **12,000** |
+| **Sustained rate needed** |              | **~800 rows/min**          |
 
 **Capacity** — one push cycle is (time to POST 500 rows) + 30s sleep:
 
-| Per-POST round trip | 500 POSTs take | Cycle length | Throughput |
-| --- | --- | --- | --- |
-| 20 ms | 10 s | 40 s | **750 rows/min** |
-| 40 ms | 20 s | 50 s | **600 rows/min** |
-| 60 ms | 30 s | 60 s | **500 rows/min** |
-| 100 ms | 50 s | 80 s | **375 rows/min** |
+| Per-POST round trip | 500 POSTs take | Cycle length | Throughput       |
+| ------------------- | -------------- | ------------ | ---------------- |
+| 20 ms               | 10 s           | 40 s         | **750 rows/min** |
+| 40 ms               | 20 s           | 50 s         | **600 rows/min** |
+| 60 ms               | 30 s           | 60 s         | **500 rows/min** |
+| 100 ms              | 50 s           | 80 s         | **375 rows/min** |
 
 To meet 800 rows/min the whole cycle must finish in ≤37.5s, i.e. ~7.5s for 500 sequential
 Contabo→Railway round trips — about **15 ms each**. That is optimistic for cross-provider
@@ -71,7 +71,7 @@ internet round trips.
 ## 3. Why it starves the newest bars specifically
 
 The outbox is **bounded**: it can never exceed the ~6000 rows that exist in SQLite, so nothing
-leaks and nothing is lost. The problem is *ordering*.
+leaks and nothing is lost. The problem is _ordering_.
 
 Selection is `ORDER BY timestamp ASC` — oldest first. Every 5 minutes all 3000 M5 rows reset to
 NULL. So the worker restarts from the oldest bar each time and works forward. If it can only get
@@ -102,23 +102,29 @@ fix freshness and could let those stragglers accumulate instead.
 On the VPS, over at least three consecutive 5-minute cycles during market hours:
 
 **a. Does the outbox ever reach zero?**
+
 ```sql
 -- run every ~30s
 SELECT timeframe, COUNT(*) FROM market_data WHERE synced_at IS NULL GROUP BY timeframe;
 ```
+
 Sawtooth that touches ~0 → no problem, stop here. Never dips near zero → deficit is real.
 
 **b. What is the real per-cycle cost?**
+
 ```
 findstr /C:"unsynced rows" C:\Scripts\logs\push_worker.log
 ```
+
 Time between consecutive "pushing" lines gives the true cycle length; divide by rows pushed for
 the real per-POST cost. **This single number decides everything** — it is the `T` in §2's table.
 
 **c. Are the newest bars actually arriving?** Against Postgres:
+
 ```sql
 SELECT timeframe, MAX(timestamp), NOW() FROM market_data_v6 GROUP BY timeframe;
 ```
+
 Compare to the newest bar in SQLite. A persistent gap of more than a couple of bars is the
 symptom that matters.
 
@@ -156,5 +162,5 @@ rather than a cure.
   Postgres. The retention trigger's `synced_at IS NOT NULL` condition is what enforces it.
 - **Idempotency.** The gateway upserts on `(symbol, timeframe, timestamp)` — duplicate delivery is
   by design. Any batching change must preserve that.
-- **The poison-row guard.** A 400 quarantines the row to `rejected_rows.jsonl` *and* stamps
+- **The poison-row guard.** A 400 quarantines the row to `rejected_rows.jsonl` _and_ stamps
   `synced_at` so one bad row cannot block the outbox. Batching must not lose per-row 400 handling.

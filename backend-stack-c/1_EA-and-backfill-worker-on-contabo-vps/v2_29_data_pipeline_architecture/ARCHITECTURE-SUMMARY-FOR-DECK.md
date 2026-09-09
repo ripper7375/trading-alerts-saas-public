@@ -16,19 +16,19 @@
 
 Five things changed versus the previous deck. Everything else is unchanged.
 
-| | Previous deck | Current |
-| --- | --- | --- |
-| MQL5 indicators | **12** | **13** |
-| `market_data` columns | **79** | **87** |
-| Pipeline stages | **5** (COLLECT → ADJUST → VALIDATE → **CALCULATE** → PROMOTE) | **4** (COLLECT → ADJUST → VALIDATE → PROMOTE) |
-| Who calculates the indicators | MT5 **and** a Python calc stack | **MT5 only** |
-| Indicator fit quality (R², MSE, containment…) | **Written to disk every minute, read by nobody** | Captured into a new **append-only** table |
+|                                               | Previous deck                                                 | Current                                       |
+| --------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------- |
+| MQL5 indicators                               | **12**                                                        | **13**                                        |
+| `market_data` columns                         | **79**                                                        | **87**                                        |
+| Pipeline stages                               | **5** (COLLECT → ADJUST → VALIDATE → **CALCULATE** → PROMOTE) | **4** (COLLECT → ADJUST → VALIDATE → PROMOTE) |
+| Who calculates the indicators                 | MT5 **and** a Python calc stack                               | **MT5 only**                                  |
+| Indicator fit quality (R², MSE, containment…) | **Written to disk every minute, read by nobody**              | Captured into a new **append-only** table     |
 
 Two of these (12→13, 79→87) came from splitting the `best_fit` centroid variant into
 `best_fit_a` / `best_fit_b` on 2026-09-03. The rest are the 2026-09-09 work.
 
-**One-line story for the slide:** *"MQL5 now computes every value; the pipeline transports it —
-and, for the first time, records how good each fit actually was."*
+**One-line story for the slide:** _"MQL5 now computes every value; the pipeline transports it —
+and, for the first time, records how good each fit actually was."_
 
 **Speaker note:** the fifth row is the one worth dwelling on. The indicators have always written
 `_Statistic.txt` companion files describing how well each line fits the data; nothing had ever
@@ -100,7 +100,7 @@ PYTHON PUSH WORKER (backfill_worker_api_gateway_v5.py) ──► HTTP POST ─�
                                 (append-only; see §5b)                           + processor
 ```
 
-It hangs off the *end* of a successful cycle rather than sitting inside the four stages, and it is
+It hangs off the _end_ of a successful cycle rather than sitting inside the four stages, and it is
 wrapped so that any failure in it is a logged warning — never a rejected cycle. Statistics describe
 a cycle; they are not a precondition for one.
 
@@ -121,19 +121,19 @@ resistance lines, ZigZag metrics, z-score body set).
 
 **Now:** MQL5 computes all 83 data fields and exports them. Python adds only 4 provenance fields.
 
-| Source (13 total) | Exports |
-| --- | --- |
+| Source (13 total)                                                            | Exports                                                                                                              |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | 7 centroid variants (`best_fit_a/b`, `cherry_a/b`, `most_recent`, `non_a/b`) | `Base_FL`, `UOEDT`, `LOEDT`, `horiz_high_map`, `horiz_low_map`, `ssa`, `ema_ssa`, `crossing` — **8 × 7 = 56 fields** |
-| Fractal EDT | `Fractal_Best_FL`, `Fractal_UOEDT`, `Fractal_LOEDT` |
-| Resistance line | `Best_Resistance` |
-| Support line | `Best_Support` |
-| OHLCV | `open`, `high`, `low`, `close`, `volume` — the per-bar spine |
-| ZigZag | pivot type + point + 9 segment metrics — **11 fields** (sparse: pivot events, not per-bar) |
-| Z-Score candle | `body_direction`, `body_size` (=\|z\|), `body_classification` |
-| **Pipeline adds** | `cycle_id`, `collected_at`, `calculated_at`, `synced_at` |
-| | **= 87 columns** |
+| Fractal EDT                                                                  | `Fractal_Best_FL`, `Fractal_UOEDT`, `Fractal_LOEDT`                                                                  |
+| Resistance line                                                              | `Best_Resistance`                                                                                                    |
+| Support line                                                                 | `Best_Support`                                                                                                       |
+| OHLCV                                                                        | `open`, `high`, `low`, `close`, `volume` — the per-bar spine                                                         |
+| ZigZag                                                                       | pivot type + point + 9 segment metrics — **11 fields** (sparse: pivot events, not per-bar)                           |
+| Z-Score candle                                                               | `body_direction`, `body_size` (=\|z\|), `body_classification`                                                        |
+| **Pipeline adds**                                                            | `cycle_id`, `collected_at`, `calculated_at`, `synced_at`                                                             |
+|                                                                              | **= 87 columns**                                                                                                     |
 
-**Why this was possible:** the indicators were *already exporting* all of these columns. The
+**Why this was possible:** the indicators were _already exporting_ all of these columns. The
 collector simply wasn't reading the calculated ones. Nothing new had to be built in MQL5.
 
 **What it buys:** one implementation per indicator, no transliteration to keep faithful, no
@@ -148,12 +148,12 @@ certification to maintain, and no way for the database to disagree with the char
 
 This is the most commonly misunderstood part. **SQLite and PostgreSQL are not mirrors.**
 
-| | SQLite (`xauusd.db`, on the VPS) | PostgreSQL (`market_data_v6`, Railway) |
-| --- | --- | --- |
-| Role | Working buffer + outbox | Permanent archive |
-| Size | **Capped: 3000 bars per timeframe** (~6000 rows) | **Uncapped — grows forever** |
-| Old rows | **Deleted** once confirmed synced | Kept permanently |
-| In time terms | ~2.2 weeks of M5, ~6.5 weeks of M15 | Everything since day one (~100k rows/year) |
+|               | SQLite (`xauusd.db`, on the VPS)                 | PostgreSQL (`market_data_v6`, Railway)     |
+| ------------- | ------------------------------------------------ | ------------------------------------------ |
+| Role          | Working buffer + outbox                          | Permanent archive                          |
+| Size          | **Capped: 3000 bars per timeframe** (~6000 rows) | **Uncapped — grows forever**               |
+| Old rows      | **Deleted** once confirmed synced                | Kept permanently                           |
+| In time terms | ~2.2 weeks of M5, ~6.5 weeks of M15              | Everything since day one (~100k rows/year) |
 
 **Why the cap:** MT5 only ever re-exports its newest 3000 bars. A bar older than that will never be
 recalculated or re-sent, so keeping it on the VPS serves no purpose — it is already safe in
@@ -175,7 +175,7 @@ deleted from SQLite  →  lives in Postgres permanently, frozen at its last reca
 ```
 
 **Speaker note:** indicators are not continuous series. Fractal, centroid, EDT, SSA and EMA-SSA are
-*recalculated* across the whole window on every pass, so the newest values overwrite the older
+_recalculated_ across the whole window on every pass, so the newest values overwrite the older
 values in the row with the same timestamp. That is what the UPSERT is for.
 
 ---
@@ -185,22 +185,22 @@ values in the row with the same timestamp. That is what the UPSERT is for.
 This is the conceptual heart of the statistics work, and it makes a good standalone slide because
 the two tables are deliberate opposites.
 
-| | `market_data_v6` | `indicator_statistics` (new) |
-| --- | --- | --- |
-| Keyed by | `(symbol, timeframe, timestamp)` — **which bar** | `(symbol, timeframe, source, captured_at)` — **which fit, and when we looked** |
-| Re-sending the same key | **Overwrites.** Newest fit wins | **Cannot happen.** A new observation is a new key |
-| Therefore | **Mutable** — always shows the latest view | **Append-only** — keeps every view ever taken |
-| A correction is | an UPDATE | a **new row** with a later `captured_at` |
-| Right for | live charts and alerting | history, drift detection, backtesting |
+|                         | `market_data_v6`                                 | `indicator_statistics` (new)                                                   |
+| ----------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------ |
+| Keyed by                | `(symbol, timeframe, timestamp)` — **which bar** | `(symbol, timeframe, source, captured_at)` — **which fit, and when we looked** |
+| Re-sending the same key | **Overwrites.** Newest fit wins                  | **Cannot happen.** A new observation is a new key                              |
+| Therefore               | **Mutable** — always shows the latest view       | **Append-only** — keeps every view ever taken                                  |
+| A correction is         | an UPDATE                                        | a **new row** with a later `captured_at`                                       |
+| Right for               | live charts and alerting                         | history, drift detection, backtesting                                          |
 
-**The one-line version:** *`market_data` answers "what does this bar look like now?"
-`indicator_statistics` answers "what did we believe, and when did we believe it?"*
+**The one-line version:** _`market_data` answers "what does this bar look like now?"
+`indicator_statistics` answers "what did we believe, and when did we believe it?"_
 
 **Why this matters more than it sounds.** Because `market_data` overwrites, a bar's stored value
 is whatever the last recalculation produced — the honest, point-in-time value is computed and then
 destroyed (this is exactly the look-ahead problem in §10b). The new table cannot suffer that,
 because nothing is ever overwritten. Every row is stamped with the moment it was observed, so a
-series of rows for one line shows *how the fit evolved*, not just where it ended up.
+series of rows for one line shows _how the fit evolved_, not just where it ended up.
 
 **Enforced by the key, not by a trigger or a policy.** There is no "please don't update this"
 convention to remember or violate — the schema makes overwriting structurally impossible, which is
@@ -214,21 +214,22 @@ permanently.
 **Configuration is stored once, not per row.** Indicator parameters are compiled into the `.mq5`
 and change only on redeploy, so repeating them on every row would duplicate an identical blob
 roughly a million times a year. They are hashed into a small `indicator_configs` table instead —
-which turns a storage saving into a **feature**: a *new hash appearing* is itself the "someone
+which turns a storage saving into a **feature**: a _new hash appearing_ is itself the "someone
 reconfigured this indicator" signal, with the exact date it started.
 
 ---
 
 ## 6. Cadence and volume
 
-| Event | Frequency |
-| --- | --- |
-| MT5 overwrites the 13 `.txt` exports | **every minute** (at second :59) |
-| Collector ingests M5 | **every 5 minutes** (at :05 past the boundary) |
-| Collector ingests M15 | **every 15 minutes** |
-| Rows re-queued per cycle | all ~3000 in-window bars for that timeframe |
+| Event                                | Frequency                                      |
+| ------------------------------------ | ---------------------------------------------- |
+| MT5 overwrites the 13 `.txt` exports | **every minute** (at second :59)               |
+| Collector ingests M5                 | **every 5 minutes** (at :05 past the boundary) |
+| Collector ingests M15                | **every 15 minutes**                           |
+| Rows re-queued per cycle             | all ~3000 in-window bars for that timeframe    |
 
 **Why export every minute but read every 5?** Two different jobs:
+
 - The **read** cadence matches the data — an M5 bar only closes every 5 minutes, so reading more
   often would just re-read the same bar.
 - The **write** cadence serves recovery. If a cycle is rejected because sources disagree, the
@@ -259,8 +260,8 @@ subtracted from every bar time, that lag was stamped on **every row** as a const
 **The evidence** (measured in the captured export archive, `timestamp % 300`):
 
 | ohlcv | cherry_a | cherry_b | fractal | non_a | non_b | best_fit | zigzag |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 206 | 240 | 288 | 189 | 43 | 81 | 4 | 76 |
+| ----- | -------- | -------- | ------- | ----- | ----- | -------- | ------ |
+| 206   | 240      | 288      | 189     | 43    | 81    | 4        | 76     |
 
 One constant per file, differing exactly as "how quiet was the market when I clicked export"
 predicts. Captures taken during an active session show only 2–3 seconds. Meanwhile the underlying
@@ -290,7 +291,7 @@ bar's open time.
 **Good news:** the entire existing downstream contract is unchanged. `market_data` is still 87
 columns with identical names and types, so the gateway JSON contract for it, both Prisma schemas'
 `MarketDataV6` model, the generated DTO and `operation-service` were **untouched** by the
-calculation-split removal. Only the *source* of the values changed.
+calculation-split removal. Only the _source_ of the values changed.
 
 **What is new is additive, alongside it — nothing was altered.** The statistics path adds its own
 JSON contract, its own generated DTO, two new Prisma models and two new tables
@@ -301,17 +302,17 @@ an API surface is only worth building when something actually consumes it.
 
 **But the column positions shift.** If the Engine 1.5A/B/C design refers to columns by position:
 
-| | Previous deck | Current |
-| --- | --- | --- |
-| Base columns | 79 | **87** |
-| MCD01-10 | Cols 80–89 | **Cols 88–97** |
-| FREQ54 | Cols 90–99 | **Cols 98–107** |
-| JSONB54 Narrative | Col 100 | **Col 108** |
-| Conf_Score | Col 101 | **Col 109** |
-| WACS54 | Col 102 | **Col 110** |
-| **Prisma total** | **102** | **110** |
+|                   | Previous deck | Current         |
+| ----------------- | ------------- | --------------- |
+| Base columns      | 79            | **87**          |
+| MCD01-10          | Cols 80–89    | **Cols 88–97**  |
+| FREQ54            | Cols 90–99    | **Cols 98–107** |
+| JSONB54 Narrative | Col 100       | **Col 108**     |
+| Conf_Score        | Col 101       | **Col 109**     |
+| WACS54            | Col 102       | **Col 110**     |
+| **Prisma total**  | **102**       | **110**         |
 
-**Speaker note:** if the Engine 1.5 design refers to columns *by name* rather than position, this
+**Speaker note:** if the Engine 1.5 design refers to columns _by name_ rather than position, this
 is a non-issue. Worth confirming.
 
 ---
@@ -323,8 +324,8 @@ The four Python calc modules and their certification harness were **archived, no
 what it cost to park, two open bugs to fix before any revival, and how to restore it.
 
 **The one real capability given up:** arbitrary-parameter recomputation. MQL5 exports one fixed,
-admin-configured parameterization; it cannot answer *"what would this look like with
-`min_touches=4`?"* without editing the `.mq5`, recompiling and redeploying.
+admin-configured parameterization; it cannot answer _"what would this look like with
+`min_touches=4`?"_ without editing the `.mq5`, recompiling and redeploying.
 
 **The other thing that looked lost has since been recovered.** Parking the calc stack also
 appeared to give up the statistics substrate — R², MSE, variance ratio, skewness, kurtosis,
@@ -338,13 +339,13 @@ line refitted with data the trader never had.
 **Consequence for the Decision Layer — now half unblocked, and this is the useful nuance for the
 slide:**
 
-| Decision Layer component | Needs | Status |
-| --- | --- | --- |
-| `fitness_scorer` (its build order starts here) | the statistics substrate | **Unblocked** — the data now flows and accumulates |
-| `param_search` | arbitrary-parameter recomputation | **Still blocked** — needs the calc stack revived |
+| Decision Layer component                       | Needs                             | Status                                             |
+| ---------------------------------------------- | --------------------------------- | -------------------------------------------------- |
+| `fitness_scorer` (its build order starts here) | the statistics substrate          | **Unblocked** — the data now flows and accumulates |
+| `param_search`                                 | arbitrary-parameter recomputation | **Still blocked** — needs the calc stack revived   |
 
 So the blueprint's **BLOCKED banner stands**, but the blocker has narrowed from two independent
-causes to one. The scoring formulas themselves were deliberately left *out* of MQL5 and belong
+causes to one. The scoring formulas themselves were deliberately left _out_ of MQL5 and belong
 downstream: weights and thresholds are tuning parameters, and baking them into `.mq5` would mean
 recompiling 13 indicators and redeploying to the VPS for every weight change, where downstream
 they are pure arithmetic on numbers already exported.
@@ -362,20 +363,20 @@ Every cycle re-queues all ~6000 in-window rows (correct — MT5 recalculates the
 the worker POSTs **one row per HTTP request** at 500 per cycle plus a 30-second sleep. Demand is
 ~800 rows/min against a likely capacity of 375–600. Because rows are selected oldest-first, the
 symptom would be **the newest bars arriving late or never** — not a crash, and no data loss.
-*Status: arithmetic only, never observed in production. Measure before changing anything.*
+_Status: arithmetic only, never observed in production. Measure before changing anything._
 
 **b. Historical values are not point-in-time (look-ahead bias)** —
 `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md`
 The centroid/SSA fitting window re-anchors to the live bar on every pass, so a bar's row is
 refitted for ~3000 bars before it freezes. The stored value for bar T was therefore computed using
-price action from up to ~2 weeks *after* T. **Harmless for live alerting and charts** (they want
+price action from up to ~2 weeks _after_ T. **Harmless for live alerting and charts** (they want
 the newest fit — that is the feature); **invalid for backtesting, walk-forward or fitness
 scoring.** ~56 of the 83 data fields drift; OHLCV and the z-score triple are genuinely causal and
 safe. This is a second, independent blocker on the Decision Layer.
-*Status: mechanism verified, magnitude never measured.*
+_Status: mechanism verified, magnitude never measured._
 **Partially addressed as of 2026-09-09, not solved:** the new append-only table (§5b) is immune to
 this by construction — each row is stamped with when it was observed and is never overwritten — so
-from now on the statistics series *is* point-in-time honest. That does **not** retroactively fix
+from now on the statistics series _is_ point-in-time honest. That does **not** retroactively fix
 `market_data_v6`, and it does not fix the price/level columns at all. It does mean the drift is
 now measurable directly, by comparing rows for the same line at different `captured_at` values,
 instead of needing the capture-a-week-apart experiment.
@@ -387,15 +388,15 @@ instead of needing the capture-a-week-apart experiment.
 
 ## 11. Action items (closing slide)
 
-| # | Action | Owner | Blocking? |
-| --- | --- | --- | --- |
-| 1 | **Recompile the 10 statistic-emitting indicators and redeploy all 13 `.ex5` to the VPS** — see the warning below | Davin | **Yes** — the statistic blocks are inert until this happens |
-| 2 | Deploy the updated collector + schema, restart `MT5Collector`. Its `migrate_raw_tables()` widens the existing `xauusd.db` automatically on first start (`market_data` untouched), and the same restart creates the statistics outbox | Davin | Yes |
-| 3 | Confirm a real green end-to-end cycle against the live terminal — for **both** lanes: price rows landing in `market_data_v6`, and statistics rows landing in `indicator_statistics` | Davin | Yes |
-| 4 | ✅ **Done 2026-09-09** — apply the `indicator_statistics` migration to PostgreSQL | Davin | — |
-| 5 | Measure push-worker throughput (§10a) | — | No |
-| 6 | Measure historical drift magnitude (§10b) — now measurable directly from the statistics series once it has some depth | — | No |
-| 7 | Decide Decision Layer direction: revive the calc stack for `param_search`, or redesign around admin-fixed values. `fitness_scorer` is no longer blocked either way (§9) | Davin | No |
+| #   | Action                                                                                                                                                                                                                               | Owner | Blocking?                                                   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----- | ----------------------------------------------------------- |
+| 1   | **Recompile the 10 statistic-emitting indicators and redeploy all 13 `.ex5` to the VPS** — see the warning below                                                                                                                     | Davin | **Yes** — the statistic blocks are inert until this happens |
+| 2   | Deploy the updated collector + schema, restart `MT5Collector`. Its `migrate_raw_tables()` widens the existing `xauusd.db` automatically on first start (`market_data` untouched), and the same restart creates the statistics outbox | Davin | Yes                                                         |
+| 3   | Confirm a real green end-to-end cycle against the live terminal — for **both** lanes: price rows landing in `market_data_v6`, and statistics rows landing in `indicator_statistics`                                                  | Davin | Yes                                                         |
+| 4   | ✅ **Done 2026-09-09** — apply the `indicator_statistics` migration to PostgreSQL                                                                                                                                                    | Davin | —                                                           |
+| 5   | Measure push-worker throughput (§10a)                                                                                                                                                                                                | —     | No                                                          |
+| 6   | Measure historical drift magnitude (§10b) — now measurable directly from the statistics series once it has some depth                                                                                                                | —     | No                                                          |
+| 7   | Decide Decision Layer direction: revive the calc stack for `param_search`, or redesign around admin-fixed values. `fitness_scorer` is no longer blocked either way (§9)                                                              | Davin | No                                                          |
 
 > ⚠ **The `.ex5` binaries currently on disk are a build behind, and in a way that hides itself.**
 > All 13 were compiled on 2026-09-09 at ~13:45 — that build **does** include the timestamp fix
@@ -405,7 +406,7 @@ instead of needing the capture-a-week-apart experiment.
 > — emit no statistics, so they are correctly unaffected.)
 >
 > **Why this matters more than a normal stale build:** deploying as-is would look successful.
-> Timestamps would be correct, cycles would validate, and statistics rows *would* be created — with
+> Timestamps would be correct, cycles would validate, and statistics rows _would_ be created — with
 > every new field empty, because the old-format files don't contain them. The failure is silent.
 > Recompile those 10 before deploying.
 
@@ -419,7 +420,7 @@ For anyone asking "how do we know this works":
   3000 promoted bars, then every promoted value was compared field-by-field against its source
   `.txt`: **192,024 comparisons, 0 mismatches**, all 79 data columns covered (the other 4 are the
   positional validation keys, checked by the validator itself).
-- The staging-schema migration was tested against a database built from the *previous* schema with
+- The staging-schema migration was tested against a database built from the _previous_ schema with
   real data in it: 38 columns added, existing values preserved, second run a no-op.
 - The push worker's own built-in contract guard passes against the new database, and a real POST
   payload has exactly the 87 contract fields — no missing, no extra.
@@ -438,12 +439,12 @@ For anyone asking "how do we know this works":
   failure and leaves rows queued for retry — nothing lost, and the `market_data` drain is
   untouched. This is the property that makes the second lane safe to add at all.
 - **Parser** tested against the real captured `_Statistic.txt` files. Those pre-date the new
-  blocks, so the new fields correctly read as *missing* rather than as zero — the distinction that
+  blocks, so the new fields correctly read as _missing_ rather than as zero — the distinction that
   matters, since an R² of 0.0 is a real measurement and a missing one is not.
 - **Config hashing:** an unchanged indicator configuration produces a stable hash across cycles, so
   a new hash genuinely means a reconfiguration rather than noise.
 - **A design flaw was caught during this verification and fixed:** the schema declared both a
-  unique constraint and a plain index on the *same* four columns. Postgres already backs a unique
+  unique constraint and a plain index on the _same_ four columns. Postgres already backs a unique
   constraint with an index on exactly those columns, so the second was duplicated write cost on a
   table meant to grow ~1M rows/year and never be updated. Removed.
 - **Not verified:** a live MT5 → PostgreSQL round trip, which is gated on action item 1 — the new

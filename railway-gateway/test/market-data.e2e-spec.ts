@@ -50,9 +50,11 @@ describe('MarketDataController (e2e)', () => {
 
   beforeAll(async () => {
     queueMock = {
-      add: jest.fn().mockImplementation((_name, data, opts) =>
-        Promise.resolve({ id: opts.jobId, data })
-      ),
+      add: jest
+        .fn()
+        .mockImplementation((_name, data, opts) =>
+          Promise.resolve({ id: opts.jobId, data })
+        ),
       getJob: jest.fn().mockResolvedValue(null),
       client: { ping: jest.fn().mockResolvedValue('PONG') },
       getWaitingCount: jest.fn().mockResolvedValue(0),
@@ -186,15 +188,24 @@ describe('MarketDataController (e2e)', () => {
   });
 
   it('health check reports up when redis/queue/db are reachable', async () => {
-    const res = await request(app.getHttpServer()).get('/api/v1/health').expect(200);
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/health')
+      .expect(200);
     expect(res.body.status).toBe('healthy');
   });
 
   it('queue stats endpoint responds with job counts', async () => {
-    const res = await request(app.getHttpServer()).get('/api/v1/queue/stats').expect(200);
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/queue/stats')
+      .expect(200);
     expect(res.body.queue).toBe('market-data-sync');
     expect(res.body.jobs).toEqual(
-      expect.objectContaining({ waiting: 0, active: 0, completed: 0, failed: 0 })
+      expect.objectContaining({
+        waiting: 0,
+        active: 0,
+        completed: 0,
+        failed: 0,
+      })
     );
   });
 });

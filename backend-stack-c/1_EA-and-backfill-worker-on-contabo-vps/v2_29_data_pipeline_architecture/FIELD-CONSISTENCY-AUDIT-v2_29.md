@@ -42,7 +42,7 @@ and `git log` was checked across both files' full history.
 but columns headed `Best_Fit_A_*`) is by design, and `export_collector_validator_v2.py`'s `SOURCES`
 dict already stores the correct header prefix, distinct from the filename prefix, for **all 13
 sources** — not just `best_fit_a`, which is the only one a prior session (2026-09-08) had reason to
-re-check (and found correct in *production* code; only a throwaway verification *script*'s own test
+re-check (and found correct in _production_ code; only a throwaway verification _script_'s own test
 fixture had the wrong assumption, already fixed). This was cross-checked directly against the real
 `.mq5` `FileWrite` header strings and real captured `.txt` files in `davintrade-stack-d-and-e/
 engine-1-5/` and `mock-data-from-indicators/golden_certification/` for every one of the 13 sources.
@@ -56,14 +56,14 @@ audit to fix and is escalated to Davin (see §5).
 
 ## 1. Identity & OHLCV (9 fields) — §3.1
 
-| Field | MQL5 source | SQLite | Gateway JSON | Monolith Prisma | RW-GW Prisma | Op-service Prisma | Status |
-|---|---|---|---|---|---|---|---|
-| `terminal_id` | n/a — set by push worker, not exported by any indicator | — (not a `market_data` column) | `string`, **required** | `String` | `String` | omitted | ✅ Confirmed always `'push_worker_v5'` (`backfill_worker_api_gateway_v5.py:43`), a static sender-id constant by design, not a per-terminal identifier — matches its own JSON-Schema description exactly. |
-| `timestamp` | every source, UTC unix sec | `INTEGER NOT NULL` | `integer`, required | `Int` | `Int` | `Int` | ✅ |
-| `symbol` | every source | `TEXT NOT NULL CHECK ='XAUUSD'` | `const:"XAUUSD"`, required | `String` | `String` | `String` | ✅ |
-| `timeframe` | every source | `TEXT NOT NULL CHECK IN('M5','M15')` | `enum`, required | `String` | `String` | `String` | ✅ |
-| `open`,`high`,`low`,`close` | `OHLCV` (`ohlcv_open/high/low`), `ZScore` (`z-score_open/high/low`, redundant copy used only for its own calc), `close` on every source as a validation key | `REAL NOT NULL` (×4) | `number`, required (×4) | `Float` (×4) | `Float` (×4) | `close` only, `Float` | ✅ — cosmetic-only precision difference noted: `OHLCV`'s export always prints 5 decimals (`%.5f`), the 7 centroid variants' `close` key prints at `_Digits` (often 2 decimals for XAUUSD) — numerically identical once parsed as float, non-issue since the collector parses (never string-compares) these. |
-| `volume` | `OHLCV` (`ohlcv_volume`) | `INTEGER NOT NULL` | `integer`, required | `Int` | `Int` | omitted | ✅ |
+| Field                       | MQL5 source                                                                                                                                                 | SQLite                               | Gateway JSON               | Monolith Prisma | RW-GW Prisma | Op-service Prisma     | Status                                                                                                                                                                                                                                                                                                      |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | -------------------------- | --------------- | ------------ | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `terminal_id`               | n/a — set by push worker, not exported by any indicator                                                                                                     | — (not a `market_data` column)       | `string`, **required**     | `String`        | `String`     | omitted               | ✅ Confirmed always `'push_worker_v5'` (`backfill_worker_api_gateway_v5.py:43`), a static sender-id constant by design, not a per-terminal identifier — matches its own JSON-Schema description exactly.                                                                                                    |
+| `timestamp`                 | every source, UTC unix sec                                                                                                                                  | `INTEGER NOT NULL`                   | `integer`, required        | `Int`           | `Int`        | `Int`                 | ✅                                                                                                                                                                                                                                                                                                          |
+| `symbol`                    | every source                                                                                                                                                | `TEXT NOT NULL CHECK ='XAUUSD'`      | `const:"XAUUSD"`, required | `String`        | `String`     | `String`              | ✅                                                                                                                                                                                                                                                                                                          |
+| `timeframe`                 | every source                                                                                                                                                | `TEXT NOT NULL CHECK IN('M5','M15')` | `enum`, required           | `String`        | `String`     | `String`              | ✅                                                                                                                                                                                                                                                                                                          |
+| `open`,`high`,`low`,`close` | `OHLCV` (`ohlcv_open/high/low`), `ZScore` (`z-score_open/high/low`, redundant copy used only for its own calc), `close` on every source as a validation key | `REAL NOT NULL` (×4)                 | `number`, required (×4)    | `Float` (×4)    | `Float` (×4) | `close` only, `Float` | ✅ — cosmetic-only precision difference noted: `OHLCV`'s export always prints 5 decimals (`%.5f`), the 7 centroid variants' `close` key prints at `_Digits` (often 2 decimals for XAUUSD) — numerically identical once parsed as float, non-issue since the collector parses (never string-compares) these. |
+| `volume`                    | `OHLCV` (`ohlcv_volume`)                                                                                                                                    | `INTEGER NOT NULL`                   | `integer`, required        | `Int`           | `Int`        | omitted               | ✅                                                                                                                                                                                                                                                                                                          |
 
 ## 2. Centroid-regression variants — 7 variants × 8 sub-fields = 56 fields — §3.2
 
@@ -71,23 +71,23 @@ Variants: `best_fit_a`, `best_fit_b`, `cherry_a`, `cherry_b`, `most_recent`, `no
 Sub-fields: `horiz_high_map`, `horiz_low_map`, `ssa`, `ema_ssa` (admin, MQL5-exported, Float?),
 `crossing` (admin, Int?), `base_fl`, `uoedt`, `loedt` (calculated, Python, Float?).
 
-| Variant | `.mq5` file | Filename prefix | Real header prefix (verified against real `.txt`) | Collector `SOURCES` header prefix | SQLite cols | Gateway JSON | Monolith/RW-GW Prisma | Certification (M15 / M5) |
-|---|---|---|---|---|---|---|---|---|
-| `best_fit_a` | `2EDTCentroidRegressionBestFitNonMostRecentA_v2_29.mq5` | `Centriod_Best_Fit_A` | `Best_Fit_A_*` (no real *post-split* capture exists — see §6.1; `.mq5` source itself confirmed) | `Best_Fit_A` ✅ matches | 8 cols, all nullable | 8 props, nullable | `Float?`×7, `Int?`×1 | **Cannot run** — crashes before comparing any value (§5) |
-| `best_fit_b` | `...BestFitNonMostRecentB_v2_29.mq5` | `Centriod_Best_Fit_B` | `Best_Fit_B_*` (no real capture exists at all — see §6.1) | `Best_Fit_B` ✅ matches | 8 cols | 8 props | same | Deliberately excluded from `golden_certification.py`'s `variants` dict (no captured data); present only in `test_phase3_centroid.py`'s synthetic smoke test |
-| `cherry_a` | `...CherryPickA_v2_29.mq5` | `Cherry-Pick-A` | `Cherry_A_*` (confirmed vs real file) | `Cherry_A` ✅ matches | 8 cols | 8 props | same | **Cannot run** (§5) |
-| `cherry_b` | `...CherryPickB_v2_29.mq5` | `Cherry-Pick-B` | `Cherry_B_*` (confirmed) | `Cherry_B` ✅ matches | 8 cols | 8 props | same | **Cannot run** (§5) |
-| `most_recent` | `...MostRecentLineExtension_v2_29.mq5` | `Most-Recent` | `Most_Recent_*` (confirmed) | `Most_Recent` ✅ matches | 8 cols | 8 props | same | **Cannot run** (§5) |
-| `non_a` | `...NonMostRecentLineExtensionA_v2_29.mq5` | `Non-Recent-A` | `Non_A_*` (confirmed) | `Non_A` ✅ matches | 8 cols | 8 props | same | **Cannot run** (§5) |
-| `non_b` | `...NonMostRecentLineExtensionB_v2_29.mq5` | `Non-Recent-B` | `Non_B_*` (confirmed) | `Non_B` ✅ matches | 8 cols | 8 props | same | **Cannot run** (§5) |
+| Variant       | `.mq5` file                                             | Filename prefix       | Real header prefix (verified against real `.txt`)                                               | Collector `SOURCES` header prefix | SQLite cols          | Gateway JSON      | Monolith/RW-GW Prisma | Certification (M15 / M5)                                                                                                                                    |
+| ------------- | ------------------------------------------------------- | --------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------- | -------------------- | ----------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `best_fit_a`  | `2EDTCentroidRegressionBestFitNonMostRecentA_v2_29.mq5` | `Centriod_Best_Fit_A` | `Best_Fit_A_*` (no real _post-split_ capture exists — see §6.1; `.mq5` source itself confirmed) | `Best_Fit_A` ✅ matches           | 8 cols, all nullable | 8 props, nullable | `Float?`×7, `Int?`×1  | **Cannot run** — crashes before comparing any value (§5)                                                                                                    |
+| `best_fit_b`  | `...BestFitNonMostRecentB_v2_29.mq5`                    | `Centriod_Best_Fit_B` | `Best_Fit_B_*` (no real capture exists at all — see §6.1)                                       | `Best_Fit_B` ✅ matches           | 8 cols               | 8 props           | same                  | Deliberately excluded from `golden_certification.py`'s `variants` dict (no captured data); present only in `test_phase3_centroid.py`'s synthetic smoke test |
+| `cherry_a`    | `...CherryPickA_v2_29.mq5`                              | `Cherry-Pick-A`       | `Cherry_A_*` (confirmed vs real file)                                                           | `Cherry_A` ✅ matches             | 8 cols               | 8 props           | same                  | **Cannot run** (§5)                                                                                                                                         |
+| `cherry_b`    | `...CherryPickB_v2_29.mq5`                              | `Cherry-Pick-B`       | `Cherry_B_*` (confirmed)                                                                        | `Cherry_B` ✅ matches             | 8 cols               | 8 props           | same                  | **Cannot run** (§5)                                                                                                                                         |
+| `most_recent` | `...MostRecentLineExtension_v2_29.mq5`                  | `Most-Recent`         | `Most_Recent_*` (confirmed)                                                                     | `Most_Recent` ✅ matches          | 8 cols               | 8 props           | same                  | **Cannot run** (§5)                                                                                                                                         |
+| `non_a`       | `...NonMostRecentLineExtensionA_v2_29.mq5`              | `Non-Recent-A`        | `Non_A_*` (confirmed)                                                                           | `Non_A` ✅ matches                | 8 cols               | 8 props           | same                  | **Cannot run** (§5)                                                                                                                                         |
+| `non_b`       | `...NonMostRecentLineExtensionB_v2_29.mq5`              | `Non-Recent-B`        | `Non_B_*` (confirmed)                                                                           | `Non_B` ✅ matches                | 8 cols               | 8 props           | same                  | **Cannot run** (§5)                                                                                                                                         |
 
 **Ingestion null-guard coverage (2026-09-08 fix):** `parse_export_file()`'s `PRICE_LEVEL_COLUMNS`
-`<=0.0 → None` guard is built generically from `_centroid_columns(prefix)`, which emits the *same*
+`<=0.0 → None` guard is built generically from `_centroid_columns(prefix)`, which emits the _same_
 generic internal names (`horiz_high_map`/`horiz_low_map`/`ssa`/`ema_ssa`) for every one of the 7
 variants — **confirmed to generalize correctly to all 7 by construction**, no per-variant test
 needed (it isn't hardcoded per-variant to begin with). `crossing` is correctly exempt (`Int`, `0` is
 a valid "no cross" flag). This guard **never reached** `base_fl`/`uoedt`/`loedt` — those are
-Python-*calculated*, never parsed from an export column — see §3/§4 fix.
+Python-_calculated_, never parsed from an export column — see §3/§4 fix.
 
 **A/B isolated-coexistence symmetry (§4 cross-cutting):** `best_fit` and `cherry` both have A/B
 pairs (separate MQL5 object namespaces, separate export buttons); `most_recent` deliberately has no
@@ -96,11 +96,11 @@ Non-A/Non-B/Cherry-A/Cherry-B/Best-Fit-A/Best-Fit-B redundancy set), not a missi
 
 ## 3. Fractal EDT + Best Lines (5 fields) — §3.3
 
-| Field | MQL5 source | SQLite | Gateway JSON | Prisma | Status |
-|---|---|---|---|---|---|
+| Field                                               | MQL5 source                                                                         | SQLite             | Gateway JSON      | Prisma      | Status                                                                                                     |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------ | ----------------- | ----------- | ---------------------------------------------------------------------------------------------------------- |
 | `fractal_best_fl`, `fractal_uoedt`, `fractal_loedt` | `2EDTFractalBestFitv5_v2_29.mq5` (keys-only export; computed by `fractal_lines.py`) | `REAL` nullable ×3 | `number\|null` ×3 | `Float?` ×3 | ✅ all 3 produced/propagated; **no null-guard on the Python-computed value** — fixed this session, see §4. |
-| `best_resistance` | `SingleBestResistanceLinev3_v2_29.mq5` (keys-only export) | `REAL` nullable | `number\|null` | `Float?` | same fix applied |
-| `best_support` | `SingleBestSupportLinev3_v2_29.mq5` (keys-only export) | `REAL` nullable | `number\|null` | `Float?` | same fix applied |
+| `best_resistance`                                   | `SingleBestResistanceLinev3_v2_29.mq5` (keys-only export)                           | `REAL` nullable    | `number\|null`    | `Float?`    | same fix applied                                                                                           |
+| `best_support`                                      | `SingleBestSupportLinev3_v2_29.mq5` (keys-only export)                              | `REAL` nullable    | `number\|null`    | `Float?`    | same fix applied                                                                                           |
 
 ## 4. Z-Score / Body Classification (3 fields) — §3.4
 
@@ -120,7 +120,7 @@ there's no deviation — correctly **not** subject to the price-level null-guard
 → `zigzag_metrics.py`. **Confirmed: every layer uses exactly these snake_case names, no
 abbreviation/casing variant, and no illegal character anywhere in a real persisted/JSON field name.**
 The `%` that appears in Davin's own Excel model concern (`zigzag_Current%Chg`) only ever exists
-inside the raw *MQL5 export header text* (`Current%Chg`, `Current%ChgClass`) — confirmed via the
+inside the raw _MQL5 export header text_ (`Current%Chg`, `Current%ChgClass`) — confirmed via the
 real captured file headers — never as a Python identifier, SQLite column, or JSON-Schema property
 name; `zigzag_metrics.py`'s `ZigZagSegmentMetrics` dataclass fields are all clean identifiers.
 `zigzag_current_point` is protected by the same `PRICE_LEVEL_COLUMNS` parse-time guard (`current_point`
@@ -134,11 +134,11 @@ can't diverge in practice — flagged, not fixed (see §7).
 
 ## 6. Provenance (3 fields) — §3.6
 
-| Field | Set by | SQLite | Gateway JSON (before → after this session) | Prisma (before → after) |
-|---|---|---|---|---|
-| `cycle_id` | `promote_cycle()`, unconditionally, every promoted row (`export_collector_validator_v2.py:475`) | `INTEGER NOT NULL` | `["integer","null"]` → **`integer`, now required** | `Int?` → **`Int`** |
-| `collected_at` | `promote_cycle()`, unconditionally (`= now`) | `INTEGER NOT NULL` | `["integer","null"]` → **`integer`, now required** | `Int?` → **`Int`** |
-| `calculated_at` | `promote_cycle()`, unconditionally (`= now`, same timing as `collected_at`) | `INTEGER` nullable | `["integer","null"]` — unchanged, correctly nullable | `Int?` — unchanged | Minor drift noted, not fixed: the SQL column's own comment says "NULL = calc stage skipped," but `promote_cycle()` actually always stamps it with the same `now` as `collected_at` regardless of whether `calculate_stage()` produced anything for that bar — a comment/behavior mismatch, not a functional bug (flagged, §7). |
+| Field           | Set by                                                                                          | SQLite             | Gateway JSON (before → after this session)           | Prisma (before → after) |
+| --------------- | ----------------------------------------------------------------------------------------------- | ------------------ | ---------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cycle_id`      | `promote_cycle()`, unconditionally, every promoted row (`export_collector_validator_v2.py:475`) | `INTEGER NOT NULL` | `["integer","null"]` → **`integer`, now required**   | `Int?` → **`Int`**      |
+| `collected_at`  | `promote_cycle()`, unconditionally (`= now`)                                                    | `INTEGER NOT NULL` | `["integer","null"]` → **`integer`, now required**   | `Int?` → **`Int`**      |
+| `calculated_at` | `promote_cycle()`, unconditionally (`= now`, same timing as `collected_at`)                     | `INTEGER` nullable | `["integer","null"]` — unchanged, correctly nullable | `Int?` — unchanged      | Minor drift noted, not fixed: the SQL column's own comment says "NULL = calc stage skipped," but `promote_cycle()` actually always stamps it with the same `now` as `collected_at` regardless of whether `calculate_stage()` produced anything for that bar — a comment/behavior mismatch, not a functional bug (flagged, §7). |
 
 Both `cycle_id` and `collected_at` were confirmed, by reading `promote_cycle()` directly, to be
 unconditionally set for every row ever promoted — the SQLite `NOT NULL` constraint was the true
@@ -151,9 +151,9 @@ of rejecting.
 
 ## 7. Cross-cutting checks — §4
 
-- **NULL/placeholder semantics beyond the 2026-09-08 fix:** that fix guards MQL5-*parsed*
+- **NULL/placeholder semantics beyond the 2026-09-08 fix:** that fix guards MQL5-_parsed_
   price-level columns at `parse_export_file()`. It never reached the 26 columns Python itself
-  *computes* in `calculate_stage()` (`best_resistance`, `best_support`, `fractal_best_fl`,
+  _computes_ in `calculate_stage()` (`best_resistance`, `best_support`, `fractal_best_fl`,
   `fractal_uoedt`, `fractal_loedt`, and all 21 `{variant}_base_fl`/`_uoedt`/`_loedt`) — these were
   written unconditionally with no sentinel coercion, even though `PRICE_LEVEL_COLUMNS`'s own
   comment claimed to "catch the derived columns too." **Fixed this session** — see §8.
@@ -217,6 +217,7 @@ of rejecting.
 ---
 
 ## Sources for reference during this audit
+
 - Blueprint: `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md` (design-of-record; verified against live
   code per its own §0's "how to read" note and `CLAUDE.md`'s "live code wins" rule)
 - `CERTIFICATION.md`, `golden_certification_report_M5.txt`/`_M15.txt`
@@ -228,6 +229,7 @@ of rejecting.
 # 5. MAJOR UNRESOLVED FINDING — escalated to Davin, NOT fixed this session
 
 ## `golden_certification.py` cannot run against the current `centroid_regression.py`; production
+
 ## may be using the wrong fractal source for every centroid variant's EDT lines
 
 This is a correctness question about certified trading math, not a naming/type/nullability issue.
@@ -259,17 +261,20 @@ parameter — `calculate()` unconditionally self-detects fractals from raw OHLCV
 `detect_upper_fractals(highs, side) + detect_lower_fractals(lows, side)`.
 
 **3. This directly contradicts `CERTIFICATION.md`'s own documented "Production rule":**
+
 > "the centroid EDT stage must keep using the staged `horiz_high_map`/`horiz_low_map` fractals
 > (self-detected fractals were tested and are worse — they break best_fit)."
 
 **4. Production is wired the same self-detecting way as the broken certification script — read
 directly in `export_collector_validator_v2.py`'s `calculate_stage()`:**
+
 ```python
 highs = [r[2] for r in ohlcv]   # raw OHLCV, from raw_ohlcv — NOT the staged horiz_high_map column
 lows  = [r[3] for r in ohlcv]
 ...
 r = calculate_variant(variant, crossings, closes, highs, lows)   # no fractals override
 ```
+
 This means **production has been computing every centroid variant's EDT lines (UOEDT/LOEDT, and by
 extension the baseline/EDT-dependent figures) via self-detected fractals from raw OHLCV — the exact
 approach `CERTIFICATION.md` says was tested and explicitly rejected** — since this code was first
@@ -278,6 +283,7 @@ written, not as a recent regression.
 **Net effect:** the "CERTIFIED" verdict for all 7 centroid variants' Base_FL/UOEDT/LOEDT figures
 (blueprint §6.3/§6.4: "M15 50/50 PASS," "M5 39/50 PASS," `CERTIFICATION.md`) **is stale,
 unreproducible evidence against the code as it exists in this repo today.** Either:
+
 - (a) certification was originally run against a different, never-committed version of
   `centroid_regression.py` that genuinely supported fractal injection, and a later refactor
   silently dropped that capability without anyone re-running certification against the version
@@ -311,21 +317,21 @@ the `.mq5` **filename** (what `iCustom()` loads) and the `InpExportFileName`
 **export prefix** (what the output file is called). A third — the per-column
 header prefix inside the file — differs again; see §2.
 
-| Source key | `.mq5` file | Export prefix (`InpExportFileName`) | `iCustom` in EA |
-| --- | --- | --- | --- |
-| `best_fit_a` | `2EDTCentroidRegressionBestFitNonMostRecentA_v2_29` | `Centriod_Best_Fit_A` | ✓ |
-| `best_fit_b` | `2EDTCentroidRegressionBestFitNonMostRecentB_v2_29` | `Centriod_Best_Fit_B` | ✓ |
-| `cherry_a` | `2EDTCentroidRegressionCherryPickA_v2_29` | `Cherry-Pick-A` | ✓ |
-| `cherry_b` | `2EDTCentroidRegressionCherryPickB_v2_29` | `Cherry-Pick-B` | ✓ |
-| `most_recent` | `2EDTCentroidRegressionMostRecentLineExtension_v2_29` | `Most-Recent` | ✓ |
-| `non_a` | `2EDTCentroidRegressionNonMostRecentLineExtensionA_v2_29` | `Non-Recent-A` | ✓ |
-| `non_b` | `2EDTCentroidRegressionNonMostRecentLineExtensionB_v2_29` | `Non-Recent-B` | ✓ |
-| `fractal_edt` | `2EDTFractalBestFitv5_v2_29` | `Fractal_EDT` | ✓ |
-| `resistance` | `SingleBestResistanceLinev3_v2_29` | `Resistance_Line` | ✓ |
-| `support` | `SingleBestSupportLinev3_v2_29` | `Support_Line` | ✓ |
-| `zigzag` | `ZigZagExportv43_v2_29` | `ZigZag` (see note) | ✓ |
-| `ohlcv` | `ohlcvexportlightweight_v2_29` | `OHLCV` (via `InpBaseFileName`) | n/a — `indicator_plots 0`, read by `CopyRates` |
-| `zscore` | `zscoreohlccandleexport_v2_29` | `ZScore` (hardcoded) | ✓ |
+| Source key    | `.mq5` file                                               | Export prefix (`InpExportFileName`) | `iCustom` in EA                                |
+| ------------- | --------------------------------------------------------- | ----------------------------------- | ---------------------------------------------- |
+| `best_fit_a`  | `2EDTCentroidRegressionBestFitNonMostRecentA_v2_29`       | `Centriod_Best_Fit_A`               | ✓                                              |
+| `best_fit_b`  | `2EDTCentroidRegressionBestFitNonMostRecentB_v2_29`       | `Centriod_Best_Fit_B`               | ✓                                              |
+| `cherry_a`    | `2EDTCentroidRegressionCherryPickA_v2_29`                 | `Cherry-Pick-A`                     | ✓                                              |
+| `cherry_b`    | `2EDTCentroidRegressionCherryPickB_v2_29`                 | `Cherry-Pick-B`                     | ✓                                              |
+| `most_recent` | `2EDTCentroidRegressionMostRecentLineExtension_v2_29`     | `Most-Recent`                       | ✓                                              |
+| `non_a`       | `2EDTCentroidRegressionNonMostRecentLineExtensionA_v2_29` | `Non-Recent-A`                      | ✓                                              |
+| `non_b`       | `2EDTCentroidRegressionNonMostRecentLineExtensionB_v2_29` | `Non-Recent-B`                      | ✓                                              |
+| `fractal_edt` | `2EDTFractalBestFitv5_v2_29`                              | `Fractal_EDT`                       | ✓                                              |
+| `resistance`  | `SingleBestResistanceLinev3_v2_29`                        | `Resistance_Line`                   | ✓                                              |
+| `support`     | `SingleBestSupportLinev3_v2_29`                           | `Support_Line`                      | ✓                                              |
+| `zigzag`      | `ZigZagExportv43_v2_29`                                   | `ZigZag` (see note)                 | ✓                                              |
+| `ohlcv`       | `ohlcvexportlightweight_v2_29`                            | `OHLCV` (via `InpBaseFileName`)     | n/a — `indicator_plots 0`, read by `CopyRates` |
+| `zscore`      | `zscoreohlccandleexport_v2_29`                            | `ZScore` (hardcoded)                | ✓                                              |
 
 Two harmless naming quirks, verified rather than assumed:
 
@@ -343,7 +349,7 @@ Two harmless naming quirks, verified rather than assumed:
 
 ## 9. Minor call-outs (found, not fixed — low value or needs data this Executor doesn't have)
 
-- **No real captured export exists anywhere for the *current* `best_fit_a`/`best_fit_b` split
+- **No real captured export exists anywhere for the _current_ `best_fit_a`/`best_fit_b` split
   naming.** The only "best fit" ground-truth archive present (`mock-data-from-indicators/
 golden_certification/{m5,m15}_timeseries/Centriod_Best_Fit_XAUUSD_M{5,15}.txt`) is the pre-split
   legacy format (`Best_Fit_*` headers, no `_A`/`_B` suffix). The `.mq5` source code is the only

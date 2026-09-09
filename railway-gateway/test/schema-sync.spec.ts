@@ -78,30 +78,33 @@ describe('MarketDataV6 schema drift (railway-gateway vs. monolith source of trut
 describe.each([
   ['IndicatorStatistic', 'indicator_statistics'],
   ['IndicatorConfig', 'indicator_configs'],
-])('%s schema drift (railway-gateway vs. monolith source of truth)', (model, table) => {
-  const localSchema = fs.readFileSync(LOCAL_SCHEMA_PATH, 'utf-8');
-  const sourceOfTruthSchema = fs.readFileSync(
-    SOURCE_OF_TRUTH_SCHEMA_PATH,
-    'utf-8'
-  );
-
-  it('exists in both schemas', () => {
-    expect(() => extractModelBody(localSchema, model)).not.toThrow();
-    expect(() => extractModelBody(sourceOfTruthSchema, model)).not.toThrow();
-  });
-
-  it('is field-for-field identical to the monolith source of truth', () => {
-    expect(normalizeFields(extractModelBody(localSchema, model))).toEqual(
-      normalizeFields(extractModelBody(sourceOfTruthSchema, model))
+])(
+  '%s schema drift (railway-gateway vs. monolith source of truth)',
+  (model, table) => {
+    const localSchema = fs.readFileSync(LOCAL_SCHEMA_PATH, 'utf-8');
+    const sourceOfTruthSchema = fs.readFileSync(
+      SOURCE_OF_TRUTH_SCHEMA_PATH,
+      'utf-8'
     );
-  });
 
-  it('maps to the same physical table', () => {
-    const mapping = new RegExp(`@@map\\("${table}"\\)`);
-    expect(localSchema).toMatch(mapping);
-    expect(sourceOfTruthSchema).toMatch(mapping);
-  });
-});
+    it('exists in both schemas', () => {
+      expect(() => extractModelBody(localSchema, model)).not.toThrow();
+      expect(() => extractModelBody(sourceOfTruthSchema, model)).not.toThrow();
+    });
+
+    it('is field-for-field identical to the monolith source of truth', () => {
+      expect(normalizeFields(extractModelBody(localSchema, model))).toEqual(
+        normalizeFields(extractModelBody(sourceOfTruthSchema, model))
+      );
+    });
+
+    it('maps to the same physical table', () => {
+      const mapping = new RegExp(`@@map\\("${table}"\\)`);
+      expect(localSchema).toMatch(mapping);
+      expect(sourceOfTruthSchema).toMatch(mapping);
+    });
+  }
+);
 
 /**
  * The append-only guarantee is enforced by the KEY, not by a trigger: a row is

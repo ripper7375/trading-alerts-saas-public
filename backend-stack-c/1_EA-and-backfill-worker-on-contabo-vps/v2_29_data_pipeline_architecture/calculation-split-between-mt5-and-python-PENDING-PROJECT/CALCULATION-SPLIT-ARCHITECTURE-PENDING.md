@@ -15,20 +15,20 @@ window, a touch count, or a tolerance means editing the `.mq5`, recompiling in M
 redeploying to the terminal. That is fine for a fixed product, and useless for anything
 user-configurable.
 
-The split moved the *derived* layer out of MQL5 and into Python:
+The split moved the _derived_ layer out of MQL5 and into Python:
 
-| Layer | Owner | Contents |
-| --- | --- | --- |
-| **Admin layer** (stable, heavy, not user-tunable) | MQL5 | SSA trend/signal + crossings, fractal maps (`horiz_high_map`/`horiz_low_map`), OHLCV, ZigZag pivot points, the raw z-score candle buffers |
-| **Derived layer** (cheap, configurable) | Python | Centroid baselines + upper/lower EDTs per variant, fractal flip line + EDTs, single-best resistance/support lines, ZigZag segment metrics, the z-score body direction/size/classification set |
+| Layer                                             | Owner  | Contents                                                                                                                                                                                      |
+| ------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Admin layer** (stable, heavy, not user-tunable) | MQL5   | SSA trend/signal + crossings, fractal maps (`horiz_high_map`/`horiz_low_map`), OHLCV, ZigZag pivot points, the raw z-score candle buffers                                                     |
+| **Derived layer** (cheap, configurable)           | Python | Centroid baselines + upper/lower EDTs per variant, fractal flip line + EDTs, single-best resistance/support lines, ZigZag segment metrics, the z-score body direction/size/classification set |
 
 Two payoffs justified it:
 
 1. **User-parameterizable indicators.** The same modules serve the fixed-preset production pipeline
-   *and* an on-demand service answering "what would this line look like with `min_touches=4` and a
+   _and_ an on-demand service answering "what would this line look like with `min_touches=4` and a
    different window?" — without recompiling anything.
 2. **Collapsing redundancy.** The seven centroid indicators are not seven algorithms; they are seven
-   *parameter presets* of one algorithm. `centroid_regression.VARIANT_PRESETS` expresses that
+   _parameter presets_ of one algorithm. `centroid_regression.VARIANT_PRESETS` expresses that
    directly — `best_fit_a`/`best_fit_b` differ only in `exclude_recent_centroids` (0 vs 3), exactly
    as `non_a`/`non_b` do. One engine, seven configs, instead of seven near-duplicate 60 KB `.mq5`
    files.
@@ -37,14 +37,14 @@ Two payoffs justified it:
 
 ## 2. What was actually built (all present in this folder)
 
-| File | Role |
-| --- | --- |
-| `centroid_regression.py` | All seven centroid variants as one parameterized engine (`CentroidRegressionParams`, `VARIANT_PRESETS`). Hand-ported DBSCAN → centroid build → selection → WLS subset search → baseline → symmetric EDTs → statistics. |
-| `fractal_lines.py` | Fractal detection, single-best resistance/support line fitting, flip line + EDTs. |
-| `zigzag_metrics.py` | ZigZag segment metrics (price change, % change + class, bars + class, price/bar + class, slope, HH/HL/LH/LL/EQH/EQL category). |
-| `zscore_candle.py` | Rolling sample z-score, signed body classification, `body_size = \|z\|`. |
-| `mql5-to-python-transliteration/` | The certification harness and its evidence — `golden_certification.py`, `CERTIFICATION.md`, `golden_certification_report_M{5,15}.txt`, and the three unit-test phases (94 checks). |
-| `Python stacks calculation.txt` | The original mandate: the authoritative list of values Python was to compute instead of MQL5. |
+| File                              | Role                                                                                                                                                                                                                   |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `centroid_regression.py`          | All seven centroid variants as one parameterized engine (`CentroidRegressionParams`, `VARIANT_PRESETS`). Hand-ported DBSCAN → centroid build → selection → WLS subset search → baseline → symmetric EDTs → statistics. |
+| `fractal_lines.py`                | Fractal detection, single-best resistance/support line fitting, flip line + EDTs.                                                                                                                                      |
+| `zigzag_metrics.py`               | ZigZag segment metrics (price change, % change + class, bars + class, price/bar + class, slope, HH/HL/LH/LL/EQH/EQL category).                                                                                         |
+| `zscore_candle.py`                | Rolling sample z-score, signed body classification, `body_size = \|z\|`.                                                                                                                                               |
+| `mql5-to-python-transliteration/` | The certification harness and its evidence — `golden_certification.py`, `CERTIFICATION.md`, `golden_certification_report_M{5,15}.txt`, and the three unit-test phases (94 checks).                                     |
+| `Python stacks calculation.txt`   | The original mandate: the authoritative list of values Python was to compute instead of MQL5.                                                                                                                          |
 
 **Porting discipline used throughout (preserve it if reviving):** these are literal
 transliterations, not reimplementations. DBSCAN and K-means are hand-rolled rather than taken from
@@ -60,12 +60,12 @@ From `test_phase1_golden.py` / `test_phase2_lines.py` / `test_phase3_centroid.py
 
 From `golden_certification.py` against the real 3000-bar MQL5 export archive:
 
-| Section | M15 | M5 |
-| --- | --- | --- |
-| Z-score candle set | PASS | PASS |
-| ZigZag metrics (all 9) | PASS | PASS |
-| Fractal flip line + EDTs, resistance, support | PASS | PASS |
-| **Centroid variants** | **cannot run** | **cannot run** |
+| Section                                       | M15            | M5             |
+| --------------------------------------------- | -------------- | -------------- |
+| Z-score candle set                            | PASS           | PASS           |
+| ZigZag metrics (all 9)                        | PASS           | PASS           |
+| Fractal flip line + EDTs, resistance, support | PASS           | PASS           |
+| **Centroid variants**                         | **cannot run** | **cannot run** |
 
 The non-centroid sections are genuinely certified — reproduced first-hand on 2026-09-09, 20/20
 checks per timeframe, max deviation ~5e-6.
@@ -89,7 +89,7 @@ Consequence: the "M15 50/50 / M5 39/50" figures in `CERTIFICATION.md` and the tw
 centroid variants specifically. The z-score / zigzag / lines figures are fine.
 
 **Bug 2 — the production rule in `CERTIFICATION.md` was never actually implemented.**
-That document states the centroid EDT stage must use MQL5's *staged* `horiz_high_map`/`horiz_low_map`
+That document states the centroid EDT stage must use MQL5's _staged_ `horiz_high_map`/`horiz_low_map`
 fractals, and that self-detected fractals "were tested and are worse — they break best_fit". But
 `centroid_regression.calculate()` unconditionally self-detects fractals from raw OHLCV highs/lows
 (`detect_upper_fractals(highs, side) + detect_lower_fractals(lows, side)`), and the collector that
@@ -143,7 +143,7 @@ The code is intact and the pipeline is deliberately structured so this slots bac
    `calculate_stage()` between VALIDATE and PROMOTE; it now goes straight from VALIDATE to PROMOTE.
    Reviving means reinstating that stage — either instead of the parsed MQL5 columns, or (better)
    alongside them, writing to distinct column names so the two can be compared live.
-4. **Decide the coexistence model.** The most useful revival is probably *not* "Python replaces
+4. **Decide the coexistence model.** The most useful revival is probably _not_ "Python replaces
    MQL5" but "MQL5 gives the admin-fixed baseline, Python serves user-parameterized variants
    on demand" — the pipeline stores the MQL5 values, and the modules answer ad-hoc queries. That
    gets the Decision Layer unblocked without putting unverified math back on the production path.
