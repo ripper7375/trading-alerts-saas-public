@@ -333,12 +333,10 @@ export class MarketDataDto {
   zigzag_category?: string | null;
 
   @IsInt()
-  @IsOptional()
-  cycle_id?: number | null;
+  cycle_id!: number;
 
   @IsInt()
-  @IsOptional()
-  collected_at?: number | null;
+  collected_at!: number;
 
   @IsInt()
   @IsOptional()

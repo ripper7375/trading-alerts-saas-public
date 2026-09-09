@@ -131,8 +131,8 @@ model MarketDataV6 {
   zigzag_category            String? // HH | HL | LH | LL | EQH | EQL
 
   // Provenance
-  cycle_id      Int?
-  collected_at  Int?
+  cycle_id      Int // always set by promote_cycle() for every promoted row; NOT NULL in sqlite_schema_v6_xauusd.sql
+  collected_at  Int // always set by promote_cycle() for every promoted row; NOT NULL in sqlite_schema_v6_xauusd.sql
   calculated_at Int?
 
   createdAt DateTime @default(now())
@@ -141,4 +141,112 @@ model MarketDataV6 {
   @@unique([symbol, timeframe, timestamp])
   @@index([symbol, timeframe, timestamp])
   @@map("market_data_v6")
+}
+
+/// APPEND-ONLY. One row per (source, timeframe, collection cycle) — a snapshot of
+/// what an indicator's fit looked like at that moment, parsed from the
+/// _Statistic.txt companion the MQL5 indicators already write.
+///
+/// This is the deliberate opposite of MarketDataV6. That table is keyed by WHICH
+/// BAR, so re-pushing a bar overwrites it — correct for live charting, but it
+/// means a historical row holds the latest refit rather than what the indicator
+/// actually said at the time. This table is keyed by WHEN IT WAS OBSERVED
+/// (captured_at), so a new row never collides with an old one and history is
+/// never rewritten. That is what makes it usable for drift detection and
+/// walk-forward scoring.
+///
+/// The ONLY permitted write to an existing row is an idempotent re-push of
+/// byte-identical content (push retries are by design). A correction is a NEW
+/// row with a later captured_at — never an update.
+///
+/// Nothing here is derivable from market_data_v6: R2, MSE, variance ratio,
+/// skewness, kurtosis, containment and window size exist nowhere else in the
+/// pipeline. See STATISTIC-CAPTURE-SCOPE.md in the v2_29 pipeline folder.
+model IndicatorStatistic {
+  id String @id @default(cuid())
+
+  // Identity + when observed
+  terminal_id String
+  symbol      String
+  timeframe   String
+  source      String // best_fit_a | best_fit_b | cherry_a | cherry_b | most_recent | non_a | non_b | fractal_edt | resistance | support
+  captured_at Int // unix — the collector's 5-minute cycle slot; the append-only half of the key
+  live_bar_ts Int // newest bar in that export; joins to MarketDataV6.timestamp
+  cycle_id    Int
+
+  // Resolved line. solution_found/line_origin_ts/touches come from the 3 line
+  // indicators only; the centroids leave them null.
+  solution_found   Boolean?
+  raw_slope        Float?
+  anchored_y_int   Float?
+  regression_angle Float?
+  line_origin_ts   Int?
+  touches          Int?
+
+  // Fitting window
+  window_start_ts Int?
+  window_end_ts   Int?
+  window_bars     Int? // centroids: Observation Window (Box B Bars)
+  math_lookback   Int? // centroids: Math Search Window (Bars)
+  crossings_n     Int? // centroids: Total Crossings (n)
+
+  // [MODEL A; CROSSINGS] — centroids only (the line indicators have no crossings)
+  model_a_n         Int?
+  model_a_r2        Float?
+  model_a_mse       Float?
+  model_a_var_ratio Float?
+  model_a_skew      Float?
+  model_a_kurt      Float?
+
+  // [MODEL B; CLOSE PRICE] — all 10 sources. These lines are fitted to centroids
+  // or fractal touches, NOT to closes, so a low or negative r2 is structurally
+  // expected here and is not by itself a fault.
+  model_b_n         Int?
+  model_b_r2        Float?
+  model_b_mse       Float?
+  model_b_var_ratio Float?
+  model_b_skew      Float?
+  model_b_kurt      Float?
+
+  // [EDT CHANNEL] — the 7 centroids + fractal_edt. resistance/support are single
+  // lines with no channel, so they leave these null.
+  uoedt_offset      Float?
+  loedt_offset      Float?
+  containment_n     Int?
+  containment_count Int?
+  containment_rate  Float? // percent of the fitted window that closed inside the channel
+
+  // Which configuration produced this fit. Deduplicated because the parameters
+  // are compiled into the .mq5 and change only on redeploy — storing them inline
+  // would repeat an identical blob on every row. A NEW hash appearing is itself
+  // the drift signal (the indicator was reconfigured).
+  config_hash String
+  config      IndicatorConfig @relation(fields: [config_hash], references: [config_hash])
+
+  createdAt DateTime @default(now())
+
+  // The append-only key. Postgres backs this with a btree index on exactly
+  // these columns, so it also serves "this indicator, this timeframe, over
+  // time" reads — no separate @@index on the same list.
+  @@unique([symbol, timeframe, source, captured_at])
+  @@index([source, captured_at])
+  @@map("indicator_statistics")
+}
+
+/// The indicator input parameters behind an IndicatorStatistic, stored once per
+/// distinct configuration rather than once per row.
+///
+/// The gateway processor MUST upsert this row BEFORE the statistic that
+/// references it — IndicatorStatistic.config_hash is a real foreign key.
+model IndicatorConfig {
+  config_hash String @id // sha256 of the normalised parameter block
+  source      String
+  params      Json // the parameter block verbatim, as parsed key/value pairs
+  first_seen  Int // unix — when this configuration was first observed
+
+  createdAt  DateTime             @default(now())
+  statistics IndicatorStatistic[]
+
+  @@index([source])
+  @@map("indicator_configs")
 }

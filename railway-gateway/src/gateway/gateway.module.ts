@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { MarketDataController } from './market-data.controller';
+import { IndicatorStatisticsController } from './indicator-statistics.controller';
 import { ValidationService } from './validation.service';
 
 @Module({
@@ -14,8 +15,20 @@ import { ValidationService } from './validation.service';
         removeOnFail: 500,
       },
     }),
+    // Separate queue so a statistics backlog or failure can never delay or
+    // fail market-data ingestion. Same retry policy; statistics are lower
+    // volume (~160 rows/hour vs. thousands), so the same retention is ample.
+    BullModule.registerQueue({
+      name: 'indicator-statistics-sync',
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: 100,
+        removeOnFail: 500,
+      },
+    }),
   ],
-  controllers: [MarketDataController],
+  controllers: [MarketDataController, IndicatorStatisticsController],
   providers: [ValidationService],
 })
 export class GatewayModule {}

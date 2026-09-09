@@ -74,6 +74,12 @@ describe('MarketDataController (e2e)', () => {
     })
       .overrideProvider(getQueueToken('market-data-sync'))
       .useValue(queueMock)
+      // The statistics queue is unrelated to these specs, but AppModule now
+      // registers it, so it must be mocked too — otherwise Bull opens a real
+      // Redis connection during app.init() and the suite fails at teardown
+      // with an AggregateError even though every test passed.
+      .overrideProvider(getQueueToken('indicator-statistics-sync'))
+      .useValue(queueMock)
       .overrideProvider(PrismaService)
       .useValue(prismaMock)
       .compile();

@@ -69,3 +69,61 @@ describe('MarketDataV6 schema drift (railway-gateway vs. monolith source of trut
     expect(sourceOfTruthSchema).toMatch(/@@map\("market_data_v6"\)/);
   });
 });
+
+/**
+ * The same drift guard for the append-only statistics models. Without this,
+ * only MarketDataV6 was covered and the two other shared models could diverge
+ * silently — the exact failure mode this suite exists to prevent.
+ */
+describe.each([
+  ['IndicatorStatistic', 'indicator_statistics'],
+  ['IndicatorConfig', 'indicator_configs'],
+])('%s schema drift (railway-gateway vs. monolith source of truth)', (model, table) => {
+  const localSchema = fs.readFileSync(LOCAL_SCHEMA_PATH, 'utf-8');
+  const sourceOfTruthSchema = fs.readFileSync(
+    SOURCE_OF_TRUTH_SCHEMA_PATH,
+    'utf-8'
+  );
+
+  it('exists in both schemas', () => {
+    expect(() => extractModelBody(localSchema, model)).not.toThrow();
+    expect(() => extractModelBody(sourceOfTruthSchema, model)).not.toThrow();
+  });
+
+  it('is field-for-field identical to the monolith source of truth', () => {
+    expect(normalizeFields(extractModelBody(localSchema, model))).toEqual(
+      normalizeFields(extractModelBody(sourceOfTruthSchema, model))
+    );
+  });
+
+  it('maps to the same physical table', () => {
+    const mapping = new RegExp(`@@map\\("${table}"\\)`);
+    expect(localSchema).toMatch(mapping);
+    expect(sourceOfTruthSchema).toMatch(mapping);
+  });
+});
+
+/**
+ * The append-only guarantee is enforced by the KEY, not by a trigger: a row is
+ * identified by which fit AND when it was observed, so a new observation can
+ * never collide with an old one. If that unique key is ever narrowed, history
+ * silently starts being overwritten and this whole dataset stops being usable
+ * for walk-forward scoring — which is the only reason it exists.
+ */
+describe('IndicatorStatistic append-only invariant', () => {
+  const sourceOfTruthSchema = fs.readFileSync(
+    SOURCE_OF_TRUTH_SCHEMA_PATH,
+    'utf-8'
+  );
+  const body = extractModelBody(sourceOfTruthSchema, 'IndicatorStatistic');
+
+  it('is keyed on (symbol, timeframe, source, captured_at) — including captured_at', () => {
+    expect(normalizeFields(body)).toContain(
+      '@@unique([symbol, timeframe, source, captured_at])'
+    );
+  });
+
+  it('has no updatedAt field (rows are never modified after insert)', () => {
+    expect(body).not.toMatch(/@updatedAt/);
+  });
+});

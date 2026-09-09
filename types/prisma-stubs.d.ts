@@ -946,11 +946,11 @@ declare module '@prisma/client' {
     zigzag_price_per_bar_class: number | null;
     zigzag_slope: number | null;
     zigzag_category: string | null;
-    cycle_id: number | null;
-    collected_at: number | null;
+    cycle_id: number;
+    collected_at: number;
     calculated_at: number | null;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: Date | string;
+    updatedAt: Date | string;
   }
 
   // ============================================================

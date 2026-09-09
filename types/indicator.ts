@@ -152,8 +152,8 @@ export interface MarketDataV6 {
   zigzag_category: string | null; // HH | HL | LH | LL | EQH | EQL
 
   // Provenance
-  cycle_id: number | null;
-  collected_at: number | null;
+  cycle_id: number;
+  collected_at: number;
   calculated_at: number | null;
 
   createdAt: Date | string;

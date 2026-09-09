@@ -1,0 +1,38 @@
+-- ============================================================
+-- Migration: 20260909000000_market_data_v6_provenance_not_null
+--
+-- Field-consistency audit (2026-09-09 ad-hoc session, see CLAUDE.md and
+-- backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/
+-- v2_29_data_pipeline_architecture/FIELD-CONSISTENCY-AUDIT-v2_29.md) found
+-- that `cycle_id` and `collected_at` are declared NOT NULL in the source of
+-- truth (sqlite_schema_v6_xauusd.sql's `market_data` table) and are always
+-- populated unconditionally by the collector's `promote_cycle()` for every
+-- promoted row — but the downstream contracts (gateway_contract_market_data
+-- .schema.json, this Prisma model, and railway-gateway's mirror) all
+-- declared them nullable, which could silently mask a future "missed
+-- wiring" regression instead of rejecting it. gateway_contract_market_data
+-- .schema.json, both Prisma schemas, and the generated railway-gateway DTO
+-- have already been tightened to match this NOT NULL truth in the same
+-- session.
+--
+-- ============================================================
+-- ⚠️  CAUTION — unlike the 2026-09-03 best_fit_a/best_fit_b RENAME
+-- migration this one's header was modeled on, a SET NOT NULL is NOT
+-- unconditionally lossless: if any row in the live market_data_v6 table
+-- somehow has a NULL cycle_id or collected_at (e.g. from a legacy
+-- ingestion path predating promote_cycle()'s current form, or manual data
+-- correction), this ALTER will fail outright and must NOT be forced through
+-- by nulling/backfilling data without Davin's explicit review of WHY those
+-- rows are null.
+--
+-- Before applying, run this check against the real database and confirm it
+-- returns 0:
+--   SELECT COUNT(*) FROM market_data_v6 WHERE cycle_id IS NULL OR collected_at IS NULL;
+--
+-- This migration has been authored, NOT applied, per this repo's standing
+-- rule that the Executor never applies a schema migration to a live
+-- database — left for Davin's own review/apply step.
+-- ============================================================
+
+ALTER TABLE "market_data_v6" ALTER COLUMN "cycle_id" SET NOT NULL;
+ALTER TABLE "market_data_v6" ALTER COLUMN "collected_at" SET NOT NULL;
