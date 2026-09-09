@@ -1,9 +1,58 @@
 # DavinTrade — Decision Layer Blueprint
 
+> ## ⛔ BLOCKED (2026-09-09) — depends on the parked Python calc stack
+>
+> The pipeline was simplified so that **MQL5 is the single source of every
+> `market_data` value**; the Python calc stack this blueprint is built on was
+> parked in
+> `../v2_29_data_pipeline_architecture/calculation-split-between-mt5-and-python-PENDING-PROJECT/`.
+>
+> That removes the three things this document's core depends on:
+>
+> 1. **Arbitrary-parameter recomputation.** §2.2's `param_search` and
+>    `fitness_scorer`, §2.3's walk-forward flow, §2.4's out-of-sample controls
+>    and §3.1's drift re-scoring all need to re-run indicator math with
+>    parameters other than the ones compiled into the `.mq5`. MQL5 exports one
+>    fixed parameterization; it cannot answer "what if `min_touches=4`?".
+> 2. **The fitness substrate.** §0 and §2.1 score fitness from R², MSE,
+>    variance-ratio, skewness, kurtosis, touch counts and EDT containment.
+>    Those live only in each indicator's `_Statistic.txt` companion — one
+>    resolved line per export, never per bar — and are **not** in `market_data`.
+> 3. **§1's "foundation already in place" table**, three rows of which are the
+>    calc stack itself.
+>
+> §8's recommended build order starts with `fitness_scorer`, which "reuses the
+> calc stack" — so this is a hard block on step 1, not a detail.
+>
+> **To unblock:** revive the calc stack (see that folder's
+> `CALCULATION-SPLIT-ARCHITECTURE-PENDING.md`, including two open bugs to fix
+> first), or redesign this layer around admin-fixed values only, accepting that
+> dynamic parameter selection is out of scope. Everything below is unchanged
+> and still valid as a design — it simply cannot be built yet.
+>
+> ### A second, independent blocker — do not miss this one
+>
+> Even with the calc stack revived, **§2.3's walk-forward flow and §2.4's
+> out-of-sample controls cannot read `market_data_v6` history and treat it as
+> honest.** Stored historical values are not point-in-time: the centroid/SSA
+> fitting window re-anchors to the live bar on every pass, so a bar's row is
+> refitted for ~3000 bars (~2 weeks of M5) before it freezes — meaning the
+> stored value for bar T embeds price action from up to two weeks *after* T.
+> Scoring against it is look-ahead-biased and will flatter results.
+>
+> ~56 of the 83 data fields are affected; OHLCV and the `body_*` z-score triple
+> are genuinely causal and safe to use. Full analysis, the experiment to size the
+> drift, and the four options (append-only snapshots, bar-age column, offline
+> recomputation, or documented acceptance) are in
+> `../v2_29_data_pipeline_architecture/HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md`.
+> Note that option 3 there — recomputing history properly per window — is
+> itself only possible with the calc stack revived, so the two blockers are
+> related: solving this one well probably requires solving the first one.
+
 ## Indicator Selection · Parameterization · Drift Alerting · Analysis Methodology · Trading Advice
 
 **Status:** Forward design / north-star for the stacks to be built **on top of**
-the certified v2.29/v6 data pipeline. Not yet implemented.
+the v2.29/v6 data pipeline. Not yet implemented, and now BLOCKED — see above.
 **Last Updated:** 2026-06-13
 **Audience:** Stack-development team. This is the planning bible for the
 "decision layer" — everything above the data pipeline.
