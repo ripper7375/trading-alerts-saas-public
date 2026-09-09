@@ -1,0 +1,24 @@
+# Build-time dependency handling for Railway/Nixpacks.
+#
+# This service sets NODE_ENV=production (railway.toml + a Railway service
+# variable), and npm honours that by omitting devDependencies on install. But
+# the BUILD needs them: `nest build` runs the TypeScript compiler, which needs
+# @types/express, @types/compression and friends to type-check. Without this
+# file the build fails with TS7016 "Could not find a declaration file for
+# module 'express'" -- and, before @nestjs/cli was moved to dependencies, with
+# "sh: 1: nest: not found" (exit 127).
+#
+# Nixpacks builds and runs from the same image, so devDependencies end up in
+# the runtime image too. That costs image size and nothing else; the process
+# only ever executes dist/main.
+#
+# Mirrors operation-service/nixpacks.toml, which has been deploying this way
+# successfully with the identical NODE_ENV=production setup.
+[variables]
+NPM_CONFIG_PRODUCTION = "false"
+
+[phases.install]
+cmds = ["npm install --include=dev"]
+
+[phases.build]
+cmds = ["npm run build"]
