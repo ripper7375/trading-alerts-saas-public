@@ -740,11 +740,21 @@ fully cleared.
    The earlier clean apply proved nothing about production, only about
    `turntable`; production carries the real accumulated history:
    `SELECT COUNT(*) FROM market_data_v6 WHERE cycle_id IS NULL OR collected_at IS NULL;`
-   **How:** `postgres.railway.internal` does not resolve outside Railway, so use
-   the `Postgres` service's `DATABASE_PUBLIC_URL` (`maglev...:58290`) in a
-   gitignored `.env.production.local` with a throwaway Prisma config — the repo's
-   `prisma.config.ts` loads `.env.local` with `override: true` and will otherwise
-   silently substitute the wrong database back.
+   **How — use the scaffold, don't hand-roll it:** `prisma.production.config.ts`
+   at the repo root exists for exactly this. It loads **only**
+   `.env.production.local` (never `.env`/`.env.local`), refuses to run if
+   `DIRECT_URL` is unset, refuses outright if pointed at a host recorded as
+   non-production, and echoes the target host before doing anything:
+
+   ```bash
+   cp .env.production.local.example .env.production.local   # paste the real URL
+   npx prisma migrate status --config prisma.production.config.ts   # dry run
+   npx prisma migrate deploy --config prisma.production.config.ts
+   ```
+
+   Use the `Postgres` service's `DATABASE_PUBLIC_URL` — `postgres.railway.internal`
+   does not resolve outside Railway. Delete `.env.production.local` afterwards; it
+   holds a live credential. Note migrations read `DIRECT_URL`, not `DATABASE_URL`.
    ⚠ **Root cause, and why this recurs:** `.env.local` points at a
    non-production database, so `migrate deploy` succeeds and looks entirely
    convincing while touching nothing production reads. Three sessions have now

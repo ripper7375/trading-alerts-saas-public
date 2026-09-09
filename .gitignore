@@ -183,4 +183,8 @@ staging-credentials.txt
 .env.scratch
 .tmp-*
 .env*
+# Credential-free templates. Must stay AFTER the .env* catch-all above, or the
+# negation has no effect. Never put a real value in a file matched here.
+!.env.example
+!.env.production.local.example
 scratch/

@@ -2141,11 +2141,19 @@ railway`** — the private address of the `trading-alerts` `Postgres` service. *
     only**. Production holds the real accumulated history, so the pre-flight is live again and must
     be run against production before applying:
     `SELECT COUNT(*) FROM market_data_v6 WHERE cycle_id IS NULL OR collected_at IS NULL;`
-    **How to apply:** `postgres.railway.internal` does not resolve outside Railway, so use the
-    `Postgres` service's `DATABASE_PUBLIC_URL` (`maglev.proxy.rlwy.net:58290`) in a gitignored
-    `.env.production.local` with a throwaway Prisma config — the repo's own `prisma.config.ts` loads
-    `.env.local` with `override: true` and will otherwise silently substitute the wrong database
-    back. This is the same shape that worked on 2026-09-01.
+    **How to apply — scaffold now committed, 2026-09-09:** `prisma.production.config.ts` at the
+    repo root, with `.env.production.local.example` as its template. It loads **only**
+    `.env.production.local` (never `.env`/`.env.local`), fails if that file is missing, fails if
+    `DIRECT_URL` is unset (migrations read `DIRECT_URL`, not `DATABASE_URL` — see
+    `prisma.config.ts`), **refuses outright if pointed at a host recorded as non-production**, and
+    echoes the target host before acting. All four behaviours were tested with throwaway values,
+    not merely written. It omits a `seed` entry deliberately, so `prisma db seed` cannot reach
+    production through it. Run `migrate status --config prisma.production.config.ts` as a dry run
+    first, then `migrate deploy`. Use the `Postgres` service's `DATABASE_PUBLIC_URL`
+    (`maglev.proxy.rlwy.net:58290`) — `postgres.railway.internal` does not resolve outside Railway.
+    Delete `.env.production.local` afterwards; it holds a live credential. Supersedes the throwaway
+    config the 2026-09-01 session wrote and deleted — having no committed path is part of why this
+    keeps recurring.
     **The real root cause, and why this keeps recurring:** `.env.local` on this machine points at a
     non-production database. Three sessions (2026-07-18, 2026-09-01, 2026-09-09) have now been misled
     by it. 2026-09-01 escaped only because Davin happened to paste the true production URL in by

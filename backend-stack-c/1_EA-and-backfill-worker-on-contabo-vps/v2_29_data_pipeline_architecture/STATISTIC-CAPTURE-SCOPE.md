@@ -407,10 +407,19 @@ Two other migrations rode along on that same run and are likewise absent from pr
 `turntable` proved nothing about production, which holds the real accumulated history:
 `SELECT COUNT(*) FROM market_data_v6 WHERE cycle_id IS NULL OR collected_at IS NULL;`
 
-**How to apply:** `postgres.railway.internal` does not resolve outside Railway, so use the
-`Postgres` service's `DATABASE_PUBLIC_URL` in a gitignored `.env.production.local` with a throwaway
-Prisma config — the repo's `prisma.config.ts` loads `.env.local` with `override: true` and will
-otherwise silently substitute the wrong database back.
+**How to apply:** use `prisma.production.config.ts` at the repo root — it loads only
+`.env.production.local`, refuses to run against a host recorded as non-production, and prints the
+target database before acting:
+
+```bash
+cp .env.production.local.example .env.production.local   # paste the real URL
+npx prisma migrate status --config prisma.production.config.ts   # dry run first
+npx prisma migrate deploy --config prisma.production.config.ts
+```
+
+Use the `Postgres` service's `DATABASE_PUBLIC_URL`; `postgres.railway.internal` does not resolve
+outside Railway. Migrations read `DIRECT_URL`, not `DATABASE_URL`. Delete
+`.env.production.local` when done.
 
 **⚠ Root cause worth fixing properly:** `.env.local` points at a non-production database, so
 `migrate deploy` succeeds and looks entirely convincing while touching nothing production reads.
