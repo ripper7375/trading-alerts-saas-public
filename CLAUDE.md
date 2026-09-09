@@ -1292,17 +1292,15 @@ P2022 — The column User.profile does not exist in the current database`, throw
 > earlier and separate incident. Confirmed directly against a database where the feature is known
 > live and working (read-only introspection) to get the exact column/index shape before writing
 > anything.
-> **⚠ CORRECTION (2026-09-09): the "third finding" below is half wrong, and its wrong half has
-> since misled two further sessions.** The Railway project named "postgre for staging" IS the one
-> this codebase uses — the name is a historical misnomer, confirmed by Davin live on 2026-09-09
-> ("'Postgre for staging' is not used. This codebase always uses 'trading-alerts' project" — i.e.
-> the database at `turntable.proxy.rlwy.net:55082` is the real one, whatever its project is
-> called). The `trading-alerts` project's own Postgres (`maglev.proxy.rlwy.net`) was queried
-> directly on 2026-07-18 and holds **no `market_data` table at all** (`DECISION-LOG.md` F3, case
-> (b)). And `postgres.railway.internal` is not a separate production instance — it is Railway's
-> private-network address, unresolvable from outside Railway by design. The correct part of the
-> finding stands: `vercel env pull` really does return `[SENSITIVE]` placeholders. See the
-> `Waiting on` section's RESOLVED entry for the full reconciliation.
+> **⚠ NOTE (2026-09-09): the "third finding" below is CONFIRMED CORRECT — twice re-litigated,
+> twice re-confirmed.** A same-day attempt to overturn it (claiming the Railway project name was a
+> misnomer and `turntable` was really production) was **wrong and has been retracted**; see the
+> `Waiting on` section. Verified from the Railway dashboard: production's `railway-gateway` uses
+> `postgres.railway.internal` — the `trading-alerts` `Postgres` service, public proxy
+> `maglev.proxy.rlwy.net:58290` — while `.env.local` points at `turntable.proxy.rlwy.net:55082`, a
+> different database. One clarification to the wording below: `postgres.railway.internal` is not a
+> distinct instance from `maglev`; it is the same service's private address, which is simply
+> unresolvable from outside Railway.
 >
 > **A third finding, load-bearing for the whole session, not merely academic:** the "railway"
 > Postgres this Executor could reach via the repo's own `.env.local` turned out to be a **separate
@@ -2121,36 +2119,46 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   columns; `market_data` untouched, no data at risk). **Then confirm a real green cycle** — the
   refactor is proven against real captured exports offline, but has never run against the live
   terminal.
-- **RESOLVED 2026-09-09 — the 2026-09-09 migrations landed on the right database, and the
-  recurring "is this staging?" confusion is now explained.** Davin ran `npx prisma migrate deploy`;
-  it applied three pending migrations cleanly — `20260904120000_default_theme_light`,
-  `20260909000000_market_data_v6_provenance_not_null`, and
-  `20260909120000_add_indicator_statistics`. `prisma migrate status` afterwards reports **19
-  migrations, "Database schema is up to date"**.
-  (a) **The provenance migration carried a pre-flight caution** (it tightens
-  `cycle_id`/`collected_at` to `NOT NULL` on live data) and went in as a side effect of
-  `migrate deploy` applying every pending migration rather than a chosen one — no harm done, since
-  `SET NOT NULL` fails loudly on any violating row, so the clean apply _is_ the proof there were
-  none. Its own `Waiting on` entry below is therefore resolved.
-  (b) **⚠ THE RAILWAY PROJECT NAME IS A MISNOMER — do not re-raise this.** This has now burned
-  three separate sessions (2026-07-18, 2026-09-01, 2026-09-09), each independently "discovering"
-  that `.env.local` points at a project called "postgre for staging" and concluding the wrong
-  database was in use. **Davin confirmed live, 2026-09-09: "'Postgre for staging' is not used.
-  This codebase always uses 'trading-alerts' project."** The evidence reconciles cleanly once the
-  name is set aside:
-  - `turntable.proxy.rlwy.net:55082` is the database this codebase actually uses. It holds
-    `market_data_v6` and the full 19-migration history. It is filed under a Railway project whose
-    **name** says "staging"; that name is historical and misleading, not descriptive.
-  - The `trading-alerts` project's own `Postgres` service (`maglev.proxy.rlwy.net`) was queried
-    directly on 2026-07-18 and contains **no `market_data`-named table at all** — recorded as
-    `DECISION-LOG.md` **F3, resolved to case (b)**, in
-    `docs/migration-orders/1-1-find-database-restore-rehearsal.migration-order.md`. So the
-    production-sounding project is _not_ where the pipeline writes.
-  - `postgres.railway.internal` is not a third database — it is Railway's private-network address,
-    only resolvable from inside Railway, which is why it appears in service configs and never
-    works from a laptop. The 2026-09-01 entry above reads it as evidence of a separate production
-    instance; that inference was wrong.
-    **Anyone tempted to flag this again: check `DECISION-LOG.md` F3 first.**
+- **⚠ BLOCKING — the 2026-09-09 migrations did NOT reach production. Re-run them against the
+  `trading-alerts` Postgres.** Settled 2026-09-09 from the Railway dashboard directly; this
+  supersedes two earlier wrong readings in this file, including one I wrote the same day.
+  **The verified topology** (screenshots of `trading-alerts` / `production`, project
+  `a473a95e-d91c-4b3a-bdbd-c55fcca6c61a`, environment `f368e0a8-cdd1-4cfd-a829-526e2a489120`):
+  - `railway-gateway` (production, Online) → `DATABASE_URL` → **`postgres.railway.internal:5432/
+railway`** — the private address of the `trading-alerts` `Postgres` service. **This is production.**
+  - That `Postgres` service's public TCP proxy is **`maglev.proxy.rlwy.net:58290`**.
+  - `pgbouncer` has **no TCP proxy at all** (only an HTTP domain on 6432), so it is not the
+    `turntable` endpoint either — a hypothesis worth ruling out explicitly, since it looked likely.
+  - The repo's `.env.local` points at **`turntable.proxy.rlwy.net:55082`** — a **different
+    database**. `prisma migrate status` reports it as fully migrated (19 migrations, up to date),
+    which is exactly what makes it dangerous: a `migrate deploy` against it succeeds and looks
+    completely convincing while touching nothing production reads.
+    **Consequence:** `indicator_statistics` and `indicator_configs` **do not exist in production**,
+    and the gateway will reject every statistics POST once the VPS deploys. The same applies to
+    `20260909000000_market_data_v6_provenance_not_null` and `20260904120000_default_theme_light`.
+    **⚠ Correction to a claim made earlier the same day:** the provenance migration's clean apply was
+    cited as proof there were no NULL `cycle_id`/`collected_at` rows. That proof covers **turntable
+    only**. Production holds the real accumulated history, so the pre-flight is live again and must
+    be run against production before applying:
+    `SELECT COUNT(*) FROM market_data_v6 WHERE cycle_id IS NULL OR collected_at IS NULL;`
+    **How to apply:** `postgres.railway.internal` does not resolve outside Railway, so use the
+    `Postgres` service's `DATABASE_PUBLIC_URL` (`maglev.proxy.rlwy.net:58290`) in a gitignored
+    `.env.production.local` with a throwaway Prisma config — the repo's own `prisma.config.ts` loads
+    `.env.local` with `override: true` and will otherwise silently substitute the wrong database
+    back. This is the same shape that worked on 2026-09-01.
+    **The real root cause, and why this keeps recurring:** `.env.local` on this machine points at a
+    non-production database. Three sessions (2026-07-18, 2026-09-01, 2026-09-09) have now been misled
+    by it. 2026-09-01 escaped only because Davin happened to paste the true production URL in by
+    hand. **Fixing `.env.local`, or making the mismatch loud, would retire this whole class of
+    error.**
+    **A methodological note worth keeping:** `maglev` and `turntable` are Railway's _shared_ TCP
+    proxy endpoints — many services sit behind the same hostname and the **port** identifies the
+    service. Matching on hostname alone (as 2026-07-18 did, and as I repeated) does not establish
+    which project owns an endpoint. Read the service's own Settings → Networking panel instead.
+    **Retracted:** the "the Railway project name is a misnomer" entry previously here, and its
+    commit `2d104973`. It was built to make Davin's (entirely reasonable) statement that the codebase
+    uses `trading-alerts` fit eight-week-old evidence, instead of verifying. `trading-alerts` _is_
+    production — `.env.local` simply does not point at it.
     **The capture itself is BUILT and verified end to end** — MT5 → collector parser → SQLite outbox
     → push worker → gateway contract → controller/queue/processor → Prisma → Postgres, with the
     append-only and market-data-isolation properties both proven by test (see the session entry

@@ -720,33 +720,37 @@ fully cleared.
    `migrate_raw_tables()` will add the new staging columns to the existing
    `xauusd.db` on first start (§5.2); `market_data` is untouched. The same
    restart also creates the `indicator_statistics` outbox (§12 item 9).
-5. ✅ **`20260909120000_add_indicator_statistics` — APPLIED 2026-09-09** by Davin
-   via `npx prisma migrate deploy`. Purely additive (two new tables, zero changes
-   to `market_data_v6`). `indicator_statistics` and `indicator_configs` now exist,
-   so the gateway will accept statistics POSTs as soon as the collector and push
-   worker are deployed (item 4). Three notes on that run, since `migrate deploy`
-   applies **every** pending migration in history order, not only the intended one:
-   - `20260909000000_market_data_v6_provenance_not_null` went in alongside it.
-     That one did carry a pre-flight caution (it tightens `cycle_id`/
-     `collected_at` to `NOT NULL` on live data), but a clean apply is itself the
-     proof it was safe: `SET NOT NULL` fails loudly if any row violates it, so
-     success means there were no NULL rows.
-   - `20260904120000_default_theme_light`, unrelated to this pipeline, was also
-     pending and applied.
-   - ✅ **It reached the right database.** `prisma migrate status` afterwards
-     reports 19 migrations and "Database schema is up to date" at
-     `turntable.proxy.rlwy.net:55082`.
-     ⚠ **A naming trap worth knowing about, because it has now cost three
-     sessions.** That host is filed under a Railway project **named** "postgre for
-     staging", which repeatedly reads as "wrong database" — it is not. Davin
-     confirmed live 2026-09-09 that this is the database the codebase uses; the
-     project name is historical. The corroborating evidence: the
-     production-sounding `trading-alerts` project's own Postgres
-     (`maglev.proxy.rlwy.net`) was queried directly on 2026-07-18 and holds **no
-     `market_data` table at all** (`DECISION-LOG.md` F3, case (b)). And
-     `postgres.railway.internal` is not a third instance — it is Railway's
-     private-network address, unresolvable from outside Railway by design.
-     **Before flagging this again, read `DECISION-LOG.md` F3.**
+5. ⚠ **`20260909120000_add_indicator_statistics` — applied, but NOT to
+   production. Must be re-run against the `trading-alerts` Postgres.**
+   Davin ran `npx prisma migrate deploy` on 2026-09-09 and it succeeded — but
+   against the database `.env.local` points at
+   (`turntable.proxy.rlwy.net:55082`), which is **not** production.
+   **Verified from the Railway dashboard**, not inferred: production's
+   `railway-gateway` service connects to `postgres.railway.internal:5432/railway`
+   — the private address of the `trading-alerts` project's `Postgres` service,
+   whose public TCP proxy is `maglev.proxy.rlwy.net:58290`. `pgbouncer` in that
+   project has no TCP proxy at all, so it is not the `turntable` endpoint either.
+   **So production has none of these three tables/changes:**
+   `indicator_statistics`, `indicator_configs`, and the
+   `market_data_v6` provenance `NOT NULL` tightening (plus an unrelated
+   `20260904120000_default_theme_light`). Until they land, the gateway rejects
+   every statistics POST and rows accumulate unsynced in the SQLite outbox —
+   lossless, but growing.
+   **Before applying the provenance migration to production, run the pre-flight.**
+   The earlier clean apply proved nothing about production, only about
+   `turntable`; production carries the real accumulated history:
+   `SELECT COUNT(*) FROM market_data_v6 WHERE cycle_id IS NULL OR collected_at IS NULL;`
+   **How:** `postgres.railway.internal` does not resolve outside Railway, so use
+   the `Postgres` service's `DATABASE_PUBLIC_URL` (`maglev...:58290`) in a
+   gitignored `.env.production.local` with a throwaway Prisma config — the repo's
+   `prisma.config.ts` loads `.env.local` with `override: true` and will otherwise
+   silently substitute the wrong database back.
+   ⚠ **Root cause, and why this recurs:** `.env.local` points at a
+   non-production database, so `migrate deploy` succeeds and looks entirely
+   convincing while touching nothing production reads. Three sessions have now
+   been misled by it. Also note `maglev` and `turntable` are Railway's _shared_
+   proxy hostnames — the **port** identifies the service — so matching on
+   hostname alone proves nothing about which project owns an endpoint.
 
 Deferred product features (separate workstreams, not pipeline-blocking):
 trendline image rendering + statistical scoring/advice; parameter-revision

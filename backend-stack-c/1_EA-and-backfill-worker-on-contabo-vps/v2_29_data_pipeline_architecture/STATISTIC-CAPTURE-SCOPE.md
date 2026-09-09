@@ -3,10 +3,11 @@
 **Status:** ✅ **IMPLEMENTED** 2026-09-09, every layer below built and verified. This document is
 now the design record for what was built, not a proposal — the scope it describes was approved by
 Davin and executed without deviation.
-**Migration applied 2026-09-09** by Davin (`npx prisma migrate deploy`) — `indicator_statistics`
-and `indicator_configs` now exist. What remains is deployment, not development: the recompiled
-`.ex5` and the updated collector/push worker must reach the VPS before any statistic is actually
-emitted or sent. See §11.
+⚠ **Not yet live anywhere.** The migration was run on 2026-09-09 but landed on the database
+`.env.local` points at, which is **not** production — so `indicator_statistics` and
+`indicator_configs` do not exist in the database `railway-gateway` actually writes to. That plus
+the VPS deployment (recompiled `.ex5`, collector, push worker) is what stands between this and a
+first captured row. See §11.
 **Written:** 2026-09-09.
 **Covers:** every layer — MT5 indicators → collector → SQLite → push worker → gateway contract →
 Railway Gateway (controller/queue/processor) → Prisma → PostgreSQL.
@@ -363,7 +364,7 @@ Every item below was executed, not planned. ✅ = passed as written.
 - ✅ **Regression, all at baseline, zero drift:** monolith `tsc` clean + `test:ci`
   **171/171 · 2416/2416**; railway-gateway `tsc` clean, **3/3 · 31/31** and **2/2 · 17/17**;
   operation-service **43/43 · 401/401**.
-- ✅ **Postgres migration applied** 2026-09-09, after this verification passed. See §11.
+- ⚠ **Postgres migration ran, but against the wrong database** — see §11. Production is unmigrated.
 
 ### One design fix found during verification
 
@@ -387,26 +388,35 @@ migration SQL; the unique key alone serves the "this indicator over time" read p
 
 ## 11. Deployment status
 
-**Done — migration applied 2026-09-09.** `npx prisma migrate deploy` created
-`indicator_statistics` and `indicator_configs`. Two side effects of that run worth recording,
-because `migrate deploy` applies every pending migration rather than a chosen one:
+**⚠ The migration was applied — to the wrong database. It still needs running against
+production.** `npx prisma migrate deploy` succeeded on 2026-09-09, but against the database
+`.env.local` points at (`turntable.proxy.rlwy.net:55082`), which is **not** production.
+
+**Verified from the Railway dashboard**, not inferred: production's `railway-gateway` service
+connects to `postgres.railway.internal:5432/railway` — the private address of the `trading-alerts`
+project's `Postgres` service, public TCP proxy `maglev.proxy.rlwy.net:58290`. `pgbouncer` in that
+project has no TCP proxy at all, ruling out the obvious alternative. So `turntable` is a different
+database, and **production has no `indicator_statistics` or `indicator_configs` table**. The
+gateway will reject every statistics POST until this is fixed.
+
+Two other migrations rode along on that same run and are likewise absent from production:
 `20260909000000_market_data_v6_provenance_not_null` and the unrelated
-`20260904120000_default_theme_light` were also pending and went in with it. The provenance one is
-the only one that carried a caution, and its clean apply is itself the proof it was safe —
-`SET NOT NULL` errors out if any row violates it.
+`20260904120000_default_theme_light`.
 
-**✅ It reached the right database**, confirmed by `prisma migrate status`: 19 migrations,
-"Database schema is up to date", at `turntable.proxy.rlwy.net:55082`.
+**Before applying the provenance one to production, run the pre-flight.** The clean apply against
+`turntable` proved nothing about production, which holds the real accumulated history:
+`SELECT COUNT(*) FROM market_data_v6 WHERE cycle_id IS NULL OR collected_at IS NULL;`
 
-**⚠ A naming trap, recorded because it has now cost three separate sessions.** That host is filed
-under a Railway project **named** "postgre for staging", which keeps reading as "wrong database".
-It is not. Davin confirmed live on 2026-09-09 that this is the database the codebase uses and that
-the project name is historical. Corroborating evidence, not just assertion: the
-production-sounding `trading-alerts` project's own Postgres (`maglev.proxy.rlwy.net`) was queried
-directly on 2026-07-18 and holds **no `market_data` table at all** — recorded as `DECISION-LOG.md`
-**F3, case (b)**. And `postgres.railway.internal` is not a third instance; it is Railway's
-private-network address, unresolvable from outside Railway by design. **Read `DECISION-LOG.md` F3
-before flagging this again.**
+**How to apply:** `postgres.railway.internal` does not resolve outside Railway, so use the
+`Postgres` service's `DATABASE_PUBLIC_URL` in a gitignored `.env.production.local` with a throwaway
+Prisma config — the repo's `prisma.config.ts` loads `.env.local` with `override: true` and will
+otherwise silently substitute the wrong database back.
+
+**⚠ Root cause worth fixing properly:** `.env.local` points at a non-production database, so
+`migrate deploy` succeeds and looks entirely convincing while touching nothing production reads.
+Three sessions have now been caught by this. Related trap: `maglev` and `turntable` are Railway's
+_shared_ proxy hostnames — the **port** identifies the service — so matching on hostname alone
+proves nothing about which project owns an endpoint.
 
 **Still to deploy (VPS side, nothing here is live yet):**
 

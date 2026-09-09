@@ -296,7 +296,7 @@ calculation-split removal. Only the _source_ of the values changed.
 **What is new is additive, alongside it — nothing was altered.** The statistics path adds its own
 JSON contract, its own generated DTO, two new Prisma models and two new tables
 (`indicator_statistics`, `indicator_configs`). Its migration is **purely additive** — it does not
-touch `market_data_v6` in any way — and was applied on 2026-09-09. `operation-service` is not
+touch `market_data_v6` in any way. It has **not** reached production yet (see §11). `operation-service` is not
 involved at all: nothing reads the new tables yet, by design. Populating the series comes first;
 an API surface is only worth building when something actually consumes it.
 
@@ -393,10 +393,27 @@ instead of needing the capture-a-week-apart experiment.
 | 1   | **Recompile the 10 statistic-emitting indicators and redeploy all 13 `.ex5` to the VPS** — see the warning below                                                                                                                     | Davin | **Yes** — the statistic blocks are inert until this happens |
 | 2   | Deploy the updated collector + schema, restart `MT5Collector`. Its `migrate_raw_tables()` widens the existing `xauusd.db` automatically on first start (`market_data` untouched), and the same restart creates the statistics outbox | Davin | Yes                                                         |
 | 3   | Confirm a real green end-to-end cycle against the live terminal — for **both** lanes: price rows landing in `market_data_v6`, and statistics rows landing in `indicator_statistics`                                                  | Davin | Yes                                                         |
-| 4   | ✅ **Done 2026-09-09** — apply the `indicator_statistics` migration to PostgreSQL                                                                                                                                                    | Davin | —                                                           |
+| 4   | ⚠ **Apply the `indicator_statistics` migration to the PRODUCTION database** — it was run on 2026-09-09 but against the DB `.env.local` points at, which is not production (see the warning below)                                   | Davin | —                                                           |
 | 5   | Measure push-worker throughput (§10a)                                                                                                                                                                                                | —     | No                                                          |
 | 6   | Measure historical drift magnitude (§10b) — now measurable directly from the statistics series once it has some depth                                                                                                                | —     | No                                                          |
 | 7   | Decide Decision Layer direction: revive the calc stack for `param_search`, or redesign around admin-fixed values. `fitness_scorer` is no longer blocked either way (§9)                                                              | Davin | No                                                          |
+
+> ⚠ **A second deployment trap: `.env.local` points at the wrong database.** The 2026-09-09
+> `prisma migrate deploy` succeeded — against `turntable.proxy.rlwy.net:55082`, which is **not**
+> production. Verified from the Railway dashboard: production's `railway-gateway` connects to
+> `postgres.railway.internal` (the `trading-alerts` `Postgres` service, public proxy
+> `maglev.proxy.rlwy.net:58290`). So the new tables do not exist where the gateway writes, and it
+> will reject every statistics POST until the migration is re-run against production.
+> Two notes for whoever does that: `postgres.railway.internal` does not resolve outside Railway, so
+> use the service's `DATABASE_PUBLIC_URL`; and run the NULL pre-flight before the provenance
+> migration, since production holds real history and the earlier clean apply proved nothing about
+> it.
+>
+> **The general lesson, worth a slide of its own if this deck ever covers ops:** a `migrate deploy`
+> against the wrong database looks _exactly_ like success. Three separate sessions have now been
+> caught by this same `.env.local`. Relatedly, `maglev` and `turntable` are Railway's _shared_
+> proxy hostnames — the port identifies the service — so reasoning about which project owns an
+> endpoint from its hostname is unsound.
 
 > ⚠ **The `.ex5` binaries currently on disk are a build behind, and in a way that hides itself.**
 > All 13 were compiled on 2026-09-09 at ~13:45 — that build **does** include the timestamp fix
