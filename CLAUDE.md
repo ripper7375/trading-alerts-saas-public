@@ -1292,6 +1292,18 @@ P2022 — The column User.profile does not exist in the current database`, throw
 > earlier and separate incident. Confirmed directly against a database where the feature is known
 > live and working (read-only introspection) to get the exact column/index shape before writing
 > anything.
+> **⚠ CORRECTION (2026-09-09): the "third finding" below is half wrong, and its wrong half has
+> since misled two further sessions.** The Railway project named "postgre for staging" IS the one
+> this codebase uses — the name is a historical misnomer, confirmed by Davin live on 2026-09-09
+> ("'Postgre for staging' is not used. This codebase always uses 'trading-alerts' project" — i.e.
+> the database at `turntable.proxy.rlwy.net:55082` is the real one, whatever its project is
+> called). The `trading-alerts` project's own Postgres (`maglev.proxy.rlwy.net`) was queried
+> directly on 2026-07-18 and holds **no `market_data` table at all** (`DECISION-LOG.md` F3, case
+> (b)). And `postgres.railway.internal` is not a separate production instance — it is Railway's
+> private-network address, unresolvable from outside Railway by design. The correct part of the
+> finding stands: `vercel env pull` really does return `[SENSITIVE]` placeholders. See the
+> `Waiting on` section's RESOLVED entry for the full reconciliation.
+>
 > **A third finding, load-bearing for the whole session, not merely academic:** the "railway"
 > Postgres this Executor could reach via the repo's own `.env.local` turned out to be a **separate
 > Railway project literally named "postgre for staging"** — not production at all. Discovered only
@@ -1603,11 +1615,17 @@ geo-locale.ts`, `lib/i18n/locale-resolver.ts`, `operation-service/src/users/user
 > history order rather than a chosen one, two others went in with it:
 > `20260909000000_market_data_v6_provenance_not_null` (the one carrying a pre-flight caution — no
 > harm, its clean apply proves there were no NULL rows, since `SET NOT NULL` fails loudly
-> otherwise) and the unrelated `20260904120000_default_theme_light`. **Flagged for Davin, not
-> resolvable here:** the run resolved `DATABASE_URL` from `.env.local` to
-> `turntable.proxy.rlwy.net:55082`, and per the 2026-09-01 entry above that connection was then a
-> separate Railway project named "postgre for staging" — so whether production actually received
-> these three migrations needs a Railway dashboard check. Tracked under Waiting on.
+> otherwise) and the unrelated `20260904120000_default_theme_light`.
+> **A false alarm I raised and then closed, worth recording because it is the third time this repo
+> has produced it:** the run resolved `DATABASE_URL` to `turntable.proxy.rlwy.net:55082`, which the
+> 2026-09-01 entry above describes as a "postgre for staging" project — so I flagged that
+> production might be unmigrated. Davin corrected it directly ("'Postgre for staging' is not used.
+> This codebase always uses 'trading-alerts' project"), and checking rather than just accepting
+> that turned up the actual reconciliation: the project **name** is a misnomer, `turntable` really
+> is the database this codebase uses (`prisma migrate status`: 19 migrations, up to date), and the
+> production-_sounding_ `trading-alerts` project's own Postgres holds no `market_data` table at all
+> (`DECISION-LOG.md` F3, case (b), verified by direct query 2026-07-18). The 2026-09-01 entry's
+> inference was wrong and now carries a correction banner. Full write-up under Waiting on.
 > **Committed and pushed** on Davin's explicit request after he applied the migration and asked for
 > the blueprint + deck-summary docs to be brought up to date.
 > **Artifacts:** `sqlite_schema_v6_xauusd.sql`, `export_collector_validator_v2.py`,
@@ -2103,33 +2121,47 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   columns; `market_data` untouched, no data at risk). **Then confirm a real green cycle** — the
   refactor is proven against real captured exports offline, but has never run against the live
   terminal.
-- **⚠ Confirm the 2026-09-09 migrations reached PRODUCTION, not staging.** Davin ran
-  `npx prisma migrate deploy` on 2026-09-09; it applied three pending migrations cleanly —
-  `20260904120000_default_theme_light`, `20260909000000_market_data_v6_provenance_not_null`, and
-  `20260909120000_add_indicator_statistics`. Two follow-ups:
-  (a) **the provenance one carried a pre-flight caution** (it tightens `cycle_id`/`collected_at`
-  to `NOT NULL` on live data) and went in as a side effect of `migrate deploy` applying every
-  pending migration rather than a chosen one — no harm done, since `SET NOT NULL` fails loudly on
-  any violating row, so the clean apply _is_ the proof there were none. Its own `Waiting on` entry
-  below is therefore resolved.
-  (b) **the target database is unconfirmed.** The run resolved `DATABASE_URL` from `.env.local` to
-  `turntable.proxy.rlwy.net:55082`. Per the 2026-09-01 entry above, the Postgres reachable through
-  `.env.local` was at that time a **separate Railway project named "postgre for staging"** — not
-  production, whose `DATABASE_URL` was the internal `postgres.railway.internal` and had to be
-  pulled from the Railway dashboard into a gitignored `.env.production.local`. If that is still
-  the arrangement, **production has none of these three migrations** and will keep rejecting
-  statistics POSTs. Needs a look at the Railway dashboard; not resolvable from here.
-  **The capture itself is BUILT and verified end to end** — MT5 → collector parser → SQLite outbox
-  → push worker → gateway contract → controller/queue/processor → Prisma → Postgres, with the
-  append-only and market-data-isolation properties both proven by test (see the session entry
-  above). Design record and full verification results: `backend-stack-c/1_EA-and-backfill-worker-
+- **RESOLVED 2026-09-09 — the 2026-09-09 migrations landed on the right database, and the
+  recurring "is this staging?" confusion is now explained.** Davin ran `npx prisma migrate deploy`;
+  it applied three pending migrations cleanly — `20260904120000_default_theme_light`,
+  `20260909000000_market_data_v6_provenance_not_null`, and
+  `20260909120000_add_indicator_statistics`. `prisma migrate status` afterwards reports **19
+  migrations, "Database schema is up to date"**.
+  (a) **The provenance migration carried a pre-flight caution** (it tightens
+  `cycle_id`/`collected_at` to `NOT NULL` on live data) and went in as a side effect of
+  `migrate deploy` applying every pending migration rather than a chosen one — no harm done, since
+  `SET NOT NULL` fails loudly on any violating row, so the clean apply _is_ the proof there were
+  none. Its own `Waiting on` entry below is therefore resolved.
+  (b) **⚠ THE RAILWAY PROJECT NAME IS A MISNOMER — do not re-raise this.** This has now burned
+  three separate sessions (2026-07-18, 2026-09-01, 2026-09-09), each independently "discovering"
+  that `.env.local` points at a project called "postgre for staging" and concluding the wrong
+  database was in use. **Davin confirmed live, 2026-09-09: "'Postgre for staging' is not used.
+  This codebase always uses 'trading-alerts' project."** The evidence reconciles cleanly once the
+  name is set aside:
+  - `turntable.proxy.rlwy.net:55082` is the database this codebase actually uses. It holds
+    `market_data_v6` and the full 19-migration history. It is filed under a Railway project whose
+    **name** says "staging"; that name is historical and misleading, not descriptive.
+  - The `trading-alerts` project's own `Postgres` service (`maglev.proxy.rlwy.net`) was queried
+    directly on 2026-07-18 and contains **no `market_data`-named table at all** — recorded as
+    `DECISION-LOG.md` **F3, resolved to case (b)**, in
+    `docs/migration-orders/1-1-find-database-restore-rehearsal.migration-order.md`. So the
+    production-sounding project is _not_ where the pipeline writes.
+  - `postgres.railway.internal` is not a third database — it is Railway's private-network address,
+    only resolvable from inside Railway, which is why it appears in service configs and never
+    works from a laptop. The 2026-09-01 entry above reads it as evidence of a separate production
+    instance; that inference was wrong.
+    **Anyone tempted to flag this again: check `DECISION-LOG.md` F3 first.**
+    **The capture itself is BUILT and verified end to end** — MT5 → collector parser → SQLite outbox
+    → push worker → gateway contract → controller/queue/processor → Prisma → Postgres, with the
+    append-only and market-data-isolation properties both proven by test (see the session entry
+    above). Design record and full verification results: `backend-stack-c/1_EA-and-backfill-worker-
 on-contabo-vps/v2_29_data_pipeline_architecture/STATISTIC-CAPTURE-SCOPE.md` §9–§11. Blueprint
-  §12 item 9 (now ✅) and §13 item 5.
-  **Not verified, needs a real run:** no live MT5 → Postgres round trip has happened — that is
-  gated on the MetaEditor rebuild in the item above, since the new `[EDT CHANNEL]`/`[MODEL B]`
-  blocks aren't emitted until the recompiled `.ex5` is deployed. The migration was also never
-  applied to a disposable Postgres container (Docker Desktop's Linux engine would not start in
-  this environment), though for two `CREATE TABLE`s that check would have proven little.
+    §12 item 9 (now ✅) and §13 item 5.
+    **Not verified, needs a real run:** no live MT5 → Postgres round trip has happened — that is
+    gated on the MetaEditor rebuild in the item above, since the new `[EDT CHANNEL]`/`[MODEL B]`
+    blocks aren't emitted until the recompiled `.ex5` is deployed. The migration was also never
+    applied to a disposable Postgres container (Docker Desktop's Linux engine would not start in
+    this environment), though for two `CREATE TABLE`s that check would have proven little.
 - **Push-worker throughput — OPEN, arithmetic only, needs VPS measurement** (2026-09-09, raised
   while answering Davin's question about row volume/cadence; **predates and is unrelated to** the
   calculation-split removal — it applied equally to the 79-column architecture). Two mechanisms

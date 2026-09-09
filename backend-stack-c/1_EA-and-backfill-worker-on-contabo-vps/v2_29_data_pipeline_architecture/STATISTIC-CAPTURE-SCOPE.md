@@ -395,11 +395,18 @@ because `migrate deploy` applies every pending migration rather than a chosen on
 the only one that carried a caution, and its clean apply is itself the proof it was safe —
 `SET NOT NULL` errors out if any row violates it.
 
-**⚠ Confirm which database.** The run resolved `DATABASE_URL` from `.env.local` to
-`turntable.proxy.rlwy.net:55082`. Per the 2026-09-01 incident in `CLAUDE.md`, the Postgres
-reachable through `.env.local` was then a **separate Railway project named "postgre for staging"**
-— production's own URL was internal and had to come from the Railway dashboard. If that is still
-true, production is unmigrated and will still reject statistics POSTs.
+**✅ It reached the right database**, confirmed by `prisma migrate status`: 19 migrations,
+"Database schema is up to date", at `turntable.proxy.rlwy.net:55082`.
+
+**⚠ A naming trap, recorded because it has now cost three separate sessions.** That host is filed
+under a Railway project **named** "postgre for staging", which keeps reading as "wrong database".
+It is not. Davin confirmed live on 2026-09-09 that this is the database the codebase uses and that
+the project name is historical. Corroborating evidence, not just assertion: the
+production-sounding `trading-alerts` project's own Postgres (`maglev.proxy.rlwy.net`) was queried
+directly on 2026-07-18 and holds **no `market_data` table at all** — recorded as `DECISION-LOG.md`
+**F3, case (b)**. And `postgres.railway.internal` is not a third instance; it is Railway's
+private-network address, unresolvable from outside Railway by design. **Read `DECISION-LOG.md` F3
+before flagging this again.**
 
 **Still to deploy (VPS side, nothing here is live yet):**
 
