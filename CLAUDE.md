@@ -2119,65 +2119,67 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   columns; `market_data` untouched, no data at risk). **Then confirm a real green cycle** — the
   refactor is proven against real captured exports offline, but has never run against the live
   terminal.
-- **⚠ BLOCKING — the 2026-09-09 migrations did NOT reach production. Re-run them against the
-  `trading-alerts` Postgres.** Settled 2026-09-09 from the Railway dashboard directly; this
-  supersedes two earlier wrong readings in this file, including one I wrote the same day.
-  **The verified topology** (screenshots of `trading-alerts` / `production`, project
-  `a473a95e-d91c-4b3a-bdbd-c55fcca6c61a`, environment `f368e0a8-cdd1-4cfd-a829-526e2a489120`):
-  - `railway-gateway` (production, Online) → `DATABASE_URL` → **`postgres.railway.internal:5432/
-railway`** — the private address of the `trading-alerts` `Postgres` service. **This is production.**
-  - That `Postgres` service's public TCP proxy is **`maglev.proxy.rlwy.net:58290`**.
-  - `pgbouncer` has **no TCP proxy at all** (only an HTTP domain on 6432), so it is not the
-    `turntable` endpoint either — a hypothesis worth ruling out explicitly, since it looked likely.
-  - The repo's `.env.local` points at **`turntable.proxy.rlwy.net:55082`** — a **different
-    database**. `prisma migrate status` reports it as fully migrated (19 migrations, up to date),
-    which is exactly what makes it dangerous: a `migrate deploy` against it succeeds and looks
-    completely convincing while touching nothing production reads.
-    **Consequence:** `indicator_statistics` and `indicator_configs` **do not exist in production**,
-    and the gateway will reject every statistics POST once the VPS deploys. The same applies to
-    `20260909000000_market_data_v6_provenance_not_null` and `20260904120000_default_theme_light`.
-    **⚠ Correction to a claim made earlier the same day:** the provenance migration's clean apply was
-    cited as proof there were no NULL `cycle_id`/`collected_at` rows. That proof covers **turntable
-    only**. Production holds the real accumulated history, so the pre-flight is live again and must
-    be run against production before applying:
-    `SELECT COUNT(*) FROM market_data_v6 WHERE cycle_id IS NULL OR collected_at IS NULL;`
-    **How to apply — scaffold now committed, 2026-09-09:** `prisma.production.config.ts` at the
-    repo root, with `.env.production.local.example` as its template. It loads **only**
-    `.env.production.local` (never `.env`/`.env.local`), fails if that file is missing, fails if
-    `DIRECT_URL` is unset (migrations read `DIRECT_URL`, not `DATABASE_URL` — see
-    `prisma.config.ts`), **refuses outright if pointed at a host recorded as non-production**, and
-    echoes the target host before acting. All four behaviours were tested with throwaway values,
-    not merely written. It omits a `seed` entry deliberately, so `prisma db seed` cannot reach
-    production through it. Run `migrate status --config prisma.production.config.ts` as a dry run
-    first, then `migrate deploy`. Use the `Postgres` service's `DATABASE_PUBLIC_URL`
-    (`maglev.proxy.rlwy.net:58290`) — `postgres.railway.internal` does not resolve outside Railway.
-    Delete `.env.production.local` afterwards; it holds a live credential. Supersedes the throwaway
-    config the 2026-09-01 session wrote and deleted — having no committed path is part of why this
-    keeps recurring.
-    **The real root cause, and why this keeps recurring:** `.env.local` on this machine points at a
-    non-production database. Three sessions (2026-07-18, 2026-09-01, 2026-09-09) have now been misled
-    by it. 2026-09-01 escaped only because Davin happened to paste the true production URL in by
-    hand. **Fixing `.env.local`, or making the mismatch loud, would retire this whole class of
-    error.**
-    **A methodological note worth keeping:** `maglev` and `turntable` are Railway's _shared_ TCP
-    proxy endpoints — many services sit behind the same hostname and the **port** identifies the
-    service. Matching on hostname alone (as 2026-07-18 did, and as I repeated) does not establish
-    which project owns an endpoint. Read the service's own Settings → Networking panel instead.
-    **Retracted:** the "the Railway project name is a misnomer" entry previously here, and its
-    commit `2d104973`. It was built to make Davin's (entirely reasonable) statement that the codebase
-    uses `trading-alerts` fit eight-week-old evidence, instead of verifying. `trading-alerts` _is_
-    production — `.env.local` simply does not point at it.
-    **The capture itself is BUILT and verified end to end** — MT5 → collector parser → SQLite outbox
-    → push worker → gateway contract → controller/queue/processor → Prisma → Postgres, with the
-    append-only and market-data-isolation properties both proven by test (see the session entry
-    above). Design record and full verification results: `backend-stack-c/1_EA-and-backfill-worker-
-on-contabo-vps/v2_29_data_pipeline_architecture/STATISTIC-CAPTURE-SCOPE.md` §9–§11. Blueprint
-    §12 item 9 (now ✅) and §13 item 5.
-    **Not verified, needs a real run:** no live MT5 → Postgres round trip has happened — that is
-    gated on the MetaEditor rebuild in the item above, since the new `[EDT CHANNEL]`/`[MODEL B]`
-    blocks aren't emitted until the recompiled `.ex5` is deployed. The migration was also never
-    applied to a disposable Postgres container (Docker Desktop's Linux engine would not start in
-    this environment), though for two `CREATE TABLE`s that check would have proven little.
+- **RESOLVED 2026-09-09 — the four pending migrations are applied to PRODUCTION, and the
+  database picture is now settled for good.** Davin applied them with
+  `prisma.production.config.ts` against `maglev.proxy.rlwy.net:58290`; verified afterwards:
+  `market_data_v6` present with 90 columns (`best_fit_a` ×8, `best_fit_b` ×8), `cycle_id` and
+  `collected_at` both `NOT NULL`, `indicator_statistics` + `indicator_configs` created,
+  `UserAppearance.theme` default `'light'`, 19 migrations recorded with **0 failed** — and the
+  live data untouched (24 users / 2 accounts / 5 payments / 1 commission / 2 alerts, identical
+  before and after).
+  **The database question that consumed most of the day, settled with evidence:**
+  - **`maglev.proxy.rlwy.net:58290` is production.** Confirmed three ways: `railway-gateway`'s
+    `DATABASE_URL` resolves to `postgres.railway.internal` (this service's private address); it
+    holds 39 app tables with 7 months of real activity (2026-01-22 → 2026-08-15); and it carries
+    the `User.profile` column, the exact fix that made live OAuth work on 2026-09-01.
+  - **`turntable.proxy.rlwy.net:55082` is a staging clone.** Full app schema including `User`,
+    49 tables, `market_data_v6` present but **0 rows**. It is what `.env.local` points at.
+  - **Production had never had `market_data_v6` at all.** `20260705000000_add_market_data_v6` was
+    recorded `applied` with **`steps=0`** on _both_ databases — i.e. marked applied without
+    executing. The table was created here for the first time on 2026-09-09 by running that
+    migration's SQL directly via `prisma db execute`, which made the recorded state true without
+    any migration-history surgery. **This is the fourth instance of the `db push`-bypassing-
+    migration-history drift class** the 2026-09-01 entry documented three times; it now warrants a
+    real audit rather than another one-off note.
+  - **Corollary worth internalising: the v6 pipeline has never written a row to Postgres.** The
+    gateway was pointed at a database with no `market_data_v6` in it. Every other symptom lines up
+    — `completed 0` on the queue for days, the `.ex5` never redeployed, the timestamp bug sitting
+    unfixed as the "#1 gating item" for two years.
+  - **Methodological note that cost real time:** `maglev` and `turntable` are Railway's _shared_
+    TCP proxy hostnames — many services sit behind each, and the **port** identifies the service.
+    Reasoning about which project owns an endpoint from its hostname is unsound. Read the
+    service's own Settings → Networking panel.
+- **RESOLVED 2026-09-09 — Postgres superuser password rotated after exposure.** The credential
+  appeared in screenshots during the migration work. Rotated end to end and verified: all three
+  referencing services reconnected, `/affiliate/leaderboard` (which hits Prisma per request)
+  returns 200. Full procedure, including the five gotchas that actually bit, is now a runbook:
+  `docs/runbooks/rotate-postgres-credentials.md`. The two worth knowing here:
+  **services do NOT auto-restart when a referenced variable changes** — they must be redeployed,
+  and a large `uptime` in a health response is how you spot one that hasn't — and **a placeholder
+  in an instruction can be executed literally**: the password was briefly set to the string `NEW`
+  because a command used `'NEW'` as a stand-in. Prefer `\password`, which has no placeholder.
+  Also mapped and recorded: three separate DB passwords exist (`postgres`, `core_app`,
+  `money_svc`); the pgbouncer userlist contains only the latter two, so rotating `postgres` does
+  **not** touch pgbouncer and does **not** affect `money-service`.
+- **⚠ `railway-gateway` Watch Paths still unset** — every push anywhere in this monorepo rebuilds
+  it. On 2026-09-09 that churn exposed a latent build failure (below) and produced three failed
+  deployments from commits that changed nothing in `railway-gateway/`. Scope it to
+  `railway-gateway/**` in Settings → Source.
+- **RESOLVED 2026-09-09 — `railway-gateway` could not build at all.** `NODE_ENV=production` made
+  npm omit devDependencies, while the build needs them: first `@nestjs/cli` (`sh: 1: nest: not
+found`, exit 127), then `@types/express`/`@types/compression` (TS7016). It had been broken for
+  hours behind a warm build cache and only surfaced when enough rebuilds ran. **This blocked the
+  password rotation** — a service that cannot deploy cannot pick up a new credential. Fixed by
+  matching the two sibling services: `@nestjs/cli` moved to `dependencies` (as in
+  operation-service and money-service) plus a `nixpacks.toml` mirroring operation-service's
+  (`NPM_CONFIG_PRODUCTION=false`, explicit install/build phases). Commits `60dd7edc`, `b327f997`.
+  **General lesson: any redeploy can surface an unrelated latent build failure**, so confirm a
+  service can deploy _before_ depending on a redeploy to carry a change.
+- **⚠ Preview deployments point at the production database** (noticed 2026-09-09, not changed).
+  Vercel's `DATABASE_URL` is scoped to **All Environments**, so preview branches connect to
+  production data; `DIRECT_URL` is Production-only, so the two are inconsistent. Deliberately left
+  alone during the rotation — narrowing the scope would break previews and deserves its own
+  change.
 - **Push-worker throughput — OPEN, arithmetic only, needs VPS measurement** (2026-09-09, raised
   while answering Davin's question about row volume/cadence; **predates and is unrelated to** the
   calculation-split removal — it applied equally to the 79-column architecture). Two mechanisms

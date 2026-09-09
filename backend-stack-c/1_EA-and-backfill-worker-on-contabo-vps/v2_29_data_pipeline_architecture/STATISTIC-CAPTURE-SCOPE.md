@@ -3,11 +3,10 @@
 **Status:** ✅ **IMPLEMENTED** 2026-09-09, every layer below built and verified. This document is
 now the design record for what was built, not a proposal — the scope it describes was approved by
 Davin and executed without deviation.
-⚠ **Not yet live anywhere.** The migration was run on 2026-09-09 but landed on the database
-`.env.local` points at, which is **not** production — so `indicator_statistics` and
-`indicator_configs` do not exist in the database `railway-gateway` actually writes to. That plus
-the VPS deployment (recompiled `.ex5`, collector, push worker) is what stands between this and a
-first captured row. See §11.
+**Live in PostgreSQL as of 2026-09-09** — `indicator_statistics` and `indicator_configs` exist in
+production (`maglev.proxy.rlwy.net:58290`, the database `railway-gateway` writes to). What remains
+is the VPS side: the recompiled `.ex5`, the collector and the push worker. Until those land, no
+statistic has been captured yet. See §11.
 **Written:** 2026-09-09.
 **Covers:** every layer — MT5 indicators → collector → SQLite → push worker → gateway contract →
 Railway Gateway (controller/queue/processor) → Prisma → PostgreSQL.
@@ -388,44 +387,17 @@ migration SQL; the unique key alone serves the "this indicator over time" read p
 
 ## 11. Deployment status
 
-**⚠ The migration was applied — to the wrong database. It still needs running against
-production.** `npx prisma migrate deploy` succeeded on 2026-09-09, but against the database
-`.env.local` points at (`turntable.proxy.rlwy.net:55082`), which is **not** production.
+**✅ Applied to production 2026-09-09.** `indicator_statistics` and `indicator_configs` now
+exist in the database `railway-gateway` actually writes to — `maglev.proxy.rlwy.net:58290`, the
+`trading-alerts` project's Postgres. Verified directly: both tables present, `market_data_v6` at
+90 columns with `cycle_id`/`collected_at` `NOT NULL`, 19 migrations recorded, 0 failed.
 
-**Verified from the Railway dashboard**, not inferred: production's `railway-gateway` service
-connects to `postgres.railway.internal:5432/railway` — the private address of the `trading-alerts`
-project's `Postgres` service, public TCP proxy `maglev.proxy.rlwy.net:58290`. `pgbouncer` in that
-project has no TCP proxy at all, ruling out the obvious alternative. So `turntable` is a different
-database, and **production has no `indicator_statistics` or `indicator_configs` table**. The
-gateway will reject every statistics POST until this is fixed.
-
-Two other migrations rode along on that same run and are likewise absent from production:
-`20260909000000_market_data_v6_provenance_not_null` and the unrelated
-`20260904120000_default_theme_light`.
-
-**Before applying the provenance one to production, run the pre-flight.** The clean apply against
-`turntable` proved nothing about production, which holds the real accumulated history:
-`SELECT COUNT(*) FROM market_data_v6 WHERE cycle_id IS NULL OR collected_at IS NULL;`
-
-**How to apply:** use `prisma.production.config.ts` at the repo root — it loads only
-`.env.production.local`, refuses to run against a host recorded as non-production, and prints the
-target database before acting:
-
-```bash
-cp .env.production.local.example .env.production.local   # paste the real URL
-npx prisma migrate status --config prisma.production.config.ts   # dry run first
-npx prisma migrate deploy --config prisma.production.config.ts
-```
-
-Use the `Postgres` service's `DATABASE_PUBLIC_URL`; `postgres.railway.internal` does not resolve
-outside Railway. Migrations read `DIRECT_URL`, not `DATABASE_URL`. Delete
-`.env.production.local` when done.
-
-**⚠ Root cause worth fixing properly:** `.env.local` points at a non-production database, so
-`migrate deploy` succeeds and looks entirely convincing while touching nothing production reads.
-Three sessions have now been caught by this. Related trap: `maglev` and `turntable` are Railway's
-_shared_ proxy hostnames — the **port** identifies the service — so matching on hostname alone
-proves nothing about which project owns an endpoint.
+An earlier run on the same day went to the database `.env.local` points at
+(`turntable...:55082`), which turned out to be a **staging clone** rather than production. Use
+`prisma.production.config.ts` at the repo root — it loads only `.env.production.local` and
+refuses to run against that host. Production also needed `market_data_v6` created first: the
+`add_market_data_v6` migration had been recorded applied with `steps=0`, i.e. marked without
+executing, so it was run directly via `prisma db execute`.
 
 **Still to deploy (VPS side, nothing here is live yet):**
 
