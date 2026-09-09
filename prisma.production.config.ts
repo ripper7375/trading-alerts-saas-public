@@ -94,6 +94,29 @@ if (!directUrl) {
   );
 }
 
+// Catch the copied-but-not-yet-edited template explicitly. Without this the
+// placeholder fails later as "not a valid URL", which describes the symptom
+// rather than the cause and reads as though something is broken.
+if (/USER:PASSWORD@HOST:PORT/.test(directUrl)) {
+  fail(
+    `${ENV_FILE} still contains the example placeholders.
+` +
+      `  Copying the template is only step 1 — nothing prompts you for the URL.
+` +
+      `  Open ${ENV_FILE} and replace BOTH lines with the real connection string:
+` +
+      `      DIRECT_URL="postgresql://...@maglev.proxy.rlwy.net:58290/railway"
+` +
+      `      DATABASE_URL="postgresql://...@maglev.proxy.rlwy.net:58290/railway"
+` +
+      `  Get it from Railway -> trading-alerts -> Postgres -> Variables ->
+` +
+      `  DATABASE_PUBLIC_URL. Use the PUBLIC url: postgres.railway.internal is
+` +
+      `  Railway's private address and never resolves from a laptop.`
+  );
+}
+
 // Echo the target host (never the credential) so the database being changed is
 // visible before anything runs, rather than inferred from a success message.
 let host: string;
