@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trading-alerts-saas/v6/gateway_contract_indicator_statistics.schema.json",
+  "title": "POST /api/v1/indicator-statistics — one element of the request array (v6 pipeline, XAUUSD)",
+  "description": "Contract between the push worker (backfill_worker_api_gateway_v5.py) and the API Gateway for the APPEND-ONLY indicator statistics stream. One JSON object = one indicator's _Statistic.txt snapshot for one collection cycle. The request body is an ARRAY of these (one cycle produces up to 10, and they are pushed together). This stream is entirely separate from market_data: it has its own endpoint, queue and outbox, and a failure here must never block the market_data path. The gateway MUST upsert idempotently on (symbol, timeframe, source, captured_at) — duplicate delivery is by design (push retries) — but the content of a re-push is byte-identical, so rows are never meaningfully mutated. Correcting a value means a NEW row with a later captured_at, never an update.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "terminal_id",
+    "symbol",
+    "timeframe",
+    "source",
+    "captured_at",
+    "live_bar_ts",
+    "cycle_id",
+    "config_hash",
+    "config_params"
+  ],
+  "properties": {
+    "terminal_id": {
+      "type": "string",
+      "description": "Sender id; 'push_worker_v5' from the v6 push worker."
+    },
+    "symbol": { "type": "string", "const": "XAUUSD" },
+    "timeframe": { "type": "string", "enum": ["M5", "M15"] },
+    "source": {
+      "type": "string",
+      "enum": [
+        "best_fit_a",
+        "best_fit_b",
+        "cherry_a",
+        "cherry_b",
+        "most_recent",
+        "non_a",
+        "non_b",
+        "fractal_edt",
+        "resistance",
+        "support"
+      ],
+      "description": "Which indicator produced this snapshot. The 3 non-centroid sources omit the MODEL A block; resistance/support additionally omit the EDT channel (single lines, not channels)."
+    },
+
+    "captured_at": {
+      "type": "integer",
+      "description": "WHEN the fit was observed — the collector's 5-minute cycle slot (UTC unix sec). This is the half of the primary key that makes the table append-only: it is new on every cycle, so a new row never collides with an old one."
+    },
+    "live_bar_ts": {
+      "type": "integer",
+      "description": "Newest bar present in that source's timeseries export at capture time; joins to market_data_v6.timestamp. Ties the fit to the exact bar it was anchored at."
+    },
+    "cycle_id": {
+      "type": "integer",
+      "description": "provenance: the collection_cycles row this snapshot came from."
+    },
+
+    "_resolved_line_note": "All 10 sources: the line the indicator settled on. solution_found/line_origin_ts/touches are only emitted by the 3 line indicators; the centroids leave them null.",
+
+    "solution_found": { "type": ["boolean", "null"] },
+    "raw_slope": { "type": ["number", "null"] },
+    "anchored_y_int": { "type": ["number", "null"] },
+    "regression_angle": { "type": ["number", "null"] },
+    "line_origin_ts": { "type": ["integer", "null"] },
+    "touches": { "type": ["integer", "null"] },
+
+    "window_start_ts": { "type": ["integer", "null"] },
+    "window_end_ts": { "type": ["integer", "null"] },
+    "window_bars": {
+      "type": ["integer", "null"],
+      "description": "centroids: Observation Window (Box B Bars). Bar Coverage is derived from this."
+    },
+    "math_lookback": {
+      "type": ["integer", "null"],
+      "description": "centroids: Math Search Window (Bars)."
+    },
+    "crossings_n": {
+      "type": ["integer", "null"],
+      "description": "centroids: Total Crossings (n)."
+    },
+
+    "_model_a_note": "[MODEL A; CROSSINGS] — residuals against the SSA crossing points. CENTROIDS ONLY; the line indicators have no crossings and leave these null.",
+
+    "model_a_n": { "type": ["integer", "null"] },
+    "model_a_r2": { "type": ["number", "null"] },
+    "model_a_mse": { "type": ["number", "null"] },
+    "model_a_var_ratio": { "type": ["number", "null"] },
+    "model_a_skew": { "type": ["number", "null"] },
+    "model_a_kurt": { "type": ["number", "null"] },
+
+    "_model_b_note": "[MODEL B; CLOSE PRICE] — residuals against close prices. All 10 sources. NOTE these lines are fitted to centroids or fractal touches, NOT to closes, so a low or negative R2 is structurally expected and is not by itself a fault; containment_rate is the more direct quality measure.",
+
+    "model_b_n": { "type": ["integer", "null"] },
+    "model_b_r2": { "type": ["number", "null"] },
+    "model_b_mse": { "type": ["number", "null"] },
+    "model_b_var_ratio": { "type": ["number", "null"] },
+    "model_b_skew": { "type": ["number", "null"] },
+    "model_b_kurt": { "type": ["number", "null"] },
+
+    "_edt_note": "[EDT CHANNEL] — the 7 centroids + fractal_edt only. Offsets are baseline-relative. resistance/support are single lines and leave these null.",
+
+    "uoedt_offset": { "type": ["number", "null"] },
+    "loedt_offset": { "type": ["number", "null"] },
+    "containment_n": { "type": ["integer", "null"] },
+    "containment_count": { "type": ["integer", "null"] },
+    "containment_rate": {
+      "type": ["number", "null"],
+      "description": "Percent of the fitted window that closed inside the channel."
+    },
+
+    "config_hash": {
+      "type": "string",
+      "description": "sha256 of the normalised parameter block. Deduplicates configuration out of this fact table — the params are compiled into the .mq5 and change only on redeploy, so storing them inline would repeat an identical blob on every row. A NEW hash appearing is itself the drift signal (the indicator was reconfigured)."
+    },
+    "config_params": {
+      "type": "object",
+      "description": "The parameter block verbatim, as parsed key/value pairs. The gateway creates the indicator_configs row on first sight of a hash and ignores it thereafter.",
+      "additionalProperties": true
+    }
+  },
+  "x-gateway-requirements": {
+    "batching": "The request body is an ARRAY of these objects (up to 10 per cycle). The gateway enqueues one job PER ELEMENT so per-row idempotency is preserved across a batched request.",
+    "idempotency": "Upsert on (symbol, timeframe, source, captured_at). Duplicate delivery is by design (push retries); re-pushed content is byte-identical, so this never mutates history.",
+    "append_only": "Rows are NEVER updated with different content and NEVER deleted. A correction is a new row with a later captured_at.",
+    "isolation": "This endpoint is independent of POST /api/v1/market-data. Its failure must not affect market_data ingestion in any way.",
+    "responses": {
+      "200/201": "Accepted/queued. Worker stamps indicator_statistics.synced_at.",
+      "400": "Validation failure with JSON {message}. Worker quarantines to rejected_statistics.jsonl AND stamps synced_at (poison-row guard).",
+      "401/403": "Auth failure — worker halts this stream only.",
+      "429": "Rate limited; honor Retry-After.",
+      "5xx": "Transient; worker retries with backoff."
+    }
+  }
+}

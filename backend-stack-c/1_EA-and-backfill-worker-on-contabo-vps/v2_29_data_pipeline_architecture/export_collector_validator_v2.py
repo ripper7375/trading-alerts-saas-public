@@ -3,24 +3,26 @@
 Export Collector + Validator v2 — v6 collection pipeline (XAUUSD, M5/M15)
 
 Pipeline stages implemented here:
-  COLLECT -> ADJUST -> VALIDATE -> CALCULATE -> PROMOTE
+  COLLECT -> ADJUST -> VALIDATE -> PROMOTE
 
-v2 changes (from v1 / schema v5):
-- CALCULATE stage: the Python calc stack (backend-stack-c/2_python-calc-stack:
-  zscore_candle.py, zigzag_metrics.py, fractal_lines.py, centroid_regression.py)
-  computes all user-configurable derived values that MQL5 used to export
-  (candle z-score set, zigzag segment metrics, fractal/resistance/support
-  lines, the seven centroid-variant baselines + EDTs). market_data gets the
-  default-parameter results; user-parameterized variants are served on demand
-  by the same modules.
-- Staging is admin-layer only (schema v6): keys + OHLCV + centroid maps/ssa/
-  ema_ssa/crossing + zigzag pivots.
+MQL5 IS THE SINGLE SOURCE OF EVERY VALUE (2026-09-09). The 13 indicators export
+all 83 market_data data fields; this collector parses, validates, and forwards
+them unchanged. It calculates nothing.
+
+The former CALCULATE stage — a Python calc stack that recomputed the derived
+layer (centroid baselines/EDTs, fractal/resistance/support lines, zigzag
+metrics, the z-score body set) — is PARKED, not deleted. It lives in
+calculation-split-between-mt5-and-python-PENDING-PROJECT/ together with its
+certification harness and a document explaining the architecture, what it
+costs to be without it, and how to revive it.
+
 - HEADER-NAME-BASED PARSING: columns are located by header name, not position,
-  so the collector accepts BOTH the current full MQL5 exports (kept during the
-  golden-parity period) and the future reduced exports.
+  so a reordered or extended export cannot silently shift a column.
+- Staging holds every exported column, so PROMOTE is a straight copy onto the
+  OHLCV per-bar spine (absent value -> NULL, never a sentinel).
 
-Unchanged from v1: cycle states (collecting -> validating -> validated |
-rejected), key validation (timestamp_adj / symbol / timeframe / close with
+Unchanged: cycle states (collecting -> validating -> validated | rejected),
+key validation (timestamp_adj / symbol / timeframe / close with
 CLOSE_TOLERANCE), zigzag subset rule, market-hours gate (XAUUSD server hours
 with US-DST conversion to UTC), bounded reject -> re-request.
 
@@ -31,6 +33,7 @@ Mock mode:
 """
 
 import argparse
+import hashlib
 import json
 import logging
 import sqlite3
@@ -39,20 +42,6 @@ import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-
-# --- Python calc stack (CALCULATE stage) ---
-# Locate the calc modules whether they sit alongside this file (consolidated
-# v2_29_data_pipeline_architecture/) or in the sibling 2_python-calc-stack/.
-_HERE = Path(__file__).resolve().parent
-for _cand in (_HERE, _HERE.parents[1] / '2_python-calc-stack'):
-    if (_cand / 'centroid_regression.py').exists():
-        sys.path.insert(0, str(_cand))
-        break
-from zscore_candle import calculate as zscore_calculate                      # noqa: E402
-from zigzag_metrics import ZigZagPivot, segment_metrics                      # noqa: E402
-from fractal_lines import (FractalLinesParams, single_best_resistance,       # noqa: E402
-                           single_best_support, flip_line_with_edts)
-from centroid_regression import calculate_variant                            # noqa: E402
 
 # ============================================================
 # CONFIGURATION
@@ -73,15 +62,26 @@ SCHEMA_FILE = Path(__file__).with_name('sqlite_schema_v6_xauusd.sql')
 CENTROID_VARIANTS = ['best_fit_a', 'best_fit_b', 'cherry_a', 'cherry_b', 'most_recent', 'non_a', 'non_b']
 
 # ============================================================
-# SOURCE REGISTRY — v6 (admin-layer columns, located by header name)
+# SOURCE REGISTRY — every column each MQL5 indicator exports
 # ============================================================
 # 'columns': (sqlite/staging column, type, exact export header name)
+#
+# The header names below are the literal strings the .mq5 files write, which
+# are NOT uniform: the centroid line values are Title_Case (Base_FL/UOEDT/LOEDT)
+# while their admin columns are lower_snake, the zigzag metrics carry no source
+# prefix at all, and the export FILE prefix differs from the column prefix on
+# every source (file 'Centriod_Best_Fit_A_XAUUSD_M5.txt' holds 'Best_Fit_A_*'
+# columns). Verified against both the .mq5 source and real captured exports —
+# do not "tidy" these to match each other.
 def _centroid_columns(prefix: str):
     return [('horiz_high_map', 'real', f'{prefix}_horiz_high_map'),
             ('horiz_low_map', 'real', f'{prefix}_horiz_low_map'),
             ('ssa', 'real', f'{prefix}_ssa'),
             ('ema_ssa', 'real', f'{prefix}_ema_ssa'),
-            ('crossing', 'int', f'{prefix}_crossing')]
+            ('crossing', 'int', f'{prefix}_crossing'),
+            ('base_fl', 'real', f'{prefix}_Base_FL'),
+            ('uoedt', 'real', f'{prefix}_UOEDT'),
+            ('loedt', 'real', f'{prefix}_LOEDT')]
 
 
 SOURCES = {
@@ -99,30 +99,119 @@ SOURCES = {
                     'columns': _centroid_columns('Non_A')},
     'non_b':       {'prefix': 'Non-Recent-B', 'table': 'raw_non_b',
                     'columns': _centroid_columns('Non_B')},
-    'fractal_edt': {'prefix': 'Fractal_EDT', 'table': 'raw_fractal_edt', 'columns': []},
+    'fractal_edt': {'prefix': 'Fractal_EDT', 'table': 'raw_fractal_edt',
+                    'columns': [('best_fl', 'real', 'Fractal_Best_FL'),
+                                ('uoedt', 'real', 'Fractal_UOEDT'),
+                                ('loedt', 'real', 'Fractal_LOEDT')]},
     'ohlcv':       {'prefix': 'OHLCV', 'table': 'raw_ohlcv',
                     'columns': [('open', 'real', 'ohlcv_open'), ('high', 'real', 'ohlcv_high'),
                                 ('low', 'real', 'ohlcv_low'), ('volume', 'int', 'ohlcv_volume')]},
-    'resistance':  {'prefix': 'Resistance_Line', 'table': 'raw_resistance', 'columns': []},
-    'support':     {'prefix': 'Support_Line', 'table': 'raw_support', 'columns': []},
-    'zscore':      {'prefix': 'ZScore', 'table': 'raw_zscore', 'columns': []},
+    'resistance':  {'prefix': 'Resistance_Line', 'table': 'raw_resistance',
+                    'columns': [('best_resistance', 'real', 'Best_Resistance')]},
+    'support':     {'prefix': 'Support_Line', 'table': 'raw_support',
+                    'columns': [('best_support', 'real', 'Best_Support')]},
+    'zscore':      {'prefix': 'ZScore', 'table': 'raw_zscore',
+                    'columns': [('body_direction', 'int', 'body_direction'),
+                                ('body_size', 'real', 'body_size'),
+                                ('body_classification', 'int', 'body_classification')]},
     'zigzag':      {'prefix': 'ZigZag', 'table': 'raw_zigzag',
                     'columns': [('point_type', 'text', 'zigzag_Type'),
-                                ('current_point', 'real', 'CurrentPoint')]},
+                                ('current_point', 'real', 'CurrentPoint'),
+                                ('price_change', 'real', 'CurrentPrChg'),
+                                ('pct_change', 'real', 'Current%Chg'),
+                                ('pct_change_class', 'int', 'Current%ChgClass'),
+                                ('bars', 'int', 'CurrentBars'),
+                                ('bars_class', 'int', 'CurrentBarsClass'),
+                                ('price_per_bar', 'real', 'CurrentPrPerBar'),
+                                ('price_per_bar_class', 'int', 'CurrentPrPerBarClass'),
+                                ('slope', 'real', 'CurrentSlope'),
+                                ('category', 'text', 'CurrentCategory')]},
 }
 
 PER_BAR_SOURCES = [s for s in SOURCES if s != 'zigzag']
 
-# Price-level columns where 0.0 or <= 0.0 represents inactive/empty data, never a valid
-# market price (XAUUSD trades in the $2,000-$3,000+ range) — schema v6 mandates these be
-# stored as NULL, not 0 (sqlite_schema_v6_xauusd.sql). The endswith() suffixes catch the
-# derived `{variant}_base_fl` / `_uoedt` / `_loedt` centroid columns too.
+# Price-level columns where <= 0.0 means inactive/empty, never a valid market price
+# (XAUUSD trades in the $2,000-$3,000+ range) — schema v6 mandates these be stored as
+# NULL, not 0 (sqlite_schema_v6_xauusd.sql). MQL5 writes an inactive buffer as an empty
+# field OR as 0.0 depending on the indicator, so both must map to NULL.
+#
+# Deliberately EXCLUDED, because 0 is a legitimate value for them: `crossing` (0 = no
+# cross), `body_size` (|z| = 0 when a candle sits exactly on its mean), `body_direction`
+# (0 = doji), and every zigzag metric (`slope`, `price_change`, `pct_change`, ... are
+# routinely zero or negative).
 PRICE_LEVEL_COLUMNS = {
     'horiz_high_map', 'horiz_low_map', 'ssa', 'ema_ssa', 'current_point',
     'best_resistance', 'best_support', 'fractal_best_fl', 'fractal_uoedt',
     'fractal_loedt', 'base_fl', 'uoedt', 'loedt'
 }
 PRICE_LEVEL_SUFFIXES = ('_map', '_point', '_fl', '_edt', '_ssa', '_resistance', '_support')
+
+# ============================================================
+# STATISTIC FILES — the fit-quality snapshot beside each timeseries export
+# ============================================================
+# 10 of the 13 indicators also write `{prefix}_{SYMBOL}_{TF}_Statistic.txt`:
+# the 7 centroid variants plus fractal_edt / resistance / support. OHLCV,
+# ZigZag and ZScore do not (fully reproducible from their timeseries).
+#
+# Unlike the timeseries exports these are NOT per-bar — each file is a single
+# snapshot of the current fit. That is exactly why they are worth capturing:
+# stored per-bar values get refitted for ~3000 bars before they freeze, so
+# they are not point-in-time honest, whereas a snapshot read at export time
+# is. See STATISTIC-CAPTURE-SCOPE.md and
+# HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md.
+STAT_SOURCES = [s for s in SOURCES if s not in ('ohlcv', 'zigzag', 'zscore')]
+
+# (statistic-file label, section it appears in, staging column, type)
+# `section` is matched as a PREFIX because the files are written FILE_ANSI and
+# the em-dash in headers like "[FRACTAL BEST-FIT — PARAMETERS]" arrives
+# mangled; None means "any section".
+STAT_FIELDS = [
+    ('Raw Slope (b)',            None,            'raw_slope',        'real'),
+    ('Anchored Y-Int',           None,            'anchored_y_int',   'real'),
+    ('Regression Angle',         None,            'regression_angle', 'real'),
+    ('Solution Found',           None,            'solution_found',   'bool'),
+    ('Line Origin TS (UTC)',     None,            'line_origin_ts',   'int'),
+    ('Best FL Touches',          None,            'touches',          'int'),
+    ('Window Start TS (UTC)',    None,            'window_start_ts',  'int'),
+    ('Window End TS (UTC)',      None,            'window_end_ts',    'int'),
+    ('Observation Window (Box B Bars)', None,      'window_bars',      'int'),
+    ('Math Search Window (Bars)', None,           'math_lookback',    'int'),
+    ('Total 171 Crossings (n)',  None,            'crossings_n',      'int'),
+
+    ('Sample (n)',  '[MODEL A',   'model_a_n',         'int'),
+    ('R-Square',    '[MODEL A',   'model_a_r2',        'real'),
+    ('MSE',         '[MODEL A',   'model_a_mse',       'real'),
+    ('Var Ratio',   '[MODEL A',   'model_a_var_ratio', 'real'),
+    ('Skewness',    '[MODEL A',   'model_a_skew',      'real'),
+    ('Kurtosis',    '[MODEL A',   'model_a_kurt',      'real'),
+
+    ('Sample (n)',  '[MODEL B',   'model_b_n',         'int'),
+    ('R-Square',    '[MODEL B',   'model_b_r2',        'real'),
+    ('MSE',         '[MODEL B',   'model_b_mse',       'real'),
+    ('Var Ratio',   '[MODEL B',   'model_b_var_ratio', 'real'),
+    ('Skewness',    '[MODEL B',   'model_b_skew',      'real'),
+    ('Kurtosis',    '[MODEL B',   'model_b_kurt',      'real'),
+
+    ('UOEDT Offset',           '[EDT CHANNEL', 'uoedt_offset',      'real'),
+    ('LOEDT Offset',           '[EDT CHANNEL', 'loedt_offset',      'real'),
+    ('Containment Sample (n)', '[EDT CHANNEL', 'containment_n',     'int'),
+    ('Containment Count',      '[EDT CHANNEL', 'containment_count', 'int'),
+    ('Containment Rate',       '[EDT CHANNEL', 'containment_rate',  'real'),
+]
+
+# Labels captured as configuration rather than as measurements: they describe
+# HOW the indicator was set up, not what it found. Hashed and deduplicated
+# into indicator_configs, because they are compiled into the .mq5 and change
+# only on redeploy — a NEW hash appearing IS the "someone reconfigured this"
+# signal.
+STAT_CONFIG_LABELS = {
+    'Regression Centroids (Box B)', 'Excluded Recent Centroids (Box A)',
+    'Excluded Centroids', 'Time-Decay Lambda', 'Visual EDT Window (Bars)',
+    'Timeframe (Sec)', 'Fractal Bars', 'Min Touches', 'Require Both Sides',
+    'Max Line Angle', 'Tolerance Type', 'Tolerance Percent',
+    'Tolerance ATR Multiplier', 'EDT Min Touches', 'LOEDT Min Touches',
+    'UOEDT Min Touches', 'Extend To Current',
+}
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('export_collector')
@@ -179,17 +268,28 @@ def parse_export_file(path: Path, spec: dict, timeframe: str) -> List[dict]:
                 ts_raw = int(parts[0])
                 row = {
                     'timestamp_raw': ts_raw,
-                    # PLACEHOLDER grid (nearest tf). Adequate ONLY when every
-                    # source shares the same sub-bar phase (production: all 13
-                    # indicators export the same bar's iTime simultaneously).
-                    # Across heterogeneous exports the sources carry DIFFERENT
-                    # constant phases (observed %300: ohlcv 206, best_fit_a 4
-                    # [best_fit_b unmeasured — new 2026-09-03 variant],
-                    # cherry_a 240, cherry_b 288, …) which scrambles simple
-                    # gridding — bars align by SEQUENCE, not absolute rounding.
-                    # The dedicated raw->adjusted timestamp-conversion stack
-                    # (sequence/OHLCV-spine snap) must populate timestamp_adj
-                    # before cross-source close validation can pass on such data.
+                    # Defensive snap to the bar grid. Since the 2026-09-09 MQL5
+                    # fix this is a NO-OP on correct data: every indicator now
+                    # derives its GMT offset from TimeTradeServer() rounded to
+                    # the hour, so an exported timestamp is already exactly on
+                    # the grid and rounds to itself.
+                    #
+                    # It used to matter, and the history is worth keeping: the
+                    # indicators previously computed the offset as
+                    # `TimeCurrent() - TimeGMT()`. TimeCurrent() is the LAST
+                    # TICK's time, not the clock, so the offset silently
+                    # absorbed "seconds since the last tick" and stamped it on
+                    # every row of that file as a constant sub-bar phase
+                    # (observed %300 in the golden archive: ohlcv 206,
+                    # best_fit 4, cherry_a 240, cherry_b 288, fractal 189, ...).
+                    # Different sources exported at different moments, so the
+                    # same physical bar landed on different grid slots and
+                    # cross-source close validation could not pass. Fixed at
+                    # source in all 13 indicators, not worked around here.
+                    #
+                    # Kept as belt-and-braces: it costs nothing and still
+                    # protects the cycle if one indicator is ever redeployed
+                    # from an unfixed build.
                     'timestamp_adj': round(ts_raw / tf_sec) * tf_sec,
                     'symbol': parts[1].strip(),
                     'timeframe': parts[2].strip(),
@@ -220,11 +320,146 @@ def parse_export_file(path: Path, spec: dict, timeframe: str) -> List[dict]:
 # ============================================================
 # DATABASE
 # ============================================================
+def _stat_value(raw: str, typ: str):
+    """Coerce one statistic value. Empty means 'not resolved' -> None, never 0."""
+    raw = raw.strip()
+    if raw == '':
+        return None
+    try:
+        if typ == 'int':
+            return int(float(raw))
+        if typ == 'real':
+            return float(raw)
+        if typ == 'bool':
+            return 1 if raw.lower() == 'true' else 0
+    except ValueError:
+        return None
+    return raw
+
+
+def parse_statistic_file(path: Path) -> Optional[dict]:
+    """Parse one `_Statistic.txt` into {staging column: value} + config params.
+
+    Format is `Key: Value` lines grouped under `[SECTION]` headers. Four real
+    quirks in the actual files, all handled here:
+
+      1. Written FILE_ANSI, so the em-dash in a header arrives mangled — match
+         sections by PREFIX ('[MODEL A'), never by the full literal.
+      2. Keys contain digits, spaces and parentheses ('Total 171 Crossings (n)',
+         'Raw Slope (b)') — split on the FIRST ':' only.
+      3. 'Sample (n)', 'R-Square' etc. appear in BOTH model blocks, so a key is
+         only unique WITHIN a section — the parser must be section-aware.
+      4. A value can be empty ('UOEDT Offset: ') when the line did not resolve.
+    """
+    try:
+        text = path.read_text(encoding='utf-8', errors='replace')
+    except OSError as e:
+        logger.warning(f"{path.name}: unreadable ({e})")
+        return None
+
+    seen: Dict[Tuple[Optional[str], str], str] = {}
+    config: Dict[str, str] = {}
+    section = ''
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith('['):
+            section = line
+            continue
+        if ':' not in line:
+            continue
+        label, _, value = line.partition(':')
+        label, value = label.strip(), value.strip()
+        seen[(section, label)] = value
+        seen.setdefault((None, label), value)     # section-agnostic lookup
+        if label in STAT_CONFIG_LABELS:
+            config[label] = value
+
+    if not seen:
+        return None
+
+    row: dict = {}
+    for label, sect_prefix, col, typ in STAT_FIELDS:
+        if sect_prefix is None:
+            raw = seen.get((None, label))
+        else:
+            raw = next((v for (s, l), v in seen.items()
+                        if l == label and s is not None and s.startswith(sect_prefix)), None)
+        row[col] = _stat_value(raw, typ) if raw is not None else None
+
+    # Hash a canonical rendering, so reformatting or reordering the file can
+    # never masquerade as a configuration change.
+    canonical = json.dumps(config, sort_keys=True, separators=(',', ':'))
+    row['config_params'] = canonical
+    row['config_hash'] = hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+    return row
+
+
+def stage_statistics(conn, cycle_id: int, timeframe: str, export_dir: Path,
+                     cycle_time: int, live_bar_ts: Dict[str, int]) -> int:
+    """Stage one statistics snapshot per source for a VALIDATED cycle.
+
+    Best-effort by design: this is telemetry, and no failure here may reject a
+    cycle or disturb the market_data path. The caller wraps it accordingly.
+    """
+    staged = 0
+    for source in STAT_SOURCES:
+        path = export_dir / f"{SOURCES[source]['prefix']}_{SYMBOL}_{timeframe}_Statistic.txt"
+        if not path.exists():
+            continue
+        row = parse_statistic_file(path)
+        if row is None:
+            continue
+        row.update({'cycle_id': cycle_id, 'symbol': SYMBOL, 'timeframe': timeframe,
+                    'source': source, 'captured_at': cycle_time,
+                    'live_bar_ts': live_bar_ts.get(source, cycle_time)})
+        cols = list(row.keys())
+        conn.execute(
+            f"INSERT OR REPLACE INTO indicator_statistics ({', '.join(cols)}) "
+            f"VALUES ({', '.join('?' * len(cols))})", [row[c] for c in cols])
+        staged += 1
+    conn.commit()
+    return staged
+
+
+SQLITE_TYPE = {'real': 'REAL', 'int': 'INTEGER', 'text': 'TEXT'}
+
+
+def migrate_raw_tables(conn) -> int:
+    """Add any raw_* staging column present in SOURCES but missing from the DB.
+
+    The schema file uses CREATE TABLE IF NOT EXISTS, which silently does nothing
+    for a database that already exists — so a VPS carrying an older xauusd.db
+    would keep the old staging shape and quietly stage NULL for every new
+    column. This closes that gap: it reads the live shape with PRAGMA
+    table_info and ALTERs in whatever SOURCES says is missing.
+
+    Idempotent (a second run adds nothing), and driven by SOURCES itself so it
+    can never drift from the registry. Staging tables only — market_data is
+    never touched, so real history is never at risk.
+    """
+    added = 0
+    for source, spec in SOURCES.items():
+        existing = {r[1] for r in conn.execute(f"PRAGMA table_info({spec['table']})")}
+        if not existing:
+            continue                              # table absent; the schema file creates it
+        for col, typ, _ in spec['columns']:
+            if col not in existing:
+                conn.execute(f"ALTER TABLE {spec['table']} ADD COLUMN {col} {SQLITE_TYPE[typ]}")
+                logger.info(f"   schema migration: {spec['table']}.{col} {SQLITE_TYPE[typ]} added")
+                added += 1
+    if added:
+        conn.commit()
+    return added
+
+
 def open_db(db_path: str) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
     conn.executescript(SCHEMA_FILE.read_text())
+    migrate_raw_tables(conn)
     return conn
 
 
@@ -344,148 +579,70 @@ def validate_cycle(conn, cycle_id, timeframe, check_completeness=True) -> Tuple[
 
 
 # ============================================================
-# CALCULATE — Python calc stack on the staged admin-layer data
+# PROMOTE — staged MQL5 columns -> market_data
 # ============================================================
-def calculate_stage(conn, cycle_id: int, timeframe: str) -> Dict[int, dict]:
-    """Returns {timestamp_adj: {derived market_data columns}} for the cycle.
+# Sources merged onto the OHLCV per-bar spine. OHLCV is excluded because it IS
+# the spine (its columns are written directly).
+PROMOTE_SOURCES = [s for s in SOURCES if s != 'ohlcv']
 
-    Bar indexing: bars are addressed by timestamp_adj // TF_SECONDS — a global
-    monotonic per-bar counter, so bar DIFFERENCES are exact even across gaps.
+
+def market_data_column(source: str, staging_col: str) -> str:
+    """Staging column -> its market_data column name.
+
+    Derived from the source key rather than a hand-maintained list, so a column
+    added to SOURCES automatically reaches market_data under the right name.
     """
-    tf_sec = TF_SECONDS[timeframe]
-    derived: Dict[int, dict] = {}
-
-    ohlcv = conn.execute(
-        f"SELECT timestamp_adj, open, high, low, close FROM raw_ohlcv "
-        f"WHERE cycle_id = ? ORDER BY timestamp_adj", (cycle_id,)).fetchall()
-    if not ohlcv:
-        return derived
-    ts_list = [r[0] for r in ohlcv]
-    opens = [r[1] for r in ohlcv]
-    highs = [r[2] for r in ohlcv]
-    lows = [r[3] for r in ohlcv]
-    closes = [r[4] for r in ohlcv]
-    ts_to_idx = {ts: i for i, ts in enumerate(ts_list)}
-    for ts in ts_list:
-        derived[ts] = {}
-
-    # --- 1. Z-Score candle set (zscore_candle.py) ---
-    for ts, res in zip(ts_list, zscore_calculate(opens, closes)):
-        derived[ts]['body_direction'] = res.body_direction
-        derived[ts]['body_size'] = res.body_size_export        # |z| per export convention
-        derived[ts]['body_classification'] = res.classification
-
-    # --- 2. ZigZag segment metrics (zigzag_metrics.py) ---
-    pivots_rows = conn.execute(
-        f"SELECT timestamp_adj, point_type, current_point FROM raw_zigzag "
-        f"WHERE cycle_id = ? AND current_point IS NOT NULL AND current_point > 0.0 "
-        f"ORDER BY timestamp_adj DESC",
-        (cycle_id,)).fetchall()
-    pivots = [ZigZagPivot(bar=ts // tf_sec, price=pt, is_peak=(typ == 'Peak'), timestamp=ts)
-              for ts, typ, pt in pivots_rows]     # newest-first
-    for idx, pv in enumerate(pivots):
-        if idx + 2 >= len(pivots):
-            break                                  # needs prev + twoPrev
-        m = segment_metrics(pivots, idx)
-        d = derived.setdefault(pv.timestamp, {})
-        d.update({'zigzag_price_change': m.price_change, 'zigzag_pct_change': m.pct_change,
-                  'zigzag_pct_change_class': m.pct_change_class, 'zigzag_bars': m.bars,
-                  'zigzag_bars_class': m.bars_class, 'zigzag_price_per_bar': m.price_per_bar,
-                  'zigzag_price_per_bar_class': m.price_per_bar_class,
-                  'zigzag_slope': m.slope, 'zigzag_category': m.category})
-
-    # --- 3. Fractal / resistance / support lines (fractal_lines.py) ---
-    p_single = FractalLinesParams(fractal_bars=13, min_touches=2)
-    p_flip = FractalLinesParams(fractal_bars=35, min_touches=3)
-    res_line = single_best_resistance(highs, p_single)
-    sup_line = single_best_support(lows, p_single)
-    flip = flip_line_with_edts(highs, lows, p_flip)
-    for ts in ts_list:
-        i = ts_to_idx[ts]
-        if res_line and i >= res_line.bar_start:
-            derived[ts]['best_resistance'] = res_line.price_at(i)
-        if sup_line and i >= sup_line.bar_start:
-            derived[ts]['best_support'] = sup_line.price_at(i)
-        if flip and i >= flip.base.bar_start:
-            derived[ts]['fractal_best_fl'] = flip.base.price_at(i)
-            derived[ts]['fractal_uoedt'] = flip.uoedt_at(i)
-            derived[ts]['fractal_loedt'] = flip.loedt_at(i)
-
-    # --- 4. Centroid variants (centroid_regression.py, one engine) ---
-    for variant in CENTROID_VARIANTS:
-        rows = conn.execute(
-            f"SELECT timestamp_adj, ssa, crossing FROM {SOURCES[variant]['table']} "
-            f"WHERE cycle_id = ? ORDER BY timestamp_adj", (cycle_id,)).fetchall()
-        # Crossing price = the SSA value on the crossing bar (the MQL5 cross
-        # buffer holds the SSA price at the cross; confirm at golden cutover).
-        crossings = [(ts_to_idx[ts], ssa) for ts, ssa, crossing in rows
-                     if crossing == 1 and ssa is not None and ssa > 0.0 and ts in ts_to_idx]
-        if not crossings:
-            continue
-        r = calculate_variant(variant, crossings, closes, highs, lows)
-        if r is None:
-            continue
-        for ts in ts_list:
-            i = ts_to_idx[ts]
-            if r.leftmost <= i:                    # baseline extended to live bar
-                derived[ts][f'{variant}_base_fl'] = r.baseline_at(i)
-                derived[ts][f'{variant}_uoedt'] = r.uoedt_at(i)
-                derived[ts][f'{variant}_loedt'] = r.loedt_at(i)
-
-    return derived
+    if source in CENTROID_VARIANTS:
+        return f'{source}_{staging_col}'          # ssa -> non_a_ssa, base_fl -> non_a_base_fl
+    if source == 'fractal_edt':
+        return f'fractal_{staging_col}'           # best_fl -> fractal_best_fl
+    if source == 'zigzag':
+        return f'zigzag_{staging_col}'            # slope -> zigzag_slope
+    return staging_col                            # resistance/support/zscore already canonical
 
 
-# ============================================================
-# PROMOTE — admin layer + calculated values -> market_data
-# ============================================================
-ADMIN_CENTROID_COLS = ['horiz_high_map', 'horiz_low_map', 'ssa', 'ema_ssa', 'crossing']
+def promote_cycle(conn, cycle_id: int, timeframe: str) -> int:
+    """Merge every staged source onto the OHLCV spine, one market_data row per bar.
 
-DERIVED_COLS = (['body_direction', 'body_size', 'body_classification',
-                 'best_resistance', 'best_support',
-                 'fractal_best_fl', 'fractal_uoedt', 'fractal_loedt',
-                 'zigzag_price_change', 'zigzag_pct_change', 'zigzag_pct_change_class',
-                 'zigzag_bars', 'zigzag_bars_class', 'zigzag_price_per_bar',
-                 'zigzag_price_per_bar_class', 'zigzag_slope', 'zigzag_category']
-                + [f'{v}_{c}' for v in CENTROID_VARIANTS
-                   for c in ('base_fl', 'uoedt', 'loedt')])
-
-
-def promote_cycle(conn, cycle_id: int, timeframe: str, derived: Dict[int, dict]) -> int:
+    LEFT-JOIN semantics: a bar missing from a source simply leaves that source's
+    columns NULL — the cycle already passed cross-source key validation, so a gap
+    here means the indicator had no value for that bar, not that data is missing.
+    """
     ohlcv = conn.execute(
         f"SELECT timestamp_adj, open, high, low, close, volume FROM raw_ohlcv "
         f"WHERE cycle_id = ? ORDER BY timestamp_adj", (cycle_id,)).fetchall()
     if not ohlcv:
         return 0
 
-    admin: Dict[str, Dict[int, tuple]] = {}
-    for v in CENTROID_VARIANTS:
+    # {source: (staging column names, {timestamp_adj: value tuple})}
+    staged: Dict[str, Tuple[List[str], Dict[int, tuple]]] = {}
+    for src in PROMOTE_SOURCES:
+        cols = [c for c, _, _ in SOURCES[src]['columns']]
+        if not cols:
+            continue
         cur = conn.execute(
-            f"SELECT timestamp_adj, {', '.join(ADMIN_CENTROID_COLS)} "
-            f"FROM {SOURCES[v]['table']} WHERE cycle_id = ?", (cycle_id,))
-        admin[v] = {r[0]: r[1:] for r in cur}
-    zz = {r[0]: (r[1], r[2]) for r in conn.execute(
-        f"SELECT timestamp_adj, point_type, current_point FROM raw_zigzag "
-        f"WHERE cycle_id = ?", (cycle_id,))}
+            f"SELECT timestamp_adj, {', '.join(cols)} FROM {SOURCES[src]['table']} "
+            f"WHERE cycle_id = ?", (cycle_id,))
+        staged[src] = (cols, {r[0]: r[1:] for r in cur})
 
     now = int(time.time())
     promoted = 0
     for ts, o, h, l, c, vol in ohlcv:
         rec = {'timestamp': ts, 'symbol': SYMBOL, 'timeframe': timeframe,
                'open': o, 'high': h, 'low': l, 'close': c, 'volume': vol,
+               # calculated_at is legacy: it marked the old Python CALCULATE
+               # stage. With MQL5 as the single source there is no separate
+               # calculation step, so it equals collected_at (promote time).
                'cycle_id': cycle_id, 'collected_at': now, 'calculated_at': now}
-        for v in CENTROID_VARIANTS:
-            vals = admin[v].get(ts)
-            for i, col in enumerate(ADMIN_CENTROID_COLS):
-                rec[f'{v}_{col}'] = vals[i] if vals else None
-        rec['zigzag_point_type'], rec['zigzag_current_point'] = zz.get(ts, (None, None))
-        d = derived.get(ts, {})
-        for col in DERIVED_COLS:
-            rec[col] = d.get(col)
+        for src, (cols, by_ts) in staged.items():
+            vals = by_ts.get(ts)
+            for i, col in enumerate(cols):
+                rec[market_data_column(src, col)] = vals[i] if vals else None
 
-        cols = list(rec.keys())
+        cols_out = list(rec.keys())
         conn.execute(
-            f"INSERT OR REPLACE INTO market_data ({', '.join(cols)}) "
-            f"VALUES ({', '.join('?' * len(cols))})", [rec[k] for k in cols])
+            f"INSERT OR REPLACE INTO market_data ({', '.join(cols_out)}) "
+            f"VALUES ({', '.join('?' * len(cols_out))})", [rec[k] for k in cols_out])
         promoted += 1
     conn.commit()
     return promoted
@@ -527,12 +684,30 @@ def run_cycle(conn, export_dir: Path, timeframe: str, cycle_time: int,
         set_cycle_status(conn, cycle_id, 'rejected', sources_received, reason)
         return False
 
-    derived = calculate_stage(conn, cycle_id, timeframe)
-    n_derived = sum(1 for d in derived.values() if d)
-    promoted = promote_cycle(conn, cycle_id, timeframe, derived)
+    promoted = promote_cycle(conn, cycle_id, timeframe)
     set_cycle_status(conn, cycle_id, 'validated', sources_received)
-    logger.info(f"✅ Cycle {cycle_id} validated — {promoted} bars promoted "
-                f"({n_derived} bars carry calculated values)")
+    logger.info(f"✅ Cycle {cycle_id} validated — {promoted} bars promoted")
+
+    # Statistics capture. Deliberately AFTER the cycle is marked validated and
+    # wrapped so it cannot affect the outcome: these snapshots are valuable
+    # telemetry, but price data is load-bearing and statistics must never be
+    # able to reject a cycle or block the market_data outbox.
+    try:
+        live_bar_ts = {
+            s: r[0] for s, r in (
+                (s, conn.execute(
+                    f"SELECT MAX(timestamp_adj) FROM {SOURCES[s]['table']} WHERE cycle_id = ?",
+                    (cycle_id,)).fetchone())
+                for s in STAT_SOURCES)
+            if r and r[0] is not None
+        }
+        n_stats = stage_statistics(conn, cycle_id, timeframe, export_dir,
+                                   cycle_time, live_bar_ts)
+        if n_stats:
+            logger.info(f"   statistics    {n_stats:>5} snapshots staged")
+    except Exception as e:                                     # noqa: BLE001
+        logger.warning(f"statistics capture skipped for cycle {cycle_id}: {e}")
+
     return True
 
 
@@ -555,7 +730,7 @@ def run_cycle_with_retries(conn, export_dir, timeframe, cycle_time,
 # MAIN
 # ============================================================
 def main():
-    ap = argparse.ArgumentParser(description='v6 export collector + validator + calculator (XAUUSD)')
+    ap = argparse.ArgumentParser(description='v6 export collector + validator (XAUUSD)')
     ap.add_argument('--export-dir', default=DEFAULT_EXPORT_DIR)
     ap.add_argument('--db', default=DEFAULT_DB_PATH)
     ap.add_argument('--timeframes', default='M5,M15')

@@ -202,7 +202,14 @@ void ExportData()
       maxShift = InpMaxBarsExport - 1;
       
    // FIX 3: Compute broker-to-UTC offset once before the loop
-   datetime gmt_offset = TimeCurrent() - TimeGMT();
+   // Broker->UTC offset. MUST NOT use TimeCurrent(): it returns the LAST TICK's
+   // time, so on a quiet market this absorbs "seconds since the last tick" and
+   // stamps it on EVERY exported row as a constant sub-bar phase, which breaks
+   // cross-source bar alignment in the collector. TimeTradeServer() advances
+   // with the clock; rounding to the hour removes any residue (broker offsets
+   // are always whole hours).  [fixed 2026-09-09]
+   long _srv_off = (long)TimeTradeServer() - (long)TimeGMT();
+   datetime gmt_offset = (datetime)((long)MathRound(_srv_off / 3600.0) * 3600);
    
    // FIX 5: Loop oldest first (i = bar shift; bars-1 = oldest, 0 = newest)
    int bars = maxShift + 1;

@@ -505,7 +505,14 @@ bool ExportToTxt(const string symbol,
    write_success &= FileWrite(file_handle, "ohlcv_timestamp\tohlcv_symbol\tohlcv_timeframe\tohlcv_close\tohlcv_open\tohlcv_high\tohlcv_low\tohlcv_volume") > 0;
    
    // Write data rows
-   datetime gmt_offset = TimeCurrent() - TimeGMT();
+   // Broker->UTC offset. MUST NOT use TimeCurrent(): it returns the LAST TICK's
+   // time, so on a quiet market this absorbs "seconds since the last tick" and
+   // stamps it on EVERY exported row as a constant sub-bar phase, which breaks
+   // cross-source bar alignment in the collector. TimeTradeServer() advances
+   // with the clock; rounding to the hour removes any residue (broker offsets
+   // are always whole hours).  [fixed 2026-09-09]
+   long _srv_off = (long)TimeTradeServer() - (long)TimeGMT();
+   datetime gmt_offset = (datetime)((long)MathRound(_srv_off / 3600.0) * 3600);
    for(int i = bars_count-1; i >= 0; i--)
    {
       string line = StringFormat("%I64d\t%s\t%s\t%.5f\t%.5f\t%.5f\t%.5f\t%d",

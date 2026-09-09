@@ -432,7 +432,9 @@ void BuildBestFlipLine(const int rates_total)
       }
 
       // --- Capture statistics for the companion stat-export file ---
-      datetime gmt_off = TimeCurrent() - TimeGMT();
+      // See ExportSingleFLData() for why TimeCurrent() must not be used here.
+      long _srv_off = (long)TimeTradeServer() - (long)TimeGMT();
+      datetime gmt_off = (datetime)((long)MathRound(_srv_off / 3600.0) * 3600);
       int line_start_i = rates_total - 1 - BestLine.bar_start;   // buffer index of line origin
       if(line_start_i < 0) line_start_i = 0;
       if(line_start_i > start_idx) line_start_i = start_idx;
@@ -525,7 +527,14 @@ bool ExportSingleFLData()
         write_success &= FileWrite(file_handle, header) > 0;
     }
 
-    datetime gmt_offset = TimeCurrent() - TimeGMT();
+    // Broker->UTC offset. MUST NOT use TimeCurrent(): it returns the LAST TICK's
+    // time, so on a quiet market this absorbs "seconds since the last tick" and
+    // stamps it on EVERY exported row as a constant sub-bar phase, which breaks
+    // cross-source bar alignment in the collector. TimeTradeServer() advances
+    // with the clock; rounding to the hour removes any residue (broker offsets
+    // are always whole hours).  [fixed 2026-09-09]
+    long _srv_off = (long)TimeTradeServer() - (long)TimeGMT();
+    datetime gmt_offset = (datetime)((long)MathRound(_srv_off / 3600.0) * 3600);
     
     int export_start_idx = iBarShift(symbol, timeframe, InpStartDateTime, false);
     int export_end_idx   = iBarShift(symbol, timeframe, InpEndDateTime, false);
@@ -564,6 +573,92 @@ bool ExportSingleFLData()
 //| golden certification can reproduce the fit without the MQL5      |
 //| inputs (anchors + parameters are not present in the timeseries). |
 //+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
+//| MODEL B (close price) residual statistics + EDT containment.      |
+//|                                                                   |
+//| Computed exactly as the 2EDTCentroidRegression* indicators compute|
+//| their [MODEL B; CLOSE PRICE] block, so every statistic file in the|
+//| stack is directly comparable.                                     |
+//|                                                                   |
+//| These are properties of the RESIDUALS, so they are valid for any  |
+//| resolved line — the line does NOT have to have been produced by   |
+//| least squares. Note that R2 here scores a fractal-TOUCH line      |
+//| against CLOSE prices it was never fitted to, so a low or negative |
+//| value is expected and is not by itself a fault. Containment       |
+//| Rate is the more direct measure of whether the channel is doing   |
+//| its job.                                                          |
+//|                                                                   |
+//| [added 2026-09-09 — EDT Quality Metrics Suite]                    |
+//+------------------------------------------------------------------+
+void ComputeFractalCloseStats(int &n_out, double &r2, double &mse, double &var_ratio,
+                              double &skew, double &kurt, int &edt_n, int &edt_in)
+  {
+   n_out = 0; r2 = 0.0; mse = 0.0; var_ratio = 1.0; skew = 0.0; kurt = 0.0;
+   edt_n = 0; edt_in = 0;
+
+   int cap = ArraySize(ExtBestFL);
+   if(cap <= 0) return;
+
+   double res[]; ArrayResize(res, cap);
+   double cls[]; ArrayResize(cls, cap);
+   int n = 0;
+
+   // ExtBestFL is series-indexed (0 = newest), so walk DOWN to collect the
+   // residuals in CHRONOLOGICAL order — Var Ratio below compares the early
+   // half against the late half and depends on that ordering.
+   for(int i = cap - 1; i >= 0; i--)
+     {
+      if(ExtBestFL[i] == EMPTY_VALUE || ExtBestFL[i] == 0.0) continue;
+      double c = iClose(_Symbol, _Period, i);
+      if(c <= 0.0) continue;
+
+      res[n] = c - ExtBestFL[i];
+      cls[n] = c;
+      n++;
+
+      if(ExtUOEDT[i] != EMPTY_VALUE && ExtUOEDT[i] != 0.0 &&
+         ExtLOEDT[i] != EMPTY_VALUE && ExtLOEDT[i] != 0.0)
+        {
+         edt_n++;
+         if(c <= ExtUOEDT[i] && c >= ExtLOEDT[i]) edt_in++;
+        }
+     }
+   if(n <= 1) return;
+   n_out = n;
+
+   double mean_e = 0.0, mean_c = 0.0;
+   for(int i = 0; i < n; i++) { mean_e += res[i]; mean_c += cls[i]; }
+   mean_e /= n; mean_c /= n;
+
+   double m2 = 0.0, var = 0.0, m3 = 0.0, m4 = 0.0, tot_sq = 0.0;
+   for(int i = 0; i < n; i++)
+     {
+      double dev = res[i] - mean_e;
+      m2     += MathPow(res[i], 2);
+      var    += MathPow(dev, 2);
+      m3     += MathPow(dev, 3);
+      m4     += MathPow(dev, 4);
+      tot_sq += MathPow(cls[i] - mean_c, 2);
+     }
+   m2 /= n; var /= n; m3 /= n; m4 /= n;
+   mse = m2;
+   if(tot_sq != 0.0) r2 = 1.0 - ((m2 * n) / tot_sq);
+   if(var > 0.0) { skew = m3 / MathPow(var, 1.5); kurt = m4 / MathPow(var, 2.0); }
+
+   int half = n / 2;
+   if(half > 1)
+     {
+      double mt1 = 0.0, mt2 = 0.0, vt1 = 0.0, vt2 = 0.0;
+      for(int i = 0;    i < half; i++) mt1 += res[i];
+      for(int i = half; i < n;    i++) mt2 += res[i];
+      mt1 /= half; mt2 /= (n - half);
+      for(int i = 0;    i < half; i++) vt1 += MathPow(res[i] - mt1, 2);
+      for(int i = half; i < n;    i++) vt2 += MathPow(res[i] - mt2, 2);
+      vt1 /= (half - 1); vt2 /= (n - half - 1);
+      if(vt1 > 0.0) var_ratio = vt2 / vt1;
+     }
+  }
+
 void WriteFractalStatFile(string clean_symbol, string tf_str)
   {
    string filename = StringFormat("%s_%s_%s_Statistic.txt", InpExportFileName, clean_symbol, tf_str);
@@ -591,6 +686,31 @@ void WriteFractalStatFile(string clean_symbol, string tf_str)
    FileWrite(fh, "Anchored Y-Int: "        + DoubleToString(g_stat_intercept_anchored, 5));
    FileWrite(fh, "UOEDT Offset: "          + (g_stat_uoedt_offset == EMPTY_VALUE ? "" : DoubleToString(g_stat_uoedt_offset, 5)));
    FileWrite(fh, "LOEDT Offset: "          + (g_stat_loedt_offset == EMPTY_VALUE ? "" : DoubleToString(g_stat_loedt_offset, 5)));
+   FileWrite(fh, "");
+
+   // ---- Residual statistics + channel containment [added 2026-09-09] -----
+   int    mb_n = 0, edt_n = 0, edt_in = 0;
+   double mb_r2 = 0.0, mb_mse = 0.0, mb_var = 1.0, mb_skew = 0.0, mb_kurt = 0.0;
+   ComputeFractalCloseStats(mb_n, mb_r2, mb_mse, mb_var, mb_skew, mb_kurt, edt_n, edt_in);
+
+   FileWrite(fh, "[MODEL B; CLOSE PRICE]");
+   FileWrite(fh, "Sample (n): "   + IntegerToString(mb_n));
+   FileWrite(fh, "R-Square: "     + DoubleToString(mb_r2, 4));
+   FileWrite(fh, "MSE: "          + DoubleToString(mb_mse, 4));
+   FileWrite(fh, "Var Ratio: "    + DoubleToString(mb_var, 2));
+   FileWrite(fh, "Skewness: "     + DoubleToString(mb_skew, 2));
+   FileWrite(fh, "Kurtosis: "     + DoubleToString(mb_kurt, 2));
+   FileWrite(fh, "");
+
+   // The offsets are repeated here so a consumer can read this one block and
+   // have the whole channel; the copies above are kept for compatibility with
+   // anything already parsing the RESOLVED LINE section.
+   FileWrite(fh, "[EDT CHANNEL]");
+   FileWrite(fh, "UOEDT Offset: "           + (g_stat_uoedt_offset == EMPTY_VALUE ? "" : DoubleToString(g_stat_uoedt_offset, 5)));
+   FileWrite(fh, "LOEDT Offset: "           + (g_stat_loedt_offset == EMPTY_VALUE ? "" : DoubleToString(g_stat_loedt_offset, 5)));
+   FileWrite(fh, "Containment Sample (n): " + IntegerToString(edt_n));
+   FileWrite(fh, "Containment Count: "      + IntegerToString(edt_in));
+   FileWrite(fh, "Containment Rate: "       + (edt_n > 0 ? DoubleToString(100.0 * edt_in / edt_n, 2) : ""));
 
    FileClose(fh);
    Print("Statistic exported to: ", filename);

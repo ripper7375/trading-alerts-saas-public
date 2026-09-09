@@ -9,9 +9,9 @@ v5 redesign (from v4):
   on 200/201 — market_data is a permanent store, rows are NEVER deleted.
 - Scope: XAUUSD only, M5/M15 (the v6 pipeline scope).
 - Rows are produced by export_collector_validator_v2.py
-  (COLLECT -> ADJUST -> VALIDATE -> CALCULATE -> PROMOTE); every pushed row
-  has passed cross-source validation and carries the Python-calculated
-  derived columns (see backend-stack-c/2_python-calc-stack/).
+  (COLLECT -> ADJUST -> VALIDATE -> PROMOTE); every pushed row has passed
+  cross-source validation. Every value in it was computed and exported by the
+  MQL5 indicators — nothing downstream of MT5 recalculates anything.
 - 400 rejections are quarantined to rejected_rows.jsonl AND stamped synced_at
   (with a log marker) so a poison row cannot block the outbox; the JSONL
   preserves it for replay after a gateway fix.
@@ -170,6 +170,98 @@ def verify_schema_contract(conn) -> bool:
     return True
 
 
+STAT_COLUMNS = [
+    'symbol', 'timeframe', 'source', 'captured_at', 'live_bar_ts', 'cycle_id',
+    'solution_found', 'raw_slope', 'anchored_y_int', 'regression_angle',
+    'line_origin_ts', 'touches', 'window_start_ts', 'window_end_ts',
+    'window_bars', 'math_lookback', 'crossings_n',
+    'model_a_n', 'model_a_r2', 'model_a_mse', 'model_a_var_ratio',
+    'model_a_skew', 'model_a_kurt',
+    'model_b_n', 'model_b_r2', 'model_b_mse', 'model_b_var_ratio',
+    'model_b_skew', 'model_b_kurt',
+    'uoedt_offset', 'loedt_offset', 'containment_n', 'containment_count',
+    'containment_rate', 'config_hash', 'config_params',
+]
+STAT_MAX_ROWS_PER_CYCLE = 200          # a cycle produces at most 20 (10 sources x 2 TF)
+REJECTED_STATS_FILE = DB_PATH.parent / 'rejected_statistics.jsonl'
+
+
+def push_statistics(session: requests.Session, conn) -> int:
+    """Drain the append-only statistics outbox to the gateway. Best-effort.
+
+    Deliberately isolated from the market_data drain: its own table, its own
+    endpoint, its own quarantine file, and every exception swallowed here. This
+    is telemetry — valuable, but it must never be able to delay or fail price
+    ingestion. The caller treats a return of 0 as "nothing to do", never as a
+    reason to back off the market_data loop.
+
+    BATCHED, unlike market_data's one-POST-per-row: a cycle yields at most 20
+    small rows, so a single request is both cheaper and a low-risk place to
+    prove the batching pattern before considering it for market_data (see
+    PUSH-WORKER-THROUGHPUT-OPEN-ISSUE.md).
+    """
+    try:
+        rows = conn.execute(
+            f"SELECT {', '.join(STAT_COLUMNS)} FROM indicator_statistics "
+            f"WHERE synced_at IS NULL ORDER BY captured_at ASC LIMIT ?",
+            (STAT_MAX_ROWS_PER_CYCLE,)).fetchall()
+        if not rows:
+            return 0
+
+        payload = []
+        for r in rows:
+            item = dict(zip(STAT_COLUMNS, r))
+            item['terminal_id'] = TERMINAL_ID
+            # SQLite has no boolean type; the contract expects one.
+            if item['solution_found'] is not None:
+                item['solution_found'] = bool(item['solution_found'])
+            # config_params is stored as a JSON string, sent as an object.
+            item['config_params'] = json.loads(item['config_params'])
+            payload.append(item)
+
+        resp = session.post(f'{API_GATEWAY_URL}/api/v1/indicator-statistics',
+                            json=payload, timeout=HTTP_TIMEOUT_SEC)
+
+        if resp.status_code in (200, 201):
+            now = int(time.time())
+            conn.executemany(
+                "UPDATE indicator_statistics SET synced_at = ? "
+                "WHERE symbol = ? AND timeframe = ? AND source = ? AND captured_at = ?",
+                [(now, i['symbol'], i['timeframe'], i['source'], i['captured_at'])
+                 for i in payload])
+            conn.commit()
+            logger.info(f"📊 Pushed {len(payload)} statistic snapshot(s)")
+            return len(payload)
+
+        if resp.status_code == 400:
+            # Poison-batch guard, mirroring the market_data path: quarantine and
+            # stamp synced_at so one bad snapshot cannot wedge the outbox.
+            try:
+                with open(REJECTED_STATS_FILE, 'a', encoding='utf-8') as f:
+                    for i in payload:
+                        f.write(json.dumps({'quarantined_at': datetime.now().isoformat(),
+                                            'gateway_error': resp.text[:500],
+                                            'row': i}, default=str) + '\n')
+            except OSError as e:
+                logger.error(f"❌ Failed to quarantine rejected statistics: {e}")
+            now = int(time.time())
+            conn.executemany(
+                "UPDATE indicator_statistics SET synced_at = ? "
+                "WHERE symbol = ? AND timeframe = ? AND source = ? AND captured_at = ?",
+                [(now, i['symbol'], i['timeframe'], i['source'], i['captured_at'])
+                 for i in payload])
+            conn.commit()
+            logger.warning(f"⚠️ Gateway rejected {len(payload)} statistic(s) — quarantined")
+            return 0
+
+        logger.warning(f"⚠️ Statistics push got HTTP {resp.status_code} — will retry")
+        return 0
+    except Exception as e:                                      # noqa: BLE001
+        # Never propagate: the market_data drain must be unaffected.
+        logger.warning(f"⚠️ Statistics push skipped: {e}")
+        return 0
+
+
 def quarantine_row(data: dict, error_msg: str) -> None:
     try:
         with open(REJECTED_ROWS_FILE, 'a', encoding='utf-8') as f:
@@ -298,6 +390,9 @@ def main():
 
             if backlog == 0:
                 logger.info("✅ Outbox empty — all market_data rows synced")
+                # Statistics still drain on an idle cycle — they are low volume
+                # and this is the least contended moment to send them.
+                push_statistics(session, conn)
                 conn.close()
                 consecutive_failures = 0
                 if iteration % HEALTH_CHECK_INTERVAL == 0:
@@ -307,6 +402,10 @@ def main():
 
             logger.info(f"📋 {backlog} unsynced rows — pushing (≤{MAX_ROWS_PER_CYCLE}/cycle)")
             pushed, quarantined, rate_limited = push_batch(session, conn)
+            # Statistics go AFTER market_data every cycle: price data has
+            # priority for the connection, and push_statistics() swallows its
+            # own failures so it cannot influence the backoff decision below.
+            push_statistics(session, conn)
             conn.close()
 
             if pushed or quarantined:

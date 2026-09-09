@@ -5,7 +5,7 @@ REM ----------------------------------------------------------------------------
 REM Installs the two long-running Python services of the v6 export-collection
 REM pipeline as auto-restarting NSSM services:
 REM   MT5Relay      — mt5_api_relay_for_v2_29.py      (legacy socket relay; optional)
-REM   MT5Collector  — export_collector_validator_v2.py (collect->validate->calculate->promote)
+REM   MT5Collector  — export_collector_validator_v2.py (collect->validate->promote)
 REM   MT5PushWorker — backfill_worker_api_gateway_v5.py (market_data -> API gateway)
 REM
 REM The 13 MQL5 indicators + the EA are NOT services; they run inside the MT5
@@ -69,10 +69,10 @@ echo.
 echo Done. Verify with:  nssm status MT5Collector ^& nssm status MT5PushWorker
 echo Tail logs in:        %LOGS%
 echo.
-echo NOTE: the collector imports the 4 calc modules (zscore_candle.py,
-echo zigzag_metrics.py, fractal_lines.py, centroid_regression.py). Keep them
-echo alongside export_collector_validator_v2.py (or in a sibling
-echo 2_python-calc-stack\ folder) and sqlite_schema_v6_xauusd.sql in the same
-echo dir as the collector.
+echo NOTE: the collector needs only sqlite_schema_v6_xauusd.sql beside it. It has
+echo no other local dependency — MQL5 is the single source of every value and the
+echo collector calculates nothing. (The former Python calc stack is parked in
+echo calculation-split-between-mt5-and-python-PENDING-PROJECT\ and must NOT be
+echo deployed to the VPS.)
 
 endlocal

@@ -19,7 +19,7 @@ from zigzag_metrics import (ZigZagPivot, ZigZagMetricsParams, segment_metrics,
                             pct_change_class)
 from zscore_candle import ZScoreCandleParams, calculate
 
-MOCK_DIR = Path(__file__).resolve().parents[2] / 'mock-data-from-indicators' / 'time_series_data'
+MOCK_DIR = Path(__file__).resolve().parents[4] / 'mock-data-from-indicators' / 'time_series_data'
 PASSED = []
 FAILED = []
 

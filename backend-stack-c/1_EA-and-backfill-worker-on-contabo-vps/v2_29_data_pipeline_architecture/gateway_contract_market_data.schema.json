@@ -14,7 +14,9 @@
     "high",
     "low",
     "close",
-    "volume"
+    "volume",
+    "cycle_id",
+    "collected_at"
   ],
   "properties": {
     "terminal_id": {
@@ -174,12 +176,12 @@
     },
 
     "cycle_id": {
-      "type": ["integer", "null"],
-      "description": "provenance: collection_cycles.cycle_id"
+      "type": "integer",
+      "description": "provenance: collection_cycles.cycle_id. Always populated by promote_cycle() for every promoted row (matches sqlite_schema_v6_xauusd.sql's market_data.cycle_id NOT NULL) — required, never null."
     },
     "collected_at": {
-      "type": ["integer", "null"],
-      "description": "provenance: promote time (unix)"
+      "type": "integer",
+      "description": "provenance: promote time (unix). Always populated by promote_cycle() for every promoted row (matches sqlite_schema_v6_xauusd.sql's market_data.collected_at NOT NULL) — required, never null."
     },
     "calculated_at": {
       "type": ["integer", "null"],

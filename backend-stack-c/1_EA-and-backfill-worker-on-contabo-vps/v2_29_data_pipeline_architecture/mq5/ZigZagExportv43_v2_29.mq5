@@ -426,7 +426,14 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
       return true; // Not enough points to structure (need at least i, i+1, i+2)
      }
 
-   datetime gmt_offset = TimeCurrent() - TimeGMT();
+   // Broker->UTC offset. MUST NOT use TimeCurrent(): it returns the LAST TICK's
+   // time, so on a quiet market this absorbs "seconds since the last tick" and
+   // stamps it on EVERY exported row as a constant sub-bar phase, which breaks
+   // cross-source bar alignment in the collector. TimeTradeServer() advances
+   // with the clock; rounding to the hour removes any residue (broker offsets
+   // are always whole hours).  [fixed 2026-09-09]
+   long _srv_off = (long)TimeTradeServer() - (long)TimeGMT();
+   datetime gmt_offset = (datetime)((long)MathRound(_srv_off / 3600.0) * 3600);
    int currentChartBar = ArraySize(xZigzagPeakBuffer) - 1; // Used to calculate distance for lookback
 
    int startIndex = totalPoints - 3; // Default to oldest eligible index to print chronologically
@@ -529,7 +536,19 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
      {
       double unconf_price = 0;
       double unconf_close = 0;
-      long unconf_time = (long)TimeGMT(); // TimeStamp at the exact time data is exported
+      // The CURRENT (forming) bar's open time in UTC — not the export wall
+      // clock. TimeGMT() was used here, which produced a timestamp that could
+      // never sit on the bar grid, so this row never matched an OHLCV bar and
+      // the collector rejected it as "pivot bar missing from OHLCV spine".
+      // Every other row in this file is a bar time; this one must be too.
+      // [fixed 2026-09-09]
+      // Bar-open time of the CURRENT (forming) bar in UTC — set per data source
+      // below. This was TimeGMT() (the export wall clock), which produced a
+      // timestamp that could never sit on the bar grid, so this row never
+      // matched an OHLCV bar and the collector rejected it as "pivot bar
+      // missing from OHLCV spine". Every other row here is a bar time; this one
+      // must be too.  [fixed 2026-09-09]
+      long unconf_time = 0;
       int unconf_bars = 0;
       bool unconf_isPeak = !xcollectedPoints[0].isPeak;
 
@@ -540,6 +559,7 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
          int endBar = fileSize - 1;
          unconf_bars = endBar - startBar;
          unconf_close = FileData[endBar].close;
+         unconf_time = (long)(FileData[endBar].time - gmt_offset);
 
          if(unconf_isPeak)
            {
@@ -567,6 +587,7 @@ bool ExportMarketStructureToText(string filename, string symbol, string timefram
          unconf_bars = shiftLastConfirmed;
          if(shiftLastConfirmed < 0) shiftLastConfirmed = 0;
 
+         unconf_time = (long)(iTime(Symbol(), currentPeriod, 0) - gmt_offset);
          unconf_close = iClose(Symbol(), currentPeriod, 0);
          double highArr[], lowArr[];
 

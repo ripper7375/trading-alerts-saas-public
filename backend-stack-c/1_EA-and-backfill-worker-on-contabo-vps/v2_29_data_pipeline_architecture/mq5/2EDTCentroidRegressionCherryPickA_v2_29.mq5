@@ -68,6 +68,7 @@ input ENUM_FRACTAL_BARS_119 InpFractalBars119 = BARS_13;
 input ENUM_SYMBOL_SIZE  InpSymbolSize119 = SIZE_NORMAL;
 input int               InpSymbolOffset119 = 0;
 input string            Sep5 = "===== EDT Rules & Tolerance =====";
+input bool              InpCalcCentroidRegressionEDT = true; // Enable Centroid, Baseline Regression, LOEDT & UOEDT
 input bool              InpShowComments = false;
 input int               InpRegCentroids = 6; // Centroids IN USE
 input string            InpExcludedCentroids = ""; // Excluded centroids (e.g. "1,3,5")
@@ -251,6 +252,9 @@ int OnInit()
    CreateExportButton();
    
    if(InpAutoExport) EventSetTimer(1);
+   if(!InpCalcCentroidRegressionEDT) {
+      ClearCentroidRegressionBuffers(0);
+   }
    return(INIT_SUCCEEDED);
 }
 
@@ -301,8 +305,10 @@ void OnTimer()
    if(time_struct.sec == InpExportSecond && time_struct.min != last_trigger_min) {
        last_trigger_min = time_struct.min;
        if(g_rates_total > 0) {
-           PerformClusteringAndEDT(g_rates_total, g_time, g_close);
-           ChartRedraw(0);
+           if(InpCalcCentroidRegressionEDT) {
+               PerformClusteringAndEDT(g_rates_total, g_time, g_close);
+               ChartRedraw(0);
+           }
            ExportData(true);
        }
    }
@@ -345,9 +351,11 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
 {
    if(id == CHARTEVENT_OBJECT_CLICK && sparam == EXPORT_BUTTON_NAME) {
       ObjectSetInteger(0, EXPORT_BUTTON_NAME, OBJPROP_STATE, false);
-      PerformClusteringAndEDT(g_rates_total, g_time, g_close); 
+      if(InpCalcCentroidRegressionEDT) {
+         PerformClusteringAndEDT(g_rates_total, g_time, g_close); 
+         ChartRedraw(0);
+      }
       ExportData(false);
-      ChartRedraw(0);
    }
 }
 
@@ -493,6 +501,57 @@ int RunDBSCAN(const ClusterPoint &data[], int p_count, double eps, int min_pts, 
    return cluster_id; 
 }
 
+
+//+------------------------------------------------------------------+
+//| Clear Centroid, Regression & EDT Buffers and Chart Objects       |
+//+------------------------------------------------------------------+
+void ClearCentroidRegressionBuffers(const int rates_total)
+{
+   ObjectsDeleteAll(0, "ClusterHull_V896_1_"); 
+   ObjectsDeleteAll(0, "ClusterCentroidStar_V896_1_");
+   
+   ArrayInitialize(ExtBaseLine, EMPTY_VALUE);
+   ArrayInitialize(ExtUOEDT, EMPTY_VALUE);
+   ArrayInitialize(ExtLOEDT, EMPTY_VALUE);
+   ArrayInitialize(ExtCrossInCluster, 0.0);
+   
+   ArrayInitialize(ExtTimeframe, EMPTY_VALUE);
+   ArrayInitialize(ExtSlope, EMPTY_VALUE);
+   ArrayInitialize(ExtIntercept, EMPTY_VALUE);
+   ArrayInitialize(ExtAngle, EMPTY_VALUE);
+   
+   ArrayInitialize(ExtRSquare_Cross, EMPTY_VALUE);
+   ArrayInitialize(ExtMSE_Cross, EMPTY_VALUE);
+   ArrayInitialize(ExtVarRatio_Cross, EMPTY_VALUE);
+   ArrayInitialize(ExtSkewness_Cross, EMPTY_VALUE);
+   ArrayInitialize(ExtKurtosis_Cross, EMPTY_VALUE);
+   
+   ArrayInitialize(ExtRSquare_Close, EMPTY_VALUE);
+   ArrayInitialize(ExtMSE_Close, EMPTY_VALUE);
+   ArrayInitialize(ExtVarRatio_Close, EMPTY_VALUE);
+   ArrayInitialize(ExtSkewness_Close, EMPTY_VALUE);
+   ArrayInitialize(ExtKurtosis_Close, EMPTY_VALUE);
+   
+   ArrayInitialize(ExtCen0, EMPTY_VALUE);
+   ArrayInitialize(ExtCen1, EMPTY_VALUE);
+   ArrayInitialize(ExtCen2, EMPTY_VALUE);
+   ArrayInitialize(ExtCen3, EMPTY_VALUE);
+   ArrayInitialize(ExtCen4, EMPTY_VALUE);
+   ArrayInitialize(ExtCen5, EMPTY_VALUE);
+   ArrayInitialize(ExtCen6, EMPTY_VALUE);
+   ArrayInitialize(ExtCen7, EMPTY_VALUE);
+   ArrayInitialize(ExtCen8, EMPTY_VALUE);
+   ArrayInitialize(ExtCen9, EMPTY_VALUE);
+   ArrayInitialize(ExtCen10, EMPTY_VALUE);
+   ArrayInitialize(ExtCen11, EMPTY_VALUE);
+   
+   ArrayInitialize(g_cen_prices, 0.0);
+   g_stat_centroids = 0;
+   g_stat_obs_window = 0;
+   g_stat_n_crossings = 0;
+   g_stat_n_close = 0;
+   g_stat_leftmost_bar = 0;
+}
 
 //+------------------------------------------------------------------+
 //| Core: Clustering -> Cherry-Pick Math -> Dual Pipeline Math -> EDT|
@@ -983,37 +1042,99 @@ bool ExportData(bool silent = false)
    }
    
    int live_idx = g_rates_total - 1;
-   datetime gmt_offset = TimeCurrent() - TimeGMT();
-   FileWrite(fh_stat, "Regression Centroids (Box B): " + IntegerToString(g_stat_centroids));
-   FileWrite(fh_stat, "Excluded Centroids: " + (StringLen(InpExcludedCentroids) > 0 ? InpExcludedCentroids : "None"));
-   FileWrite(fh_stat, "Math Search Window (Bars): " + IntegerToString(g_stat_math_window));
-   FileWrite(fh_stat, "Visual EDT Window (Bars): " + IntegerToString(g_stat_visual_window));
-   FileWrite(fh_stat, "Observation Window (Box B Bars): " + IntegerToString(g_stat_obs_window));
-   FileWrite(fh_stat, "Total 171 Crossings (n): " + IntegerToString(g_stat_n_crossings));
-   FileWrite(fh_stat, "Timeframe (Sec): " + IntegerToString((int)ExtTimeframe[live_idx]));
-   FileWrite(fh_stat, "Raw Slope (b): " + DoubleToString(ExtSlope[live_idx], 5));
-   FileWrite(fh_stat, "Regression Angle: " + DoubleToString(ExtAngle[live_idx], 2));
-   FileWrite(fh_stat, "Anchored Y-Int: " + DoubleToString(ExtIntercept[live_idx], 5));
+   // Broker->UTC offset. MUST NOT use TimeCurrent(): it returns the LAST TICK's
+   // time, so on a quiet market this absorbs "seconds since the last tick" and
+   // stamps it on EVERY exported row as a constant sub-bar phase, which breaks
+   // cross-source bar alignment in the collector. TimeTradeServer() advances
+   // with the clock; rounding to the hour removes any residue (broker offsets
+   // are always whole hours).  [fixed 2026-09-09]
+   long _srv_off = (long)TimeTradeServer() - (long)TimeGMT();
+   datetime gmt_offset = (datetime)((long)MathRound(_srv_off / 3600.0) * 3600);
+   if(!InpCalcCentroidRegressionEDT) {
+      FileWrite(fh_stat, "Centroid & Regression Calculation: DISABLED");
+      FileWrite(fh_stat, "Regression Centroids (Box B): 0");
+      FileWrite(fh_stat, "Excluded Centroids: None");
+      FileWrite(fh_stat, "Math Search Window (Bars): " + IntegerToString(InpSSAMathLookback));
+      FileWrite(fh_stat, "Visual EDT Window (Bars): 0");
+      FileWrite(fh_stat, "Observation Window (Box B Bars): 0");
+      FileWrite(fh_stat, "Total 171 Crossings (n): 0");
+      FileWrite(fh_stat, "Timeframe (Sec): " + IntegerToString(PeriodSeconds(_Period)));
+      FileWrite(fh_stat, "Raw Slope (b): 0.00000");
+      FileWrite(fh_stat, "Regression Angle: 0.00");
+      FileWrite(fh_stat, "Anchored Y-Int: 0.00000");
+      FileWrite(fh_stat, "");
+      FileWrite(fh_stat, "[MODEL A; CROSSINGS]");
+      FileWrite(fh_stat, "Sample (n): 0");
+      FileWrite(fh_stat, "");
+      FileWrite(fh_stat, "[MODEL B; CLOSE PRICE]");
+      FileWrite(fh_stat, "Sample (n): 0");
+      FileWrite(fh_stat, "");
+   } else {
+      FileWrite(fh_stat, "Regression Centroids (Box B): " + IntegerToString(g_stat_centroids));
+      FileWrite(fh_stat, "Excluded Centroids: " + (StringLen(InpExcludedCentroids) > 0 ? InpExcludedCentroids : "None"));
+      FileWrite(fh_stat, "Math Search Window (Bars): " + IntegerToString(g_stat_math_window));
+      FileWrite(fh_stat, "Visual EDT Window (Bars): " + IntegerToString(g_stat_visual_window));
+      FileWrite(fh_stat, "Observation Window (Box B Bars): " + IntegerToString(g_stat_obs_window));
+      FileWrite(fh_stat, "Total 171 Crossings (n): " + IntegerToString(g_stat_n_crossings));
+      FileWrite(fh_stat, "Timeframe (Sec): " + IntegerToString((int)ExtTimeframe[live_idx]));
+      FileWrite(fh_stat, "Raw Slope (b): " + DoubleToString(ExtSlope[live_idx], 5));
+      FileWrite(fh_stat, "Regression Angle: " + DoubleToString(ExtAngle[live_idx], 2));
+      FileWrite(fh_stat, "Anchored Y-Int: " + DoubleToString(ExtIntercept[live_idx], 5));
+      FileWrite(fh_stat, "");
+      
+      FileWrite(fh_stat, "[MODEL A; CROSSINGS]");
+      FileWrite(fh_stat, "Sample (n): " + IntegerToString(g_stat_n_crossings));
+      FileWrite(fh_stat, "R-Square: " + DoubleToString(ExtRSquare_Cross[live_idx], 4));
+      FileWrite(fh_stat, "MSE: " + DoubleToString(ExtMSE_Cross[live_idx], 4));
+      FileWrite(fh_stat, "Var Ratio: " + DoubleToString(ExtVarRatio_Cross[live_idx], 2));
+      FileWrite(fh_stat, "Skewness: " + DoubleToString(ExtSkewness_Cross[live_idx], 2));
+      FileWrite(fh_stat, "Kurtosis: " + DoubleToString(ExtKurtosis_Cross[live_idx], 2));
+      FileWrite(fh_stat, "");
+      
+      FileWrite(fh_stat, "[MODEL B; CLOSE PRICE]");
+      FileWrite(fh_stat, "Sample (n): " + IntegerToString(g_stat_n_close));
+      FileWrite(fh_stat, "R-Square: " + DoubleToString(ExtRSquare_Close[live_idx], 4));
+      FileWrite(fh_stat, "MSE: " + DoubleToString(ExtMSE_Close[live_idx], 4));
+      FileWrite(fh_stat, "Var Ratio: " + DoubleToString(ExtVarRatio_Close[live_idx], 2));
+      FileWrite(fh_stat, "Skewness: " + DoubleToString(ExtSkewness_Close[live_idx], 2));
+      FileWrite(fh_stat, "Kurtosis: " + DoubleToString(ExtKurtosis_Close[live_idx], 2));
+      FileWrite(fh_stat, "");
+   }
+
+   // ---- EDT channel geometry + containment [added 2026-09-09] ------------
+   // Offsets are BASELINE-RELATIVE, matching 2EDTFractalBestFitv5's existing
+   // convention so every statistic file in the stack is directly comparable.
+   // Containment Rate is how much of the fitted window actually closed inside
+   // the channel — a direct measure of what the channel is for, unlike R2,
+   // which scores the line against close prices it was never fitted to.
+   // Written outside the if/else above so the field set is identical in every
+   // file, whether or not the centroid engine is enabled.
+   double uo_off = EMPTY_VALUE, lo_off = EMPTY_VALUE;
+   bool   base_ok = (ExtBaseLine[live_idx] != EMPTY_VALUE && ExtBaseLine[live_idx] != 0.0);
+   if(base_ok && ExtUOEDT[live_idx] != EMPTY_VALUE && ExtUOEDT[live_idx] != 0.0)
+      uo_off = ExtUOEDT[live_idx] - ExtBaseLine[live_idx];
+   if(base_ok && ExtLOEDT[live_idx] != EMPTY_VALUE && ExtLOEDT[live_idx] != 0.0)
+      lo_off = ExtLOEDT[live_idx] - ExtBaseLine[live_idx];
+
+   int edt_n = 0, edt_in = 0;
+   int scan_n = MathMin(g_rates_total, ArraySize(ExtUOEDT));
+   for(int i = 0; i < scan_n; i++)
+     {
+      if(ExtUOEDT[i] == EMPTY_VALUE || ExtUOEDT[i] == 0.0) continue;
+      if(ExtLOEDT[i] == EMPTY_VALUE || ExtLOEDT[i] == 0.0) continue;
+      if(g_close[i] <= 0.0) continue;
+      edt_n++;
+      if(g_close[i] <= ExtUOEDT[i] && g_close[i] >= ExtLOEDT[i]) edt_in++;
+     }
+
+   FileWrite(fh_stat, "[EDT CHANNEL]");
+   FileWrite(fh_stat, "UOEDT Offset: "           + (uo_off == EMPTY_VALUE ? "" : DoubleToString(uo_off, 5)));
+   FileWrite(fh_stat, "LOEDT Offset: "           + (lo_off == EMPTY_VALUE ? "" : DoubleToString(lo_off, 5)));
+   FileWrite(fh_stat, "Containment Sample (n): " + IntegerToString(edt_n));
+   FileWrite(fh_stat, "Containment Count: "      + IntegerToString(edt_in));
+   FileWrite(fh_stat, "Containment Rate: "       + (edt_n > 0 ? DoubleToString(100.0 * edt_in / edt_n, 2) : ""));
    FileWrite(fh_stat, "");
-   
-   FileWrite(fh_stat, "[MODEL A; CROSSINGS]");
-   FileWrite(fh_stat, "Sample (n): " + IntegerToString(g_stat_n_crossings));
-   FileWrite(fh_stat, "R-Square: " + DoubleToString(ExtRSquare_Cross[live_idx], 4));
-   FileWrite(fh_stat, "MSE: " + DoubleToString(ExtMSE_Cross[live_idx], 4));
-   FileWrite(fh_stat, "Var Ratio: " + DoubleToString(ExtVarRatio_Cross[live_idx], 2));
-   FileWrite(fh_stat, "Skewness: " + DoubleToString(ExtSkewness_Cross[live_idx], 2));
-   FileWrite(fh_stat, "Kurtosis: " + DoubleToString(ExtKurtosis_Cross[live_idx], 2));
-   FileWrite(fh_stat, "");
-   
-   FileWrite(fh_stat, "[MODEL B; CLOSE PRICE]");
-   FileWrite(fh_stat, "Sample (n): " + IntegerToString(g_stat_n_close));
-   FileWrite(fh_stat, "R-Square: " + DoubleToString(ExtRSquare_Close[live_idx], 4));
-   FileWrite(fh_stat, "MSE: " + DoubleToString(ExtMSE_Close[live_idx], 4));
-   FileWrite(fh_stat, "Var Ratio: " + DoubleToString(ExtVarRatio_Close[live_idx], 2));
-   FileWrite(fh_stat, "Skewness: " + DoubleToString(ExtSkewness_Close[live_idx], 2));
-   FileWrite(fh_stat, "Kurtosis: " + DoubleToString(ExtKurtosis_Close[live_idx], 2));
-   FileWrite(fh_stat, "");
-   
+
    FileClose(fh_stat);
 
    // =========================================================
@@ -1029,25 +1150,25 @@ bool ExportData(bool silent = false)
    // Refactored Export Header (Removed CEN columns, Renamed EDT columns to Cherry)
    FileWrite(fh_data, "Cherry_A_timestamp\tCherry_A_symbol\tCherry_A_timeframe\tCherry_A_close\tCherry_A_Base_FL\tCherry_A_UOEDT\tCherry_A_LOEDT\tCherry_A_horiz_high_map\tCherry_A_horiz_low_map\tCherry_A_ssa\tCherry_A_ema_ssa\tCherry_A_crossing");
    
-   int max_lookback = MathMax(InpSSAMathLookback, g_rates_total - g_stat_leftmost_bar);
+   int max_lookback = InpSSAMathLookback;
+   if(InpCalcCentroidRegressionEDT) {
+       max_lookback = MathMax(InpSSAMathLookback, g_rates_total - g_stat_leftmost_bar);
+   }
    int start_idx = g_rates_total - max_lookback;
    if(start_idx < 0) start_idx = 0;
    for(int i = start_idx; i < g_rates_total; i++) {
       string line = IntegerToString((long)(g_time[i] - gmt_offset)) + "\t";
       line += symbol + "\t" + tf_str + "\t";
       line += DoubleToString(g_close[i], _Digits) + "\t";
-      // Data bounds handling (Tabs print empty if out of bounds)
-      line += (ExtBaseLine[i] == EMPTY_VALUE) ?
-      "\t" : DoubleToString(ExtBaseLine[i], 5) + "\t";
-      line += (ExtUOEDT[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtUOEDT[i], 5) + "\t";
-      line += (ExtLOEDT[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtLOEDT[i], 5) + "\t";
+      // Data bounds handling (Tabs print empty if out of bounds or zero)
+      line += (ExtBaseLine[i] == EMPTY_VALUE || ExtBaseLine[i] == 0.0) ? "\t" : DoubleToString(ExtBaseLine[i], 5) + "\t";
+      line += (ExtUOEDT[i] == EMPTY_VALUE || ExtUOEDT[i] == 0.0) ? "\t" : DoubleToString(ExtUOEDT[i], 5) + "\t";
+      line += (ExtLOEDT[i] == EMPTY_VALUE || ExtLOEDT[i] == 0.0) ? "\t" : DoubleToString(ExtLOEDT[i], 5) + "\t";
       
-      line += (ExtUpper108[i] == EMPTY_VALUE) ?
-      "\t" : DoubleToString(ExtUpper108[i], 5) + "\t";
-      line += (ExtLower108[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtLower108[i], 5) + "\t";
-      line += (ExtSSATrend[i] == EMPTY_VALUE) ? "\t" : DoubleToString(ExtSSATrend[i], 8) + "\t";
-      line += (ExtSSASignal[i] == EMPTY_VALUE) ?
-      "\t" : DoubleToString(ExtSSASignal[i], 8) + "\t";
+      line += (ExtUpper108[i] == EMPTY_VALUE || ExtUpper108[i] == 0.0) ? "\t" : DoubleToString(ExtUpper108[i], 5) + "\t";
+      line += (ExtLower108[i] == EMPTY_VALUE || ExtLower108[i] == 0.0) ? "\t" : DoubleToString(ExtLower108[i], 5) + "\t";
+      line += (ExtSSATrend[i] == EMPTY_VALUE || ExtSSATrend[i] == 0.0) ? "\t" : DoubleToString(ExtSSATrend[i], 8) + "\t";
+      line += (ExtSSASignal[i] == EMPTY_VALUE || ExtSSASignal[i] == 0.0) ? "\t" : DoubleToString(ExtSSASignal[i], 8) + "\t";
       line += (ExtSSACross[i] != EMPTY_VALUE && ExtSSACross[i] != 0.0) ? "1" : "0";
       FileWrite(fh_data, line);
    }
@@ -1157,6 +1278,12 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
          if(IsUpperFractal(high, i, ExtSideBars119, rates_total)) ExtUpper119[i] = high[i];
          if(IsLowerFractal(low, i, ExtSideBars119, rates_total))  ExtLower119[i] = low[i];
       }
+   }
+
+   if(!InpCalcCentroidRegressionEDT) {
+      ClearCentroidRegressionBuffers(rates_total);
+      if(InpShowComments) Comment("--- DavinTrade V3.896_1 ---\nCentroid, Regression & EDTs: Disabled");
+      return(rates_total);
    }
 
    static datetime last_math_time = 0;

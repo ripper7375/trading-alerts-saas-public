@@ -1,35 +1,76 @@
-Export Data from MQL5 indicators (MQL5 indicators calculation and export to downstream stacks) :
+Export Data from MQL5 indicators — the COMPLETE export contract
 ==================================================================
 
+Updated 2026-09-09. MQL5 is now the single source of every market_data value;
+there is no Python calculation stack in the pipeline. This file therefore lists
+EVERY column each indicator exports, not just the former "admin layer".
+(The old companion file, "Python stacks calculation.txt", listed the values
+Python used to recompute; it moved to
+calculation-split-between-mt5-and-python-PENDING-PROJECT/ along with the code.)
+
+These are the literal header strings the .mq5 files write. They are NOT uniform
+(Title_Case line values vs lower_snake admin columns; the zigzag metrics carry
+no source prefix at all) — the collector's SOURCES registry maps each to its
+staging column. Do not "tidy" them to match each other; they must match what
+MetaTrader actually writes.
+
+The 4 leading keys (timestamp, symbol, timeframe, close) appear on every source
+and are the cross-source validation contract.
+
+7 CENTROID VARIANTS — 12 columns each
+------------------------------------------------------------------
 Best_Fit_A_timestamp	Best_Fit_A_symbol	Best_Fit_A_timeframe	Best_Fit_A_close
+Best_Fit_A_Base_FL	Best_Fit_A_UOEDT	Best_Fit_A_LOEDT
 Best_Fit_A_horiz_high_map	Best_Fit_A_horiz_low_map	Best_Fit_A_ssa	Best_Fit_A_ema_ssa	Best_Fit_A_crossing
 
 Best_Fit_B_timestamp	Best_Fit_B_symbol	Best_Fit_B_timeframe	Best_Fit_B_close
+Best_Fit_B_Base_FL	Best_Fit_B_UOEDT	Best_Fit_B_LOEDT
 Best_Fit_B_horiz_high_map	Best_Fit_B_horiz_low_map	Best_Fit_B_ssa	Best_Fit_B_ema_ssa	Best_Fit_B_crossing
 
 Cherry_A_timestamp	Cherry_A_symbol	Cherry_A_timeframe	Cherry_A_close
+Cherry_A_Base_FL	Cherry_A_UOEDT	Cherry_A_LOEDT
 Cherry_A_horiz_high_map	Cherry_A_horiz_low_map	Cherry_A_ssa	Cherry_A_ema_ssa	Cherry_A_crossing
 
 Cherry_B_timestamp	Cherry_B_symbol	Cherry_B_timeframe	Cherry_B_close
+Cherry_B_Base_FL	Cherry_B_UOEDT	Cherry_B_LOEDT
 Cherry_B_horiz_high_map	Cherry_B_horiz_low_map	Cherry_B_ssa	Cherry_B_ema_ssa	Cherry_B_crossing
 
-Fractal_timestamp	Fractal_symbol	Fractal_timeframe	Fractal_close
-
 Most_Recent_timestamp	Most_Recent_symbol	Most_Recent_timeframe	Most_Recent_close
+Most_Recent_Base_FL	Most_Recent_UOEDT	Most_Recent_LOEDT
 Most_Recent_horiz_high_map	Most_Recent_horiz_low_map	Most_Recent_ssa	Most_Recent_ema_ssa	Most_Recent_crossing
 
 Non_A_timestamp	Non_A_symbol	Non_A_timeframe	Non_A_close
-	Non_A_horiz_high_map	Non_A_horiz_low_map	Non_A_ssa	Non_A_ema_ssa	Non_A_crossing
+Non_A_Base_FL	Non_A_UOEDT	Non_A_LOEDT
+Non_A_horiz_high_map	Non_A_horiz_low_map	Non_A_ssa	Non_A_ema_ssa	Non_A_crossing
 
 Non_B_timestamp	Non_B_symbol	Non_B_timeframe	Non_B_close
+Non_B_Base_FL	Non_B_UOEDT	Non_B_LOEDT
 Non_B_horiz_high_map	Non_B_horiz_low_map	Non_B_ssa	Non_B_ema_ssa	Non_B_crossing
 
+FRACTAL EDT + SINGLE BEST LINES
+------------------------------------------------------------------
+Fractal_timestamp	Fractal_symbol	Fractal_timeframe	Fractal_close
+Fractal_Best_FL	Fractal_UOEDT	Fractal_LOEDT
+
+Resistance_timestamp	Resistance_symbol	Resistance_timeframe	Resistance_close	Best_Resistance
+
+Support_timestamp	Support_symbol	Support_timeframe	Support_close	Best_Support
+
+OHLCV — the per-bar spine
+------------------------------------------------------------------
 ohlcv_timestamp	ohlcv_symbol	ohlcv_timeframe	ohlcv_close	ohlcv_open	ohlcv_high	ohlcv_low	ohlcv_volume
 
-Resistance_timestamp	Resistance_symbol	Resistance_timeframe	Resistance_close
-
-Support_timestamp	Support_symbol	Support_timeframe	Support_close
-
+ZIGZAG — sparse pivot events (not per-bar), 15 columns
+------------------------------------------------------------------
 zigzag_TimeStamp	zigzag_symbol	zigzag_timeframe	zigzag_close	zigzag_Type	CurrentPoint
+CurrentPrChg	Current%Chg	Current%ChgClass	CurrentBars	CurrentBarsClass
+CurrentPrPerBar	CurrentPrPerBarClass	CurrentSlope	CurrentCategory
 
+Z-SCORE CANDLE
+------------------------------------------------------------------
 z-score_timestamp	z-score_symbol	z-score_timeframe	z-score_close	z-score_open	z-score_high	z-score_low
+body_direction	body_size	body_classification
+
+  body_size is |z-score|, not a candle body size (MQL5 export convention).
+  z-score_open/high/low are a redundant copy of the OHLCV spine and are
+  deliberately NOT staged — market_data's open/high/low come from OHLCV.
