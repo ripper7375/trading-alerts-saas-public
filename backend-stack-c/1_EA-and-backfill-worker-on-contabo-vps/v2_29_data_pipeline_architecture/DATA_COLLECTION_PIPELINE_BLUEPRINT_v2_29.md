@@ -49,15 +49,17 @@ not part of the deployment.
 
 ### 0.1 Runtime — the pipeline that runs in production
 
-| File                                       | Role                                                            | Ref   |
-| ------------------------------------------ | --------------------------------------------------------------- | ----- |
-| `mq5/` (13 indicators, see §0.4)           | Data producers: compute + auto-export **every** value as `.txt` | §5.1  |
-| `export_collector_validator_v2.py`         | Pipeline engine: COLLECT → ADJUST → VALIDATE → PROMOTE          | §5.2  |
-| `sqlite_schema_v6_xauusd.sql`              | `xauusd.db` schema: staging + validation + `market_data`        | §5.3  |
-| `backfill_worker_api_gateway_v5.py`        | Push worker: `market_data WHERE synced_at IS NULL` → gateway    | §5.4  |
-| `gateway_contract_market_data.schema.json` | JSON-Schema of the POST body the gateway must accept            | §9    |
-| `install_services.bat`                     | Windows/NSSM installer for the VPS services                     | §8.2  |
-| `replay_quarantine.py`                     | Re-POST gateway-rejected rows after a fix                       | §10.2 |
+| File                                           | Role                                                             | Ref   |
+| ---------------------------------------------- | ---------------------------------------------------------------- | ----- |
+| `mq5/` (13 indicators, see §0.4)               | Data producers: compute + auto-export **every** value as `.txt`  | §5.1  |
+| `mq5/EconomicCalendarExport_v2_29.mq5`         | **EA**, not an indicator: exports the built-in Economic Calendar | §5.5  |
+| `export_collector_validator_v2.py`             | Pipeline engine: COLLECT → ADJUST → VALIDATE → PROMOTE           | §5.2  |
+| `sqlite_schema_v6_xauusd.sql`                  | `xauusd.db` schema: staging + validation + `market_data`         | §5.3  |
+| `backfill_worker_api_gateway_v5.py`            | Push worker: `market_data WHERE synced_at IS NULL` → gateway     | §5.4  |
+| `gateway_contract_market_data.schema.json`     | JSON-Schema of the POST body the gateway must accept             | §9    |
+| `gateway_contract_economic_events.schema.json` | JSON-Schema for the append-only economic-events stream           | §5.5  |
+| `install_services.bat`                         | Windows/NSSM installer for the VPS services                      | §8.2  |
+| `replay_quarantine.py`                         | Re-POST gateway-rejected rows after a fix                        | §10.2 |
 
 ### 0.2 Legacy (retained for reference; NOT in the v6 data flow — §14)
 
@@ -413,6 +415,53 @@ Drains the `market_data` outbox to the gateway.
   replay with `replay_quarantine.py` (§10.2).
 - Connection pooling, exponential backoff, `Retry-After`, graceful shutdown,
   rotating logs. Deploy as the `MT5PushWorker` NSSM service (§8.2).
+
+### 5.5 Economic calendar — `mq5/EconomicCalendarExport_v2_29.mq5`
+
+A **second, fully independent lane** beside `market_data` and
+`indicator_statistics`: its own exporter, outbox table, JSON contract, endpoint
+and queue, so a failure here can never delay or reject price data.
+
+**Source.** MT5's own built-in Economic Calendar
+(`CalendarValueHistory` → `CalendarEventById` → `CalendarCountryById`), read on
+the same terminal that runs the 13 indicators. No vendor, no API key, no new
+cost. Availability was measured before any of this was designed — Eightcap-Demo
+build 6182: 333 events / 8 days, 333/333 id lookups resolved, 25 HIGH-impact,
+server-side currency filtering functional
+(`davintrade-news-stack/step-zero-calendar-availability-check/`).
+
+**An EA, not an indicator**, because it is a timer job: attach to one chart, any
+symbol — the calendar is global and this table is deliberately not
+symbol-scoped. Relevance to XAUUSD is derived from `currency` at query time.
+
+**Deliberately dumb.** It writes a full snapshot of the window every cycle and
+does no change detection. Whether a row is _new_ — the append-only decision —
+belongs in the collector, where it is testable in Python.
+
+**APPEND-ONLY, keyed `(value_id, captured_at)`.** A forecast is revised and an
+actual published only _after_ the event, so overwriting destroys what the market
+knew beforehand — the loss §12's look-ahead-bias entry records as unrecoverable
+for `market_data`. Current state is one `DISTINCT ON` query; the reverse is
+impossible.
+
+**Four format decisions, each verified rather than assumed:**
+
+| Decision                             | Why                                                                                                                                                                                                                                           |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ids are TEXT, not INTEGER            | Upstream `ulong`; JSON has no 64-bit int. `ULONG_MAX` proven to round-trip losslessly as text, where an int truncates silently                                                                                                                |
+| Written as real UTF-8, not FILE_ANSI | The collector opens every export `encoding='utf-8'`. The 13 numeric exporters get away with ANSI only because they are pure ASCII; an event name is free text, and one CP1252 byte raises `UnicodeDecodeError` and rejects the **whole file** |
+| Free-text fields sanitised           | A raw TAB inside `event_name` shifts every later column on that row — reproduced: 24 fields become 25                                                                                                                                         |
+| Empty field ≠ `0`                    | `LONG_MIN` upstream means _not published_. A genuine `0.0` reading is data. For forecasts, absence is the common case — rate decisions, votes and speeches carry no numeric forecast at all                                                   |
+
+**Times are UTC.** `MqlCalendarValue.time` is _server_ time; the exporter
+converts with the same hour-rounded `TimeTradeServer() - TimeGMT()` offset the
+fixed indicators use, recomputed every cycle because broker offsets shift with
+DST. Confirmed against two real releases (US PPI 08:30 ET, ECB 14:15 CEST)
+rather than assumed — this is the same trap as §7.1's `timestamp_adj` bug.
+
+Writes to a temp file and renames, so the collector can never read a
+half-written snapshot. On a failed or empty fetch the previous export is left
+intact rather than replaced with nothing.
 
 ---
 
