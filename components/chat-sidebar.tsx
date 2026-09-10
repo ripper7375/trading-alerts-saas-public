@@ -108,7 +108,7 @@ export function ChatSidebar({
   const handleDownloadPng = () => {
     const link = document.createElement('a');
     link.href = '/mtf_render_xauusd_sample.png';
-    link.download = 'XAUUSD_Matplotlib_3Panel_Vision_Render.png';
+    link.download = 'XAUUSD_Matplotlib_2Panel_Vision_Render.png';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -411,7 +411,7 @@ export function ChatSidebar({
                 {t('PNG Download')}
               </span>
               <span className="mt-0.5 truncate font-mono text-[9px] text-muted-foreground">
-                {t('Matplotlib 3-Panel Vision Render')}
+                {t('Matplotlib 2-Panel Vision Render')}
               </span>
             </div>
           ) : (
