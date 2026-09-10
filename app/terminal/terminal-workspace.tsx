@@ -13,15 +13,17 @@ import { ChatSidebar } from '@/components/chat-sidebar';
 import ChatPanel from '@/components/chat-panel';
 import MarketCommentsPanel from '@/components/market-comments-panel';
 import { PanelLeftOpen, PanelRightOpen } from 'lucide-react';
-import { TIMEFRAMES } from '@/lib/tier-config';
 import { useLocale } from '@/lib/context/locale-context';
 
-const TradingChart = dynamic(
-  () => import('@/components/charts/trading-chart').then((m) => m.TradingChart),
+const MtfStackedCharts = dynamic(
+  () =>
+    import('@/components/charts/mtf-stacked-charts').then(
+      (m) => m.MtfStackedCharts
+    ),
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-[600px] items-center justify-center rounded-lg bg-card">
+      <div className="flex h-full items-center justify-center rounded-lg bg-card">
         <div className="text-center">
           <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
           <p className="text-sm text-muted-foreground">Loading chart...</p>
@@ -30,8 +32,6 @@ const TradingChart = dynamic(
     ),
   }
 );
-
-type Timeframe = (typeof TIMEFRAMES)[number];
 
 /**
  * `/terminal` -- Protected Page #2, PRO 4-panel quantitative workspace.
@@ -45,7 +45,6 @@ type Timeframe = (typeof TIMEFRAMES)[number];
  */
 export function TerminalWorkspace(): React.JSX.Element {
   const { t } = useLocale();
-  const [timeframe, setTimeframe] = useState<Timeframe>('M5');
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isPanel1Collapsed, setIsPanel1Collapsed] = useState(false);
@@ -132,28 +131,15 @@ export function TerminalWorkspace(): React.JSX.Element {
               minSize={25}
               className="h-full overflow-hidden"
             >
-              <div className="flex h-full flex-col overflow-y-auto bg-background p-4">
+              <div className="flex h-full flex-col overflow-hidden bg-background p-4">
                 <div className="mb-3 flex items-center justify-between">
                   <h2 className="text-sm font-bold text-foreground">XAUUSD</h2>
-                  <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
-                    {TIMEFRAMES.map((tf) => (
-                      <Button
-                        key={tf}
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setTimeframe(tf)}
-                        className={`h-6 px-2.5 text-[11px] font-medium ${
-                          timeframe === tf
-                            ? 'bg-amber-500/20 font-bold text-amber-700 dark:text-amber-300'
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        {tf}
-                      </Button>
-                    ))}
-                  </div>
                 </div>
-                <TradingChart symbol="XAUUSD" timeframe={timeframe} />
+                {/* Both timeframes are always shown, so the M5/M15 selector
+                    that used to sit here has nothing left to select. */}
+                <div className="min-h-0 flex-1">
+                  <MtfStackedCharts symbol="XAUUSD" />
+                </div>
               </div>
             </ResizablePanel>
 

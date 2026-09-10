@@ -22,10 +22,26 @@ import { useMtfOverlay } from './mtf/useMtfOverlay';
 
 /**
  * TradingChart Props
+ *
+ * Everything past `timeframe` is optional and defaulted to the component's
+ * previous behaviour, so single-chart callers are unaffected. They exist so
+ * two instances can be stacked (MtfStackedCharts) without each one drawing
+ * its own header, footer and 600px of height.
  */
 interface TradingChartProps {
   symbol: string;
   timeframe: string;
+  /** Canvas height in px. lightweight-charts needs an explicit number. */
+  height?: number;
+  /** Symbol/timeframe title + connection indicator. */
+  showHeader?: boolean;
+  /** The "Displaying live OHLCV data" explanatory footer. */
+  showFooter?: boolean;
+  /**
+   * Compact caption drawn over the chart when the header is hidden, so a
+   * stacked pair stays labelled without repeating the full header chrome.
+   */
+  label?: string;
 }
 
 /** lightweight-charts renders to a <canvas> -- it can't read CSS custom
@@ -67,12 +83,19 @@ function chartChromeColors(
 export function TradingChart({
   symbol,
   timeframe,
+  height = 600,
+  showHeader = true,
+  showFooter = true,
+  label,
 }: TradingChartProps): React.JSX.Element {
   const { t } = useLocale();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const isFirstLoadRef = useRef(true);
+  // Read by the mount-once creation effect, which deliberately has no deps.
+  const heightRef = useRef(height);
+  heightRef.current = height;
 
   // Exposed once the chart + series exist, so the drawing layer can mount.
   const [chartApi, setChartApi] = useState<IChartApi | null>(null);
@@ -120,7 +143,10 @@ export function TradingChart({
 
     const chart = createChart(chartContainerRef.current, {
       width: containerWidth,
-      height: 600,
+      // Only the mount-time value: this effect creates the chart once. Later
+      // height changes are pushed by the reactive effect below, the same way
+      // appearance changes are.
+      height: heightRef.current,
       layout: {
         background: { type: ColorType.Solid, color: chrome.background },
         textColor: chrome.text,
@@ -237,6 +263,16 @@ export function TradingChart({
   }, [resolvedTheme, gridOpacityDecimal, chartUpColor, chartDownColor]);
 
   /**
+   * Push height changes to the already-created chart. Needed because the
+   * creation effect runs once, so a stacked layout resizing its panes would
+   * otherwise leave both canvases at their mount-time height.
+   */
+  useEffect(() => {
+    if (!chartRef.current) return;
+    chartRef.current.applyOptions({ height });
+  }, [height]);
+
+  /**
    * Update chart data whenever Socket.IO delivers new OHLCV data
    */
   useEffect(() => {
@@ -265,11 +301,55 @@ export function TradingChart({
   return (
     <div className="w-full space-y-4">
       {/* Chart header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">
-          {symbol}/{timeframe}
-        </h2>
-        <div className="flex items-center gap-3">
+      {showHeader && (
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">
+            {symbol}/{timeframe}
+          </h2>
+          <div className="flex items-center gap-3">
+            {mtfAvailable && (
+              <MtfToggle
+                isPro={isPro}
+                enabled={mtfEnabled}
+                isLoading={mtfLoading}
+                onToggle={setMtfEnabled}
+              />
+            )}
+            <span className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span
+                className={`inline-block h-2 w-2 rounded-full ${
+                  isConnected ? 'bg-green-500' : 'bg-red-500'
+                }`}
+              />
+              {isConnected
+                ? t('charts.live', 'Live')
+                : t('charts.disconnected', 'Disconnected')}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/*
+        Stacked mode: no full header, so carry the label, the connection dot
+        and — critically — the MtfToggle in a compact strip instead. The
+        toggle must still render, because `mtfAvailable` is what places it on
+        the M15 chart and nowhere else.
+      */}
+      {!showHeader && (
+        <div className="flex items-center justify-between px-1">
+          <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+            <span
+              className={`inline-block h-1.5 w-1.5 rounded-full ${
+                isConnected ? 'bg-green-500' : 'bg-red-500'
+              }`}
+              title={
+                isConnected
+                  ? t('charts.live', 'Live')
+                  : t('charts.disconnected', 'Disconnected')
+              }
+            />
+            {label ?? `${symbol}/${timeframe}`}
+          </span>
           {mtfAvailable && (
             <MtfToggle
               isPro={isPro}
@@ -278,18 +358,8 @@ export function TradingChart({
               onToggle={setMtfEnabled}
             />
           )}
-          <span className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span
-              className={`inline-block h-2 w-2 rounded-full ${
-                isConnected ? 'bg-green-500' : 'bg-red-500'
-              }`}
-            />
-            {isConnected
-              ? t('charts.live', 'Live')
-              : t('charts.disconnected', 'Disconnected')}
-          </span>
         </div>
-      </div>
+      )}
 
       {mtfEnabled && mtfError && (
         <p className="text-sm text-destructive">{mtfError}</p>
@@ -333,17 +403,19 @@ export function TradingChart({
       </div>
 
       {/* Chart info */}
-      <div className="text-sm text-muted-foreground">
-        <p>
-          {t(
-            'charts.displaying_ohlcv',
-            'Displaying live OHLCV candlestick data'
-          )}
-        </p>
-        <p>
-          {t('charts.updates_realtime', 'Updates in real-time via WebSocket')}
-        </p>
-      </div>
+      {showFooter && (
+        <div className="text-sm text-muted-foreground">
+          <p>
+            {t(
+              'charts.displaying_ohlcv',
+              'Displaying live OHLCV candlestick data'
+            )}
+          </p>
+          <p>
+            {t('charts.updates_realtime', 'Updates in real-time via WebSocket')}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
