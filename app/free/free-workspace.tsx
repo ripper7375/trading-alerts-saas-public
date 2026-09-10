@@ -37,12 +37,12 @@ const MtfStackedCharts = dynamic(
 /**
  * `/free` -- Protected Page #3, FREE-tier quantitative workspace.
  *
- * Same real chart as `/terminal` (components/charts/trading-chart.tsx) --
- * FREE tier gets the same live XAUUSD data (real per this platform's own
- * FREE/PRO model, see components/alerts/alerts-pro-upgrade.tsx: "Full
- * market data and every indicator overlay — same data as PRO"). The chart's
- * own PRO-only multi-timeframe overlay toggle (MtfToggle) is already
- * real-gated -- it routes a FREE user straight to /pricing on click.
+ * Same real charts as `/terminal` (components/charts/mtf-stacked-charts.tsx --
+ * M5 above M15) -- FREE tier gets the same live XAUUSD data (real per this
+ * platform's own FREE/PRO model, see components/alerts/alerts-pro-upgrade.tsx:
+ * "Full market data and every indicator overlay — same data as PRO"). The
+ * PRO-only M5-on-M15 overlay toggle (MtfToggle) sits on the lower chart and is
+ * already real-gated -- it routes a FREE user straight to /pricing on click.
  * Panels B/D are the same genuine empty states as /terminal (Decision 2),
  * with an additional "Get priority access on PRO" nudge that opens
  * ProUpgradeModal -- this page's own feature-gate/upgrade-modal surface.

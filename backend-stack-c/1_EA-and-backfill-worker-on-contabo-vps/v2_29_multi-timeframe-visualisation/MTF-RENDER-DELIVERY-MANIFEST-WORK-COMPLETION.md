@@ -257,13 +257,18 @@ Not built, and not obviously worth building until Pillar 6 exists. Recorded so
 the `?variant=` parameter is understood as deliberate groundwork rather than
 speculative.
 
-### 7.6 One genuine architectural difference from the seed remains
+### 7.6 ✅ RESOLVED — the monolith now uses the dual-stacked layout
 
-The seed renders **two stacked charts** (M5 above, M15 below) with the overlay
-toggled onto the lower one. The monolith renders **one chart** with a timeframe
-selector, offering the overlay only while viewing M15.
+**Was:** the seed rendered two stacked charts while the monolith rendered one
+with a timeframe selector, so the downloaded PNG and the on-screen terminal did
+not look alike.
 
-Both express the same entitlement; they are different layouts. The rendered PNG
-follows the _seed's_ two-panel shape, so the download and the on-screen terminal
-do not currently look alike. Whether to bring the monolith to the dual-stacked
-layout is a UI decision, not a gap in this work.
+**Built 2026-09-10**, planned as `MTF-DUAL-STACKED-LAYOUT-PLAN.md`.
+`components/charts/mtf-stacked-charts.tsx` composes two existing `TradingChart`
+instances (M5 above, M15 below) and both `/terminal` and `/free` now use it; the
+timeframe selector is gone from both.
+
+**One difference deliberately remains.** The PNG puts both panels on a _shared_
+time axis (the renderer's D1). Two `lightweight-charts` instances each own a time
+scale and pan independently, and M5/M15 bars do not map one-to-one, so syncing
+them was excluded. **Arrangement matches; axis behaviour does not.**

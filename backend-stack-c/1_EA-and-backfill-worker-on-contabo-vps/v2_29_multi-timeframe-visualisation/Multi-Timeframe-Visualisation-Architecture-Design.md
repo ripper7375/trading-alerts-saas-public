@@ -37,6 +37,21 @@ Alignment is by **price + time**: candles and overlays are both drawn on a real
 candles. A categorical bar index would misalign them, which is why candles are
 drawn by hand rather than via mplfinance.
 
+### Relationship to the on-screen terminal
+
+As of 2026-09-10 the app's own terminal uses the same arrangement — two stacked
+charts, M5 above M15, with the PRO overlay toggle on the lower one
+(`components/charts/mtf-stacked-charts.tsx`, used by `/terminal` and `/free`).
+So a trader comparing a downloaded PNG against their screen sees the same shape.
+
+**One difference is deliberate and worth knowing.** This renderer puts both
+panels on a **shared time axis** (see `--limit` below): the M15 panel is clipped
+to exactly the M5 panel's clock window, which is what makes the two read as a
+single comparison. The on-screen charts are two independent
+`lightweight-charts` instances, each owning its own time scale, and they pan and
+zoom independently. Syncing them is not trivial — M5 and M15 bars do not map
+one-to-one — so it was excluded. Arrangement matches; axis behaviour does not.
+
 ### Why the lower panel keeps its own channel
 
 Because the shipped UI does. `components/trading-chart.tsx` draws the M15 chart's
