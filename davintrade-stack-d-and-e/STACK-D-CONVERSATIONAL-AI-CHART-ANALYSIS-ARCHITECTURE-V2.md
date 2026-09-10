@@ -20,7 +20,7 @@ Stack D establishes the **Multimodal Conversational AI Analyst Co-Pilot** for th
 ├─────────────────────┬──────────────────────────────────────────┬───────────────────────────────────────┤
 │ Architectural Area  │ Version 1.1.0 (Original Baseline)        │ Version 2.1.0 (Master Upgraded)       │
 ├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────┤
-│ **Retrieval Model** │ 4-Pillar Quad-Retrieval                  │ **7-Pillar Supercharged Multimodal**  │
+│ **Retrieval Model** │ 4-Pillar Quad-Retrieval                  │ **8-Pillar Supercharged Multimodal**  │
 │                     │ (SQL + txtai + Profile + PNG Image)      │ (+ MCD Counts, Storyline, WACS Score) │
 ├─────────────────────┼──────────────────────────────────────────┼───────────────────────────────────────┤
 │ **Database Engine** │ PostgreSQL `market_data_v6` (Cols 1–79)  │ **`market_data_v6` Extended (Cols 1–92│
@@ -45,7 +45,7 @@ Stack D establishes the **Multimodal Conversational AI Analyst Co-Pilot** for th
 
 ---
 
-## 🏛️ 2. The 7-Pillar Supercharged Multimodal Retrieval Engine
+## 🏛️ 2. The 8-Pillar Supercharged Multimodal Retrieval Engine
 
 To guarantee zero hallucinations, deterministic trade setups, and sub-150ms retrieval latency, Stack D coordinates **7 discrete data pillars** in parallel (`Promise.all`):
 
@@ -64,7 +64,7 @@ To guarantee zero hallucinations, deterministic trade setups, and sub-150ms retr
                                                    │
                                                    ▼
                        ┌────────────────────────────────────────────────────────┐
-                       │   PARALLEL 7-PILLAR RETRIEVAL PIPELINE (`Promise.all`)  │
+                       │   PARALLEL 8-PILLAR RETRIEVAL PIPELINE (`Promise.all`)  │
                        │                                                        │
                        │ ┌────────────────────────────────────────────────────┐ │
                        │ │ 1. NUMERIC CANDLE DATA (VANNA NL2SQL - Cols 1-79)  │ │
@@ -97,7 +97,7 @@ To guarantee zero hallucinations, deterministic trade setups, and sub-150ms retr
                        └────────────────────────────────────────────────────────┘
 ```
 
-### Detailed Breakdown of the 7 Pillars:
+### Detailed Breakdown of the 8 Pillars:
 
 1. **Pillar 1 — Numeric Indicator Data (Engine 1 / VANNA NL2SQL):**
    - Translates natural language into deterministic SQL querying Columns 1–79 of `market_data_v6` (OHLCV, SSA Regression, Centroid Slope, Upper/Lower EDT Bounds, ZigZag Extremes, Z-Scores).
@@ -114,6 +114,15 @@ To guarantee zero hallucinations, deterministic trade setups, and sub-150ms retr
    - The variant is chosen from the user's tier + `M5 on M15` toggle state, **not** from the timeframe — one image carries both M5 and M15. See §9.
 7. **Pillar 7 — User Constraints & Preferences (Engine 4 Profile):**
    - Injects the user's active confirmed profile (Trader Type, Style, Risk %, Leverage, Target RRR, Equity Balance, Minimum SLD, Commission).
+8. **Pillar 8 — Imminent High-Impact Economic Events (`economic_events`):**
+   - Reads upcoming HIGH-impact releases for the XAU-relevant currencies from the append-only `economic_events` table, sourced from MT5's own Economic Calendar on the same terminal that runs the 13 export indicators.
+   - **This pillar exists because §8's Report 1 already promises "High-Impact Economic News Warnings & Market Risk Factors", and until it was added there was no source for that claim.** A model asked to warn about news it cannot see either omits the section or fabricates one — and a fabricated NFP time shown to a trader sizing a position is a real harm, not a cosmetic gap.
+   - Retrieval half is **BUILT AND IN USE** today: `getUpcomingHighImpactEvents()` in `lib/economic-events/queries.ts`, already serving `/api/market/economic-events` and the terminal's session banner. Session 12-2 wires it into the orchestrator rather than writing it.
+   - ⚠ **Three rules the prompt layer must honour, each reflecting how the data actually behaves:**
+     1. **`null` forecast means NOT PUBLISHED, never zero.** Measured: only 12 of 23 upcoming HIGH-impact events carried a forecast, because rate decisions, votes and speeches structurally have none. The prompt must say "no forecast published" and never substitute a number.
+     2. **An empty result means say nothing.** No events retrieved is not licence to reason about news from training data — the model has no idea what is scheduled next week. Omit the section.
+     3. **A non-zero `time_mode` means the time is approximate** (upstream knows only the day, or is estimating). Present it as approximate rather than to the minute.
+   - Cost is one indexed query against a table measured at ~15k rows/year — a rounding error beside `market_data`'s ~1M.
 
 ---
 
@@ -449,7 +458,7 @@ Whenever the AI Co-Pilot generates a complete market assessment and setup recomm
 │ • Multi-Timeframe Structure Alignment (M15 Macro vs M5 Micro)                          │
 │ • EDT Channel Geometry, SSA Slope & Dynamic Support/Resistance                          │
 │ • Multi-Bar MCD Pattern Sequence Analysis (Density in Lookback N Bars)                 │
-│ • High-Impact Economic News Warnings & Market Risk Factors                             │
+│ • High-Impact Economic News Warnings & Market Risk Factors (Pillar 8)                  │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │ 🎯 REPORT 2: TRADE SETUP REPORT (MATHEMATICAL POSITION SIZING & PROFIT TARGETS)        │
 │ • Generated via Post-Report Clarification / Display Interactive Modal (5 Inputs)       │
@@ -504,11 +513,11 @@ Whenever the AI Co-Pilot generates a complete market assessment and setup recomm
 
 ---
 
-## 🔄 10. Parallel Quad/7-Pillar Retrieval Orchestrator Implementation
+## 🔄 10. Parallel Quad/8-Pillar Retrieval Orchestrator Implementation
 
 ```typescript
 // services/ai/retrieval-orchestrator.ts
-export async function execute7PillarRetrieval(
+export async function execute8PillarRetrieval(
   userId: string,
   userQuery: string,
   symbol: 'XAUUSD',
@@ -546,6 +555,7 @@ export async function execute7PillarRetrieval(
     wacsScore, // Pillar 4: WACS Direction Score (WACS54)
     strategyKnowledge, // Pillar 5: pgvector HNSW Strategy Rules
     chartPngBuffer, // Pillar 6: Cloudflare R2 2-Panel Vision PNG (M5 / M5-on-M15)
+    upcomingEvents, // Pillar 8: imminent HIGH-impact releases (economic_events)
     recentChatBuffer, // Recent 10-message Sliding Window from Redis
   ] = await Promise.all([
     vannaEngine.queryNumericDataFrame(symbol, timeframe, LOOKBACK_BARS),
@@ -556,6 +566,11 @@ export async function execute7PillarRetrieval(
     // Pillar 6: one image holds BOTH timeframes, so the second argument is the
     // entitlement variant, not a timeframe. null => FREE tier, no chart served.
     chartVariant ? r2Storage.getLatestChartPng(symbol, chartVariant) : null,
+    // Pillar 8: already built and exercised by /api/market/economic-events.
+    // Returns [] when the lane is undeployed or nothing is scheduled — and an
+    // empty list MUST render as no news section, never as an invitation to
+    // recall events from training data.
+    getUpcomingHighImpactEvents({ horizonDays: 7 }),
     redisChatBuffer.getRecentMessages(userId, symbol, timeframe, 10),
   ]);
 
@@ -580,14 +595,14 @@ export async function execute7PillarRetrieval(
 
 Stack D implementation is structured into 6 focused execution sessions:
 
-| Session #        | Title                                          | Core Architectural Deliverables                                                                                                                                                                             |
-| :--------------- | :--------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Session 12-0** | **Database & Vector Setup**                    | Enable `pgvector`, migrate `strategy_knowledge_embeddings`, `chat_threads`, `chat_messages`, and `market_data_v6` extended schema (Cols 1–92).                                                              |
-| **Session 12-1** | **Engine 4 Subsystem & Gate**                  | Implement 9 User Constraints, Pre-Chat Summary Card, Confirmation Loop, and PostgreSQL/Redis sync.                                                                                                          |
-| **Session 12-2** | **7-Pillar Retrieval Orchestrator**            | Build `execute7PillarRetrieval()` with VANNA NL2SQL, MCD Density, Storyline JSONB, WACS, `pgvector`, and Cloudflare R2 PNG loader.                                                                          |
-| **Session 12-3** | **OpenRouter Gateway & Multi-Model Router**    | Connect OpenRouter Unified API, configure 6 Models Registry (`Gemini 3.6`, `Claude Sonnet 5`, `GPT 5.6`, `GLM-5.2`, `Kimi K3`, `DeepSeek V4`), Cost-Plus Markup multipliers, and Dual-Report Prompt Engine. |
-| **Session 12-4** | **Chat UI, Sessions Drawer & Instant Prompts** | Build `AIAnalystPanel.tsx`, `SESSIONS` Sidebar drawer CRUD, Token Quota meter, and `Ask AI about M5/M15` 1-click trigger handlers.                                                                          |
-| **Session 12-5** | **Dynamic Cards & SSE Stream**                 | Implement `/api/ai/chat/stream` SSE streaming, `TradeSetupCard.tsx`, multi-TP exit visualization, and Token Cost Surveillance.                                                                              |
+| Session #        | Title                                          | Core Architectural Deliverables                                                                                                                                                                                       |
+| :--------------- | :--------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Session 12-0** | **Database & Vector Setup**                    | Enable `pgvector`, migrate `strategy_knowledge_embeddings`, `chat_threads`, `chat_messages`, and `market_data_v6` extended schema (Cols 1–92).                                                                        |
+| **Session 12-1** | **Engine 4 Subsystem & Gate**                  | Implement 9 User Constraints, Pre-Chat Summary Card, Confirmation Loop, and PostgreSQL/Redis sync.                                                                                                                    |
+| **Session 12-2** | **8-Pillar Retrieval Orchestrator**            | Build `execute8PillarRetrieval()` with VANNA NL2SQL, MCD Density, Storyline JSONB, WACS, `pgvector`, Cloudflare R2 PNG loader, and the economic-events reader (**already built** — `lib/economic-events/queries.ts`). |
+| **Session 12-3** | **OpenRouter Gateway & Multi-Model Router**    | Connect OpenRouter Unified API, configure 6 Models Registry (`Gemini 3.6`, `Claude Sonnet 5`, `GPT 5.6`, `GLM-5.2`, `Kimi K3`, `DeepSeek V4`), Cost-Plus Markup multipliers, and Dual-Report Prompt Engine.           |
+| **Session 12-4** | **Chat UI, Sessions Drawer & Instant Prompts** | Build `AIAnalystPanel.tsx`, `SESSIONS` Sidebar drawer CRUD, Token Quota meter, and `Ask AI about M5/M15` 1-click trigger handlers.                                                                                    |
+| **Session 12-5** | **Dynamic Cards & SSE Stream**                 | Implement `/api/ai/chat/stream` SSE streaming, `TradeSetupCard.tsx`, multi-TP exit visualization, and Token Cost Surveillance.                                                                                        |
 
 ---
 
@@ -595,7 +610,8 @@ Stack D implementation is structured into 6 focused execution sessions:
 
 When Claude Code executes Stack D, it must verify:
 
-1. **7-Pillar Completeness:** Verified that all 7 data sources are queried in parallel via `Promise.all` and injected into the LLM context.
+1. **8-Pillar Completeness:** Verified that all 8 data sources are queried in parallel via `Promise.all` and injected into the LLM context.
+   1b. **News honesty:** Verified that with `economic_events` EMPTY the model omits the news section entirely rather than inventing an event, and that an event carrying no forecast is reported as "no forecast published" rather than as a number.
 2. **`pgvector` Performance:** Verified that `strategy_knowledge_embeddings` HNSW cosine search executes in $< 15\text{ms}$.
 3. **Session Drawer CRUD:** Verified that the left sidebar lists historical chat sessions and allows switching between sessions without losing state.
 4. **Instant Prompt Triggers:** Verified that clicking `Ask AI about M5 Chart` and `Ask AI about M15 Chart` dispatches deterministic prompts and streams instant analysis.
