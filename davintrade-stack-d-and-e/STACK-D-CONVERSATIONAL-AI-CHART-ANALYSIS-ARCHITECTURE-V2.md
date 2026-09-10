@@ -488,17 +488,19 @@ Whenever the AI Co-Pilot generates a complete market assessment and setup recomm
      - `mtf_render_xauusd_m5_m15_standard.png` — M15 channel only (PRO user, toggle OFF)
    - Render both in one invocation (`python -m mtf_render --both-variants`) so the pair cannot come from two different reads of the database.
    - File path on VPS: `/app/storage/renders/mtf_render_xauusd_m5_m15_{variant}.png` (~150–300 KB each).
-2. **Cloudflare R2 Upload & CDN Caching:**
-   - Script uploads both generated PNGs to Cloudflare R2 bucket `davintrade-renders`.
-   - Public CDN URL: `https://renders.davintrade.com/xauusd/mtf_render_xauusd_m5_m15_overlay.png`.
-   - Benefits: **Zero Egress Fees** and global edge caching (< 15ms image fetch for Gemini/Claude Vision APIs).
+2. **Cloudflare R2 Upload — PRIVATE bucket + presigned URLs:**
+   - The VPS `MT5Renderer` service uploads both PNGs to R2 bucket `davintrade-renders` under `xauusd/`, with **no public-read ACL**.
+   - ⚠ **The bucket is private on purpose, and this replaces the public CDN URL this section previously specified.** Object names are deterministic, so a public bucket would make the PRO gate on the download route cosmetic — anyone told the URL could fetch it without a subscription.
+   - Browser downloads go through `GET /api/chart/download?variant=…`, which checks the PRO entitlement and then **redirects to a ~60s presigned URL**. Egress still leaves from R2, so the zero-egress benefit is retained; only the _authorization_ moved.
+   - Server-side consumers (the Pillar 6 vision fetch) hold the R2 credentials directly and do not need a presigned URL.
 3. **Retention & Pruning Policy:**
    - Active charts are kept for **48 hours (Rolling Window)**.
    - Background cron job purges images older than 48 hours to conserve storage.
 4. **Entitlement (why there are two variants):**
    - `M5 on M15` is a **PRO** feature. The renderer is deliberately tier-unaware — it always emits both files, and the **caller selects** by tier + toggle state. This keeps generation a cheap cron artifact and keeps the fetch a simple cached lookup; rendering per-request would blow the < 120 ms retrieval budget in §2.
    - FREE users receive **no** chart PNG: both consumers (the download button and the conversational AI) are themselves PRO-gated.
-   - ⚠ **The PNG download path in the monolith is not tier-gated today** (`components/chat-sidebar.tsx`) and points at a static placeholder rather than R2. Until that is wired, the variant split has no effect in production. Tracked separately.
+   - **The download path is now gated** — `requireChartDownload()` (`lib/auth/permissions.ts`) checks `multi_timeframe_visualization` and, unlike the other PRO gates, re-queries the database when the JWT says otherwise, so a just-upgraded user is not refused a feature they have paid for.
+   - ⚠ **Still requires the R2 bucket and credentials to exist.** Until they are created and set in Vercel and on the VPS, `/api/chart/download` returns **503** (not 500) and no renders are uploaded.
 
 ---
 

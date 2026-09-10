@@ -34,10 +34,31 @@ Davin asked specifically that these three be carried into this document. They ar
 **not** defects introduced by this work; two pre-date it entirely and one is a
 deliberate hold.
 
-### 1.1 ⚠ The PNG download path is not tier-gated, and points at a file that does not exist
+### 1.1 ✅ RESOLVED — the PNG download path is now tier-gated and wired to R2
 
-**Status: NOT FIXED. Out of scope, and it blocks this work from having any
-production effect.**
+**Status: BUILT 2026-09-10** in a follow-on session, planned as
+`MTF-RENDER-DELIVERY-AND-GATING-PLAN.md`. Still requires Davin to create the R2
+bucket and credentials before it can function — see that plan's §5.3.
+
+What shipped: a private-R2 client (`lib/storage/r2.ts` + `chart-keys.ts`), a
+`requireChartDownload()` gate that re-queries the database so a just-upgraded
+user is not refused, `GET /api/chart/download`, a plain-anchor button that sends
+FREE users to `/pricing`, and an `MT5Renderer` VPS service that renders both
+variants and uploads them. 17 new tests.
+
+**One finding from that work worth flagging back here:** the `M5 on M15` toggle
+**does not exist in the monolith at all** — it is seed-code only, unported. So
+decision D2's "the render follows the toggle" has no toggle to follow in
+production yet. The download route defaults to `overlay` and accepts an optional
+`?variant=`, which is safe because both variants are PRO-only, so the parameter
+picks _which_ image and never _whether_ the caller may have one.
+
+The original finding is preserved below, since it is the reason the work existed.
+
+---
+
+**Original finding (2026-09-10, now resolved):** the download path was not
+tier-gated and pointed at a file that did not exist.
 
 `components/chat-sidebar.tsx:108-115`:
 
@@ -368,12 +389,17 @@ nothing is labelled) rather than suppressed.
 
 Stated plainly so it is not mistaken for a finished feature:
 
-1. **No production behaviour change.** The renderer is not yet called by anything.
-   R2 upload and the cron trigger are Stack D Engine 3 work (§9), unbuilt.
-2. **No enforced entitlement.** Per 1.1, the download path ignores tier and points
-   at a missing static file. The two variants exist; nothing selects between them
-   yet.
-3. **No validation against live data.** Per §3.4.
+~~1. **No production behaviour change.**~~ **Resolved 2026-09-10** — the
+`MT5Renderer` VPS service now calls the renderer and uploads both variants to
+R2 (1.1). Inert until the bucket and credentials exist.
+
+~~2. **No enforced entitlement.**~~ **Resolved 2026-09-10** — `/api/chart/download`
+gates on PRO with a database re-check, and the button no longer links out for
+FREE users (1.1).
+
+3. **No validation against live data.** Per §3.4. **Still open**, and now with a
+   second strand: the R2 round trip has only been unit-tested against a mocked
+   S3 client, because no bucket exists yet.
 
 ~~4. **No pricing-page consistency.**~~ **Resolved 2026-09-10** — the claim now
 reads "Read-Only Multi-Timeframe Terminal" in both trees and no longer asserts a
@@ -383,14 +409,15 @@ panel count at all (1.3).
 
 ## 6. Recommended next steps
 
-| #     | Action                                                                                      | Owner       | Blocking?                           |
-| ----- | ------------------------------------------------------------------------------------------- | ----------- | ----------------------------------- |
-| ~~1~~ | ~~Decide the pricing-page string (1.3)~~ — **DONE 2026-09-10**, count dropped in both trees | Davin       | ~~Blocks W8 closing~~ **W8 closed** |
-| 2     | Tier-gate the PNG download and wire it to R2 (1.1)                                          | own session | **Blocks D2 having any effect**     |
-| 3     | Build the R2 upload + 5-minute cron (Stack D §9)                                            | Stack D     | Blocks the LLM ever seeing a render |
-| 4     | Recompile the 10 statistic-emitting `.ex5` and redeploy (deck §11 item 1)                   | Davin       | Blocks live overlay fidelity        |
-| 5     | Render against a real `xauusd.db` once 4 lands                                              | —           | Closes §3.4                         |
-| 6     | Decide §7.1 of the plan: drop the still-forming newest bar?                                 | Davin       | No                                  |
+| #     | Action                                                                                      | Owner   | Blocking?                           |
+| ----- | ------------------------------------------------------------------------------------------- | ------- | ----------------------------------- |
+| ~~1~~ | ~~Decide the pricing-page string (1.3)~~ — **DONE 2026-09-10**, count dropped in both trees | Davin   | ~~Blocks W8 closing~~ **W8 closed** |
+| ~~2~~ | ~~Tier-gate the PNG download and wire it to R2 (1.1)~~ — **BUILT 2026-09-10**               | done    | —                                   |
+| 2b    | **Create the private R2 bucket + credentials**, set them in Vercel and on the VPS           | Davin   | **Blocks 1.1 actually functioning** |
+| 3     | Build the R2 upload + 5-minute cron (Stack D §9)                                            | Stack D | Blocks the LLM ever seeing a render |
+| 4     | Recompile the 10 statistic-emitting `.ex5` and redeploy (deck §11 item 1)                   | Davin   | Blocks live overlay fidelity        |
+| 5     | Render against a real `xauusd.db` once 4 lands                                              | —       | Closes §3.4                         |
+| 6     | Decide §7.1 of the plan: drop the still-forming newest bar?                                 | Davin   | No                                  |
 
 ---
 
