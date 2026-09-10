@@ -240,22 +240,27 @@ Stack D §2's < 120 ms retrieval budget.
 `MTF-RENDER-MODIFICATION-PLAN.md` §7.1 — whether to drop the still-forming newest
 bar. Unchanged, and it affects what both the download and the LLM receive.
 
-### 7.5 Making the download follow the toggle would need the state persisted
+### 7.5 ✅ RESOLVED — the toggle is persisted and the download follows it
 
-Given §3.1's correction, the remaining gap is narrow and worth stating precisely.
-`mtfEnabled` lives in `useState` inside `trading-chart.tsx`, so it is known only
-to that component instance, in that tab, until reload. Two consequences:
+**Was:** `mtfEnabled` lived in `useState` inside `trading-chart.tsx`, so it was
+known only to that component instance, in that tab, until reload — and a
+server-side route had nothing to read.
 
-- The **download route** cannot read it. It would need to become a stored
-  preference (user settings, a cookie, or a query param passed by the client at
-  click time — the last being cheapest, since `?variant=` already exists).
-- The **Stack D Pillar 6 fetch** has the same problem for the same reason, and
-  that is the one that actually matters: the LLM should arguably see whatever the
-  trader is looking at.
+**Built 2026-09-10.** The toggle now writes to `UserPreferences.m5OnM15` (no
+migration — `preferences` is a JSON column), and `/api/chart/download` reads that
+same value to choose the variant. The downloaded PNG therefore matches the
+toggle state on screen.
 
-Not built, and not obviously worth building until Pillar 6 exists. Recorded so
-the `?variant=` parameter is understood as deliberate groundwork rather than
-speculative.
+**The `?variant=` query parameter was removed.** With the route able to read the
+preference itself, accepting a client-supplied variant would mean two sources
+that can disagree — exactly the divergence this work exists to close. One source
+decides. `parseChartVariant()` and `DEFAULT_CHART_VARIANT` became dead as a
+result and were deleted rather than left looking used.
+
+**Stack D Pillar 6 gets this for free** when it is built: it reads the same
+preference, so the LLM sees what the trader sees.
+
+Details: `MTF-TOGGLE-PERSISTENCE-MANIFEST-WORK-COMPLETION.md`.
 
 ### 7.6 ✅ RESOLVED — the monolith now uses the dual-stacked layout
 

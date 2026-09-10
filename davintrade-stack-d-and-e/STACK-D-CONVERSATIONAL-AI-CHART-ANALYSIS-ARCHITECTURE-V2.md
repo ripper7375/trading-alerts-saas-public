@@ -525,10 +525,16 @@ export async function execute7PillarRetrieval(
   // 1b. Resolve the Pillar 6 chart variant from entitlement (see §9).
   //     'M5 on M15' is PRO-only, so a FREE user gets no chart at all and a PRO
   //     user with the toggle off gets the standard (no-overlay) render.
+  //
+  //     `m5OnM15` is a real, persisted field on UserPreferences — the chart
+  //     toggle writes it and /api/chart/download already reads it the same way,
+  //     so the LLM sees the same render the trader is looking at. Server-side,
+  //     prefer lib/preferences/server-preferences.ts's getM5OnM15Preference()
+  //     over a second preferences fetch.
   const chartVariant: 'overlay' | 'standard' | null =
     userPreferences.tier !== 'PRO'
       ? null
-      : userPreferences.m5OnM15Enabled
+      : userPreferences.m5OnM15
         ? 'overlay'
         : 'standard';
 
