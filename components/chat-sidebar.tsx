@@ -105,15 +105,6 @@ export function ChatSidebar({
     'XAUUSD Macro Structure',
   ];
 
-  const handleDownloadPng = () => {
-    const link = document.createElement('a');
-    link.href = '/mtf_render_xauusd_sample.png';
-    link.download = 'XAUUSD_Matplotlib_2Panel_Vision_Render.png';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const navItems = [
     {
       label: t('nav.dashboard', 'Main Dashboard'),
@@ -395,28 +386,50 @@ export function ChatSidebar({
           </Link>
         )}
 
+        {/*
+          PRO gets a plain anchor so the browser drives the download -- same
+          pattern as the affiliate resource download. FREE is sent to /pricing
+          instead of linking out; the real refusal happens server-side at the
+          route, since client tier here is only an affordance (it defaults to
+          PRO while the session loads).
+        */}
         <Button
+          asChild
           variant="outline"
           size="sm"
-          onClick={handleDownloadPng}
           className={cn(
             'border-[var(--primary)]/30 bg-[var(--primary)]/5 shadow-xs hover:border-[var(--primary)]/60 hover:bg-[var(--primary)]/15 h-auto w-full flex-col justify-center rounded-xl py-2 text-center transition-all',
             isCollapsed && 'p-2'
           )}
         >
-          {!isCollapsed ? (
-            <div className="flex min-w-0 flex-col items-center">
-              <span className="flex items-center gap-1.5 truncate text-xs font-bold text-[var(--primary)]">
-                <Download className="h-3.5 w-3.5 shrink-0" />
-                {t('PNG Download')}
-              </span>
-              <span className="mt-0.5 truncate font-mono text-[9px] text-muted-foreground">
-                {t('Matplotlib 2-Panel Vision Render')}
-              </span>
-            </div>
-          ) : (
-            <Download className="h-4 w-4 shrink-0 text-[var(--primary)]" />
-          )}
+          <Link
+            href={currentTier === 'PRO' ? '/api/chart/download' : '/pricing'}
+            aria-label={
+              currentTier === 'PRO' ? t('PNG Download') : t('Upgrade to PRO')
+            }
+          >
+            {!isCollapsed ? (
+              <div className="flex min-w-0 flex-col items-center">
+                <span className="flex items-center gap-1.5 truncate text-xs font-bold text-[var(--primary)]">
+                  {currentTier === 'PRO' ? (
+                    <Download className="h-3.5 w-3.5 shrink-0" />
+                  ) : (
+                    <Lock className="h-3.5 w-3.5 shrink-0" />
+                  )}
+                  {t('PNG Download')}
+                </span>
+                <span className="mt-0.5 truncate font-mono text-[9px] text-muted-foreground">
+                  {currentTier === 'PRO'
+                    ? t('Matplotlib 2-Panel Vision Render')
+                    : t('PRO Subscriber Feature')}
+                </span>
+              </div>
+            ) : currentTier === 'PRO' ? (
+              <Download className="h-4 w-4 shrink-0 text-[var(--primary)]" />
+            ) : (
+              <Lock className="h-4 w-4 shrink-0 text-[var(--primary)]" />
+            )}
+          </Link>
         </Button>
       </div>
 

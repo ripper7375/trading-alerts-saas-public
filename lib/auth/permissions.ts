@@ -1,5 +1,6 @@
 import type { Session } from 'next-auth';
 
+import { prisma } from '@/lib/db/prisma';
 import type { UserTier } from '@/types';
 
 import { AuthError } from './errors';
@@ -222,6 +223,70 @@ export async function requirePro(): Promise<Session> {
     throw new AuthError(
       'Unable to verify subscription tier',
       'TIER_ERROR',
+      500
+    );
+  }
+}
+
+/**
+ * Require access to the rendered multi-timeframe chart download.
+ *
+ * Same entitlement as `requireMultiTimeframe`, but it does not stop at the JWT.
+ * `checkFeatureAccess` reads `session.user` from the token only, so a user who
+ * has *just* upgraded to PRO still carries a stale `tier: 'FREE'` claim and
+ * would be refused a feature they have paid for -- which reads as a billing
+ * bug, not an auth subtlety.
+ *
+ * `requireAffiliate` already solves this for affiliate status by re-querying the
+ * database when the claim is missing; this mirrors that precedent, deliberately
+ * scoped to this one gate rather than changing `checkFeatureAccess` for every
+ * PRO feature at once.
+ *
+ * The extra query only runs when the token says the user is NOT entitled, so the
+ * common path (a PRO user with a fresh token) still costs nothing.
+ *
+ * @throws {AuthError} 401 when unauthenticated, 403 when not on PRO
+ */
+export async function requireChartDownload(): Promise<void> {
+  try {
+    const session = await getSession();
+
+    if (!session?.user) {
+      throw new AuthError(
+        'You must be logged in to download chart renders',
+        'UNAUTHORIZED',
+        401
+      );
+    }
+
+    if (hasPermission(session.user, 'multi_timeframe_visualization')) {
+      return;
+    }
+
+    // Token says no. Ask the database before refusing -- it may simply be stale.
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { tier: true },
+    });
+
+    if (dbUser?.tier === 'PRO') {
+      return;
+    }
+
+    throw new AuthError(
+      'PRO subscription required to download chart renders',
+      'PRO_REQUIRED',
+      403
+    );
+  } catch (error) {
+    if (error instanceof AuthError) {
+      throw error;
+    }
+
+    console.error('Chart download access validation failed:', error);
+    throw new AuthError(
+      'Unable to validate chart download access',
+      'PERMISSION_ERROR',
       500
     );
   }
