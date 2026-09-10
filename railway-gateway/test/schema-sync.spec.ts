@@ -78,6 +78,7 @@ describe('MarketDataV6 schema drift (railway-gateway vs. monolith source of trut
 describe.each([
   ['IndicatorStatistic', 'indicator_statistics'],
   ['IndicatorConfig', 'indicator_configs'],
+  ['EconomicEvent', 'economic_events'],
 ])(
   '%s schema drift (railway-gateway vs. monolith source of truth)',
   (model, table) => {
@@ -128,5 +129,46 @@ describe('IndicatorStatistic append-only invariant', () => {
 
   it('has no updatedAt field (rows are never modified after insert)', () => {
     expect(body).not.toMatch(/@updatedAt/);
+  });
+});
+
+/**
+ * The same invariant for the economic-events stream, and it matters more here
+ * than anywhere else in the pipeline. A forecast is revised and an actual is
+ * published only AFTER the event, so narrowing this key to value_id alone
+ * would make each release overwrite itself and erase what the market knew
+ * beforehand — permanently, and with no error to notice it by.
+ */
+describe('EconomicEvent append-only invariant', () => {
+  const sourceOfTruthSchema = fs.readFileSync(
+    SOURCE_OF_TRUTH_SCHEMA_PATH,
+    'utf-8'
+  );
+  const body = extractModelBody(sourceOfTruthSchema, 'EconomicEvent');
+
+  it('is keyed on (value_id, captured_at) — including captured_at', () => {
+    expect(normalizeFields(body)).toContain(
+      '@@unique([value_id, captured_at])'
+    );
+  });
+
+  it('has no updatedAt field (rows are never modified after insert)', () => {
+    expect(body).not.toMatch(/@updatedAt/);
+  });
+
+  it('keeps ids as String so 64-bit upstream ids survive JSON transport', () => {
+    expect(normalizeFields(body)).toContain('value_id String');
+    expect(normalizeFields(body)).toContain('event_id String');
+  });
+
+  it('leaves every published value nullable (missing is not zero)', () => {
+    for (const field of [
+      'actual_value',
+      'forecast_value',
+      'prev_value',
+      'revised_prev_value',
+    ]) {
+      expect(normalizeFields(body)).toContain(`${field} Float?`);
+    }
   });
 });

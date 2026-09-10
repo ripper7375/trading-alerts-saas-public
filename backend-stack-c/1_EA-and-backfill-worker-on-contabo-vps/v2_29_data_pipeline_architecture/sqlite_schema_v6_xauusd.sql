@@ -610,3 +610,99 @@ BEGIN
     WHERE synced_at IS NOT NULL
       AND captured_at < NEW.captured_at - 604800;
 END;
+
+-- ============================================================================
+-- 6. ECONOMIC EVENTS OUTBOX (append-only, MT5 built-in calendar)
+-- ============================================================================
+-- Source: MT5's own Economic Calendar API (CalendarValueHistory ->
+-- CalendarEventById -> CalendarCountryById), read by the calendar exporter on
+-- the same terminal that runs the 13 export indicators. No vendor, no API key.
+-- Availability confirmed on the live terminal before this table was designed
+-- (Eightcap-Demo build 6182: 333 events / 8 days, 333/333 lookups resolved,
+-- 25 HIGH-impact, server-side currency filtering functional).
+--
+-- APPEND-ONLY, and for the same reason indicator_statistics is. A forecast is
+-- revised and an actual lands only AFTER the release, so overwriting the row
+-- destroys what the market knew beforehand — the exact loss
+-- HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md documents for market_data,
+-- where it is unrecoverable. A correction is a NEW row with a later
+-- captured_at, never an update. Current state is then a DISTINCT ON query;
+-- the reverse (recovering history from an upserted row) is impossible.
+--
+-- NOT symbol-scoped. Economic events are global; relevance to XAUUSD is
+-- derived from `currency` at query time, not denormalised in here.
+--
+-- ⚠ MISSING vs ZERO. MQL5 returns LONG_MIN for an unset value, and a real 0.0
+-- forecast is NOT missing data. The exporter must write NULL for LONG_MIN and
+-- must never coerce it to 0 — same guard as PRICE_LEVEL_COLUMNS in the
+-- export collector. Step Zero measured only 12 of 23 upcoming HIGH-impact
+-- events carrying a forecast at all (rate decisions and speeches structurally
+-- have none), so NULL here is the common case, not an error case.
+--
+-- ⚠ TIMES ARE UTC. MqlCalendarValue.time is SERVER time; the exporter converts
+-- using the same hour-rounded TimeTradeServer()-TimeGMT() offset the fixed
+-- export indicators use. Confirmed against two real releases (US PPI 08:30 ET,
+-- ECB 14:15 CEST) rather than assumed. Never store server time here.
+-- ⚠ IDS ARE TEXT, DELIBERATELY. MqlCalendarValue.id and MqlCalendarEvent.id are
+-- MQL5 `ulong` (64-bit), and JSON has no 64-bit integer type — a large id would
+-- silently lose precision crossing the gateway as a JSON number. They are
+-- opaque identifiers we never do arithmetic on (ordering is by captured_at /
+-- event_time), so they are TEXT here, in the gateway contract and in Prisma
+-- alike: one representation, no conversion boundary to drift at. The exporter
+-- writes IntegerToString(id).
+CREATE TABLE IF NOT EXISTS economic_events (
+    value_id            TEXT    NOT NULL,   -- MqlCalendarValue.id — one specific release
+    captured_at         INTEGER NOT NULL,   -- unix UTC; the append-only half of the key
+    event_id            TEXT    NOT NULL,   -- MqlCalendarEvent.id — the recurring event
+    event_time          INTEGER NOT NULL,   -- unix UTC; when the event occurs
+    event_period        INTEGER,            -- unix UTC; the reporting period covered
+    revision            INTEGER,            -- MqlCalendarValue.revision
+
+    -- Country / currency (MqlCalendarCountry)
+    country_code        TEXT    NOT NULL,   -- ISO 3166-1 alpha-2
+    currency            TEXT    NOT NULL,   -- e.g. USD — the XAUUSD relevance filter
+
+    -- Event descriptors (MqlCalendarEvent)
+    event_name          TEXT    NOT NULL,
+    importance          TEXT    NOT NULL CHECK (importance IN ('NONE','LOW','MODERATE','HIGH')),
+    event_type          INTEGER,
+    sector              INTEGER,
+    frequency           INTEGER,
+    time_mode           INTEGER,
+    unit                INTEGER,
+    multiplier          INTEGER,
+    digits              INTEGER,
+    event_code          TEXT,
+    source_url          TEXT,
+
+    -- Values. NULL = not published (LONG_MIN upstream), NOT zero.
+    actual_value        REAL,
+    forecast_value      REAL,
+    prev_value          REAL,
+    revised_prev_value  REAL,
+    impact_type         INTEGER,            -- MqlCalendarValue.impact_type
+
+    synced_at           INTEGER,            -- NULL = not yet pushed
+
+    PRIMARY KEY (value_id, captured_at)
+);
+
+CREATE INDEX IF NOT EXISTS idx_economic_events_unsynced
+    ON economic_events (captured_at) WHERE synced_at IS NULL;
+
+-- Lets the exporter cheaply ask "has this release changed since I last saw it?"
+-- so an unchanged event does not append an identical row every cycle.
+CREATE INDEX IF NOT EXISTS idx_economic_events_latest
+    ON economic_events (value_id, captured_at DESC);
+
+-- Same 7-day replay buffer as the statistics outbox: PostgreSQL is the
+-- append-only archive, this table only has to survive long enough to be pushed
+-- and re-pushed. An UNSYNCED row is never deleted regardless of age — the sync
+-- guarantee always beats retention.
+CREATE TRIGGER IF NOT EXISTS trg_economic_events_prune
+AFTER INSERT ON economic_events
+BEGIN
+    DELETE FROM economic_events
+    WHERE synced_at IS NOT NULL
+      AND captured_at < NEW.captured_at - 604800;
+END;

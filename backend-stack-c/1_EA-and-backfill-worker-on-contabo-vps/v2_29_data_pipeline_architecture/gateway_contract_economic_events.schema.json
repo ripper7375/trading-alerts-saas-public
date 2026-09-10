@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trading-alerts-saas/v6/gateway_contract_economic_events.schema.json",
+  "title": "POST /api/v1/economic-events — one element of the request array (v6 pipeline)",
+  "description": "Contract between the push worker (backfill_worker_api_gateway_v5.py) and the API Gateway for the APPEND-ONLY economic events stream, sourced from MT5's built-in Economic Calendar on the same terminal that runs the 13 export indicators. One JSON object = one observation of one calendar release at one moment. The request body is an ARRAY of these; a cycle typically carries tens of rows, so they are pushed batched rather than one-per-request. This stream is entirely separate from market_data AND from indicator_statistics: its own endpoint, queue and outbox, so a failure here can never delay or reject price data. The gateway MUST upsert idempotently on (value_id, captured_at) — duplicate delivery is by design (push retries) — but a re-push is byte-identical, so rows are never meaningfully mutated. A revised forecast or a published actual is a NEW row with a later captured_at, NEVER an update: overwriting would destroy what the market knew before the release, which is the loss HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md documents as unrecoverable for market_data. Current state is a DISTINCT ON (value_id) ... ORDER BY captured_at DESC query. NOT symbol-scoped: economic events are global, and relevance to XAUUSD is derived from `currency` at query time.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "terminal_id",
+    "value_id",
+    "captured_at",
+    "event_id",
+    "event_time",
+    "country_code",
+    "currency",
+    "event_name",
+    "importance"
+  ],
+  "properties": {
+    "terminal_id": {
+      "type": "string",
+      "description": "Sender id; 'push_worker_v5' from the v6 push worker."
+    },
+
+    "value_id": {
+      "type": "string",
+      "pattern": "^[0-9]+$",
+      "description": "MqlCalendarValue.id — identifies one specific release. STRING, not number: the upstream type is MQL5 ulong (64-bit) and JSON numbers cannot carry that precision safely. Opaque; never used for arithmetic or ordering."
+    },
+    "captured_at": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Unix seconds UTC at which the exporter observed this state. The append-only half of the key. Two rows sharing value_id and differing here are the same release seen at two moments — that difference is the revision history."
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^[0-9]+$",
+      "description": "MqlCalendarEvent.id — the recurring event (e.g. 'US PPI m/m'), shared by every release of it. STRING for the same reason as value_id."
+    },
+    "event_time": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Unix seconds UTC at which the event occurs. ⚠ MqlCalendarValue.time is SERVER time upstream; the exporter converts it using the same hour-rounded TimeTradeServer()-TimeGMT() offset the fixed export indicators use. Verified against two real releases (US PPI 08:30 ET, ECB 14:15 CEST) rather than assumed. Never send server time."
+    },
+    "event_period": {
+      "type": ["integer", "null"],
+      "description": "Unix seconds UTC for the reporting period the figure covers (e.g. the month being reported), not when it is published."
+    },
+    "revision": {
+      "type": ["integer", "null"],
+      "description": "MqlCalendarValue.revision — upstream's own revision counter for this release."
+    },
+
+    "country_code": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 2,
+      "description": "ISO 3166-1 alpha-2, from MqlCalendarCountry.code."
+    },
+    "currency": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 3,
+      "description": "ISO 4217, from MqlCalendarCountry.currency. This is the XAUUSD relevance filter — USD events move gold most, so consumers filter here rather than the pipeline filtering at source. Capture everything: what is not captured cannot be recovered later."
+    },
+
+    "event_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "MqlCalendarEvent.name, in the terminal's language. Not translated by the pipeline."
+    },
+    "importance": {
+      "type": "string",
+      "enum": ["NONE", "LOW", "MODERATE", "HIGH"],
+      "description": "From ENUM_CALENDAR_EVENT_IMPORTANCE. Only HIGH drives the countdown UI, but every level is stored — Step Zero measured 333 events over 8 days of which just 25 were HIGH, and the rest are cheap context for the LLM."
+    },
+    "event_type": {
+      "type": ["integer", "null"],
+      "description": "ENUM_CALENDAR_EVENT_TYPE, stored raw."
+    },
+    "sector": {
+      "type": ["integer", "null"],
+      "description": "ENUM_CALENDAR_EVENT_SECTOR, stored raw."
+    },
+    "frequency": {
+      "type": ["integer", "null"],
+      "description": "ENUM_CALENDAR_EVENT_FREQUENCY, stored raw."
+    },
+    "time_mode": {
+      "type": ["integer", "null"],
+      "description": "ENUM_CALENDAR_EVENT_TIMEMODE, stored raw. Non-exact modes mean event_time is a day or a floating estimate, not a precise instant — a countdown should not imply second precision for those."
+    },
+    "unit": {
+      "type": ["integer", "null"],
+      "description": "ENUM_CALENDAR_EVENT_UNIT — how to render the values (percent, currency, index...)."
+    },
+    "multiplier": {
+      "type": ["integer", "null"],
+      "description": "ENUM_CALENDAR_EVENT_MULTIPLIER (thousands, millions...)."
+    },
+    "digits": {
+      "type": ["integer", "null"],
+      "description": "Decimal places for rendering the values."
+    },
+    "event_code": {
+      "type": ["string", "null"],
+      "description": "MqlCalendarEvent.event_code."
+    },
+    "source_url": {
+      "type": ["string", "null"],
+      "description": "MqlCalendarEvent.source_url — where the figure is published. Useful for citing a warning back to the user."
+    },
+
+    "actual_value": {
+      "type": ["number", "null"],
+      "description": "Published figure, already divided by 10^6. ⚠ NULL means NOT PUBLISHED (LONG_MIN upstream); it does NOT mean zero, and a genuine 0.0 is a real reading. Never coerce. Before a release this is always null — that absence is precisely what makes the pre-event row worth keeping."
+    },
+    "forecast_value": {
+      "type": ["number", "null"],
+      "description": "Consensus forecast, already divided by 10^6, or null. NULL is the COMMON case, not an error: Step Zero measured only 12 of 23 upcoming HIGH-impact events carrying one, because rate decisions, votes and speeches structurally have no numeric forecast. A consumer must render 'no forecast published' rather than invent a number."
+    },
+    "prev_value": {
+      "type": ["number", "null"],
+      "description": "Previous reading, already divided by 10^6, or null."
+    },
+    "revised_prev_value": {
+      "type": ["number", "null"],
+      "description": "Revised previous reading, already divided by 10^6, or null."
+    },
+    "impact_type": {
+      "type": ["integer", "null"],
+      "description": "ENUM_CALENDAR_EVENT_IMPACT — upstream's own read of which way the figure pushes the currency. Stored raw; it is upstream opinion, not a derived signal of ours."
+    }
+  }
+}

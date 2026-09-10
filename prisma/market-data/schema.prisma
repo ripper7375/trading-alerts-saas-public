@@ -260,3 +260,77 @@ model IndicatorConfig {
   @@index([source])
   @@map("indicator_configs")
 }
+
+/// One observation of one economic-calendar release, read from MT5's built-in
+/// Economic Calendar on the same terminal that runs the 13 export indicators.
+///
+/// APPEND-ONLY, enforced by the KEY rather than a trigger: a revised forecast
+/// or a newly published actual is a NEW row with a later captured_at, never an
+/// update. Overwriting would destroy what the market knew BEFORE the release —
+/// the same loss HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md records as
+/// unrecoverable for market_data. Current state is
+/// `DISTINCT ON (value_id) ... ORDER BY value_id, captured_at DESC`; the
+/// reverse, recovering history from an overwritten row, is impossible.
+///
+/// NOT symbol-scoped. Economic events are global; relevance to XAUUSD is
+/// derived from `currency` at query time rather than denormalised here.
+model EconomicEvent {
+  id String @id @default(cuid())
+
+  terminal_id String
+
+  // Ids are String, not Int or BigInt. Upstream they are MQL5 `ulong` (64-bit)
+  // and JSON has no 64-bit integer, so a large id would silently lose precision
+  // crossing the gateway. They are opaque — never used for arithmetic, and
+  // ordering is always by captured_at / event_time.
+  value_id    String // MqlCalendarValue.id — one specific release
+  captured_at Int // unix UTC — when observed; the append-only half of the key
+  event_id    String // MqlCalendarEvent.id — the recurring event
+
+  event_time   Int // unix UTC — when the event occurs (converted from server time at source)
+  event_period Int? // unix UTC — the reporting period covered, not the publication moment
+  revision     Int?
+
+  country_code String // ISO 3166-1 alpha-2
+  currency     String // ISO 4217 — the XAUUSD relevance filter
+
+  event_name String
+  importance String // NONE | LOW | MODERATE | HIGH
+
+  // Raw upstream enums, stored unmapped. time_mode matters to consumers: a
+  // non-exact mode means event_time is a day or a floating estimate, so a
+  // countdown must not imply second precision for those.
+  event_type Int?
+  sector     Int?
+  frequency  Int?
+  time_mode  Int?
+  unit       Int?
+  multiplier Int?
+  digits     Int?
+  event_code String?
+  source_url String?
+
+  // Values, already divided by 10^6 at source.
+  //
+  // NULL means NOT PUBLISHED, never zero — a genuine 0.0 reading is real data.
+  // For forecast_value NULL is the COMMON case: Step Zero measured only 12 of
+  // 23 upcoming HIGH-impact events carrying one, because rate decisions, votes
+  // and speeches structurally have no numeric forecast. Consumers must render
+  // "no forecast published" rather than substitute a number.
+  actual_value       Float?
+  forecast_value     Float?
+  prev_value         Float?
+  revised_prev_value Float?
+  impact_type        Int? // ENUM_CALENDAR_EVENT_IMPACT — upstream's opinion, not ours
+
+  createdAt DateTime @default(now())
+
+  // The append-only key. Postgres backs a unique constraint with a btree index
+  // on exactly these columns, so no separate @@index repeats this list.
+  @@unique([value_id, captured_at])
+  // "What is the next HIGH-impact event?" — the countdown's only query.
+  @@index([event_time, importance])
+  // "What is coming for USD?" — the Stack D news pillar's filter.
+  @@index([currency, event_time])
+  @@map("economic_events")
+}
