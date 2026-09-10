@@ -15,6 +15,7 @@ REM
 REM Prerequisites:
 REM   - NSSM on PATH            (https://nssm.cc)
 REM   - Python 3.8+ with: pip install aiohttp requests
+REM   - For MT5Renderer only: pip install boto3 matplotlib pandas numpy
 REM   - Edit the CONFIG block below for this VPS.
 REM ============================================================================
 
@@ -31,6 +32,12 @@ set DB=%ROOT%\database\xauusd.db
 set LOGS=%ROOT%\logs
 set BACKFILL_API_KEY=PUT_REAL_KEY_HERE
 set API_GATEWAY_URL=PUT_REAL_RAILWAY_GATEWAY_URL_HERE
+REM ---- Chart renderer -> Cloudflare R2 (private bucket) ----
+set RENDERER=%ROOT%\renderer\mtf_render_upload_worker.py
+set R2_ACCOUNT_ID=PUT_R2_ACCOUNT_ID_HERE
+set R2_ACCESS_KEY_ID=PUT_R2_ACCESS_KEY_ID_HERE
+set R2_SECRET_ACCESS_KEY=PUT_R2_SECRET_ACCESS_KEY_HERE
+set R2_BUCKET=davintrade-renders
 REM -------------------------------------------
 
 if not exist "%LOGS%" mkdir "%LOGS%"
@@ -60,10 +67,22 @@ nssm set MT5PushWorker AppStderr "%LOGS%\push_worker.err.log"
 nssm set MT5PushWorker AppExit Default Restart
 nssm set MT5PushWorker Start SERVICE_AUTO_START
 
+echo === Installing MT5Renderer (chart PNGs -^> Cloudflare R2) ===
+REM Read-only against xauusd.db. A rendering failure must never affect price
+REM ingestion, so this service is independent of the collector/push worker.
+nssm install MT5Renderer "%PYTHON%" "%RENDERER%"
+nssm set MT5Renderer AppDirectory "%ROOT%\renderer"
+nssm set MT5Renderer AppEnvironmentExtra R2_ACCOUNT_ID=%R2_ACCOUNT_ID% R2_ACCESS_KEY_ID=%R2_ACCESS_KEY_ID% R2_SECRET_ACCESS_KEY=%R2_SECRET_ACCESS_KEY% R2_BUCKET=%R2_BUCKET% MTF_DB_PATH=%DB%
+nssm set MT5Renderer AppStdout "%LOGS%\renderer.log"
+nssm set MT5Renderer AppStderr "%LOGS%\renderer.err.log"
+nssm set MT5Renderer AppExit Default Restart
+nssm set MT5Renderer Start SERVICE_AUTO_START
+
 echo === Starting services (collector first, then push worker, relay last) ===
 nssm start MT5Collector
 nssm start MT5PushWorker
 nssm start MT5Relay
+nssm start MT5Renderer
 
 echo.
 echo Done. Verify with:  nssm status MT5Collector ^& nssm status MT5PushWorker
