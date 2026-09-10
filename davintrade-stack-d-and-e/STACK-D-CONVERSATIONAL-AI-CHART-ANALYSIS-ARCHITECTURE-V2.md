@@ -487,11 +487,11 @@ Whenever the AI Co-Pilot generates a complete market assessment and setup recomm
      - `mtf_render_xauusd_m5_m15_overlay.png` — M5 channel overlaid (**PRO** user, `M5 on M15` toggle ON)
      - `mtf_render_xauusd_m5_m15_standard.png` — M15 channel only (PRO user, toggle OFF)
    - Render both in one invocation (`python -m mtf_render --both-variants`) so the pair cannot come from two different reads of the database.
-   - File path on VPS: `/app/storage/renders/mtf_render_xauusd_m5_m15_{variant}.png` (~150–300 KB each).
+   - The VPS writes both PNGs to a **temporary directory** that is discarded after upload — R2 is the only durable copy, so there is no render directory to manage or fill up. (The Contabo host is Windows; earlier drafts of this section named a Linux `/app/storage/renders/` path that never existed.)
 2. **Cloudflare R2 Upload — PRIVATE bucket + presigned URLs:**
    - The VPS `MT5Renderer` service uploads both PNGs to R2 bucket `davintrade-renders` under `xauusd/`, with **no public-read ACL**.
    - ⚠ **The bucket is private on purpose, and this replaces the public CDN URL this section previously specified.** Object names are deterministic, so a public bucket would make the PRO gate on the download route cosmetic — anyone told the URL could fetch it without a subscription.
-   - Browser downloads go through `GET /api/chart/download?variant=…`, which checks the PRO entitlement and then **redirects to a ~60s presigned URL**. Egress still leaves from R2, so the zero-egress benefit is retained; only the _authorization_ moved.
+   - Browser downloads go through `GET /api/chart/download`, which checks the PRO entitlement, reads the caller's stored `UserPreferences.m5OnM15` to pick the variant, and **redirects to a ~60s presigned URL**. Egress still leaves from R2, so the zero-egress benefit is retained; only the _authorization_ moved. **It takes no query parameter** — an earlier draft accepted `?variant=`, which was removed so that one source decides which render a user gets.
    - Server-side consumers (the Pillar 6 vision fetch) hold the R2 credentials directly and do not need a presigned URL.
 3. **Retention & Pruning Policy:**
    - Active charts are kept for **48 hours (Rolling Window)**.

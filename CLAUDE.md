@@ -2222,8 +2222,17 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   **⚠ Do not enable public read.** Object names are deterministic
   (`mtf_render_xauusd_m5_m15_overlay.png`), so a public bucket makes the PRO gate cosmetic — anyone
   told the URL fetches it. That single setting is what the entire delivery design rests on; the
-  presigned-URL flow exists precisely to avoid it. Full steps:
-  `v2_29_multi-timeframe-visualisation/MTF-RENDER-DELIVERY-MANIFEST-WORK-COMPLETION.md` §5.
+  presigned-URL flow exists precisely to avoid it.
+  **⚠ IF YOU ARE A SESSION PICKING THIS UP: the code is DONE — do not rebuild it.**
+  `lib/storage/{r2,chart-keys}.ts`, `app/api/chart/download/route.ts`,
+  `lib/preferences/server-preferences.ts`, `components/charts/mtf/useMtfPreference.ts` and
+  `mtf_render_upload_worker.py` all exist on `main` (commits `31b3206f`, `55d598bb`, `41fdcc56`)
+  and are covered by tests. The gap is a bucket and four credentials, nothing else. This reads
+  like a build task and is not one. **Verify with the Step Zero command** in
+  `v2_29_multi-timeframe-visualisation/R2-CHART-STORAGE-ARCHITECTURE-AND-DEPLOYMENT.md` §0.0
+  before proposing anything — that doc is standalone and carries the full deployment plan,
+  the paste-able opening prompt (§9), and the runbook. Also:
+  `MTF-RENDER-DELIVERY-MANIFEST-WORK-COMPLETION.md` §5.
 - **Chart-render click-through — needs Davin, everything else is verified** (2026-09-10). Both
   workspaces sit behind auth and the Executor never enters credentials, so these are proven by test
   only: that `/terminal` opens **exactly two** WebSockets (not four or one — the operational cost of
