@@ -1,14 +1,30 @@
-"""Matplotlib renderer for the three-canvas multi-timeframe layout.
+"""Matplotlib renderer for the two-canvas multi-timeframe layout.
+
+Upper panel: XAUUSD M5 with its own equal-distance channel.
+Lower panel: XAUUSD M15 with its own channel, plus -- in the ``overlay`` variant
+-- the M5 channel layered on top. This mirrors the shipped terminal UI, where
+the M15 chart always carries its own channel and the PRO-gated "M5 on M15"
+toggle adds the M5 one over it.
 
 Candles are drawn by hand against a real time x-axis (unix seconds) rather than
-via mplfinance's categorical index. That matters for this task: the M5 channel
-must overlay the M15 candles by *price and time*, so both panels have to share a
-real time axis — a categorical bar index would misalign M5 lines on M15 bars.
+via mplfinance's categorical index. That matters here: the M5 channel must
+overlay the M15 candles by *price and time*, and a categorical bar index would
+misalign them.
+
+The output is consumed by a vision model as well as by a human, so two things
+are deliberate rather than cosmetic:
+
+  * Every legend entry names the timeframe its values were computed on, because
+    the lower panel can carry an M15 channel and an M5 channel at once.
+  * The ``standard`` variant *states* that the M5 overlay is off. Conveying its
+    absence by silently omitting the lines is what would let a model reason
+    about a channel it was never shown.
 """
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Sequence
 
 import matplotlib
 
@@ -17,12 +33,18 @@ import matplotlib.dates as mdates  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 
-from .data_source import ChartData  # noqa: E402
+from .data_source import ChartData, Overlay  # noqa: E402
 
-# Channel styling — the three parallel blue lines from the target image.
-_CHANNEL_BLUE = "#1f6fe0"
 _UP_COLOR = "#26a269"  # bullish candle
 _DOWN_COLOR = "#c01c28"  # bearish candle
+
+# A panel's OWN channel. First entry keeps the original single-overlay blue.
+_OWN_COLORS = ("#1f6fe0", "#e08a1f", "#7b3fe0", "#0f9b8e", "#c0398b", "#5a6b7a")
+
+# The M5 channel layered onto the M15 panel. Cyan + dashed mirrors the UI's own
+# overlay styling, and keeps it separable from the panel's own lines.
+_M5_OVERLAY_COLORS = ("#06b6d4", "#f59e0b", "#a855f7", "#14b8a6", "#ec4899", "#64748b")
+_M5_OVERLAY_STYLE = (0, (6, 3))
 
 
 def _ts_to_num(ts_series: pd.Series):
@@ -31,7 +53,7 @@ def _ts_to_num(ts_series: pd.Series):
     return mdates.date2num(dt)
 
 
-def _draw_candles(ax, candles: pd.DataFrame, timeframe: str) -> None:
+def _draw_candles(ax, candles: pd.DataFrame) -> None:
     if candles.empty:
         return
     x = _ts_to_num(candles["timestamp"])
@@ -41,9 +63,13 @@ def _draw_candles(ax, candles: pd.DataFrame, timeframe: str) -> None:
     for xi, (_, row) in zip(x, candles.iterrows()):
         up = row["close"] >= row["open"]
         color = _UP_COLOR if up else _DOWN_COLOR
-        # High-low wick.
-        ax.plot([xi, xi], [row["low"], row["high"]], color=color, linewidth=0.7, zorder=2)
-        # Open-close body.
+        ax.plot(
+            [xi, xi],
+            [row["low"], row["high"]],
+            color=color,
+            linewidth=0.7,
+            zorder=2,
+        )
         lower = min(row["open"], row["close"])
         height = abs(row["close"] - row["open"]) or 1e-6
         ax.add_patch(
@@ -59,58 +85,114 @@ def _draw_candles(ax, candles: pd.DataFrame, timeframe: str) -> None:
         )
 
 
-def _draw_channel(ax, chart: ChartData) -> None:
-    """Draw the equal-distance channel (uoedt / base_fl / loedt)."""
-    frame = chart.channel.frame
-    if not chart.channel.has_data:
+def _draw_overlay(ax, overlay: Overlay, color: str, linestyle, zorder: int) -> None:
+    """Draw one overlay: three parallel lines for a channel, one for a line."""
+    if not overlay.has_data:
         return
+    frame = overlay.frame
     x = _ts_to_num(frame["timestamp"])
-    label_tf = chart.channel_timeframe
-    ax.plot(x, frame["uoedt"], color=_CHANNEL_BLUE, linewidth=1.3, zorder=4,
-            label=f"{label_tf} UOEDT ({chart.channel.variant})")
-    ax.plot(x, frame["base_fl"], color=_CHANNEL_BLUE, linewidth=1.1, linestyle="--",
-            zorder=4, label=f"{label_tf} base_fl")
-    ax.plot(x, frame["loedt"], color=_CHANNEL_BLUE, linewidth=1.3, zorder=4,
-            label=f"{label_tf} LOEDT")
+    label = overlay.label
+
+    if overlay.spec.kind == "channel":
+        ax.plot(x, frame["upper"], color=color, linewidth=1.3,
+                linestyle=linestyle, zorder=zorder, label=f"{label} UOEDT")
+        # Mid line dashed-thin so it reads as the baseline, not a bound.
+        ax.plot(x, frame["mid"], color=color, linewidth=1.0,
+                linestyle=":" if linestyle == "-" else linestyle,
+                zorder=zorder, label=f"{label} base")
+        ax.plot(x, frame["lower"], color=color, linewidth=1.3,
+                linestyle=linestyle, zorder=zorder, label=f"{label} LOEDT")
+    else:
+        ax.plot(x, frame["mid"], color=color, linewidth=1.4,
+                linestyle=linestyle, zorder=zorder, label=label)
 
 
-def _render_panel(ax, chart: ChartData, title: str) -> None:
-    _draw_candles(ax, chart.candles, chart.timeframe)
-    _draw_channel(ax, chart)
+def _panel_title(chart: ChartData) -> str:
+    """Title that states the overlay's presence -- or its absence -- explicitly.
 
-    ax.set_title(title, fontsize=11, loc="left", fontweight="bold")
+    Three states, not two. "Requested but empty" (indicator warm-up, when the
+    channel columns are still NULL) must not be labelled the same as "not
+    requested": one is missing data, the other is the user's setting, and a
+    reader cannot tell them apart from the absence of lines alone.
+    """
+    if chart.timeframe == "M5":
+        return "Chart 1 (upper) - XAUUSD M5  ·  M5 channel"
+    if chart.has_m5_overlay:
+        return (
+            "Chart 2 (lower) - XAUUSD M15  ·  M15 channel "
+            "+ M5 channel OVERLAID (PRO)"
+        )
+    if chart.m5_overlay_requested:
+        return (
+            "Chart 2 (lower) - XAUUSD M15  ·  M15 channel  ·  "
+            "M5 overlay ON but NO DATA (indicator warm-up)"
+        )
+    return "Chart 2 (lower) - XAUUSD M15  ·  M15 channel  ·  M5 overlay OFF"
+
+
+def _render_panel(ax, chart: ChartData) -> None:
+    _draw_candles(ax, chart.candles)
+
+    for i, overlay in enumerate(chart.own_overlays):
+        _draw_overlay(ax, overlay, _OWN_COLORS[i % len(_OWN_COLORS)], "-", 4)
+
+    for i, overlay in enumerate(chart.m5_overlays):
+        _draw_overlay(
+            ax,
+            overlay,
+            _M5_OVERLAY_COLORS[i % len(_M5_OVERLAY_COLORS)],
+            _M5_OVERLAY_STYLE,
+            5,
+        )
+
+    ax.set_title(_panel_title(chart), fontsize=11, loc="left", fontweight="bold")
     ax.grid(True, alpha=0.25, linewidth=0.5)
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%d %b\n%H:%M", tz=timezone.utc))
     ax.xaxis.set_major_locator(mdates.AutoDateLocator())
     ax.tick_params(axis="both", labelsize=8)
     ax.yaxis.tick_right()
-    ax.legend(loc="upper left", fontsize=7, framealpha=0.85)
+    # Nothing is labelled when every overlay is NULL (indicator warm-up);
+    # calling legend() then just emits a warning and draws an empty box.
+    if ax.get_legend_handles_labels()[1]:
+        ax.legend(loc="upper left", fontsize=7, framealpha=0.85, ncol=2)
 
 
 def render_combined(
     panels: dict[str, ChartData],
     out_path: str,
-    variant: str = "best_fit",
+    overlays: Sequence[str] | str = "",
 ) -> str:
-    """Render Charts A | B | C side by side into one PNG; return `out_path`.
+    """Render the M5 and M15 panels stacked into one PNG; return `out_path`.
 
-    Layout mirrors the target image: A = XAUUSD M5 with its M5 channel; B and C =
-    XAUUSD M15 each with the SAME M5 channel overlaid by price+time.
+    Upper = XAUUSD M5 with its own channel. Lower = XAUUSD M15 with its own
+    channel, plus the M5 channel when the panels were built with ``m5_overlay``.
     """
-    fig, axes = plt.subplots(1, 3, figsize=(21, 7), constrained_layout=True)
-    titles = {
-        "A": "Chart A — XAUUSD M5  (M5 channel)",
-        "B": "Chart B — XAUUSD M15  (M5 channel overlaid)",
-        "C": "Chart C — XAUUSD M15  (M5 channel overlaid)",
-    }
-    for ax, key in zip(axes, ("A", "B", "C")):
-        _render_panel(ax, panels[key], titles[key])
+    fig, axes = plt.subplots(2, 1, figsize=(14, 10), sharex=True,
+                             constrained_layout=True)
 
+    upper, lower = panels["M5"], panels["M15"]
+    _render_panel(axes[0], upper)
+    _render_panel(axes[1], lower)
+
+    if isinstance(overlays, str):
+        overlay_text = overlays
+    else:
+        overlay_text = ", ".join(overlays)
+    if not overlay_text:
+        overlay_text = ", ".join(o.spec.key for o in upper.own_overlays)
+
+    # Keyed on the request, not on whether data happened to exist: a warm-up
+    # render of the overlay variant is still the overlay variant, and the
+    # filename it is written to says so.
+    variant = "overlay" if lower.m5_overlay_requested else "standard"
+    rendered_at = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     fig.suptitle(
-        f"DavinTrade — Multi-Timeframe Visualisation  ·  variant: {variant}",
-        fontsize=13,
+        f"DavinTrade - XAUUSD Multi-Timeframe  ·  overlays: {overlay_text}"
+        f"  ·  variant: {variant}  ·  rendered {rendered_at}",
+        fontsize=12,
         fontweight="bold",
     )
+
     fig.savefig(out_path, dpi=120)
     plt.close(fig)
     return out_path

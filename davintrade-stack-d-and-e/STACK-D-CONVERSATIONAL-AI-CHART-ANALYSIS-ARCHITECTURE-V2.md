@@ -110,7 +110,8 @@ To guarantee zero hallucinations, deterministic trade setups, and sub-150ms retr
 5. **Pillar 5 — Trading Knowledge & Strategy Rules (Engine 2 / `pgvector`):**
    - Queries vector embeddings of trading playbooks, entry triggers, and invalidation rules stored in PostgreSQL using cosine similarity.
 6. **Pillar 6 — Computer Vision Chart PNG (Engine 3 / Part 24 Matplotlib):**
-   - Fetches the latest 3-panel comparison chart image (`mtf_render_xauusd_{timeframe}.png`) from Cloudflare R2 / Local Buffer for visual pattern verification (wick rejections, channel touches, geometry).
+   - Fetches the latest **2-panel** stacked chart image (`mtf_render_xauusd_m5_m15_{variant}.png`, where `variant` is `overlay` or `standard`) from Cloudflare R2 / Local Buffer for visual pattern verification (wick rejections, channel touches, geometry).
+   - The variant is chosen from the user's tier + `M5 on M15` toggle state, **not** from the timeframe — one image carries both M5 and M15. See §9.
 7. **Pillar 7 — User Constraints & Preferences (Engine 4 Profile):**
    - Injects the user's active confirmed profile (Trader Type, Style, Risk %, Leverage, Target RRR, Equity Balance, Minimum SLD, Commission).
 
@@ -400,7 +401,7 @@ $$\text{Deducted Quota Units} = \Big(\text{Prompt Tokens} + \text{Vision Image T
 // services/ai/openrouter-gateway.ts
 export async function streamOpenRouterAnalysis({
   modelId, // e.g. "anthropic/claude-3.5-sonnet"
-  multimodalPrompt, // Text Prompt + 3-Panel PNG Base64 / Cloudflare R2 URL
+  multimodalPrompt, // Text Prompt + 2-Panel PNG Base64 / Cloudflare R2 URL
   userQuota, // Current User Quota State
   multiplier = 1.0, // Model Multiplier Weight
 }): Promise<ReadableStream> {
@@ -475,16 +476,29 @@ Whenever the AI Co-Pilot generates a complete market assessment and setup recomm
 
 ## ☁️ 9. Cloudflare R2 Vision Chart PNG Pipeline (Engine 3)
 
+> **Updated 2026-09-10 — the renderer is now 2-panel and emits two variants.**
+> It previously produced one 3-panel image per timeframe. Both the panel count
+> and the per-timeframe filename changed; see `v2_29_multi-timeframe-visualisation/MTF-RENDER-MODIFICATION-PLAN.md`.
+
 1. **Generation (Contabo VPS Worker):**
-   - Python Matplotlib script (`mtf_render/renderer.py`) generates a 3-panel comparison chart image on every candle close (M5 every 5m, M15 every 15m).
-   - File path on VPS: `/app/storage/renders/mtf_render_xauusd_{timeframe}.png` (~300–500 KB).
+   - Python Matplotlib script (`mtf_render/renderer.py`) generates a **2-panel stacked** chart image: **upper = XAUUSD M5** with its channel, **lower = XAUUSD M15** with its own channel. Both panels share one time axis.
+   - **Cadence is every 5 minutes**, driven by the faster panel. A single image holds both timeframes, so it cannot have two cadences; the M15 panel simply shows its latest (possibly still-forming) bar.
+   - **Two variants are rendered per cycle**, differing only in whether the M5 channel is layered onto the lower panel:
+     - `mtf_render_xauusd_m5_m15_overlay.png` — M5 channel overlaid (**PRO** user, `M5 on M15` toggle ON)
+     - `mtf_render_xauusd_m5_m15_standard.png` — M15 channel only (PRO user, toggle OFF)
+   - Render both in one invocation (`python -m mtf_render --both-variants`) so the pair cannot come from two different reads of the database.
+   - File path on VPS: `/app/storage/renders/mtf_render_xauusd_m5_m15_{variant}.png` (~150–300 KB each).
 2. **Cloudflare R2 Upload & CDN Caching:**
-   - Script uploads the generated PNG to Cloudflare R2 bucket `davintrade-renders`.
-   - Public CDN URL: `https://renders.davintrade.com/xauusd/mtf_render_xauusd_m5.png`.
+   - Script uploads both generated PNGs to Cloudflare R2 bucket `davintrade-renders`.
+   - Public CDN URL: `https://renders.davintrade.com/xauusd/mtf_render_xauusd_m5_m15_overlay.png`.
    - Benefits: **Zero Egress Fees** and global edge caching (< 15ms image fetch for Gemini/Claude Vision APIs).
 3. **Retention & Pruning Policy:**
    - Active charts are kept for **48 hours (Rolling Window)**.
    - Background cron job purges images older than 48 hours to conserve storage.
+4. **Entitlement (why there are two variants):**
+   - `M5 on M15` is a **PRO** feature. The renderer is deliberately tier-unaware — it always emits both files, and the **caller selects** by tier + toggle state. This keeps generation a cheap cron artifact and keeps the fetch a simple cached lookup; rendering per-request would blow the < 120 ms retrieval budget in §2.
+   - FREE users receive **no** chart PNG: both consumers (the download button and the conversational AI) are themselves PRO-gated.
+   - ⚠ **The PNG download path in the monolith is not tier-gated today** (`components/chat-sidebar.tsx`) and points at a static placeholder rather than R2. Until that is wired, the variant split has no effect in production. Tracked separately.
 
 ---
 
@@ -506,6 +520,16 @@ export async function execute7PillarRetrieval(
   const userPreferences = await getUserTradePreferences(userId);
   const LOOKBACK_BARS = 54; // Platform-Wide Fixed 54-Bar Standard
 
+  // 1b. Resolve the Pillar 6 chart variant from entitlement (see §9).
+  //     'M5 on M15' is PRO-only, so a FREE user gets no chart at all and a PRO
+  //     user with the toggle off gets the standard (no-overlay) render.
+  const chartVariant: 'overlay' | 'standard' | null =
+    userPreferences.tier !== 'PRO'
+      ? null
+      : userPreferences.m5OnM15Enabled
+        ? 'overlay'
+        : 'standard';
+
   // 2. Dispatch Parallel Retrieval across all pillars (< 120ms total)
   const [
     numericData, // Pillar 1: VANNA NL2SQL (Cols 1–79)
@@ -513,7 +537,7 @@ export async function execute7PillarRetrieval(
     storylineNarrative, // Pillar 3: Deduplicated Timeline (JSONB54)
     wacsScore, // Pillar 4: WACS Direction Score (WACS54)
     strategyKnowledge, // Pillar 5: pgvector HNSW Strategy Rules
-    chartPngBuffer, // Pillar 6: Cloudflare R2 3-Panel Vision PNG
+    chartPngBuffer, // Pillar 6: Cloudflare R2 2-Panel Vision PNG (M5 / M5-on-M15)
     recentChatBuffer, // Recent 10-message Sliding Window from Redis
   ] = await Promise.all([
     vannaEngine.queryNumericDataFrame(symbol, timeframe, LOOKBACK_BARS),
@@ -521,7 +545,9 @@ export async function execute7PillarRetrieval(
     storylineEngine.getStoryline(symbol, timeframe, LOOKBACK_BARS),
     wacsEngine.getLatestWacs(symbol, timeframe),
     pgvectorStore.searchKnowledge(userQuery, { limit: 3 }),
-    r2Storage.getLatestChartPng(symbol, timeframe),
+    // Pillar 6: one image holds BOTH timeframes, so the second argument is the
+    // entitlement variant, not a timeframe. null => FREE tier, no chart served.
+    chartVariant ? r2Storage.getLatestChartPng(symbol, chartVariant) : null,
     redisChatBuffer.getRecentMessages(userId, symbol, timeframe, 10),
   ]);
 
@@ -567,6 +593,6 @@ When Claude Code executes Stack D, it must verify:
 4. **Instant Prompt Triggers:** Verified that clicking `Ask AI about M5 Chart` and `Ask AI about M15 Chart` dispatches deterministic prompts and streams instant analysis.
 5. **OpenRouter Multi-Model Switching:** Verified that switching between the 6 models in the dropdown executes properly via OpenRouter API.
 6. **Cost-Plus Token Quota Metering:** Confirmed that token consumption applies model multipliers and updates the footer progress bar (`Monthly Token Quota 42,500 / 500,000`).
-7. **Vision Integration:** Confirmed that Gemini / Claude / GPT receives the high-resolution 3-panel PNG from Cloudflare R2 alongside numeric data.
+7. **Vision Integration:** Confirmed that Gemini / Claude / GPT receives the high-resolution **2-panel** PNG (M5 upper, M15 lower) from Cloudflare R2 alongside numeric data, and that the **variant matches the user's entitlement** — a FREE user must receive no chart PNG, and a PRO user with `M5 on M15` off must receive the `standard` variant.
 8. **Dual-Report Output:** Verified that AI produces Report 1 (Market Analysis) and Report 2 (Mathematical Sizing with 3-Tier TPs).
 9. **Legal Compliance:** Confirmed that the Engine 4 Confirmation Gate and statutory micro-disclaimers are rendered on all cards.
