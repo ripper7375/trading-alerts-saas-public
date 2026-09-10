@@ -60,7 +60,7 @@ export function LandingPricing() {
               <ul className="mb-8 space-y-3 text-sm text-slate-700 dark:text-slate-300">
                 <li className="flex items-center space-x-3">
                   <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                  <span>{t('3-Panel Read-Only Terminal')}</span>
+                  <span>{t('Read-Only Multi-Timeframe Terminal')}</span>
                 </li>
                 <li className="flex items-center space-x-3">
                   <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />

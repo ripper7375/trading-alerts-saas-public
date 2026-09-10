@@ -3,16 +3,28 @@
 **Work:** rewrite the multi-timeframe visualisation from three side-by-side panels
 to two stacked panels, align it with the v2.29 pipeline, and support the eleven
 overlay-producing indicators.
-**Executed:** 2026-09-10, single session.
+**Executed:** 2026-09-10, single session, plus a same-day follow-up.
 **Plan of record:** `MTF-RENDER-MODIFICATION-PLAN.md` (rev. 3, decisions D1–D5).
-**Status:** implementation complete, verified, **committed and pushed** on Davin's
-explicit request, 2026-09-10.
+**Status:** implementation complete and verified. **All items that were awaiting a
+decision are now closed** — see 1.3.
 
-| Commit     | Scope                                                          |
-| ---------- | -------------------------------------------------------------- |
-| `7221c268` | W1–W7 — the module rewrite plus the module and Stack D V2 docs |
-| `4a627acc` | W8 — the `Matplotlib 3-Panel Vision Render` → `2-Panel` rename |
-| _(this)_   | This status correction                                         |
+| Commit      | Scope                                                                            |
+| ----------- | -------------------------------------------------------------------------------- |
+| `7221c268`  | W1–W7 — the module rewrite plus the module and Stack D V2 docs                   |
+| `4a627acc`  | W8 — the `Matplotlib 3-Panel Vision Render` → `2-Panel` rename                   |
+| `b59b059d`  | Status correction to this document                                               |
+| _(pending)_ | **Follow-up:** the pricing claim reworded to drop the count, in both trees (1.3) |
+
+Split rather than batched, per `EXECUTOR-PROTOCOL.md` §2 and this plan's own
+execution order: W8 was sequenced last as its own commit so that any monolith
+test failure would be unambiguously attributable to the rename rather than to the
+renderer work.
+
+The pre-existing dirty tree at session start — a modified
+`SimpleDataCollector_v2_29_ASYNC_SOCKET.ex5` and the deleted
+`mql5-indicators/mql5-indicator-export-selection/` mirrors — is **unrelated
+in-progress work and was deliberately left unstaged.** Files were staged by name,
+never with `git add -A`.
 
 Split rather than batched, per `EXECUTOR-PROTOCOL.md` §2 and this plan's own
 execution order: W8 was sequenced last as its own commit so that any monolith
@@ -71,18 +83,28 @@ the plan (§0.7) and in Stack D V2 §9 item 4.
 
 ### 1.2 ⚠ The 3-Panel → 2-Panel rename was far wider than the two labels it appeared to be
 
-**Status: DONE for everything except the pricing-page claim (see 1.3).**
+**Status: COMPLETE across both trees as of the 2026-09-10 follow-up.** No
+occurrence of a panel count survives in either the monolith or the seed.
 
 The panel count was not confined to this module. It had **already been ported into
 the monolith and translated**. Actual scope, verified rather than estimated:
 
-| Site                                                                    | Count  | Done          |
-| ----------------------------------------------------------------------- | ------ | ------------- |
-| `components/chat-sidebar.tsx` — button subtitle                         | 1      | ✅            |
-| `components/chat-sidebar.tsx` — hardcoded download filename             | 1      | ✅            |
-| `lib/i18n/dictionaries/*.json` — `Matplotlib 3-Panel Vision Render`     | **12** | ✅            |
-| `components/landing/landing-pricing.tsx` — `3-Panel Read-Only Terminal` | 1      | ⛔ held (1.3) |
-| `lib/i18n/dictionaries/*.json` — `3-Panel Read-Only Terminal`           | **16** | ⛔ held (1.3) |
+| Site                                                                         | Count  | Done |
+| ---------------------------------------------------------------------------- | ------ | ---- |
+| `components/chat-sidebar.tsx` — button subtitle                              | 1      | ✅   |
+| `components/chat-sidebar.tsx` — hardcoded download filename                  | 1      | ✅   |
+| `lib/i18n/dictionaries/*.json` — `Matplotlib 3-Panel Vision Render`          | **12** | ✅   |
+| `components/landing/landing-pricing.tsx` — the pricing claim                 | 1      | ✅   |
+| `lib/i18n/dictionaries/*.json` — `3-Panel Read-Only Terminal`                | **16** | ✅   |
+| **seed** `components/landing/landing-pricing.tsx`                            | 1      | ✅   |
+| **seed** `lib/i18n/dictionaries/*.json` — the pricing claim                  | **12** | ✅   |
+| **seed** `components/chat-sidebar.tsx` — subtitle + download filename        | 2      | ✅   |
+| **seed** `lib/i18n/dictionaries/*.json` — `Matplotlib 3-Panel Vision Render` | **12** | ✅   |
+
+**Final sweep:** a regex across both trees for `3-Panel` / `3Panel` / `3 Panel`
+**and** every per-language spelling of the count (`3 paneles`, `3 painéis`,
+`3パネル`, `3-पैनल`, `3 پینل`, `三面板`, `3 panneaux`, `3패널`, `3 แผง`,
+`3 bảng`, `3 Panelli`) returns nothing.
 
 **The subtlety that made this bigger than a find-and-replace:** this codebase uses
 the **literal English string as the dictionary key**. Renaming is therefore not a
@@ -97,33 +119,96 @@ formatting are untouched and the diff is one line per file, with a `json.loads`
 validation before each write and an assertion that each value contained exactly
 one `3` to change.
 
-**Deliberately excluded:** `seed-code/trading-conversational-ai-ui-pages-increment/`
-carries the same strings but is read-only per `CLAUDE.md` non-negotiable #4/#5. The
-seed now drifts from the monolith by this rename — expected, not an oversight.
+**⚠ The seed-code exclusion was REVERSED on Davin's explicit instruction.** The
+first pass left `seed-code/trading-conversational-ai-ui-pages-increment/`
+untouched, since it is read-only per `CLAUDE.md` non-negotiable #4/#5, and
+recorded the resulting drift as expected. Davin then directed that the seed UI be
+modified too, which overrides that convention for this change. Recorded as a
+**directed deviation**, not a silent one — see §4.
 
-### 1.3 ⚠ AWAITING SIGN-OFF — `3-Panel Read-Only Terminal` on the public pricing page
+**One extension beyond the literal instruction, flagged rather than assumed.**
+Davin's instruction scoped the seed edit to the _pricing_ string. Applying only
+that would have left the seed half-synced: its pricing claim correct, its
+`Matplotlib 3-Panel Vision Render` label stale. Because the seed exists to be
+**ported into the monolith**, a later port would have silently re-introduced the
+exact drift this work removed — a concrete harm, not a hypothetical one. The
+Vision Render label was therefore synced in the seed as well (2 component sites +
+12 dictionaries). Say so if that overreached and it can be reverted in isolation.
 
-**Status: DELIBERATELY NOT CHANGED. Needs Davin's explicit decision.**
+### 1.3 ✅ RESOLVED — the pricing claim now drops the panel count entirely
 
-`components/landing/landing-pricing.tsx:104` renders `t('3-Panel Read-Only
-Terminal')` as a **tier feature bullet on the public pricing page**, and the string
-is translated across **16** dictionaries.
+**Status: DONE, 2026-09-10, on Davin's decision.** Was: awaiting sign-off.
 
-This is a customer-facing advertised product claim, not internal copy. Changing
-"3-Panel" to "2-Panel" there alters what the product is advertised to include, and
-`CLAUDE.md` non-negotiable #7 is explicit that an item flagged as needing sign-off
-is _not_ covered by general approval of the work. So it was left alone even though
-the rest of the rename landed.
+`components/landing/landing-pricing.tsx` rendered `t('3-Panel Read-Only
+Terminal')` as a **tier feature bullet on the public pricing page** — a
+customer-facing advertised product claim, translated across 16 dictionaries. It
+was deliberately held back from the first pass, since `CLAUDE.md` non-negotiable
+#7 puts a sign-off-flagged item outside general approval.
 
-**The product is now inconsistent with this claim until it is resolved** — the
-terminal renders two panels, the pricing page advertises three. Two ways out:
+Davin chose the recommended option: **drop the count rather than correct it.**
 
-| Option                                                               | Consequence                                                                                                       |
-| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Change to "2-Panel Read-Only Terminal"                               | Matches reality. Touches 1 component + 16 dictionaries. A visible change to an advertised feature.                |
-| Reword to drop the count (e.g. "Read-Only Multi-Timeframe Terminal") | Matches reality and stops the pricing page depending on a layout decision that may change again. **Recommended.** |
+```
+3-Panel Read-Only Terminal  ->  Read-Only Multi-Timeframe Terminal
+```
 
-Either way it is a marketing decision, not an engineering one.
+**Why dropping beats correcting.** "2-Panel" would be accurate today and wrong
+again the next time the layout changes — and it has now changed twice. The
+reworded claim describes the _capability_ (multiple timeframes, which is what the
+FREE tier actually gets: M5 upper, M15 lower) rather than a rendering decision, so
+the public pricing page no longer depends on an implementation detail at all.
+
+It also still fits the bullet list's register — the neighbouring FREE-tier items
+are short title-case noun phrases (`Live M5 XAUUSD Chart Stream`,
+`5 Standard Alert Rules`).
+
+**Translated, not left to fall through.** All 16 monolith and 12 seed
+dictionaries carry a real translation phrased in each language's own existing
+style for "read-only" (e.g. `Schreibgeschütztes Multi-Timeframe-Terminal`,
+`Terminal multitemporal de solo lectura`, `マルチタイムフレーム閲覧専用ターミナル`,
+`多時間框架只讀終端`). Since the literal English string is the dictionary **key**,
+leaving any file un-updated would have made that language silently render the raw
+key instead.
+
+**Translation-quality caveat, unchanged from every dictionary in this repo:**
+these are good-faith AI translations, not professionally reviewed.
+
+**Verified:** `npx tsc --noEmit` clean; `npx eslint components/landing/landing-pricing.tsx`
+clean; `npm run test:ci` **171/171 suites · 2416/2416 tests** — baseline held for
+the third time this session. No test asserts either string (grepped before
+changing). A final regex sweep across both trees, covering the English forms and
+every per-language spelling of the count, returns nothing.
+
+**Live-verified in a browser** (`next dev`, public page, no credentials needed):
+the FREE-tier card renders `Read-Only Multi-Timeframe Terminal`, the old string
+is absent from the DOM, and at a real 1440×900 viewport the bullet occupies **one
+line at 244 px** — mid-range among its neighbours, the widest of which
+(`Multi-Currency Local Checkout (£, ₹, ₫, ฿, ₦, Rs)`) is already 320 px. So the
+longer phrase introduces no wrapping problem. One console error was present
+(`allowTransparency` prop warning from an embed) and is unrelated to a text
+string in a `<span>`.
+
+**Two things worth recording about how that check went**, since both could
+mislead someone repeating it:
+
+1. **`landing-pricing.tsx` does not render at `/pricing`.** That route is
+   `components/pricing/tier-comparison.tsx`, a different component with a
+   different bullet list. `LandingPricing` renders in the pricing section of the
+   **landing page (`/`)** via `app/(marketing)/page.tsx`. Checking `/pricing`
+   first showed neither the old nor the new string and briefly looked like the
+   edit had not taken.
+2. **First measurements were taken against a 0×0 viewport** (the Browser pane was
+   collapsed) and showed every bullet — including pre-existing shorter ones —
+   wrapping to four lines. That was an artifact, not a layout defect; the numbers
+   above come from an explicitly emulated 1440×900 viewport. Screenshots return
+   blank while the pane is backgrounded in this environment, a quirk this repo's
+   own history already documents, so the DOM measurements are the evidence here.
+
+**Found in passing, deliberately NOT changed:** the PRO tier advertises
+`Full 4-Panel Resizable Workbench`. That is a **different** panel count — it
+describes the workbench's four resizable UI regions (nav, AI chat, charts,
+market comments), not the rendered PNG — and it remains accurate. Recorded so a
+future sweep for "panel counts on the pricing page" does not wrongly change it
+to 2.
 
 ---
 
@@ -277,14 +362,16 @@ nothing is labelled) rather than suppressed.
 
 ## 4. Deviations from the plan
 
-| Deviation                                               | Reason                                                                                                                                                                                                                     |
-| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Execution order 2 and 3 were swapped                    | The plan had the fixture rewritten before the parity test, which would have made the test pass on its first run and prove nothing. The check was run against the old names **first** (§3.1), then the fixture was rebuilt. |
-| `resolve()` called before fixture generation in the CLI | Found during verification: an invalid `--overlays` value built an entire fixture database before failing. Validating first is cheaper and puts the real error at the top of the output.                                    |
-| The pricing-page string was not renamed                 | See 1.3 — held for sign-off.                                                                                                                                                                                               |
-| A second parity test was added beyond the plan          | The plan specified registry-vs-live-schema. Fixture-vs-live-schema was added too, since the fixture inventing columns is the _other_ half of how the original bug hid.                                                     |
-| A third title state was added beyond the plan's two     | Edge-case testing showed the two-state design misreported warm-up NULLs as the user's setting (§3.5). The plan's §2 rule 2 demanded the image state absence explicitly; two states could not do that honestly.             |
-| 15 tests rather than the planned 13                     | The two extra cover §3.5.                                                                                                                                                                                                  |
+| Deviation                                                                      | Reason                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Execution order 2 and 3 were swapped                                           | The plan had the fixture rewritten before the parity test, which would have made the test pass on its first run and prove nothing. The check was run against the old names **first** (§3.1), then the fixture was rebuilt.                                                                                              |
+| `resolve()` called before fixture generation in the CLI                        | Found during verification: an invalid `--overlays` value built an entire fixture database before failing. Validating first is cheaper and puts the real error at the top of the output.                                                                                                                                 |
+| The pricing-page string was not renamed _in the first pass_                    | See 1.3 — held for sign-off, then **resolved** in the 2026-09-10 follow-up by dropping the count rather than correcting it.                                                                                                                                                                                             |
+| **`seed-code/` was modified** — reversing this document's own earlier position | **Directed deviation.** `CLAUDE.md` non-negotiable #4/#5 makes the seed read-only, and the first pass honoured that, recording the resulting drift as expected. Davin then explicitly instructed that the seed UI be changed. Recorded here so the override is visible rather than looking like the rule was forgotten. |
+| The seed's `Matplotlib 3-Panel Vision Render` label was synced too             | Beyond the literal instruction, which named the pricing string. Fixing only that would have left the seed half-synced, and since the seed is **ported into** the monolith, a later port would have silently reintroduced the drift just removed. Flagged in 1.2; revertible in isolation.                               |
+| A second parity test was added beyond the plan                                 | The plan specified registry-vs-live-schema. Fixture-vs-live-schema was added too, since the fixture inventing columns is the _other_ half of how the original bug hid.                                                                                                                                                  |
+| A third title state was added beyond the plan's two                            | Edge-case testing showed the two-state design misreported warm-up NULLs as the user's setting (§3.5). The plan's §2 rule 2 demanded the image state absence explicitly; two states could not do that honestly.                                                                                                          |
+| 15 tests rather than the planned 13                                            | The two extra cover §3.5.                                                                                                                                                                                                                                                                                               |
 
 ---
 
@@ -298,20 +385,23 @@ Stated plainly so it is not mistaken for a finished feature:
    at a missing static file. The two variants exist; nothing selects between them
    yet.
 3. **No validation against live data.** Per §3.4.
-4. **No pricing-page consistency.** Per 1.3.
+
+~~4. **No pricing-page consistency.**~~ **Resolved 2026-09-10** — the claim now
+reads "Read-Only Multi-Timeframe Terminal" in both trees and no longer asserts a
+panel count at all (1.3).
 
 ---
 
 ## 6. Recommended next steps
 
-| #   | Action                                                                    | Owner       | Blocking?                           |
-| --- | ------------------------------------------------------------------------- | ----------- | ----------------------------------- |
-| 1   | Decide the pricing-page string (1.3)                                      | Davin       | Blocks W8 closing                   |
-| 2   | Tier-gate the PNG download and wire it to R2 (1.1)                        | own session | **Blocks D2 having any effect**     |
-| 3   | Build the R2 upload + 5-minute cron (Stack D §9)                          | Stack D     | Blocks the LLM ever seeing a render |
-| 4   | Recompile the 10 statistic-emitting `.ex5` and redeploy (deck §11 item 1) | Davin       | Blocks live overlay fidelity        |
-| 5   | Render against a real `xauusd.db` once 4 lands                            | —           | Closes §3.4                         |
-| 6   | Decide §7.1 of the plan: drop the still-forming newest bar?               | Davin       | No                                  |
+| #     | Action                                                                                      | Owner       | Blocking?                           |
+| ----- | ------------------------------------------------------------------------------------------- | ----------- | ----------------------------------- |
+| ~~1~~ | ~~Decide the pricing-page string (1.3)~~ — **DONE 2026-09-10**, count dropped in both trees | Davin       | ~~Blocks W8 closing~~ **W8 closed** |
+| 2     | Tier-gate the PNG download and wire it to R2 (1.1)                                          | own session | **Blocks D2 having any effect**     |
+| 3     | Build the R2 upload + 5-minute cron (Stack D §9)                                            | Stack D     | Blocks the LLM ever seeing a render |
+| 4     | Recompile the 10 statistic-emitting `.ex5` and redeploy (deck §11 item 1)                   | Davin       | Blocks live overlay fidelity        |
+| 5     | Render against a real `xauusd.db` once 4 lands                                              | —           | Closes §3.4                         |
+| 6     | Decide §7.1 of the plan: drop the still-forming newest bar?                                 | Davin       | No                                  |
 
 ---
 
