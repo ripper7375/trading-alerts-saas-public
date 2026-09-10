@@ -26,6 +26,138 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
+> **Ad-hoc session (2026-09-10, phase/session unchanged) — CLOSED SUCCESSFUL, Market Session
+> clock + High-Impact News/Event countdown, and the complete economic-events lane behind it,
+> MT5 → SQLite → gateway → PostgreSQL → API → panel → Stack D Pillar 8.** Started as Davin asking
+> which of two options to build the `/terminal` right-panel countdown from (read the TradingView
+> widget, or build in `davintrade-news-stack/`), and grew one approved step at a time into the
+> whole lane. Per `EXECUTOR-PROTOCOL.md` §6. **Full detail lives in
+> `davintrade-news-stack/market-session-and-high-impact-news-manifest-work-completion.md`; this
+> entry is the index, not a substitute.** 11 commits `05f41a45`..`7620e037`, pushed to
+> `origin/main`. 38 files, 4,943 insertions, 29 deletions.
+> **The recommendation, and why Option 1 was rejected on evidence rather than preference:**
+> `components/calendar/economic-calendar-widget.tsx` injects a **cross-origin iframe** from
+> `www.tradingview-widget.com` — config flows in, nothing flows out, and there is no data API
+> behind the widget. So it can drive neither a countdown (no timestamp reaches the page) nor the
+> LLM warnings (nothing exists server-side), and scraping it would breach TradingView's terms. It
+> remains the public browse surface at `/econ-news`, untouched. Option 2 was recommended **but
+> scoped down**: `davintrade-news-stack/` is not a scraper, it wraps **MT5's own calendar API**,
+> already running on the terminal that runs the 13 indicators — no vendor, no API key, no cost.
+> Replicating the full pipeline blueprint would have been wrong (that machine exists for
+> high-volume positionally-validated per-bar data; news is ~15k rows/yr, event-keyed), so a thin
+> lane was built instead.
+> **⚠ STEP ZERO FIRST — the check that could have invalidated everything, run before any design.**
+> `davintrade-news-stack/step-zero-calendar-availability-check/CalendarAvailabilityCheck.mq5`, a
+> read-only probe deliberately NOT including the vendor library so a failure would be unambiguous
+> and it could run before that library's licensing question was settled. **GO** on Eightcap-Demo
+> build 6182: 333 events/8 days, **333/333** event and country lookups resolved, 25 HIGH-impact,
+> server-side currency filtering functional, countdown computable. Its highest-value section was
+> the clock: this stack shipped a two-year timestamp bug because an offset was _assumed_, so the
+> probe **measured** server-vs-GMT (exactly +3) and cross-checked it against two real releases
+> rather than trusting it — US PPI `15:30` server = 12:30 UTC (published 08:30 ET ✓), ECB `15:15`
+> = 12:15 UTC (announced 14:15 CEST ✓). That is what proved `MqlCalendarValue.time` is server time.
+> **What shipped, in order.** (1) **Session clock** — `lib/market-sessions/sessions.ts`, pure and
+> dependency-free; all zone maths through IANA + `Intl`, never fixed offsets (Sydney's DST runs
+> _opposite_ to London's, so one constant is wrong half the year somewhere), and a session is open
+> only when the **market itself** is open — without that gate Tokyo shows trading at 10:00 JST on a
+> Saturday. (2) **Append-only contract** — SQLite outbox, JSON contract, both Prisma models
+> byte-identical, migration authored/unapplied. (3) **MQL5 exporter EA**, deliberately dumb: full
+> snapshot every cycle, no change detection. (4) **Collector parser** — where the append-only
+> decision actually lives. (5) **Batched push drain.** (6) **Gateway** controller/queue/processor
+> with a **generated** DTO. (7) **API route + the news row.** (8) **Stack D Pillar 8.**
+> **⚠ The finding that started the thread, now closed:** `STACK-D-...-V2.md`'s Report 1 has always
+> promised "High-Impact Economic News Warnings & Market Risk Factors" while the retrieval engine
+> had **7 pillars and none of them was news**. A model asked to warn about news it cannot see
+> either omits the section or invents one, and a fabricated NFP time shown to a trader sizing a
+> position is a real harm. Promoted to **8 pillars** across all 8 reference sites (each replacement
+> asserted unique, so a missed site fails loudly rather than half-renaming the doc). **Stack D is
+> NOT built** — no `app/api/ai`, no orchestrator, it is Phase 12 and unstarted — so this is
+> specification plus one tested module, not a wiring change. Pillar 8's **retrieval half is already
+> live**: `getUpcomingHighImpactEvents()` serves `/api/market/economic-events` and the banner today.
+> **Five decisions worth carrying forward, each against a real alternative.** _Append-only, not
+> upsert_ — this **reverses my own earlier recommendation**; a forecast is revised and an actual
+> published only AFTER the event, and the asymmetry decides it (current state is one `DISTINCT ON`
+> from append-only history; history is gone forever from an upserted row). _Change detection in the
+> collector, not the exporter_ — not bookkeeping: 333 rows × 96 cycles/day is ~**12M rows/year** of
+> byte-identical repeats against ~**15k** with it. _Ids as strings everywhere_ — MQL5 `ulong` and
+> JSON has no 64-bit integer; the probe never printed their magnitude (a real gap in it), so rather
+> than gamble, `ULONG_MAX` was proven to round-trip losslessly as text. _Batched push_ —
+> `market_data`'s one-POST-per-row shape is already under-provisioned for its own volume
+> (`PUSH-WORKER-THROUGHPUT-OPEN-ISSUE.md`), so a 333-row first sync is 2 requests, not 333.
+> _A `.txt` export, not direct SQLite_ — MQL5 can write SQLite, but the Python collector is the
+> only writer of `xauusd.db` and a second writer buys lock contention for nothing (blueprint §3.3).
+> **⚠ Missing is never zero, enforced and tested at every layer.** `LONG_MIN` upstream means _not
+> published_, and for forecasts that is the COMMON case — measured at 12 of 23 upcoming HIGH events,
+> because rate decisions, votes and speeches structurally have none. Coercing to `0` both fabricates
+> a zero forecast for an ECB decision **and** makes a genuine `0.0` publication look unchanged so it
+> is never recorded — two opposite fabrications from one line.
+> **Mutation-tested throughout, because every failure mode in this lane is silent** (full table in
+> the manifest §7): disabling collector change detection turns an expected 3 rows into **192**;
+> coercing empty to `0` fails 5 tests incl. `pre-release actual was overwritten`; breaking batching
+> gives `120 requests for 120 rows`; removing the 400 guard gives `poison rows left unstamped ->
+outbox wedged`; removing `ParseArrayPipe`'s explicit `whitelist`/`forbidNonWhitelisted` gives
+> `rejects an unknown field with 400, not a silent 200` (the real gap previously found on
+> `indicator-statistics`). **Two mutation attempts initially proved the WRONG thing** and are
+> recorded because the shape recurs: the session-clock guards turned out to be a mutually redundant
+> pair (either alone removable, both not — documented in place so neither is "simplified" away), and
+> the first poison-guard mutation silently hit the **success** path because both paths carry
+> byte-identical stamping blocks — it failed three tests and looked convincing while proving nothing.
+> **A passing mutation check is only as good as the mutation landing where you think it did.**
+> **Verified:** monolith `test:ci` **181/181 · 2513/2513** (from 176/2445); railway-gateway
+> **3/3 · 43/43** unit (from 31) and **3/3 · 28/28** e2e (from 2/17); collector **14/14** and push
+> **13/13** standalone Python (this stack has no pytest config and pytest is not installed, so both
+> files run with no infrastructure); `tsc`/`eslint` clean throughout. **Collector and push changes
+> are additions-only** (+159/−0 and +99/−0), so the `market_data` path is provably untouched.
+> The migration was diffed against `prisma migrate diff` output — **identical**. The API route was
+> hit live with the migration **UNAPPLIED** and returned **401, not 500**, proving the auth gate
+> short-circuits before any database work — an ordering the mocked tests assert but cannot show.
+> **Three of my own mistakes, recorded because the next reader will hit the same shapes.** (a) I
+> reported 12 DST checks passing "in Chrome's ICU". They had not — React had never hydrated (no
+> fibers on `document.body`), so they ran during SSR on **Node's** ICU. Cause was my own workaround:
+> the browser pane force-upgrades `localhost` to https, so I used `127.0.0.1`, which Next's dev
+> server blocks as a cross-origin dev request; chunks 403'd, hydration never happened. Fixed with a
+> temporary `allowedDevOrigins` (reverted, diff empty) and genuinely re-run. (b) I shipped the banner
+> **ungated**; Davin corrected it with the seed's `/free` screenshot, whose lock copy names "Session
+> Countdowns" explicitly. The error was not the monetization opinion but **treating a settled design
+> decision as an open question** and defaulting against it. (c) A mutation script crashed on a
+> console-encoding error and **left the target file mutated** — caught from the on-disk diff notice
+> and restored, but a crashed mutation harness that leaves the target modified is a genuinely
+> dangerous failure mode.
+> **Two Jest findings that cost real time and will recur:** a `jest.mock` factory must not reference
+> out-of-scope variables or babel-jest declines to hoist it — the mock then registers _after_ the
+> imports and the **real Prisma client ran, attempting a genuine TLS connection**; and `jest` must
+> come from the injected global, not `@jest/globals`, because a hoisted factory runs while an
+> imported binding is still in TDZ and `jest.fn()` inside it yields nothing usable. Also incidental:
+> `prisma migrate diff --to-schema-datamodel` was **removed** in Prisma 7.9.1, renamed `--to-schema`.
+> **⚠ Built but INERT — three operator steps, none of which this Executor can perform.**
+> (1) **Compile `EconomicCalendarExport_v2_29.mq5` in MetaEditor** — never compiled, MQL5 cannot be
+> built here; worth batching with the **10 statistic-emitting indicators already a build behind**.
+> (2) **Apply `20260910120000_add_economic_events`** — purely additive, no pre-flight count needed.
+> (3) **Deploy collector/schema/push worker to the VPS** and attach the exporter EA to one chart —
+> recommended to hold until that terminal has run a green cycle. Until then the news row simply does
+> not render and the banner shows the session clock alone: the intended degradation, not a fault.
+> **Also unverified, flagged not skipped:** authenticated `/terminal` click-through (the Executor
+> never enters credentials); any live MT5 → PostgreSQL round trip for this lane;
+> `lib/economic-events/prompt-context.ts` has **no runtime caller** until Stack D Session 12-2, which
+> is stated in the file itself rather than hidden.
+> **Licensing, checked and currently moot:** `davintrade-news-stack/base.mqh` is © Omega Joctan, an
+> MQL5 Market seller. **Nothing shipped depends on it** — the probe and the exporter both use only
+> native MQL5 calls, deliberately. It becomes live only if `provider_sqlite.mqh` is ever adopted,
+> which the `.txt`-export decision makes unnecessary.
+> **Artifacts:** `davintrade-news-stack/{market-session-and-high-impact-news-manifest-work-completion.md,
+step-zero-calendar-availability-check/CalendarAvailabilityCheck.mq5}`; Stack C —
+> `mq5/EconomicCalendarExport_v2_29.mq5`, `gateway_contract_economic_events.schema.json`,
+> `sqlite_schema_v6_xauusd.sql`, `export_collector_validator_v2.py`,
+> `backfill_worker_api_gateway_v5.py`, `test_economic_events.py`, `test_push_economic_events.py`,
+> `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md` (§0.1 + new §5.5); gateway —
+> `src/gateway/{economic-events.controller,dto/economic-event.dto}.ts`,
+> `src/worker/economic-events.processor.ts`, both modules, `scripts/generate-market-data-dto.js`,
+> `prisma/schema.prisma`, 4 test files; monolith — `lib/market-sessions/sessions.ts`,
+> `lib/economic-events/{queries,prompt-context}.ts`, `components/market-sessions/{session-status-banner.tsx,
+useUpcomingEvent.ts}`, `app/api/market/economic-events/route.ts`, `components/market-comments-panel.tsx`,
+> `prisma/market-data/schema.prisma` + migration, 2 dictionaries, 5 new test files;
+> `STACK-D-CONVERSATIONAL-AI-CHART-ANALYSIS-ARCHITECTURE-V2.md`, this file.
+
 > **Ad-hoc session (2026-09-10, phase/session unchanged) — CLOSED SUCCESSFUL, the chart-render
 > chain end to end: `mtf_render` rewritten 3-panel → 2-panel, PRO-gated delivery to private R2,
 > the monolith terminal brought to the matching dual-stacked layout, and the overlay toggle
