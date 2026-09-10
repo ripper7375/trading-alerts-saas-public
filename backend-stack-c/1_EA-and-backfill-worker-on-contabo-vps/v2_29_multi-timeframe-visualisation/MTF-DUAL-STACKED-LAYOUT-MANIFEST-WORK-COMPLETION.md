@@ -132,13 +132,40 @@ source of visual fiddliness and has **no** test coverage that means anything.
 
 ## 5. Open items
 
-### 5.1 Two WebSockets per viewer, now on both workspaces
+### 5.1 Two WebSockets per viewer — decided: do NOT refactor yet
 
 D8 + D10 together mean every `/terminal` and `/free` visitor holds two
-connections against the single-instance Flask/eventlet backend. Eventlet is
-green-threaded so this should be cheap, but it is a doubling. The remedy, if it
-ever matters, is one shared socket with two `subscribe` calls — the protocol
-already supports it.
+connections against the single-instance Flask/eventlet backend.
+
+**Reviewed 2026-09-10 and deliberately left alone.** Two reasons, and the second
+is the stronger one:
+
+1. **The cost is low and the fix is risky.** Eventlet is green-threaded and
+   handles many concurrent connections cheaply, so this is a doubling of a
+   currently-small number. The remedy — one shared socket with two `subscribe`
+   calls, which the protocol already supports — means refactoring
+   `useOhlcvSocket`, a hook the single-chart consumers also use. That is
+   regression risk on the live data path in exchange for no observed benefit.
+2. **It cannot be measured yet.** `/terminal` showed `Disconnected` in this
+   environment, and per the pipeline deck the VPS has still not run a green
+   end-to-end cycle with the recompiled `.ex5`. The Flask MT5 service may not be
+   carrying real traffic at all. Optimising a connection count nobody has
+   observed is guessing.
+
+**The trigger, so this is a decision rather than a deferral.** Once the feed is
+genuinely live, measure on the Flask host:
+
+- peak concurrent socket connections, and
+- open file descriptors against the process limit (`ulimit -n`).
+
+Revisit if connections reach a meaningful fraction of that limit, or if push
+latency degrades under load. Not before.
+
+**Cheaper mitigations exist short of the full refactor**, worth knowing so the
+refactor is not treated as the only option: the M15 panel could subscribe at a
+lower cadence, or `/free` could drop to a single chart. Both are worse
+product-wise, which is exactly why the shared socket is the right fix _if_ the
+measurement ever justifies one.
 
 ### 5.2 The PNG shares a time axis; the screen does not
 
