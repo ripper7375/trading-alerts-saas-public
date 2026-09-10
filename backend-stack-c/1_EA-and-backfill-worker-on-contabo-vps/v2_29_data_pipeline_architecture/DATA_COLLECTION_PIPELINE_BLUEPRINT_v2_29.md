@@ -463,6 +463,36 @@ Writes to a temp file and renames, so the collector can never read a
 half-written snapshot. On a failed or empty fetch the previous export is left
 intact rather than replaced with nothing.
 
+**Collector side — `stage_economic_events()` in `export_collector_validator_v2.py`.**
+This is where the append-only decision actually lives, and it is not optional
+bookkeeping. The exporter re-emits ~333 rows every snapshot; appending all of
+them each cycle would write ~32,000 rows/day, about **12M/year**, virtually all
+byte-identical repeats. Appending only what changed brings that to roughly
+**15k/year** — the same guarantee, three orders of magnitude less of it. Each
+row is compared against the newest stored row for its `value_id` across every
+field except `captured_at` (which differs by definition, so comparing it would
+make everything look changed and defeat the mechanism).
+
+Hooked into `run_cycle()` in its **own** try/except, separate from the
+statistics block, so neither lane can take the other down and neither can touch
+`market_data`. Not tied to a cycle or timeframe — calendar events are global
+and the snapshot carries its own `captured_at`. Calling it on both the M5 and
+M15 cycles is harmless: change detection makes the second call a no-op.
+
+**Tests — `test_economic_events.py`.** 14 tests. This stack has no pytest
+config (and pytest is not installed on the dev box), so the file runs standalone
+as well:
+
+```bash
+python test_economic_events.py          # or: python -m pytest test_economic_events.py -q
+```
+
+They exist because both failure modes here are **silent**. Verified by mutation
+rather than assumed: disabling change detection turns the volume test's expected
+3 rows into **192**; coercing an empty field to `0` fails five tests, including
+one reporting `pre-release actual was overwritten` — the record would then claim
+the market knew a `0.0` actual before the release happened.
+
 ---
 
 ## 6. Calculation — where it happens, and what was removed

@@ -423,6 +423,150 @@ def stage_statistics(conn, cycle_id: int, timeframe: str, export_dir: Path,
     return staged
 
 
+# ============================================================
+# ECONOMIC CALENDAR (append-only, independent of the market_data cycle)
+# ============================================================
+# Source: EconomicCalendarExport_v2_29.mq5, which dumps a FULL SNAPSHOT of its
+# window every run and deliberately does no change detection. That decision
+# lives here instead, because it is the one piece of this lane worth testing.
+#
+# Why it is not optional: the exporter emits ~333 rows per snapshot. Appending
+# all of them every cycle would write ~32,000 rows/day — about 12M/year — of
+# which almost all are byte-identical repeats. Appending only what actually
+# changed brings that to roughly 15k/year. Same append-only guarantee, three
+# orders of magnitude less of it.
+ECONOMIC_CALENDAR_FILE = 'EconomicCalendar.txt'
+
+# (column, type) in the exporter's own header. Parsing is by NAME, so this
+# order is cosmetic — but the names ARE the contract, shared with
+# gateway_contract_economic_events.schema.json and the economic_events table.
+CALENDAR_COLUMNS: List[Tuple[str, str]] = [
+    ('value_id', 'text'), ('captured_at', 'int'), ('event_id', 'text'),
+    ('event_time', 'int'), ('event_period', 'int'), ('revision', 'int'),
+    ('country_code', 'text'), ('currency', 'text'), ('event_name', 'text'),
+    ('importance', 'text'),
+    ('event_type', 'int'), ('sector', 'int'), ('frequency', 'int'),
+    ('time_mode', 'int'), ('unit', 'int'), ('multiplier', 'int'),
+    ('digits', 'int'), ('event_code', 'text'), ('source_url', 'text'),
+    ('actual_value', 'real'), ('forecast_value', 'real'),
+    ('prev_value', 'real'), ('revised_prev_value', 'real'),
+    ('impact_type', 'int'),
+]
+
+# Everything except captured_at, which is the observation time and therefore
+# differs on every snapshot by definition. Comparing it would make every row
+# look changed and defeat the whole point.
+CALENDAR_COMPARE_COLUMNS = [c for c, _ in CALENDAR_COLUMNS if c != 'captured_at']
+
+
+def _calendar_value(raw: str, typ: str):
+    """Empty field -> None. NEVER 0.
+
+    LONG_MIN upstream means 'not published', and the exporter writes that as an
+    empty field. A genuine 0.0 reading is real data — a 0.0% CPI print is a
+    fact, not a gap. Conflating the two would fabricate a forecast of zero for
+    every rate decision, which structurally has no numeric forecast at all.
+    """
+    raw = raw.strip()
+    if raw == '':
+        return None
+    if typ == 'text':
+        return raw
+    try:
+        return int(raw) if typ == 'int' else float(raw)
+    except ValueError:
+        return None
+
+
+def parse_calendar_file(path: Path) -> List[dict]:
+    """Header-NAME based, exactly like parse_export_file.
+
+    The exporter writes real UTF-8 (not FILE_ANSI like the 13 numeric
+    exporters) precisely so this open() succeeds on a non-ASCII event name.
+    """
+    rows: List[dict] = []
+    with open(path, encoding='utf-8') as f:
+        header_line = f.readline().rstrip('\n').rstrip('\r')
+        if not header_line.strip():
+            return rows
+        headers = header_line.split('\t')
+        idx = {}
+        for col, typ in CALENDAR_COLUMNS:
+            try:
+                idx[col] = (headers.index(col), typ)
+            except ValueError:
+                idx[col] = (None, typ)      # absent in this export -> NULL
+
+        for lineno, line in enumerate(f, start=2):
+            line = line.rstrip('\n').rstrip('\r')
+            if not line.strip():
+                continue
+            parts = line.split('\t')
+            row = {}
+            for col, (i, typ) in idx.items():
+                raw = parts[i] if (i is not None and i < len(parts)) else ''
+                row[col] = _calendar_value(raw, typ)
+
+            # The three NOT NULL columns. A row missing any of them cannot be
+            # keyed or ordered, so drop it rather than stage something broken.
+            if row['value_id'] is None or row['captured_at'] is None \
+                    or row['event_time'] is None:
+                logger.warning(f"calendar: line {lineno} missing a key field, skipped")
+                continue
+            rows.append(row)
+    return rows
+
+
+def stage_economic_events(conn, export_dir: Path) -> Tuple[int, int]:
+    """Append only the releases whose content actually changed.
+
+    Returns (appended, unchanged). Best-effort by design: like the statistics
+    lane, nothing here may reject a cycle or disturb the market_data path.
+
+    Idempotent — running it twice against the same snapshot appends nothing the
+    second time, which is why it is safe to call once per timeframe cycle.
+    """
+    path = export_dir / ECONOMIC_CALENDAR_FILE
+    if not path.exists():
+        return (0, 0)
+
+    rows = parse_calendar_file(path)
+    if not rows:
+        return (0, 0)
+
+    cols = [c for c, _ in CALENDAR_COLUMNS]
+    placeholders = ', '.join('?' * len(cols))
+    select_prior = (
+        f"SELECT {', '.join(CALENDAR_COMPARE_COLUMNS)} FROM economic_events "
+        f"WHERE value_id = ? ORDER BY captured_at DESC LIMIT 1"
+    )
+
+    appended = unchanged = 0
+    for row in rows:
+        prior = conn.execute(select_prior, (row['value_id'],)).fetchone()
+        if prior is not None:
+            current = tuple(row[c] for c in CALENDAR_COMPARE_COLUMNS)
+            if tuple(prior) == current:
+                unchanged += 1
+                continue
+
+        cur = conn.execute(
+            f"INSERT OR IGNORE INTO economic_events ({', '.join(cols)}) "
+            f"VALUES ({placeholders})", [row[c] for c in cols])
+        if cur.rowcount:
+            appended += 1
+        else:
+            # A real change collided with an existing (value_id, captured_at).
+            # Only reachable if two exports share a second, which a 900s timer
+            # makes essentially impossible — but silence here would lose a
+            # revision, so say so.
+            logger.warning(
+                f"calendar: change for value_id={row['value_id']} dropped — "
+                f"captured_at={row['captured_at']} already present")
+    conn.commit()
+    return (appended, unchanged)
+
+
 SQLITE_TYPE = {'real': 'REAL', 'int': 'INTEGER', 'text': 'TEXT'}
 
 
@@ -707,6 +851,21 @@ def run_cycle(conn, export_dir: Path, timeframe: str, cycle_time: int,
             logger.info(f"   statistics    {n_stats:>5} snapshots staged")
     except Exception as e:                                     # noqa: BLE001
         logger.warning(f"statistics capture skipped for cycle {cycle_id}: {e}")
+
+    # Economic calendar. A THIRD independent lane: its own exporter, table,
+    # contract and endpoint. Wrapped separately from the statistics block above
+    # so neither can take the other down, and neither can touch market_data.
+    #
+    # Not tied to this cycle's timeframe or cycle_id — calendar events are
+    # global, and the snapshot carries its own captured_at from the exporter.
+    # Calling it on both the M5 and M15 cycles is harmless: change detection
+    # makes the second call a no-op.
+    try:
+        appended, unchanged = stage_economic_events(conn, export_dir)
+        if appended:
+            logger.info(f"   calendar      {appended:>5} appended, {unchanged} unchanged")
+    except Exception as e:                                     # noqa: BLE001
+        logger.warning(f"calendar capture skipped for cycle {cycle_id}: {e}")
 
     return True
 
