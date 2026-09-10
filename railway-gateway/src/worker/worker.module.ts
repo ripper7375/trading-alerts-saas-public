@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { MarketDataProcessor } from './market-data.processor';
 import { IndicatorStatisticsProcessor } from './indicator-statistics.processor';
+import { EconomicEventsProcessor } from './economic-events.processor';
 
 @Module({
   imports: [
@@ -13,7 +14,15 @@ import { IndicatorStatisticsProcessor } from './indicator-statistics.processor';
     BullModule.registerQueue({
       name: 'indicator-statistics-sync',
     }),
+    // Third isolated queue -- see gateway.module.ts.
+    BullModule.registerQueue({
+      name: 'economic-events-sync',
+    }),
   ],
-  providers: [MarketDataProcessor, IndicatorStatisticsProcessor],
+  providers: [
+    MarketDataProcessor,
+    IndicatorStatisticsProcessor,
+    EconomicEventsProcessor,
+  ],
 })
 export class WorkerModule {}

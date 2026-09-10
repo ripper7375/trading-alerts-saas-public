@@ -82,6 +82,10 @@ describe('MarketDataController (e2e)', () => {
       // with an AggregateError even though every test passed.
       .overrideProvider(getQueueToken('indicator-statistics-sync'))
       .useValue(queueMock)
+      // Third queue -- same reason: an un-mocked queue reaches for Redis
+      // and fails teardown while the tests themselves all pass.
+      .overrideProvider(getQueueToken('economic-events-sync'))
+      .useValue(queueMock)
       .overrideProvider(PrismaService)
       .useValue(prismaMock)
       .compile();

@@ -49,6 +49,14 @@ const TARGETS = [
       '_edt_note',
     ],
   },
+  {
+    schema: 'gateway_contract_economic_events.schema.json',
+    output: 'economic-event.dto.ts',
+    className: 'EconomicEventDto',
+    fieldsConst: 'ECONOMIC_EVENT_DTO_FIELDS',
+    // No documentation-only keys in this contract; every property is a field.
+    skip: [],
+  },
 ];
 
 function typesOf(propSchema) {

@@ -73,12 +73,18 @@ describe('IndicatorStatisticsController (e2e)', () => {
       .useValue(queueMock)
       .overrideProvider(getQueueToken('market-data-sync'))
       .useValue(queueMock)
+      // Every registered queue must be overridden, not just this spec's own.
+      // An un-mocked queue genuinely tries to reach Redis and fails the suite
+      // in teardown while every test still passes.
+      .overrideProvider(getQueueToken('economic-events-sync'))
+      .useValue(queueMock)
       .overrideProvider(PrismaService)
       .useValue({
         $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
         marketDataV6: { upsert: jest.fn().mockResolvedValue({}) },
         indicatorConfig: { upsert: jest.fn().mockResolvedValue({}) },
         indicatorStatistic: { upsert: jest.fn().mockResolvedValue({}) },
+        economicEvent: { upsert: jest.fn().mockResolvedValue({}) },
       })
       .compile();
 

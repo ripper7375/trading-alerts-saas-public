@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { MarketDataController } from './market-data.controller';
 import { IndicatorStatisticsController } from './indicator-statistics.controller';
+import { EconomicEventsController } from './economic-events.controller';
 import { ValidationService } from './validation.service';
 
 @Module({
@@ -27,8 +28,24 @@ import { ValidationService } from './validation.service';
         removeOnFail: 500,
       },
     }),
+    // A third queue, isolated for the same reason: the calendar stream must
+    // never share a failure domain with price ingestion. Lower volume still
+    // than statistics -- after the first sync it carries only what changed.
+    BullModule.registerQueue({
+      name: 'economic-events-sync',
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: 100,
+        removeOnFail: 500,
+      },
+    }),
   ],
-  controllers: [MarketDataController, IndicatorStatisticsController],
+  controllers: [
+    MarketDataController,
+    IndicatorStatisticsController,
+    EconomicEventsController,
+  ],
   providers: [ValidationService],
 })
 export class GatewayModule {}
