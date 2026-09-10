@@ -262,6 +262,100 @@ def push_statistics(session: requests.Session, conn) -> int:
         return 0
 
 
+EVENT_COLUMNS = [
+    'value_id', 'captured_at', 'event_id', 'event_time', 'event_period',
+    'revision', 'country_code', 'currency', 'event_name', 'importance',
+    'event_type', 'sector', 'frequency', 'time_mode', 'unit', 'multiplier',
+    'digits', 'event_code', 'source_url',
+    'actual_value', 'forecast_value', 'prev_value', 'revised_prev_value',
+    'impact_type',
+]
+# The first sync after deployment carries the whole window (~333 rows); after
+# that a cycle yields only what actually changed, typically a handful. The cap
+# just spreads that first drain over two cycles.
+EVENT_MAX_ROWS_PER_CYCLE = 250
+REJECTED_EVENTS_FILE = DB_PATH.parent / 'rejected_economic_events.jsonl'
+
+
+def push_economic_events(session: requests.Session, conn) -> int:
+    """Drain the append-only economic-events outbox to the gateway.
+
+    A THIRD independent lane, isolated exactly like push_statistics(): its own
+    table, endpoint and quarantine file, and every exception swallowed here so
+    it can never delay or fail price ingestion. A return of 0 means "nothing to
+    do", never a reason to back the market_data loop off.
+
+    BATCHED, deliberately. market_data's one-POST-per-row shape is already
+    under-provisioned for its own volume (PUSH-WORKER-THROUGHPUT-OPEN-ISSUE.md:
+    ~800 rows/min demanded against 375-600 capacity). Inheriting that here would
+    turn a 333-row first sync into 333 sequential requests for no reason — these
+    rows are small, and one POST carries the lot.
+
+    Ordered oldest-first, matching the other two lanes. Safe here in a way it is
+    not for market_data: this outbox drains completely every cycle, so nothing
+    can starve behind a backlog.
+    """
+    try:
+        rows = conn.execute(
+            f"SELECT {', '.join(EVENT_COLUMNS)} FROM economic_events "
+            f"WHERE synced_at IS NULL ORDER BY captured_at ASC LIMIT ?",
+            (EVENT_MAX_ROWS_PER_CYCLE,)).fetchall()
+        if not rows:
+            return 0
+
+        # No type coercion needed: value_id/event_id are TEXT in SQLite and
+        # strings in the contract (upstream they are 64-bit and JSON cannot
+        # carry that as a number), and every value column is already a plain
+        # REAL or NULL. NULL means "not published" and must reach the gateway
+        # as JSON null, never as 0.
+        payload = []
+        for r in rows:
+            item = dict(zip(EVENT_COLUMNS, r))
+            item['terminal_id'] = TERMINAL_ID
+            payload.append(item)
+
+        resp = session.post(f'{API_GATEWAY_URL}/api/v1/economic-events',
+                            json=payload, timeout=HTTP_TIMEOUT_SEC)
+
+        if resp.status_code in (200, 201):
+            now = int(time.time())
+            conn.executemany(
+                "UPDATE economic_events SET synced_at = ? "
+                "WHERE value_id = ? AND captured_at = ?",
+                [(now, i['value_id'], i['captured_at']) for i in payload])
+            conn.commit()
+            logger.info(f"📅 Pushed {len(payload)} economic event(s)")
+            return len(payload)
+
+        if resp.status_code == 400:
+            # Poison-batch guard, same as the other two lanes: quarantine and
+            # stamp synced_at so one malformed row cannot wedge the outbox
+            # forever. The row survives in the .jsonl for replay after a fix.
+            try:
+                with open(REJECTED_EVENTS_FILE, 'a', encoding='utf-8') as f:
+                    for i in payload:
+                        f.write(json.dumps({'quarantined_at': datetime.now().isoformat(),
+                                            'gateway_error': resp.text[:500],
+                                            'row': i}, default=str) + '\n')
+            except OSError as e:
+                logger.error(f"❌ Failed to quarantine rejected events: {e}")
+            now = int(time.time())
+            conn.executemany(
+                "UPDATE economic_events SET synced_at = ? "
+                "WHERE value_id = ? AND captured_at = ?",
+                [(now, i['value_id'], i['captured_at']) for i in payload])
+            conn.commit()
+            logger.warning(f"⚠️ Gateway rejected {len(payload)} event(s) — quarantined")
+            return 0
+
+        logger.warning(f"⚠️ Economic-events push got HTTP {resp.status_code} — will retry")
+        return 0
+    except Exception as e:                                      # noqa: BLE001
+        # Never propagate: the market_data drain must be unaffected.
+        logger.warning(f"⚠️ Economic-events push skipped: {e}")
+        return 0
+
+
 def quarantine_row(data: dict, error_msg: str) -> None:
     try:
         with open(REJECTED_ROWS_FILE, 'a', encoding='utf-8') as f:
@@ -393,6 +487,7 @@ def main():
                 # Statistics still drain on an idle cycle — they are low volume
                 # and this is the least contended moment to send them.
                 push_statistics(session, conn)
+                push_economic_events(session, conn)
                 conn.close()
                 consecutive_failures = 0
                 if iteration % HEALTH_CHECK_INTERVAL == 0:
@@ -406,6 +501,10 @@ def main():
             # priority for the connection, and push_statistics() swallows its
             # own failures so it cannot influence the backoff decision below.
             push_statistics(session, conn)
+            # Economic events last: price data first, telemetry second, calendar
+            # third. Like push_statistics() it swallows its own failures, so it
+            # cannot influence the backoff decision below either.
+            push_economic_events(session, conn)
             conn.close()
 
             if pushed or quarantined:

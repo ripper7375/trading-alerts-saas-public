@@ -479,19 +479,46 @@ statistics block, so neither lane can take the other down and neither can touch
 and the snapshot carries its own `captured_at`. Calling it on both the M5 and
 M15 cycles is harmless: change detection makes the second call a no-op.
 
-**Tests — `test_economic_events.py`.** 14 tests. This stack has no pytest
-config (and pytest is not installed on the dev box), so the file runs standalone
-as well:
+**Push side — `push_economic_events()` in `backfill_worker_api_gateway_v5.py`.**
+A third independent drain loop, isolated exactly like `push_statistics()`: its
+own table, endpoint (`POST /api/v1/economic-events`) and quarantine file
+(`rejected_economic_events.jsonl`), with every exception swallowed so it can
+never delay or fail price ingestion. Runs **after** `market_data` and the
+statistics lane on both the idle and active branches of the main loop; a return
+of 0 means "nothing to do" and never feeds the backoff decision.
+
+**Batched, deliberately.** `market_data`'s one-POST-per-row shape is already
+under-provisioned for its own volume (§12's throughput issue: ~800 rows/min
+demanded against 375–600 capacity). Inheriting it here would turn a 333-row
+first sync into 333 sequential requests for no reason — these rows are small and
+one POST carries the lot. Capped at 250/cycle, so even the first drain is two
+requests rather than hundreds. Ordered oldest-first like the other lanes, which
+is safe here in a way it is not for `market_data`: this outbox empties every
+cycle, so nothing can starve behind a backlog.
+
+**Tests — `test_economic_events.py` (14) and `test_push_economic_events.py`
+(13).** This stack has no pytest config (and pytest is not installed on the dev
+box), so both run standalone:
 
 ```bash
-python test_economic_events.py          # or: python -m pytest test_economic_events.py -q
+python test_economic_events.py
+python test_push_economic_events.py
 ```
 
-They exist because both failure modes here are **silent**. Verified by mutation
-rather than assumed: disabling change detection turns the volume test's expected
-3 rows into **192**; coercing an empty field to `0` fails five tests, including
-one reporting `pre-release actual was overwritten` — the record would then claim
-the market knew a `0.0` actual before the release happened.
+They exist because every failure mode in this lane is **silent**. All verified
+by mutation rather than assumed:
+
+| Break this                   | And this fails                                                |
+| ---------------------------- | ------------------------------------------------------------- |
+| Change detection             | volume test: 3 expected rows become **192**                   |
+| Empty field coerced to `0`   | 5 tests, incl. `pre-release actual was overwritten`           |
+| Batching                     | `120 requests for 120 rows`                                   |
+| The swallow-everything guard | 2 exceptions escape into the caller — the isolation guarantee |
+| The 400 poison guard         | `poison rows left unstamped -> outbox wedged`                 |
+
+Both collector and push changes are **additions only** — 159 and 99 insertions,
+zero deletions — so the `market_data` path is provably untouched rather than
+believed to be.
 
 ---
 
