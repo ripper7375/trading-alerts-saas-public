@@ -5,8 +5,12 @@ upper, M15 lower), matching the rendered PNG.
 **Executed:** 2026-09-10.
 **Plan of record:** `MTF-DUAL-STACKED-LAYOUT-PLAN.md` (decisions D7–D10).
 **Closes:** `MTF-RENDER-DELIVERY-MANIFEST-WORK-COMPLETION.md` §7.6.
-**Status:** implementation complete and verified. **Not committed** — left for
-Davin's review, per this repo's log-first-defer-commit pattern.
+**Status:** implementation complete, verified, **committed and pushed**.
+
+| Commit     | Scope                                                                   |
+| ---------- | ----------------------------------------------------------------------- |
+| `6cd42cbe` | The layout — chart props, the composite, both workspaces, 6 tests       |
+| `8b486593` | This manifest, the plan, delivery-manifest §7.6, workspace doc comments |
 
 ---
 

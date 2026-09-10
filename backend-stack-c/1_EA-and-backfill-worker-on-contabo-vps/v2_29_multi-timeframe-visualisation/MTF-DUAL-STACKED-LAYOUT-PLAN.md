@@ -1,6 +1,7 @@
 # Dual-Stacked Chart Layout — Plan
 
-**Status:** DRAFT — awaiting Davin's approval before any code is written.
+**Status:** APPROVED and **EXECUTED**, 2026-09-10. Retained as the design record.
+Outcome and deviations: `MTF-DUAL-STACKED-LAYOUT-MANIFEST-WORK-COMPLETION.md`.
 **Date:** 2026-09-10.
 **Scope:** bring the monolith's terminal and FREE workspaces to the two-stacked-chart
 layout (XAUUSD M5 upper, M15 lower) shown in the seed UI and in the rendered PNG.
