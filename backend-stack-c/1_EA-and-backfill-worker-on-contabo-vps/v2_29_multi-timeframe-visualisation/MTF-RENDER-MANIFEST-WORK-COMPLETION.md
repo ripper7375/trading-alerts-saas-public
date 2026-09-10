@@ -8,23 +8,12 @@ overlay-producing indicators.
 **Status:** implementation complete and verified. **All items that were awaiting a
 decision are now closed** — see 1.3.
 
-| Commit      | Scope                                                                            |
-| ----------- | -------------------------------------------------------------------------------- |
-| `7221c268`  | W1–W7 — the module rewrite plus the module and Stack D V2 docs                   |
-| `4a627acc`  | W8 — the `Matplotlib 3-Panel Vision Render` → `2-Panel` rename                   |
-| `b59b059d`  | Status correction to this document                                               |
-| _(pending)_ | **Follow-up:** the pricing claim reworded to drop the count, in both trees (1.3) |
-
-Split rather than batched, per `EXECUTOR-PROTOCOL.md` §2 and this plan's own
-execution order: W8 was sequenced last as its own commit so that any monolith
-test failure would be unambiguously attributable to the rename rather than to the
-renderer work.
-
-The pre-existing dirty tree at session start — a modified
-`SimpleDataCollector_v2_29_ASYNC_SOCKET.ex5` and the deleted
-`mql5-indicators/mql5-indicator-export-selection/` mirrors — is **unrelated
-in-progress work and was deliberately left unstaged.** Files were staged by name,
-never with `git add -A`.
+| Commit     | Scope                                                                            |
+| ---------- | -------------------------------------------------------------------------------- |
+| `7221c268` | W1–W7 — the module rewrite plus the module and Stack D V2 docs                   |
+| `4a627acc` | W8 — the `Matplotlib 3-Panel Vision Render` → `2-Panel` rename                   |
+| `b59b059d` | Status correction to this document                                               |
+| `b0acab46` | **Follow-up:** the pricing claim reworded to drop the count, in both trees (1.3) |
 
 Split rather than batched, per `EXECUTOR-PROTOCOL.md` §2 and this plan's own
 execution order: W8 was sequenced last as its own commit so that any monolith
