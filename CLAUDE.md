@@ -26,6 +26,117 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
+> **Ad-hoc session (2026-09-10, phase/session unchanged) — CLOSED SUCCESSFUL, the chart-render
+> chain end to end: `mtf_render` rewritten 3-panel → 2-panel, PRO-gated delivery to private R2,
+> the monolith terminal brought to the matching dual-stacked layout, and the overlay toggle
+> persisted so the download follows it.** Started as "explain me this codebase" pointed at
+> `v2_29_multi-timeframe-visualisation/` and grew, one approved plan at a time, into the whole
+> render→deliver→display path. Per `EXECUTOR-PROTOCOL.md` §6 (direct chat instructions, outside
+> the Session-14-x numbering). **Four plan docs and four completion manifests live in that folder
+> and carry the full detail; this entry is the index, not a substitute.**
+> **⚠ The headline finding, because it reframes what "the renderer worked" meant:** the module was
+> not merely outdated, it was **broken against the live schema**. `data_source.py` still listed
+> `best_fit` and built SQL by f-string interpolation, so every call against a real `xauusd.db`
+> raised `no such column: best_fit_uoedt` after the 2026-09-03 split. It went unnoticed because
+> `fixture.py` fabricated its _own_ `best_fit_*` columns — **the suite was validating the fixture
+> against itself, not against the contract**, and stayed green while the module could not read a
+> real database. Both halves are closed: an explicit column registry (`overlays.py`, no
+> interpolation) and a fixture built _from_ that registry, plus a test that parses the real
+> `sqlite_schema_v6_xauusd.sql`. That test was deliberately run against the old names first, to
+> prove it detects the defect rather than passing vacuously — it did, and the parser independently
+> recovered exactly **87 columns**, matching the blueprint.
+> **What shipped, in order.** (1) **Renderer** — 3 side-by-side panels (A=M5, B=M15, C=M15, with B
+> and C identical and matching nothing shipped) → **2 stacked**, M5 above M15 on one shared clock
+> window; 6 stale variants → **10 overlays** across the 7 centroids + `fractal_edt` +
+> resistance/support; two variants per cycle (`overlay`/`standard`) so the PRO M5-on-M15
+> entitlement is expressed in the artifact itself; 3 tests → **17**. (2) **`3-Panel` → `2-Panel`**
+> across ~30 live sites — the string was already ported into the monolith and translated, and
+> because this codebase uses the literal English string as the dictionary _key_, each rename moved
+> a key plus a differently-worded value in 12–16 dictionaries. (3) **The pricing claim** dropped
+> the count entirely (`Read-Only Multi-Timeframe Terminal`) rather than correcting it to 2, so the
+> public page no longer depends on a layout decision that has now changed twice. (4) **Delivery**
+> — private R2 + ~60s presigned URLs, a `requireChartDownload()` gate, `GET /api/chart/download`,
+> and an `MT5Renderer` NSSM service that renders both variants from one snapshot and prunes at 48h.
+> (5) **Dual-stacked layout** in `/terminal` and `/free`. (6) **Toggle persistence** to
+> `UserPreferences.m5OnM15`. (7) **The still-forming candle** marked rather than dropped.
+> **Four decisions worth carrying forward, each made against a real alternative.** _Private R2, not
+> public CDN_ — object names are deterministic, so Stack D §9's public bucket would have made the
+> gate cosmetic; egress still leaves R2, only authorization moved. _The gate re-checks the
+> database_ — `checkFeatureAccess` reads the JWT only, so a user who had **just paid for PRO**
+> would have been refused a feature they bought; `requireAffiliate` already solves this and the fix
+> mirrors it, scoped to this one gate. _Compose two `TradingChart` instances rather than port the
+> seed's 856-line dual-chart component_ — the monolith's version carries the reactive theme fix,
+> live sockets and the drawing layer that the seed lacks, and the seed reads theme via
+> next-themes' `useTheme()`, which this app no longer keeps in sync. _Mark the forming bar, don't
+> drop it_ — this **reverses** the plan's own earlier recommendation: dropping makes the render a
+> bar-period stale, so the screen would show a candle the download does not, which is the exact
+> divergence the rest of the work closed.
+> **⚠ Two mistakes of mine, recorded because the next reader will hit the same shapes.** (a) I
+> reported that the `M5 on M15` toggle **did not exist in the monolith**. It does —
+> `components/charts/mtf/MtfToggle.tsx` + `useMtfOverlay.ts`, PRO-gated, and named in this file's
+> own 2026-09-03 entry, which I had already read. I had grepped for `isM5OnM15`, the _seed's_
+> variable name, and reported the absence of a string as the absence of a capability. Same shape
+> as the `best_fit` bug: trusting a name over the concept. Corrected in `c06063c5`; the design was
+> unaffected, because `mtfEnabled` was still unpersisted and so still unreadable server-side.
+> (b) A test I added leaked a floating `LocaleProvider` geo-IP `fetch()` past jsdom teardown, and
+> the resulting error surfaced inside **`login-form.test.tsx`** — an unrelated auth suite. I was
+> wrong twice on the way to finding it: first "deterministic, so a real regression" (a third run
+> passed), then "passes in isolation, so a pre-existing flake" (removing only my file restored
+> 174/174). **"Passes in isolation, fails in the suite" is evidence of a leak, never of
+> innocence.** The fix was one line, already written down three lines above where I was reading, in
+> `trading-chart.test.tsx`'s own `beforeEach` citing `LESSONS-LEARNED.md` L40.
+> **Two mirrors caught, both the drift class this repo keeps hitting.** `operation-service` carries
+> its own copy of the preferences Zod schema, interface **and** defaults object — adding `m5OnM15`
+> only to the monolith would have silently stripped it from any update routed there; `tsc` caught
+> the third copy after the first two were done by hand. And the R2 object name now exists in
+> **three** places across two languages (renderer `DEFAULT_OUT`, VPS worker, `chartObjectKey()`),
+> where drift would surface as a **404 on download rather than an error** — pinned by a test that
+> parses the renderer's own `__main__.py`.
+> **Verified:** monolith `test:ci` **176/176 suites · 2445/2445 tests** (from a 171/2416 baseline);
+> `operation-service` **43/43 · 401/401**; `railway-gateway` untouched; `tsc`/`eslint` clean
+> throughout; module pytest **17/17**; zero jsdom teardown leaks, confirmed across repeated runs.
+> Every rendered PNG was inspected directly, and the download route was hit against a real
+> `next dev` with **no R2 credentials set** — returning **401, not 503**, which proves the
+> entitlement check short-circuits before any storage work, an ordering guarantee the mocked tests
+> assert but cannot demonstrate.
+> **⚠ Built but INERT — nothing in the download path functions yet.** It needs a **private** R2
+> bucket and credentials, which only Davin can create; until then `/api/chart/download` returns
+> **503** and `MT5Renderer` will not start. **Do not enable public read** — that alone collapses
+> the reasoning behind the whole design. Also unverified, and flagged rather than skipped: no
+> render has ever been drawn from a real `xauusd.db`; the R2 round trip has only run against a
+> mocked S3 client; both workspaces sit behind auth so the layout, the **two-WebSockets-per-viewer**
+> count and the FREE-tier locked toggle all need Davin's own click-through; and jsdom's
+> `ResizeObserver` is a no-op stub, so the pane-sizing maths has no meaningful coverage.
+> **Deliberately not done.** The shared-socket refactor was reviewed and **declined**, with a
+> checkable trigger recorded instead (peak concurrent connections and open fds against `ulimit -n`
+> on the Flask host, once the feed is live) — it cannot be measured today, since `/terminal` showed
+> `Disconnected` and the VPS still has not run a green cycle with the recompiled `.ex5`. Also:
+> `parseChartVariant()`/`DEFAULT_CHART_VARIANT` were **deleted** once `?variant=` was dropped —
+> they had no production callers and were kept alive only by their own tests, which is the worst
+> state for dead code because it reads as exercised.
+> **Flagged, not fixed (pre-existing, worse than last time):** this file is now **219 KB**, up from
+> the 144.7 KB flagged on 2026-09-04 and more than twice `EXECUTOR-PROTOCOL.md` §0's ~100 KB gate.
+> The bulk is ad-hoc blockquotes, not the numbered Session-14-x rotation §3's archival procedure
+> targets, and several remain referenced by open `Waiting on` items — so a correct pass means
+> judging which are genuinely closed. Still a deliberate Advisor/Davin call, not a side effect of a
+> feature session, but it is drifting further each time.
+> **Artifacts:** in `v2_29_multi-timeframe-visualisation/` — `mtf_render/{overlays,data_source,
+renderer,fixture,__main__,__init__}.py`, `mtf_render_upload_worker.py`, `test_mtf_render.py`,
+> plus `MTF-RENDER-MODIFICATION-PLAN.md`, `MTF-RENDER-DELIVERY-AND-GATING-PLAN.md`,
+> `MTF-DUAL-STACKED-LAYOUT-PLAN.md` and four `*-MANIFEST-WORK-COMPLETION.md`. Monolith:
+> `lib/storage/{r2,chart-keys}.ts`, `lib/preferences/{defaults,server-preferences}.ts`,
+> `lib/auth/permissions.ts`, `app/api/chart/download/route.ts`, `app/api/user/preferences/route.ts`,
+> `components/charts/{trading-chart,mtf-stacked-charts}.tsx`, `components/charts/mtf/
+useMtfPreference.ts`, `components/chat-sidebar.tsx`, `components/landing/landing-pricing.tsx`,
+> 16 dictionaries, both workspaces, 4 new test files. Also `operation-service/src/users/
+users.schemas.ts`, `install_services.bat`, `STACK-D-CONVERSATIONAL-AI-CHART-ANALYSIS-ARCHITECTURE-V2.md`,
+> `.env.example`, and — at Davin's explicit direction, overriding the read-only convention in
+> non-negotiable #4/#5 — `seed-code/trading-conversational-ai-ui-pages-increment/` (pricing string
+>
+> - the Vision Render label). New deps: `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`
+>   (monolith), `boto3` (VPS, documented not installed). **18 commits**, `7221c268`..`bb914bf3`, all
+>   pushed to `origin/main`; `68b3513a` in that range is Davin's own, not this session's.
+
 > **Ad-hoc session (2026-09-04, phase/session unchanged) — CLOSED SUCCESSFUL, public
 > dark/light theme toggle on the marketing navbar:** Davin asked directly in chat (with a
 > screenshot of the live landing page annotating the exact spot, next to the "เข้าสู่ระบบ"/Log In
@@ -2101,6 +2212,35 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 
 ## Waiting on
 
+- **⚠ BLOCKING (chart renders) — create the PRIVATE Cloudflare R2 bucket and credentials**
+  (2026-09-10). Everything in the render→download path is built, tested and pushed, and **none of
+  it functions until this exists**: `/api/chart/download` returns **503** and the `MT5Renderer`
+  VPS service will not start. Needs the bucket `davintrade-renders`, an API token, the five `R2_*`
+  vars set in **Vercel (Production scope** — note the existing preview/production scoping
+  inconsistency already recorded below**)**, and the same filled into `install_services.bat`'s R2
+  block on the VPS.
+  **⚠ Do not enable public read.** Object names are deterministic
+  (`mtf_render_xauusd_m5_m15_overlay.png`), so a public bucket makes the PRO gate cosmetic — anyone
+  told the URL fetches it. That single setting is what the entire delivery design rests on; the
+  presigned-URL flow exists precisely to avoid it. Full steps:
+  `v2_29_multi-timeframe-visualisation/MTF-RENDER-DELIVERY-MANIFEST-WORK-COMPLETION.md` §5.
+- **Chart-render click-through — needs Davin, everything else is verified** (2026-09-10). Both
+  workspaces sit behind auth and the Executor never enters credentials, so these are proven by test
+  only: that `/terminal` opens **exactly two** WebSockets (not four or one — the operational cost of
+  the dual-stacked layout, and the input to the socket-refactor trigger below); that the M5-on-M15
+  toggle round-trips (flip → reload → it sticks → download serves the `overlay` variant); that the
+  FREE tier renders both charts with a **locked** toggle routing to `/pricing`; and that the
+  pane-splitting maths looks right, since jsdom's `ResizeObserver` is a no-op stub and that path has
+  no meaningful coverage. Gated on the R2 item above for the download half.
+- **Socket-refactor trigger — DECIDED, do not refactor yet** (2026-09-10). Two WebSockets per
+  viewer on `/terminal` and `/free`. Reviewed and deliberately declined: eventlet is green-threaded
+  so this is a doubling of a small number, the fix means refactoring `useOhlcvSocket` (which the
+  single-chart consumers also use) for no observed benefit, and **it cannot be measured today** —
+  `/terminal` showed `Disconnected` and the VPS has not run a green cycle with the recompiled
+  `.ex5`. **The trigger:** once the feed is live, measure peak concurrent connections and open file
+  descriptors against `ulimit -n` on the Flask host; revisit only if connections approach that limit
+  or push latency degrades. Detail + cheaper mitigations:
+  `MTF-DUAL-STACKED-LAYOUT-MANIFEST-WORK-COMPLETION.md` §5.1.
 - **⚠ BLOCKING — recompile the 10 statistic-emitting MQL5 indicators and redeploy to the VPS**
   (2026-09-09). The `gmt_offset` fix (16 sites) and the ZigZag unconfirmed-pivot fix **are already
   compiled** — Davin built all 13 `.ex5` on 2026-09-09 at ~13:45, after those source edits
