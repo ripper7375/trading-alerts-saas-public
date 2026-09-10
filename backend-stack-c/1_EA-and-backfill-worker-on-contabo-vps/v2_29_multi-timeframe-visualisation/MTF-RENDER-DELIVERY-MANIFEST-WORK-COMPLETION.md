@@ -5,8 +5,16 @@ download behind the PRO entitlement.
 **Executed:** 2026-09-10.
 **Plan of record:** `MTF-RENDER-DELIVERY-AND-GATING-PLAN.md` (decisions D4–D6).
 **Closes:** `MTF-RENDER-MANIFEST-WORK-COMPLETION.md` §1.1.
-**Status:** implementation complete and verified. **Not committed** — left for
-Davin's review, per this repo's log-first-defer-commit pattern.
+**Status:** implementation complete, verified, **committed and pushed**.
+
+| Commit     | Scope                                                             |
+| ---------- | ----------------------------------------------------------------- |
+| `31b3206f` | Monolith download path — R2 client, gate, route, button, 17 tests |
+| `55d598bb` | VPS `MT5Renderer` service + NSSM registration                     |
+| `56cda36f` | Stack D §9 corrected, prior manifest §1.1 closed                  |
+| `6f30ff70` | Plan marked executed                                              |
+
+§3.1 was subsequently found to be **wrong** and is corrected below.
 
 > ⚠ **This is built but not yet functional.** It needs the R2 bucket and
 > credentials, which only Davin can create. Until then `/api/chart/download`
@@ -68,22 +76,49 @@ The Pillar 6 LLM fetch stays with Session 12-2, whose orchestrator
 
 ## 3. Findings
 
-### 3.1 ⚠ The `M5 on M15` toggle does not exist in the monolith
+### 3.1 ❌ CORRECTED — the toggle DOES exist in the monolith
 
-`isM5OnM15` returns **zero hits** across `app/`, `components/` and `lib/`.
-`components/trading-chart.tsx` is single-timeframe — no toggle, no M15
-container. The dual chart and the PRO-gated toggle live only in `seed-code/`,
-unported.
+**This section was wrong when written, 2026-09-10. Corrected the same day.**
 
-**Consequence for the renderer's D2** ("the render follows the toggle"): there is
-no toggle to follow in production, and no persisted preference anywhere — it is
-local React state in the seed.
+**What it claimed:** that the `M5 on M15` toggle did not exist in the monolith at
+all, only in seed-code.
 
-**How it is handled:** the route defaults to `overlay` and accepts an optional
-`?variant=`. That parameter is safe to take from the client because **both
-variants are PRO-only** — it selects _which_ image, never _whether_ the caller
-may have one. Nothing sends it yet; it exists so that when the toggle lands, the
-client passes it and **the route needs no change**.
+**Why that was wrong:** the search was for `isM5OnM15` — the _seed's_ variable
+name — rather than for the capability. The monolith implements the same feature
+under different names, and has done for some time:
+
+| File                                     | Role                                                           |
+| ---------------------------------------- | -------------------------------------------------------------- |
+| `components/charts/mtf/MtfToggle.tsx`    | The control. PRO-gated; FREE routes to `/pricing`.             |
+| `components/charts/mtf/useMtfOverlay.ts` | Fetches the M5 channel, draws 3 line series on the host chart. |
+| `components/charts/trading-chart.tsx`    | Wires both in (lines 98–105, 274).                             |
+| `app/api/market-data/channel/route.ts`   | The backing endpoint.                                          |
+
+Triple-gated — `isPro && mtfAvailable && mtfEnabled` — and the hook is inert
+while disabled, so a FREE user never even fetches. `mtfAvailable` is
+`timeframe === 'M15'`, on the reasoning that overlaying M5 structure onto the M5
+chart itself adds nothing.
+
+`useMtfOverlay.ts` is even named in `CLAUDE.md`'s own 2026-09-03 entry, which
+this session had already read.
+
+**The lesson, and this session has now hit it twice:** grepping for one
+codebase's identifier does not establish that a _capability_ is absent. The
+renderer's `best_fit` bug came from trusting a name over the concept; so did
+this.
+
+**What survives the correction and what does not:**
+
+- ❌ "There is no toggle to follow" — **false**. There is one.
+- ✅ "The route cannot read the toggle state" — **still true, for a different
+  reason**: `mtfEnabled` is local React `useState` in `trading-chart.tsx`
+  (line 100), never persisted to preferences, a cookie or the database, so a
+  server-side route still has nothing to read.
+- ✅ The implementation is therefore unchanged: default `overlay`, optional
+  `?variant=`, safe because both variants are PRO-only.
+
+The _conclusion_ was right; the _premise_ was wrong. Making the download actually
+follow the toggle requires persisting that state — see §7.5.
 
 ### 3.2 The AWS SDK forced a better module split
 
@@ -204,3 +239,31 @@ Stack D §2's < 120 ms retrieval budget.
 
 `MTF-RENDER-MODIFICATION-PLAN.md` §7.1 — whether to drop the still-forming newest
 bar. Unchanged, and it affects what both the download and the LLM receive.
+
+### 7.5 Making the download follow the toggle would need the state persisted
+
+Given §3.1's correction, the remaining gap is narrow and worth stating precisely.
+`mtfEnabled` lives in `useState` inside `trading-chart.tsx`, so it is known only
+to that component instance, in that tab, until reload. Two consequences:
+
+- The **download route** cannot read it. It would need to become a stored
+  preference (user settings, a cookie, or a query param passed by the client at
+  click time — the last being cheapest, since `?variant=` already exists).
+- The **Stack D Pillar 6 fetch** has the same problem for the same reason, and
+  that is the one that actually matters: the LLM should arguably see whatever the
+  trader is looking at.
+
+Not built, and not obviously worth building until Pillar 6 exists. Recorded so
+the `?variant=` parameter is understood as deliberate groundwork rather than
+speculative.
+
+### 7.6 One genuine architectural difference from the seed remains
+
+The seed renders **two stacked charts** (M5 above, M15 below) with the overlay
+toggled onto the lower one. The monolith renders **one chart** with a timeframe
+selector, offering the overlay only while viewing M15.
+
+Both express the same entitlement; they are different layouts. The rendered PNG
+follows the _seed's_ two-panel shape, so the download and the on-screen terminal
+do not currently look alike. Whether to bring the monolith to the dual-stacked
+layout is a UI decision, not a gap in this work.

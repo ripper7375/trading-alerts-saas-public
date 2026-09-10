@@ -19,10 +19,22 @@ entitlement the two variants exist to express has no effect whatsoever.**
 
 ## 0. Findings — verified against live code before planning
 
-### 0.1 ⚠ The `M5 on M15` toggle does not exist in the monolith at all
+### 0.1 ❌ WRONG — see the manifest's §3.1
 
-This is the finding that most changes the plan, and it was not visible from the
-manifest.
+> **This finding was incorrect and is retained only as the record of what the
+> plan was written against.** The `M5 on M15` capability **does** exist in the
+> monolith, as `components/charts/mtf/MtfToggle.tsx` +
+> `useMtfOverlay.ts`, wired into `components/charts/trading-chart.tsx` and
+> PRO-gated. The search below looked for the _seed's_ variable name rather than
+> for the feature.
+>
+> **The plan's design is unaffected.** `mtfEnabled` is local React state, never
+> persisted, so a server-side route still cannot read it — which is the reason
+> the route defaults to `overlay` and accepts `?variant=`. Right conclusion,
+> wrong premise. Full correction:
+> `MTF-RENDER-DELIVERY-MANIFEST-WORK-COMPLETION.md` §3.1.
+
+The original text follows.
 
 `isM5OnM15` returns **zero hits** across the monolith's `app/`, `components/` and
 `lib/`. `components/trading-chart.tsx` has no toggle, no M15 container, and no
