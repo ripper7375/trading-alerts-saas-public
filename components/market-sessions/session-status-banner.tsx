@@ -17,19 +17,21 @@ import { useUpcomingEvent } from './useUpcomingEvent';
  * Market Session banner -- the D4 slot from `seed-code`'s market-comments
  * panel, rendered from the real clock.
  *
- * WHAT THIS DELIBERATELY DOES NOT DO
- * ----------------------------------
- * The seed's version of this banner pairs the session label with an
- * "UPCOMING HIGH IMPACT NEWS/EVENT COUNTDOWN" seeded from a hardcoded
- * `5 * 3600 + 19 * 60 + 36` that simply ticks down -- a number with no
- * source behind it. That half is NOT reproduced here. There is no economic
- * event data in this repo yet, and inventing a countdown to an unnamed
- * event is exactly the fabrication `market-comments-panel.tsx` already
- * refuses to do (Session 9-4 Decision 2, "zero mock data").
+ * Carries both countdowns the mockup showed, and BOTH ARE REAL.
  *
- * The countdown shown below is real: it is this session's own close, the
- * next session's open, or the weekend reopen -- all computed from the
- * clock. When the news lane lands, its countdown becomes a second row here.
+ * The session countdown is computed from the clock: this session's close,
+ * the next session's open, or the weekend reopen. The news countdown comes
+ * from the economic-events lane -- MT5's own calendar, through the collector
+ * and gateway into `economic_events`.
+ *
+ * The news row renders ONLY when there is a genuine upcoming event. While the
+ * lane is undeployed, the table empty, or the request refused, it disappears
+ * and this degrades to the session half alone. That matters because
+ * `seed-code`'s version of this banner ticked down from a hardcoded
+ * `5 * 3600 + 19 * 60 + 36` with nothing behind it -- a countdown to an
+ * unnamed event, which is the fabrication `market-comments-panel.tsx` already
+ * refuses (Session 9-4 Decision 2, "zero mock data"). An absent row is the
+ * honest rendering of "we do not know"; a placeholder countdown is not.
  */
 export function SessionStatusBanner() {
   const { t } = useLocale();
