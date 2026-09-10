@@ -5,8 +5,25 @@ to two stacked panels, align it with the v2.29 pipeline, and support the eleven
 overlay-producing indicators.
 **Executed:** 2026-09-10, single session.
 **Plan of record:** `MTF-RENDER-MODIFICATION-PLAN.md` (rev. 3, decisions D1–D5).
-**Status:** implementation complete and verified. **Not committed** — left for
-Davin's review, per this repo's log-first-defer-commit pattern.
+**Status:** implementation complete, verified, **committed and pushed** on Davin's
+explicit request, 2026-09-10.
+
+| Commit     | Scope                                                          |
+| ---------- | -------------------------------------------------------------- |
+| `7221c268` | W1–W7 — the module rewrite plus the module and Stack D V2 docs |
+| `4a627acc` | W8 — the `Matplotlib 3-Panel Vision Render` → `2-Panel` rename |
+| _(this)_   | This status correction                                         |
+
+Split rather than batched, per `EXECUTOR-PROTOCOL.md` §2 and this plan's own
+execution order: W8 was sequenced last as its own commit so that any monolith
+test failure would be unambiguously attributable to the rename rather than to the
+renderer work.
+
+The pre-existing dirty tree at session start — a modified
+`SimpleDataCollector_v2_29_ASYNC_SOCKET.ex5` and the deleted
+`mql5-indicators/mql5-indicator-export-selection/` mirrors — is **unrelated
+in-progress work and was deliberately left unstaged.** Files were staged by name,
+never with `git add -A`.
 
 ---
 
