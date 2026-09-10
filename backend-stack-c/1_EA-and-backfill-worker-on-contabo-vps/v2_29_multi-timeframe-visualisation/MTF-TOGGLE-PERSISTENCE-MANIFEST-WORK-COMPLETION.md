@@ -4,8 +4,12 @@
 variant matching what is on the trader's screen.
 **Executed:** 2026-09-10.
 **Closes:** `MTF-RENDER-DELIVERY-MANIFEST-WORK-COMPLETION.md` §7.5.
-**Status:** implementation complete and verified. **Not committed** — left for
-Davin's review.
+**Status:** implementation complete, verified, **committed and pushed**.
+
+| Commit     | Scope                                                                 |
+| ---------- | --------------------------------------------------------------------- |
+| `41fdcc56` | The feature — preferences field, server reader, route, hook, 13 files |
+| `a7a3c3b9` | This manifest, delivery-manifest §7.5, Stack D §10 field-name fix     |
 
 ---
 
