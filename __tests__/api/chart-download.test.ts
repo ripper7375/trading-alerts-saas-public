@@ -3,9 +3,11 @@
  *
  * Tests for GET /api/chart/download.
  *
- * The case that matters most is FREE -> 403: the renderer emits two variants
+ * Two things matter here. FREE -> 403: the renderer emits two variants
  * specifically so the M5-on-M15 overlay stays a PRO entitlement, and that is
- * worth nothing unless this route actually refuses a FREE caller.
+ * worth nothing unless this route refuses a FREE caller. And the variant must
+ * come from the caller's stored preference, so the file they download matches
+ * the toggle state on their screen.
  */
 
 jest.mock('next/server', () => ({
@@ -29,36 +31,28 @@ jest.mock('@/lib/auth/permissions', () => ({
   requireChartDownload: () => mockRequireChartDownload(),
 }));
 
-// Mocked so the route's error mapping can be driven directly. Mocking r2.ts
-// also keeps the AWS SDK out of this suite entirely -- it ships ESM that Jest
-// will not parse without loosening the shared transformIgnorePatterns.
+const mockGetM5OnM15Preference = jest.fn();
+jest.mock('@/lib/preferences/server-preferences', () => ({
+  __esModule: true,
+  getM5OnM15Preference: (...args: unknown[]) =>
+    mockGetM5OnM15Preference(...args),
+}));
+
+// Mocking r2.ts also keeps the AWS SDK out of this suite entirely — it ships
+// ESM that Jest will not parse without loosening transformIgnorePatterns.
 const mockGetSignedChartUrl = jest.fn();
 jest.mock('@/lib/storage/r2', () => ({
   __esModule: true,
   getSignedChartUrl: (...args: unknown[]) => mockGetSignedChartUrl(...args),
 }));
 
-// Real behaviour, not a stub: variant coercion is part of what is under test.
-jest.mock('@/lib/storage/chart-keys', () => {
-  const VARIANTS = ['overlay', 'standard'];
-  return {
-    __esModule: true,
-    parseChartVariant: (value: string | null) =>
-      VARIANTS.includes(value as string) ? value : 'overlay',
-  };
-});
-
-function makeRequest(variant?: string) {
-  const url = new URL('http://localhost/api/chart/download');
-  if (variant !== undefined) {
-    url.searchParams.set('variant', variant);
-  }
-  return { nextUrl: url } as never;
-}
+const PRO_SESSION = { user: { id: 'user-1', tier: 'PRO' } };
 
 describe('GET /api/chart/download', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRequireChartDownload.mockResolvedValue(PRO_SESSION);
+    mockGetM5OnM15Preference.mockResolvedValue(false);
     mockGetSignedChartUrl.mockResolvedValue(
       'https://r2.example.com/signed?sig=abc'
     );
@@ -70,7 +64,7 @@ describe('GET /api/chart/download', () => {
     );
 
     const { GET } = await import('@/app/api/chart/download/route');
-    const response = await GET(makeRequest());
+    const response = await GET();
 
     expect(response.status).toBe(401);
     expect(mockGetSignedChartUrl).not.toHaveBeenCalled();
@@ -82,55 +76,52 @@ describe('GET /api/chart/download', () => {
     );
 
     const { GET } = await import('@/app/api/chart/download/route');
-    const response = await GET(makeRequest());
+    const response = await GET();
     const data = await response.json();
 
     expect(response.status).toBe(403);
     expect(data.error).toContain('PRO subscription required');
-    // The gate must short-circuit before any signing happens.
+    // The gate must short-circuit before any preference read or signing.
+    expect(mockGetM5OnM15Preference).not.toHaveBeenCalled();
     expect(mockGetSignedChartUrl).not.toHaveBeenCalled();
   });
 
-  it('redirects a PRO caller to the signed URL', async () => {
-    mockRequireChartDownload.mockResolvedValue(undefined);
+  it('serves the overlay variant when the toggle preference is on', async () => {
+    mockGetM5OnM15Preference.mockResolvedValue(true);
 
     const { GET } = await import('@/app/api/chart/download/route');
-    const response = await GET(makeRequest());
+    const response = await GET();
 
     expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'https://r2.example.com/signed?sig=abc'
-    );
+    expect(mockGetM5OnM15Preference).toHaveBeenCalledWith('user-1');
     expect(mockGetSignedChartUrl).toHaveBeenCalledWith('overlay');
   });
 
-  it('honours ?variant=standard', async () => {
-    mockRequireChartDownload.mockResolvedValue(undefined);
+  it('serves the standard variant when the toggle preference is off', async () => {
+    mockGetM5OnM15Preference.mockResolvedValue(false);
 
     const { GET } = await import('@/app/api/chart/download/route');
-    await GET(makeRequest('standard'));
+    await GET();
 
     expect(mockGetSignedChartUrl).toHaveBeenCalledWith('standard');
   });
 
-  it('falls back to overlay for an unknown variant rather than erroring', async () => {
-    mockRequireChartDownload.mockResolvedValue(undefined);
-
+  it('redirects to the signed URL', async () => {
     const { GET } = await import('@/app/api/chart/download/route');
-    const response = await GET(makeRequest('garbage'));
+    const response = await GET();
 
-    expect(response.status).toBe(307);
-    expect(mockGetSignedChartUrl).toHaveBeenCalledWith('overlay');
+    expect(response.headers.get('location')).toBe(
+      'https://r2.example.com/signed?sig=abc'
+    );
   });
 
   it('returns 503 when R2 credentials are missing', async () => {
-    mockRequireChartDownload.mockResolvedValue(undefined);
     mockGetSignedChartUrl.mockRejectedValue(
       new Error('R2_BUCKET is not set. The chart download requires...')
     );
 
     const { GET } = await import('@/app/api/chart/download/route');
-    const response = await GET(makeRequest());
+    const response = await GET();
     const data = await response.json();
 
     // A misconfigured environment is not the caller's fault, and must not be

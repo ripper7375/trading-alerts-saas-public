@@ -65,6 +65,10 @@ export const updatePreferencesSchema = z.object({
   chartUpColor: z.string().optional(),
   chartDownColor: z.string().optional(),
   gridOpacity: z.number().min(0).max(100).optional(),
+  // PRO multi-timeframe overlay. Kept in lockstep with the monolith's own
+  // preferencesSchema -- omitting it here would silently strip the field from
+  // any update routed through this service.
+  m5OnM15: z.boolean().optional(),
 });
 
 export const changePasswordSchema = z.object({
@@ -105,6 +109,7 @@ export interface UserPreferencesShape {
   chartUpColor: string;
   chartDownColor: string;
   gridOpacity: number;
+  m5OnM15: boolean;
 }
 
 export const DEFAULT_PREFERENCES: UserPreferencesShape = {
@@ -126,6 +131,7 @@ export const DEFAULT_PREFERENCES: UserPreferencesShape = {
   chartUpColor: '#22c55e',
   chartDownColor: '#ef4444',
   gridOpacity: 50,
+  m5OnM15: false,
 };
 
 export function mergePreferences(

@@ -1,12 +1,19 @@
 /**
  * Chart Render Download API Route
  *
- * GET /api/chart/download?variant=overlay|standard
+ * GET /api/chart/download
  *
- * Checks the PRO entitlement, then redirects to a short-lived presigned R2 URL
- * for the requested render. Designed to be used as a plain `<a href>` so the
- * browser drives the download -- no client JS -- following the pattern set by
- * the affiliate resource download route.
+ * Checks the PRO entitlement, resolves which render variant the caller should
+ * get from their stored `m5OnM15` preference, then redirects to a short-lived
+ * presigned R2 URL. Designed to be used as a plain `<a href>` so the browser
+ * drives the download -- no client JS -- following the pattern set by the
+ * affiliate resource download route.
+ *
+ * The variant is read server-side rather than taken from a query parameter so
+ * that **one source decides**: the chart toggle writes the preference, this
+ * route reads it, and the future Pillar 6 vision fetch will read the same
+ * thing. That is what keeps the downloaded PNG matching what the trader is
+ * actually looking at.
  *
  * The redirect (rather than streaming the bytes) keeps egress on R2 and the
  * function memory-flat, while the short TTL means a shared link stops working
@@ -15,26 +22,18 @@
  * @module app/api/chart/download/route
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 import { requireChartDownload } from '@/lib/auth/permissions';
-import { parseChartVariant } from '@/lib/storage/chart-keys';
+import { getM5OnM15Preference } from '@/lib/preferences/server-preferences';
 import { getSignedChartUrl } from '@/lib/storage/r2';
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export async function GET(): Promise<NextResponse> {
   try {
-    // Safe to take from the client: BOTH variants are PRO-only, so this picks
-    // which image, never whether the caller may have one. Unknown values fall
-    // back to the default rather than erroring.
-    //
-    // Nothing sends it yet -- the `M5 on M15` toggle has not been ported to the
-    // monolith, so there is no stored preference to read. It exists now so that
-    // when the toggle lands the client can pass it with no change here.
-    const variant = parseChartVariant(
-      request.nextUrl.searchParams.get('variant')
-    );
+    const session = await requireChartDownload();
 
-    await requireChartDownload();
+    const m5OnM15 = await getM5OnM15Preference(session.user.id);
+    const variant = m5OnM15 ? 'overlay' : 'standard';
 
     const signedUrl = await getSignedChartUrl(variant);
     return NextResponse.redirect(signedUrl, { status: 307 });

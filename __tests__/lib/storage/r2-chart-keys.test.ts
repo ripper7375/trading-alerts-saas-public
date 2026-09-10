@@ -12,12 +12,7 @@
 import { readFileSync } from 'fs';
 import path from 'path';
 
-import {
-  CHART_VARIANTS,
-  chartObjectKey,
-  DEFAULT_CHART_VARIANT,
-  parseChartVariant,
-} from '@/lib/storage/chart-keys';
+import { CHART_VARIANTS, chartObjectKey } from '@/lib/storage/chart-keys';
 
 const RENDERER_MAIN = path.join(
   process.cwd(),
@@ -31,7 +26,6 @@ const RENDERER_MAIN = path.join(
 describe('chart object keys', () => {
   it('exposes exactly the two variants the renderer produces', () => {
     expect([...CHART_VARIANTS]).toEqual(['overlay', 'standard']);
-    expect(DEFAULT_CHART_VARIANT).toBe('overlay');
   });
 
   it('builds a stable key per variant', () => {
@@ -41,14 +35,6 @@ describe('chart object keys', () => {
     expect(chartObjectKey('standard')).toBe(
       'xauusd/mtf_render_xauusd_m5_m15_standard.png'
     );
-  });
-
-  it('coerces untrusted input instead of throwing', () => {
-    expect(parseChartVariant('standard')).toBe('standard');
-    expect(parseChartVariant('overlay')).toBe('overlay');
-    expect(parseChartVariant('garbage')).toBe('overlay');
-    expect(parseChartVariant(null)).toBe('overlay');
-    expect(parseChartVariant(undefined)).toBe('overlay');
   });
 });
 

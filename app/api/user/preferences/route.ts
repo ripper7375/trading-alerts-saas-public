@@ -52,6 +52,7 @@ const preferencesSchema = z.object({
   chartUpColor: z.string().optional(),
   chartDownColor: z.string().optional(),
   gridOpacity: z.number().min(0).max(100).optional(),
+  m5OnM15: z.boolean().optional(),
 });
 
 /**

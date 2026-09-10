@@ -79,6 +79,13 @@ export interface UserPreferences {
   chartUpColor: string;
   chartDownColor: string;
   gridOpacity: number;
+  /**
+   * PRO multi-timeframe overlay: draw the M5 equal-distance channel on the
+   * M15 chart. Persisted rather than kept in component state because the
+   * rendered-PNG download resolves which variant to serve from it
+   * server-side, so the file matches what the trader is looking at.
+   */
+  m5OnM15: boolean;
 }
 
 /**
@@ -117,6 +124,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   chartUpColor: '#22c55e',
   chartDownColor: '#ef4444',
   gridOpacity: 50,
+  m5OnM15: false,
 };
 
 /**
@@ -161,6 +169,7 @@ export function isValidPreference(
     case 'pushNotifications':
     case 'newDeviceAlerts':
     case 'passwordChangeAlerts':
+    case 'm5OnM15':
       return typeof value === 'boolean';
     case 'countryCode':
       return (

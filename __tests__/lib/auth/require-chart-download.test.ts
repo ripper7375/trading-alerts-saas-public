@@ -46,7 +46,11 @@ describe('requireChartDownload', () => {
   it('allows a PRO caller without touching the database', async () => {
     mockGetSession.mockResolvedValue(session('PRO'));
 
-    await expect(requireChartDownload()).resolves.toBeUndefined();
+    // Returns the session so the download route can read the caller's stored
+    // overlay preference without a second lookup.
+    await expect(requireChartDownload()).resolves.toMatchObject({
+      user: { id: 'user-1' },
+    });
     // The common path must stay free of an extra query.
     expect(mockFindUnique).not.toHaveBeenCalled();
   });
@@ -55,7 +59,9 @@ describe('requireChartDownload', () => {
     mockGetSession.mockResolvedValue(session('FREE'));
     mockFindUnique.mockResolvedValue({ tier: 'PRO' });
 
-    await expect(requireChartDownload()).resolves.toBeUndefined();
+    await expect(requireChartDownload()).resolves.toMatchObject({
+      user: { id: 'user-1' },
+    });
     expect(mockFindUnique).toHaveBeenCalledTimes(1);
   });
 

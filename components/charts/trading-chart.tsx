@@ -19,6 +19,7 @@ import { DrawingLayer } from './drawing/DrawingLayer';
 import { useFiredAlertMarkers } from './drawing/useFiredAlertMarkers';
 import { MtfToggle } from './mtf/MtfToggle';
 import { useMtfOverlay } from './mtf/useMtfOverlay';
+import { useMtfPreference } from './mtf/useMtfPreference';
 
 /**
  * TradingChart Props
@@ -120,7 +121,14 @@ export function TradingChart({
   const { data: session } = useSession();
   const isPro = session?.user?.tier === 'PRO';
   const mtfAvailable = timeframe.toUpperCase() === 'M15';
-  const [mtfEnabled, setMtfEnabled] = useState(false);
+  // Persisted, not component state: /api/chart/download reads the same
+  // preference to decide which rendered variant to serve, so the downloaded
+  // PNG matches what is on screen. Inert unless the toggle is actually shown.
+  const {
+    enabled: mtfEnabled,
+    setEnabled: setMtfEnabled,
+    isSaving: mtfSaving,
+  } = useMtfPreference(isPro && mtfAvailable);
   const { isLoading: mtfLoading, error: mtfError } = useMtfOverlay(
     chartApi,
     isPro && mtfAvailable && mtfEnabled,
@@ -311,7 +319,7 @@ export function TradingChart({
               <MtfToggle
                 isPro={isPro}
                 enabled={mtfEnabled}
-                isLoading={mtfLoading}
+                isLoading={mtfLoading || mtfSaving}
                 onToggle={setMtfEnabled}
               />
             )}
@@ -354,7 +362,7 @@ export function TradingChart({
             <MtfToggle
               isPro={isPro}
               enabled={mtfEnabled}
-              isLoading={mtfLoading}
+              isLoading={mtfLoading || mtfSaving}
               onToggle={setMtfEnabled}
             />
           )}

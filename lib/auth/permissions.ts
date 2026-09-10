@@ -245,9 +245,13 @@ export async function requirePro(): Promise<Session> {
  * The extra query only runs when the token says the user is NOT entitled, so the
  * common path (a PRO user with a fresh token) still costs nothing.
  *
+ * Returns the session so callers have the user id without a second lookup --
+ * the download route needs it to read the stored overlay preference. Mirrors
+ * `requirePro()`, which also returns its session.
+ *
  * @throws {AuthError} 401 when unauthenticated, 403 when not on PRO
  */
-export async function requireChartDownload(): Promise<void> {
+export async function requireChartDownload(): Promise<Session> {
   try {
     const session = await getSession();
 
@@ -260,7 +264,7 @@ export async function requireChartDownload(): Promise<void> {
     }
 
     if (hasPermission(session.user, 'multi_timeframe_visualization')) {
-      return;
+      return session;
     }
 
     // Token says no. Ask the database before refusing -- it may simply be stale.
@@ -270,7 +274,7 @@ export async function requireChartDownload(): Promise<void> {
     });
 
     if (dbUser?.tier === 'PRO') {
-      return;
+      return session;
     }
 
     throw new AuthError(

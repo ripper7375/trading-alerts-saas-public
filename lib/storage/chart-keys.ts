@@ -21,8 +21,6 @@ export const CHART_VARIANTS: readonly ChartVariant[] = [
   'standard',
 ] as const;
 
-export const DEFAULT_CHART_VARIANT: ChartVariant = 'overlay';
-
 /**
  * Object key for a variant.
  *
@@ -35,13 +33,4 @@ export const DEFAULT_CHART_VARIANT: ChartVariant = 'overlay';
  */
 export function chartObjectKey(variant: ChartVariant): string {
   return `xauusd/mtf_render_xauusd_m5_m15_${variant}.png`;
-}
-
-/** Coerce untrusted input to a variant. Unknown values are inert, not errors. */
-export function parseChartVariant(
-  value: string | null | undefined
-): ChartVariant {
-  return CHART_VARIANTS.includes(value as ChartVariant)
-    ? (value as ChartVariant)
-    : DEFAULT_CHART_VARIANT;
 }
