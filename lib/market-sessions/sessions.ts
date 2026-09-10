@@ -139,13 +139,6 @@ const WEEKDAY_INDEX: Record<string, number> = {
   Sat: 6,
 };
 
-/**
- * Wall-clock fields for `date` as observed in `timeZone`.
- *
- * `hourCycle: 'h23'` rather than `hour12: false` -- the latter can yield
- * hour "24" for midnight on some ICU builds, which silently breaks every
- * comparison below.
- */
 const formatterCache = new Map<string, Intl.DateTimeFormat>();
 
 /**
@@ -176,6 +169,13 @@ function getFormatter(timeZone: string): Intl.DateTimeFormat {
   return formatter;
 }
 
+/**
+ * Wall-clock fields for `date` as observed in `timeZone`.
+ *
+ * `hourCycle: 'h23'` rather than `hour12: false` -- the latter can yield
+ * hour "24" for midnight on some ICU builds, which silently breaks every
+ * comparison below.
+ */
 function getZonedParts(date: Date, timeZone: string): ZonedParts {
   const parts = getFormatter(timeZone).formatToParts(date);
 

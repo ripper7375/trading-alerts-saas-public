@@ -4,6 +4,7 @@ import { ChevronRight, MessageSquareText, Bell } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { SessionStatusBanner } from '@/components/market-sessions/session-status-banner';
 import type { Tier } from '@/lib/tier-config';
 import { useLocale } from '@/lib/context/locale-context';
 
@@ -62,6 +63,30 @@ export default function MarketCommentsPanel({
           </Button>
         )}
       </div>
+
+      {/*
+        The one piece of genuinely real content in this panel today.
+        Session state is computed from the clock, not simulated, so it does
+        not fall under this panel's zero-mock-data rule -- see the banner's
+        own header for why its news-countdown half is deliberately absent.
+
+        PRO-only, matching the design: `seed-code`'s own /free treatment
+        blurs this entire panel behind a lock whose copy names the feature
+        set explicitly -- "Live Market Comments, SESSION COUNTDOWNS, Gauges,
+        and EDT Quality Metrics require a PRO subscription". This monolith
+        has no such overlay only because the panel had no real content to
+        gate; the banner is the first, so the gate applies here instead.
+
+        NOTE -- this is a presentation gate, NOT an entitlement boundary.
+        Session state is computed client-side from the clock, so nothing
+        secret is being withheld and no server resource is protected. Do not
+        mistake it for the `requireChartDownload()` class of check.
+      */}
+      {tier !== 'FREE' && (
+        <div className="pt-3">
+          <SessionStatusBanner />
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
