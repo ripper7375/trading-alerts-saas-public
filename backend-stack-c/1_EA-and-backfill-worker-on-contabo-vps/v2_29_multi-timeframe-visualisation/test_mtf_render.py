@@ -279,6 +279,70 @@ def test_renders_when_channel_columns_are_all_null() -> None:
             os.remove(out)
 
 
+def test_newest_candle_is_drawn_as_still_forming() -> None:
+    """The rightmost bar must be visibly distinct and labelled, not silent.
+
+    MT5 exports include shift 0, so the newest row is always an incomplete
+    candle. It is marked rather than dropped: dropping it would make the render
+    a bar-period stale and stop it matching the trader's screen. Marking keeps
+    parity while letting the image state its own caveat -- which is what stops
+    a vision model reading a wick rejection off a bar that is still moving.
+    """
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    from mtf_render.renderer import FORMING_BAR_LABEL, _draw_candles
+
+    db = _fixture_db()
+    try:
+        panels = load_market_data(db, overlays="best_fit_a", limit=20)
+    finally:
+        os.remove(db)
+
+    candles = panels["M5"].candles
+    fig, ax = plt.subplots()
+    try:
+        _draw_candles(ax, candles)
+
+        assert len(ax.patches) == len(candles)
+
+        # Hollow: facecolor 'none' resolves to an RGBA with zero alpha.
+        assert ax.patches[-1].get_facecolor()[3] == 0
+        # Every earlier candle stays filled.
+        assert all(p.get_facecolor()[3] > 0 for p in ax.patches[:-1])
+
+        # And it says so in words, not only in styling.
+        assert any(FORMING_BAR_LABEL in t.get_text() for t in ax.texts)
+    finally:
+        plt.close(fig)
+
+
+def test_forming_mark_can_be_disabled() -> None:
+    """`mark_forming=False` leaves every candle solid and unlabelled."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    from mtf_render.renderer import FORMING_BAR_LABEL, _draw_candles
+
+    db = _fixture_db()
+    try:
+        panels = load_market_data(db, overlays="best_fit_a", limit=20)
+    finally:
+        os.remove(db)
+
+    fig, ax = plt.subplots()
+    try:
+        _draw_candles(ax, panels["M5"].candles, mark_forming=False)
+        assert all(p.get_facecolor()[3] > 0 for p in ax.patches)
+        assert not any(FORMING_BAR_LABEL in t.get_text() for t in ax.texts)
+    finally:
+        plt.close(fig)
+
+
 # --------------------------------------------------------------------------
 # Rendering
 # --------------------------------------------------------------------------

@@ -71,6 +71,12 @@ variant would be M15 candles with nothing plotted on them.
    reason about a channel it was never shown.
 4. Both panels share one x-axis range, so a vertical line at any x is the same
    instant on both.
+5. **The newest candle is drawn hollow and dashed with a "forming" caption**,
+   and the suptitle says so. MT5 exports include shift 0, so the rightmost bar
+   is always incomplete and will change. It is marked rather than dropped:
+   dropping it would make the render a bar-period stale and stop it matching
+   the trader's screen, whereas marking keeps parity and still stops a vision
+   model reading a wick rejection off a bar that is still moving.
 
 ## Available overlays
 

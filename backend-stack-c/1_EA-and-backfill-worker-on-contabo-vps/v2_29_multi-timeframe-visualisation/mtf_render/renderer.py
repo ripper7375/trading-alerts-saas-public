@@ -38,6 +38,10 @@ from .data_source import ChartData, Overlay  # noqa: E402
 _UP_COLOR = "#26a269"  # bullish candle
 _DOWN_COLOR = "#c01c28"  # bearish candle
 
+# Drawn beside the newest candle on every panel. Short on purpose -- it sits in
+# the plot area, and a vision model reads it as a caption on that bar.
+FORMING_BAR_LABEL = "forming"
+
 # A panel's OWN channel. First entry keeps the original single-overlay blue.
 _OWN_COLORS = ("#1f6fe0", "#e08a1f", "#7b3fe0", "#0f9b8e", "#c0398b", "#5a6b7a")
 
@@ -53,21 +57,43 @@ def _ts_to_num(ts_series: pd.Series):
     return mdates.date2num(dt)
 
 
-def _draw_candles(ax, candles: pd.DataFrame) -> None:
+def _draw_candles(ax, candles: pd.DataFrame, mark_forming: bool = True) -> None:
+    """Draw candles, distinguishing the newest (still-forming) bar.
+
+    MT5 exports include shift 0, so the newest row in ``market_data`` is always
+    an incomplete candle until the next cycle overwrites it (pipeline deck
+    SS10). Every other candle in the image is final; that one is not.
+
+    It is drawn **hollow and dashed with a "forming" label** rather than
+    dropped. Dropping it would make the render up to one bar-period stale, so
+    the trader's screen would show a bar the downloaded PNG does not -- exactly
+    the screen-vs-download divergence this whole stack exists to close. Marking
+    keeps parity *and* removes the ambiguity, because the image then says so
+    itself instead of relying on the reader knowing. Same principle as the
+    ``standard`` variant naming its missing overlay rather than just omitting
+    the lines.
+
+    It matters most for the vision model: a wick rejection read off a bar that
+    is thirty seconds old and still moving is not a pattern.
+    """
     if candles.empty:
         return
     x = _ts_to_num(candles["timestamp"])
     # Bar width = ~70% of the spacing between bars (in date-number units).
     width = (x[1] - x[0]) * 0.7 if len(x) > 1 else 0.002
+    last_index = len(x) - 1
 
-    for xi, (_, row) in zip(x, candles.iterrows()):
+    for i, (xi, (_, row)) in enumerate(zip(x, candles.iterrows())):
         up = row["close"] >= row["open"]
         color = _UP_COLOR if up else _DOWN_COLOR
+        forming = mark_forming and i == last_index
+
         ax.plot(
             [xi, xi],
             [row["low"], row["high"]],
             color=color,
             linewidth=0.7,
+            linestyle="--" if forming else "-",
             zorder=2,
         )
         lower = min(row["open"], row["close"])
@@ -77,12 +103,32 @@ def _draw_candles(ax, candles: pd.DataFrame) -> None:
                 (xi - width / 2, lower),
                 width,
                 height,
-                facecolor=color,
+                # Hollow, so it reads as "not settled" at a glance.
+                facecolor="none" if forming else color,
                 edgecolor=color,
-                linewidth=0.5,
+                linewidth=1.0 if forming else 0.5,
+                linestyle="--" if forming else "-",
                 zorder=3,
             )
         )
+
+        if forming:
+            ax.annotate(
+                FORMING_BAR_LABEL,
+                xy=(xi, row["high"]),
+                xytext=(0, 6),
+                textcoords="offset points",
+                ha="center",
+                fontsize=7,
+                fontweight="bold",
+                color=color,
+                zorder=6,
+                # matplotlib's default 5% y-margin normally leaves room above
+                # the high, but at MIN_CHART_HEIGHT that margin is about the
+                # same as this offset. Better to spill slightly outside the
+                # axes than to silently drop the caveat.
+                annotation_clip=False,
+            )
 
 
 def _draw_overlay(ax, overlay: Overlay, color: str, linestyle, zorder: int) -> None:
@@ -188,7 +234,9 @@ def render_combined(
     rendered_at = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     fig.suptitle(
         f"DavinTrade - XAUUSD Multi-Timeframe  ·  overlays: {overlay_text}"
-        f"  ·  variant: {variant}  ·  rendered {rendered_at}",
+        f"  ·  variant: {variant}  ·  rendered {rendered_at}"
+        f"\nrightmost candle on each panel is STILL FORMING (dashed, hollow)"
+        f" — not a completed bar",
         fontsize=12,
         fontweight="bold",
     )

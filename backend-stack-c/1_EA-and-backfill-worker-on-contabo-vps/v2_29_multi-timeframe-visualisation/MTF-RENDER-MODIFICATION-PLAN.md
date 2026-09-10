@@ -565,19 +565,31 @@ prove the real data renders sensibly.
 
 ## 7. Open items
 
-### 7.1 The newest bar is always still forming — recommend dropping it
+### 7.1 ✅ RESOLVED — the newest bar is marked, not dropped
 
 Deck §10 records that "the export includes the still-forming bar, so the newest row in
 `market_data_v6` is always an incomplete candle until the next cycle overwrites it."
 
-For a vision model this is a genuine ambiguity source of exactly the kind this change is meant to
-remove: the rightmost candle on both panels is a partial bar that will change, and nothing in the
-image says so. An LLM reading a wick rejection off that candle may be reading an artifact.
+**This section originally recommended dropping it. That recommendation was reversed on review,
+2026-09-10, and the reversal is the interesting part.**
 
-**Recommendation:** the renderer drops the newest bar per timeframe by default
-(`--include-forming-bar` to opt back in). Cheap, and it makes every candle in the image final.
-**Needs Davin's call** — it is a behavioural default, not a bug fix, and it slightly changes what
-"latest" means to the LLM.
+Dropping the bar would make the render up to one bar-period stale — five minutes on M5, fifteen on
+M15. The trader's screen would then show a candle the downloaded PNG does not, which is precisely
+the screen-vs-download divergence the dual-stacked layout work existed to close. Trading one
+ambiguity for a different inconsistency is not a fix.
+
+**Built instead:** the newest candle on each panel is drawn **hollow with a dashed outline and a
+"forming" caption**, and the suptitle states it in words. That keeps parity with the screen _and_
+removes the ambiguity, because the image now describes its own caveat rather than relying on the
+reader knowing. It is the same principle already chosen for the `standard` variant, which names
+its missing overlay rather than just omitting the lines: **state it, do not imply it by absence.**
+
+**The residual risk, stated plainly:** a mark is weaker than an absence. A careless reader can
+still take the partial bar at face value. If Pillar 6's pattern-verification job ever makes that
+unacceptable, dropping the bar becomes defensible — but the reason would be "a wrong read is worse
+than a stale one", not "the staleness is harmless".
+
+`_draw_candles(..., mark_forming=False)` disables it, and both behaviours are covered by tests.
 
 ### 7.2 Look-ahead bias is inherited and unfixable here
 
