@@ -1,6 +1,7 @@
 # Chart Render Delivery & PRO Gating — Plan
 
-**Status:** DRAFT — awaiting Davin's approval before any code is written.
+**Status:** APPROVED and **EXECUTED**, 2026-09-10. Retained as the design record.
+Outcome and deviations: `MTF-RENDER-DELIVERY-MANIFEST-WORK-COMPLETION.md`.
 **Date:** 2026-09-10.
 **Closes:** `MTF-RENDER-MANIFEST-WORK-COMPLETION.md` §1.1, the one item left open
 after the renderer rewrite.
