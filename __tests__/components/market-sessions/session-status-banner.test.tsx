@@ -45,6 +45,40 @@ function renderAt(iso: string) {
   return result;
 }
 
+/** No upcoming event: the news row must not render at all. */
+function mockNoEvents() {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ events: [] }),
+  }) as unknown as typeof fetch;
+}
+
+function mockEvent(overrides: Record<string, unknown> = {}) {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      events: [
+        {
+          valueId: '1',
+          eventId: '840010013',
+          eventName: 'Non-Farm Employment Change',
+          // 2026-01-14T13:30:00Z, 90 minutes after the pinned clock below.
+          eventTime: 1768397400,
+          currency: 'USD',
+          countryCode: 'US',
+          importance: 'HIGH',
+          forecastValue: null,
+          previousValue: 0.0,
+          digits: 2,
+          timeMode: 0,
+          sourceUrl: null,
+          ...overrides,
+        },
+      ],
+    }),
+  }) as unknown as typeof fetch;
+}
+
 describe('SessionStatusBanner', () => {
   beforeEach(() => {
     // Seeding skips LocaleProvider's real geo-IP fetch(), which otherwise
@@ -53,6 +87,7 @@ describe('SessionStatusBanner', () => {
       LOCALE_STORAGE_KEY,
       JSON.stringify(defaultPreferences)
     );
+    mockNoEvents();
     jest.useFakeTimers();
   });
 
@@ -136,5 +171,100 @@ describe('SessionStatusBanner', () => {
       unmount();
       jest.advanceTimersByTime(5000);
     }).not.toThrow();
+  });
+});
+
+/**
+ * The news row exists to replace seed-code's hardcoded countdown with a real
+ * one. Its most important property is therefore what it does with NO data:
+ * disappear, rather than render a placeholder counting down to nothing.
+ */
+describe('SessionStatusBanner — news row', () => {
+  beforeEach(() => {
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify(defaultPreferences)
+    );
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+    localStorage.clear();
+  });
+
+  /** Renders and flushes the hook's fetch, which resolves as a microtask. */
+  async function renderWithEvents(iso: string) {
+    jest.setSystemTime(new Date(iso));
+    const result = render(<SessionStatusBanner />);
+    await act(async () => {
+      jest.advanceTimersByTime(0);
+    });
+    return result;
+  }
+
+  it('renders no news row when nothing is scheduled', async () => {
+    mockNoEvents();
+    await renderWithEvents('2026-01-14T12:00:00Z');
+    expect(screen.queryByText(/UPCOMING HIGH IMPACT/)).not.toBeInTheDocument();
+    // ...but the session half is unaffected
+    expect(screen.getByText('GB London Session')).toBeInTheDocument();
+  });
+
+  it('renders no news row when the request is refused', async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue({ ok: false, status: 403 }) as unknown as typeof fetch;
+    await renderWithEvents('2026-01-14T12:00:00Z');
+    expect(screen.queryByText(/UPCOMING HIGH IMPACT/)).not.toBeInTheDocument();
+  });
+
+  it('renders no news row when the request throws', async () => {
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(new Error('offline')) as unknown as typeof fetch;
+    await renderWithEvents('2026-01-14T12:00:00Z');
+    expect(screen.queryByText(/UPCOMING HIGH IMPACT/)).not.toBeInTheDocument();
+  });
+
+  it('counts down to a real event', async () => {
+    mockEvent();
+    await renderWithEvents('2026-01-14T12:00:00Z');
+
+    expect(screen.getByText(/UPCOMING HIGH IMPACT/)).toBeInTheDocument();
+    expect(screen.getByText('Non-Farm Employment Change')).toBeInTheDocument();
+    // 13:30Z minus the pinned 12:00Z
+    expect(screen.getByText('01:30:00')).toBeInTheDocument();
+  });
+
+  it('marks an imprecise event time with ~ rather than implying seconds', async () => {
+    // A non-zero time_mode means upstream knows only the day, or is estimating.
+    mockEvent({ timeMode: 1 });
+    await renderWithEvents('2026-01-14T12:00:00Z');
+    expect(screen.getByText('~01:30:00')).toBeInTheDocument();
+  });
+
+  it('shows the currency so a EUR print is not read as a dollar one', async () => {
+    mockEvent({ currency: 'EUR', eventName: 'ECB Rate Decision' });
+    await renderWithEvents('2026-01-14T12:00:00Z');
+    expect(screen.getByText(/EUR/)).toBeInTheDocument();
+    expect(screen.getByText('ECB Rate Decision')).toBeInTheDocument();
+  });
+
+  it('aborts its in-flight request on unmount', async () => {
+    const abort = jest.fn();
+    const OriginalAbortController = global.AbortController;
+    global.AbortController = class {
+      signal = {} as AbortSignal;
+      abort = abort;
+    } as unknown as typeof AbortController;
+
+    mockEvent();
+    const { unmount } = await renderWithEvents('2026-01-14T12:00:00Z');
+    unmount();
+
+    expect(abort).toHaveBeenCalled();
+    global.AbortController = OriginalAbortController;
   });
 });

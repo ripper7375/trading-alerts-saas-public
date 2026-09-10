@@ -11,6 +11,7 @@ import {
   formatCountdown,
   type MarketSessionState,
 } from '@/lib/market-sessions/sessions';
+import { useUpcomingEvent } from './useUpcomingEvent';
 
 /**
  * Market Session banner -- the D4 slot from `seed-code`'s market-comments
@@ -33,6 +34,7 @@ import {
 export function SessionStatusBanner() {
   const { t } = useLocale();
   const [state, setState] = useState<MarketSessionState | null>(null);
+  const upcomingEvent = useUpcomingEvent();
 
   useEffect(() => {
     // Computed only after mount: session state depends on the current
@@ -163,6 +165,66 @@ export function SessionStatusBanner() {
               : formatCountdown(countdownSeconds)}
           </span>
         </div>
+
+        {/*
+          The news row. Rendered ONLY when there is a real event: while the
+          calendar lane is undeployed, the table empty, or the request refused,
+          this disappears entirely rather than showing a placeholder countdown
+          to an event that does not exist. seed-code's version ticked down from
+          a hardcoded 5*3600+19*60+36 with nothing behind it; that is exactly
+          what this must never do.
+
+          Safe to compute against Date.now() in render: the session clock above
+          re-renders this component every second anyway.
+        */}
+        {upcomingEvent && (
+          <div
+            className={
+              isOpen
+                ? 'mt-2 border-t border-amber-700/25 pt-1.5'
+                : 'mt-2 border-t border-border pt-1.5'
+            }
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className={
+                  isOpen
+                    ? 'truncate text-[10px] font-bold uppercase tracking-tight opacity-90'
+                    : 'truncate text-[10px] font-bold uppercase tracking-tight text-muted-foreground'
+                }
+                title={upcomingEvent.eventName}
+              >
+                {t('UPCOMING HIGH IMPACT')} · {upcomingEvent.currency}
+              </span>
+              <span
+                className={
+                  isOpen
+                    ? 'shadow-xs shrink-0 rounded-md bg-amber-400/90 px-2.5 py-0.5 font-mono text-sm font-black tracking-widest text-slate-950'
+                    : 'shrink-0 rounded-md border border-border bg-background px-2.5 py-0.5 font-mono text-sm font-black tracking-widest text-foreground'
+                }
+              >
+                {/*
+                  A non-zero time_mode means upstream only knows the day, or is
+                  estimating. Prefixing "~" stops a second-resolution readout
+                  implying precision the source does not have.
+                */}
+                {upcomingEvent.timeMode ? '~' : ''}
+                {formatCountdown(
+                  upcomingEvent.eventTime - Math.floor(Date.now() / 1000)
+                )}
+              </span>
+            </div>
+            <div
+              className={
+                isOpen
+                  ? 'truncate text-[11px] font-semibold opacity-80'
+                  : 'truncate text-[11px] font-semibold text-muted-foreground'
+              }
+            >
+              {upcomingEvent.eventName}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
