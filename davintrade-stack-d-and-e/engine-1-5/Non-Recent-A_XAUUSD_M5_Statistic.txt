@@ -1,0 +1,27 @@
+Regression Centroids (Box B): 3
+Excluded Recent Centroids (Box A): 0
+Math Search Window (Bars): 3000
+Visual EDT Window (Bars): 500
+Observation Window (Box B Bars): 365
+Total 171 Crossings (n): 44
+Timeframe (Sec): 300
+Raw Slope (b): -0.21814
+Regression Angle: -26.12
+Anchored Y-Int: 4407.91006
+
+[MODEL A; CROSSINGS]
+Sample (n): 44
+R-Square: 0.7939
+MSE: 160.1255
+Var Ratio: 2.09
+Skewness: -1.39
+Kurtosis: 8.89
+
+[MODEL B; CLOSE PRICE]
+Sample (n): 365
+R-Square: 0.7153
+MSE: 207.3260
+Var Ratio: 2.03
+Skewness: -1.29
+Kurtosis: 6.74
+

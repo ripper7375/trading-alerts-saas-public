@@ -1,0 +1,21 @@
+[FRACTAL BEST-FIT — PARAMETERS]
+Window Start TS (UTC): 1788434702
+Window End TS (UTC): 1788743102
+Fractal Bars: 35
+Min Touches: 3
+Require Both Sides: true
+Max Line Angle: 3.0000
+Tolerance Type: PERCENT
+Tolerance Percent: 0.5000
+Tolerance ATR Multiplier: 1.0000
+LOEDT Min Touches: 2
+UOEDT Min Touches: 2
+
+[FRACTAL BEST-FIT — RESOLVED LINE]
+Solution Found: true
+Line Origin TS (UTC): 1788448802
+Best FL Touches: 15
+Raw Slope (b): -0.21433428
+Anchored Y-Int: 4422.25994
+UOEDT Offset: 19.58184
+LOEDT Offset: -32.76504
