@@ -26,6 +26,19 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
+> **⚠ STANDING FACT (Davin, 2026-09-11) — the VPS is VULTR. "Contabo" is a legacy name.**
+> This file, the pipeline blueprint and the folder `backend-stack-c/1_EA-and-backfill-worker-on-
+**contabo**-vps/` all say "Contabo VPS". **That is historical** — the project began there. The
+> **active deployment target is a Vultr Windows Server 2022 x64 instance**, and every deployment
+> instruction written for "the Contabo VPS" applies to it unchanged. **Do NOT rename the folder**
+> — Davin's explicit call: the path is referenced across a large body of historical migration
+> orders and decision records, and renaming breaks those for no functional gain. Read `contabo` in
+> any path as "the production Windows VPS", nothing more. Full note, including the two operational
+> consequences that follow from Vultr specifically (hourly billing, and a
+> **snapshot-and-destroy** workflow rather than keep-alive — so `xauusd.db` is a replay buffer, not
+> an archive, and an **unsynced outbox row is the one thing a destroy genuinely loses**), is in
+> `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md` §8.
+
 > **Ad-hoc session (2026-09-11, phase/session unchanged) — CLOSED SUCCESSFUL, the Cloudflare R2
 > chart-render path DEPLOYED and verified end to end: private bucket → VPS `MT5Renderer` →
 > presigned download → PRO/FREE entitlement, live on `davintrade.app`.** Davin opened with the

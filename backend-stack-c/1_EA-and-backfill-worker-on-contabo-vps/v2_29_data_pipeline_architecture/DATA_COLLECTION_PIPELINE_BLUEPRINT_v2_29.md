@@ -638,6 +638,25 @@ reject a cycle if one ever lags.
 
 ## 8. Deployment Guide (Windows VPS)
 
+> ### ⚠ The host is VULTR. "Contabo" in the path is legacy.
+>
+> This stack lives under `1_EA-and-backfill-worker-on-**contabo**-vps/`, and "the Contabo VPS"
+> appears throughout this document and the wider repo. **That name is historical** — the project
+> began on Contabo. **The active deployment target is a Vultr Windows Server instance**
+> (Windows Server 2022 x64), and every deployment instruction in this section applies there.
+>
+> **The folder is deliberately NOT renamed** (Davin's call, 2026-09-11): the path is referenced
+> across a large body of historical documents, migration orders and decision records, and renaming
+> it would break those references for no functional gain. Read `contabo` in any path as "the
+> production Windows VPS", nothing more.
+>
+> **Two operational consequences that follow from Vultr specifically**, and that a reader assuming
+> a long-lived Contabo box would get wrong: instances are billed **hourly**, and the workflow is
+> **snapshot-and-destroy** rather than keep-alive. So anything that must survive a teardown has to
+> live in the snapshot or outside the box — `C:/Scripts/database/xauusd.db` is a **replay buffer,
+> not an archive** (PostgreSQL is the archive; §5.5 and the statistics lane both depend on that
+> being true), and an unsynced outbox row is the one thing a destroy would genuinely lose.
+
 ### 8.1 Directory layout
 
 ```
