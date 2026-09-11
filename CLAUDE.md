@@ -243,16 +243,24 @@ outbox wedged`; removing `ParseArrayPipe`'s explicit `whitelist`/`forbidNonWhite
 > come from the injected global, not `@jest/globals`, because a hoisted factory runs while an
 > imported binding is still in TDZ and `jest.fn()` inside it yields nothing usable. Also incidental:
 > `prisma migrate diff --to-schema-datamodel` was **removed** in Prisma 7.9.1, renamed `--to-schema`.
-> **⚠ Built but INERT — three operator steps, none of which this Executor can perform.**
-> (1) **Compile `EconomicCalendarExport_v2_29.mq5` in MetaEditor** — never compiled, MQL5 cannot be
-> built here; worth batching with the **10 statistic-emitting indicators already a build behind**.
-> (2) **Apply `20260910120000_add_economic_events`** — purely additive, no pre-flight count needed.
-> (3) **Deploy collector/schema/push worker to the VPS** and attach the exporter EA to one chart —
-> recommended to hold until that terminal has run a green cycle. Until then the news row simply does
-> not render and the banner shows the session clock alone: the intended degradation, not a fault.
-> **Also unverified, flagged not skipped:** authenticated `/terminal` click-through (the Executor
-> never enters credentials); any live MT5 → PostgreSQL round trip for this lane;
-> `lib/economic-events/prompt-context.ts` has **no runtime caller** until Stack D Session 12-2, which
+> **⚠ THREE OPERATOR STEPS COMPLETED & LIVE-VERIFIED IN PRODUCTION (2026-09-11):**
+> (1) **All 13 indicators + `EconomicCalendarExport_v2_29.mq5` compiled in MetaEditor** with 0 errors
+> on Windows Server 2022 x64 VPS (`149.28.148.144`). Attached to live charts and actively exporting
+> per-minute indicator timeseries and 15-minute `EconomicCalendar.txt` (~90 KB).
+> (2) **Migration `20260910120000_add_economic_events` applied** directly to production Railway
+> PostgreSQL (`maglev.proxy.rlwy.net:58290`).
+> (3) **VPS deployment complete**: `MT5Collector`, `MT5PushWorker`, and `MT5Renderer` services running
+> under NSSM; startup shortcut installed.
+> **Two runtime findings resolved:**
+> (a) Collector decoupled (`70a79a06`): `stage_economic_events()` moved to the top of `run_cycle()`,
+> so economic events stage independently of price timeseries completeness or forex market hours.
+> (b) Railway Gateway Express 100 KB payload constraint (`3cbc3534`): Pushing 250-row batches (~250 KB)
+> returned `HTTP 413 Payload Too Large`. Capped `EVENT_MAX_ROWS_PER_CYCLE = 120` in the push worker
+> and added loop draining so outboxes drain cleanly within seconds without exceeding 100 KB.
+> **Verified end-to-end in production:** 545 live events pushed to Postgres and rendered live on
+> `davintrade.app/terminal` with active Tokyo session clock and real-time news countdown. Zero console errors.
+> Authenticated `/terminal` click-through confirmed by Davin with screenshots.
+> Note: `lib/economic-events/prompt-context.ts` has **no runtime caller** until Stack D Session 12-2, which
 > is stated in the file itself rather than hidden.
 > **Licensing, checked and currently moot:** `davintrade-news-stack/base.mqh` is © Omega Joctan, an
 > MQL5 Market seller. **Nothing shipped depends on it** — the probe and the exporter both use only
