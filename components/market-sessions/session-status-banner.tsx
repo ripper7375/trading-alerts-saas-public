@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Clock, Moon } from 'lucide-react';
+import { ChevronDown, Clock, Moon } from 'lucide-react';
 
 import { useLocale } from '@/lib/context/locale-context';
 import {
@@ -11,7 +11,7 @@ import {
   formatCountdown,
   type MarketSessionState,
 } from '@/lib/market-sessions/sessions';
-import { useUpcomingEvent } from './useUpcomingEvent';
+import { useUpcomingEvents } from './useUpcomingEvents';
 
 /**
  * Market Session banner -- the D4 slot from `seed-code`'s market-comments
@@ -36,7 +36,10 @@ import { useUpcomingEvent } from './useUpcomingEvent';
 export function SessionStatusBanner() {
   const { t } = useLocale();
   const [state, setState] = useState<MarketSessionState | null>(null);
-  const upcomingEvent = useUpcomingEvent();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const events = useUpcomingEvents();
+  const upcomingEvent = events[0] ?? null;
+  const restEvents = events.slice(1);
 
   useEffect(() => {
     // Computed only after mount: session state depends on the current
@@ -187,16 +190,42 @@ export function SessionStatusBanner() {
                 : 'mt-2 border-t border-border pt-1.5'
             }
           >
-            <div className="flex items-center justify-between gap-2">
+            {/*
+              Clickable only when there is something to expand into -- a lone
+              event renders exactly as before (a plain, non-interactive row).
+            */}
+            <button
+              type="button"
+              onClick={() => restEvents.length > 0 && setIsExpanded((v) => !v)}
+              aria-expanded={restEvents.length > 0 ? isExpanded : undefined}
+              aria-label={
+                restEvents.length > 0
+                  ? t('Show more upcoming high-impact events')
+                  : undefined
+              }
+              className={`flex w-full items-center justify-between gap-2 text-left ${
+                restEvents.length > 0 ? 'cursor-pointer' : 'cursor-default'
+              }`}
+            >
               <span
                 className={
                   isOpen
-                    ? 'truncate text-[10px] font-bold uppercase tracking-tight opacity-90'
-                    : 'truncate text-[10px] font-bold uppercase tracking-tight text-muted-foreground'
+                    ? 'flex min-w-0 items-center gap-0.5 truncate text-[10px] font-bold uppercase tracking-tight opacity-90'
+                    : 'flex min-w-0 items-center gap-0.5 truncate text-[10px] font-bold uppercase tracking-tight text-muted-foreground'
                 }
                 title={upcomingEvent.eventName}
               >
-                {t('UPCOMING HIGH IMPACT')} · {upcomingEvent.currency}
+                <span className="truncate">
+                  {t('UPCOMING HIGH IMPACT')} · {upcomingEvent.currency}
+                </span>
+                {restEvents.length > 0 && (
+                  <ChevronDown
+                    className={`h-3 w-3 shrink-0 transition-transform ${
+                      isExpanded ? 'rotate-180' : ''
+                    }`}
+                    aria-hidden="true"
+                  />
+                )}
               </span>
               <span
                 className={
@@ -215,7 +244,7 @@ export function SessionStatusBanner() {
                   upcomingEvent.eventTime - Math.floor(Date.now() / 1000)
                 )}
               </span>
-            </div>
+            </button>
             <div
               className={
                 isOpen
@@ -225,6 +254,54 @@ export function SessionStatusBanner() {
             >
               {upcomingEvent.eventName}
             </div>
+
+            {/*
+              The rest of the window's events (the route already returns up to
+              10 -- getUpcomingHighImpactEvents()'s own default limit -- this
+              was previously discarded by taking only index 0). Rendered
+              inline rather than as an absolutely-positioned popover: the
+              parent card is `overflow-hidden` for its rounded corners, which
+              would clip an overlay panel.
+            */}
+            {isExpanded && restEvents.length > 0 && (
+              <div
+                className={
+                  isOpen
+                    ? 'mt-1.5 max-h-32 space-y-1 overflow-y-auto border-t border-amber-700/25 pt-1.5'
+                    : 'mt-1.5 max-h-32 space-y-1 overflow-y-auto border-t border-border pt-1.5'
+                }
+              >
+                {restEvents.map((ev) => (
+                  <div
+                    key={ev.valueId}
+                    className="flex items-center justify-between gap-2"
+                    title={ev.eventName}
+                  >
+                    <span
+                      className={
+                        isOpen
+                          ? 'truncate text-[10px] font-semibold opacity-80'
+                          : 'truncate text-[10px] font-semibold text-muted-foreground'
+                      }
+                    >
+                      {ev.currency} · {ev.eventName}
+                    </span>
+                    <span
+                      className={
+                        isOpen
+                          ? 'shrink-0 font-mono text-[10px] font-bold tracking-widest opacity-90'
+                          : 'shrink-0 font-mono text-[10px] font-bold tracking-widest text-muted-foreground'
+                      }
+                    >
+                      {ev.timeMode ? '~' : ''}
+                      {formatCountdown(
+                        ev.eventTime - Math.floor(Date.now() / 1000)
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

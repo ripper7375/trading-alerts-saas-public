@@ -79,6 +79,47 @@ function mockEvent(overrides: Record<string, unknown> = {}) {
   }) as unknown as typeof fetch;
 }
 
+/** Two events, so the row's expand affordance has something to expand into. */
+function mockEvents() {
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      events: [
+        {
+          valueId: '1',
+          eventId: '840010013',
+          eventName: 'Non-Farm Employment Change',
+          // 2026-01-14T13:30:00Z, 90 minutes after the pinned clock below.
+          eventTime: 1768397400,
+          currency: 'USD',
+          countryCode: 'US',
+          importance: 'HIGH',
+          forecastValue: null,
+          previousValue: 0.0,
+          digits: 2,
+          timeMode: 0,
+          sourceUrl: null,
+        },
+        {
+          valueId: '2',
+          eventId: '999010020',
+          eventName: 'ECB Rate Decision',
+          // 2026-01-14T16:00:00Z, 4 hours after the pinned clock below.
+          eventTime: 1768406400,
+          currency: 'EUR',
+          countryCode: 'EU',
+          importance: 'HIGH',
+          forecastValue: null,
+          previousValue: null,
+          digits: 2,
+          timeMode: 0,
+          sourceUrl: null,
+        },
+      ],
+    }),
+  }) as unknown as typeof fetch;
+}
+
 describe('SessionStatusBanner', () => {
   beforeEach(() => {
     // Seeding skips LocaleProvider's real geo-IP fetch(), which otherwise
@@ -266,5 +307,75 @@ describe('SessionStatusBanner — news row', () => {
 
     expect(abort).toHaveBeenCalled();
     global.AbortController = OriginalAbortController;
+  });
+});
+
+/**
+ * The route already returns up to 10 events; before this the hook discarded
+ * everything past index 0. This covers that the rest are reachable, and that
+ * a lone event still renders exactly as before (no expand affordance).
+ */
+describe('SessionStatusBanner — expandable event list', () => {
+  beforeEach(() => {
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify(defaultPreferences)
+    );
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+    localStorage.clear();
+  });
+
+  async function renderWithEvents(iso: string) {
+    jest.setSystemTime(new Date(iso));
+    const result = render(<SessionStatusBanner />);
+    await act(async () => {
+      jest.advanceTimersByTime(0);
+    });
+    return result;
+  }
+
+  it('shows no expand affordance for a single event', async () => {
+    mockEvent();
+    await renderWithEvents('2026-01-14T12:00:00Z');
+
+    const row = screen.queryByRole('button', {
+      name: /Show more upcoming high-impact events/i,
+    });
+    expect(row).not.toBeInTheDocument();
+  });
+
+  it('hides the rest of the list until the row is clicked', async () => {
+    mockEvents();
+    await renderWithEvents('2026-01-14T12:00:00Z');
+
+    expect(screen.getByText('Non-Farm Employment Change')).toBeInTheDocument();
+    expect(screen.queryByText('ECB Rate Decision')).not.toBeInTheDocument();
+  });
+
+  it('reveals the rest of the window on click, and hides it again on a second click', async () => {
+    mockEvents();
+    const { getByRole } = await renderWithEvents('2026-01-14T12:00:00Z');
+
+    const row = getByRole('button', {
+      name: /Show more upcoming high-impact events/i,
+    });
+    expect(row).toHaveAttribute('aria-expanded', 'false');
+
+    act(() => {
+      row.click();
+    });
+    expect(row).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(/ECB Rate Decision/)).toBeInTheDocument();
+
+    act(() => {
+      row.click();
+    });
+    expect(row).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText(/ECB Rate Decision/)).not.toBeInTheDocument();
   });
 });
