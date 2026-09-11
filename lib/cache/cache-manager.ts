@@ -31,6 +31,7 @@ export const CACHE_PREFIX = {
   SESSION: 'session',
   RATE_LIMIT: 'ratelimit',
   ALERT: 'alert',
+  MARKET_INDICES: 'market_indices',
 } as const;
 
 /**
@@ -335,4 +336,33 @@ export async function getRateLimitCount(identifier: string): Promise<number> {
     console.error('Rate limit get error:', error);
     return 0;
   }
+}
+
+// ============================================
+// Currency & Gold Index Caching (Lane 4)
+// ============================================
+//
+// One global key, not per-symbol/timeframe like the price/indicator sections
+// above: the public landing-page widget always wants all 9 indices in one
+// response, so there is exactly one snapshot to cache. TTL is deliberately
+// CACHE_TTL.SHORT (60s), matching the architecture doc's own §6.3 -- this is
+// the one route in the app reachable by anonymous public traffic, unlike
+// every other /api/market/* route (all session + PRO gated, which already
+// self-limits request volume), so it needs a real cache in front of
+// Postgres rather than relying on auth to bound traffic.
+
+const CURRENCY_GOLD_INDICES_KEY = `${CACHE_PREFIX.MARKET_INDICES}:currency_gold:today`;
+
+/**
+ * Cache the full 9-index snapshot (public landing-page widget).
+ */
+export async function cacheCurrencyGoldIndices<T>(snapshots: T): Promise<void> {
+  await setCache(CURRENCY_GOLD_INDICES_KEY, snapshots, CACHE_TTL.SHORT);
+}
+
+/**
+ * Get the cached 9-index snapshot, or null on a cache miss / Redis outage.
+ */
+export async function getCachedCurrencyGoldIndices<T>(): Promise<T | null> {
+  return getCache<T>(CURRENCY_GOLD_INDICES_KEY);
 }
