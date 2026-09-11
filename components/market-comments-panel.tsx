@@ -4,6 +4,7 @@ import { ChevronRight, MessageSquareText, Bell } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ContainmentRateStrip } from '@/components/market-sessions/containment-rate-strip';
 import { SessionStatusBanner } from '@/components/market-sessions/session-status-banner';
 import type { Tier } from '@/lib/tier-config';
 import { useLocale } from '@/lib/context/locale-context';
@@ -65,26 +66,32 @@ export default function MarketCommentsPanel({
       </div>
 
       {/*
-        The one piece of genuinely real content in this panel today.
-        Session state is computed from the clock, not simulated, so it does
-        not fall under this panel's zero-mock-data rule -- see the banner's
-        own header for why its news-countdown half is deliberately absent.
+        The genuinely real content in this panel today: session state
+        (computed from the clock, not simulated) and a Containment Rate
+        reading from `indicator_statistics` (a raw stored percentage, not a
+        fabricated score -- see ContainmentRateStrip's own header). Neither
+        falls under this panel's zero-mock-data rule.
 
         PRO-only, matching the design: `seed-code`'s own /free treatment
         blurs this entire panel behind a lock whose copy names the feature
         set explicitly -- "Live Market Comments, SESSION COUNTDOWNS, Gauges,
         and EDT Quality Metrics require a PRO subscription". This monolith
         has no such overlay only because the panel had no real content to
-        gate; the banner is the first, so the gate applies here instead.
+        gate; these two blocks are it, so the gate applies to them instead.
 
-        NOTE -- this is a presentation gate, NOT an entitlement boundary.
-        Session state is computed client-side from the clock, so nothing
-        secret is being withheld and no server resource is protected. Do not
-        mistake it for the `requireChartDownload()` class of check.
+        NOTE -- this is a presentation gate, NOT an entitlement boundary for
+        the session-clock half. Session state is computed client-side from
+        the clock, so nothing secret is being withheld there. The
+        containment-rate half IS a genuine entitlement boundary, enforced
+        server-side by /api/market/indicator-statistics itself -- this
+        client-side check only spares a FREE session a request that route
+        would 403 anyway. Neither should be mistaken for the
+        `requireChartDownload()` class of check.
       */}
       {tier !== 'FREE' && (
         <div className="pt-3">
           <SessionStatusBanner />
+          <ContainmentRateStrip />
         </div>
       )}
 
