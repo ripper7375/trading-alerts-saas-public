@@ -13,6 +13,283 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-11, same day, phase/session unchanged) — Currency & Gold Index
+> Stack ("Lane 4") Phases 3 and 4 of 5, CLOSED SUCCESSFUL: Redis cache + public API route,
+> then the full landing-page Hero widget, live-verified in a real browser.** Direct continuation
+> of the same-day Phase 1/2 sessions — Davin asked to proceed with each phase in turn. Per
+> `EXECUTOR-PROTOCOL.md` §6.
+> **Phase 3 — two deliberate corrections to the spec doc's own illustrative example, both
+> evidence-based, not spec-literal:** (1) dropped the spec's `"name": "Gold Index"` field from
+> the API response — baking an English-only display name into a public API response would
+> violate this repo's own strongly-enforced locale/i18n policy (`docs/policies/
+08-locale-i18n-compliance.md`); that mapping belongs in the frontend via `t()`, like every
+> other translated label in this app, not in the wire payload. (2) Used this app's actual
+> established route convention (`/api/market/currency-gold-indices`, `{indices}` wrapper) instead
+> of the spec's illustrative `/api/v1/public/market-indices/today`, which matches no real
+> convention anywhere in this codebase (that prefix belongs to `railway-gateway`'s own URL
+> scheme, not the Next.js monolith's).
+> **Reused rather than duplicated:** found an existing `lib/cache/cache-manager.ts` utility
+> (`getCache`/`setCache`, already used for price/indicator/session caching) before writing any
+> raw Redis calls — extended it with a Lane 4 section rather than hand-rolling cache-aside logic
+> a second time. This is the first genuinely public, unauthenticated route under `/api/market/*`;
+> every sibling (`economic-events`, `indicator-statistics`) is session+PRO gated and therefore
+> never needed a real cache, only an HTTP `Cache-Control` header — confirmed by reading both
+> before building this one.
+> **A real bug in my own new test file, caught before it could mask a future regression:**
+> `getCurrencyGoldIndexSnapshots()` calls `findMany` once or twice depending on whether the
+> first result is empty (an early-return path market-data/economic-events' own single-call
+> query functions never needed). `jest.clearAllMocks()` only clears call history, not queued
+> `mockResolvedValueOnce()` values, so a test that queued two but consumed only one leaked its
+> second value into the next test — passing by coincidence only because every test happened to
+> queue byte-identical fixture values. Fixed by switching to `jest.resetAllMocks()` in both
+> `beforeEach` blocks, with the failure mode documented in a comment so it isn't reintroduced.
+> **Phase 4 — built the widget, wired it into `components/landing/landing-hero.tsx`** right after
+> the CTA button row (architecture doc §7.1's own placement), reusing precedent everywhere one
+> existed: the spec's own `FloatingSparkline` code (kept close to as-given — already
+> zero-dependency and well-designed), this app's `cn()`/shadcn conventions for a new
+> `components/ui/tooltip.tsx` (no Tooltip primitive existed yet), and the established
+> literal-English-string-as-`t()`-key convention for all 27 new display-name/definition/
+> trading-edge strings (`lib/currency-gold-indices/metadata.ts`), identity-mapped into
+> `en-US.json`/`en-GB.json` only, matching the EconNews session's own precedent for
+> not-yet-translated marketing copy.
+> **SWR used deliberately, not by default** — every other data hook in this app
+> (`useContainmentRates`, `useUpcomingEvents`) uses plain `fetch`+`useEffect`+`setInterval`, but
+> this is the one route that is genuinely public and real-cached, where SWR's revalidate-on-focus
+> and dedup semantics are an actual fit rather than overkill for a per-session PRO panel.
+> **A real risk caught and fixed before it could break an existing suite, not after:**
+> `__tests__/components/landing/landing-and-auth-navigation.test.tsx` renders `<LandingHero>`
+> directly, and `jest.setup.js` polyfills `global.fetch` with `undici`'s real implementation (not
+> a stub) — so the new widget's unmocked SWR call would have attempted a genuine fetch to a
+> relative URL and rejected, the exact "fetch leaked past jsdom teardown, error surfaced in an
+> unrelated suite" failure class `LESSONS-LEARNED.md` already documents from the
+> `LocaleProvider` geo-IP incident. Mocked `useCurrencyGoldIndices` directly in that test file
+> before it could reproduce.
+> **Live-verified in a real browser (Turbopack `next dev`), not just unit tests:** confirmed the
+> genuine empty-state (`GET /api/market/currency-gold-indices` → `{"indices":[]}`, no live VPS
+> data yet) renders NOTHING on the landing page rather than a broken or placeholder card — the
+> same "absent row is the honest rendering" rule `containment-rate-strip.tsx` already follows.
+> Then temporarily injected 9 rows of mock data directly into the route handler (reverted
+> immediately after screenshotting, confirmed via a clean `git diff`, never committed) to confirm
+> the parts that only show up with real data: the 4-visible/scroll-for-5 container, the tooltip
+> (hovered AUDX, the full "AUD Index" definition + trading-edge copy rendered correctly), and
+> dark mode (toggled live, card background/text/sparkline colors all adapted correctly). The one
+> console warning present throughout (`allowTransparency` prop) was confirmed pre-existing and
+> unrelated — traced to `components/landing/ticker-tape.tsx`'s own TradingView embed, untouched
+> by this session.
+> **Verified:** `npx tsc --noEmit` clean across both phases; `npx eslint` clean on every new/
+> changed file; `npx prisma validate` clean on the monolith's own schema copy (edited
+> independently of `railway-gateway`'s in Phase 2); full `npm run test:ci` run **twice** — once
+> after Phase 3 (**185/185 suites, 2550/2550 tests**, +1 suite/+13 tests over the Phase 2
+> baseline) and again after Phase 4 (**187/187 suites, 2563/2563 tests**, +2 suites/+13 tests) —
+> zero regressions either time.
+> **Not done, needs Phase 5 or Davin:** live-VPS end-to-end verification (needs the physical
+> deployment steps flagged since Phase 1 — attaching the exporter to 8 charts, registering the
+> NSSM service, applying the Postgres migration); the PRO 32-pair screener roadmap item (spec
+> §9, explicitly out of scope, needs `forex_ohlcv_m5` which was deliberately not built); and a
+> genuine mobile-viewport click-through (the widget's CSS is responsive by construction — a plain
+> flex/scroll list — but was not specifically screenshotted at a narrow viewport this session).
+> **Not committed** — per this file's established log-first-defer-commit pattern.
+> **Artifacts (Phases 3+4):** `lib/cache/cache-manager.ts`, `lib/currency-gold-indices/
+{queries.ts,metadata.ts}` (new), `app/api/market/currency-gold-indices/route.ts` (new),
+> `__tests__/api/currency-gold-indices.test.ts` (new); `components/market/
+{floating-sparkline.tsx,useCurrencyGoldIndices.ts,currency-index-hero-widget.tsx}` (new),
+> `components/ui/tooltip.tsx` (new), `components/landing/landing-hero.tsx`,
+> `__tests__/components/market/{floating-sparkline.test.tsx,currency-index-hero-widget.test.tsx}`
+> (new), `__tests__/components/landing/landing-and-auth-navigation.test.tsx`,
+> `lib/i18n/dictionaries/{en-US,en-GB}.json` (27 new identity-mapped keys), this file.
+
+> **Ad-hoc session (2026-09-11, same day, phase/session unchanged) — Currency & Gold Index
+> Stack ("Lane 4") Phase 2 of 5, CLOSED SUCCESSFUL: the NestJS gateway endpoint + Postgres
+> schema.** Direct continuation of the same-day Phase 1 session — Davin asked to proceed with
+> Phase 2. Per `EXECUTOR-PROTOCOL.md` §6. Built the closest available precedent's exact shape
+> (the `indicator_statistics` lane — array-POST, own Bull queue, own processor, own table),
+> confirmed against its own real source files rather than reconstructed from memory: read
+> `gateway.module.ts`/`worker.module.ts`/`indicator-statistics.controller.ts`/`.processor.ts`,
+> the DTO generator script, both Prisma schema files, and — new for this phase — the test
+> precedents (`schema-sync.spec.ts`, `dto-contract.spec.ts`, all 3 existing `*.e2e-spec.ts`
+> files, the `indicator_statistics` migration's own SQL) before writing anything.
+> **A genuine pre-existing bug found and fixed in shared infrastructure, not routed around:**
+> `generate-market-data-dto.js`'s import-collection step —
+> `used.add(d.replace(/^@/, '').replace(/\(.*$/, ''))` — silently failed to strip a decorator
+> whose argument list wraps onto multiple lines (`wrapList()`'s own long-enum-array path),
+> because `.` doesn't match `\n` without the `s` flag. `IsIn` then dropped from the generated
+> import line whenever it was the ONLY enum decorator in a schema and its own list needed
+> wrapping. This new lane's `currency-gold-index.dto.ts` (9-item `index_name` enum, nothing
+> else uses `@IsIn`) is the first schema to actually expose it — every prior schema with a
+> wrapped `@IsIn(...)` (`indicator-statistic.dto.ts`'s 10-item `source` enum) also happened to
+> have an earlier single-line `@IsIn(...)` on some other field, which seeded the clean name into
+> the dedup `Set` first and masked the bug. Fixed by extracting the decorator name directly
+> (`d.match(/^@(\w+)/)[1]`) instead of a two-step strip; re-ran the generator and confirmed the
+> 3 pre-existing DTOs regenerate byte-identical (`git diff --stat` empty) while the new one now
+> correctly imports `IsIn`. Added a regression-guard test for this specific failure mode to the
+> new `CurrencyGoldIndexDto contract` block in `dto-contract.spec.ts`.
+> **Prisma:** `CurrencyGoldIndex` model added to both schema files (byte-identical body, per the
+> established convention `schema-sync.spec.ts` enforces) — one row per `(index_name, bar_time)`,
+> deliberately **not** modeled as an append-only revision stream like
+> `IndicatorStatistic`/`EconomicEvent`: each bar's value is a deterministic, stateless
+> recomputation (see `currency_gold_index_engine.py`'s `index_value()`), so a given key has
+> exactly one correct value and the gateway upserts in place. Migration
+> `20260911120000_add_currency_gold_indices` authored (one new table, nothing existing touched)
+> but **not applied** — same standing rule as every prior migration in this file's history.
+> Docker unavailable in this environment for a disposable-Postgres dry run (same gap the
+> 2026-09-09 `indicator_statistics` session hit); acceptable here for the same reason that
+> session gave — purely additive DDL mirroring already-proven patterns from that exact
+> migration, touching no existing row.
+> **`railway-gateway`:** 4th isolated Bull queue (`currency-gold-indices-sync`) in both
+> `gateway.module.ts` and `worker.module.ts`; `CurrencyGoldIndicesController` (`POST /api/v1/
+currency-gold-indices`, array body via `ParseArrayPipe` with explicit
+> `whitelist`/`forbidNonWhitelisted` — the same real gap the indicator-statistics controller's
+> own comment documents, since `ParseArrayPipe` builds its own internal `ValidationPipe` and
+> doesn't inherit the global one) and `CurrencyGoldIndicesProcessor` (concurrency 1, upserts on
+> the natural key, unlike the append-only lanes' always-insert). Idempotency key:
+> `${index_name}_${bar_time}`.
+> **Verified:** `npx tsc --noEmit` clean (after `npx prisma generate` picked up the new model —
+> the first run correctly failed with "Property 'currencyGoldIndex' does not exist" until
+> regenerated); `npx prisma validate` clean on the monolith's own copy of the schema too, edited
+> independently of railway-gateway's; full `npm test` **3/3 suites, 52/52 tests**; full
+> `npm run test:e2e` **4/4 suites, 40/40 tests** (12 new for the new lane, the other 3 suites'
+> counts unchanged — each needed only the new queue-mock override added to its `beforeAll`, per
+> the established "every registered queue must be overridden or Bull reaches for Redis at
+> teardown" rule). `railway-gateway`'s own `npm run lint`/`npx eslint` reproduces the
+> pre-existing `LESSONS-LEARNED.md` L38 break (confirmed the root cause this time, not just the
+> symptom: the package has **no ESLint config file of its own at all**, so ESLint 9's flat-config
+> mode matches zero files there regardless of what changes) — unrelated to this session,
+> `tsc --noEmit` is the real static gate here and it's clean.
+> **Not built this session, needs Phase 3+ or Davin:** the Redis cache-aside layer, the public
+> `GET` route, and the frontend widget (Phases 3–4); attaching the exporter to VPS charts and
+> applying the migration (needs Davin, unchanged from Phase 1's own note); any live push from
+> the actual engine through this endpoint (the engine's own push attempts still fail closed until
+> a real deployment exists — this session only proves the endpoint accepts a well-formed batch
+> in a mocked test harness, not a live round trip).
+> **Not committed** — per this file's established log-first-defer-commit pattern.
+> **Artifacts:** `prisma/market-data/schema.prisma`, `railway-gateway/prisma/schema.prisma`,
+> `prisma/migrations/20260911120000_add_currency_gold_indices/migration.sql` (new, authored/
+> unapplied), `railway-gateway/scripts/generate-market-data-dto.js` (bug fix + new target),
+> `railway-gateway/src/gateway/{gateway.module.ts,currency-gold-indices.controller.ts (new),
+dto/currency-gold-index.dto.ts (new, generated)}`, `railway-gateway/src/worker/
+{worker.module.ts,currency-gold-indices.processor.ts (new)}`,
+> `railway-gateway/test/{schema-sync.spec.ts,dto-contract.spec.ts,currency-gold-indices.e2e-spec.ts
+(new),market-data.e2e-spec.ts,indicator-statistics.e2e-spec.ts,economic-events.e2e-spec.ts}`,
+> this file.
+
+> **Ad-hoc session (2026-09-11, same day, phase/session unchanged) — Currency & Gold Index
+> Stack ("Lane 4") Phase 1 of 5, CLOSED SUCCESSFUL: the VPS math engine authored and
+> verified.** Davin asked to review and implement the new stack per a comprehensive design doc
+> he supplied (`davintrade-currency-index-stack/COMPREHENSIVE_ARCHITECTURE_DESIGN_CURRENCY_AND_GOLD_INDEX_STACK.md`),
+> with an explicit instruction to evaluate feasibility, present an execution plan, and proceed
+> with Phase 1. Per `EXECUTOR-PROTOCOL.md` §6. Planned via `EnterPlanMode`, scoped to Phase 1
+> only (the VPS-side math engine), per this file's own one-session-one-verifiable-unit
+> discipline — Phases 2–5 (NestJS gateway, Postgres, Redis cache, frontend widget) are
+> follow-on sessions.
+> **All 8 currency-index MQL5 formulas verified byte-exact against ground truth before writing
+> any code**, not assumed from the doc's own Formula Matrix — read `USDX/EURX/GBPX/JPYX/CADX/
+AUDX/NZDX/CHFX.mq5` directly (`mql5-indicators/interesting-indicators/currency-and-gold-index/`)
+> and confirmed every `MathPow()` exponent sign, including the trickier inverse-quote
+> conventions (CADX/CHFX use `1/rate`). `EURX.mq5` was initially missing from the folder
+> listing; Davin supplied it directly mid-session and it too verified exact (all-positive
+> exponents, as predicted — EUR is base currency in all 7 of its pairs).
+> **One architecture decision escalated to Davin before writing code, via `AskUserQuestion`:**
+> where should the 9 index values actually be calculated? Recommended, and Davin confirmed, a
+> **new standalone Python engine** rather than 9 new/rewritten MQL5 indicator EAs — the formula
+> is a simple deterministic closed-form geometric product with no regression/window-fitting
+> ambiguity, unlike the centroid/EDT math that was deliberately pulled out of Python on
+> 2026-09-09 after real certification-drift bugs; those bugs were specific to fitting ambiguity
+> this formula doesn't have.
+> **A second isolation decision, not spec-literal, made from live-code evidence:** the engine
+> is a **fully separate OS process** — own script, own NSSM service, own SQLite file
+> (`currency_gold_indices.db`, never `xauusd.db`), own 8 independent `OHLCV_{SYMBOL}_M5.txt`
+> input files (7 FX pairs + a dedicated XAUUSD export, deliberately NOT reusing the alert
+> pipeline's own XAUUSD export) — rather than integrating into `export_collector_validator_v2.py`
+> the way `indicator_statistics`/`economic_events` share that process via isolated try/except
+> stages. This sidesteps a real, previously-hit hazard in this exact repo: a read-only consumer
+> pointed at a writer's database path caused a schema-landmine incident on 2026-09-11 (the
+> `MT5Renderer` fixture-database entry earlier this same file). Zero shared process, zero shared
+> database file, zero shared source file — the strongest available guarantee that Lane 4 can
+> never block or delay Lane 1 (XAUUSD alerts).
+> **The spec doc's own §3.3 Output File Contract was found stale and NOT trusted** — the live,
+> already-compiled `ohlcvexportlightweight_v2_29.mq5` (reused unchanged, attached to 8 new
+> charts, zero new MQL5 authoring needed) writes header `ohlcv_timestamp\tohlcv_symbol\t
+ohlcv_timeframe\tohlcv_close\tohlcv_open\tohlcv_high\tohlcv_low\tohlcv_volume`, not the
+> doc's claimed `timestamp\topen\thigh\tlow\tclose\tvolume` — confirmed by reading the exporter
+> source directly and cross-checking against `export_collector_validator_v2.py`'s own parser,
+> which expects the same real format.
+> **A design simplification found while implementing, not in the original plan:** since every
+> index is rebased to exactly 100.00 at its own session-open bar by construction, `change_pct`
+> is always exactly `value - 100.00` — no separate "previousClose" ever needs to be tracked or
+> looked up. Also added `session_open_bar_time` to every row (a deliberate addition beyond the
+> spec's literal schema) so the engine — which alone has ground truth of the documented
+> Eightcap UTC-offset rule — is the only place in the whole stack that ever has to reason about
+> DST, avoiding the exact class of bug the 2026-09-09 `timestamp_adj` fix was for.
+> **`install_services.bat` deliberately NOT touched, and NOT appended to as originally
+> planned** — a closer read of that file (and this file's own 2026-09-11 entry flagging it)
+> confirmed batch files don't stop on error: re-running the whole script to pick up an appended
+> block would also re-execute the existing `nssm set MT5PushWorker AppEnvironmentExtra
+BACKFILL_API_KEY=...` line with the CONFIG block's own placeholder values, silently
+> overwriting the live push worker's real credentials. Built a wholly separate
+> `install_currency_gold_index_engine_service.bat` instead — a strictly safer implementation of
+> the same "never risk the existing services" intent than the append-only block originally
+> planned, since it cannot be run in a way that touches `MT5Collector`/`MT5PushWorker`/
+> `MT5Renderer`/`MT5Relay` at all.
+> **Verified, no live VPS access available:** `python -m py_compile` clean;
+> `python -m json.tool` equivalent load confirms the new gateway-contract schema is valid JSON
+> with all 9 `index_name` enum values present; a throwaway verification script (this stack's
+> own established no-pytest-infra pattern) — **38/38 checks passed**, covering: all 4
+> structurally-distinct sign patterns (USDX/EURX/JPYX/CHFX) independently re-derived by hand and
+> compared against the engine's own output (not just re-running its formula table); every index
+> self-verifies to exactly 100.00 at its own inception bar; the cross-rate triangulation function
+> against all three of the doc's own worked examples (EURJPY/EURGBP/AUDCAD); the Eightcap
+> US-DST offset function against the real 2026 transition dates (March 8 / November 1) plus
+> both sides of each transition; session-open boundary arithmetic in both winter (UTC+2) and
+> summer (UTC+3) offsets; file parsing against a synthetic fixture matching the live exporter's
+> real header; a full `compute_cycle()` run producing all 9 rows with correct independent
+> session boundaries for FX vs. gold; and outbox idempotency (`INSERT OR IGNORE` never re-opens
+> an already-synced row). `git status` confirmed zero changes to any existing pipeline file
+> (`export_collector_validator_v2.py`, `backfill_worker_api_gateway_v5.py`,
+> `sqlite_schema_v6_xauusd.sql`, `install_services.bat`, `xauusd.db`) — only new files added.
+> **Not built this session, needs Davin or later phases:** attaching the exporter to 8 new VPS
+> charts and registering the new NSSM service (no VPS/MetaEditor access, same boundary as every
+> prior session); any live-data verification; Phase 2 (NestJS gateway endpoint, DTO, Prisma
+> migration for `market_indices_m5`), Phase 3 (Redis cache + public API route), Phase 4
+> (frontend `FloatingSparkline`/`CurrencyIndexHeroWidget` + Hero-section integration), Phase 5
+> (end-to-end verification). Until Phase 2 ships the endpoint, every push attempt from the new
+> engine fails closed and logs a warning by design — rows accumulate with `synced_at IS NULL`
+> and drain automatically once the endpoint exists, the same "outbox absorbs downtime" behavior
+> every other lane already relies on.
+> **Also deliberately deferred, not forgotten:** `forex_ohlcv_m5` (raw per-pair storage from the
+> spec's §6.1) — the landing-page widget only needs the 9 computed index values; raw-pair
+> storage is listed in the spec purely as future substrate for the roadmap's PRO 32-pair
+> screener (§9), out of scope for a landing-page widget session.
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for
+> Davin's review of this entry and the plan file before it becomes a commit.
+> **Artifacts:** `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/
+v2_29_data_pipeline_architecture/{currency_gold_index_engine.py,
+gateway_contract_currency_gold_indices.schema.json,
+install_currency_gold_index_engine_service.bat}` (all new), this file. Plan file:
+> `merry-sprouting-platypus.md` (Claude Code plan-mode artifact, not in the repo).
+
+> **Ad-hoc session (2026-09-11, phase/session unchanged) — CLOSED SUCCESSFUL, React bumped
+> 19.2.3 → 19.3.0.** Davin asked directly in chat, prompted by the React 19.3 blog post
+> (`react.dev/blog/2026/09/09/react-19-3`). Per `EXECUTOR-PROTOCOL.md` §6. A minor version with
+> no breaking changes (stable `<ViewTransition>`/Fragment Refs, new `react-dom` `browser()`
+> SSR-opt-out API, Trusted Types passthrough, `<Context>` renderable directly from Server
+> Components, plus bug fixes) — nothing in it is adopted by this session, just the version bump.
+> **One real blocker surfaced and escalated before touching anything:** `package.json`'s
+> `overrides` block pins `react`/`react-dom` to `^19.2.1` alongside actual security pins
+> (`node-forge`/`jose`/`ajv`) — this repo's own Security Override Policy non-negotiable says
+> never to modify `overrides`/`pnpm.overrides` outside a dedicated PR, and bumping `dependencies`
+> alone would leave that override silently forcing resolution back to 19.2.x. Escalated via
+> `AskUserQuestion` rather than deciding unilaterally; Davin chose to update the override in
+> lockstep with the dependency bump. `frontend/` and the rest of `seed-code/` (SEPARATE_STACK,
+> do-not-touch per §5) were left untouched — only `seed-code/trading-conversational-ai-ui` is a
+> real pnpm-workspace member, and its own `^19.2.1` range already accepts 19.3.0 with no edit
+> needed.
+> **Verified:** `pnpm install` resolved cleanly (pre-existing peer-dependency warnings on
+> `@testing-library/react`/`lucide-react`/`bullmq` unchanged, not new); `npx tsc --noEmit` clean;
+> full `npm run test:ci` **184/184 suites, 2537/2537 tests** — exact match to the prior baseline,
+> zero regressions; `npm run build` clean, exit 0, full route manifest present.
+> **Artifacts:** `package.json` (`dependencies.react`/`react-dom` + `overrides.react`/`react-dom`
+> → `^19.3.0`), `pnpm-lock.yaml`, this file.
+
 > **Ad-hoc session (2026-09-11, phase/session unchanged) — CLOSED SUCCESSFUL, four small
 > frontend slices shipped from `davintrade-stack-d-and-e/FRONTEND-UI-REVISION-RECOMMENDATIONS.md`,
 > each independently verified and committed.** Davin asked for an implementation plan covering
