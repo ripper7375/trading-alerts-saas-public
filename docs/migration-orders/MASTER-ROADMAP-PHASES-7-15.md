@@ -427,19 +427,20 @@ Source: `STACK-E-POSTGRESQL-JSONB-MARKET-COMMENTS-ARCHITECTURE.md` §5 (Parts 31
 
 ### Phase 14 — Web Chat / Contabo support stack (4 sessions)
 
-Source: `seed-code/trading-conversational-ai-ui-pages-increment/docs/web-chat-stack/
-contabo_backend_handoff_spec.md` + `web-chat-stack-specification.md`.
+Source: `davintrade-webchat-stack/web-chat-stack-OLD-DOCUMENTS/contabo_backend_handoff_spec.md`
 
-- **14-0 — Decisions & contract** (CONTRACT). Resolve **F72**. Note the hand-off spec's
+- `web-chat-stack-specification.md` (moved there 2026-09-11 from `seed-code/**`).
+
+* **14-0 — Decisions & contract** (CONTRACT). Resolve **F72**. Note the hand-off spec's
   `client_message` payload carries **no authentication or user identity at all** — for a
   product with billing and PRO support tiers that is a design gap to close here, not at 14-2.
-- **14-1 — Container stack build & deploy** (INFRA). The 4 containers (Socket.io server, Redis
+* **14-1 — Container stack build & deploy** (INFRA). The 4 containers (Socket.io server, Redis
   broker, NLLB-200 API if F72 keeps it, BullMQ bot worker), `docker-compose.yml`, Nginx TLS
   termination, health checks, restart policy.
-- **14-2 — Frontend binding** (PORT). `NEXT_PUBLIC_SOCKET_CHAT_URL`, socket client, the Support
+* **14-2 — Frontend binding** (PORT). `NEXT_PUBLIC_SOCKET_CHAT_URL`, socket client, the Support
   Centre widget from the Phase 9 shell. Add the chat origin to `next.config.js`'s CSP
   `connect-src` — the exact class of bug 4B-18c fixed for realtime.
-- **14-3 — Cutover + runbook** (VERIFY-RETIRE). Live handshake proof, rollback = unset the env
+* **14-3 — Cutover + runbook** (VERIFY-RETIRE). Live handshake proof, rollback = unset the env
   var (the widget degrades to the existing support-ticket form), runbook entry under
   `docs/runbooks/` for CC-G.
 

@@ -105,10 +105,12 @@ Where they disagree: **live code wins**, then the plan, then the playbook, then 
 
 0. `docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md` — **read first.** Sequencing authority.
    §0 carries the 2026-08-30 reorder banner that puts Phase 14 ahead of 12 and 13.
-1. `seed-code/trading-conversational-ai-ui-pages-increment/docs/web-chat-stack/contabo_backend_handoff_spec.md`
+1. `davintrade-webchat-stack/web-chat-stack-OLD-DOCUMENTS/contabo_backend_handoff_spec.md`
+   (moved 2026-09-11 out of `seed-code/**`; it is documentation about the backend, not
+   portable seed UI source, and Phase 14 is closed)
    — **the source spec.** 4-container architecture, the `client_message` / `support_message`
    socket contract, `docker-compose.yml`, Nginx TLS config, and the Contabo setup steps.
-2. `…/docs/web-chat-stack/web-chat-stack-specification.md` — the two-hosting-target picture
+2. `davintrade-webchat-stack/web-chat-stack-OLD-DOCUMENTS/web-chat-stack-specification.md` — the two-hosting-target picture
    (Vercel frontend ↔ Contabo backend) and why both targets are kept.
 3. `CLAUDE.md` — Executor state block. Current entry is Session 11-3 (Phase 11 CLOSED). Read the
    Waiting-on list.

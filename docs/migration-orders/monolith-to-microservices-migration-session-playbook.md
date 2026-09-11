@@ -707,7 +707,8 @@ Source: `davintrade-stack-d-and-e/PREPARATORY-TIER-ACCESS-AND-CORE-REFACTORING-S
 
 ### Phase 14 — Web Chat / Contabo support stack (4 sessions)
 
-Source: `seed-code/trading-conversational-ai-ui-pages-increment/docs/web-chat-stack/`.
+Source: `davintrade-webchat-stack/web-chat-stack-OLD-DOCUMENTS/`
+(moved there 2026-09-11 from `seed-code/**`).
 
 - **14-0** Decisions & contract (**F72**: domain/TLS, whether NLLB-200 ships in v1, LLM reuse,
   and socket auth — the hand-off spec's `client_message` carries no identity at all) ·
