@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { MARKET_DATA_DTO_FIELDS } from '../src/gateway/dto/market-data.dto';
 import { ECONOMIC_EVENT_DTO_FIELDS } from '../src/gateway/dto/economic-event.dto';
+import { CURRENCY_GOLD_INDEX_DTO_FIELDS } from '../src/gateway/dto/currency-gold-index.dto';
 
 /**
  * Guards against the DTO silently drifting from
@@ -150,4 +151,86 @@ describe('EconomicEventDto contract', () => {
       expect(dtoSource).toMatch(new RegExp(`${field}\?: number \| null;`));
     }
   });
+});
+
+/**
+ * The same guard for the Lane 4 (currency & gold indices) DTO.
+ */
+describe('CurrencyGoldIndexDto contract', () => {
+  const schemaPath = path.join(
+    __dirname,
+    '..',
+    '..',
+    'backend-stack-c',
+    '1_EA-and-backfill-worker-on-contabo-vps',
+    'v2_29_data_pipeline_architecture',
+    'gateway_contract_currency_gold_indices.schema.json'
+  );
+  const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf-8'));
+  const schemaFields = new Set(Object.keys(schema.properties));
+  const dtoSourcePath = path.join(
+    __dirname,
+    '..',
+    'src',
+    'gateway',
+    'dto',
+    'currency-gold-index.dto.ts'
+  );
+
+  it('has exactly 6 fields in the schema', () => {
+    expect(schemaFields.size).toBe(6);
+  });
+
+  it('DTO field set matches the schema field set exactly', () => {
+    const dtoFields = new Set(CURRENCY_GOLD_INDEX_DTO_FIELDS);
+
+    const missingFromDto = [...schemaFields].filter(
+      (f) => !dtoFields.has(f as never)
+    );
+    const extraInDto = [...dtoFields].filter((f) => !schemaFields.has(f));
+
+    expect(missingFromDto).toEqual([]);
+    expect(extraInDto).toEqual([]);
+    expect(dtoFields.size).toBe(schemaFields.size);
+  });
+
+  it('every schema field is required (non-optional) in the DTO', () => {
+    const dtoSource = fs.readFileSync(dtoSourcePath, 'utf-8');
+    for (const requiredField of schema.required as string[]) {
+      const optionalPattern = new RegExp(`\\b${requiredField}\\?:`);
+      expect(optionalPattern.test(dtoSource)).toBe(false);
+    }
+  });
+
+  it('validates index_name against all 9 real index names', () => {
+    const dtoSource = fs.readFileSync(dtoSourcePath, 'utf-8');
+    for (const name of [
+      'XAUX',
+      'USDX',
+      'EURX',
+      'JPYX',
+      'GBPX',
+      'AUDX',
+      'NZDX',
+      'CADX',
+      'CHFX',
+    ]) {
+      expect(dtoSource).toContain(`'${name}'`);
+    }
+  });
+
+  it(
+    'imports IsIn -- regression guard for a real generator bug found while ' +
+      'building this DTO (see generate-market-data-dto.js: a decorator whose ' +
+      'argument list wraps onto multiple lines was silently dropped from the ' +
+      'import line, because index_name is the only @IsIn(...) field in this ' +
+      'schema and its own 9-item list is exactly what triggers the wrap)',
+    () => {
+      const dtoSource = fs.readFileSync(dtoSourcePath, 'utf-8');
+      const importLine = dtoSource
+        .split('\n')
+        .find((l) => l.startsWith('import'));
+      expect(importLine).toMatch(/\bIsIn\b/);
+    }
+  );
 });

@@ -86,6 +86,9 @@ describe('MarketDataController (e2e)', () => {
       // and fails teardown while the tests themselves all pass.
       .overrideProvider(getQueueToken('economic-events-sync'))
       .useValue(queueMock)
+      // Fourth queue (Lane 4: currency & gold indices) -- same reason.
+      .overrideProvider(getQueueToken('currency-gold-indices-sync'))
+      .useValue(queueMock)
       .overrideProvider(PrismaService)
       .useValue(prismaMock)
       .compile();

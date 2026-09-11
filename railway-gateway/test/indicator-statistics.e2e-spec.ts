@@ -78,6 +78,9 @@ describe('IndicatorStatisticsController (e2e)', () => {
       // in teardown while every test still passes.
       .overrideProvider(getQueueToken('economic-events-sync'))
       .useValue(queueMock)
+      // Fourth queue (Lane 4: currency & gold indices) -- same reason.
+      .overrideProvider(getQueueToken('currency-gold-indices-sync'))
+      .useValue(queueMock)
       .overrideProvider(PrismaService)
       .useValue({
         $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
@@ -85,6 +88,7 @@ describe('IndicatorStatisticsController (e2e)', () => {
         indicatorConfig: { upsert: jest.fn().mockResolvedValue({}) },
         indicatorStatistic: { upsert: jest.fn().mockResolvedValue({}) },
         economicEvent: { upsert: jest.fn().mockResolvedValue({}) },
+        currencyGoldIndex: { upsert: jest.fn().mockResolvedValue({}) },
       })
       .compile();
 

@@ -324,3 +324,44 @@ model EconomicEvent {
   @@index([currency, event_time])
   @@map("economic_events")
 }
+
+/// Lane 4: G8 Currency & Gold Index Suite — the public landing-page widget's
+/// data source (8 equal-weighted currency indices + rebased gold index XAUX).
+///
+/// One row per (index_name, bar_time) — NOT a revision stream like
+/// IndicatorStatistic/EconomicEvent above. Each bar's value is a
+/// deterministic, stateless recomputation from that bar's own rates (see
+/// currency_gold_index_engine.py's index_value() docstring), so a given key
+/// has exactly one correct value and the gateway upserts in place; a retry
+/// delivering the same key is a true no-op, not an append.
+///
+/// Written by currency_gold_index_engine.py, a FULLY SEPARATE process from
+/// the v6 alert pipeline — own script, own NSSM service, own SQLite outbox
+/// (never xauusd.db), own input files. A failure in this lane can never
+/// affect market_data_v6, IndicatorStatistic or EconomicEvent in any way.
+model CurrencyGoldIndex {
+  id String @id @default(cuid())
+
+  terminal_id String
+  index_name  String // XAUX | USDX | EURX | JPYX | GBPX | AUDX | NZDX | CADX | CHFX
+  bar_time    Int // unix UTC — the M5 bar this value was computed for
+
+  value      Float // rebased to exactly 100.00 at session_open_bar_time by construction
+  change_pct Float // == value - 100.00 always (closed-form; stored for API convenience)
+
+  // unix UTC — today's session-inception bar for THIS index (00:00 Eightcap
+  // server time for the 8 currency indices, 01:01 for XAUX's own daily
+  // rollover reopen). Stamped by the engine, which alone has ground truth of
+  // the documented Eightcap UTC-offset rule, so no downstream reader ever has
+  // to re-derive today's session boundary via its own DST-offset logic.
+  session_open_bar_time Int
+
+  createdAt DateTime @default(now())
+
+  // One row per (index_name, bar_time). Postgres backs this with a btree
+  // index Postgres also uses for the "this index over time" sparkline read —
+  // no separate non-unique index on the same list.
+  @@unique([index_name, bar_time])
+  @@index([index_name, bar_time(sort: Desc)])
+  @@map("currency_gold_indices")
+}

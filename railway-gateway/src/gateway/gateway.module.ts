@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bull';
 import { MarketDataController } from './market-data.controller';
 import { IndicatorStatisticsController } from './indicator-statistics.controller';
 import { EconomicEventsController } from './economic-events.controller';
+import { CurrencyGoldIndicesController } from './currency-gold-indices.controller';
 import { ValidationService } from './validation.service';
 
 @Module({
@@ -40,11 +41,26 @@ import { ValidationService } from './validation.service';
         removeOnFail: 500,
       },
     }),
+    // A fourth isolated queue: Lane 4 (currency & gold indices). The sender
+    // is a fully separate VPS process from the v6 alert pipeline's own
+    // collector/push-worker, so this queue's isolation is belt-and-braces on
+    // top of that -- a failure here must never touch the other three lanes
+    // any more than they touch each other.
+    BullModule.registerQueue({
+      name: 'currency-gold-indices-sync',
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: 100,
+        removeOnFail: 500,
+      },
+    }),
   ],
   controllers: [
     MarketDataController,
     IndicatorStatisticsController,
     EconomicEventsController,
+    CurrencyGoldIndicesController,
   ],
   providers: [ValidationService],
 })

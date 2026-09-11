@@ -79,6 +79,7 @@ describe.each([
   ['IndicatorStatistic', 'indicator_statistics'],
   ['IndicatorConfig', 'indicator_configs'],
   ['EconomicEvent', 'economic_events'],
+  ['CurrencyGoldIndex', 'currency_gold_indices'],
 ])(
   '%s schema drift (railway-gateway vs. monolith source of truth)',
   (model, table) => {
@@ -170,5 +171,26 @@ describe('EconomicEvent append-only invariant', () => {
     ]) {
       expect(normalizeFields(body)).toContain(`${field} Float?`);
     }
+  });
+});
+
+/**
+ * CurrencyGoldIndex is NOT append-only like the two models above -- it is
+ * upserted in place, since (index_name, bar_time) has exactly one correct,
+ * deterministically-recomputable value (see currency_gold_index_engine.py's
+ * index_value() docstring). The invariant that matters here is narrower: if
+ * the unique key were ever widened to include something that legitimately
+ * varies per push (like terminal_id), a retry would stop being a true no-op
+ * and could silently duplicate rows for the same bar.
+ */
+describe('CurrencyGoldIndex upsert-key invariant', () => {
+  const sourceOfTruthSchema = fs.readFileSync(
+    SOURCE_OF_TRUTH_SCHEMA_PATH,
+    'utf-8'
+  );
+  const body = extractModelBody(sourceOfTruthSchema, 'CurrencyGoldIndex');
+
+  it('is keyed on exactly (index_name, bar_time)', () => {
+    expect(normalizeFields(body)).toContain('@@unique([index_name, bar_time])');
   });
 });

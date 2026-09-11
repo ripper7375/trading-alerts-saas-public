@@ -57,6 +57,14 @@ const TARGETS = [
     // No documentation-only keys in this contract; every property is a field.
     skip: [],
   },
+  {
+    schema: 'gateway_contract_currency_gold_indices.schema.json',
+    output: 'currency-gold-index.dto.ts',
+    className: 'CurrencyGoldIndexDto',
+    fieldsConst: 'CURRENCY_GOLD_INDEX_DTO_FIELDS',
+    // No documentation-only keys in this contract; every property is a field.
+    skip: [],
+  },
 ];
 
 function typesOf(propSchema) {
@@ -161,7 +169,18 @@ function generate(target) {
     const fieldMarker = isRequired ? '!' : '?';
     const nullUnion = isNullable(propSchema) ? ' | null' : '';
     for (const d of decorators) {
-      used.add(d.replace(/^@/, '').replace(/\(.*$/, ''));
+      // Extract the decorator name directly (@Name(...) -> Name) rather than
+      // stripping the parenthesized args with a second regex: a decorator
+      // whose arg list wraps onto multiple lines (wrapList(), above) spans
+      // newlines that `.` doesn't match without the `s` flag, so the old
+      // two-step replace silently failed on those and left the whole
+      // multi-line string in `used` instead of just the bare name -- `IsIn`
+      // then dropped from the import line whenever it was the ONLY enum
+      // decorator in a schema and its own list needed wrapping. Masked until
+      // now: every prior schema with a wrapped @IsIn(...) also had an
+      // earlier single-line @IsIn(...) on some other field, which seeded the
+      // clean name into the Set first.
+      used.add(d.match(/^@(\w+)/)[1]);
       body.push(`  ${d}`);
     }
     body.push(`  ${name}${fieldMarker}: ${tsType}${nullUnion};`);
