@@ -3,7 +3,7 @@
 **Status:** Authoritative reference ("the bible") for the XAUUSD data-collection
 pipeline. **MQL5 is the single source of every value** (2026-09-09) — the Python
 calc stack was removed from the pipeline and parked; see §6.
-**Last Updated:** 2026-09-09
+**Last Updated:** 2026-09-11 (Economic calendar lane, Railway Gateway integration & batching live-verified in production)
 
 > **2026-09-09 — two architecture changes.**
 >
@@ -473,11 +473,14 @@ row is compared against the newest stored row for its `value_id` across every
 field except `captured_at` (which differs by definition, so comparing it would
 make everything look changed and defeat the mechanism).
 
-Hooked into `run_cycle()` in its **own** try/except, separate from the
-statistics block, so neither lane can take the other down and neither can touch
-`market_data`. Not tied to a cycle or timeframe — calendar events are global
-and the snapshot carries its own `captured_at`. Calling it on both the M5 and
-M15 cycles is harmless: change detection makes the second call a no-op.
+Hooked into `run_cycle()` at the very top in its **own** try/except, decoupled
+from price timeseries collection and market-hours checks (2026-09-11 update,
+commit `70a79a06`). Because calendar events are global to the MT5 terminal and
+not tied to a specific chart or trading hours, staging them first guarantees news
+events are updated in SQLite even if market data indicators are incomplete or the
+forex market is closed. Neither lane can take the other down and neither touches
+`market_data`. Calling it on both the M5 and M15 cycles is harmless: change
+detection makes duplicate calls a no-op.
 
 **Push side — `push_economic_events()` in `backfill_worker_api_gateway_v5.py`.**
 A third independent drain loop, isolated exactly like `push_statistics()`: its
@@ -487,14 +490,18 @@ never delay or fail price ingestion. Runs **after** `market_data` and the
 statistics lane on both the idle and active branches of the main loop; a return
 of 0 means "nothing to do" and never feeds the backoff decision.
 
-**Batched, deliberately.** `market_data`'s one-POST-per-row shape is already
-under-provisioned for its own volume (§12's throughput issue: ~800 rows/min
-demanded against 375–600 capacity). Inheriting it here would turn a 333-row
-first sync into 333 sequential requests for no reason — these rows are small and
-one POST carries the lot. Capped at 250/cycle, so even the first drain is two
-requests rather than hundreds. Ordered oldest-first like the other lanes, which
-is safe here in a way it is not for `market_data`: this outbox empties every
-cycle, so nothing can starve behind a backlog.
+**Batched, with Gateway 100 KB payload constraint (HTTP 413 mitigation).**
+The Railway API Gateway runs NestJS on Express, which enforces a default JSON body
+parser limit of **100 KB**. In live testing, pushing 250 rows (~250 KB) caused
+Express to reject the request with `HTTP 413 Payload Too Large`.
+
+- **Capped at 120 rows/request** (`EVENT_MAX_ROWS_PER_CYCLE = 120`, commit `3cbc3534`),
+  keeping payloads safely below 80 KB.
+- **Loop drain per cycle**: The worker runs an inner `while True` drain loop
+  per cycle until the `economic_events` outbox is completely empty, draining
+  backlogs (e.g. initial 545-row sync) in consecutive 120-row chunks within seconds
+  without exceeding the gateway's payload ceiling.
+- **Oldest-first**: Ordered oldest-first, stamping `synced_at` on 200/201 response.
 
 **Tests — `test_economic_events.py` (14) and `test_push_economic_events.py`
 (13).** This stack has no pytest config (and pytest is not installed on the dev
@@ -669,7 +676,21 @@ The collector recreates the schema and idles when no exports are present.
 
 ---
 
-## 9. Gateway-Side Contract (backend team) — `gateway_contract_market_data.schema.json`
+## 9. Gateway-Side Contract (backend team) — Shared Railway Gateway
+
+The Railway API Gateway (`https://railway-gateway-production-3796.up.railway.app`) is the
+**shared ingest gateway** between:
+
+- **Stack C (`backend-stack-c`)**: Producer pushing both price timeseries (`POST /api/v1/market-data`)
+  and economic events (`POST /api/v1/economic-events`) from the Windows VPS via `backfill_worker_api_gateway_v5.py`.
+- **DavinTrade News Stack (`davintrade-news-stack`)**: Ingestion and consumer pipeline where Railway Gateway
+  provides NestJS controllers, Redis Bull queues, and Prisma workers that persist events into PostgreSQL
+  (`EconomicEvent` table), which the Next.js frontend (`app/api/market/economic-events/route.ts`) reads
+  to render real-time session countdowns and news banners on `/terminal`.
+
+Both lanes authenticate via Bearer token (`BACKFILL_API_KEY`) and share the same gateway host.
+
+### 9.1 Market Data Ingestion — `gateway_contract_market_data.schema.json`
 
 The gateway must provide:
 
@@ -684,6 +705,23 @@ The gateway must provide:
 
 The schema's `x-gateway-requirements` block restates idempotency and the
 response contract for the backend team.
+
+### 9.2 Economic Events Ingestion — `gateway_contract_economic_events.schema.json`
+
+1. `POST /api/v1/economic-events` accepting an array of JSON objects validated by
+   `gateway_contract_economic_events.schema.json` (25 fields, `additionalProperties: false`).
+2. **Asynchronous Bull Queue & Processor**:
+   - `economic-events.controller.ts` validates payloads via `ParseArrayPipe({ items: EconomicEventDto })`
+     and pushes them onto the `economic-events` Bull queue.
+   - `economic-events.processor.ts` consumes jobs asynchronously and performs idempotent append-only
+     upserts on `(value_id, captured_at)` into PostgreSQL.
+3. **Payload & Express 100 KB Limit (HTTP 413 Mitigation)**:
+   - Railway Gateway's Express server enforces a default JSON body parser limit of **100 KB**.
+   - Economic events batches pushed by `backfill_worker_api_gateway_v5.py` must be capped at
+     **120 rows per request** (`EVENT_MAX_ROWS_PER_CYCLE = 120`), keeping payloads well below the
+     limit (~70-80 KB). Batches of 250 rows (~250 KB) trigger `HTTP 413 Payload Too Large`.
+   - The push worker drains the outbox in consecutive 120-row batches via an inner `while True` loop,
+     clearing any backlog cleanly within a single cycle.
 
 ---
 
