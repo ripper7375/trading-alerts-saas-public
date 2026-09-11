@@ -800,6 +800,22 @@ def run_cycle(conn, export_dir: Path, timeframe: str, cycle_time: int,
     cycle_id, attempt = open_cycle(conn, cycle_time, timeframe)
     logger.info(f"📥 Cycle {cycle_id} ({timeframe}, slot {cycle_time}, attempt {attempt}): collecting")
 
+    # Economic calendar. A THIRD independent lane: its own exporter, table,
+    # contract and endpoint. Staged independently so missing price files
+    # or market_data validation failures cannot block calendar capture,
+    # and calendar cannot affect market_data.
+    #
+    # Not tied to this cycle's timeframe or cycle_id — calendar events are
+    # global, and the snapshot carries its own captured_at from the exporter.
+    # Calling it on both the M5 and M15 cycles is harmless: change detection
+    # makes the second call a no-op.
+    try:
+        appended, unchanged = stage_economic_events(conn, export_dir)
+        if appended or unchanged:
+            logger.info(f"   calendar      {appended:>5} appended, {unchanged} unchanged")
+    except Exception as e:                                     # noqa: BLE001
+        logger.warning(f"calendar capture skipped for cycle {cycle_id}: {e}")
+
     sources_received = 0
     missing_files = []
     for source, spec in SOURCES.items():
@@ -851,21 +867,6 @@ def run_cycle(conn, export_dir: Path, timeframe: str, cycle_time: int,
             logger.info(f"   statistics    {n_stats:>5} snapshots staged")
     except Exception as e:                                     # noqa: BLE001
         logger.warning(f"statistics capture skipped for cycle {cycle_id}: {e}")
-
-    # Economic calendar. A THIRD independent lane: its own exporter, table,
-    # contract and endpoint. Wrapped separately from the statistics block above
-    # so neither can take the other down, and neither can touch market_data.
-    #
-    # Not tied to this cycle's timeframe or cycle_id — calendar events are
-    # global, and the snapshot carries its own captured_at from the exporter.
-    # Calling it on both the M5 and M15 cycles is harmless: change detection
-    # makes the second call a no-op.
-    try:
-        appended, unchanged = stage_economic_events(conn, export_dir)
-        if appended:
-            logger.info(f"   calendar      {appended:>5} appended, {unchanged} unchanged")
-    except Exception as e:                                     # noqa: BLE001
-        logger.warning(f"calendar capture skipped for cycle {cycle_id}: {e}")
 
     return True
 
