@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trading-alerts-saas/v6/gateway_contract_currency_gold_indices.schema.json",
+  "title": "POST /api/v1/currency-gold-indices — one element of the request array (Lane 4: G8 Currency & Gold Index Suite)",
+  "description": "Contract between currency_gold_index_engine.py (a fully separate process from export_collector_validator_v2.py / backfill_worker_api_gateway_v5.py -- see that script's module docstring for the isolation rationale) and the API Gateway. One JSON object = one index's computed value for the latest available M5 bar. The request body is an ARRAY of these (up to 9 per push cycle: 8 currency indices + XAUX). This stream is entirely separate from market_data, indicator_statistics and economic_events: its own endpoint, queue and table, and a failure here must never block or delay any of those. The gateway upserts idempotently on (index_name, bar_time) -- duplicate delivery is by design (push retries); re-pushed content for the same key is byte-identical.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "terminal_id",
+    "index_name",
+    "bar_time",
+    "value",
+    "change_pct",
+    "session_open_bar_time"
+  ],
+  "properties": {
+    "terminal_id": {
+      "type": "string",
+      "description": "Sender id; 'currency_gold_index_engine_v1' from the Lane 4 engine."
+    },
+    "index_name": {
+      "type": "string",
+      "enum": [
+        "XAUX",
+        "USDX",
+        "EURX",
+        "JPYX",
+        "GBPX",
+        "AUDX",
+        "NZDX",
+        "CADX",
+        "CHFX"
+      ],
+      "description": "Which index this row is. The 8 currency indices are an equal-weighted (W=1/7) geometric basket of the G8 currencies against each other, verified byte-exact against the authoritative MQL5 indicator files in mql5-indicators/interesting-indicators/currency-and-gold-index/. XAUX is XAUUSD rebased to 100.00 at its own daily session open -- a different formula (simple ratio, no basket)."
+    },
+    "bar_time": {
+      "type": "integer",
+      "description": "UTC unix seconds of the M5 bar this value was computed for -- the latest bar available in that index's own input series at push time. Currency indices and XAUX have independent session-open times (00:00 vs 01:01 Eightcap server time), so their bar_time values can differ within the same push batch, e.g. during the gold rollover maintenance window."
+    },
+    "value": {
+      "type": "number",
+      "description": "The index level. Every index is rebased to exactly 100.00 at its own session-open bar by construction (the C_i normalization constant for currency indices; direct division for XAUX), so 100.00 is always the day's reference point -- there is no separate 'previousClose' to track."
+    },
+    "change_pct": {
+      "type": "number",
+      "description": "Percent change from session open. Because value is rebased to 100.00 at session open, this is always exactly (value - 100.00) -- a closed-form derivative of value, included for API convenience so consumers don't have to know that invariant."
+    },
+    "session_open_bar_time": {
+      "type": "integer",
+      "description": "UTC unix seconds of TODAY's session-inception bar for this index (00:00 Eightcap server time for the 8 currency indices, 01:01 for XAUX -- the gold market's daily rollover-halt reopen). Stamped by the engine, which has ground truth of the documented Eightcap UTC-offset rule, so no downstream consumer (the Phase 3 read layer) ever has to re-derive today's session boundary via its own DST-offset logic. Repeats across every bar within one session; changes once daily at rollover."
+    }
+  },
+  "x-gateway-requirements": {
+    "batching": "The request body is an ARRAY of these objects (up to 9 per cycle: one per index). The gateway enqueues one job PER ELEMENT so per-row idempotency is preserved across a batched request -- same pattern as gateway_contract_indicator_statistics.schema.json.",
+    "idempotency": "Upsert on (index_name, bar_time). Duplicate delivery is by design (push retries); re-pushed content for the same key is byte-identical, since it is a deterministic recomputation from the same input bars.",
+    "isolation": "This endpoint is independent of POST /api/v1/market-data, /api/v1/indicator-statistics and /api/v1/economic-events. Its failure must never affect any of those in any way -- it runs in a wholly separate OS process on the VPS with its own SQLite outbox file.",
+    "responses": {
+      "200/201": "Accepted/queued. Engine stamps currency_gold_indices.synced_at.",
+      "400": "Validation failure with JSON {message}. Engine quarantines to rejected_currency_gold_indices.jsonl AND stamps synced_at (poison-row guard, matching the statistics/events lanes).",
+      "401/403": "Auth failure -- engine halts this stream only.",
+      "429": "Rate limited; honor Retry-After.",
+      "5xx": "Transient; engine retries with backoff via its own HTTP session (2 retries, exponential backoff)."
+    }
+  }
+}
