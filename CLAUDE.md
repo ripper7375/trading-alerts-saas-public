@@ -253,7 +253,17 @@ outbox wedged`; removing `ParseArrayPipe`'s explicit `whitelist`/`forbidNonWhite
 > under NSSM; startup shortcut installed.
 > **Two runtime findings resolved:**
 > (a) Collector decoupled (`70a79a06`): `stage_economic_events()` moved to the top of `run_cycle()`,
-> so economic events stage independently of price timeseries completeness or forex market hours.
+> so economic events stage independently of **price timeseries completeness** — a missing or late
+> indicator export can no longer block calendar capture. **Correction (2026-09-11, verified in
+> source): this does NOT extend to forex market hours, as first recorded here.**
+> `run_cycle_with_retries()` still returns on `is_market_open_xauusd()` **before** `run_cycle()` is
+> ever called, so `stage_economic_events()` does not run while the market is shut — calendar
+> capture pauses ~49h each weekend (Fri 17:00 ET → Sun 17:00 ET). **Accepted, not a defect to
+> chase:** releases are weekday events, the UI reads PostgreSQL which retains everything already
+> pushed, and the only real loss is weekend _forecast revisions_ — which on an append-only table
+> means those intermediate observations simply never existed, rather than being overwritten. Moving
+> the call above the gate would make the collector open a cycle on weekends purely for the
+> calendar, which costs more than it buys.
 > (b) Railway Gateway Express 100 KB payload constraint (`3cbc3534`): Pushing 250-row batches (~250 KB)
 > returned `HTTP 413 Payload Too Large`. Capped `EVENT_MAX_ROWS_PER_CYCLE = 120` in the push worker
 > and added loop draining so outboxes drain cleanly within seconds without exceeding 100 KB.
@@ -2504,24 +2514,22 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   descriptors against `ulimit -n` on the Flask host; revisit only if connections approach that limit
   or push latency degrades. Detail + cheaper mitigations:
   `MTF-DUAL-STACKED-LAYOUT-MANIFEST-WORK-COMPLETION.md` §5.1.
-- **⚠ BLOCKING — recompile the 10 statistic-emitting MQL5 indicators and redeploy to the VPS**
-  (2026-09-09). The `gmt_offset` fix (16 sites) and the ZigZag unconfirmed-pivot fix **are already
-  compiled** — Davin built all 13 `.ex5` on 2026-09-09 at ~13:45, after those source edits
-  (12:03–12:04). **But the EDT Quality Metrics blocks were added at 14:52–14:54, after that
-  build**, to the 10 statistic-emitting files (7 centroids + fractal + resistance + support), so
-  those 10 binaries are a build behind; the other 3 (ZigZag, OHLCV, Z-Score) emit no statistics
-  and are correctly current. Verified by comparing `.mq5`/`.ex5` mtimes, not assumed.
-  **This one hides itself, which is why it is worth stating plainly:** deploying the current
-  binaries would look entirely successful — timestamps correct, cycles validating, and
-  `indicator_statistics` rows genuinely being written — with every new statistic field NULL,
-  because the old-format `_Statistic.txt` files don't contain those sections and the parser
-  correctly reads _missing_ as NULL rather than 0. Nothing errors; nothing looks wrong. Confirm a
-  fresh `_Statistic.txt` contains an `[EDT CHANNEL]` section before trusting a green cycle. Also deploy the updated
-  `export_collector_validator_v2.py` + `sqlite_schema_v6_xauusd.sql` and restart `MT5Collector`;
-  `migrate_raw_tables()` widens the existing `xauusd.db` staging tables on first start (38
-  columns; `market_data` untouched, no data at risk). **Then confirm a real green cycle** — the
-  refactor is proven against real captured exports offline, but has never run against the live
-  terminal.
+- **RESOLVED 2026-09-11 — the MQL5 recompile and VPS deployment are DONE.** This entry stood as the
+  top blocking item from 2026-09-09, warning that the 10 statistic-emitting binaries were a build
+  behind the EDT Quality Metrics blocks added at 14:52–14:54. **That is no longer true.** Davin
+  compiled all 13 indicators **plus** `EconomicCalendarExport_v2_29.mq5` natively in MetaEditor on
+  the Windows Server 2022 VPS with 0 errors, and committed the binaries (`aa0335ae`).
+  **Re-verified here, not taken on trust:** every one of the **15** `.mq5` sources in `mq5/` now has
+  an `.ex5` **newer than its source** — 0 missing, 0 stale, by direct mtime comparison. The
+  collector, schema and push worker are deployed and `MT5Collector` / `MT5PushWorker` /
+  `MT5Renderer` all run under NSSM.
+  **Worth keeping from the original entry, because the hazard it described was real and is the
+  thing to check if this ever regresses:** a stale binary here **hides itself**. The pipeline looks
+  entirely healthy — timestamps correct, cycles validating, `indicator_statistics` rows genuinely
+  written — while every new statistic field is NULL, because an old-format `_Statistic.txt` lacks
+  those sections and the parser correctly reads _missing_ as NULL rather than 0. Nothing errors.
+  **So after any future indicator rebuild, confirm a fresh `_Statistic.txt` actually contains an
+  `[EDT CHANNEL]` section before trusting a green cycle.**
 - **RESOLVED 2026-09-09 — the four pending migrations are applied to PRODUCTION, and the
   database picture is now settled for good.** Davin applied them with
   `prisma.production.config.ts` against `maglev.proxy.rlwy.net:58290`; verified afterwards:
