@@ -1,9 +1,11 @@
 # Currency & Gold Index Stack ("Lane 4") Manifest — Work Completion Report
 
 **Date:** 2026-09-11
-**Status:** Phases 1–4 code complete, verified, committed, and pushed to `origin/main`. Phase 5
-(live VPS deployment + end-to-end verification) is **not started** — it requires physical actions
-on the Contabo/Vultr VPS that this Executor cannot perform. See §5.
+**Status:** Phases 1–4 code complete, verified, committed, and pushed to `origin/main`. Both
+`railway-gateway` and the monolith auto-deployed from that push and are confirmed live in
+production (§5.1). Phase 5's 3 remaining items — applying the Postgres migration, attaching the
+exporter to 8 MT5 charts, and registering the engine as a VPS service — are **not started**, and
+require physical actions on the Contabo/Vultr VPS that this Executor cannot perform. See §5.
 **Type:** Ad-hoc feature session (Davin-requested directly in chat, one phase at a time) — outside
 the phase/session numbering, per `docs/migration-orders/EXECUTOR-PROTOCOL.md` §6. Recorded across
 three `CLAUDE.md` ad-hoc entries (Phase 1; Phase 2; Phases 3+4 combined), all dated 2026-09-11.
@@ -215,6 +217,30 @@ boundary every prior session in this repo's history has hit for physical deploym
 
 ### 5.1 What Davin needs to do
 
+**Updated 2026-09-11, post-push — two of the five original items turned out to already be done.**
+Both `railway-gateway` and the monolith auto-deploy from a push to `origin/main` (confirmed, not
+assumed — see the live checks below), so the 5-commit push in §6 shipped both automatically within
+minutes, with no separate deploy step needed. **Only the 3 physical VPS/database items remain.**
+
+- [x] **Deploy the `railway-gateway` changes** — **CONFIRMED LIVE.** An unauthenticated
+      `POST https://railway-gateway-production-3796.up.railway.app/api/v1/currency-gold-indices`
+      returned `401 {"message":"Missing authorization header"}` rather than `404` — this only
+      happens if `CurrencyGoldIndicesController` and its `ApiKeyGuard` are genuinely registered in
+      the running production process. The health endpoint's `uptime` (~9 minutes at check time)
+      is consistent with a fresh auto-deploy from the push.
+- [x] **Deploy the monolith changes** — **CONFIRMED LIVE.**
+      `GET https://davintrade.app/api/market/currency-gold-indices` returns `{"indices":[]}` — the
+      correct empty-state shape (see §1.3), not a 404. The public landing page is already serving
+      Phase 3/4's code; it has nothing to display only because the 3 items below haven't happened
+      yet, not because of any missing deploy step.
+- [ ] **Apply the Postgres migration** — `20260911120000_add_currency_gold_indices` (authored,
+      not applied). This is why the routes above return empty rather than real data: the table
+      doesn't exist in production yet, so `getCurrencyGoldIndexSnapshots()` catches a
+      `relation "currency_gold_indices" does not exist` error and degrades to `[]` (§1.3's
+      designed fallback, not an error state). Confirm which database is genuinely production
+      first — this repo's own history (`CLAUDE.md`'s 2026-09-01/2026-09-09 entries) documents real
+      prior confusion between a same-named "staging" project and the actual production database;
+      do not assume from a connection string alone.
 - [ ] **Attach the exporter to 8 independent MT5 charts** — `EURUSD`, `USDJPY`, `GBPUSD`,
       `AUDUSD`, `NZDUSD`, `USDCAD`, `USDCHF`, and a dedicated `XAUUSD` chart, all M5, all running
       the existing, already-compiled `ohlcvexportlightweight_v2_29.mq5` with its default
@@ -224,18 +250,8 @@ boundary every prior session in this repo's history has hit for physical deploym
       `install_currency_gold_index_engine_service.bat` from an elevated cmd on the VPS (edit its
       `CONFIG` block first: `BACKFILL_API_KEY`, `API_GATEWAY_URL`). This is a standalone script,
       safe to run independently of `install_services.bat` — see §2's note on why it was built
-      separately.
-- [ ] **Apply the Postgres migration** — `20260911120000_add_currency_gold_indices` (authored,
-      not applied). Confirm which database is genuinely production first — this repo's own history
-      (`CLAUDE.md`'s 2026-09-01/2026-09-09 entries) documents real prior confusion between a
-      same-named "staging" project and the actual production database; do not assume from a
-      connection string alone.
-- [ ] **Deploy the `railway-gateway` changes** — the 4th queue/controller/processor need a real
-      deploy to Railway before the engine's pushes can succeed; until then they fail closed and
-      queue in the engine's own SQLite outbox (`synced_at IS NULL`), which is safe but means no
-      data reaches Postgres yet.
-- [ ] **Deploy the monolith changes** — the public API route + frontend widget need a real Vercel
-      deploy before `davintrade.app`'s landing page shows anything from this lane.
+      separately. Do this AFTER the migration is applied and the charts are attached, since the
+      engine will start attempting pushes as soon as it runs.
 
 ### 5.2 What needs live verification once the above is done
 
