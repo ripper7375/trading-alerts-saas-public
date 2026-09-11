@@ -270,10 +270,10 @@ EVENT_COLUMNS = [
     'actual_value', 'forecast_value', 'prev_value', 'revised_prev_value',
     'impact_type',
 ]
-# The first sync after deployment carries the whole window (~333 rows); after
+# The first sync after deployment carries the whole window (~333-545 rows); after
 # that a cycle yields only what actually changed, typically a handful. The cap
-# just spreads that first drain over two cycles.
-EVENT_MAX_ROWS_PER_CYCLE = 250
+# of 120 ensures the batch stays safely under Express's 100kb body-parser limit (which 413s at ~200 rows).
+EVENT_MAX_ROWS_PER_CYCLE = 120
 REJECTED_EVENTS_FILE = DB_PATH.parent / 'rejected_economic_events.jsonl'
 
 
@@ -487,7 +487,9 @@ def main():
                 # Statistics still drain on an idle cycle — they are low volume
                 # and this is the least contended moment to send them.
                 push_statistics(session, conn)
-                push_economic_events(session, conn)
+                while push_economic_events(session, conn) == EVENT_MAX_ROWS_PER_CYCLE:
+                    if shutdown_requested:
+                        break
                 conn.close()
                 consecutive_failures = 0
                 if iteration % HEALTH_CHECK_INTERVAL == 0:
@@ -504,7 +506,9 @@ def main():
             # Economic events last: price data first, telemetry second, calendar
             # third. Like push_statistics() it swallows its own failures, so it
             # cannot influence the backoff decision below either.
-            push_economic_events(session, conn)
+            while push_economic_events(session, conn) == EVENT_MAX_ROWS_PER_CYCLE:
+                if shutdown_requested:
+                    break
             conn.close()
 
             if pushed or quarantined:
