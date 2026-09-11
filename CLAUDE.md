@@ -26,6 +26,120 @@
 > onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
 > criteria.
 
+> **Ad-hoc session (2026-09-11, phase/session unchanged) — CLOSED SUCCESSFUL, the Cloudflare R2
+> chart-render path DEPLOYED and verified end to end: private bucket → VPS `MT5Renderer` →
+> presigned download → PRO/FREE entitlement, live on `davintrade.app`.** Davin opened with the
+> paste-able prompt from `R2-CHART-STORAGE-ARCHITECTURE-AND-DEPLOYMENT.md` §9 verbatim. Per
+> `EXECUTOR-PROTOCOL.md` §6. **A deployment session, not a build session — zero tracked source
+> files changed.** T1/T2/T3 are Cloudflare- and VPS-side and were Davin's; the Executor wrote T4
+> (the verification script) and drove T5. This closes the `Waiting on` item that had been the top
+> blocking entry since 2026-09-10.
+> **Step Zero worked exactly as that doc intended, and the technique is worth reusing.** The first
+> action was an observation, not a plan: six `BUILT` + `no` for credentials, which routes to
+> "deployment, not implementation" in one command. The largest risk in that document — a session
+> reading it as greenfield and recreating `lib/storage/r2.ts` or the download route from scratch,
+> silently discarding tested code on `main` — never arose. Two things did the work: the §0.0
+> command ordering _observe before propose_, and §9's framing pre-authorising the session to stop
+> and contradict the brief if reality disagreed.
+> **⚠ THE FINDING THAT MATTERS — the specified public-access check would have passed on a PUBLIC
+> bucket.** T4 step 5 as written asks that the object's "unsigned public URL returns 401/403, not
+> 200". But **R2's S3 API is never anonymous**: an unsigned GET against
+> `<account>.r2.cloudflarestorage.com` is refused whatever the bucket's public setting is. So the
+> check as specified is vacuous — it produces confidence without evidence, which is worse than no
+> check on the one setting the entire delivery design rests on (§2.2). Public read on R2 is exposed
+> through a _different_ hostname: the managed `pub-<hash>.r2.dev` domain, or a connected custom
+> domain, neither of which is guessable. Rewrote check 5 as three parts: **5a** the S3-endpoint
+> probe, relabelled in the script itself as `(necessary, NOT sufficient)` so it cannot be
+> skim-read later as an all-clear; **5b** a real fetch through a public hostname if
+> `R2_PUBLIC_BASE_URL` is supplied; **5c** the Cloudflare API (`domains/managed` + `domains/custom`)
+> if `CF_API_TOKEN` is supplied. When neither 5b nor 5c can run the script reports **UNPROVEN**,
+> never PASS. **Consequence to carry forward: bucket privacy is currently dashboard-confirmed by
+> Davin (r2.dev disabled, no custom domain), NOT script-proven**, so Definition-of-Done item 1's
+> literal wording is not met — see the `Waiting on` entry for how to close it.
+> **5c was also hardened against a subtler version of the same failure.** As first written it read
+> `managed?.result?.enabled === true`, so any change in Cloudflare's response shape would have made
+> `enabled` `undefined` and reported **PASS** — an API change silently becoming false assurance.
+> It now requires `success === true` and `typeof enabled === 'boolean'` before trusting a negative,
+> and degrades to UNPROVEN otherwise.
+> **Two bugs in my own verification script, both found by Davin running it, both worth recording
+> because the next person writing one will hit them.** (a) I asserted **path-style** S3 addressing;
+> the AWS SDK defaults to **virtual-hosted**, so the bucket is a host prefix and the key is the
+> whole path — `davintrade-renders.<account>.r2.cloudflarestorage.com/xauusd/…` with the app
+> entirely correct and my assertion wrong. The script now accepts either and names which style it
+> saw. (b) **R2 answers a missing `Authorization` header with `400 InvalidArgument`, not the
+> S3-standard 401/403.** Refused either way; only a 2xx is a finding. Both were reported as FAIL
+> against a correct setup, which is the right direction for a check to err, but both were mine.
+> **A third design point, decided before the script was run rather than patched afterwards:** the
+> doc has step 3 PUT _and delete_ a probe object, then step 5 test public access. Deleting
+> immediately leaves step 5 testing a key that does not exist — and **a missing object on a public
+> bucket returns 404, which reads exactly like "private"**. The probe is held alive through checks
+> 4–5 and deleted in a `finally`. A public-access check is only sound against an object known to
+> be present.
+> **⚠ A live-pipeline hazard found in `install_services.bat`, flagged and routed around rather
+> than triggered.** T3 step 4 offers "run `install_services.bat`, **or** register just this
+> service". Running it wholesale on a live VPS would have been destructive: batch files do not stop
+> on error, so although `nssm install MT5PushWorker` fails harmlessly for an existing service, the
+> next line still executes — `nssm set MT5PushWorker AppEnvironmentExtra BACKFILL_API_KEY=%…%
+API_GATEWAY_URL=%…%` — overwriting the running push worker's real credentials with the file's
+> literal `PUT_REAL_KEY_HERE` / `PUT_REAL_RAILWAY_GATEWAY_URL_HERE` placeholders, breaking
+> ingestion at its next restart. It would also erase the only copy of `API_GATEWAY_URL`, which is
+> precisely the value the still-open "which gateway does the VPS push worker target?" question
+> below depends on. Same exposure for `MT5Collector`. **Registering `MT5Renderer` alone should be
+> the only documented option**; a background task has been raised to make the script per-service
+> and idempotent.
+> **⚠ The fixture-at-the-collector's-database-path incident — created, diagnosed and cleaned up
+> within the session.** With no real `xauusd.db` data available (the `.ex5` rebuild is still
+> outstanding), a synthetic fixture was built at `C:\Scripts\database\xauusd.db` — which is the
+> path `MT5Collector` is installed with (`--db %ROOT%\database\xauusd.db`) and `MT5PushWorker`
+> drains. **Nothing was destroyed, and that is evidence rather than hope:** `build_fixture_db()`
+> issues a plain `CREATE TABLE market_data` with no `IF NOT EXISTS` and never deletes the target
+> file, so against a real database it would have died with `table market_data already exists`; it
+> succeeded, so the file had no `market_data` table. **Synthetic prices could not have reached
+> production either:** the fixture has no `synced_at` column and the push worker's first statement
+> is `SELECT COUNT(*) FROM market_data WHERE synced_at IS NULL`, so the drain fails closed.
+> **The real hazard was a delayed one, and is the part worth remembering:** the collector's own
+> `CREATE TABLE IF NOT EXISTS market_data (…)` no-ops against a wrong-shaped table, after which
+> `promote_cycle()`'s 87-column `INSERT OR REPLACE` fails with `no such column` — so **no cycle
+> could ever promote** while that file sat there. Nothing is flowing today, which is exactly what
+> would have made it dangerous: it would have surfaced weeks later as "the pipeline broke after the
+> indicator rebuild" with no visible link back. Resolved: fixture rebuilt at
+> `C:\Scripts\renderer\fixture.db`, `MTF_DB_PATH` repointed via `AppEnvironmentExtra` (which
+> replaces the whole set, so all four `R2_*` values must be repeated), service restarted, and the
+> pipeline path cleared so the collector recreates the real schema itself.
+> **General rule this produced: a renderer, a test harness or any read-only consumer must never be
+> pointed at a writer's database path**, even to read, because the failure mode is a schema
+> landmine rather than an error.
+> **Verified.** T4 script against the live bucket: **10 PASS / 0 FAIL / 0 PENDING / 2 UNPROVEN**,
+> with 4c going 404 → **206** and both objects **1 minute old** — the strongest single proof, since
+> it exercises render → upload → `chartObjectKey()` → presigned fetch in one line. Unauthenticated
+> `GET /api/chart/download` on production returns **401 `{"error":"Authentication required"}`**,
+> checked by the Executor directly; note the apex 308s to `www` at the edge, so the check must
+> follow the redirect. That 401 also proves an ordering the mocked tests assert but cannot show:
+> **the auth gate short-circuits before any storage work** — with R2 unconfigured a reversed order
+> would have returned 503. `npx tsc --noEmit` and `npx eslint` clean; full monolith `npm run
+test:ci` **181/181 suites · 2513/2513 tests**, exit 0 — **note this is NOT the "176 suites / 2445
+> tests" the R2 doc's own §0.4 and §11 state**; that baseline predates the 2026-09-10
+> economic-events session which took it to 181/2513. No drift from the current baseline, as
+> expected for a session that changed no tracked file; the doc has been corrected.
+> **Not verified by the Executor, per the standing rule that it never enters credentials:** every
+> authenticated T5 check. Davin confirmed all four in a real browser with screenshots — PRO with
+> the toggle OFF downloads `standard` titled "M5 overlay OFF"; ON downloads `overlay` titled "M15
+> channel + M5 channel OVERLAID (PRO)" with the M5 channel on the lower panel; the 307 → presigned
+> private-bucket redirect; and FREE showing a locked toggle with a PRO badge and a PRO-locked
+> Download button.
+> **⚠ The renders are SYNTHETIC until the `.ex5` rebuild lands** — seeded fixture, bars dated around
+> **9 June 2026**. T5's checks remain valid regardless because they test entitlement and variant
+> selection, not prices, but a June-dated axis on a downloaded PNG is the fixture, not a bug.
+> **Artifacts:** `scratch/verify-r2.ts` (new; **untracked and gitignored by `.gitignore:190`**, and
+> deliberately credential-free — it reads env/`.env.local` and redacts presigned URLs before
+> printing, since the query string carries the Access Key ID. ⚠ `scratch/` is **not** in
+> `tsconfig.json`'s exclude list while `include` is `**/*.ts`, so this file is inside
+> `tsc --noEmit`'s scope and therefore inside the pre-push hook's — it must stay type-clean or it
+> blocks pushes. It is kept rather than deleted because re-running it is how bucket privacy gets
+> re-checked after any change; delete it freely). `R2-CHART-STORAGE-ARCHITECTURE-AND-DEPLOYMENT.md`
+> (stale test baseline corrected), this file. Both doc edits uncommitted, per this file's
+> log-first-defer-commit pattern.
+
 > **Ad-hoc session (2026-09-10, phase/session unchanged) — CLOSED SUCCESSFUL, Market Session
 > clock + High-Impact News/Event countdown, and the complete economic-events lane behind it,
 > MT5 → SQLite → gateway → PostgreSQL → API → panel → Stack D Pillar 8.** Started as Davin asking
@@ -2344,35 +2458,35 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 
 ## Waiting on
 
-- **⚠ BLOCKING (chart renders) — create the PRIVATE Cloudflare R2 bucket and credentials**
-  (2026-09-10). Everything in the render→download path is built, tested and pushed, and **none of
-  it functions until this exists**: `/api/chart/download` returns **503** and the `MT5Renderer`
-  VPS service will not start. Needs the bucket `davintrade-renders`, an API token, the five `R2_*`
-  vars set in **Vercel (Production scope** — note the existing preview/production scoping
-  inconsistency already recorded below**)**, and the same filled into `install_services.bat`'s R2
-  block on the VPS.
-  **⚠ Do not enable public read.** Object names are deterministic
-  (`mtf_render_xauusd_m5_m15_overlay.png`), so a public bucket makes the PRO gate cosmetic — anyone
-  told the URL fetches it. That single setting is what the entire delivery design rests on; the
-  presigned-URL flow exists precisely to avoid it.
-  **⚠ IF YOU ARE A SESSION PICKING THIS UP: the code is DONE — do not rebuild it.**
-  `lib/storage/{r2,chart-keys}.ts`, `app/api/chart/download/route.ts`,
-  `lib/preferences/server-preferences.ts`, `components/charts/mtf/useMtfPreference.ts` and
-  `mtf_render_upload_worker.py` all exist on `main` (commits `31b3206f`, `55d598bb`, `41fdcc56`)
-  and are covered by tests. The gap is a bucket and four credentials, nothing else. This reads
-  like a build task and is not one. **Verify with the Step Zero command** in
-  `v2_29_multi-timeframe-visualisation/R2-CHART-STORAGE-ARCHITECTURE-AND-DEPLOYMENT.md` §0.0
-  before proposing anything — that doc is standalone and carries the full deployment plan,
-  the paste-able opening prompt (§9), and the runbook. Also:
-  `MTF-RENDER-DELIVERY-MANIFEST-WORK-COMPLETION.md` §5.
-- **Chart-render click-through — needs Davin, everything else is verified** (2026-09-10). Both
-  workspaces sit behind auth and the Executor never enters credentials, so these are proven by test
-  only: that `/terminal` opens **exactly two** WebSockets (not four or one — the operational cost of
-  the dual-stacked layout, and the input to the socket-refactor trigger below); that the M5-on-M15
-  toggle round-trips (flip → reload → it sticks → download serves the `overlay` variant); that the
-  FREE tier renders both charts with a **locked** toggle routing to `/pricing`; and that the
-  pane-splitting maths looks right, since jsdom's `ResizeObserver` is a no-op stub and that path has
-  no meaningful coverage. Gated on the R2 item above for the download half.
+- **RESOLVED 2026-09-11 — the R2 chart-render path is DEPLOYED AND LIVE end to end.** Bucket
+  `davintrade-renders` created private, five `R2_*` vars set in Vercel (Production) and redeployed,
+  `MT5Renderer` registered under NSSM and uploading, both objects present and refreshing, and the
+  PRO/FREE entitlement verified in a real browser. Full account in the 2026-09-11 ad-hoc entry at
+  the top of this file. **Two things a later session still needs to know:**
+  **(a) Bucket privacy is dashboard-confirmed, not script-proven.** The Definition of Done asked
+  for it to be "verified by T4's public-access check, not assumed", and that literal wording is
+  **not** met. The reason is worth keeping: **an unsigned GET against the S3 endpoint is refused
+  even on a PUBLIC bucket** — R2's S3 API is never anonymous — so the check as originally specified
+  would have passed on a public bucket and produced false assurance. Public read on R2 lives on a
+  _different_ hostname (the managed `pub-<hash>.r2.dev` domain, or a connected custom domain).
+  Davin confirmed in the dashboard that r2.dev is disabled and no custom domain exists. To close
+  it properly, set `CF_API_TOKEN` (a Cloudflare API token with **Workers R2 Storage: Read**, a
+  different credential from the S3 keys) and re-run `scratch/verify-r2.ts`, whose check 5c then
+  answers definitively. Until then that check reports **UNPROVEN**, deliberately, rather than PASS.
+  **(b) The renders are currently SYNTHETIC.** `MT5Renderer` reads
+  `C:\Scripts\renderer\fixture.db`, a seeded fixture whose bars are dated around **9 June 2026**.
+  Real candles wait on the `.ex5` rebuild (its own blocking item above). A June-dated axis on a
+  downloaded PNG is the fixture, not a bug.
+- **Chart-render click-through — PARTLY RESOLVED 2026-09-11, two items remain** (2026-09-10).
+  Verified by Davin in a real browser on `davintrade.app`: the M5-on-M15 toggle round-trips and the
+  download serves the matching variant (OFF → `standard`, titled "M5 overlay OFF"; ON → `overlay`,
+  titled "M15 channel + M5 channel OVERLAID (PRO)", M5 channel drawn on the lower panel), and the
+  FREE tier shows a **locked** toggle with a PRO badge and a PRO-locked Download button. **Still
+  unverified**, both needing a live click-through the Executor cannot perform: that `/terminal`
+  opens **exactly two** WebSockets (not four or one — the operational cost of the dual-stacked
+  layout, and the input to the socket-refactor trigger below), and that the pane-splitting maths
+  looks right, since jsdom's `ResizeObserver` is a no-op stub and that path has no meaningful
+  coverage.
 - **Socket-refactor trigger — DECIDED, do not refactor yet** (2026-09-10). Two WebSockets per
   viewer on `/terminal` and `/free`. Reviewed and deliberately declined: eventlet is green-threaded
   so this is a doubling of a small number, the fix means refactoring `useOhlcvSocket` (which the

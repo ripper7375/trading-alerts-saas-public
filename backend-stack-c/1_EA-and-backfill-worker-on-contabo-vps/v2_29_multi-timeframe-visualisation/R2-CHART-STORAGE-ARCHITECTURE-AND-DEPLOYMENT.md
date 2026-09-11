@@ -76,8 +76,11 @@ in §1, stop — you are duplicating working code.
 
 - **Never run `npm run lint`** — it is broken in this repo (`LESSONS-LEARNED.md` L38). Use
   `npx eslint <files>`.
-- Run the full monolith suite with **`npm run test:ci`**. Current baseline: **176 suites /
-  2445 tests**. Any other number means you changed something.
+- Run the full monolith suite with **`npm run test:ci`**. Current baseline: **181 suites /
+  2513 tests** (measured 2026-09-11). Any other number means you changed something. This document
+  originally said 176 / 2445, which was correct when written and was overtaken hours later by the
+  economic-events session — check the baseline against the newest `CLAUDE.md` entry rather than
+  trusting a number in a standalone doc.
 - **Stage files by name.** The working tree carries unrelated in-progress work (`.ex5` binaries,
   capture data). Never `git add -A`.
 - `seed-code/**` is read-only by convention unless Davin says otherwise.
@@ -483,12 +486,14 @@ so the natural response is to build. Two rules:
 
 ## 11. Definition of done
 
-- [ ] Bucket `davintrade-renders` exists and is **private** — verified by T4's public-access check, not assumed
-- [ ] Five `R2_*` vars set in Vercel (Production), deployment redeployed
-- [ ] `MT5Renderer` running on the VPS, logging successful uploads
-- [ ] Both objects present under `xauusd/`, refreshing every ~5 minutes
-- [ ] PRO download returns a PNG; the variant follows the `M5 on M15` toggle
-- [ ] FREE download routes to `/pricing` and yields no PNG
-- [ ] Unauthenticated `GET /api/chart/download` returns 401
-- [ ] `npm run test:ci` still **176 suites / 2445 tests**
-- [ ] No credential committed, and nothing containing one left on disk
+- [x] Bucket `davintrade-renders` exists and is **private** — ⚠ **dashboard-confirmed (r2.dev disabled, no custom domain), NOT script-proven.** T4 step 5 as originally specified was vacuous: R2's S3 API is never anonymous, so an unsigned GET is refused on a public bucket too. Set `CF_API_TOKEN` (Workers R2 Storage: Read) and re-run `scratch/verify-r2.ts` check 5c to close this properly
+- [x] Five `R2_*` vars set in Vercel (Production), deployment redeployed
+- [x] `MT5Renderer` running on the VPS, logging successful uploads
+- [x] Both objects present under `xauusd/`, refreshing every ~5 minutes — ⚠ rendered from a **synthetic fixture** (`C:\Scripts\renderer\fixture.db`, bars dated ~9 June 2026) until the `.ex5` rebuild lands. Deliberately **not** `C:\Scripts\database\xauusd.db`: that is the collector's own path, and a fixture there wedges `promote_cycle()` — see the 2026-09-11 `CLAUDE.md` entry
+- [x] PRO download returns a PNG; the variant follows the `M5 on M15` toggle
+- [x] FREE download routes to `/pricing` and yields no PNG
+- [x] Unauthenticated `GET /api/chart/download` returns 401 — note the apex 308s to `www` at the edge, so follow the redirect
+- [x] `npm run test:ci` — **181 suites / 2513 tests** (see §0.4; the 176 / 2445 above was stale)
+- [x] No credential committed, and nothing containing one left on disk — `scratch/verify-r2.ts` is gitignored and credential-free (reads env / `.env.local`, redacts presigned URLs before printing). Real values live only in Cloudflare, Vercel, NSSM and the gitignored `.env.local`
+
+**Completed 2026-09-11.** Deployment and verification account: the 2026-09-11 ad-hoc entry in `CLAUDE.md`.
