@@ -104,6 +104,14 @@ jest.mock('@/components/charts/drawing/useFiredAlertMarkers', () => ({
   useFiredAlertMarkers: jest.fn(),
 }));
 
+// Same reasoning as useFiredAlertMarkers immediately above: this hook does
+// its own real fetch('/api/market/economic-events'), which hits the same
+// jsdom "Invalid URL" issue. It has its own dedicated test coverage at
+// __tests__/drawing/useEventMarkers.test.ts.
+jest.mock('@/components/charts/drawing/useEventMarkers', () => ({
+  useEventMarkers: jest.fn(),
+}));
+
 // MtfToggle calls next/navigation's useRouter(), which requires an App
 // Router context this test doesn't set up. It's a tangential subsystem
 // (multi-timeframe overlay toggle) unrelated to what this file tests, so

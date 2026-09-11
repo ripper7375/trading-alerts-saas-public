@@ -16,6 +16,7 @@ import { useLocale } from '@/lib/context/locale-context';
 import { useChartAppearance } from '@/components/providers/appearance-provider';
 
 import { DrawingLayer } from './drawing/DrawingLayer';
+import { useEventMarkers } from './drawing/useEventMarkers';
 import { useFiredAlertMarkers } from './drawing/useFiredAlertMarkers';
 import { MtfToggle } from './mtf/MtfToggle';
 import { useMtfOverlay } from './mtf/useMtfOverlay';
@@ -120,6 +121,12 @@ export function TradingChart({
   // on M15 (overlaying M5 structure onto its own chart adds nothing).
   const { data: session } = useSession();
   const isPro = session?.user?.tier === 'PRO';
+
+  // Vertical lines at upcoming high-impact economic-event times. Gated on
+  // isPro purely to skip a request the API route would 403 anyway -- not a
+  // separate entitlement decision, the route already owns that check.
+  useEventMarkers(chartApi, seriesApi, isPro);
+
   const mtfAvailable = timeframe.toUpperCase() === 'M15';
   // Persisted, not component state: /api/chart/download reads the same
   // preference to decide which rendered variant to serve, so the downloaded
