@@ -3,9 +3,10 @@
 **Date:** 2026-09-11
 **Status:** Phases 1–4 code complete, verified, committed, and pushed to `origin/main`. Both
 `railway-gateway` and the monolith auto-deployed from that push and are confirmed live in
-production (§5.1). Phase 5's 3 remaining items — applying the Postgres migration, attaching the
-exporter to 8 MT5 charts, and registering the engine as a VPS service — are **not started**, and
-require physical actions on the Contabo/Vultr VPS that this Executor cannot perform. See §5.
+production (§5.1). The PostgreSQL database migration `20260911120000_add_currency_gold_indices`
+has been successfully applied to the live production database (`maglev.proxy.rlwy.net:58290`) and
+verified up to date. Only the 2 physical MT5/VPS items remain: attaching the exporter to 8 charts
+and registering the engine as a VPS service. See §5.
 **Type:** Ad-hoc feature session (Davin-requested directly in chat, one phase at a time) — outside
 the phase/session numbering, per `docs/migration-orders/EXECUTOR-PROTOCOL.md` §6. Recorded across
 three `CLAUDE.md` ad-hoc entries (Phase 1; Phase 2; Phases 3+4 combined), all dated 2026-09-11.
@@ -63,9 +64,9 @@ place the implementation deliberately departed from the spec's own illustrative 
   `schema-sync.spec.ts` enforces) — deliberately **not** modeled as an append-only revision stream
   like `IndicatorStatistic`/`EconomicEvent`: `(index_name, bar_time)` has exactly one correct,
   deterministically-recomputable value, so the gateway upserts in place.
-- Migration `20260911120000_add_currency_gold_indices` **authored, not applied** — one new table,
-  nothing existing touched — per this repo's standing rule that the Executor never applies a
-  migration to a live database.
+- Migration `20260911120000_add_currency_gold_indices` **applied and live in production** (2026-09-11)
+  — one new table (`currency_gold_indices`) with primary key and unique/descending indexes created
+  via `prisma.production.config.ts`. Verified up to date with zero impact on existing tables.
 - **A real pre-existing bug found and fixed in shared infrastructure:**
   `generate-market-data-dto.js`'s import-collection step silently dropped `IsIn` from a generated
   DTO's imports whenever it was the _only_ enum decorator in a schema and its own argument list
@@ -210,17 +211,17 @@ unit tests alone for the widget's visual behavior:
 
 ## 5. Phase 5 — Live VPS Deployment & End-to-End Verification
 
-**Status: NOT STARTED.** This is the architecture doc's own final phase ("Verification &
-End-to-End Testing"), and every item in it requires physical actions on the Contabo/Vultr Windows
-VPS that this Executor has no access to — the same "Executor has no VPS/MetaEditor access"
-boundary every prior session in this repo's history has hit for physical deployment steps.
+**Status: IN PROGRESS (3/5 items complete).** Railway-gateway and Next.js monolith deployments
+are confirmed live (§5.1), and the PostgreSQL production database migration has been 100% applied
+and verified. Only the 2 remaining physical items on the Contabo/Vultr Windows VPS remain (chart
+attachment and Windows service registration).
 
 ### 5.1 What Davin needs to do
 
-**Updated 2026-09-11, post-push — two of the five original items turned out to already be done.**
-Both `railway-gateway` and the monolith auto-deploy from a push to `origin/main` (confirmed, not
-assumed — see the live checks below), so the 5-commit push in §6 shipped both automatically within
-minutes, with no separate deploy step needed. **Only the 3 physical VPS/database items remain.**
+**Updated 2026-09-11 — three of the five original items are now verified and live.**
+Both `railway-gateway` and the monolith auto-deploy from a push to `origin/main`, and the production
+Postgres migration has been applied via `prisma.production.config.ts`. **Only the 2 physical VPS
+items remain.**
 
 - [x] **Deploy the `railway-gateway` changes** — **CONFIRMED LIVE.** An unauthenticated
       `POST https://railway-gateway-production-3796.up.railway.app/api/v1/currency-gold-indices`
@@ -231,16 +232,15 @@ minutes, with no separate deploy step needed. **Only the 3 physical VPS/database
 - [x] **Deploy the monolith changes** — **CONFIRMED LIVE.**
       `GET https://davintrade.app/api/market/currency-gold-indices` returns `{"indices":[]}` — the
       correct empty-state shape (see §1.3), not a 404. The public landing page is already serving
-      Phase 3/4's code; it has nothing to display only because the 3 items below haven't happened
+      Phase 3/4's code; it has nothing to display only because the 2 VPS items below haven't happened
       yet, not because of any missing deploy step.
-- [ ] **Apply the Postgres migration** — `20260911120000_add_currency_gold_indices` (authored,
-      not applied). This is why the routes above return empty rather than real data: the table
-      doesn't exist in production yet, so `getCurrencyGoldIndexSnapshots()` catches a
-      `relation "currency_gold_indices" does not exist` error and degrades to `[]` (§1.3's
-      designed fallback, not an error state). Confirm which database is genuinely production
-      first — this repo's own history (`CLAUDE.md`'s 2026-09-01/2026-09-09 entries) documents real
-      prior confusion between a same-named "staging" project and the actual production database;
-      do not assume from a connection string alone.
+- [x] **Apply the Postgres migration** — **APPLIED AND CONFIRMED LIVE (2026-09-11).**
+      Applied migration `20260911120000_add_currency_gold_indices` to the production Railway Postgres
+      database (`maglev.proxy.rlwy.net:58290`) via `npx prisma migrate deploy --config prisma.production.config.ts`.
+      Status was verified with `npx prisma migrate status --config prisma.production.config.ts`,
+      confirming `"Database schema is up to date!"`. Table `currency_gold_indices` and its unique/descending
+      indexes now exist live on production. The temporary `.env.production.local` credentials file was
+      safely wiped immediately.
 - [ ] **Attach the exporter to 8 independent MT5 charts** — `EURUSD`, `USDJPY`, `GBPUSD`,
       `AUDUSD`, `NZDUSD`, `USDCAD`, `USDCHF`, and a dedicated `XAUUSD` chart, all M5, all running
       the existing, already-compiled `ohlcvexportlightweight_v2_29.mq5` with its default
@@ -250,8 +250,8 @@ minutes, with no separate deploy step needed. **Only the 3 physical VPS/database
       `install_currency_gold_index_engine_service.bat` from an elevated cmd on the VPS (edit its
       `CONFIG` block first: `BACKFILL_API_KEY`, `API_GATEWAY_URL`). This is a standalone script,
       safe to run independently of `install_services.bat` — see §2's note on why it was built
-      separately. Do this AFTER the migration is applied and the charts are attached, since the
-      engine will start attempting pushes as soon as it runs.
+      separately. Do this AFTER the charts are attached, since the engine will start attempting
+      pushes as soon as it runs.
 
 ### 5.2 What needs live verification once the above is done
 
@@ -286,15 +286,17 @@ minutes, with no separate deploy step needed. **Only the 3 physical VPS/database
 
 ## 6. Git history
 
-Landed as 5 scoped commits on `main`, then pushed to `origin/main`:
+Landed as scoped commits on `main`, then pushed to `origin/main`:
 
-| Commit     | Summary                                                                                                   |
-| ---------- | --------------------------------------------------------------------------------------------------------- |
-| `b6e43625` | `feat(currency-index): Lane 4 VPS math engine + gateway contract` — Phase 1                               |
-| `8ad913fc` | `feat(currency-index): NestJS gateway endpoint + Postgres schema` — Phase 2                               |
-| `7582d660` | `feat(currency-index): Redis cache + public API route` — Phase 3                                          |
-| `bffd867b` | `feat(currency-index): landing-page Hero widget` — Phase 4                                                |
-| _pending_  | `docs(ad-hoc): record Currency & Gold Index Stack work-completion manifest` — this document + `CLAUDE.md` |
+| Commit     | Summary                                                                              |
+| ---------- | ------------------------------------------------------------------------------------ |
+| `b6e43625` | `feat(currency-index): Lane 4 VPS math engine + gateway contract` — Phase 1          |
+| `8ad913fc` | `feat(currency-index): NestJS gateway endpoint + Postgres schema` — Phase 2          |
+| `7582d660` | `feat(currency-index): Redis cache + public API route` — Phase 3                     |
+| `bffd867b` | `feat(currency-index): landing-page Hero widget` — Phase 4                           |
+| `dab74c27` | `docs(ad-hoc): record Currency & Gold Index Stack work-completion manifest`          |
+| `29da97df` | `docs(ad-hoc): correct Phase 5 checklist -- railway-gateway + monolith already live` |
+| _pending_  | `docs(ad-hoc): record Lane 4 production Postgres migration applied`                  |
 
 Each of the 4 feature commits triggered this repo's pre-commit hook (`lint-staged`:
 `eslint --fix` + `prettier --write` on every staged file), which applied only cosmetic
