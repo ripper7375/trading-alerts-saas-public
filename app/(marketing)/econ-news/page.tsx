@@ -136,6 +136,19 @@ export default function EconNewsPage() {
           locale={tvLocale}
         />
       </div>
+
+      {/*
+        This page is TradingView's own calendar; the /terminal panel is our
+        own MT5-sourced calendar. The two vendors do not carry identical
+        release data, so they can disagree -- named here so a visitor who
+        later sees the terminal banner show a different time/forecast for
+        the same event isn't left thinking one of the two is simply wrong.
+      */}
+      <p className="text-center text-xs text-muted-foreground">
+        {t(
+          'This calendar is provided by TradingView. The in-app terminal panel uses its own MT5-sourced calendar, which may occasionally show different times or forecasts for the same event.'
+        )}
+      </p>
     </div>
   );
 }
