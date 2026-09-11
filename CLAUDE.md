@@ -13,6 +13,76 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-11, phase/session unchanged) — CLOSED SUCCESSFUL, four small
+> frontend slices shipped from `davintrade-stack-d-and-e/FRONTEND-UI-REVISION-RECOMMENDATIONS.md`,
+> each independently verified and committed.** Davin asked for an implementation plan covering
+> everything from that doc "that could possibly be implemented today," in priority order, with a
+> go/no-go call on each. Per `EXECUTOR-PROTOCOL.md` §6 (direct chat instruction). Planned via
+> `EnterPlanMode`, grounded in three parallel Explore passes against live code (economic-events data
+> layer, `indicator_statistics`/PRO-gating patterns, chart-primitive/alert-type feasibility) rather
+> than restating the doc's own recommendations — plan approved, then executed the same session.
+> **One doc blocker was already resolved by the time this ran, not by this session:** the
+> economic-events lane the doc gated everything on was confirmed live in production per the
+> 2026-09-10/11 entries below (545 events, banner rendering on `davintrade.app`), so §3's items were
+> never actually blocked here.
+> **What shipped, in priority order, one commit each:** (1) `/econ-news` source footnote —
+> TradingView's calendar and the terminal's own MT5-sourced one can disagree; named the source so a
+> visitor isn't left thinking one is wrong. (2) Expandable economic-events list — the route already
+> returned up to 10 events; `useUpcomingEvent` (renamed `useUpcomingEvents`) only ever kept index 0.
+> **No backend change needed at all** — re-checking the route during planning found it already
+> serves the full list; the fix was purely the hook + an inline expand row on
+> `session-status-banner.tsx` (not an absolute popover — the parent card is `overflow-hidden` for
+> its rounded corners and would clip one). (3) Chart event markers — vertical lines at upcoming
+> HIGH-impact event times on both M5/M15 panes, via a new `lightweight-charts` v5 series primitive
+> (`EventVerticalLine`, `attachPrimitive`/`detachPrimitive`) adapted from the vendored plugin example
+> at `seed-code/lightweight-charts/plugin-examples/`. Reuses the banner's own
+> `XAU_RELEVANT_CURRENCIES` default rather than inventing a second "what's relevant" filter, and is
+> gated client-side on `isPro` purely to skip a request the route would 403 anyway. (4) Containment
+> Rate panel — the first-ever frontend consumer of `indicator_statistics` (confirmed zero consumers
+> via repo-wide grep both before and during planning). Ships **only** `containment_rate`, a raw
+> already-computed percentage — deliberately not a composite "quality score," since R², Bar Coverage
+> and Baseline Symmetry each carry an unresolved formula problem per the doc's own §2.3 (contradictory
+> bands, an off-by-5 table, R² measured negative in real captured data, an asymmetry-penalty question
+> that may be measuring the wrong thing). The query layer mirrors `lib/economic-events/queries.ts`'s
+> distinct-on-append-only-key collapse exactly; the route mirrors `/api/market/economic-events`'s
+> PRO-gate line for line.
+> **A real type-resolution problem found and solved, not routed around:** the vendored vertical-line
+> plugin imports `CanvasRenderingTarget2D` from `fancy-canvas` directly — a transitive dependency of
+> `lightweight-charts` only, not a direct one of this app, and not hoisted to the top-level
+> `node_modules/` under this workspace's pnpm layout (confirmed via `Glob`, not assumed). A direct
+> import would have been unresolvable from application code. Solved by deriving the type instead —
+> `Parameters<IPrimitivePaneRenderer['draw']>[0]` — which needs no import of `fancy-canvas` by name;
+> `lightweight-charts`' own `.d.ts` still resolves it correctly via pnpm's per-package `node_modules`
+> when `tsc` type-checks the derived type. `tsc --noEmit` confirmed clean.
+> **Two NO-GO calls, both matching the doc's own recommendation on inspection, not just restated:**
+> pre-event alerts (§3.2) — a genuinely new evaluation primitive; no time-based/scheduled alert type
+> exists anywhere (both existing types are keyed off live price ticks, one polled, one Redis-pushed),
+> so it would need a new scheduler in `operation-service/src/alert-engine/`, a new market-data Prisma
+> client wired into that service, a dedup/fired-state mechanism, and real design decisions (which
+> minutes-before options, global vs per-alert) — a legitimate scope for its own session, not a slot
+> in a 5-item day. D5 gauge dials (§4) — no formulas exist anywhere in the repo for any of the 3
+> dials; building would mean fabricating what they measure.
+> **Verified per item before each commit** (`tsc --noEmit` + `eslint` on changed files + the item's
+> own new/updated tests), and once at the end for the whole session: full `npm run test:ci`
+> **184/184 suites, 2537/2537 tests** — up from the prior 181/2513 baseline by exactly the 3 new
+> suites/24 new tests this session added, zero regressions elsewhere. Also live-checked in a real
+> browser: `next dev` compiled the full `/terminal` module graph (including the two new chart-marker
+> files) with zero errors, and the unauthenticated redirect to `/login` behaved correctly.
+> **Not verified by the Executor, flagged rather than assumed:** full authenticated click-through of
+> all four features against real PRO-gated data on `/terminal` — same "Executor never enters
+> credentials" boundary as every other authenticated surface in this file's history. The Containment
+> Rate panel specifically has one open data question: whether the VPS has emitted a fresh capture
+> with the `[EDT CHANNEL]` fields populated since the 2026-09-11 indicator recompile — the panel
+> degrades to rendering nothing if not, so this is a "will it show anything yet" question, not a
+> correctness risk.
+> **Artifacts:** `app/(marketing)/econ-news/page.tsx`; `components/market-sessions/
+useUpcomingEvents.ts` (renamed from `useUpcomingEvent.ts`), `session-status-banner.tsx`,
+> `useContainmentRates.ts` (new), `containment-rate-strip.tsx` (new); `components/charts/
+trading-chart.tsx`, `drawing/EventVerticalLine.ts` (new), `drawing/useEventMarkers.ts` (new);
+> `lib/indicator-statistics/queries.ts` (new); `app/api/market/indicator-statistics/route.ts` (new);
+> `components/market-comments-panel.tsx`; 5 test files (3 new, 2 updated); this file. 4 commits,
+> `49a6f28d`..`79e05eb3`, all on `main`, none pushed to `origin` yet this session.
+
 > **STANDING INSTRUCTION (Davin, 2026-07-22, NARROWED 2026-07-24 — still in force
 > until Davin lifts it further):** chain-length-one originally read as "webhooks cut
 > over FIRST (both providers), before 4A-7 or any Slice 4 work." **Davin confirmed
