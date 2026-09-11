@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import { useChartAppearance } from '@/components/providers/appearance-provider';
 import { useLocale } from '@/lib/context/locale-context';
 import { ArrowRight } from 'lucide-react';
+import { CurrencyIndexHeroWidget } from '@/components/market/currency-index-hero-widget';
 
 /**
  * Session 9-1 deferred the seed-code support-chat widget
@@ -67,6 +68,13 @@ export function LandingHero() {
                 </button>
               </Link>
             </div>
+
+            {/* G8 Currency & Gold Index Suite (Lane 4) -- public marketing/
+                conversion widget, architecture doc section 7.1. Renders
+                nothing at all until real data exists (see
+                CurrencyIndexHeroWidget's own early-return), so it never
+                shows a broken or empty-looking card before Lane 4 is live. */}
+            <CurrencyIndexHeroWidget />
 
             {/* Metric Trust Indicators */}
             <div className="grid grid-cols-3 gap-4 pt-2">

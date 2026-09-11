@@ -25,6 +25,22 @@ jest.mock('@/components/auth/login-form', () => {
   };
 });
 
+// LandingHero now renders CurrencyIndexHeroWidget, which fetches via SWR.
+// jest.setup.js polyfills global.fetch with undici's real implementation
+// (not a stub), so an unmocked call here would attempt a genuine request to
+// a relative URL and reject -- the exact "leaked fetch past jsdom teardown"
+// failure class LESSONS-LEARNED.md already documents for LocaleProvider's
+// geo-IP call (that leak surfaced its error inside an unrelated suite).
+// Mocking the hook directly, rather than 'swr' itself, keeps this scoped to
+// what this file actually renders.
+jest.mock('@/components/market/useCurrencyGoldIndices', () => ({
+  useCurrencyGoldIndices: () => ({
+    indices: [],
+    isLoading: false,
+    error: undefined,
+  }),
+}));
+
 import { LandingHero } from '@/components/landing/landing-hero';
 import { MarketingNavbar } from '@/components/marketing/marketing-navbar';
 import LoginPage from '@/app/(auth)/login/page';
